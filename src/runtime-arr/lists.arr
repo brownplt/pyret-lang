@@ -47,218 +47,6 @@ end
 #
 #   3) Method names are allowed be shadowed and are non-recursive
 
-
-# TODO(alex): if performance is an issue, swap to raw JS
-#   Need to pass in variant constructors explicitly b/c of runtime method construction
-fun foldl-complicated<a, b>(
-  is-first :: Boolean,
-  flist :: List<a>,
-  f :: (a, b -> b),
-  x :: (a, b -> b),
-  l :: (a, b -> b),
-  base :: b) -> b:
-  cases(List) flist:
-    | link(head, tail) =>
-      if is-first:
-        foldl-complicated(false, tail, f, x, l, f(head, base))
-      else if tail == empty:
-        foldl-complicated(false, tail, f, x, l, l(head, base))
-      else:
-        foldl-complicated(false, tail, f, x, l, x(head, base))
-      end
-    | empty => base
-  end
-end
-
-fun join-str<a>(l :: List<a>, sep :: String) -> String:
-  f = lam(elem, acc):
-    acc + G.js-to-string(elem)
-  end
-
-  x = lam(elem, acc):
-    acc + sep + G.js-to-string(elem)
-  end
-
-  foldl-complicated(true, l, f, x, x, "")
-where:
-  join-str(raw-array-to-list([RA.raw-array: 1, "2", 3]), "+") is "1+2+3"
-  join-str(raw-array-to-list([RA.raw-array: ]), "+") is ""
-  join-str(raw-array-to-list([RA.raw-array: 1]), "+") is "1"
-  join-str(raw-array-to-list([RA.raw-array: 1, 2]), "+") is "1+2"
-end
-
-fun join-str-last<a>(jlist :: List<a>, sep :: String, last-sep :: String) -> String:
-  f = lam(elem, acc):
-    acc + G.js-to-string(elem)
-  end
-
-  x = lam(elem, acc):
-    acc + sep + G.js-to-string(elem)
-  end
-
-  l = lam(elem, acc):
-    acc + last-sep + G.js-to-string(elem)
-  end
-
-  foldl-complicated(true, jlist, f, x, l, "")
-where:
-  join-str-last(raw-array-to-list([RA.raw-array: 1, "2", 3]), "+", "-") is "1+2-3"
-  join-str-last(raw-array-to-list([RA.raw-array: ]), "+", "-") is ""
-  join-str-last(raw-array-to-list([RA.raw-array: 1]), "+", "-") is "1"
-  join-str-last(raw-array-to-list([RA.raw-array: 1, 2]), "+", "-") is "1-2"
-  join-str-last(raw-array-to-list([RA.raw-array: 1, 2, 3, 4]), "+", "-") is "1+2+3-4"
-end
-
-fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
-  doc: ```Returns the list without the element if found, or the whole list if it is not```
-  if is-empty(lst):
-    empty
-  else:
-    if elt == lst.first:
-      remove(lst.rest, elt)
-    else:
-      link(lst.first, remove(lst.rest, elt))
-    end
-  end
-end
-
-# TODO(alex): if performance is an issue, swap to raw JS
-#   Need to pass in variant constructors explicitly b/c of runtime method construction
-fun filter<a>(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
-  doc: "Returns the subset of lst for which f(elem) is true"
-  lst.foldr(
-    lam(e, acc):
-      if f(e):
-        link(e, acc)
-      else:
-        acc
-      end
-    end,
-    empty
-  )
-end
-
-fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> } block:
-  doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
-  when (n < 0) or G.not(G.num-is-integer(n)):
-    raise("Invalid index")
-  end
-  var prefix = empty
-  var suffix = empty
-  fun help(ind, l):
-    if ind == 0: suffix := l
-    else:
-      cases(List) l block:
-        | empty => raise("Index too large")
-        | link(fst, rst) =>
-          help(ind - 1, rst)
-          prefix := fst ^ link(_, prefix)
-      end
-    end
-  end
-  help(n, lst)
-  { prefix: prefix, suffix: suffix }
-end
-
-# TODO(alex): if performance is an issue, swap to raw JS
-#   Need to pass in variant constructors explicitly b/c of runtime method construction
-fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
-  doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,
-        starting with the initial value```
-  cases(List) lst:
-    | link(fst, rst) =>
-      fold(f, f(base, fst), rst)
-    | empty =>
-      base
-  end
-end
-
-fun reverse<a>(lst :: List<a>) -> List<a>:
-  doc: "Returns a new list containing the same elements as this list, in reverse order"
-  fold(lam(acc, elt): link(elt, acc) end, empty, lst)
-where:
-  reverse(raw-array-to-list([RA.raw-array: ])) is raw-array-to-list([RA.raw-array: ])
-  reverse(raw-array-to-list([RA.raw-array: 1, 3])) is raw-array-to-list([RA.raw-array: 3, 1])
-end
-
-fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing block:
-  doc: "Calls f for each elem in lst, and returns nothing"
-  fold(lam(_, elt): f(elt) end, nothing, lst)
-  nothing
-end
-
-# TODO(alex): if performance is an issue, swap to raw JS
-#   Need to pass in variant constructors explicitly b/c of runtime method construction
-fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b> block:
-  doc: "Returns a list made up of f(elem) for each elem in lst"
-  cases(List) lst:
-    | link(fst, rst) => link(f(fst), map(f, lst))
-    | empty => empty
-  end
-end
-
-fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true :: List<a>, is-false :: List<a>} block:
-  doc: "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
-  var is-true = empty
-  var is-false = empty
-  fun help(inner-lst):
-    if is-empty(inner-lst) block:
-      nothing
-    else:
-      help(inner-lst.rest)
-      if f(inner-lst.first):
-        is-true := inner-lst.first ^ link(_, is-true)
-      else:
-        is-false := inner-lst.first ^ link(_, is-false)
-      end
-    end
-  end
-  help(lst)
-  { is-true: is-true, is-false: is-false }
-end
-
-fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> Option<a>:
-  doc: ```Returns some(elem) where elem is the first elem in lst for which
-        f(elem) returns true, or none otherwise```
-  if is-empty(lst):
-    none
-  else:
-    if f(lst.first):
-      some(lst.first)
-    else:
-      find(f, lst.rest)
-    end
-  end
-end
-
-fun get<a>(lst :: List<a>, n :: Number) -> a:
-  doc: "Returns the nth element of the given list, or raises an error if n is out of range"
-  fun help(l, cur):
-    if is-empty(l): raise("get: n too large " + tostring(n))
-    else if cur == 0: l.first
-    else: help(l.rest, cur - 1)
-    end
-  end
-  if n < 0: raise("get: invalid argument: " + tostring(n))
-  else: help(lst, n)
-  end
-end
-
-fun set<a>(lst :: List<a>, n :: Number, v) -> a:
-  doc: ```Returns a new list with the same values as the given list but with the nth element
-        set to the given value, or raises an error if n is out of range```
-  fun help(l, cur):
-    if is-empty(l): raise("set: n too large " + tostring(n))
-    else if cur == 0: v ^ link(_, l.rest)
-    else: l.first ^ link(_, help(l.rest, cur - 1))
-    end
-  end
-  if n < 0: raise("set: invalid argument: " + tostring(n))
-  else: help(lst, n)
-  end
-end
-
-
 # NOTE(alex): Until typechecker is updated, do NOT add type annotations to "with" methods
 #   Relying on type inference in order to infer the correct refinement type
 data List<a>:
@@ -487,6 +275,218 @@ end
 fun raw-array-to-list<a>(array :: RawArray<a>) -> List<a>:
   RA.raw-array-foldr(lam(acc, current): link(current, acc) end, empty, array)
 end
+
+# TODO(alex): if performance is an issue, swap to raw JS
+#   Need to pass in variant constructors explicitly b/c of runtime method construction
+fun foldl-complicated<a, b>(
+  is-first :: Boolean,
+  flist :: List<a>,
+  f :: (a, b -> b),
+  x :: (a, b -> b),
+  l :: (a, b -> b),
+  base :: b) -> b:
+  cases(List) flist:
+    | link(head, tail) =>
+      if is-first:
+        foldl-complicated(false, tail, f, x, l, f(head, base))
+      else if tail == empty:
+        foldl-complicated(false, tail, f, x, l, l(head, base))
+      else:
+        foldl-complicated(false, tail, f, x, l, x(head, base))
+      end
+    | empty => base
+  end
+end
+
+fun join-str<a>(l :: List<a>, sep :: String) -> String:
+  f = lam(elem, acc):
+    acc + G.js-to-string(elem)
+  end
+
+  x = lam(elem, acc):
+    acc + sep + G.js-to-string(elem)
+  end
+
+  foldl-complicated(true, l, f, x, x, "")
+where:
+  join-str(raw-array-to-list([RA.raw-array: 1, "2", 3]), "+") is "1+2+3"
+  join-str(raw-array-to-list([RA.raw-array: ]), "+") is ""
+  join-str(raw-array-to-list([RA.raw-array: 1]), "+") is "1"
+  join-str(raw-array-to-list([RA.raw-array: 1, 2]), "+") is "1+2"
+end
+
+fun join-str-last<a>(jlist :: List<a>, sep :: String, last-sep :: String) -> String:
+  f = lam(elem, acc):
+    acc + G.js-to-string(elem)
+  end
+
+  x = lam(elem, acc):
+    acc + sep + G.js-to-string(elem)
+  end
+
+  l = lam(elem, acc):
+    acc + last-sep + G.js-to-string(elem)
+  end
+
+  foldl-complicated(true, jlist, f, x, l, "")
+where:
+  join-str-last(raw-array-to-list([RA.raw-array: 1, "2", 3]), "+", "-") is "1+2-3"
+  join-str-last(raw-array-to-list([RA.raw-array: ]), "+", "-") is ""
+  join-str-last(raw-array-to-list([RA.raw-array: 1]), "+", "-") is "1"
+  join-str-last(raw-array-to-list([RA.raw-array: 1, 2]), "+", "-") is "1-2"
+  join-str-last(raw-array-to-list([RA.raw-array: 1, 2, 3, 4]), "+", "-") is "1+2+3-4"
+end
+
+fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
+  doc: ```Returns the list without the element if found, or the whole list if it is not```
+  if is-empty(lst):
+    empty
+  else:
+    if elt == lst.first:
+      remove(lst.rest, elt)
+    else:
+      link(lst.first, remove(lst.rest, elt))
+    end
+  end
+end
+
+# TODO(alex): if performance is an issue, swap to raw JS
+#   Need to pass in variant constructors explicitly b/c of runtime method construction
+fun filter<a>(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
+  doc: "Returns the subset of lst for which f(elem) is true"
+  lst.foldr(
+    lam(e, acc):
+      if f(e):
+        link(e, acc)
+      else:
+        acc
+      end
+    end,
+    empty
+  )
+end
+
+fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> } block:
+  doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
+  when (n < 0) or G.not(G.num-is-integer(n)):
+    raise("Invalid index")
+  end
+  var prefix = empty
+  var suffix = empty
+  fun help(ind, l):
+    if ind == 0: suffix := l
+    else:
+      cases(List) l block:
+        | empty => raise("Index too large")
+        | link(fst, rst) =>
+          help(ind - 1, rst)
+          prefix := fst ^ link(_, prefix)
+      end
+    end
+  end
+  help(n, lst)
+  { prefix: prefix, suffix: suffix }
+end
+
+# TODO(alex): if performance is an issue, swap to raw JS
+#   Need to pass in variant constructors explicitly b/c of runtime method construction
+fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
+  doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,
+        starting with the initial value```
+  cases(List) lst:
+    | link(fst, rst) =>
+      fold(f, f(base, fst), rst)
+    | empty =>
+      base
+  end
+end
+
+fun reverse<a>(lst :: List<a>) -> List<a>:
+  doc: "Returns a new list containing the same elements as this list, in reverse order"
+  fold(lam(acc, elt): link(elt, acc) end, empty, lst)
+where:
+  reverse(raw-array-to-list([RA.raw-array: ])) is raw-array-to-list([RA.raw-array: ])
+  reverse(raw-array-to-list([RA.raw-array: 1, 3])) is raw-array-to-list([RA.raw-array: 3, 1])
+end
+
+fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing block:
+  doc: "Calls f for each elem in lst, and returns nothing"
+  fold(lam(_, elt): f(elt) end, nothing, lst)
+  nothing
+end
+
+# TODO(alex): if performance is an issue, swap to raw JS
+#   Need to pass in variant constructors explicitly b/c of runtime method construction
+fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b> block:
+  doc: "Returns a list made up of f(elem) for each elem in lst"
+  cases(List) lst:
+    | link(fst, rst) => link(f(fst), map(f, lst))
+    | empty => empty
+  end
+end
+
+fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true :: List<a>, is-false :: List<a>} block:
+  doc: "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
+  var is-true = empty
+  var is-false = empty
+  fun help(inner-lst):
+    if is-empty(inner-lst) block:
+      nothing
+    else:
+      help(inner-lst.rest)
+      if f(inner-lst.first):
+        is-true := inner-lst.first ^ link(_, is-true)
+      else:
+        is-false := inner-lst.first ^ link(_, is-false)
+      end
+    end
+  end
+  help(lst)
+  { is-true: is-true, is-false: is-false }
+end
+
+fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> Option<a>:
+  doc: ```Returns some(elem) where elem is the first elem in lst for which
+        f(elem) returns true, or none otherwise```
+  if is-empty(lst):
+    none
+  else:
+    if f(lst.first):
+      some(lst.first)
+    else:
+      find(f, lst.rest)
+    end
+  end
+end
+
+fun get<a>(lst :: List<a>, n :: Number) -> a:
+  doc: "Returns the nth element of the given list, or raises an error if n is out of range"
+  fun help(l, cur):
+    if is-empty(l): raise("get: n too large " + tostring(n))
+    else if cur == 0: l.first
+    else: help(l.rest, cur - 1)
+    end
+  end
+  if n < 0: raise("get: invalid argument: " + tostring(n))
+  else: help(lst, n)
+  end
+end
+
+fun set<a>(lst :: List<a>, n :: Number, v) -> a:
+  doc: ```Returns a new list with the same values as the given list but with the nth element
+        set to the given value, or raises an error if n is out of range```
+  fun help(l, cur):
+    if is-empty(l): raise("set: n too large " + tostring(n))
+    else if cur == 0: v ^ link(_, l.rest)
+    else: l.first ^ link(_, help(l.rest, cur - 1))
+    end
+  end
+  if n < 0: raise("set: invalid argument: " + tostring(n))
+  else: help(lst, n)
+  end
+end
+
+
 
 list = {
   make: raw-array-to-list,
