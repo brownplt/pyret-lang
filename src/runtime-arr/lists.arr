@@ -212,7 +212,9 @@ data List<a>:
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
-      self.sort-by(lam(e1,e2): e1 < e2 end, equality.within(~0))
+      # TODO(alex): fix ordering/sort type checking
+      # self.sort-by(lam(e1,e2): e1 < e2 end, equality.within(~0))
+      raise("TODO: fix typechecker / ordering to implement sort()")
     end,
 sharing:
   # method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
