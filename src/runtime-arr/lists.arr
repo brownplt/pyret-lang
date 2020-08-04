@@ -6,6 +6,7 @@ import global as G
 import option as O
 import either as E
 import equality as equality
+import raw-array as RA
 # import valueskeleton as VS
 # valueskeleton only used on one method (_output)
 
@@ -421,7 +422,7 @@ end
 fun repeat<a>(n :: Number, e :: a) -> List<a>:
   doc: "Creates a list with n copies of e"
   if n < 0: raise("repeat: can't have a negative argument'")
-  else: raw-array-to-list(raw-array-of(e, n))
+  else: raw-array-to-list(RA.raw-array-of(e, n))
   end
 end
 
@@ -824,10 +825,10 @@ end
 fun shuffle<a>(lst :: List<a>) -> List<a>:
   if is-empty(lst): empty
   else:
-    elts = for fold_n(i from 1, arr from raw-array-of(lst.first, lst.length()), e from lst.rest) block:
+    elts = for fold_n(i from 1, arr from RA.raw-array-of(lst.first, lst.length()), e from lst.rest) block:
       ix = random(i + 1)
-      raw-array-set(arr, i, raw-array-get(arr, ix))
-      raw-array-set(arr, ix, e)
+      RA.raw-array-set(arr, i, RA.raw-array-get(arr, ix))
+      RA.raw-array-set(arr, ix, e)
       arr
     end
     raw-array-to-list(elts)
