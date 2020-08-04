@@ -20,27 +20,24 @@ include from G:
     num-is-integer,
 end
 
+# NOTE(alex): "include from" syntax for values NEEDS the file origin to be correct
+#   if the module is a builtin module, need to indicate that (see option.arr.json for an example)
 include from O:
     type Option,
-    # TODO(alex): "include from" syntax broken for values still
-    #   Uncommenting results in a missing key in a string dictionary somewhere
-    #   Error message: Key "file:// .... /option.arr" not found
-    #some,
-    #none
+    some,
+    none
 end
 
 include from E:
     type Either,
-    #left,
-    #right
+    left,
+    right
 end
 
-# TODO(alex): remove once "include from" syntax is fixed
-within = equality.within
-some = O.some
-none = O.none
-left = E.left
-right = E.right
+include from equality:
+    within
+end
+
 
 # TODO(alex):
 #   1) The 'list' constructor expression breaks function ordering
