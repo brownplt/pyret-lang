@@ -198,10 +198,19 @@ data List<a>:
       var are-eq = empty
       var are-gt = empty
       self.each(lam(e):
-          if cmp(e, pivot):     are-lt := e ^ link(_, are-lt)
-          else if eq(e, pivot): are-eq := e ^ link(_, are-eq)
-          else:                 are-gt := e ^ link(_, are-gt)
+          # TODO(alex): chaining operator '^' causes a parsing error
+          #if cmp(e, pivot):     are-lt := e ^ link(_, are-lt)
+          #else if eq(e, pivot): are-eq := e ^ link(_, are-eq)
+          #else:                 are-gt := e ^ link(_, are-gt)
+          #end
+
+          if cmp(e, pivot):     are-lt := link(e, are-lt)
+          else if eq(e, pivot): are-eq := link(e, are-eq)
+          else:                 are-gt := link(e, are-gt)
           end
+
+
+
         end)
       less =    are-lt.sort-by(cmp, eq)
       equal =   are-eq
