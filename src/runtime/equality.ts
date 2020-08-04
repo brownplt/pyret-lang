@@ -134,6 +134,15 @@ export function identical(v1: any, v2: any): boolean {
   return equalityResultToBool(ans);
 }
 
+export function equalNow(v1: any, v2: any): boolean {
+  let ans: EqualityResult = equalNow3(v1, v2);
+  return equalityResultToBool(ans);
+}
+
+export function equalNow3(v1: any, v2: any): EqualityResult {
+    throw "Implement equalNow3";
+}
+
 /*
  * Structural equality. Stops at mutable data (refs) and only checks that
  * mutable data are identical.
@@ -336,4 +345,20 @@ export function to_boolean(er: EqualityResult): boolean {
         return isEqual(er);
     }
 
+}
+
+export function withinRel(tolerance) {
+    throw "Implement withinRel";
+}
+
+export function withinAbs(tolerance) {
+    throw "Implement withinAbs";
+}
+
+export function withinRelNow(tolerance) {
+    throw "Implement withinRelNow";
+}
+
+export function withinAbsNow(tolerance) {
+    throw "Implement withinAbsNow";
 }

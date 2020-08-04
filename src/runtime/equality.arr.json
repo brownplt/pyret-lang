@@ -14,7 +14,20 @@
 
         "to-boolean": ["arrow", [["local", "EqualityResult"]], "Boolean"],
         "equal-and": ["arrow", [["local", "EqualityResult"], ["local", "EqualityResult"]], ["local", "EqualityResult"]],
-        "equal-or": ["arrow", [["local", "EqualityResult"], ["local", "EqualityResult"]], ["local", "EqualityResult"]]
+        "equal-or": ["arrow", [["local", "EqualityResult"], ["local", "EqualityResult"]], ["local", "EqualityResult"]],
+
+        "equal-now": ["arrow", ["Any", "Any"], "Boolean"],
+        "equal-now3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
+        "equal-always": ["arrow", ["Any", "Any"], "Boolean"],
+        "equal-always3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
+        "identical": ["arrow", ["Any", "Any"], "Boolean"],
+        "identical3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
+
+        "within": ["arrow", ["Number"], ["arrow", ["Any", "Any"], "Boolean"]],
+        "within-rel": ["arrow", ["Number"], ["arrow", ["Any", "Any"], "Boolean"]],
+        "within-abs": ["arrow", ["Number"], ["arrow", ["Any", "Any"], "Boolean"]],
+        "within-rel-now": ["arrow", ["Number"], ["arrow", ["Any", "Any"], "Boolean"]],
+        "within-abs-now": ["arrow", ["Number"], ["arrow", ["Any", "Any"], "Boolean"]]
     },
     "aliases": {
       "EqualityResult": ["local", "EqualityResult"]
