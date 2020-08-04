@@ -32,6 +32,22 @@ include from E:
     right
 end
 
+# TODO(alex):
+#   1) The 'list' constructor expression breaks function ordering
+#      'list' constructor needs to be declared after the 'List' declarations in order
+#         to have scope access to variant constructors
+#      Functions declared after the 'list' constructor are no longer globally visible
+#         to the code above the list constructor (no longer considered "top-level") due to being
+#         after an expression which may be captured (needs to be evaluated in order)
+#      Potential solutions: give constructor declarations first-class support or bite the bullet
+#
+#   2) Because the 'list' constructor needs to be BELOW the data declaration and it is an expression,
+#      the functions that had to be moved ABOVE the 'list' constructor no longer have access to
+#      the list constructor. Therefore, they need to directly use the 'list' constructor implementation.
+#
+#   3) Method names are allowed be shadowed and are non-recursive
+
+
 # TODO(alex): if performance is an issue, swap to raw JS
 #   Need to pass in variant constructors explicitly b/c of runtime method construction
 fun foldl-complicated<a, b>(
