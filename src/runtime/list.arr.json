@@ -21,6 +21,7 @@
       "length": ["forall", ["a"], ["arrow", ["lOfA"], "Number"]],
       "contains": ["forall", ["a"], ["arrow", ["lOfA", "tva"], "Boolean"]],
       "to-raw-array": ["forall", ["a"], ["arrow", ["lOfA"], "rOfA"]],
+      "each": ["forall", ["a"], ["arrow", [["arrow", ["tva"], "Nothing"], "lOfA"], "Nothing"]],
       "map": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], "lOfA"], "lOfB"]],
       "map2": ["forall", ["a", "b", "c"], ["arrow", [["arrow", ["tva", "tvb"], "tvc"], "lOfA", "lOfB"], "lOfC"]],
       "map3": ["forall", ["a", "b", "c", "d"], ["arrow", [["arrow", ["tva", "tvb", "tvc"], "tvd"], "lOfA", "lOfB", "lOfC"], "lOfD"]],

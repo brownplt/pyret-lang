@@ -20,7 +20,6 @@ function checkColor(val) {
 /* @stopify flat */
 function barChart(tableFromRawArray) {
     headers = ["",""];
-
     return {
         "$brand": "chart",
         "chartType": "BarChart",
@@ -40,12 +39,32 @@ function barChartFromTable(table) {
 }
 
 /* @stopify flat */
+function pieChart(tableFromRawArray) {
+    return {
+        "$brand": "chart",
+        "chartType": "PieChart",
+        "_headers": ["",""],
+        "_rows": tableFromRawArray
+    };
+}
+
+/* @stopify flat */
 function pieChartFromTable(table) {
     return {
         "$brand": "chart",
         "chartType": "PieChart",
         "_headers": table._headers,
         "_rows": table._rows
+    };
+}
+
+/* @stopify flat */
+function histogram(tableFromRawArray) {
+    return {
+        "$brand": "chart",
+        "chartType": "Histogram",
+        "_headers": ["",""],
+        "_rows": tableFromRawArray
     };
 }
 
@@ -89,8 +108,14 @@ return module.exports = {
     "bar-chart-from-table": /* @stopify flat */ function (table) {
         return barChartFromTable(table);
     },
+    "pie-chart": /* @stopify flat */ function (tableFromRawArray) {
+        return pieChart(tableFromRawArray);
+    },
     "pie-chart-from-table": /* @stopify flat */ function (table) {
         return pieChartFromTable(table);
+    },
+    "histogram": /* @stopify flat */ function (tableFromRawArray) {
+        return histogram(tableFromRawArray);
     },
     "histogram-from-table": /* @stopify flat */ function (table) {
         return histogramFromTable(table);
