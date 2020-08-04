@@ -588,7 +588,7 @@ fun range(start :: Number, stop :: Number) -> List<Number>:
         + ", "
         + tostring(stop)
         + ")")
-  else: raw-array-to-list(raw-array-build(_ + start, stop - start))
+        else: raw-array-to-list(RA.raw-array-build(lam(i): i + start end, stop - start))
   end
 end
 
@@ -601,7 +601,7 @@ fun range-by(start :: Number, stop :: Number, delta :: Number) -> List<Number>:
     end
   else:
     len = num-max(num-ceiling((stop - start) / delta), 0)
-    raw-array-to-list(raw-array-build(lam(i): start + (i * delta) end, len))
+    raw-array-to-list(RA.raw-array-build(lam(i): start + (i * delta) end, len))
   end
 where:
   range-by(1, 10, 4) is [list: 1, 5, 9]
