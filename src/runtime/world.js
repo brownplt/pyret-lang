@@ -239,19 +239,16 @@ var adaptWorldFunction = function(worldFunction) {
         // NOTE(joe): don't move this line down, it's *these* args, not
         // any other nested function's args
         var pyretArgs = [].slice.call(arguments, 0, arguments.length - 1);
-        runtime.run(function(_, _) {
-            const result = worldFunction.app.apply(null, pyretArgs);
-            return result;
-        }, runtime.namespace,
-                    { sync: false },
-                    function(result) {
-                        if(runtime.isSuccessResult(result)) {
-                            success(result.result);
-                        }
-                        else {
-                            return rawJsworld.shutdown({errorShutdown: result.exn});
-                        }
-                    });
+        if (!window.stopify) {
+            throw new Error('world.js: stopify not initialized');
+        }
+        window.stopify.run((result) => {
+            if (result.type === 'exception') {
+                rawJsworld.shutdown({errorShutdown: result.value});
+            }
+
+            success(result.value);
+        });
     };
 };
 
