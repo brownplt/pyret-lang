@@ -465,14 +465,15 @@ end
 fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> Option<a>:
   doc: ```Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise```
-  if is-empty(lst):
-    none
-  else:
-    if f(lst.first):
-      some(lst.first)
-    else:
-      find(f, lst.rest)
-    end
+
+  cases(List) lst:
+    | empty => none
+    | link(first, rest) =>
+      if f(first):
+        some(first)
+      else:
+        find(f, rest)
+      end
   end
 end
 
