@@ -479,10 +479,15 @@ end
 
 fun get<a>(lst :: List<a>, n :: Number) -> a:
   doc: "Returns the nth element of the given list, or raises an error if n is out of range"
-  fun help(l, cur):
-    if is-empty(l): raise("get: n too large " + tostring(n))
-    else if cur == 0: l.first
-    else: help(l.rest, cur - 1)
+  fun help(l :: List<a>, cur :: Number):
+    cases(List<a>) l:
+      | empty => raise("get: n too large " + tostring(n))
+      | link(first, rest) =>
+      if cur == 0:
+        first
+      else:
+        help(rest, cur - 1)
+      end
     end
   end
   if n < 0: raise("get: invalid argument: " + tostring(n))
@@ -493,12 +498,18 @@ end
 fun function-set<a>(lst :: List<a>, n :: Number, v :: a) -> List<a>:
   doc: ```Returns a new list with the same values as the given list but with the nth element
         set to the given value, or raises an error if n is out of range```
-  fun help(l, cur):
-    if is-empty(l): raise("set: n too large " + tostring(n))
-    else if cur == 0: v ^ link(_, l.rest)
-    else: l.first ^ link(_, help(l.rest, cur - 1))
+  fun help(l :: List<a>, cur :: Number):
+    cases(List<a>) l:
+      | empty => raise("set: n too large " + tostring(n))
+      | link(first, rest) =>
+        if cur == 0:
+          v ^ link(_, rest)
+        else:
+          first ^ link(_, help(rest, cur - 1))
+        end
     end
   end
+
   if n < 0: raise("set: invalid argument: " + tostring(n))
   else: help(lst, n)
   end
