@@ -1,6 +1,8 @@
 var runtime = require('./runtime.js');
 var array = require('./array.js');
 var numbers = require('./js-numbers.js');
+var option = require('./option.arr.js');
+var reactors = require('./reactors.arr.js');
 
 function _plus(l, r) { return l + r; }
 function _minus(l, r) { return l - r; }
@@ -21,7 +23,18 @@ function timeNow() {
   return new Date().getTime();
 }
 
+function makeSome(v) {
+  return option.some(v);
+}
+
+function makeNone() {
+  return option.none;
+}
+
 module.exports = {
+  makeReactor: reactors.makeReactor,
+  makeSome,
+  makeNone,
   'num-to-str': numToString,
   'time-now' : timeNow,
   'js-to-string': function(v) { return String(v); },
