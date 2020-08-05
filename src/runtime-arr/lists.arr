@@ -35,6 +35,7 @@ include from E:
 end
 
 include from equality:
+    type EqualityResult,
     within
 end
 
@@ -935,20 +936,20 @@ end
 #   Attempting to use type (Any, Any -> EqualityResult) results in a TC error:
 #     Inconsistency between t-top and s-type-global(Any)
 #   Does that really matter?
-fun member-with<a>(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)) -> equality.EqualityResult:
+fun member-with<a>(lst :: List<a>, elt :: a, eq :: (a, a -> EqualityResult)) -> EqualityResult:
 
   cases(List) lst:
     | empty => equality.NotEqual("list", elt, lst)
     | link(first, rest) =>
       first-elt-equal = eq(first, elt)
-      cases(equality.EqualityResult) first-elt-equal:
+      cases(EqualityResult) first-elt-equal:
         | Equal => equality.Equal
         | else => equality.equal-or(first-elt-equal, member-with(rest, elt, eq))
       end
   end
 end
 
-fun member3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
+fun member3<a>(lst :: List<a>, elt :: a) -> EqualityResult:
   member-with(lst, elt, lam(l :: a, r :: a): equal-always3(l, r) end)
 end
 
@@ -956,7 +957,7 @@ fun member<a>(lst :: List<a>, elt :: a) -> Boolean:
   equality.to-boolean(member3(lst, elt))
 end
 
-fun member-now3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
+fun member-now3<a>(lst :: List<a>, elt :: a) -> EqualityResult:
   member-with(lst, elt, lam(l :: a, r:: a): equality.equal-now3(l, r) end)
 end
 
@@ -964,7 +965,7 @@ fun member-now<a>(lst :: List<a>, elt :: a) -> Boolean:
   equality.to-boolean(member-now3(lst, elt))
 end
 
-fun member-identical3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
+fun member-identical3<a>(lst :: List<a>, elt :: a) -> EqualityResult:
   member-with(lst, elt, lam(l :: a, r :: a): identical3(l, r) end)
 end
 
@@ -991,7 +992,7 @@ fun filter-map<a, b>(f :: (a -> Option<b>), lst :: List<a>) -> List<b>:
   cases(List) lst:
     | empty => empty
     | link(first, rest) =>
-      cases(Option<b>) f(first):
+      cases(Option) f(first):
         | none => filter-map(f, rest)
         | some(v) => link(v, filter-map(f, rest))
       end
@@ -1002,7 +1003,7 @@ fun filter-values<a>(lst :: List<Option<a>>) -> List<a>:
   cases(List) lst:
     | empty => empty
     | link(first, rest) =>
-      cases(Option<a>) first:
+      cases(Option) first:
         | none => filter-values(rest)
         | some(v) => link(v, filter-values(rest))
       end
@@ -1014,7 +1015,7 @@ fun distinct<A>(l :: List<A>) -> List<A>:
   cases (List) l:
     | empty => empty
     | link(first, rest) =>
-      cases(equality.EqualityResult) member3(rest, first):
+      cases(EqualityResult) member3(rest, first):
         | NotEqual(_, _, _) => link(first, distinct(rest))
         | Unknown(_, _, _) => link(first, distinct(rest))
         | Equal => distinct(rest)
