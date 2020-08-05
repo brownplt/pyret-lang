@@ -12,7 +12,7 @@ export const worker = new Worker(path.pyretJarr);
 
 export const installFileSystem = () => {
   bfsSetup.install();
-  bfsSetup.configure(worker, path.compileBase);
+  bfsSetup.configure(worker /* , path.compileBase */);
 };
 
 export const loadBuiltins = (): void => {

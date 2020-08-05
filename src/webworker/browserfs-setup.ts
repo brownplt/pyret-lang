@@ -8,17 +8,32 @@ export const install = (): void => {
   BrowserFS.install(window);
 };
 
-export const configure = (worker: Worker, projectsDirectory: string): void => {
+export const configure = (worker: Worker /* , projectsDirectory: string */): void => {
   BrowserFS.configure({
-    fs: 'LocalStorage',
+    fs: 'MountableFileSystem',
+    options: {
+      '/projects': {
+        fs: 'LocalStorage',
+      },
+      '/prewritten': {
+        fs: 'InMemory',
+      },
+      '/compiled': {
+        fs: 'InMemory',
+      },
+    },
   }, (e: any) => {
     if (e) {
       throw e;
     }
 
-    if (!fs.existsSync(projectsDirectory)) {
-      fs.mkdirSync(projectsDirectory);
-    }
+    // if (!fs.existsSync(projectsDirectory)) {
+    //   fs.mkdirSync(projectsDirectory);
+    // }
+
+    // if (!fs.existsSync('/compiled/builtin')) {
+    //   fs.mkdirSync('/compiled/builtin');
+    // }
 
     BrowserFS.FileSystem.WorkerFS.attachRemoteListener(worker);
     (window as any).bfs = BrowserFS.BFSRequire('fs');

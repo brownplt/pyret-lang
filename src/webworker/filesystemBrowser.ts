@@ -112,17 +112,13 @@ const createDirectoryListElement = (theFS: any, path: string): HTMLLIElement => 
 export const createListElement = (theFs: any, path: string): HTMLLIElement => {
   let listElement: HTMLLIElement;
 
-  theFs.stat(path, (err, stats) => {
-    if (err) {
-      throw err;
-    }
+  const stats = theFs.statSync(path);
 
-    if (stats.isDirectory()) {
-      listElement = createDirectoryListElement(theFs, path);
-    } else if (stats.isFile()) {
-      listElement = createFileListElement(theFs, path);
-    }
-  });
+  if (stats.isDirectory()) {
+    listElement = createDirectoryListElement(theFs, path);
+  } else if (stats.isFile()) {
+    listElement = createFileListElement(theFs, path);
+  }
 
   return listElement;
 };
@@ -137,5 +133,7 @@ export const createListElement = (theFs: any, path: string): HTMLLIElement => {
 // element: the "ul" (unordered list) element which the file system will be
 //          attached to as a child.
 export const createBrowser = (theFS: any, path: string, element: HTMLUListElement): void => {
-  element.appendChild(createListElement(theFS, path));
+  const child = createListElement(theFS, path)
+  console.log(child);
+  element.appendChild(child);
 }
