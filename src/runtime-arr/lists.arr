@@ -174,6 +174,7 @@ sharing:
   # method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
 
   # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
+  #   Known restriction of the typechecker (see type-checker.arr:1226)
   method last(self) -> a:
     doc: "Returns the last element of this list, or raises an error if the list is empty"
     cases(List) self:
@@ -191,6 +192,7 @@ sharing:
   end,
 
   # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
+  #   Known restriction of the typechecker (see type-checker.arr:1226)
   method sort-by(self, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:
     doc: ```Takes a comparator to check for elements that are strictly greater
           or less than one another, and an equality procedure for elements that are
