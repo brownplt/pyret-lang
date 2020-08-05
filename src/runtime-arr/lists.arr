@@ -320,7 +320,9 @@ fun join-str<a>(l :: List<a>, sep :: String) -> String:
 
   foldl-complicated(true, l, f, x, x, "")
 where:
-  join-str(raw-array-to-list([RA.raw-array: 1, "2", 3]), "+") is "1+2+3"
+  # TODO(alex): unable to get type inference to see this as List<Any> instead of List<Number>
+  # join-str(raw-array-to-list([RA.raw-array: 1, "2", 3]), "+") is "1+2+3"
+  join-str(raw-array-to-list([RA.raw-array: 1, 2, 3]), "+") is "1+2+3"
   join-str(raw-array-to-list([RA.raw-array: ]), "+") is ""
   join-str(raw-array-to-list([RA.raw-array: 1]), "+") is "1"
   join-str(raw-array-to-list([RA.raw-array: 1, 2]), "+") is "1+2"
@@ -341,7 +343,9 @@ fun join-str-last<a>(jlist :: List<a>, sep :: String, last-sep :: String) -> Str
 
   foldl-complicated(true, jlist, f, x, l, "")
 where:
-  join-str-last(raw-array-to-list([RA.raw-array: 1, "2", 3]), "+", "-") is "1+2-3"
+  # TODO(alex): unable to get type inference to see this as List<Any> instead of List<Number>
+  # join-str-last(raw-array-to-list([RA.raw-array: 1, "2", 3]), "+", "-") is "1+2-3"
+  join-str-last(raw-array-to-list([RA.raw-array: 1, 2, 3]), "+", "-") is "1+2-3"
   join-str-last(raw-array-to-list([RA.raw-array: ]), "+", "-") is ""
   join-str-last(raw-array-to-list([RA.raw-array: 1]), "+", "-") is "1"
   join-str-last(raw-array-to-list([RA.raw-array: 1, 2]), "+", "-") is "1-2"
