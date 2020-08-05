@@ -597,17 +597,18 @@ end
 fun last<a>(lst :: List<a>) -> a:
   doc: "Returns the last element of this list, or raises an error if the list is empty"
   fun helper(l :: List<a>) -> a:
-    if is-empty(l.rest):
-      l.first
-    else:
-      helper(l.rest)
+    cases(List<a>) lst:
+      | empty => raise('last: took last of empty list')
+      | link(first, rest) =>
+        if is-empty(rest):
+          first
+        else:
+          helper(rest)
+        end
     end
   end
-  if is-empty(lst):
-    raise('last: took last of empty list')
-  else:
-    helper(lst)
-  end
+
+  helper(lst)
 end
 
 fun sort-by<a>(lst :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
@@ -675,19 +676,17 @@ end
 
 fun any<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for any elem of lst"
-  if is-empty(lst):
-    false
-  else:
-    f(lst.first) or any(f, lst.rest)
+  cases(List<a>) lst:
+    | empty => false
+    | link(first, rest) => f(first) or any(f, rest)
   end
 end
 
 fun all<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for all elems of lst"
-  if is-empty(lst):
-    true
-  else:
-    f(lst.first) and all(f, lst.rest)
+  cases(List<a>) lst:
+    | empty => true
+    | link(first, rest) => f(first) and all(f, rest)
   end
 end
 
