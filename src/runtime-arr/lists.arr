@@ -163,6 +163,13 @@ sharing:
     end
   end,
 
+  method first(self) -> a:
+    cases(List<a>) self:
+      | empty => raise("first: empty list")
+      | link(first, _) => first
+    end
+  end,
+
   method last(self) -> a:
     doc: "Returns the last element of this list, or raises an error if the list is empty"
     cases(List) self:
