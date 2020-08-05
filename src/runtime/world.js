@@ -471,7 +471,7 @@ DefaultDrawingOutput.prototype.toRawHandler = function(toplevelNode) {
     var that = this;
     var worldFunction = function(world, success) {
         var textNode = jQuery("<pre>");
-        const str = runtime.toReprJS(world, runtime.ReprMethods._torepr);
+        const str = JSON.stringify(world);
         textNode.text(str);
         success([toplevelNode,
                  rawJsworld.node_to_tree(textNode[0])]);
