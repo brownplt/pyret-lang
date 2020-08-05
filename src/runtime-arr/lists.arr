@@ -58,10 +58,6 @@ end
 #   Relying on type inference in order to infer the correct refinement type
 data List<a>:
   | empty with:
-    method length(self) -> Number:
-      doc: "Takes no other arguments and returns the number of links in the list"
-      0
-    end,
 
     method find(self, f :: (a -> Boolean)) -> Option<a>:
       doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
@@ -75,39 +71,12 @@ data List<a>:
       { is-true: empty, is-false: empty }
     end,
 
-    method foldr<b>(self, f :: (a, b -> b), base :: b) -> b:
-      doc: ```Takes a function and an initial value, and folds the function over this list from the right,
-            starting with the base value```
-      base
-    end,
-
-    method foldl<b>(self, f :: (a, b -> b), base :: b) -> b:
-      doc: ```Takes a function and an initial value, and folds the function over this list from the left,
-            starting with the base value```
-      base
-    end,
-
-    method all(self, f :: (a -> Boolean)) -> Boolean:
-      doc: ```Returns true if the given predicate is true for every element in this list```
-      true
-    end,
-
-    method member(self, elt :: a) -> Boolean:
-      doc: "Returns true when the given element is equal to a member of this list"
-      false
-    end,
-
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the smae as those in this list,
             sorted by the default ordering and equality```
       self
     end,
   | link(first :: a, rest :: List<a>) with:
-
-    method length(self) -> Number:
-      doc: "Takes no other arguments and returns the number of links in the list"
-      1 + self.rest.length()
-    end,
 
     method partition(self, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
       doc: ```Takes a predicate and returns an object with two fields:
@@ -121,28 +90,6 @@ data List<a>:
       find(f, self)
     end,
 
-    method member(self, elt :: a) -> Boolean:
-      doc: "Returns true when the given element is equal to a member of this list"
-      (elt == self.first) or self.rest.member(elt)
-    end,
-
-    method foldr<b>(self, f :: (a, b -> b), base :: b) -> b:
-      doc: ```Takes a function and an initial value, and folds the function over this list from the right,
-            starting with the initial value```
-      f(self.first, self.rest.foldr(f, base))
-    end,
-
-    method foldl<b>(self, f :: (a, b -> b), base :: b) -> b:
-      doc: ```Takes a function and an initial value, and folds the function over this list from the left,
-            starting with the initial value```
-      self.rest.foldl(f, f(self.first, base))
-    end,
-
-    method all(self, f :: (a -> Boolean)) -> Boolean:
-      doc: ```Returns true if the given predicate is true for every element in this list```
-      f(self.first) and self.rest.all(f)
-    end,
-
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
@@ -151,10 +98,53 @@ data List<a>:
       raise("TODO: fix typechecker / ordering to implement sort()")
     end,
 sharing:
+  # Note(alex): Many methods are implemented as "sharing" b/c "with" methods cannot see other "with" methods
+  #   Known restriction of the typechecker (see type-checker.arr:1226)
+
   # method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
 
-  # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
-  #   Known restriction of the typechecker (see type-checker.arr:1226)
+  method length(self) -> Number:
+    doc: "Takes no other arguments and returns the number of links in the list"
+    cases(List) self:
+      | empty => 0
+      | link(first, rest) => 1 + rest.length()
+    end
+  end,
+
+  method member(self, elt :: a) -> Boolean:
+    doc: "Returns true when the given element is equal to a member of this list"
+    cases(List) self:
+      | empty => false
+      | link(first, rest) =>  (elt == first) or rest.member(elt)
+    end
+  end,
+
+  method foldr<b>(self, f :: (a, b -> b), base :: b) -> b:
+    doc: ```Takes a function and an initial value, and folds the function over this list from the right,
+          starting with the initial value```
+    cases(List) self:
+      | empty => base
+      | link(first, rest) => f(first, rest.foldr(f, base))
+    end
+  end,
+
+  method foldl<b>(self, f :: (a, b -> b), base :: b) -> b:
+    doc: ```Takes a function and an initial value, and folds the function over this list from the left,
+          starting with the initial value```
+    cases(List) self:
+      | empty => base
+      | link(first, rest) => rest.foldl(f, f(first, base))
+    end
+  end,
+
+  method all(self, f :: (a -> Boolean)) -> Boolean:
+    doc: ```Returns true if the given predicate is true for every element in this list```
+    cases(List) self:
+      | empty => true
+      | link(first, rest) => f(first) and rest.all(f)
+    end
+  end,
+
   method any(self, f :: (a -> Boolean)) -> Boolean:
     doc: ```Returns true if the given predicate is true for any element in this list```
     cases(List) self:
@@ -164,8 +154,6 @@ sharing:
     end
   end,
 
-  # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
-  #   Known restriction of the typechecker (see type-checker.arr:1226)
   method append(self, other :: List<a>) -> List<a>:
     doc: "Takes a list and returns the result of appending the given list to this list"
     cases(List) self:
@@ -175,8 +163,6 @@ sharing:
     end
   end,
 
-  # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
-  #   Known restriction of the typechecker (see type-checker.arr:1226)
   method last(self) -> a:
     doc: "Returns the last element of this list, or raises an error if the list is empty"
     cases(List) self:
@@ -193,8 +179,6 @@ sharing:
     end
   end,
 
-  # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
-  #   Known restriction of the typechecker (see type-checker.arr:1226)
   method sort-by(self, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:
     doc: ```Takes a comparator to check for elements that are strictly greater
           or less than one another, and an equality procedure for elements that are
