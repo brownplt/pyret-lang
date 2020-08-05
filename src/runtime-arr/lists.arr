@@ -310,11 +310,11 @@ fun foldl-complicated<a, b>(
 end
 
 fun join-str<a>(l :: List<a>, sep :: String) -> String:
-  f = lam(elem, acc):
+  f = lam(elem :: a, acc :: String):
     acc + G.js-to-string(elem)
   end
 
-  x = lam(elem, acc):
+  x = lam(elem :: a, acc :: String):
     acc + sep + G.js-to-string(elem)
   end
 
@@ -327,15 +327,15 @@ where:
 end
 
 fun join-str-last<a>(jlist :: List<a>, sep :: String, last-sep :: String) -> String:
-  f = lam(elem, acc):
+  f = lam(elem :: a, acc :: String):
     acc + G.js-to-string(elem)
   end
 
-  x = lam(elem, acc):
+  x = lam(elem :: a, acc :: String):
     acc + sep + G.js-to-string(elem)
   end
 
-  l = lam(elem, acc):
+  l = lam(elem :: a, acc :: String):
     acc + last-sep + G.js-to-string(elem)
   end
 
