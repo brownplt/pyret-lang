@@ -516,15 +516,16 @@ fun function-set<a>(lst :: List<a>, n :: Number, v :: a) -> List<a>:
 end
 
 
-
+# TODO(alex): why are these type annotations necessary
+#   Are they even correct?
 list = {
   make: raw-array-to-list,
   make0: lam(): empty end,
-  make1: lam(a): link(a, empty) end,
-  make2: lam(a, b): link(a, link(b, empty)) end,
-  make3: lam(a, b, c): link(a, link(b, link(c, empty))) end,
-  make4: lam(a, b, c, d): link(a, link(b, link(c, link(d, empty)))) end,
-  make5: lam(a, b, c, d, e): link(a, link(b, link(c, link(d, link(e, empty))))) end,
+  make1: lam<x>(a :: x) -> List<x>: link(a, empty) end,
+  make2: lam<x>(a :: x, b :: x) -> List<x>: link(a, link(b, empty)) end,
+  make3: lam<x>(a :: x, b :: x, c :: x) -> List<x>: link(a, link(b, link(c, empty))) end,
+  make4: lam<x>(a :: x, b :: x, c :: x, d :: x) -> List<x>: link(a, link(b, link(c, link(d, empty)))) end,
+  make5: lam<x>(a :: x, b :: x, c :: x, d :: x, e :: x) -> List<x>: link(a, link(b, link(c, link(d, link(e, empty))))) end,
 }
 
 fun length<a>(lst :: List<a>) -> Number:
