@@ -107,11 +107,6 @@ data List<a>:
       other
     end,
 
-    method last(self) -> a:
-      doc: "Returns the last element of this list, or raises an error if the list is empty"
-      raise('last: took last of empty list')
-    end,
-
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the smae as those in this list,
             sorted by the default ordering and equality```
@@ -168,13 +163,6 @@ data List<a>:
       self.first ^ link(_, self.rest.append(other))
     end,
 
-    method last(self) -> a:
-      doc: "Returns the last element of this list, or raises an error if the list is empty"
-      if is-empty(self.rest): self.first
-      else: self.rest.last()
-      end
-    end,
-
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
@@ -184,6 +172,23 @@ data List<a>:
     end,
 sharing:
   # method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
+
+  # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
+  method last(self) -> a:
+    doc: "Returns the last element of this list, or raises an error if the list is empty"
+    cases(List) self:
+
+      | empty =>
+        raise('last: took last of empty list')
+
+      | link(first, rest) =>
+        if is-empty(rest):
+          self.first
+        else:
+          rest.last()
+        end
+    end
+  end,
 
   # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
   method sort-by(self, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:
