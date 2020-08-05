@@ -112,13 +112,6 @@ data List<a>:
       raise('last: took last of empty list')
     end,
 
-    method sort-by(self, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
-      doc: ```Takes a comparator to check for elements that are strictly greater
-            or less than one another, and an equality procedure for elements that are
-            equal, and sorts the list accordingly.  The sort is not guaranteed to be stable.```
-      self
-    end,
-
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the smae as those in this list,
             sorted by the default ordering and equality```
@@ -182,41 +175,6 @@ data List<a>:
       end
     end,
 
-    method sort-by(self, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:
-      doc: ```Takes a comparator to check for elements that are strictly greater
-            or less than one another, and an equality procedure for elements that are
-            equal, and sorts the list accordingly.  The sort is not guaranteed to be stable.```
-      pivot = self.first
-      # builds up three lists, split according to cmp and eq
-      # Note: We use each, which is tail-recursive, but which causes the three
-      # list parts to grow in reverse order.  This isn't a problem, since we're
-      # about to sort two of those parts anyway.
-      var are-lt = empty
-      var are-eq = empty
-      var are-gt = empty
-      self.each(lam(e):
-          # TODO(alex): chaining operator '^' causes a parsing error
-          #if cmp(e, pivot):     are-lt := e ^ link(_, are-lt)
-          #else if eq(e, pivot): are-eq := e ^ link(_, are-eq)
-          #else:                 are-gt := e ^ link(_, are-gt)
-          #end
-
-          if cmp(e, pivot):     are-lt := link(e, are-lt)
-          else if eq(e, pivot): are-eq := link(e, are-eq)
-          else:                 are-gt := link(e, are-gt)
-          end
-
-
-
-        end)
-      #less :: List<a> =    are-lt.sort-by(cmp, eq)
-      #equal :: List<a>  =   are-eq
-      #greater :: List<a> = are-gt.sort-by(cmp, eq)
-      #less.append(equal.append(greater))
-      # TODO(alex): methods cannot see each other?
-      raise("TODO(alex): implement sort-by")
-    end,
-
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
@@ -226,6 +184,46 @@ data List<a>:
     end,
 sharing:
   # method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
+
+  # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
+  method sort-by(self, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:
+    doc: ```Takes a comparator to check for elements that are strictly greater
+          or less than one another, and an equality procedure for elements that are
+          equal, and sorts the list accordingly.  The sort is not guaranteed to be stable.```
+    cases(List) self:
+
+      | empty => self
+
+      | link(first, _) =>
+        block:
+          pivot = first
+          # builds up three lists, split according to cmp and eq
+          # Note: We use each, which is tail-recursive, but which causes the three
+          # list parts to grow in reverse order.  This isn't a problem, since we're
+          # about to sort two of those parts anyway.
+          var are-lt = empty
+          var are-eq = empty
+          var are-gt = empty
+          self.each(lam(e):
+              # TODO(alex): chaining operator '^' causes a parsing error
+              #if cmp(e, pivot):     are-lt := e ^ link(_, are-lt)
+              #else if eq(e, pivot): are-eq := e ^ link(_, are-eq)
+              #else:                 are-gt := e ^ link(_, are-gt)
+              #end
+
+              if cmp(e, pivot):     are-lt := link(e, are-lt)
+              else if eq(e, pivot): are-eq := link(e, are-eq)
+              else:                 are-gt := link(e, are-gt)
+              end
+
+            end)
+          less :: List<a> = are-lt.sort-by(cmp, eq)
+          equal :: List<a>  =  are-eq
+          greater :: List<a> = are-gt.sort-by(cmp, eq)
+          less.append(equal.append(greater))
+        end
+    end
+  end,
 
   method _plus(self :: List<a>, other :: List<a>) -> List<a>:
     self.append(other)
