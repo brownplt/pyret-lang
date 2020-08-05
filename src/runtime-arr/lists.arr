@@ -354,14 +354,14 @@ end
 
 fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
   doc: ```Returns the list without the element if found, or the whole list if it is not```
-  if is-empty(lst):
-    empty
-  else:
-    if elt == lst.first:
-      remove(lst.rest, elt)
-    else:
-      link(lst.first, remove(lst.rest, elt))
-    end
+  cases(List<a>) lst:
+    | empty => empty
+    | link(first, rest) =>
+      if elt == lst.first:
+        remove(rest, elt)
+      else:
+        link(first, remove(lst.rest, elt))
+      end
   end
 end
 
