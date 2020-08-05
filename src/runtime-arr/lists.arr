@@ -209,10 +209,12 @@ data List<a>:
 
 
         end)
-      less =    are-lt.sort-by(cmp, eq)
-      equal =   are-eq
-      greater = are-gt.sort-by(cmp, eq)
-      less.append(equal.append(greater))
+      #less :: List<a> =    are-lt.sort-by(cmp, eq)
+      #equal :: List<a>  =   are-eq
+      #greater :: List<a> = are-gt.sort-by(cmp, eq)
+      #less.append(equal.append(greater))
+      # TODO(alex): methods cannot see each other?
+      raise("TODO(alex): implement sort-by")
     end,
 
     method sort(self) -> List<a>:
