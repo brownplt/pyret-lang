@@ -702,7 +702,7 @@ fun all2<a, b>(f :: (a, b -> Boolean), lst1 :: List<b>, lst2 :: List<b>) -> Bool
         Returns true when either list is empty```
   fun help(l1, l2):
     if is-empty(l1) or is-empty(l2): true
-    else: f(l1.first, l2.first) and help(l1.rest, l2.rest)
+    else: f(l1.head(), l2.head()) and help(l1.tail(), l2.tail())
     end
   end
   help(lst1, lst2)
@@ -713,7 +713,7 @@ fun map2<a, b, c>(f :: (a, b -> c), l1 :: List<a>, l2 :: List<b>) -> List<c>:
   if is-empty(l1) or is-empty(l2):
     empty
   else:
-    f(l1.first, l2.first) ^ link(_, map2(f, l1.rest, l2.rest))
+    f(l1.head(), l2.head()) ^ link(_, map2(f, l1.tail(), l2.tail()))
   end
 end
 
@@ -722,7 +722,7 @@ fun map3<a, b, c, d>(f :: (a, b, c -> d), l1 :: List<a>, l2 :: List<b>, l3 :: Li
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
     empty
   else:
-    f(l1.first, l2.first, l3.first) ^ link(_, map3(f, l1.rest, l2.rest, l3.rest))
+    f(l1.head(), l2.head(), l3.head()) ^ link(_, map3(f, l1.tail(), l2.tail(), l3.tail()))
   end
 end
 
@@ -731,7 +731,7 @@ fun map4<a, b, c, d, e>(f :: (a, b, c, d -> e), l1 :: List<a>, l2 :: List<b>, l3
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
     empty
   else:
-    f(l1.first, l2.first, l3.first, l4.first) ^ link(_, map4(f, l1.rest, l2.rest, l3.rest, l4.rest))
+    f(l1.head(), l2.head(), l3.head(), l4.head()) ^ link(_, map4(f, l1.tail(), l2.tail(), l3.tail(), l4.tail()))
   end
 end
 
@@ -740,7 +740,7 @@ fun map_n<a, b>(f :: (Number, a -> b), n :: Number, lst :: List<a>) -> List<b>:
   if is-empty(lst):
     empty
   else:
-    f(n, lst.first) ^ link(_, map_n(f, n + 1, lst.rest))
+    f(n, lst.head()) ^ link(_, map_n(f, n + 1, lst.tail()))
   end
 end
 
@@ -749,7 +749,7 @@ fun map2_n<a, b, c>(f :: (Number, a, b -> c), n :: Number, l1 :: List<a>, l2 :: 
   if is-empty(l1) or is-empty(l2):
     empty
   else:
-    f(n, l1.first, l2.first) ^ link(_, map2_n(f, n + 1, l1.rest, l2.rest))
+    f(n, l1.head(), l2.head()) ^ link(_, map2_n(f, n + 1, l1.tail(), l2.tail()))
   end
 end
 
@@ -758,7 +758,7 @@ fun map3_n<a, b, c, d>(f :: (Number, a, b, c -> d), n :: Number, l1 :: List<a>, 
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
     empty
   else:
-    f(n, l1.first, l2.first, l3.first) ^ link(_, map3_n(f, n + 1, l1.rest, l2.rest, l3.rest))
+    f(n, l1.head(), l2.head(), l3.head()) ^ link(_, map3_n(f, n + 1, l1.tail(), l2.tail(), l3.tail()))
   end
 end
 
@@ -767,18 +767,18 @@ fun map4_n<a, b, c, d, e>(f :: (Number, a, b, c, d -> e), n :: Number, l1 :: Lis
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
     empty
   else:
-    f(n, l1.first, l2.first, l3.first, l4.first) ^ link(_, map4_n(f, n + 1, l1.rest, l2.rest, l3.rest, l4.rest))
+    f(n, l1.head(), l2.head(), l3.head(), l4.head()) ^ link(_, map4_n(f, n + 1, l1.tail(), l2.tail(), l3.tail(), l4.tail()))
   end
 end
 
 fun each2<a, b>(f :: (a, b -> Nothing), lst1 :: List<a>, lst2 :: List<b>) -> Nothing:
   doc: "Calls f on each pair of corresponding elements in l1 and l2, and returns nothing.  Stops after the shortest list"
-  fun help(l1, l2):
+  fun help(l1 :: List<a>, l2 :: List<b>):
     if is-empty(l1) or is-empty(l2) block:
       nothing
     else:
-      f(l1.first, l2.first)
-      help(l1.rest, l2.rest)
+      f(l1.head(), l2.head())
+      help(l1.tail(), l2.tail())
     end
   end
   help(lst1, lst2)
@@ -786,12 +786,12 @@ end
 
 fun each3<a, b, c>(f :: (a, b, c -> Nothing), lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>) -> Nothing:
   doc: "Calls f on each triple of corresponding elements in l1, l2 and l3, and returns nothing.  Stops after the shortest list"
-  fun help(l1, l2, l3):
+  fun help(l1 :: List<a>, l2 :: List<b>, l3 :: List<c>):
     if is-empty(l1) or is-empty(l2) or is-empty(l3) block:
       nothing
     else:
-      f(l1.first, l2.first, l3.first)
-      help(l1.rest, l2.rest, l3.rest)
+      f(l1.head(), l2.head(), l3.head())
+      help(l1.tail(), l2.tail(), l3.tail())
     end
   end
   help(lst1, lst2, lst3)
@@ -799,12 +799,12 @@ end
 
 fun each4<a, b, c, d>(f :: (a, b, c, d -> Nothing), lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>, lst4 :: List<d>) -> Nothing:
   doc: "Calls f on each tuple of corresponding elements in l1, l2, l3 and l4, and returns nothing.  Stops after the shortest list"
-  fun help(l1, l2, l3, l4):
+  fun help(l1 :: List<a>, l2 :: List<b>, l3 :: List<c>, l4 :: List<d>):
     if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) block:
       nothing
     else:
-      f(l1.first, l2.first, l3.first, l4.first)
-      help(l1.rest, l2.rest, l3.rest, l4.rest)
+      f(l1.head(), l2.head(), l3.head(), l4.head())
+      help(l1.tail(), l2.tail(), l3.tail(), l4.tail())
     end
   end
   help(lst1, lst2, lst3, lst4)
@@ -816,8 +816,8 @@ fun each_n<a>(f :: (Number, a -> Nothing), num :: Number, lst:: List<a>) -> Noth
     if is-empty(l) block:
       nothing
     else:
-      f(n, l.first)
-      help(n + 1, l.rest)
+      f(n, l.head())
+      help(n + 1, l.tail())
     end
   end
   help(num, lst)
@@ -825,12 +825,12 @@ end
 
 fun each2_n<a, b>(f :: (Number, a, b -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>) -> Nothing:
   doc: "Calls f(i, e1, e2) for each e1 in lst1, e2 in lst2 and with i counting up from num, and returns nothing"
-  fun help(n, l1, l2):
+  fun help(n :: Number, l1 :: List<a>, l2 :: List<b>):
     if is-empty(l1) or is-empty(l2) block:
       nothing
     else:
-      f(n, l1.first, l2.first)
-      help(n + 1, l1.rest, l2.rest)
+      f(n, l1.head(), l2.head())
+      help(n + 1, l1.tail(), l2.tail())
     end
   end
   help(num, lst1, lst2)
@@ -838,25 +838,25 @@ end
 
 fun each3_n<a, b, c>(f :: (Number, a, b, c -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>) -> Nothing:
   doc: "Calls f(i, e1, e2, e3) for each e1 in lst1, e2 in lst2, e3 in lst3 and with i counting up from num, and returns nothing"
-  fun help(n, l1, l2, l3):
+  fun help(n :: Number, l1 :: List<a>, l2 :: List<b>, l3 :: List<c>):
     if is-empty(l1) or is-empty(l2) or is-empty(l3) block:
       nothing
     else:
-      f(n, l1.first, l2.first, l3.first)
-      help(n + 1, l1.rest, l2.rest, l3.rest)
+      f(n, l1.head(), l2.head(), l3.head())
+      help(n + 1, l1.tail(), l2.tail(), l3.tail())
     end
   end
   help(num, lst1, lst2, lst3)
 end
 
-fun each4_n<a, b, c, d>(f :: (a, b, c, d -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>, lst4 :: List<d>) -> Nothing:
+fun each4_n<a, b, c, d>(f :: (Number, a, b, c, d -> Nothing), num :: Number, lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>, lst4 :: List<d>) -> Nothing:
   doc: "Calls f(i, e1, e2, e3, e4) for each e1 in lst1, e2 in lst2, e3 in lst3, e4 in lst4 and with i counting up from num, and returns nothing"
-  fun help(n, l1, l2, l3, l4):
+  fun help(n :: Number, l1 :: List<a>, l2 :: List<b>, l3 :: List<c>, l4 :: List<d>):
     if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) block:
       nothing
     else:
-      f(n, l1.first, l2.first, l3.first, l4.first)
-      help(n + 1, l1.rest, l2.rest, l3.rest, l4.rest)
+      f(n, l1.head(), l2.head(), l3.head(), l4.head())
+      help(n + 1, l1.tail(), l2.tail(), l3.tail(), l4.tail())
     end
   end
   help(num, lst1, lst2, lst3, lst4)
@@ -882,7 +882,7 @@ fun foldr<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   if is-empty(lst):
     base
   else:
-    f(foldr(f, base, lst.rest), lst.first)
+    f(foldr(f, base, lst.tail()), lst.head())
   end
 end
 
@@ -892,7 +892,7 @@ fun fold2<a, b, c>(f :: (a, b, c -> a), base :: a, l1 :: List<b>, l2 :: List<c>)
   if is-empty(l1) or is-empty(l2):
     base
   else:
-    fold2(f, f(base, l1.first, l2.first), l1.rest, l2.rest)
+    fold2(f, f(base, l1.head(), l2.head()), l1.tail(), l2.tail())
   end
 end
 
@@ -902,7 +902,7 @@ fun fold3<a, b, c, d>(f :: (a, b, c, d -> a), base :: a, l1 :: List<b>, l2 :: Li
   if is-empty(l1) or is-empty(l2) or is-empty(l3):
     base
   else:
-    fold3(f, f(base, l1.first, l2.first, l3.first), l1.rest, l2.rest, l3.rest)
+    fold3(f, f(base, l1.head(), l2.head(), l3.head()), l1.tail(), l2.tail(), l3.tail())
   end
 end
 
@@ -912,7 +912,7 @@ fun fold4<a, b, c, d, e>(f :: (a, b, c, d, e -> a), base :: a, l1 :: List<b>, l2
   if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4):
     base
   else:
-    fold4(f, f(base, l1.first, l2.first, l3.first, l4.first), l1.rest, l2.rest, l3.rest, l4.rest)
+    fold4(f, f(base, l1.head(), l2.head(), l3.head(), l4.head()), l1.tail(), l2.tail(), l3.tail(), l4.tail())
   end
 end
 
@@ -923,7 +923,7 @@ fun fold_n<a, b>(f :: (Number, a, b -> a), num :: Number, base :: a, lst :: List
     if is-empty(partial-list):
       acc
     else:
-      help(n + 1, f(n, acc, partial-list.first), partial-list.rest)
+      help(n + 1, f(n, acc, partial-list.head()), partial-list.tail())
     end
   end
   help(num, base, lst)
