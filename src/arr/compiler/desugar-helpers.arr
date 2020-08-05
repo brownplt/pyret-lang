@@ -125,6 +125,10 @@ fun desugar-s-op(loc, op-l, op, l, r):
                   "not",
                   [list: inner], flat-prim-app
       )
+
+    | op == "op^" then:
+      # left ^ right -> right(left)
+      A.s-app(loc, r, [list: l])
     | otherwise:
       A.s-op(loc, op-l, op, l, r)
     end

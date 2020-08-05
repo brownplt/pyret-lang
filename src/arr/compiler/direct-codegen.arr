@@ -285,6 +285,7 @@ fun nyi(name):
   { j-str("not implemented: " + name); [clist: j-expr(console([clist: j-str(name)]))] }
 end
 
+# TODO(alex): is this duplicating code in desugar-helpers.arr?
 fun compile-s-op(context, l, op-l, op, lv :: JExpr, rv :: JExpr):
   val = ask:
     # Pyret number operations compatible with JS numbers
@@ -328,6 +329,7 @@ fun compile-s-op(context, l, op-l, op, lv :: JExpr, rv :: JExpr):
       j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
     | op == "opor" then: j-binop(lv, J.j-or, rv)
     | op == "opand" then: j-binop(lv, J.j-and, rv)
+    | op == "op^" then: j-app(rv, cl-sing(lv))
     | otherwise: nyi(op)
   end
 
