@@ -2,18 +2,46 @@ import { Table } from './tables.arr';
 
 const reactorEvents = require('./reactor-events.arr.js');
 const tables = require('./tables.arr.js');
+const option = require('./option.arr.js');
 
 // TODO: what's the type of externalInteractionHandler?
 type IDKFunction<A> = (...args: any[]) => A;
 type InteractionHandler<A> = null | IDKFunction<A>;
 var externalInteractionHandler: InteractionHandler<any> = null;
 
+type Some<A> = {
+    '$brand': {
+        'names': ['elt'],
+    },
+    '$tag': 0,
+    'elt': A,
+};
+
+type None = {
+    '$brand': {
+        'names' :false,
+    },
+    '$tag': 1,
+}
+
+type Option<A> = None | Some<A>;
+
 type ReactorFields<A> = {
-    init: A,
-    'on-tick'?: (a: A) => A,
-    'seconds-per-tick'?: number,
+    'on-tick': Option<(a: A) => A>,
+    'seconds-per-tick': Option<number>,
     // to-draw is supposed to return an Image, but the image library
     // isn't written in TypeScript, hence the `any`
+    'to-draw': Option<(a: A) => any>,
+    'on-key': Option<(a: A, key: string) => A>,
+    'on-mouse': Option<(a: A, x: number, y: number, eventType: string) => A>,
+    'stop-when': Option<(a: A) => boolean>,
+    'close-when-stop': Option<boolean>,
+    title: Option<string>,
+};
+
+type RawReactorFields<A> = {
+    'on-tick'?: (a: A) => A,
+    'seconds-per-tick'?: number,
     'to-draw'?: (a: A) => any,
     'on-key'?: (a: A, key: string) => A,
     'on-mouse'?: (a: A, x: number, y: number, eventType: string) => A,
@@ -23,7 +51,13 @@ type ReactorFields<A> = {
 };
 
 function makeReactor<A>(init: A, fields: ReactorFields<A>): Reactor<A> {
-    return makeReactorRaw<A>(init, fields, false, []);
+    const rawFields: RawReactorFields<A> = {};
+    Object.getOwnPropertyNames(fields).forEach((field) => {
+        if (option['is-some'](fields[field])) {
+            rawFields[field] = fields[field].elt;
+        }
+    });
+    return makeReactorRaw<A>(init, rawFields, false, []);
 }
 
 type Reactor<A> = {
@@ -41,7 +75,7 @@ type Reactor<A> = {
     'is-stopped': () => boolean,
 };
 
-function makeReactorRaw<A>(init: A, handlers: ReactorFields<A>, tracing: boolean, trace: A[]): Reactor<A> {
+function makeReactorRaw<A>(init: A, handlers: RawReactorFields<A>, tracing: boolean, trace: A[]): Reactor<A> {
     const self: Reactor<A> = {
         $brand: 'reactor',
         'get-value': () => {
