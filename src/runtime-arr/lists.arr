@@ -265,7 +265,7 @@ sharing:
   end,
   method set(self :: List<a>, n :: Number, e :: a) -> List<a>:
     doc: "Returns a new list with the nth element set to the given value, or raises an error if n is out of range"
-    set(self, n, e)
+    function-set(self, n, e)
   end,
   method remove(self :: List<a>, e :: a) -> List<a>:
     doc: "Returns the list without the element if found, or the whole list if it is not"
@@ -483,7 +483,7 @@ fun get<a>(lst :: List<a>, n :: Number) -> a:
   end
 end
 
-fun set<a>(lst :: List<a>, n :: Number, v) -> a:
+fun function-set<a>(lst :: List<a>, n :: Number, v :: a) -> List<a>:
   doc: ```Returns a new list with the same values as the given list but with the nth element
         set to the given value, or raises an error if n is out of range```
   fun help(l, cur):
