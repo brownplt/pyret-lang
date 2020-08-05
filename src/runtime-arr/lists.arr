@@ -530,7 +530,7 @@ list = {
 
 fun length<a>(lst :: List<a>) -> Number:
   doc: "Takes a list and returns the number of links in the list"
-  fun help(l, cur) -> Number:
+  fun help(l :: List<a>, cur :: Number) -> Number:
     cases (List) l:
       | empty => cur
       | link(_, r) => help(r, cur + 1)
@@ -784,7 +784,7 @@ fun each3<a, b, c>(f :: (a, b, c -> Nothing), lst1 :: List<a>, lst2 :: List<b>, 
   help(lst1, lst2, lst3)
 end
 
-fun each4<a, b, c, d>(f :: (a, b, c, d -> Nothing), lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>, lst4 :: List<d>):
+fun each4<a, b, c, d>(f :: (a, b, c, d -> Nothing), lst1 :: List<a>, lst2 :: List<b>, lst3 :: List<c>, lst4 :: List<d>) -> Nothing:
   doc: "Calls f on each tuple of corresponding elements in l1, l2, l3 and l4, and returns nothing.  Stops after the shortest list"
   fun help(l1, l2, l3, l4):
     if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) block:
@@ -916,7 +916,7 @@ fun fold_n<a, b>(f :: (Number, a, b -> a), num :: Number, base :: a, lst :: List
   help(num, base, lst)
 end
 
-fun member-with<a>(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)):
+fun member-with<a>(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)) -> equality.EqualityResult:
   ask:
     | is-empty(lst) then: equality.NotEqual("list", elt, lst)
     | is-link(lst) then:
