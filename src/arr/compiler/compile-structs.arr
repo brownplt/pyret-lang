@@ -2818,7 +2818,8 @@ runtime-provides = provides("builtin://global",
      "String", t-str,
      "Boolean", t-top,
      "RawArray", t-top,
-     "Nothing", t-top ],
+     "Nothing", t-top,
+     "Function", t-top, ],
   [string-dict:])
 
 runtime-values = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
