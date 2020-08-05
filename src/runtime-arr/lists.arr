@@ -163,10 +163,17 @@ sharing:
     end
   end,
 
-  method first(self) -> a:
+  method head(self) -> a:
     cases(List<a>) self:
-      | empty => raise("first: empty list")
-      | link(first, _) => first
+      | empty => raise("head: empty list")
+      | link(head, _) => head
+    end
+  end,
+
+  method tail(self) -> List<a>:
+    cases(List<a>) self:
+      | empty => raise("tail: empty list")
+      | link(_, tail) => tail
     end
   end,
 
