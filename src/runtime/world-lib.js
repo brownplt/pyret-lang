@@ -820,8 +820,8 @@ function on_key(press) {
         return {
             onRegister: function(top) {
                 //http://www.w3.org/TR/html5/editing.html#sequential-focus-navigation-and-the-tabindex-attribue
-                jQuery(top).attr('tabindex', 1);
-                jQuery(top).focus();
+                top.tabindex = 1;
+                top.focus();
                 attachEvent(top, 'keydown', wrappedPress);
             },
             onUnregister: function(top) {
