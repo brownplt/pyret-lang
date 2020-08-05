@@ -444,15 +444,17 @@ fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true :: List<a>, is
   doc: "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
   var is-true = empty
   var is-false = empty
-  fun help(inner-lst):
-    if is-empty(inner-lst) block:
-      nothing
-    else:
-      help(inner-lst.rest)
-      if f(inner-lst.first):
-        is-true := inner-lst.first ^ link(_, is-true)
-      else:
-        is-false := inner-lst.first ^ link(_, is-false)
+  fun help(inner-lst :: List<a>):
+    cases(List) inner-lst:
+      | empty => nothing
+      | link(first, rest) => block:
+        help(rest)
+        if f(inner-lst.first):
+          is-true := inner-lst.first ^ link(_, is-true)
+        else:
+          is-false := inner-lst.first ^ link(_, is-false)
+        end
+        nothing
       end
     end
   end
