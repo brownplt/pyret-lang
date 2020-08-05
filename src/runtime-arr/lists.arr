@@ -975,7 +975,7 @@ end
 fun shuffle<a>(lst :: List<a>) -> List<a>:
   if is-empty(lst): empty
   else:
-    elts = for fold_n(i from 1, arr from RA.raw-array-of(lst.first, lst.length()), e from lst.rest) block:
+    elts = for fold_n(i from 1, arr from RA.raw-array-of(lst.head(), lst.length()), e from lst.tail()) block:
       # TODO(alex): implement random somewhere
       # ix = random(i + 1)
       ix = raise("TODO(alex): Implement random generator somewhere")
