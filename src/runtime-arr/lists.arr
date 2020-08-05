@@ -92,11 +92,6 @@ data List<a>:
       true
     end,
 
-    method any(self, f :: (a -> Boolean)) -> Boolean:
-      doc: ```Returns true if the given predicate is true for any element in this list```
-      false
-    end,
-
     method member(self, elt :: a) -> Boolean:
       doc: "Returns true when the given element is equal to a member of this list"
       false
@@ -148,11 +143,6 @@ data List<a>:
       f(self.first) and self.rest.all(f)
     end,
 
-    method any(self, f :: (a -> Boolean)) -> Boolean:
-      doc: ```Returns true if the given predicate is true for any element in this list```
-      f(self.first) or self.rest.any(f)
-    end,
-
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
@@ -162,6 +152,17 @@ data List<a>:
     end,
 sharing:
   # method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
+
+  # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
+  #   Known restriction of the typechecker (see type-checker.arr:1226)
+  method any(self, f :: (a -> Boolean)) -> Boolean:
+    doc: ```Returns true if the given predicate is true for any element in this list```
+    cases(List) self:
+      | empty => false
+      | link(first, rest) =>
+        f(first) or rest.any(f)
+    end
+  end,
 
   # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
   #   Known restriction of the typechecker (see type-checker.arr:1226)
