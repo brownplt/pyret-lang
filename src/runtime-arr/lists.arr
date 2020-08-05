@@ -164,14 +164,14 @@ sharing:
   end,
 
   method head(self) -> a:
-    cases(List<a>) self:
+    cases(List) self:
       | empty => raise("head: empty list")
       | link(head, _) => head
     end
   end,
 
   method tail(self) -> List<a>:
-    cases(List<a>) self:
+    cases(List) self:
       | empty => raise("tail: empty list")
       | link(_, tail) => tail
     end
@@ -368,7 +368,7 @@ end
 
 fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
   doc: ```Returns the list without the element if found, or the whole list if it is not```
-  cases(List<a>) lst:
+  cases(List) lst:
     | empty => empty
     | link(first, rest) =>
       if elt == lst.first:
@@ -494,7 +494,7 @@ end
 fun get<a>(lst :: List<a>, n :: Number) -> a:
   doc: "Returns the nth element of the given list, or raises an error if n is out of range"
   fun help(l :: List<a>, cur :: Number):
-    cases(List<a>) l:
+    cases(List) l:
       | empty => raise("get: n too large " + tostring(n))
       | link(first, rest) =>
       if cur == 0:
@@ -513,7 +513,7 @@ fun function-set<a>(lst :: List<a>, n :: Number, v :: a) -> List<a>:
   doc: ```Returns a new list with the same values as the given list but with the nth element
         set to the given value, or raises an error if n is out of range```
   fun help(l :: List<a>, cur :: Number):
-    cases(List<a>) l:
+    cases(List) l:
       | empty => raise("set: n too large " + tostring(n))
       | link(first, rest) =>
         if cur == 0:
@@ -604,7 +604,7 @@ end
 fun last<a>(lst :: List<a>) -> a:
   doc: "Returns the last element of this list, or raises an error if the list is empty"
   fun helper(l :: List<a>) -> a:
-    cases(List<a>) lst:
+    cases(List) lst:
       | empty => raise('last: took last of empty list')
       | link(first, rest) =>
         if is-empty(rest):
@@ -665,7 +665,7 @@ fun repeat<a>(n :: Number, e :: a) -> List<a>:
 end
 
 fun append<a>(front :: List<a>, back :: List<a>) -> List<a>:
-  cases(List<a>) front:
+  cases(List) front:
     | empty => back
     | link(f, r) => link(f, append(r, back))
   end
@@ -683,7 +683,7 @@ end
 
 fun any<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for any elem of lst"
-  cases(List<a>) lst:
+  cases(List) lst:
     | empty => false
     | link(first, rest) => f(first) or any(f, rest)
   end
@@ -691,7 +691,7 @@ end
 
 fun all<a>(f :: (a -> Boolean), lst :: List<a>) -> Boolean:
   doc: "Returns true if f(elem) returns true for all elems of lst"
-  cases(List<a>) lst:
+  cases(List) lst:
     | empty => true
     | link(first, rest) => f(first) and all(f, rest)
   end
@@ -937,7 +937,7 @@ end
 #   Does that really matter?
 fun member-with<a>(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)) -> equality.EqualityResult:
 
-  cases(List<a>) lst:
+  cases(List) lst:
     | empty => equality.NotEqual("list", elt, lst)
     | link(first, rest) =>
       first-elt-equal = eq(first, elt)
@@ -988,7 +988,7 @@ fun shuffle<a>(lst :: List<a>) -> List<a>:
 end
 
 fun filter-map<a, b>(f :: (a -> Option<b>), lst :: List<a>) -> List<b>:
-  cases(List<a>) lst:
+  cases(List) lst:
     | empty => empty
     | link(first, rest) =>
       cases(Option<b>) f(first):
@@ -999,7 +999,7 @@ fun filter-map<a, b>(f :: (a -> Option<b>), lst :: List<a>) -> List<b>:
 end
 
 fun filter-values<a>(lst :: List<Option<a>>) -> List<a>:
-  cases(List<Option<a>>) lst:
+  cases(List) lst:
     | empty => empty
     | link(first, rest) =>
       cases(Option<a>) first:
@@ -1026,7 +1026,7 @@ fun take-while<A>(pred :: (A -> Boolean), lst :: List<A>) -> {List<A>; List<A>}:
   doc: "Splits a list into two pieces, at the first element that fails the given predicate"
   var tail = empty
   fun help(l :: List<A>):
-    cases(List<A>) l:
+    cases(List) l:
       | empty => empty
       | link(first, rest) =>
         if pred(first) block:
