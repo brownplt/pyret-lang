@@ -929,22 +929,27 @@ fun fold_n<a, b>(f :: (Number, a, b -> a), num :: Number, base :: a, lst :: List
   help(num, base, lst)
 end
 
+# TODO(alex): equality comparison functions like equal-always() are (Any, Any -> EqualityResult)
+#   instead of (a, a -> EqualityResult)
+#   Need to wrap eq in a lambda
+#   Attempting to use type (Any, Any -> EqualityResult) results in a TC error:
+#     Inconsistency between t-top and s-type-global(Any)
+#   Does that really matter?
 fun member-with<a>(lst :: List<a>, elt :: a, eq :: (a, a -> equality.EqualityResult)) -> equality.EqualityResult:
-  ask:
-    | is-empty(lst) then: equality.NotEqual("list", elt, lst)
-    | is-link(lst) then:
-      f = lst.first
-      r = lst.rest
-      first-elt-equal = eq(f, elt)
+
+  cases(List<a>) lst:
+    | empty => equality.NotEqual("list", elt, lst)
+    | link(first, rest) =>
+      first-elt-equal = eq(first, elt)
       cases(equality.EqualityResult) first-elt-equal:
         | Equal => equality.Equal
-        | else => equality.equal-or(first-elt-equal, member-with(r, elt, eq))
+        | else => equality.equal-or(first-elt-equal, member-with(rest, elt, eq))
       end
   end
 end
 
 fun member3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
-  member-with(lst, elt, equal-always3)
+  member-with(lst, elt, lam(l :: a, r :: a): equal-always3(l, r) end)
 end
 
 fun member<a>(lst :: List<a>, elt :: a) -> Boolean:
@@ -952,7 +957,7 @@ fun member<a>(lst :: List<a>, elt :: a) -> Boolean:
 end
 
 fun member-now3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
-  member-with(lst, elt, equality.equal-now3)
+  member-with(lst, elt, lam(l :: a, r:: a): equality.equal-now3(l, r) end)
 end
 
 fun member-now<a>(lst :: List<a>, elt :: a) -> Boolean:
@@ -960,7 +965,7 @@ fun member-now<a>(lst :: List<a>, elt :: a) -> Boolean:
 end
 
 fun member-identical3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
-  member-with(lst, elt, identical3)
+  member-with(lst, elt, lam(l :: a, r :: a): identical3(l, r) end)
 end
 
 fun member-identical<a>(lst :: List<a>, elt :: a) -> Boolean:
