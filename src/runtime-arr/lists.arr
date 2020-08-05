@@ -999,7 +999,7 @@ fun filter-map<a, b>(f :: (a -> Option<b>), lst :: List<a>) -> List<b>:
 end
 
 fun filter-values<a>(lst :: List<Option<a>>) -> List<a>:
-  cases(List<a>) lst:
+  cases(List<Option<a>>) lst:
     | empty => empty
     | link(first, rest) =>
       cases(Option<a>) first:
@@ -1025,8 +1025,8 @@ end
 fun take-while<A>(pred :: (A -> Boolean), lst :: List<A>) -> {List<A>; List<A>}:
   doc: "Splits a list into two pieces, at the first element that fails the given predicate"
   var tail = empty
-  fun help(l):
-    cases(List) l:
+  fun help(l :: List<A>):
+    cases(List<A>) l:
       | empty => empty
       | link(first, rest) =>
         if pred(first) block:
@@ -1043,11 +1043,11 @@ where:
   #   from resolve-scope.arr:check-unbound-ids-bad-assignments()
   #   Ex: _ > 0
   #
-  take-while(lam(x): x > 0 end, [list: 5, 3, 1, 0, 1, 2, 3]) is { [list: 5, 3, 1]; [list: 0, 1, 2, 3] }
-  take-while(lam(x): x > 0 end, empty) is { empty; empty }
-  take-while(lam(x): x > 0 end, [list: 0, 1, 2, 3]) is { empty; [list: 0, 1, 2, 3] }
-  take-while(lam(x): x > 0 end, [list: 5, 4, 3, 2, 1]) is { [list: 5, 4, 3, 2, 1]; empty }
-  take-while(lam(x): x == true end, [list: true, true, false, true]) is { [list: true, true]; [list: false, true] }
+  take-while(lam(x :: Number): x > 0 end, [list: 5, 3, 1, 0, 1, 2, 3]) is { [list: 5, 3, 1]; [list: 0, 1, 2, 3] }
+  take-while(lam(x :: Number): x > 0 end, empty) is { empty; empty }
+  take-while(lam(x :: Number): x > 0 end, [list: 0, 1, 2, 3]) is { empty; [list: 0, 1, 2, 3] }
+  take-while(lam(x :: Number): x > 0 end, [list: 5, 4, 3, 2, 1]) is { [list: 5, 4, 3, 2, 1]; empty }
+  take-while(lam(x :: Boolean): x == true end, [list: true, true, false, true]) is { [list: true, true]; [list: false, true] }
 end
 
 member-always3 = member3
