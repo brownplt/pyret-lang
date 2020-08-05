@@ -102,11 +102,6 @@ data List<a>:
       false
     end,
 
-    method append(self, other :: List<a>) -> List<a>:
-      doc: "Takes a list and returns the result of appending the given list to this list"
-      other
-    end,
-
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the smae as those in this list,
             sorted by the default ordering and equality```
@@ -158,11 +153,6 @@ data List<a>:
       f(self.first) or self.rest.any(f)
     end,
 
-    method append(self, other :: List<a>) -> List<a>:
-      doc: "Takes a list and returns the result of appending the given list to this list"
-      self.first ^ link(_, self.rest.append(other))
-    end,
-
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
@@ -172,6 +162,17 @@ data List<a>:
     end,
 sharing:
   # method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
+
+  # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
+  #   Known restriction of the typechecker (see type-checker.arr:1226)
+  method append(self, other :: List<a>) -> List<a>:
+    doc: "Takes a list and returns the result of appending the given list to this list"
+    cases(List) self:
+      | empty => other
+      | link(first, rest) =>
+        link(first, rest.append(other))
+    end
+  end,
 
   # Note(alex): implemented as "sharing" b/c "with" methods cannot see other "with" methods
   #   Known restriction of the typechecker (see type-checker.arr:1226)
