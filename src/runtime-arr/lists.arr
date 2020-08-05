@@ -388,7 +388,7 @@ fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: L
   end
   var prefix = empty
   var suffix = empty
-  fun help(ind, l):
+  fun help(ind :: Number, l :: List<a>):
     if ind == 0: suffix := l
     else:
       cases(List) l block:
