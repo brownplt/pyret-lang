@@ -125,7 +125,8 @@ function bigBangFromDict(init, dict, tracer) {
 
 var bigBang = function(initW, handlers, tracer, title) {
     var closeBigBangWindow = null;
-    var outerToplevelNode = jQuery('<span/>').css('padding', '0px').get(0);
+    var outerToplevelNode = document.createElement('span');
+    outerToplevelNode.style.padding = '0px';
     // TODO(joe): This obviously can't stay
     if(!runtime.hasParam("current-animation-port")) {
         document.body.appendChild(outerToplevelNode);
@@ -139,12 +140,11 @@ var bigBang = function(initW, handlers, tracer, title) {
         );
     }
 
-    var toplevelNode = jQuery('<span/>')
-        .css('padding', '0px')
-        .appendTo(outerToplevelNode)
-        .attr('tabindex', 1)
-        .focus()
-        .get(0);
+    var toplevelNode = document.createElement('span');
+    toplevelNode.style.padding = '0px';
+    outerToplevelNode.appendChild(toplevelNode);
+    outerToplevelNode.tabindex = 1;
+    outerToplevelNode.focus();
 
     var configs = [];
     var isOutputConfigSeen = false;
@@ -470,11 +470,11 @@ DefaultDrawingOutput.prototype = Object.create(WorldConfigOption.prototype);
 DefaultDrawingOutput.prototype.toRawHandler = function(toplevelNode) {
     var that = this;
     var worldFunction = function(world, success) {
-        var textNode = jQuery("<pre>");
+        var textNode = document.createElement('pre');
         const str = JSON.stringify(world);
-        textNode.text(str);
+        textNode.innerText = str;
         success([toplevelNode,
-                 rawJsworld.node_to_tree(textNode[0])]);
+                 rawJsworld.node_to_tree(textNode)]);
         return;
     };
     var cssFunction = function(w, success) { success([]); }
