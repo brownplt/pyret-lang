@@ -1765,7 +1765,7 @@ data CompileError:
                     ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
                     ED.text(" shadows a previous declaration of "),
                     ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color)]
-              else: 
+              else:
                 [ED.error:
                   if is-builtin-loc:
                     [ED.para:
@@ -2069,7 +2069,7 @@ data CompileError:
           ED.text(" to evaluate to a function that accepts exactly the same number of arguments as are given to it.")],
         [ED.para:
           ED.highlight(ED.ed-args(self.app-expr.args.length()), self.app-expr.args.map(_.l), 1),
-          ED.text(" " + if self.app-expr.args.length() == 1: "is " else: "are " end 
+          ED.text(" " + if self.app-expr.args.length() == 1: "is " else: "are " end
                 + "given, but the type signature of the "),
           ed-applicant],
         [ED.para:
@@ -2568,7 +2568,7 @@ data CompileError:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para-nospace:
-          ED.text("Unable to infer the type of "), 
+          ED.text("Unable to infer the type of "),
           ED.highlight(ED.text("the expression"), [list: self.loc], 0),
           ED.text(" at "),
           ED.cmcode(self.loc),
@@ -2850,7 +2850,7 @@ data CompileError:
     end
   | table-sanitizer-bad-column(sanitize-expr :: A.LoadTableSpec, col-defs :: A.Loc) with:
     method render-fancy-reason(self):
-      
+
       bad-column = self.sanitize-expr.name
       bad-column-name = bad-column.toname()
       sanitizer = self.sanitize-expr.sanitizer

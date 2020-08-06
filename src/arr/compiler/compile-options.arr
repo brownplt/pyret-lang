@@ -7,13 +7,13 @@ import file("locators/builtin.arr") as B
 fun populate-options(dictionary, this-pyret-dir) block:
   compile-opts = CS.make-default-compile-options(this-pyret-dir)
 
-  checks = 
-    if dictionary.has-key("no-check-mode") or dictionary.has-key("library"): 
+  checks =
+    if dictionary.has-key("no-check-mode") or dictionary.has-key("library"):
       "none"
-    else if dictionary.has-key("checks"): 
+    else if dictionary.has-key("checks"):
       dictionary.get-value("checks")
-    else: 
-      "all" 
+    else:
+      "all"
     end
 
   builtin-js-dirs = if dictionary.has-key("builtin-js-dir"):
@@ -41,7 +41,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
   deps-file = dictionary.get("deps-file").or-else(compile-opts.deps-file)
   display-progress = not(dictionary.has-key("no-display-progress"))
   enable-spies = not(dictionary.has-key("no-spies"))
-  html-file = 
+  html-file =
     if dictionary.has-key("html-file"):
       some(dictionary.get-value("html-file"))
     else:
@@ -73,7 +73,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
   when dictionary.has-key("allow-builtin-overrides"):
     B.set-allow-builtin-overrides(dictionary.get-value("allow-builtin-overrides"))
   end
-  
+
   compile-opts.{
     add-profiling: add-profiling,
     allow-shadowed : allow-shadowed,
@@ -105,5 +105,6 @@ fun populate-options(dictionary, this-pyret-dir) block:
     standalone-file: standalone-file,
     type-check : type-check,
     user-annotations: user-annotations,
+    compile-mode: compile-mode,
   }
 end

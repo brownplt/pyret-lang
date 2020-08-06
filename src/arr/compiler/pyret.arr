@@ -90,7 +90,7 @@ fun main(args :: List<String>) -> Number block:
     "no-runtime-annotations",
       C.flag(C.once, "Ignore all annotations in the runtime, treating them as if they were blank."),
     "runtime-builtin-relative-path",
-      C.next-val(C.Str, C.once, "Relative path of builtins at runtime. Only used when compiling builtins using anchor.")
+      C.next-val(C.Str, C.once, "Relative path of builtins at runtime. Only used when compiling builtins using anchor."),
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -104,7 +104,7 @@ fun main(args :: List<String>) -> Number block:
 
   cases(C.ParsedArguments) params-parsed block:
     | success(r, rest) =>
-      checks = 
+      checks =
         if r.has-key("no-check-mode") or r.has-key("library"): "none"
         else if r.has-key("checks"): r.get-value("checks")
         else: "all" end
@@ -117,7 +117,7 @@ fun main(args :: List<String>) -> Number block:
       else:
         empty
       end
-      
+
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dirs(r.get-value("builtin-js-dir"))
       end
@@ -154,7 +154,7 @@ fun main(args :: List<String>) -> Number block:
                 )
               end)
 
-              # result = compile(with-builtin-js-dirs) 
+              # result = compile(with-builtin-js-dirs)
               # run-task(lam():
               #  compile(with-require-config)
               # end)
