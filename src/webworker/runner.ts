@@ -65,6 +65,8 @@ export const makeRequireAsync = (
       stopify,
       Error,
       Image,
+      JSON,
+      Date,
       decodeURIComponent,
       require: requireAsync,
       module: stopifyModuleExports,
