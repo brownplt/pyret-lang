@@ -12,7 +12,6 @@ import { NumericErrorCallbacks } from "./equality";
  */
 
 const _NUMBER = require("./js-numbers.js");
-const _OPTION = require('./option.arr.js');
 const _EQUALITY = require('./equality.js');
 const _PRIMITIVES = require("./primitives.js");
 
@@ -218,15 +217,6 @@ export function pauseStack(callback) {
   });
 }
 
-function stringToNumber(s: string): any {
-  var result = _NUMBER['fromString'](s);
-  if (result === false) {
-    return _OPTION['none'];
-  } else {
-    return _OPTION['some'](result);
-  }
-}
-
 const allModules = { };
 
 function addModule(uri : string, vals : any) {
@@ -284,7 +274,5 @@ module.exports["_greaterThan"] = _NUMBER["greaterThan"];
 module.exports["_lessThanOrEqual"] = _NUMBER["lessThanOrEqual"];
 module.exports["_greaterThanOrEqual"] = _NUMBER["greaterThanOrEqual"];
 module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
-
-module.exports["string-to-number"] = stringToNumber;
 
 module.exports["PTuple"] = _PRIMITIVES["PTuple"];

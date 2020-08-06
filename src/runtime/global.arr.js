@@ -1,6 +1,7 @@
 var runtime = require('./runtime.js');
 var array = require('./array.js');
 var numbers = require('./js-numbers.js');
+var string_util= require("./string.arr.js");
 
 function _plus(l, r) { return l + r; }
 function _minus(l, r) { return l - r; }
@@ -126,7 +127,7 @@ module.exports = {
     };
   },
 
-  'string-to-number': runtime['string-to-number'],
+  'string-to-number': string_util["string-to-number"],
 
   'string-to-lower': function(s) {
     return s.toLowerCase();

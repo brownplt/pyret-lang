@@ -1,7 +1,14 @@
 {
   "requires": [],
   "provides": {
+
+    "shorthands": {
+        "oOfN": ["tyapp", { "tag": "name",
+            "origin": { "import-type": "uri", "uri": "builtin://option" },
+            "name": "Option" }, ["Number"]]
+    },
     "values": {
+      "string-to-number": ["arrow", ["String"], "oOfN"],
       "length": ["arrow", ["String"], "Number"],
       "string-to-lower": ["arrow", ["String"], "String"],
       "concat": ["arrow", ["String", "String"], "String"],
@@ -9,7 +16,7 @@
       "charAt": ["arrow", ["String", "Number"], "String"],
       "split": ["arrow", ["String", "String"], "tany"],
       "split-pattern": ["arrow", ["String", "String"], "tany"],
-			"match": ["arrow", ["String", "String"], "tany"]
+      "match": ["arrow", ["String", "String"], "tany"]
     }
   }
 }
