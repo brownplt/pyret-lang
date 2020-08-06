@@ -319,14 +319,14 @@ fun compile-s-op(context, l, op-l, op, lv :: JExpr, rv :: JExpr):
     # Call Global.py_equal
     | op == "op==" then:
       argvs = cl-cons(lv, cl-sing(rv))
-      j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
+      j-app(j-bracket(j-id(RUNTIME), j-str(EQUAL-ALWAYS)), argvs)
     | op == "op<>" then:
       # Logical negation of equal-always()
       argvs = cl-cons(lv, cl-sing(rv))
-      j-unop(j-parens(j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)), J.j-not)
+      j-unop(j-parens(j-app(j-bracket(j-id(RUNTIME), j-str(EQUAL-ALWAYS)), argvs)), J.j-not)
     | op == "op<=>" then:
       argvs = cl-cons(lv, cl-sing(rv))
-      j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
+      j-app(j-bracket(j-id(RUNTIME), j-str(IDENTICAL)), argvs)
     | op == "opor" then: j-binop(lv, J.j-or, rv)
     | op == "opand" then: j-binop(lv, J.j-and, rv)
     | op == "op^" then: j-app(rv, cl-sing(lv))
