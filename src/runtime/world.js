@@ -16,14 +16,17 @@ var isImage = imageLibrary.isImage;
 
 //////////////////////////////////////////////////////////////////////
 
+// An Opaque is a Pyret concept for a value wrapping a hidden
+// implementation.  Check that a value is one of these, and internally is
+// a WorldConfigOption
 var isOpaqueWorldConfigOption = function(v) {
-    return isWorldConfigOption(v.val);
+    return runtime.isOpaque(v) && isWorldConfigOption(v.val);
 }
 var isOpaqueOnTick = function(v) {
-    return v.val instanceof OnTick;
+    return runtime.isOpaque(v) && (v.val instanceof OnTick);
 }
 var isOpaqueToDraw = function(v) {
-    return v.val instanceof ToDraw;
+    return runtime.isOpaque(v) && (v.val instanceof ToDraw);
 }
 
 var makeReactor = function(init, handlers) {
@@ -97,7 +100,7 @@ function bigBangFromDict(init, dict, tracer) {
     var handlers = [];
     function add(k, constr) {
         if(dict.hasOwnProperty(k)) {
-            handlers.push(new constr(dict[k]));
+            handlers.push(runtime.makeOpaque(new constr(dict[k])));
         }
     }
     var title = "Reactor";
@@ -108,10 +111,10 @@ function bigBangFromDict(init, dict, tracer) {
         if(dict.hasOwnProperty("seconds-per-tick")) {
             var delay = dict["seconds-per-tick"];
             delay = jsnums.toFixnum(delay);
-            handlers.push(new OnTick(dict["on-tick"], delay * 1000));
+            handlers.push(runtime.makeOpaque(new OnTick(dict["on-tick"], delay * 1000)));
         }
         else {
-            handlers.push(new OnTick(dict["on-tick"], DEFAULT_TICK_DELAY * 1000));
+            handlers.push(runtime.makeOpaque(new OnTick(dict["on-tick"], DEFAULT_TICK_DELAY * 1000)));
         }
     }
     add("on-mouse", OnMouse);
@@ -373,7 +376,7 @@ var OutputConfig = function() {}
 OutputConfig.prototype = Object.create(WorldConfigOption.prototype);
 var isOutputConfig = function(v) { return v instanceof OutputConfig; };
 var isOpaqueOutputConfig = function(v) {
-    return isOutputConfig(v.val);
+    return runtime.isOpaque(v) && isOutputConfig(v.val);
 }
 
 
@@ -405,7 +408,7 @@ ToDraw.prototype.toRawHandler = function(toplevelNode) {
                 // image.
 
                 var checkImagePred = function(val) {
-                    return isImage(val.val);
+                    return runtime.isOpaque(val) && isImage(val.val);
                 };
                 var checkImageType = makeCheckType(checkImagePred, "Image");
                 checkImageType(v);
@@ -492,7 +495,7 @@ CloseWhenStop.prototype = Object.create(WorldConfigOption.prototype);
 
 var isCloseWhenStopConfig = function(v) { return v instanceof CloseWhenStop; };
 var isOpaqueCloseWhenStopConfig = function(v) {
-    return isCloseWhenStopConfig(v.val);
+    return runtime.isOpaque(v) && isCloseWhenStopConfig(v.val);
 }
 
 var StopWhen = function(handler) {
@@ -524,28 +527,29 @@ module.exports = {
         return bigBang(initialWorldValue, arr, null, 'big-bang');
     },
     "on-tick": (handler) => {
-        return new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000));
+        return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
     },
     "on-tick-n": (handler, n) => {
         var fixN = jsnums.toFixnum(n);
-        return new OnTick(handler, fixN * 1000);
+        return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
     },
     "to-draw": (drawer) => {
-        return new ToDraw(drawer);
+        return runtime.makeOpaque(new ToDraw(drawer));
     },
     "stop-when": (stopper) => {
-        return new StopWhen(stopper);
+        return runtime.makeOpaque(new StopWhen(stopper));
     },
     "close-when-stop": (isClose) => {
-        return new CloseWhenStop(isClose);
+        return runtime.makeOpaque(new CloseWhenStop(isClose));
     },
     "on-key": (onKey) => {
-        return new OnKey(onKey);
+        return runtime.makeOpaque(new OnKey(onKey));
     },
     "on-mouse": (onMouse) => {
-        return new OnMouse(onMouse);
+        return runtime.makeOpaque(new OnMouse(onMouse));
     },
     "is-world-config": (v) => {
+        if(!runtime.isOpaque(v)) { return false; }
         return isWorldConfigOption(v.val);
     },
     "is-key-equal": (key1, key2) => {
