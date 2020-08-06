@@ -32,7 +32,7 @@ function makeNone() {
 }
 
 module.exports = {
-  makeReactor: reactors.makeReactor,
+  makeReactor: reactors['make-reactor'],
   makeSome,
   makeNone,
   'num-to-str': numToString,
