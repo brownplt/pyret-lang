@@ -1,7 +1,15 @@
+//
+// BIG NOTE(alex): Do NOT "require()" [directly OR transitively] any builtin module in runtime-arr-stage-1
+//    It creates a cyclic dependency while compiling runtime-arr-stage-1 Pyret code.
+//    This causes a compilation failure b/c the compiler will try to find its compiled version
+//      in the "build/runtime" directory and fail.
+// To lift this restriction, see the note for "copy-js-dependencies()" in cli-module-loader.arr
+//
+
+
 var runtime = require('./runtime.js');
 var array = require('./array.js');
 var numbers = require('./js-numbers.js');
-var string_util= require("./string.arr.js");
 
 function _plus(l, r) { return l + r; }
 function _minus(l, r) { return l - r; }
@@ -128,8 +136,6 @@ module.exports = {
       return numbers['roughlyEqualsRel'](l, r, relTol);
     };
   },
-
-  'string-to-number': string_util["string-to-number"],
 
   'string-to-lower': function(s) {
     return s.toLowerCase();

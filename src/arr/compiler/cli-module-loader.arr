@@ -489,6 +489,15 @@ fun copy-js-dependency( dep-path, uri, dirs, options ) block:
   save-code-path
 end
 
+# NOTE(alex):
+#   Under compile mode "builtin-stage-1", the global module is actually NOT imported
+#     at runtime (see direct-codegen.arr)
+#   However, from the compiler's PoV, the global module is still a dependency.
+#   If global depends on a "builtin-stage-1" module BM, whle compiling BM, copy-js-dependencies
+#     will attempt to file the compiled BM in the build/runtime directory.
+#   To allow such a dependency, add a conditional based on the current compile mode somewhere
+#     in copy-js-dependencies() such that it does NOT trace the global module dependencies.
+#
 fun copy-js-dependencies( wl, options ) block:
   dirs = setup-compiled-dirs( options )
   arr-js-modules = for filter( tc from wl ):
