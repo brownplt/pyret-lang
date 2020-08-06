@@ -1,8 +1,5 @@
-var $underscore_import18 = require("././global.arr.js");
-var _global = require("././global.arr.js");
 var _runtime = require("././runtime.js");
 var _nothing = undefined;
-var nothing17 = $underscore_import18.nothing;
 var $left9 = { "names": ["v"] };
 var $right10 = { "names": ["v"] };
 var Either1 = {
@@ -40,6 +37,5 @@ return module["exports"] = {
     "is-left": is$left5,
     "is-Either": is$Either6,
     "left": left4,
-    "$answer": _global["trace-value"]("srcloc", nothing17),
     "$checks": _runtime["$checkResults"]()
 };
