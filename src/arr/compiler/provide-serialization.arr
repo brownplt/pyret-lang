@@ -137,7 +137,7 @@ end
 
 
 fun compile-provided-data(de :: CS.DataExport):
-  cases(CS.DataExport) de: 
+  cases(CS.DataExport) de:
     | d-alias(origin, name) =>
       j-list(false,
         [clist: j-str("data-alias"),

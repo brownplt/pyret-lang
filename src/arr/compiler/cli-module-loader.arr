@@ -240,7 +240,7 @@ fun get-loadable(basedir, read-only-basedirs, l, max-dep-times) -> Option<Loadab
   end
   cases(Option) first-available block:
     | none => none
-    | some(found-basedir) => 
+    | some(found-basedir) =>
       c = cached-available(found-basedir, l.locator.uri(), l.locator.name(), max-dep-times.get-value(locuri))
       saved-path = P.join(found-basedir, uri-to-path(locuri, l.locator.name()))
       {static-path; module-path} = cases(CachedType) c.or-else(single-file):
@@ -481,7 +481,7 @@ fun copy-js-dependency( dep-path, uri, dirs, options ) block:
 
     file-content = F.file-to-string( dep-path )
     fc.display( file-content )
-    
+
     fc.flush()
     fc.close-file()
   end
