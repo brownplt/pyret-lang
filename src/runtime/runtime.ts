@@ -253,6 +253,7 @@ module.exports["identical"] = _EQUALITY.identical;
 module.exports["identical3"] = _EQUALITY.identical3;
 
 // Expected runtime functions
+module.exports["trace-value"] = traceValue;
 module.exports["$getTraces"] = getTraces;
 
 module.exports["$spy"] = _spy;
