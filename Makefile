@@ -1,4 +1,4 @@
-.PHONY: all clean build parser web runtime
+.PHONY: all clean build parser web runtime fix-runtime
 
 all: build parser
 
@@ -145,3 +145,7 @@ clean:
 	rm -f src/arr/compiler/pyret-parser.js
 	rm -r -f tests-new/.pyret
 	rm -r -f build/runtime
+
+fix-runtime:
+	rm -r -f build/runtime
+	npm run runtime
