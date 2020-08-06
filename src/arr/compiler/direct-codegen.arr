@@ -10,6 +10,7 @@ import file("gensym.arr") as G
 import file("concat-lists.arr") as CL
 import file("type-structs.arr") as T
 import file("provide-serialization.arr") as PSE
+import file("compile-structs.arr") as CS
 import pathlib as P
 import sha as sha
 import string-dict as D
@@ -21,9 +22,18 @@ flat-prim-app = A.prim-app-info-c(false)
 string-dict = D.string-dict
 mtd = [string-dict:]
 
+type ImportType = A.ImportType
+s-const-import = A.s-const-import
+s-special-import = A.s-special-import
+
+type CompileMode = CS.CompileMode
+cm-normal = CS.cm-normal
+cm-builtin-stage-1 = CS.cm-builtin-stage-1
+
 type Ann = A.Ann
 type Bind = A.Bind
 type Name = A.Name
+s-global = A.s-global
 type ColumnBinds = A.ColumnBinds
 type ColumnSort = A.ColumnSort
 type ColumnSortOrder = A.ColumnSortOrder
@@ -543,11 +553,31 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
       {e; cl-empty}
     | s-id(l, id) =>
-      b = context.post-env.bindings
-      when b.has-key-now(id.key()) and not(b.get-value-now(id.key()).origin.new-definition):
-        context.free-bindings.set-now(id.key(), b.get-value-now(id.key()))
+
+      normal-id-action = lam() block:
+          b = context.post-env.bindings
+          when b.has-key-now(id.key()) and not(b.get-value-now(id.key()).origin.new-definition):
+            context.free-bindings.set-now(id.key(), b.get-value-now(id.key()))
+          end
+          {j-id(js-id-of(id)); cl-empty}
       end
-      {j-id(js-id-of(id)); cl-empty}
+
+      # NOTE(alex): in cm-builtin-stage-1, global is NOT imported
+      #   Attempt to replace with definitions from runtime, builtins, etc.
+      cases(CompileMode) context.options.compile-mode:
+        | cm-normal => normal-id-action()
+        | cm-builtin-stage-1 =>
+          cases(Name) id:
+            | s-global(global-name) =>
+              ask:
+                | global-name == "nothing" then:
+                  { j-id(NOTHING); cl-empty }
+                | otherwise: raise("cm-builtin-stage-1: unable to replace global name")
+              end
+            | else => normal-id-action()
+          end
+      end
+
     | s-id-letrec(l, id, _) => {j-id(js-id-of(id)); cl-empty}
     | s-id-modref(l, id, _, field) =>
       {objv; obj-stmts} = compile-expr(context, A.s-id(l, id))
@@ -555,7 +585,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-prim-app(l, name, args, _) =>
       {argvs; argstmts} = compile-list(context, args)
 
-      { j-app(j-bracket(j-id(GLOBAL), j-str(name)), argvs); argstmts }
+      # Note(alex): builtin-stage-1 modules do NOT import global
+      #  Rely on runtime.js for functions instead
+      cases(CompileMode) context.options.compile-mode:
+        | cm-normal =>
+          { j-app(j-bracket(j-id(GLOBAL), j-str(name)), argvs); argstmts }
+        | cm-builtin-stage-1 =>
+          { j-app(j-bracket(j-id(RUNTIME), j-str(name)), argvs); argstmts }
+      end
 
     | s-app-enriched(l, f, args, info) =>
       # TODO(joe): Use info
@@ -1991,7 +2028,10 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   reactor-import = import-builtin(REACTOR,"reactor.arr.js")
 
   # Always emit global import
-  manual-imports = [clist: runtime-import, global-import, nothing-import]
+  manual-imports = cases(CompileMode) options.compile-mode:
+    | cm-normal => [clist: runtime-import, global-import, nothing-import]
+    | cm-builtin-stage-1 => [clist: runtime-import, nothing-import]
+  end
 
   shadow manual-imports = if import-flags.table-import:
     cl-append(manual-imports, cl-sing(table-import))
@@ -2019,21 +2059,47 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   explicit-imports = for CL.map_list(import-stmt from imports):
     cases( A.Import ) import-stmt block:
       | s-import(l, file, name) =>
-        dep-key = AU.import-to-dep(file).key()
-        uri = env.uri-by-dep-key(dep-key)
-        uri-to-local-js-name.set-now(uri, name)
-        uri-to-import(uri, name)
+        import-action = lam():
+          block:
+            dep-key = AU.import-to-dep(file).key()
+            uri = env.uri-by-dep-key(dep-key)
+            uri-to-local-js-name.set-now(uri, name)
+            uri-to-import(uri, name)
+          end
+        end
+        # NOTE(alex): If cm-builtin-stage-1, do NOT emit global imports
+        cases(CompileMode) options.compile-mode:
+          | cm-normal => import-action()
+          | cm-builtin-stage-1 =>
+            cases(ImportType) file:
+              | s-const-import(_, module-name) =>
+                if module-name == "global":
+                  CL.concat-empty
+                else:
+                  import-action()
+                end
+              | s-special-import(_, _, _) => import-action()
+            end
+        end
       | else => CL.concat-empty
     end
   end.foldl(_ + _, CL.concat-empty)
+
 
   # We _also_ insert a require for any modules that have a globally-referenced
   # name. This won't re-instantiate them since require() caches modules; it just
   # gives us a local name to use, and leverages the built-in Node module system
   # rather than having Pyret's runtime track all loaded modules.
-  non-imported-global-names = for filter(g from global-names.keys-list-now()):
-    not(uri-to-local-js-name.has-key-now(env.uri-by-value-name-value(g)))
+  #
+  # NOTE(alex): in cm-builtin-stage-1, do NOT implicitly import globals
+  non-imported-global-names = cases(CompileMode) options.compile-mode:
+    | cm-normal =>
+      for filter(g from global-names.keys-list-now()):
+        not(uri-to-local-js-name.has-key-now(env.uri-by-value-name-value(g)))
+      end
+    | cm-builtin-stage-1 => [list: ]
   end
+
   var implicit-imports = cl-empty
   for each(g from non-imported-global-names):
     uri = env.uri-by-value-name-value(g)
@@ -2049,10 +2115,17 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   # We also build up a list of var statements that bind local JS names for
   # all the globals used as identifiers, to make compiling uses of s-global
   # straightforward.
-  pyret-globals-as-js-ids = for CL.map_list(g from global-names.keys-list-now()):
-    uri = env.uri-by-value-name-value(g)
-    imported-as = uri-to-local-js-name.get-value-now(uri)
-    J.j-var(js-id-of(A.s-global(g)), J.j-dot(j-id(js-id-of(imported-as)), g))
+
+  # Note(alex): cm-builtin-stage-1 does NOT import global module
+  #   Do NOT attempt to import globals
+  pyret-globals-as-js-ids = cases(CompileMode) options.compile-mode:
+    | cm-normal =>
+      for CL.map_list(g from global-names.keys-list-now()):
+        uri = env.uri-by-value-name-value(g)
+        imported-as = uri-to-local-js-name.get-value-now(uri)
+        J.j-var(js-id-of(A.s-global(g)), J.j-dot(j-id(js-id-of(imported-as)), g))
+      end
+    | cm-builtin-stage-1 => cl-empty
   end
 
   from-modules = for CL.map_list(k from free-bindings.keys-list-now()):
@@ -2062,7 +2135,7 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
     J.j-var(js-id-of(binding.atom), rt-method("getModuleValue", [clist: j-str(uri), j-str(name)]))
   end
 
-  import-stmts + pyret-globals-as-js-ids + from-modules
+  import-stmts + from-modules
 end
 
 fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) block:
