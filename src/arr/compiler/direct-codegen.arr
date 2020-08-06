@@ -2153,8 +2153,15 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
 
   free-bindings = [D.mutable-string-dict:]
 
+  # Note(alex): Necessary to change URIs for builtin-stage-1 modules to be used in
+  #   "include from" syntax for values
+  from-uri = cases(CompileMode) options.compile-mode:
+    | cm-normal => provides.from-uri
+    | cm-builtin-stage-1 => "builtin://" + P.basename(uri, ".arr")
+  end
+
   {ans; stmts} = compile-expr({
-    uri: provides.from-uri,
+    uri: from-uri,
     options: options,
     provides: provides,
     datatypes: translated-datatype-map,
@@ -2171,9 +2178,14 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
 
   the-module = module-body
 
-  module-and-map = the-module.to-ugly-sourcemap(provides.from-uri, 1, 1, provides.from-uri)
+  module-and-map = the-module.to-ugly-sourcemap(from-uri, 1, 1, from-uri)
 
-  serialized-provides = PSE.compile-provides(provides)
+  # Note(alex): Necessary to change URIs for builtin-stage-1 modules to be used in
+  #   "include from" syntax for values
+  serialized-provides = cases(CompileMode) options.compile-mode:
+    | cm-normal => PSE.compile-provides(provides)
+    | cm-builtin-stage-1 => PSE.compile-provides-override-uri(provides, from-uri)
+  end
 
   [D.string-dict:
     "requires", j-list(true, [clist:]),

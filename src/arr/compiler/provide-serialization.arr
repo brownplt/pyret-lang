@@ -4,6 +4,7 @@ import file("js-ast.arr") as J
 import file("concat-lists.arr") as CL
 import file("compile-structs.arr") as CS
 import file("type-structs.arr") as T
+import option as O
 import srcloc as SL
 import string-dict as D
 
@@ -69,6 +70,10 @@ j-while = J.j-while
 j-for = J.j-for
 j-raw-code = J.j-raw-code
 
+# NOTE(alex): Used only by compile mode cm-builtin-stage-1
+#   See compile-provides-override-uri() for more info
+var ORIGIN_URI_OVERRIDE = none
+
 
 fun srcloc-to-raw(l):
   cases(SL.Srcloc) l:
@@ -85,12 +90,23 @@ fun cl-map-sd(f, sd):
 end
 
 fun compile-origin(bo):
-  j-obj([clist:
-    j-field("local-bind-site", srcloc-to-raw(bo.local-bind-site)),
-    j-field("definition-bind-site", srcloc-to-raw(bo.definition-bind-site)),
-    j-field("new-definition", j-bool(bo.new-definition)),
-    j-field("uri-of-definition", j-str(bo.uri-of-definition))
-  ])
+  cases(Option) ORIGIN_URI_OVERRIDE:
+    | some(override) =>
+      j-obj([clist:
+        j-field("local-bind-site", srcloc-to-raw(SL.builtin(override))),
+        j-field("definition-bind-site", srcloc-to-raw(SL.builtin(override))),
+        j-field("new-definition", j-bool(bo.new-definition)),
+        j-field("uri-of-definition", j-str(override))
+      ])
+
+    | none =>
+      j-obj([clist:
+        j-field("local-bind-site", srcloc-to-raw(bo.local-bind-site)),
+        j-field("definition-bind-site", srcloc-to-raw(bo.definition-bind-site)),
+        j-field("new-definition", j-bool(bo.new-definition)),
+        j-field("uri-of-definition", j-str(bo.uri-of-definition))
+      ])
+  end
 end
 
 fun compile-type-member(name, typ):
@@ -192,6 +208,17 @@ fun compile-provided-type(typ):
         [clist: j-str("data%"), compile-provided-type(base-typ), j-str(variant-name)])
     | else => j-ternary(j-false, j-str(tostring(typ)), j-str("tany"))
   end
+end
+
+# NOTE(alex): Used only by compile mode cm-builtin-stage-1
+#   Needed to override origin URIs in order for "include from" syntax to function with values
+#   Used to compile builtin arr modules without messing with URIs before codegen which
+#     MAY or MAY NOT break the compilation pipeline
+fun compile-provides-override-uri(provides, uri) block:
+  ORIGIN_URI_OVERRIDE := some(uri)
+  result = compile-provides(provides)
+  ORIGIN_URI_OVERRIDE := none
+  result
 end
 
 fun compile-provides(provides):
