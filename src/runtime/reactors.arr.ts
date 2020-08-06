@@ -9,6 +9,10 @@ type IDKFunction<A> = (...args: any[]) => A;
 type InteractionHandler<A> = null | IDKFunction<A>;
 var externalInteractionHandler: InteractionHandler<any> = null;
 
+function setInteract(newInteract: InteractionHandler<any>) {
+    externalInteractionHandler = newInteract;
+}
+
 type Some<A> = {
     '$brand': {
         'names': ['elt'],
@@ -253,4 +257,5 @@ module.exports = {
     'simulate-trace': simulateTrace,
     'react': react,
     'interact': interact,
+    '$setInteract': setInteract,
 };

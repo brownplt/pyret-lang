@@ -3,6 +3,7 @@ var array = require('./array.js');
 var numbers = require('./js-numbers.js');
 var option = require('./option.arr.js');
 var reactors = require('./reactors.arr.js');
+var world = require('./world.js');
 
 function _plus(l, r) { return l + r; }
 function _minus(l, r) { return l - r; }
@@ -30,6 +31,8 @@ function makeSome(v) {
 function makeNone() {
   return option.none;
 }
+
+reactors.$setInteract(world.$bigBangFromDict);
 
 module.exports = {
   makeReactor: reactors['make-reactor'],
