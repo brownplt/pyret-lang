@@ -12,6 +12,19 @@ function makeCheckType(pred, type) {
     };
 }
 
+function POpaque(val, equals) {
+    this.val = val;
+    this.equals = equals;
+}
+
+function isOpaque(val) {
+    return val instanceof POpaque;
+}
+
+function makeOpaque(val, equals) {
+    return new POpaque(val, equals);
+}
+
 var isImage = imageLibrary.isImage;
 
 //////////////////////////////////////////////////////////////////////
@@ -20,13 +33,13 @@ var isImage = imageLibrary.isImage;
 // implementation.  Check that a value is one of these, and internally is
 // a WorldConfigOption
 var isOpaqueWorldConfigOption = function(v) {
-    return runtime.isOpaque(v) && isWorldConfigOption(v.val);
+    return isOpaque(v) && isWorldConfigOption(v.val);
 }
 var isOpaqueOnTick = function(v) {
-    return runtime.isOpaque(v) && (v.val instanceof OnTick);
+    return isOpaque(v) && (v.val instanceof OnTick);
 }
 var isOpaqueToDraw = function(v) {
-    return runtime.isOpaque(v) && (v.val instanceof ToDraw);
+    return isOpaque(v) && (v.val instanceof ToDraw);
 }
 
 var makeReactor = function(init, handlers) {
@@ -100,7 +113,7 @@ function bigBangFromDict(init, dict, tracer) {
     var handlers = [];
     function add(k, constr) {
         if(dict.hasOwnProperty(k)) {
-            handlers.push(runtime.makeOpaque(new constr(dict[k])));
+            handlers.push(makeOpaque(new constr(dict[k])));
         }
     }
     var title = "Reactor";
@@ -111,10 +124,10 @@ function bigBangFromDict(init, dict, tracer) {
         if(dict.hasOwnProperty("seconds-per-tick")) {
             var delay = dict["seconds-per-tick"];
             delay = jsnums.toFixnum(delay);
-            handlers.push(runtime.makeOpaque(new OnTick(dict["on-tick"], delay * 1000)));
+            handlers.push(makeOpaque(new OnTick(dict["on-tick"], delay * 1000)));
         }
         else {
-            handlers.push(runtime.makeOpaque(new OnTick(dict["on-tick"], DEFAULT_TICK_DELAY * 1000)));
+            handlers.push(makeOpaque(new OnTick(dict["on-tick"], DEFAULT_TICK_DELAY * 1000)));
         }
     }
     add("on-mouse", OnMouse);
@@ -376,7 +389,7 @@ var OutputConfig = function() {}
 OutputConfig.prototype = Object.create(WorldConfigOption.prototype);
 var isOutputConfig = function(v) { return v instanceof OutputConfig; };
 var isOpaqueOutputConfig = function(v) {
-    return runtime.isOpaque(v) && isOutputConfig(v.val);
+    return isOpaque(v) && isOutputConfig(v.val);
 }
 
 
@@ -408,7 +421,7 @@ ToDraw.prototype.toRawHandler = function(toplevelNode) {
                 // image.
 
                 var checkImagePred = function(val) {
-                    return runtime.isOpaque(val) && isImage(val.val);
+                    return isOpaque(val) && isImage(val.val);
                 };
                 var checkImageType = makeCheckType(checkImagePred, "Image");
                 checkImageType(v);
@@ -495,7 +508,7 @@ CloseWhenStop.prototype = Object.create(WorldConfigOption.prototype);
 
 var isCloseWhenStopConfig = function(v) { return v instanceof CloseWhenStop; };
 var isOpaqueCloseWhenStopConfig = function(v) {
-    return runtime.isOpaque(v) && isCloseWhenStopConfig(v.val);
+    return isOpaque(v) && isCloseWhenStopConfig(v.val);
 }
 
 var StopWhen = function(handler) {
@@ -527,29 +540,29 @@ module.exports = {
         return bigBang(initialWorldValue, arr, null, 'big-bang');
     },
     "on-tick": (handler) => {
-        return runtime.makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
+        return makeOpaque(new OnTick(handler, Math.floor(DEFAULT_TICK_DELAY * 1000)));
     },
     "on-tick-n": (handler, n) => {
         var fixN = jsnums.toFixnum(n);
-        return runtime.makeOpaque(new OnTick(handler, fixN * 1000));
+        return makeOpaque(new OnTick(handler, fixN * 1000));
     },
     "to-draw": (drawer) => {
-        return runtime.makeOpaque(new ToDraw(drawer));
+        return makeOpaque(new ToDraw(drawer));
     },
     "stop-when": (stopper) => {
-        return runtime.makeOpaque(new StopWhen(stopper));
+        return makeOpaque(new StopWhen(stopper));
     },
     "close-when-stop": (isClose) => {
-        return runtime.makeOpaque(new CloseWhenStop(isClose));
+        return makeOpaque(new CloseWhenStop(isClose));
     },
     "on-key": (onKey) => {
-        return runtime.makeOpaque(new OnKey(onKey));
+        return makeOpaque(new OnKey(onKey));
     },
     "on-mouse": (onMouse) => {
-        return runtime.makeOpaque(new OnMouse(onMouse));
+        return makeOpaque(new OnMouse(onMouse));
     },
     "is-world-config": (v) => {
-        if(!runtime.isOpaque(v)) { return false; }
+        if(!isOpaque(v)) { return false; }
         return isWorldConfigOption(v.val);
     },
     "is-key-equal": (key1, key2) => {
