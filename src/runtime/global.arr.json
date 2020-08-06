@@ -104,6 +104,8 @@
 
       "raise": ["arrow", ["Any"], "tbot"],
 
+      "equal-now": ["arrow", ["Any", "Any"], "Boolean"],
+      "equal-now3": ["arrow", ["Any", "Any"], "EqualityResult"],
       "equal-always": ["arrow", ["Any", "Any"], "Boolean"],
       "equal-always3": ["arrow", ["Any", "Any"], "EqualityResult"],
       "identical": ["arrow", ["Any", "Any"], "Boolean"],

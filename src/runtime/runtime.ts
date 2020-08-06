@@ -243,8 +243,11 @@ module.exports["is-Equal"] = _EQUALITY.isEqual;
 module.exports["is-NotEqual"] = _EQUALITY.isNotEqual;
 module.exports["is-Unknown"] = _EQUALITY.isUnknown;
 
-module.exports["equalAlways"] = _EQUALITY.equalAlways;
-module.exports["equalAlways3"] = _EQUALITY.equalAlways3;
+module.exports["equal-now"] = _EQUALITY.equalNow;
+module.exports["equal-now3"] = _EQUALITY.equalNow3;
+
+module.exports["equal-always"] = _EQUALITY.equalAlways;
+module.exports["equal-always3"] = _EQUALITY.equalAlways3;
 
 module.exports["identical"] = _EQUALITY.identical;
 module.exports["identical3"] = _EQUALITY.identical3;

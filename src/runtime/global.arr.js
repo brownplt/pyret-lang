@@ -49,8 +49,10 @@ module.exports = {
   '_greaterequal': _greaterequal,
   'not': _not,
 
-  'equal-always': runtime['equalAlways'],
-  'equal-always3': runtime['equalAlways3'],
+  'equal-now': runtime['equal-now'],
+  'equal-now3': runtime['equal-now3'],
+  'equal-always': runtime['equal-always'],
+  'equal-always3': runtime['equal-always3'],
   'identical': runtime['identical'],
   'identical3': runtime['identical3'],
 
