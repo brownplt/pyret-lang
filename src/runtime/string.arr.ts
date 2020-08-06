@@ -1,4 +1,4 @@
-let NUMBER = require("./number.js");
+let NUMBER = require("./js-numbers.js");
 let OPTION = require("./option.arr.js");
 
 // NOTE(alex): removed from runtime.ts to break cyclic import between runtime.ts and option module
