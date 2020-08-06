@@ -1,10 +1,5 @@
 var _runtime = require("./runtime.js");
-var _global = require("./global.arr.js");
 var _nothing = undefined;
-var $underscore_import27 = require("./global.arr.js");
-_runtime["addModule"]("builtin://global",$underscore_import27);
-var nothing25 = $underscore_import27.nothing;
-var nothing25 = _runtime["getModuleValue"]("builtin://global","nothing");
 var $time$tick12 = {"names":false};
 var $mouse13 = {"names":["x","y","kind"]};
 var $keypress14 = {"names":["key"]};
@@ -41,7 +36,6 @@ var is$mouse5 = Event1["is-mouse"];
 var mouse4 = Event1["mouse"];
 var is$keypress3 = Event1["is-keypress"];
 var keypress2 = Event1["keypress"];
-var $answer26 = _global["trace-value"](["dummy location"],nothing25);
 return module["exports"] = {"time-tick":time$tick6,
 "is-time-tick":is$time$tick7,
 "is-Event":is$Event8,
@@ -49,7 +43,6 @@ return module["exports"] = {"time-tick":time$tick6,
 "mouse":mouse4,
 "keypress":keypress2,
 "is-mouse":is$mouse5,
-"$answer":$answer26,
 "$checks":_runtime["$checkResults"](),
 "$traces":_runtime["$getTraces"](),
 "$locations":[{"name":"time-tick",
