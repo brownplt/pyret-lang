@@ -255,10 +255,7 @@ var adaptWorldFunction = function(worldFunction) {
         // NOTE(joe): don't move this line down, it's *these* args, not
         // any other nested function's args
         var pyretArgs = [].slice.call(arguments, 0, arguments.length - 1);
-        if (!window.stopify) {
-            throw new Error('world.js: stopify not initialized');
-        }
-        window.stopify.run((result) => {
+        $STOPIFY.run((result) => {
             if (result.type === 'exception') {
                 rawJsworld.shutdown({errorShutdown: result.value});
             }
