@@ -38,6 +38,11 @@ RUNTIME_TS_COMPILED_FILES := $(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME
 RUNTIME_COPIED_BUILTINS := \
 	$(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%=$(RUNTIME_BUILD_DIR)/%) \
 	$(RUNTIME_JSON_SRCS:$(RUNTIME_SRC_DIR)/%=$(RUNTIME_BUILD_DIR)/%)
+
+RUNTIME_ARR_STAGE_1_SRC_DIR := src/runtime-arr-stage-1
+RUNTIME_ARR_STAGE_1_SRCS := $(wildcard $(RUNTIME_ARR_STAGE_1_SRC_DIR)/*.arr)
+RUNTIME_ARR_STAGE_1_COMPILED_FILES := $(RUNTIME_ARR_STAGE_1_SRCS:$(RUNTIME_ARR_STAGE_1_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
+
 RUNTIME_ARR_SRC_DIR := src/runtime-arr
 RUNTIME_ARR_SRCS := $(wildcard $(RUNTIME_ARR_SRC_DIR)/*.arr)
 RUNTIME_ARR_COMPILED_FILES := $(RUNTIME_ARR_SRCS:$(RUNTIME_ARR_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
@@ -76,12 +81,24 @@ $(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_SRC_DIR)/%.arr
 	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
 	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
 
+$(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_STAGE_1_SRC_DIR)/%.arr
+	cd $(RUNTIME_ARR_STAGE_1_SRC_DIR) && node ../../build/phaseA/pyret.jarr \
+		--build-runnable $*.arr \
+		--builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" \
+		--runtime-builtin-relative-path "./" \
+		--type-check true \
+		--compile-mode "builtin-stage-1"
+	mv $(RUNTIME_ARR_STAGE_1_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
+	mv $(RUNTIME_ARR_STAGE_1_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
+
+
 RUNTIME_DEPS := \
 	$(BUILD_DEPS) \
 	$(RUNTIME_SRC_DIR) \
 	$(RUNTIME_BUILD_DIR) \
 	$(RUNTIME_TS_COMPILED_FILES) \
 	$(RUNTIME_COPIED_BUILTINS) \
+	$(RUNTIME_ARR_STAGE_1_COMPILED_FILES) \
 	$(RUNTIME_ARR_COMPILED_FILES) \
 	$(STOPIFIED_BUILTINS) \
 
