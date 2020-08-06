@@ -16,6 +16,7 @@ import file("server.arr") as S
 import file("compile-options.arr") as CO
 
 # this value is the limit of number of steps that could be inlined in case body
+DEFAULT-COMPILE_MODE = "normal"
 DEFAULT-INLINE-CASE-LIMIT = 5
 DEFAULT-TYPE-CHECK = true
 
@@ -91,6 +92,8 @@ fun main(args :: List<String>) -> Number block:
       C.flag(C.once, "Ignore all annotations in the runtime, treating them as if they were blank."),
     "runtime-builtin-relative-path",
       C.next-val(C.Str, C.once, "Relative path of builtins at runtime. Only used when compiling builtins using anchor."),
+      "compile-mode",
+      C.next-val-default(C.Str, DEFAULT-COMPILE_MODE, none, C.once, "Compilation mode (defaults to \"normal\")")
   ]
 
   params-parsed = C.parse-args(options, args)

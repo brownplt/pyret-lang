@@ -26,6 +26,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
     empty
   end
 
+  compile-mode = dictionary.get("compile-mode").or-else("normal") ^ translate-compile-mode(_)
   source = dictionary.get("program-source").or-else("")
   add-profiling = dictionary.has-key("profile")
   allow-shadowed = dictionary.has-key("allow-shadow")
@@ -107,4 +108,12 @@ fun populate-options(dictionary, this-pyret-dir) block:
     user-annotations: user-annotations,
     compile-mode: compile-mode,
   }
+end
+
+fun translate-compile-mode(x :: String) -> CS.CompileMode:
+  ask:
+    | x == "normal" then: CS.cm-normal
+    | x == "builtin-stage-1" then: CS.cm-builtin-stage-1
+    | otherwise: raise("Unknown compile mode: " + x)
+  end
 end

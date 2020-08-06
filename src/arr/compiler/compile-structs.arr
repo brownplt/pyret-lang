@@ -44,6 +44,11 @@ is-s-block = A.is-s-block
 
 type Loc = SL.Srcloc
 
+data CompileMode:
+  | cm-builtin-stage-1
+  | cm-normal
+end
+
 data Dependency:
   | dependency(protocol :: String, arguments :: List<String>)
     with:
@@ -3007,7 +3012,8 @@ fun make-default-compile-options(this-pyret-dir):
     this-pyret-dir: this-pyret-dir,
     deps-file: P.resolve(P.join(this-pyret-dir, "bundled-node-deps.js")),
     standalone-file: P.resolve(P.join(this-pyret-dir, "js/handalone.js")),
-    builtin-js-dirs: [list: ]
+    builtin-js-dirs: [list: ],
+    compile-mode: cm-normal,
   }
 end
 
