@@ -252,16 +252,9 @@ var adaptWorldFunction = function(worldFunction) {
     return function() {
         // Consumes any number of arguments.
         var success = arguments[arguments.length - 1];
-        // NOTE(joe): don't move this line down, it's *these* args, not
-        // any other nested function's args
         var pyretArgs = [].slice.call(arguments, 0, arguments.length - 1);
-        $STOPIFY.run((result) => {
-            if (result.type === 'exception') {
-                rawJsworld.shutdown({errorShutdown: result.value});
-            }
-
-            success(result.value);
-        });
+        const result = worldFunction.apply(null, pyretArgs);
+        success(result);
     };
 };
 
