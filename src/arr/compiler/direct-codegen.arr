@@ -492,10 +492,15 @@ fun compile-method(context,
   { j-id(binder-fun-name); cl-sing(j-expr(binder-fun)) }
 end
 
-fun compile-srcloc(l):
+fun compile-srcloc(l, context):
   contents = cases(Loc) l:
     | builtin(name) => [clist: j-str(name)]
     | srcloc(uri, sl, sc, schar, el, ec, echar) =>
+      # Note(alex): Under cm-builtin-stage-1, override with the "corrected" uri
+      shadow uri = cases(CompileMode) context.options.compile-mode:
+        | cm-normal => uri
+        | cm-builtin-stage-1 => context.uri
+      end
       [clist: j-str(uri), j-num(sl), j-num(sc), j-num(schar), j-num(el), j-num(ec), j-num(echar)]
   end
   j-list(false, contents)
@@ -513,7 +518,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           | s-defined-value(name, def-v) =>
             block:
               {val; field-stmts} = compile-expr(context, def-v)
-              sloc = compile-srcloc(def-v.l)
+              sloc = compile-srcloc(def-v.l, context)
               { cl-cons(j-field(name, val), fields); field-stmts + stmts;
                 cl-cons(j-obj([clist:
                   j-field("name", j-str(name)),
@@ -521,7 +526,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             end
 
           | s-defined-var(name, id, id-loc) =>
-            sloc = compile-srcloc(id-loc)
+            sloc = compile-srcloc(id-loc, context)
             # TODO(alex): Box variables so external code can mutate variables
             { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts;
               cl-cons(j-obj([clist:
@@ -606,7 +611,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { j-app(fv, argvs); fstmts + argstmts }
 
     | s-srcloc(_, l) =>
-      { compile-srcloc(l); cl-empty }
+      { compile-srcloc(l, context); cl-empty }
 
     | s-op(l, op-l, op, left, right) =>
       { lv; l-stmts } = compile-expr(context, left)
