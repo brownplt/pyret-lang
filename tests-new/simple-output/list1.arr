@@ -1,5 +1,5 @@
 ### 123
-import list as L
+import lists as L
 import global as G
 
 list = [L.list: 1, 2, 3]
