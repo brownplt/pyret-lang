@@ -13,6 +13,7 @@
         },
         "values": {
             "raw-array": ["forall", ["a"], ["Maker", ["tid", "a"], "rOfA"]],
+            "raw-array-push": ["forall", ["a"], ["arrow", ["rOfA", "tva"], "rOfA"]],
             "raw-array-set": ["forall", ["a"], ["arrow", ["rOfA", "Number", "tva"], "rOfA"]],
             "raw-array-get": ["forall", ["a"], ["arrow", ["rOfA", "Number"], "tva"]],
             "raw-array-fold": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "rOfA"], "tvb"]],
