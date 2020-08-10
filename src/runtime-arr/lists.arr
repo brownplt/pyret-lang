@@ -459,6 +459,24 @@ fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b> block:
   end
 end
 
+fun slice<a>(lst :: List<a>, inclusive-lower :: Number, exclusive-upper :: Number) -> List<a> block:
+  fun help(acc :: List<a>, inner-lst :: List<a>, index :: Number) -> List<a>:
+    cases(List) inner-lst:
+      | empty => acc
+      | link(first, rest) => block:
+        if (index >= inclusive-lower) and (index < exclusive-upper):
+          link(inner-lst.first, help(acc, rest, index + 1))
+        else if (index < inclusive-lower) and (index < exclusive-upper):
+          help(acc, rest, index + 1)
+        else:
+          acc
+        end
+      end
+    end
+  end
+  help(empty, lst, 0)
+end
+
 fun partition<a>(f :: (a -> Boolean), lst :: List<a>) -> {is-true :: List<a>, is-false :: List<a>} block:
   doc: "Splits the list into two lists, one for which f(elem) is true, and one for which f(elem) is false"
   var is-true = empty
@@ -1053,6 +1071,48 @@ where:
   take-while(lam(x :: Number): x > 0 end, [list: 0, 1, 2, 3]) is { empty; [list: 0, 1, 2, 3] }
   take-while(lam(x :: Number): x > 0 end, [list: 5, 4, 3, 2, 1]) is { [list: 5, 4, 3, 2, 1]; empty }
   take-while(lam(x :: Boolean): x == true end, [list: true, true, false, true]) is { [list: true, true]; [list: false, true] }
+end
+
+fun max(lst :: List<Number>) -> Number:
+  { max-v; shadow lst } = cases(List) lst:
+    | empty => raise("list max: empty list")
+    | link(first, rest) => { first; rest }
+  end
+
+  fun helper(inner :: List<Number>, inner-max :: Number) -> Number:
+    cases(List) inner:
+      | empty => inner-max
+      | link(first, rest) =>
+        if first > inner-max:
+          helper(rest, first)
+        else:
+          helper(rest, inner-max)
+        end
+    end
+  end
+
+  helper(lst, max-v)
+end
+
+fun min(lst :: List<Number>) -> Number:
+  { min-v; shadow lst } = cases(List) lst:
+    | empty => raise("list max: empty list")
+    | link(first, rest) => { first; rest }
+  end
+
+  fun helper(inner :: List<Number>, inner-min :: Number) -> Number:
+    cases(List) inner:
+      | empty => inner-min
+      | link(first, rest) =>
+        if first < inner-min:
+          helper(rest, first)
+        else:
+          helper(rest, inner-min)
+        end
+    end
+  end
+
+  helper(lst, min-v)
 end
 
 member-always3 = member3
