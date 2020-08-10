@@ -454,7 +454,7 @@ end
 fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b> block:
   doc: "Returns a list made up of f(elem) for each elem in lst"
   cases(List) lst:
-    | link(fst, rst) => link(f(fst), map(f, lst))
+    | link(fst, rst) => link(f(fst), map(f, rst))
     | empty => empty
   end
 end
