@@ -25,6 +25,7 @@ stopify-web-tests: web
 	jest --verbose "stopify"
 
 offline-tests: build runtime
+	rm -r -f tests-new/.pyret
 	jest --verbose "tests-new/simple-output.test.js"
 
 WEBWORKER_BUILD_DIR := build/worker
