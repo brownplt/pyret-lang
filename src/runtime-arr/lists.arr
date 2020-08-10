@@ -298,6 +298,10 @@ sharing:
   end,
 end
 
+fun to-raw-array<a>(lst :: List<a>) -> RawArray<a>:
+  lst.foldl(lam(elem, acc): RA.raw-array-push(acc, elem) end, [RA.raw-array: ])
+end
+
 fun raw-array-to-list<a>(array :: RawArray<a>) -> List<a>:
   RA.raw-array-foldr(lam(acc, current): link(current, acc) end, empty, array)
 end
