@@ -1,5 +1,5 @@
 ### abc
-import list as L
+import lists as L
 import string-dict as D
 import global as G
 
