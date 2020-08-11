@@ -1,6 +1,9 @@
 // @ts-ignore
+const Equality = require("./equality.js");
+const Primitives = require("./primitives.js");
 const PyretOption = require("./option.arr.js");
-const List = require("./list.arr.js");
+const RA = require("./raw-array.arr.js");
+const List = require("./lists.arr.js");
 const parse = require("csv-parse/lib/sync")
 const fs = require("fs");
 const jsnums = require("./js-numbers.js");
@@ -36,124 +39,17 @@ interface Table {
   '$brand': string
 }
 
-function _primitiveEqual(a1: any, a2: any): boolean {
-  if (a1 === a2) {
-    return true;
-  }
-
-  if (a1 == null || a2 == null) {
-    return false;
-  }
-
-  if (Array.isArray(a1) && Array.isArray(a2)) {
-    return _primitiveArraysEqual(a1, a2);
-  }
-
-  if (a1.$brand === '$table' && a2.$brand === '$table') {
-    return _primitiveTablesEqual(a1, a2);
-  }
-
-  if (a1.$brand === '$row' && a2.$brand === '$row') {
-    return _primitiveRowsEqual(a1, a2);
-  }
-
-  return false;
-}
-
-function _primitiveRowsEqual(a1: Row, a2: Row): boolean {
-  if (a1.$brand !== '$row') {
-    throw new Error("expected an object with the field '$brand': '$row',"
-                    + " but received " + JSON.stringify(a1)+ " instead");
-  }
-
-  if (a2.$brand !== '$row') {
-    throw new Error("expected an object with the field '$brand': '$row',"
-                    + " but received " + JSON.stringify(a2) + " instead");
-  }
-
-  if (!_primitiveEqual(a1._headers, a2._headers)) {
-    return false;
-  }
-
-  if (!_primitiveEqual(a1._elements, a2._elements)) {
-    return false;
-  }
-
-  return true;
-}
-
-// Returns true if a1 and a2 contain identical primitive values.
-function _primitiveArraysEqual(a1: any, a2: any): boolean {
-  if (a1 === a2) {
-    return true;
-  }
-
-  if (!Array.isArray(a1)) {
-    throw new Error("found non-array object: " + a1);
-  }
-
-
-  if (!Array.isArray(a2)) {
-    throw new Error("found non-array object: " + a2);
-  }
-
-  if (a1.length !== a2.length) {
-    return false;
-  }
-
-  for (let i = 0; i < a1.length; i++) {
-    if (!_primitiveEqual(a1[i], a2[i])) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-function _primitiveTablesEqual(t1: Table, t2: Table): boolean {
-  if (t1.$brand !== '$table') {
-    throw new Error("expected an object with the field '$brand': '$table',"
-                    + " but received " + JSON.stringify(t1) + " instead");
-  }
-
-  if (t2.$brand !== '$table') {
-    throw new Error("expected an object with the field '$brand': '$table',"
-                    + " but received " + JSON.stringify(t2) + " instead");
-  }
-
-  const t1_headers = t1._headers;
-  const t2_headers = t2._headers;
-
-  if (!_primitiveArraysEqual(t1_headers, t2_headers)) {
-    return false;
-  }
-
-  const t1_rows = t1._rows;
-  const t2_rows = t2._rows;
-
-  if (t1_rows.length !== t2_rows.length) {
-    return false;
-  }
-
-  for (let i = 0; i < t1_rows.length; i++) {
-    if (!_primitiveEqual(t1_rows[i], t2_rows[i])) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 interface Row {
   '_headers': string[],
   '_elements': any[],
-  'get-column-names': () => string[],
+  //  TODO(alex): commons TS definitions like List
+  'get-column-names': () => any,
   'get-value': (columnName: string) => any,
   'get': (columnName: string) => any,
   '$brand': string
 }
 
-function getColumnNames(row: Row): string[] {
+function getColumnNames(row: Row): any {
   return List.list.make(row._headers);
 }
 
@@ -192,7 +88,7 @@ function rawRow(elements: [string, any][]): Row {
     'get-column-names': () => getColumnNames(result),
     'get-value': (columnName: string) => getValue(result, columnName),
     'get': (columnName: string) => rowGet(result, columnName),
-    '$brand': '$row'
+    '$brand': Primitives["$PRowBrand"]
   };
 
   return result;
@@ -267,7 +163,7 @@ function _addRow(table: any, row: Row): Table {
   const tableHeaders = table._headers;
   const rowHeaders = row._headers;
 
-  if (!_primitiveArraysEqual(tableHeaders, rowHeaders)) {
+  if (!Equality.equalAlways(tableHeaders, rowHeaders)) {
     throw new Error("table does not have the same column names as the new row");
   }
 
@@ -293,17 +189,22 @@ function _columnN(table: any, index: number): any[] {
   return List.list.make(table._rows.map((row) => row[index]));
 }
 
-function _columnNames(table: any): string[] {
+// TODO(alex): Pyret list def
+// Returns PyretList<string>
+function _columnNames(table: any): any {
   return List.list.make(table._headers);
 }
 
-function _allRows(table: any): Row[] {
+// TODO(alex): common list definition
+// Actually returns PyretList<Row>
+function _allRows(table: any): any {
   return List.list.make(table._rows
                         .map((row) =>
                              rawRow(zip(table._headers, row))));
 }
 
-function _allColumns(table: any): any[][] {
+// TODO(alex): common list definition
+function _allColumns(table: any): any {
   const rows = table._rows;
   const headers = table._headers;
   const columns = headers.map((_) => []);
@@ -314,7 +215,9 @@ function _allColumns(table: any): any[][] {
     }
   }
 
-  return columns;
+  const columnsList = List.list.make(columns.map((c) => List.list.make(c)));
+
+  return columnsList;
 }
 
 function _makeTable(headers: string[], rows: any[][]): Table {
@@ -351,7 +254,7 @@ function _makeTable(headers: string[], rows: any[][]): Table {
     '_headerIndex': headerIndex,
     '_headers': headers,
     '_rows': rows,
-    '$brand': '$table'
+    '$brand': Primitives["$PTableBrand"],
   };
 
   return table;
@@ -537,10 +440,13 @@ function filter(table, predicate) {
 function filterBy(table, columnName, predicate) {
   var headers = table._headers;
   var newRows = [];
-  var column = getColumn(table, columnName);
+  var column = _getRawColumn(table, columnName);
 
+    console.log(column.length);
   for ( let i = 0; i < column.length; i++ ) {
-    if ( predicate(column[i]) ) {
+      const predicateResult = predicate(column[i]);
+      console.log(`Result = ${predicateResult}. Column ${i}: ${column[i]}`);
+    if (predicateResult) {
       newRows.push(table._rows[i]);
     }
   }
@@ -637,15 +543,17 @@ function _selectColumns(table: Table, columnNames: string[]): Table {
   return _makeTable(colnamesList, newRows);
 }
 
-function _tableExtractColumn(table: Table, columnName: string): any[] {
+// TODO(alex): Common list definition
+// Returns List<any>
+function _tableExtractColumn(table: Table, columnName: string): any {
   // throws an error if columnName is not in table
   const index = _tableGetColumnIndex(table, columnName);
   const rows = table._rows;
-  const extracted = List["empty-list"]();
+  let extracted = List.empty;
 
   for (let i = 0; i < rows.length; i++) {
     const element = rows[i][index];
-    List.push(extracted, element);
+    extracted = List.append(extracted, List.link(element, List.empty));
   }
 
   return extracted;
@@ -768,7 +676,9 @@ function hasColumn(table: Table, columnName: string): boolean {
   return table._headers.includes(columnName);
 }
 
-function getColumn(table: Table, columnName: string): any[] {
+// TODO(alex): Common Pyret list definition
+// Returns a PyretList<any>
+function getColumn(table: Table, columnName: string): any {
   // Raise error if table lacks column
   if ( !hasColumn(table, columnName) ) {
     throw new Error("no such column: " + columnName);
@@ -778,7 +688,26 @@ function getColumn(table: Table, columnName: string): any[] {
   Object.keys(table._headers).forEach(function(i) {
     if(table._headers[i] == columnName) { columnIndex = i; }
   });
-  return table._rows.map(function(row){return row[columnIndex];});
+
+  return table._rows.reduceRight((acc, row) => {
+      acc = List.link(row[columnIndex], acc);
+      return acc;
+  }, List.empty);
+}
+
+// TODO(alex): merge duplicated code between getColumn() and _getRawColumn()
+function _getRawColumn(table: Table, columnName: string): any[] {
+  // Raise error if table lacks column
+  if ( !hasColumn(table, columnName) ) {
+    throw new Error("no such column: " + columnName);
+  }
+
+  var columnIndex;
+  Object.keys(table._headers).forEach(function(i) {
+    if(table._headers[i] == columnName) { columnIndex = i; }
+  });
+
+  return table._rows.map(function(row){return row[columnIndex]; });
 }
 
 function _length(table: Table): number {
@@ -866,6 +795,7 @@ function orderByColumns(table: Table, columns: [string, boolean][]): Table {
   const headers = table._headers;
   const rows = table._rows;
 
+  columns = List["to-raw-array"](columns);
   function ordering(a: any, b: any): number {
     for (let i = 0; i < columns.length; i++) {
       const columnOrder = columns[i];
@@ -932,7 +862,7 @@ function stack(table: Table, bot: Table): Table {
   var tableHeaders = table._headers;
   var headersToSort = _deepCopy(table._headers);
   var botHeaders = _deepCopy(bot._headers);
-  if ( !(_primitiveArraysEqual(headersToSort.sort(), botHeaders.sort())) ) {
+  if ( !(Equality.equalAlways(headersToSort.sort(), botHeaders.sort())) ) {
     throw new Error("headers do not match");
   }
 
@@ -958,7 +888,7 @@ function tableFromRows(rows: Row[]): Table {
   const headers: string[][] = rows.map(row => row._headers);
 
   for (let i = 0; i < headers.length; i++) {
-    if (!_primitiveArraysEqual(headers[i], headers[0])) {
+    if (!Equality.equalAlways(headers[i], headers[0])) {
       throw "table-from-rows: row name mismatch";
     }
   }
@@ -968,42 +898,58 @@ function tableFromRows(rows: Row[]): Table {
   return _makeTable(headers[0], elements);
 }
 
-type Column = [string, any[]];
+// TODO(alex): common List definition
+// Second element is a PyretList<any>
+type Column = [string, any];
 
+// TODO(alex): common List definition
+// NOTE(alex): Used as a constructor function (therefore taking an array of Columns)
 function tableFromColumns(columns: Column[]): Table {
-  if (columns.length === 0) {
-    throw new Error("expected at least one column");
-  }
-
-  const headers = columns.map(column => column[0]);
-  const sortedHeaders = headers.slice().sort();
-
-  for (let i = 0; i < sortedHeaders.length - 1; i++) {
-    if (sortedHeaders[i] === sortedHeaders[i + 1]) {
-      throw new Error("duplicate header: " + sortedHeaders[i]);
+    if (columns.length === 0) {
+        throw new Error("expected at least one column");
     }
-  }
 
-  const rowLength = columns[0][1].length
+    const duplicate_cache = {};
+    const columnLength = columns[0][1].length();
+    const duplicates = new Array();
 
-  for (let i = 0; i < columns.length; i++) {
-    if (columns[i][1].length !== rowLength) {
-      throw new Error("columns must have the same number of elements");
+    const columnArrays = new Array();
+    const headers = new Array();
+
+    columns.forEach((column) => {
+        const header = column[0];
+        if (duplicate_cache[header] !== undefined) {
+            throw new Error("duplicate header: " + header);
+        }
+
+        var rawArray = List["to-raw-array"](column[1]);
+        if (columnLength !== rawArray.length) {
+          throw new Error("columns must have the same number of elements");
+        }
+
+        headers.push(header);
+        columnArrays.push(rawArray);
+    });
+
+    // Convert columns to rows for internal consumption
+    var rows = new Array(columnLength);
+
+    for (var i = 0; i < columnArrays.length; i++) {
+        for (var j = 0; j < columnLength; j++) {
+            const element = columnArrays[i][j];
+            if (rows[j] === undefined) {
+                rows[j] = new Array();
+            }
+            rows[j].push(element);
+        }
     }
-  }
 
-  const rows = columns[0][1].map(() => []);
-
-  for (let i = 0; i < columns.length; i++) {
-    for (let j = 0; j < columns[i][1].length; j++) {
-      rows[j].push(columns[i][1][j]);
-    }
-  }
-
-  return _makeTable(headers, rows);
+    return _makeTable(headers, rows);
 }
 
-function tableFromColumn(columnName: string, values: any[]): Table {
+// TODO(alex): common List definition
+// Takes in a PyretList<any>
+function tableFromColumn(columnName: string, values: any): Table {
   const col: Column = [columnName, values];
   return tableFromColumns([col]);
 }
@@ -1015,7 +961,6 @@ module.exports = {
   'csv-open': _makeTableSkeletonFromCSVFile,
   '_makeTableFromCSVFile': _makeTableFromCSVFile,
   '_makeTableFromCSVString': _makeTableFromCSVString,
-  '_primitiveEqual': _primitiveEqual,
   'table-from-column': tableFromColumn,
   'table-from-columns': {
     'make': tableFromColumns
