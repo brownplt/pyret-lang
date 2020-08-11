@@ -175,9 +175,6 @@ data CompileEnvironment:
       )
 sharing:
   method value-by-uri(self, uri :: String, name :: String) block:
-    when not(self.all-modules.has-key-now(uri)):
-      spy: keys: self.all-modules.keys-list-now(), uri, name end
-    end
     cases(Option) self.all-modules
       .get-value-now(uri)
       .provides.values

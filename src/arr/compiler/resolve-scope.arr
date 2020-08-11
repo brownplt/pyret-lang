@@ -751,9 +751,6 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
           # times. If not, then they count as shadowing one another (e.g. two
           # values named list coming from two different libs)
           shadowing = b.origin.uri-of-definition == from-uri
-          when not(shadowing) and env.has-key(name.toname()):
-            spy: from-uri, b, name end
-          end
           make-atom-for(name, shadowing, env, bindings, make-binding)
       end
     else:
@@ -803,9 +800,6 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
     for SD.each-key(name from initial.globals.modules) block:
       origin = initial.globals.modules.get-value(name)
       mod-info = initial.provides-by-origin-value(origin)
-      when not(mod-info.modules.has-key(name)):
-        spy: mod-info end
-      end
       b = C.module-bind(C.bo-global(some(origin), origin.uri-of-definition, origin.original-name), names.s-module-global(name), mod-info.modules.get-value(name))
       module-bindings.set-now(names.s-module-global(name).key(), b)
       acc.set-now(name, b)
