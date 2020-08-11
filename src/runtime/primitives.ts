@@ -2,6 +2,8 @@
 
 const _NUMBER = require("./js-numbers.js");
 
+export const $PRowBrand = "row";
+export const $PTableBrand = "$table";
 export const $PTupleBrand = "tuple";
 export const $PRefBrand = "ref";
 
@@ -27,6 +29,14 @@ export interface PRef {
   ref: Object,
 }
 
+export function isRow(val: any): boolean {
+  return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === $PRowBrand);
+}
+
+export function isTable(val: any): boolean {
+  return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === $PTableBrand);
+}
+
 export function isFunction(obj: any): boolean {
   return (typeof obj === "function") && !(isMethod(obj));
 }
@@ -50,7 +60,7 @@ export function isString(val: any): boolean {
 }
 
 export function isDataVariant(val: any): boolean {
-  return (typeof val === "object") && ("$brand" in val) && !(isPTuple(val));
+  return (typeof val === "object") && ("$brand" in val) && !(isPTuple(val)) && !(isTable(val)) && !(isRow(val));
 }
 
 export function isRawObject(val: any): boolean {
