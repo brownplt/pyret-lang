@@ -3073,7 +3073,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         for(var i = 0; i < that.anns.length; i++) {
           var result = that.anns[i].check(that.locs[i], val.vals[i]);
           if(!thisRuntime.ffi.isOk(result)) {
-            return this.createTupleFailureError(compilerLoc, val, this.anns[i], result);
+            return this.createTupleFailureError(compilerLoc, val, i, result);
             //return result;
           }
         }
@@ -3081,36 +3081,31 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
 
       // Slow path for annotations with nonflat refinements, which may call back into Pyret
-      function deepCheckFields(remainingAnns) {
-        var thisAnn;
+      function deepCheckFields(curIndex) {
         return safeCall(function() {
-          var thisChecker = remainingAnns.pop();
-          thisAnn = thisChecker;
-          return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val.vals[remainingAnns.length]);
+          var thisChecker = that.anns[curIndex];
+          return thisChecker.check(that.locs[curIndex], val.vals[curIndex]);
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) {
-            if(remainingAnns.length === 0) { return thisRuntime.ffi.contractOk; }
-            else { return deepCheckFields(remainingAnns); }
+            if(curIndex === that.anns.length - 1) { return thisRuntime.ffi.contractOk; }
+            else { return deepCheckFields(curIndex + 1); }
           }
           else if(thisRuntime.ffi.isFail(result)) {
-            return that.createTupleFailureError(compilerLoc, val, thisAnn, result);
+            return that.createTupleFailureError(compilerLoc, val, curIndex, result);
             //return ffi.throwMessageException("types are wrong");
           }
         },
         "PTupleAnn:deepCheckFields");
       }
       if(that.anns.length === 0) { return thisRuntime.ffi.contractOk; }
-      else { return deepCheckFields(that.anns.slice()); }
+      else { return deepCheckFields(0); }
     }
     PTupleAnn.prototype.createTupleLengthMismatch = function(compilerLoc, val, annLength, tupLength) {
       return thisRuntime.ffi.contractFail(compilerLoc, thisRuntime.ffi.makeTupleLengthMismatch(compilerLoc, val, annLength, tupLength));
     };
-    PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, ann, result) {
-      var that = this;
-      var loc;
-      for(var i = 0; i < that.anns.length; i++) {
-        if(that.anns[i] === ann) { loc = that.locs[i]; }
-      }
+    PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, fieldIndex, result) {
+      var loc = this.locs[fieldIndex];
+      var ann = this.anns[fieldIndex];
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
         thisRuntime.ffi.makeTupleAnnsFail(val, thisRuntime.ffi.makeList([
@@ -3203,16 +3198,16 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
 
       // Slow path: not flat, so need to stack guard
-      function deepCheckFields(remainingFields) {
+      function deepCheckFields(curIndex) {
         var thisField;
         return safeCall(function() {
-          thisField = remainingFields.pop();
+          thisField = that.fields[curIndex];
           var thisChecker = that.anns[thisField];
-          return thisChecker.check(that.locs[that.locs.length - remainingFields.length], getColonField(val, thisField));
+          return thisChecker.check(that.locs[curIndex], getColonField(val, thisField));
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) {
-            if(remainingFields.length === 0) { return thisRuntime.ffi.contractOk; }
-            else { return deepCheckFields(remainingFields); }
+            if(curIndex === that.locs.length - 1) { return thisRuntime.ffi.contractOk; }
+            else { return deepCheckFields(curIndex + 1); }
           }
           else if(thisRuntime.ffi.isFail(result)) {
             return that.createRecordFailureError(compilerLoc, val, thisField, result);
@@ -3221,7 +3216,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         "PRecordAnn:deepCheckFields");
       }
       if(that.fields.length === 0) { return thisRuntime.ffi.contractOk; }
-      else { return deepCheckFields(that.fields.slice()); }
+      else { return deepCheckFields(0); }
     }
 
     /********************
