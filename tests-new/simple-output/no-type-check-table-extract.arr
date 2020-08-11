@@ -4,8 +4,9 @@
 # `extract` syntax.
 
 import global as G
+import equality as E
 import tables as T
-import list as L
+import lists as L
 
 my-table = table: a, b, c
   row: 1, 2, 3
@@ -21,9 +22,9 @@ correct-a = [L.list: 1, 4, 7]
 correct-b = [L.list: 2, 5, 8]
 correct-c = [L.list: 3, 6, 9]
 
-a-equal = T._primitiveEqual(column-a, correct-a)
-b-equal = T._primitiveEqual(column-b, correct-b)
-c-equal = T._primitiveEqual(column-c, correct-c)
+a-equal = E.equal-always(column-a, correct-a)
+b-equal = E.equal-always(column-b, correct-b)
+c-equal = E.equal-always(column-c, correct-c)
 
 passes-when-true = a-equal and b-equal and c-equal
 

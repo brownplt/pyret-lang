@@ -4,6 +4,7 @@
 # drop function
 
 import global as G
+import equality as E
 import tables as T
 
 my-table = table: name, age, favNum
@@ -20,9 +21,9 @@ my-correct-table = table: name, favNum
   row: "Eve", 3
 end
 
-are-equal = T._primitiveEqual(my-correct-table, my-dropped-table)
+are-equal = E.equal-always(my-correct-table, my-dropped-table)
 
-are-not-equal = T._primitiveEqual(my-correct-table, my-table)
+are-not-equal = E.equal-always(my-correct-table, my-table)
 
 passes-when-true = are-equal and G.not(are-not-equal)
 

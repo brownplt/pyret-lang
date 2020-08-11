@@ -4,6 +4,7 @@
 # table.build-column test.
 
 import global as G
+import equality as E
 import tables as T
 
 my-table = table: a, b
@@ -24,6 +25,6 @@ expected-table = table: a, b, c
   row: 5, 6, 11
 end
 
-passes-when-true = T._primitiveEqual(expected-table, my-new-table)
+passes-when-true = E.equal-always(expected-table, my-new-table)
 
 G.console-log(passes-when-true)

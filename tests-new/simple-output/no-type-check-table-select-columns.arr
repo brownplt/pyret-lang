@@ -4,6 +4,7 @@
 # `select` syntax.
 
 import global as G
+import equality as E
 import tables as T
 
 my-table = table: a, b, c
@@ -20,9 +21,9 @@ my-correct-select-table = table: a, c
   row: 7, 9
 end
 
-are-equal = T._primitiveEqual(my-correct-select-table, my-select-table)
+are-equal = E.equal-always(my-correct-select-table, my-select-table)
 
-are-not-equal = T._primitiveEqual(my-correct-select-table, my-table)
+are-not-equal = E.equal-always(my-correct-select-table, my-table)
 
 passes-when-true = are-equal and G.not(are-not-equal)
 

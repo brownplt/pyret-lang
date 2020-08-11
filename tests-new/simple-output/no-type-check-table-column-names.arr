@@ -4,8 +4,9 @@
 # table.column-names tests
 
 import global as G
+import equality as E
 import tables as T
-import list as L
+import lists as L
 
 my-table = table: a, b, c
   row: 1, 2, 3
@@ -17,6 +18,6 @@ names = my-table.column-names()
 
 expected-names = [L.list: "a", "b", "c"]
 
-passes-when-true = T._primitiveEqual(expected-names, names)
+passes-when-true = E.equal-always(expected-names, names)
 
 G.console-log(passes-when-true)

@@ -4,8 +4,9 @@
 # table-from-columns test.
 
 import global as G
+import equality as E
 import tables as T
-import list as L
+import lists as L
 
 my-table =
   [T.table-from-columns:
@@ -19,6 +20,6 @@ expected-table = table: a, b, c
   row: 7, 8, 9
 end
 
-passes-when-true = T._primitiveEqual(expected-table, my-table)
+passes-when-true = E.equal-always(expected-table, my-table)
 
 G.console-log(passes-when-true)
