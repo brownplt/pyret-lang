@@ -3,6 +3,7 @@ import { Table } from './tables.arr';
 const reactorEvents = require('./reactor-events.arr.js');
 const tables = require('./tables.arr.js');
 const option = require('./option.arr.js');
+const world = require('./world.js');
 
 // TODO: what's the type of externalInteractionHandler?
 type IDKFunction<A> = (...args: any[]) => A;
@@ -71,6 +72,7 @@ type Reactor<A> = {
     'interact-trace': () => Table,
     'simulate-trace': (limit: number) => Table,
     interact: () => Reactor<A>,
+    $interactNoPauseResume: () => Reactor<A>,
     'start-trace': () => Reactor<A>,
     'stop-trace': () => Reactor<A>,
     'get-trace': () => A[], // should be List<A> type
@@ -125,6 +127,17 @@ function makeReactorRaw<A>(init: A, handlers: RawReactorFields<A>, tracing: bool
             // This unshift prevents duplicate first elements
             thisInteractTrace.shift();
             return makeReactorRaw(newVal, handlers, tracing, trace.concat(thisInteractTrace));
+        },
+        $interactNoPauseResume: () => {
+            const oldInteract = externalInteractionHandler;
+            setInteract(world.$bigBangFromDictNoPauseResume);
+
+            try {
+                return self.interact();
+            } catch (e) {
+                setInteract(oldInteract);
+                throw e;
+            }
         },
         'start-trace': () => {
             return makeReactorRaw(init, handlers, true, [init]);

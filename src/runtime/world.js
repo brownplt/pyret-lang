@@ -109,100 +109,133 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
     return self;
 }
 
-function bigBangFromDict(init, dict, tracer) {
-    var handlers = [];
-    function add(k, constr) {
-        if(dict.hasOwnProperty(k)) {
-            handlers.push(makeOpaque(new constr(dict[k])));
+function makeBigBangFromDict(shouldPauseAndResume) {
+    return function bigBangFromDict(init, dict, tracer) {
+        var handlers = [];
+        function add(k, constr) {
+            if(dict.hasOwnProperty(k)) {
+                handlers.push(makeOpaque(new constr(dict[k])));
+            }
         }
-    }
-    var title = "Reactor";
-    if (dict.hasOwnProperty("title")) {
-        title = dict["title"];
-    }
-    if(dict.hasOwnProperty("on-tick")) {
-        if(dict.hasOwnProperty("seconds-per-tick")) {
-            var delay = dict["seconds-per-tick"];
-            delay = jsnums.toFixnum(delay);
-            handlers.push(makeOpaque(new OnTick(dict["on-tick"], delay * 1000)));
+        var title = "Reactor";
+        if (dict.hasOwnProperty("title")) {
+            title = dict["title"];
         }
-        else {
-            handlers.push(makeOpaque(new OnTick(dict["on-tick"], DEFAULT_TICK_DELAY * 1000)));
+        if(dict.hasOwnProperty("on-tick")) {
+            if(dict.hasOwnProperty("seconds-per-tick")) {
+                var delay = dict["seconds-per-tick"];
+                delay = jsnums.toFixnum(delay);
+                handlers.push(makeOpaque(new OnTick(dict["on-tick"], delay * 1000)));
+            }
+            else {
+                handlers.push(makeOpaque(new OnTick(dict["on-tick"], DEFAULT_TICK_DELAY * 1000)));
+            }
         }
-    }
-    add("on-mouse", OnMouse);
-    add("on-key", OnKey);
-    add("to-draw", ToDraw);
-    add("stop-when", StopWhen);
-    add("close-when-stop", CloseWhenStop);
+        add("on-mouse", OnMouse);
+        add("on-key", OnKey);
+        add("to-draw", ToDraw);
+        add("stop-when", StopWhen);
+        add("close-when-stop", CloseWhenStop);
 
-    return bigBang(init, handlers, tracer, title);
+        if (shouldPauseAndResume) {
+            return bigBang(init, handlers, tracer, title);
+        }
+
+        return bigBangNoPauseResume(init, handlers, tracer, title);
+    };
 }
 
-var bigBang = function(initW, handlers, tracer, title) {
-    var closeBigBangWindow = null;
-    var outerToplevelNode = document.createElement('span');
-    outerToplevelNode.style.padding = '0px';
-    // TODO(joe): This obviously can't stay
-    // if(!runtime.hasParam("current-animation-port")) {
-    document.body.appendChild(outerToplevelNode);
-    // } else {
-    //     runtime.getParam("current-animation-port")(
-    //         outerToplevelNode,
-    //         title,
-    //         function(closeWindow) {
-    //             closeBigBangWindow = closeWindow;
-    //         }
-    //     );
-    // }
+var bigBangFromDict = makeBigBangFromDict(true);
+var bigBangFromDictNoPauseResume = makeBigBangFromDict(false);
 
-    var toplevelNode = document.createElement('span');
-    toplevelNode.style.padding = '0px';
-    outerToplevelNode.appendChild(toplevelNode);
-    outerToplevelNode.tabindex = 1;
-    outerToplevelNode.focus();
+var makeBigBang = function(shouldPauseAndResume) {
+    return function(initW, handlers, tracer, title) {
+        var closeBigBangWindow = null;
+        var outerToplevelNode = document.createElement('span');
+        outerToplevelNode.style.padding = '0px';
+        // TODO(joe): This obviously can't stay
+        // if(!runtime.hasParam("current-animation-port")) {
+        document.body.appendChild(outerToplevelNode);
+        // } else {
+        //     runtime.getParam("current-animation-port")(
+        //         outerToplevelNode,
+        //         title,
+        //         function(closeWindow) {
+        //             closeBigBangWindow = closeWindow;
+        //         }
+        //     );
+        // }
 
-    var configs = [];
-    var isOutputConfigSeen = false;
-    var closeWhenStop = false;
+        var toplevelNode = document.createElement('span');
+        toplevelNode.style.padding = '0px';
+        outerToplevelNode.appendChild(toplevelNode);
+        outerToplevelNode.tabindex = 1;
+        outerToplevelNode.focus();
 
-    for (var i = 0 ; i < handlers.length; i++) {
-        if (isOpaqueCloseWhenStopConfig(handlers[i])) {
-            closeWhenStop = handlers[i].val.isClose;
-        } else if (isOpaqueWorldConfigOption(handlers[i])) {
-            configs.push(handlers[i].val.toRawHandler(toplevelNode));
+        var configs = [];
+        var isOutputConfigSeen = false;
+        var closeWhenStop = false;
+
+        for (var i = 0 ; i < handlers.length; i++) {
+            if (isOpaqueCloseWhenStopConfig(handlers[i])) {
+                closeWhenStop = handlers[i].val.isClose;
+            } else if (isOpaqueWorldConfigOption(handlers[i])) {
+                configs.push(handlers[i].val.toRawHandler(toplevelNode));
+            }
+            else {
+                configs.push(handlers[i]);
+            }
+            if (isOpaqueOutputConfig(handlers[i])) { isOutputConfigSeen = true; }
         }
-        else {
-            configs.push(handlers[i]);
+
+        // If we haven't seen an onDraw function, use the default one.
+        if (! isOutputConfigSeen) {
+            configs.push(new DefaultDrawingOutput().toRawHandler(toplevelNode));
         }
-        if (isOpaqueOutputConfig(handlers[i])) { isOutputConfigSeen = true; }
-    }
-
-    // If we haven't seen an onDraw function, use the default one.
-    if (! isOutputConfigSeen) {
-        configs.push(new DefaultDrawingOutput().toRawHandler(toplevelNode));
-    }
 
 
-    return anchorRuntime.pauseStack(function(restarter) {
-        rawJsworld.bigBang(
-            toplevelNode,
-            initW,
-            configs,
-            {},
-            function(finalWorldValue) {
-                restarter.resume(finalWorldValue);
-            },
-            function(err) {
-                restarter.error(err);
-            },
-            {
-                closeWhenStop: closeWhenStop,
-                closeBigBangWindow: closeBigBangWindow,
-                tracer: tracer
+        if (shouldPauseAndResume) {
+            return anchorRuntime.pauseStack(function(restarter) {
+                rawJsworld.bigBang(
+                    toplevelNode,
+                    initW,
+                    configs,
+                    {},
+                    function(finalWorldValue) {
+                        restarter.resume(finalWorldValue);
+                    },
+                    function(err) {
+                        restarter.error(err);
+                    },
+                    {
+                        closeWhenStop: closeWhenStop,
+                        closeBigBangWindow: closeBigBangWindow,
+                        tracer: tracer
+                    });
             });
-    });
+        } else {
+            return rawJsworld.bigBang(
+                toplevelNode,
+                initW,
+                configs,
+                {},
+                function(_) {
+                    return;
+                },
+                function(_) {
+                    return;
+                },
+                {
+                    closeWhenStop: closeWhenStop,
+                    closeBigBangWindow: closeBigBangWindow,
+                    tracer: tracer
+                });
+        }
+    };
 };
+
+var bigBang = makeBigBang(true);
+var bigBangNoPauseResume = makeBigBang(false);
 
 
 
@@ -561,4 +594,5 @@ module.exports = {
     $WorldConfigOption: WorldConfigOption,
     $adaptWorldFunction: adaptWorldFunction,
     $bigBangFromDict: bigBangFromDict,
+    $bigBangFromDictNoPauseResume: bigBangFromDictNoPauseResume,
 };
