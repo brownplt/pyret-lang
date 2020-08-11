@@ -219,7 +219,47 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
       if (v1.ref !== v2.ref) {
         return NotEqual("PRef'd Objects", v1, v2);
       }
-      continue;
+        continue;
+    } else if (PRIMTIVES.isTable(v1) && PRIMTIVES.isTable(v2)) {
+        let v1_headers = v1._headers;
+        let v2_headers = v2._headers;
+
+        if (v1_headers.length !== v2_headers.length) {
+            return NotEqual(`Row Header Length (${v1_headers.length}, ${v2_headers.length})`, v1, v2);
+        }
+
+        for (let i = 0; i < v1_headers.length; i++) {
+            if (v1_headers[i] !== v2_headers[i]) {
+                return NotEqual(`Table headers (index ${i})`, v1, v2);
+            }
+        }
+
+        worklist.push([v1._rows, v2._rows]);
+        continue;
+    } else if (PRIMTIVES.isRow(v1) && PRIMTIVES.isRow(v2)) {
+
+        let v1_headers = v1._headers;
+        let v2_headers = v2._headers;
+        if (v1_headers.length !== v2_headers.length) {
+            return NotEqual(`Row Header Length (${v1_headers.length}, ${v2_headers.length})`, v1, v2);
+        }
+
+        // TODO(alex): is this check necessary?
+        if (v1._elements.length !== v2._elements.length) {
+            return NotEqual(`Row Elements Length (${v1._elements.length}, ${v1._elements.length})`, v1, v2);
+        }
+
+        for (let i = 0; i < v1_headers.length; i++) {
+            if (v1_headers[i] !== v2_headers[i]) {
+                return NotEqual(`Row headers (index ${i})`, v1, v2);
+            }
+        }
+
+        for (let i = 0; i < v1._elements.length; i++) {
+            worklist.push([v1[i], v2[i]]);
+        }
+
+        continue;
 
     } else if (PRIMTIVES.isDataVariant(v1) && PRIMTIVES.isDataVariant(v2)) {
       if(v1.$brand && v1.$brand === v2.$brand) {
