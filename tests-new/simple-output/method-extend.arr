@@ -1,6 +1,6 @@
 ### pass
 import global as G
-import list as L
+import lists as L
 
 data Foo:
   | foo(x :: String)
@@ -35,7 +35,7 @@ my-nested-foo = my-nested1.n.{ x: "UPDATED" }
 x6 = my-nested1.n.get-x()
 x7 = my-nested-foo.get-x()
 
-result = 
+result =
   (x1 == "foo") and
   (x2 == "foo") and
   (x3 == "bar") and
@@ -47,9 +47,9 @@ result =
 if result:
   G.console-log("pass")
 else:
-  G.console-log([L.list: 
-    G.js-to-string(my-foo1), 
-    G.js-to-string(my-foo2), 
-    G.js-to-string(my-nested1), 
+  G.console-log([L.list:
+    G.js-to-string(my-foo1),
+    G.js-to-string(my-foo2),
+    G.js-to-string(my-nested1),
     G.js-to-string(my-nested-foo)])
 end

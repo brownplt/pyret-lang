@@ -1,6 +1,6 @@
 # pass
 import global as G
-import list as L
+import lists as L
 import equality as E
 
 # TODO(alex): Due to type checker limitations, _equality cannot be directly

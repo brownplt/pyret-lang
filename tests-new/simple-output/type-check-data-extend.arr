@@ -1,6 +1,6 @@
 ### true
 import global as G
-import list as L
+import lists as L
 
 not = G.not
 

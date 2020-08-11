@@ -1,6 +1,6 @@
 ### pass
 import global as G
-import list as L
+import lists as L
 
 m1 = 1 + 1000000
 r1 = m1 == 1000001

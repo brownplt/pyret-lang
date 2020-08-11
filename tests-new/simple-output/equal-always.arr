@@ -1,10 +1,10 @@
 ### pass
 import global as G
-import list as L
+import lists as L
 
 not = G.not
 
-data FooData: 
+data FooData:
   | foo
   | foobar(x :: Boolean)
 end
@@ -23,8 +23,8 @@ t5 = { foo: 5, bar: false } == { bar: false, foo: 5 }
 t6 = foo == foo
 t7 = foobar(true) == foobar(true)
 
-true-result = t1 
-  and t2 
+true-result = t1
+  and t2
   and t3
   and t4
   and t5
@@ -49,9 +49,9 @@ f12 = foo == bar
 f13 = foobar(true) == barfoo(true)
 f14 = foobar(true) == barfoo(false).{x: true}
 
-false-result = not(f1) 
-  and not(f2) 
-  and not(f3) 
+false-result = not(f1)
+  and not(f2)
+  and not(f3)
   and not(f4a)
   and not(f4b)
   and not(f4c)
@@ -68,28 +68,28 @@ false-result = not(f1)
   and not(f14)
 
 if true-result == false:
-  G.console-log([L.list: 
-    t1, 
-    t2, 
-    t3, 
-    t4, 
-    t5, 
-    t6, 
-    t7, 
+  G.console-log([L.list:
+    t1,
+    t2,
+    t3,
+    t4,
+    t5,
+    t6,
+    t7,
   ])
 else if false-result == false:
-  G.console-log([L.list: 
-    f1, 
-    f2, 
-    f3, 
-    f4a, 
-    f4b, 
-    f4c, 
-    f4d, 
-    f5, 
-    f6, 
-    f7, 
-    f8, 
+  G.console-log([L.list:
+    f1,
+    f2,
+    f3,
+    f4a,
+    f4b,
+    f4c,
+    f4d,
+    f5,
+    f6,
+    f7,
+    f8,
     f9,
     f10,
     f11,
