@@ -228,13 +228,19 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
             return NotEqual(`Row Header Length (${v1_headers.length}, ${v2_headers.length})`, v1, v2);
         }
 
-        for (let i = 0; i < v1_headers.length; i++) {
-            if (v1_headers[i] !== v2_headers[i]) {
-                return NotEqual(`Table headers (index ${i})`, v1, v2);
+        if (v1._rows.length !== v2._rows.length) {
+            return NotEqual(`Row Length (${v1._rows.length}, ${v2._rows.length})`, v1, v2);
+        }
+
+        for (let row = 0; row < v1._rows.length; row++) {
+            let v1_row = v1._rows[row];
+            let v2_row = v2._rows[row];
+
+            for (let i = 0; i < v1_row.length; i++) {
+                worklist.push([v1_row[i], v2_row[i]]);
             }
         }
 
-        worklist.push([v1._rows, v2._rows]);
         continue;
     } else if (PRIMTIVES.isRow(v1) && PRIMTIVES.isRow(v2)) {
 
