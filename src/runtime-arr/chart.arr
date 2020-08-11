@@ -5,7 +5,7 @@ import global as G
 import raw-array as RA
 import chart-lib as CL
 import image as IM
-import list as L
+import lists as L
 import option as O
 
 include from O: type Option end
@@ -79,8 +79,8 @@ fun get-bounding-box(ps :: L.List<Posn>) -> BoundingBox:
   if L.length(ps) == 0:
     default-bounding-box.{is-valid: false}
   else:
-    x-arr = L.at(ps, 0)
-    y-arr = L.at(ps, 1)
+    x-arr = L.get(ps, 0)
+    y-arr = L.get(ps, 1)
     default-bounding-box.{
       x-min: compute-min(x-arr),
       x-max: compute-max(x-arr),
