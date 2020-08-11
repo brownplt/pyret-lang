@@ -142,6 +142,8 @@
       "string-append": "StrBinop",
       "string-equal": "StrPred2",
       "string-contains": "StrPred2",
+      "string-starts-with": "StrPred2",
+      "string-ends-with": "StrPred2",
       "string-isnumber": "StrPred",
       "string-is-number": "StrPred",
       "string-to-number": ["arrow", ["String"], ["Option", "Number"]],

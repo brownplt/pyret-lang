@@ -97,28 +97,11 @@ end
 
 fun anf-program(e :: A.Program):
   cases(A.Program) e:
-    | s-program(l, p, _, imports, block) =>
+    | s-program(l, _, _, provides, imports, block) =>
       # Note: provides have been desugared to a structure with no expressions, just
       # names and Ann information
-      N.a-program(l, p, imports.map(anf-import), anf-term(block))
-  end
-end
-
-fun anf-import-type(it :: A.ImportType):
-  cases(A.ImportType) it:
-    | s-const-import(l, mod) => N.a-import-builtin(l, mod)
-    | s-special-import(l, kind, args) => N.a-import-special(l, kind, args)
-  end
-end
-
-fun anf-import(i :: A.Import):
-  cases(A.Import) i:
-    | s-import-complete(l, vals, types, f, val-name, types-name) =>
-      itype = cases(A.ImportType) f:
-        | s-const-import(_, mod) => N.a-import-builtin(l, mod)
-        | s-special-import(_, kind, args) => N.a-import-special(l, kind, args)
-      end
-      N.a-import-complete(l, vals, types, itype, val-name, types-name)
+      # MARK(joe/ben): provides
+      N.a-program(l, provides.first, imports, anf-term(block))
   end
 end
 
@@ -144,7 +127,10 @@ end
 
 fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
   cases(A.Expr) e:
-    | s-module(l, answer, dvs, dts, provides, types, checks) =>
+    | s-module(l, answer, dms, dvs, dts, checks) =>
+      adms = for map(dm from dms):
+        N.a-defined-module(dm.name, dm.value, dm.uri)
+      end
       adts = for map(dt from dts):
         N.a-defined-type(dt.name, dt.typ)
       end
@@ -158,12 +144,10 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         end)
 
         anf-name(answer, "answer", lam(ans):
-            anf-name(provides, "provides", lam(provs):
-                anf-name(checks, "checks", lam(chks):
-                    k(N.a-module(l, ans, advs + avars, adts, provs, types, chks))
-                  end)
-              end)
+          anf-name(checks, "checks", lam(chks):
+              k(N.a-module(l, ans, adms, advs + avars, adts, chks))
           end)
+        end)
         
       end)
     | s-num(l, n) => k(N.a-val(l, N.a-num(l, n)))
@@ -175,6 +159,8 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-undefined(l) => k(N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k(N.a-val(l, N.a-bool(l, b)))
     | s-id(l, id) => k(N.a-val(l, N.a-id(l, id)))
+    | s-id-modref(l, id, uri, name) => k(N.a-val(l, N.a-id-modref(l, id, uri, name)))
+    | s-id-var-modref(l, id, uri, name) => k(N.a-id-var-modref(l, id, uri, name))
     | s-srcloc(l, loc) => k(N.a-val(l, N.a-srcloc(l, loc)))
     | s-type-let-expr(l, binds, body, blocky) =>
       cases(List) binds:

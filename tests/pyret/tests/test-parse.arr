@@ -468,3 +468,115 @@ check "should parse reactors":
   does-parse("reactor: end") is false
   does-parse("reactor end") is false
 end
+
+check "combined provide syntax":
+  does-parse("provide: x end") is true
+  does-parse("provide: x y z end") is false
+  does-parse("provide: x, y, z end") is true
+
+  does-parse("provide: x y as end") is false
+  does-parse("provide: x y as z") is false
+  does-parse("provide: x y as z end") is false
+  does-parse("provide: x, y as z end") is true
+
+  does-parse("provide: * end") is true
+  does-parse("provide: *, end") is true
+  does-parse("provide: * , end") is true
+  does-parse("provide: *\n end") is true
+  does-parse("provide: * hiding (can,you,see,me) end") is true
+  does-parse("provide: * hiding (can,you,see,me) hiding(a) end") is false
+  does-parse("provide: * hiding () end") is true
+  does-parse("provide: * hiding * end") is false
+  does-parse("provide: * hiding (*) end") is false
+
+  does-parse("provide: *, (*) end") is false
+  does-parse("provide: (*) end") is false
+  does-parse("provide: type* end") is false
+  does-parse("provide: type * end") is true
+  does-parse("provide: data * end") is true
+  does-parse("provide: data * hiding (is-link) end") is true
+  does-parse("provide: data * hiding (is-link) hiding (a) end") is false
+  does-parse("provide: module * end") is true
+  does-parse("provide: * hiding () * end") is false
+  does-parse("provide: * hiding (a) * end") is false
+  does-parse("provide: * hiding (), * end") is true
+  does-parse("provide: * hiding (a), * end") is true
+
+  does-parse("provide: a as b hiding(c) end") is false
+  does-parse("provide: a hiding(c) end") is false
+  does-parse("provide: type a hiding(c) end") is false
+  does-parse("provide: module a hiding(c) end") is false
+  does-parse("provide: data a hiding(c) end") is true
+  does-parse("provide: data a as B end") is false
+  does-parse("provide: data Base.Lists.List end") is true
+
+  does-parse("provide: end") is true
+  does-parse("provide:end") is true
+  does-parse("provide end") is false
+  does-parse("provideend") is true # but it's an identifier
+
+  does-parse("provide: x as y end") is true
+
+  does-parse("provide: x as A.B.x end") is false
+  does-parse("provide: A.B.X.x end") is true
+  does-parse("provide: A.x as y end") is true
+
+  does-parse("provide: type Num as N end") is true
+  does-parse("provide: module L as Lists end") is true
+  does-parse("provide: data Num as N end") is false
+  does-parse("provide: data List end") is true
+
+  does-parse("provide from L: is-link end") is true
+  does-parse("provide from L: type List, * end") is true
+
+  does-parse(```
+provide:
+  data *,
+  type *,
+  module *,
+  *
+end
+  ```) is true
+end
+
+check "include from syntax":
+  
+  does-parse("include from A: x end") is true
+  does-parse("include from A: x y z end") is false
+  does-parse("include from A: x, y, z end") is true
+  does-parse("include from A.B.C: x y z end") is false
+  does-parse("include from A.B.C: x, y, z end") is true
+  does-parse("include from A.B.C: type List end") is true
+  does-parse("include from A: end") is true
+  does-parse("include from A:end") is true
+  does-parse("include from A: module B.C end") is true
+
+  does-parse("includefrom A: module B.C end") is false
+  does-parse("include fromA: module B.C end") is false
+  does-parse("include from A : module B.C end") is true
+  does-parse("include from A: moduleB.C end") is true # where moduleB is a module
+  does-parse("include from A: data D end") is true
+  does-parse("include from A: dataD end") is true # where dataD is a value name
+
+  does-parse(```
+import lists as L
+include from L:
+  data Option,
+  type NumList,
+  type NumList as NList,
+  module A,
+  type A.AnotherType as NList
+end
+  ```) is true
+
+  does-parse(```
+import lists as L
+include from L:
+  *,
+  type *,
+  module *,
+  data *
+end
+  ```) is true
+
+end

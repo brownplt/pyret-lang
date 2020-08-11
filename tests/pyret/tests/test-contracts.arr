@@ -352,7 +352,9 @@ check "standalone contract statements":
     include file
     input-file :: String -> Boolean
     ```
-    ) is%(output) compile-error(CS.is-contract-on-import)
+    ) is%(output) compile-error(CS.is-contract-unused)
+    # MARK(joe): bring this specific error back if possible
+#    ) is%(output) compile-error(CS.is-contract-on-import)
   run-str(
     ```
     # duplicated contract

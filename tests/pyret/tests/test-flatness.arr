@@ -87,6 +87,14 @@ check "nonflat builtins":
   ff("f = lam(x): torepr(x) end") is none
 end
 
+check "module references":
+  ff("f = lam(x): lists.is-link(x) end") is some(1) 
+  ff("f = lam(x): lists.map(lam(y): y + 1 end, x) end") is none
+  ff("g = lists.is-link\nf = lam(x): g(x) end") is some(1)
+  ffb("g = lists.is-link\ng(0)") is some(1)
+  ffb("lists.link(1, empty)") is some(1)
+end
+
 check "call-a-flat":
   ff(```
 g = lam(x): x end
@@ -173,6 +181,28 @@ check "constructor aliased from globals":
 type N = Number
 data D:
   | c(x :: N)
+end
+fun f(o):
+  c(o)
+end
+```) is some(1)
+end
+
+check "constructor annotated with datatype":
+  ff(```
+data D:
+  | c(x :: List)
+end
+fun f(o):
+  c(o)
+end
+```) is some(1)
+end
+
+check "constructor annotated with module ref":
+  ff(```
+data D:
+  | c(x :: lists.List)
 end
 fun f(o):
   c(o)

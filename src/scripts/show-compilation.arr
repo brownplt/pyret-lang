@@ -26,7 +26,7 @@ DEFAULT-INLINE-CASE-LIMIT = 5
 
 cl-options = [SD.string-dict:
   "width",
-    C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
+    C.next-val-default(C.Num, 80, some("w"), C.once, "Pretty-printed width"),
   "standard-builtins",
     C.flag(C.once, "Use standard buildins instead of minimal builtins"),
   "check-mode",
@@ -34,7 +34,7 @@ cl-options = [SD.string-dict:
   "type-check",
     C.flag(C.once, "Type check code"),
   "inline-case-body-limit",
-    C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
+    C.next-val-default(C.Num, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
 ]
 
 parsed-options = C.parse-cmdline(cl-options)

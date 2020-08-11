@@ -7,22 +7,22 @@ import option as O
 import either as E
 import equality as equality
 import valueskeleton as VS
-import lists as L
+include lists
 
-fun sum(l :: L.List<Number>) -> Number:
-	L.fold(lam(a,b): a + b end, 0, l)
+fun sum(l :: List<Number>) -> Number:
+	fold(lam(a,b): a + b end, 0, l)
 end
 
-fun min(l :: L.List):
+fun min(l :: List):
   doc: "Find the minimum element of a list according to the built in ordering of elements"
-  cases (L.List) l:
+  cases (List) l:
     |empty => raise("The list is empty")
     |link(first, rest) => min-helper(first, rest)
   end
 end
 
-fun min-helper(curr-min, l :: L.List):
-  cases (L.List) l:
+fun min-helper(curr-min, l :: List):
+  cases (List) l:
     |empty => curr-min
     |link(first, rest) =>
       if first < curr-min:
@@ -33,16 +33,16 @@ fun min-helper(curr-min, l :: L.List):
   end
 end
 
-fun max(l :: L.List):
+fun max(l :: List):
   doc: "Find the maximum element of a list according to the built in ordering of elements"
-  cases (L.List) l:
+  cases (List) l:
     |empty => raise("The list is empty")
     |link(first, rest) => max-helper(first, rest)
   end
 end
 
-fun max-helper(curr-max, l :: L.List):
-  cases (L.List) l:
+fun max-helper(curr-max, l :: List):
+  cases (List) l:
     |empty => curr-max
     |link(first, rest) =>
       if first > curr-max:
@@ -54,16 +54,16 @@ fun max-helper(curr-max, l :: L.List):
 end
 
 # TODO(SDooman): These can be abstracted in a nicer way after we get them out to students
-fun arg-min(l :: L.List):
+fun arg-min(l :: List):
   doc: "Find the index of the minimal element in a list, or raises an error if list is empty"
-  cases (L.List) l:
+  cases (List) l:
     | empty => raise("The list is empty")
     | link(first, rest) => arg-min-helper(first, 0, 1, rest)
   end
 end
 
-fun arg-min-helper(curr-min, min-ind :: Number, curr-ind :: Number, l :: L.List):
-  cases (L.List) l:
+fun arg-min-helper(curr-min, min-ind :: Number, curr-ind :: Number, l :: List):
+  cases (List) l:
   | empty => min-ind
   | link(first, rest) =>
     if first < curr-min:
@@ -74,16 +74,16 @@ fun arg-min-helper(curr-min, min-ind :: Number, curr-ind :: Number, l :: L.List)
  end
 end
 
-fun arg-max(l :: L.List):
+fun arg-max(l :: List):
   doc: "Find the index of the maximal element in a list, or raises an error if list is empty"
-  cases (L.List) l:
+  cases (List) l:
     | empty => raise("The list is empty")
     | link(first, rest) => arg-max-helper(first, 0, 1, rest)
   end
 end
 
-fun arg-max-helper(curr-max, max-ind :: Number, curr-ind :: Number, l :: L.List):
-  cases (L.List) l:
+fun arg-max-helper(curr-max, max-ind :: Number, curr-ind :: Number, l :: List):
+  cases (List) l:
   | empty => max-ind
   | link(first, rest) =>
     if first > curr-max:

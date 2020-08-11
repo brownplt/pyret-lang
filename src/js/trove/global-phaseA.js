@@ -58,9 +58,14 @@
 
       // Equality functions
 
+      "roughly-equal-always3": ["arrow", ["Any", "Any"], "Equality"],
+      "roughly-equal-now3":    ["arrow", ["Any", "Any"], "Equality"],
       "equal-always3": ["arrow", ["Any", "Any"], "Equality"],
       "equal-now3":    ["arrow", ["Any", "Any"], "Equality"],
       "identical3":    ["arrow", ["Any", "Any"], "Equality"],
+      "roughly-equal-always": "AnyPred2",
+      "roughly-equal-now": "AnyPred2",
+      "roughly-equal": "AnyPred2",
       "equal-always": "AnyPred2",
       "equal-now": "AnyPred2",
       "identical": "AnyPred2",
