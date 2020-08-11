@@ -232,6 +232,14 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
             return NotEqual(`Row Length (${v1._rows.length}, ${v2._rows.length})`, v1, v2);
         }
 
+        // Check table headers
+        for (let h = 0; h < v1_headers.length; h++) {
+            if (v1_headers[h] !== v2_headers[h]) {
+                return NotEqual(`Row headers (index ${h})`, v1, v2);
+            }
+        }
+
+        // Check row elements
         for (let row = 0; row < v1._rows.length; row++) {
             let v1_row = v1._rows[row];
             let v2_row = v2._rows[row];
