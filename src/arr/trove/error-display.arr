@@ -55,6 +55,16 @@ sequence = {
   make5: lam(a, b, c, d, e): h-sequence(raw-array-to-list([raw-array: a, b, c, d, e]), " ") end
 }
 
+vert = {
+  make:  lam(arr):           v-sequence(raw-array-to-list(arr)) end,
+  make0: lam():              v-sequence(raw-array-to-list([raw-array: ])) end,
+  make1: lam(a):             v-sequence(raw-array-to-list([raw-array: a])) end,
+  make2: lam(a, b):          v-sequence(raw-array-to-list([raw-array: a, b])) end,
+  make3: lam(a, b, c):       v-sequence(raw-array-to-list([raw-array: a, b, c])) end,
+  make4: lam(a, b, c, d):    v-sequence(raw-array-to-list([raw-array: a, b, c, d])) end,
+  make5: lam(a, b, c, d, e): v-sequence(raw-array-to-list([raw-array: a, b, c, d, e])) end
+}
+
 shadow error = sequence
 
 para-nospace = {
