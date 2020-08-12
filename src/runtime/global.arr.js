@@ -10,7 +10,6 @@
 var runtime = require('./runtime.js');
 var array = require('./array.js');
 var numbers = require('./js-numbers.js');
-var option = require('./option.arr.js');
 var reactors = require('./reactors.arr.js');
 var world = require('./world.js');
 
@@ -31,14 +30,6 @@ function numToString(n) {
 
 function timeNow() {
   return new Date().getTime();
-}
-
-function makeSome(v) {
-  return option.some(v);
-}
-
-function makeNone() {
-  return option.none;
 }
 
 reactors.$setInteract(world.$bigBangFromDict);
