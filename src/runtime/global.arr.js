@@ -32,7 +32,19 @@ function timeNow() {
 
 var realMakeReactor = null;
 
+function makeSome(v) {
+  const option = require('./option.arr.js');
+  return option.some(v);
+}
+
+function makeNone() {
+  const option = require('./option.arr.js');
+  return option.none;
+}
+
 module.exports = {
+  makeSome,
+  makeNone,
   makeReactor: (init, fields) => {
     return realMakeReactor(init, fields);
   },
