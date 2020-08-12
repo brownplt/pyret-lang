@@ -60,7 +60,7 @@ function makeReactor<A>(init: A, fields: ReactorFields<A>): Reactor<A> {
     const rawFields: RawReactorFields<A> = {};
     Object.getOwnPropertyNames(fields).forEach((field) => {
         if (option['is-some'](fields[field])) {
-            rawFields[field] = fields[field].elt;
+            rawFields[field] = fields[field].value;
         }
     });
     return makeReactorRaw<A>(init, rawFields, false, []);
