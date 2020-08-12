@@ -10,8 +10,6 @@
 var runtime = require('./runtime.js');
 var array = require('./array.js');
 var numbers = require('./js-numbers.js');
-var reactors = require('./reactors.arr.js');
-var world = require('./world.js');
 
 function _plus(l, r) { return l + r; }
 function _minus(l, r) { return l - r; }
@@ -32,8 +30,15 @@ function timeNow() {
   return new Date().getTime();
 }
 
+var realMakeReactor = null;
+
 module.exports = {
-  makeReactor: reactors['make-reactor'],
+  makeReactor: (init, fields) => {
+    return realMakeReactor(init, fields);
+  },
+  $setMakeReactor: (f) => {
+    realMakeReactor = f;
+  },
   makeSome,
   makeNone,
   'num-to-str': numToString,

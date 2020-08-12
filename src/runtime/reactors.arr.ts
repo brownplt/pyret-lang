@@ -1,5 +1,6 @@
 import { Table } from './tables.arr';
 
+const global = require('./global.arr.js');
 const reactorEvents = require('./reactor-events.arr.js');
 const tables = require('./tables.arr.js');
 const option = require('./option.arr.js');
@@ -277,4 +278,5 @@ module.exports = {
     '$setInteract': setInteract,
 };
 
+global.$setMakeReactor(makeReactor);
 setInteract(world.$bigBangFromDict);
