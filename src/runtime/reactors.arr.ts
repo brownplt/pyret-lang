@@ -276,3 +276,5 @@ module.exports = {
     'interact': interact,
     '$setInteract': setInteract,
 };
+
+setInteract(world.$bigBangFromDict);

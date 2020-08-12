@@ -32,8 +32,6 @@ function timeNow() {
   return new Date().getTime();
 }
 
-reactors.$setInteract(world.$bigBangFromDict);
-
 module.exports = {
   makeReactor: reactors['make-reactor'],
   makeSome,
