@@ -3,6 +3,8 @@ const rawJsworld = require('./world-lib.js').jsworld;
 const jsnums = require('./js-numbers.js');
 const anchorRuntime = require('./runtime.js');
 
+console.log('image library', imageLibrary);
+
 // TODO(michael): this should throw pretty error messages via error.arr
 function makeCheckType(pred, type) {
     return (val) => {
@@ -25,7 +27,7 @@ function makeOpaque(val, equals) {
     return new POpaque(val, equals);
 }
 
-var isImage = imageLibrary.isImage;
+var isImage = imageLibrary['is-image'];
 
 //////////////////////////////////////////////////////////////////////
 
@@ -448,12 +450,12 @@ ToDraw.prototype.toRawHandler = function(toplevelNode) {
                 // image.
 
                 var checkImagePred = function(val) {
-                    return isOpaque(val) && isImage(val.val);
+                    return isImage(val);
                 };
                 var checkImageType = makeCheckType(checkImagePred, "Image");
                 checkImageType(v);
 
-                var theImage = v.val;
+                var theImage = v;
                 var width = theImage.getWidth();
                 var height = theImage.getHeight();
 
