@@ -39,8 +39,6 @@ module.exports = {
   $setMakeReactor: (f) => {
     realMakeReactor = f;
   },
-  makeSome,
-  makeNone,
   'num-to-str': numToString,
   'time-now' : timeNow,
   'js-to-string': function(v) { return String(v); },
