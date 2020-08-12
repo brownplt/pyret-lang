@@ -2,10 +2,23 @@
 
 const _NUMBER = require("./js-numbers.js");
 
-export const $PRowBrand = "row";
-export const $PTableBrand = "$table";
-export const $PTupleBrand = "tuple";
-export const $PRefBrand = "ref";
+const $PRowBrand = "row";
+const $PTableBrand = "$table";
+const $PTupleBrand = "tuple";
+const $PRefBrand = "ref";
+
+// NOTE(alex): Hack required b/c of TS "export const" desugaring and Stopify
+// `export const X = FOO;` => `export.X = FOO` => `$S.g.export.X = FOO`
+// Stopify only has one global object. Cannot switch global object variables within the same run
+//   Using X in any code within this module outside of that run results in an error
+//   Access is through `S.g.export.X`
+// TS generates code that accesses the global
+export {
+  $PRowBrand,
+  $PTableBrand,
+  $PTupleBrand,
+  $PRefBrand
+}
 
 // ********* Runtime Type Representations (Non-Primitives) *********
 export interface PTuple {
