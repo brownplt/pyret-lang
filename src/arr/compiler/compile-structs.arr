@@ -46,6 +46,7 @@ type Loc = SL.Srcloc
 
 data CompileMode:
   | cm-builtin-stage-1
+  | cm-builtin-general
   | cm-normal
 end
 

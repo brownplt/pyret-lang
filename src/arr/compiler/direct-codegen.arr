@@ -29,6 +29,7 @@ s-special-import = A.s-special-import
 type CompileMode = CS.CompileMode
 cm-normal = CS.cm-normal
 cm-builtin-stage-1 = CS.cm-builtin-stage-1
+cm-builtin-general = CS.cm-builtin-general
 
 type Ann = A.Ann
 type Bind = A.Bind
@@ -496,10 +497,11 @@ fun compile-srcloc(l, context):
   contents = cases(Loc) l:
     | builtin(name) => [clist: j-str(name)]
     | srcloc(uri, sl, sc, schar, el, ec, echar) =>
-      # Note(alex): Under cm-builtin-stage-1, override with the "corrected" uri
+      # Note(alex): Under cm-builtin-stage-1 and cm-builtin-general, override with the "corrected" uri
       shadow uri = cases(CompileMode) context.options.compile-mode:
         | cm-normal => uri
         | cm-builtin-stage-1 => context.uri
+        | cm-builtin-general => context.uri
       end
       [clist: j-str(uri), j-num(sl), j-num(sc), j-num(schar), j-num(el), j-num(ec), j-num(echar)]
   end
@@ -569,8 +571,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       # NOTE(alex): in cm-builtin-stage-1, global is NOT imported
       #   Attempt to replace with definitions from runtime, builtins, etc.
+      #   cm-normal and cm-builtin-general keep global imports
       cases(CompileMode) context.options.compile-mode:
         | cm-normal => normal-id-action()
+        | cm-builtin-general => normal-id-action()
         | cm-builtin-stage-1 =>
           cases(Name) id:
             | s-global(global-name) =>
@@ -592,8 +596,11 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       # Note(alex): builtin-stage-1 modules do NOT import global
       #  Rely on runtime.js for functions instead
+      #  cm-normal and cm-builtin-general keep global import
       cases(CompileMode) context.options.compile-mode:
         | cm-normal =>
+          { j-app(j-bracket(j-id(GLOBAL), j-str(name)), argvs); argstmts }
+        | cm-builtin-general =>
           { j-app(j-bracket(j-id(GLOBAL), j-str(name)), argvs); argstmts }
         | cm-builtin-stage-1 =>
           { j-app(j-bracket(j-id(RUNTIME), j-str(name)), argvs); argstmts }
@@ -2032,9 +2039,11 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   table-import = import-builtin(TABLE, "tables.arr.js")
   reactor-import = import-builtin(REACTOR,"reactor.arr.js")
 
-  # Always emit global import
+  # Note(alex): cm-builtin-stage-1 does not emit manual imports of global (i.e. "import global as _")
+  #   cm-builtin-general and cm-normal allow manual global import
   manual-imports = cases(CompileMode) options.compile-mode:
     | cm-normal => [clist: runtime-import, global-import, nothing-import]
+    | cm-builtin-general => [clist: runtime-import, global-import, nothing-import]
     | cm-builtin-stage-1 => [clist: runtime-import, nothing-import]
   end
 
@@ -2075,6 +2084,7 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
         # NOTE(alex): If cm-builtin-stage-1, do NOT emit global imports
         cases(CompileMode) options.compile-mode:
           | cm-normal => import-action()
+          | cm-builtin-general => import-action()
           | cm-builtin-stage-1 =>
             cases(ImportType) file:
               | s-const-import(_, module-name) =>
@@ -2097,11 +2107,14 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   # rather than having Pyret's runtime track all loaded modules.
   #
   # NOTE(alex): in cm-builtin-stage-1, do NOT implicitly import globals
+  non-import-action = lam():
+    for filter(g from global-names.keys-list-now()):
+      not(uri-to-local-js-name.has-key-now(env.uri-by-value-name-value(g)))
+    end
+  end
   non-imported-global-names = cases(CompileMode) options.compile-mode:
-    | cm-normal =>
-      for filter(g from global-names.keys-list-now()):
-        not(uri-to-local-js-name.has-key-now(env.uri-by-value-name-value(g)))
-      end
+    | cm-normal => non-import-action()
+    | cm-builtin-general => non-import-action()
     | cm-builtin-stage-1 => [list: ]
   end
 
@@ -2123,13 +2136,16 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
 
   # Note(alex): cm-builtin-stage-1 does NOT import global module
   #   Do NOT attempt to import globals
+  pyret-global-action = lam():
+    for CL.map_list(g from global-names.keys-list-now()):
+      uri = env.uri-by-value-name-value(g)
+      imported-as = uri-to-local-js-name.get-value-now(uri)
+      J.j-var(js-id-of(A.s-global(g)), J.j-dot(j-id(js-id-of(imported-as)), g))
+    end
+  end
   pyret-globals-as-js-ids = cases(CompileMode) options.compile-mode:
-    | cm-normal =>
-      for CL.map_list(g from global-names.keys-list-now()):
-        uri = env.uri-by-value-name-value(g)
-        imported-as = uri-to-local-js-name.get-value-now(uri)
-        J.j-var(js-id-of(A.s-global(g)), J.j-dot(j-id(js-id-of(imported-as)), g))
-      end
+    | cm-normal => pyret-global-action()
+    | cm-builtin-general => pyret-global-action()
     | cm-builtin-stage-1 => cl-empty
   end
 
@@ -2158,11 +2174,13 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
 
   free-bindings = [D.mutable-string-dict:]
 
-  # Note(alex): Necessary to change URIs for builtin-stage-1 modules to be used in
-  #   "include from" syntax for values
+  # Note(alex): Necessary to change URIs for builtin-stage-1 and builtin-general
+  #   modules to be used in "include from" syntax with values
+  builtin-uri-override = "builtin://" + P.basename(uri, ".arr")
   from-uri = cases(CompileMode) options.compile-mode:
     | cm-normal => provides.from-uri
-    | cm-builtin-stage-1 => "builtin://" + P.basename(uri, ".arr")
+    | cm-builtin-general => builtin-uri-override
+    | cm-builtin-stage-1 => builtin-uri-override
   end
 
   {ans; stmts} = compile-expr({
@@ -2185,10 +2203,11 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
 
   module-and-map = the-module.to-ugly-sourcemap(from-uri, 1, 1, from-uri)
 
-  # Note(alex): Necessary to change URIs for builtin-stage-1 modules to be used in
-  #   "include from" syntax for values
+  # Note(alex): Necessary to change URIs for builtin-stage-1 and builtin-general
+  #    modules to be used in "include from" syntax with values
   serialized-provides = cases(CompileMode) options.compile-mode:
     | cm-normal => PSE.compile-provides(provides)
+    | cm-builtin-general => PSE.compile-provides-override-uri(provides, from-uri)
     | cm-builtin-stage-1 => PSE.compile-provides-override-uri(provides, from-uri)
   end
 

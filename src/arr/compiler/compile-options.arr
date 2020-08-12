@@ -114,6 +114,7 @@ fun translate-compile-mode(x :: String) -> CS.CompileMode:
   ask:
     | x == "normal" then: CS.cm-normal
     | x == "builtin-stage-1" then: CS.cm-builtin-stage-1
+    | x == "builtin-general" then: CS.cm-builtin-general
     | otherwise: raise("Unknown compile mode: " + x)
   end
 end
