@@ -104,7 +104,8 @@ $(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_STAGE_2_SRC_DIR)/%.arr
 		--build-runnable $*.arr \
 		--builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" \
 		--runtime-builtin-relative-path "./" \
-		--type-check true
+		--type-check true \
+		--compile-mode "builtin-general"
 	mv $(RUNTIME_ARR_STAGE_2_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
 	mv $(RUNTIME_ARR_STAGE_2_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
 
