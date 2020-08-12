@@ -187,43 +187,37 @@
             .app(pos(node.pos), prelude.provides, prelude.provideTypes, prelude.allProvides, prelude.imports, body);
         },
         'prelude': function(node) {
-          var allProvides = tr(node.kids[0]);
-          return {
-            provides: allProvides.values,
-            provideTypes: allProvides.types,
-            allProvides: allProvides.provides,
-            imports: tr(node.kids[1])
-          };
-        },
-        'provide-stmts': function(node) {
-          var provide = undefined;
+          var provides = undefined;
           var provideTypes = undefined;
-          var remaining = [];
+          var allProvides = [];
+          var imports = [];
+
           node.kids.forEach(function(kid) {
             if(provideTypes === undefined && kid.kids[0].name === 'provide-types-stmt') {
               provideTypes = tr(kid);
             }
-            else if(provide === undefined && kid.kids[0].name === 'provide-vals-stmt') {
-              provide = tr(kid);
+            else if(provides === undefined && kid.kids[0].name === 'provide-vals-stmt') {
+              provides = tr(kid);
             }
-            else {
-              remaining.push(kid);
+            else if (kid.kids[0].name === 'provide-block') {
+              allProvides.push(kid);
+            }
+            else if (kid.kids[0].name === "INCLUDE" || kid.kids[0].name === "IMPORT") {
+              imports.push(kid);
             }
           });
-          if(provide === undefined) {
-            provide = RUNTIME.getField(ast, "s-provide-none").app(pos(node.pos));
+          if(provides === undefined) {
+            provides = RUNTIME.getField(ast, "s-provide-none").app(pos(node.pos));
           }
           if(provideTypes === undefined) {
             provideTypes = RUNTIME.getField(ast, "s-provide-types-none").app(pos(node.pos));
           }
           return {
-            values: provide,
-            types: provideTypes,
-            provides: makeListTr(remaining)
+            provides: provides,
+            provideTypes: provideTypes,
+            allProvides: makeListTr(allProvides),
+            imports: makeListTr(imports)
           };
-        },
-        'import-stmts': function(node) {
-          return makeListTr(node.kids);
         },
         'include-spec': function(node) {
           return tr(node.kids[0]);
@@ -557,16 +551,25 @@
         },
         'fun-header': function(node) {
           // (fun-header ty-params args return-ann)
-          return {
-            tyParams: tr(node.kids[0]),
-            args: tr(node.kids[1]),
-            returnAnn: tr(node.kids[2])
-          };
+          if (node.kids[1].name === "bad-args") {
+            return {
+              lparenPos: pos(node.kids[1].kids[0].pos)
+            };
+          } else {
+            return {
+              tyParams: tr(node.kids[0]),
+              args: tr(node.kids[1]),
+              returnAnn: tr(node.kids[2])
+            };
+          }
         },
         'fun-expr': function(node) {
           // (fun-expr FUN fun-name fun-header COLON doc body check END)
           var isBlock = (node.kids[3].name === "BLOCK");
           var header = tr(node.kids[2]);
+          if (header.lparenPos) {
+            RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[3].pos), header.lparenPos);
+          }
           var checkRes = tr(node.kids[6]);
           return RUNTIME.getField(ast, 's-fun')
             .app(pos(node.pos), symbol(node.kids[1]),
@@ -855,6 +858,9 @@
             // (obj-field METHOD key fun-header COLON doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
+            if (header.lparenPos) {
+              RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[3].pos), header.lparenPos);
+            }
             var checkRes = tr(node.kids[6])
             return RUNTIME.getField(ast, 's-method-field')
               .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
@@ -1035,6 +1041,9 @@
             // (field METHOD key fun-header (BLOCK|COLON) doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
+            if (header.lparenPos) {
+              RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[3].pos), header.lparenPos);
+            }
             var checkRes = tr(node.kids[6])
             return RUNTIME.getField(ast, "s-method-field")
               .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
@@ -1178,9 +1187,14 @@
           }
         },
         'app-expr': function(node) {
-          // (app-expr f args)
-          return RUNTIME.getField(ast, 's-app')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
+          if (node.kids.length > 2) {
+            RUNTIME.ffi.throwParseErrorBadApp(pos(node.kids[0].pos),
+                                              pos2(node.kids[1].pos, node.kids[node.kids.length - 1].pos));
+          } else {
+            // (app-expr f args)
+            return RUNTIME.getField(ast, 's-app')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
+          }
         },
         'id-expr': function(node) {
           // (id-expr x)
@@ -1266,6 +1280,9 @@
           // (lambda-expr LAM fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
+          if (header.lparenPos) {
+            RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[2].pos), header.lparenPos);
+          }
           var checkRes = tr(node.kids[5]);
           return RUNTIME.getField(ast, 's-lam')
             .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
@@ -1275,6 +1292,9 @@
           // (method-expr METHOD fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
+          if (header.lparenPos) {
+            RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[2].pos), header.lparenPos);
+          }
           var checkRes = tr(node.kids[5]);
           return RUNTIME.getField(ast, 's-method')
             .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
@@ -1585,7 +1605,7 @@
           else if (nextTok.name === "COLONCOLON")
             RUNTIME.ffi.throwParseErrorColonColon(makePyretPos(fileName, nextTok.pos));
           else if (typeof opLookup[String(nextTok.value).trim()] === "function")
-            RUNTIME.ffi.throwParseErrorBadCheckOper(makePyretPos(fileName, nextTok.pos));
+            RUNTIME.ffi.throwParseErrorBadCheckOper(opLookup[String(nextTok.value).trim()](makePyretPos(fileName, nextTok.pos)));
           else
             RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
         }

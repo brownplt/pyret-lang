@@ -1,3 +1,5 @@
+const Lists = require("./lists.arr.js");
+
 module.exports = {
   'string-dict': {
     'make': function( dict ) {
@@ -10,22 +12,22 @@ module.exports = {
   'count': function( list ) {
     dict = {};
 
-    for ( elm of list ) {
-      if ( !dict.hasOwnProperty( elm ) ) {
-        dict[elm] = 0;
-      }
-      
-      dict[elm] += 1;
-    }
+    list.each((elm) => {
+        if ( !dict.hasOwnProperty( elm ) ) {
+            dict[elm] = 0;
+        }
+
+        dict[elm] += 1;
+    });
 
     return dict;
   },
   'apply': function( list, fun ) {
     dict = {};
 
-    for ( elm of list ) {
+    list.each((elm) => {
       dict[elm] = fun( elm );
-    }
+    });
 
     return dict;
   },
@@ -42,11 +44,12 @@ module.exports = {
   'has-key': function( dict, elm ) {
     return dict.hasOwnProperty( elm );
   },
+  // TODO(alex): Should be a Set according to documentation
   'keys': function( dict ) {
-    return Object.keys( dict );
+    return Lists.list.make(Object.keys( dict ));
   },
   'values': function( dict ) {
-    return Object.values( dict );
+    return Lists.list.make(Object.values( dict ));
   },
   'is-dict': function( dict ) {
     return dict.constructor === 'object';

@@ -4,6 +4,7 @@
 # renameColumn function
 
 import global as G
+import equality as E
 import tables as T
 
 my-table = table: name, age, favNum
@@ -20,9 +21,9 @@ my-correct-renamed-table = table: name, theirAge, favNum
   row: "Eve", 13, 3
 end
 
-are-equal = T._primitiveEqual(my-correct-renamed-table, my-renamed-table)
+are-equal = E.equal-always(my-correct-renamed-table, my-renamed-table)
 
-are-not-equal = T._primitiveEqual(my-correct-renamed-table, my-table)
+are-not-equal = E.equal-always(my-correct-renamed-table, my-table)
 
 passes-when-true = are-equal and G.not(are-not-equal)
 

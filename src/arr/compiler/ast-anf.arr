@@ -452,7 +452,7 @@ data AVal:
     method tosource(self): self.id.tosource() + PP.str("@") + PP.parens(PP.str(self.uri)) + PP.str("." + self.name) end
   | a-id-safe-letrec(l :: Loc, id :: A.Name) with:
     method label(self): "a-id-safe-letrec" end,
-    method tosource(self): PP.str("~" + tostring(self.id)) end
+    method tosource(self): PP.str("~") + self.id.tosource() end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)

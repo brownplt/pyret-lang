@@ -248,7 +248,7 @@ check-visitor = A.default-map-visitor.{
     if is-empty(checks-to-perform): A.s-block(l, ds-stmts)
     else if is-empty(ds-stmts): raise("Empty block")
     else:
-      id-result = A.s-name(l, G.make-name("result-after-checks"))
+      id-result = A.s-name(l, G.make-name("$result-after-checks"))
       last-expr = ds-stmts.last()
       A.s-block(
           l,

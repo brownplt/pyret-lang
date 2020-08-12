@@ -3,8 +3,9 @@
 # no-type-check-order-by-columns.arr
 
 import global as G
+import equality as E
 import tables as T
-import list as L
+import lists as L
 
 my-table = table: name, age, favorite-color
   row: "Bob", 12, "blue"
@@ -26,8 +27,8 @@ my-correct-ordered-table = table: name, age, favorite-color
   row: "Alice", 17, "green"
 end
 
-are-equal = T._primitiveEqual(my-correct-ordered-table, my-ordered-table)
-are-not-equal = T._primitiveEqual(my-correct-ordered-table, my-table)
+are-equal = E.equal-always(my-correct-ordered-table, my-ordered-table)
+are-not-equal = E.equal-always(my-correct-ordered-table, my-table)
 
 passes-when-true = are-equal and G.not(are-not-equal)
 

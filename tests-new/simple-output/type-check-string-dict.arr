@@ -1,6 +1,5 @@
 ### pass
 
-import list as L
 import string-dict as D
 import global as G
 

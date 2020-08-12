@@ -56,6 +56,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
   header-path = P.join(basedir, builtin-name + ".arr.json")
   {
     method needs-compile(_, _): false end,
+    method get-uncached(_): none end,
     method get-modified-time(self):
       F.file-times(P.join(basedir, builtin-name + ".arr.js")).mtime
     end,
@@ -109,6 +110,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     method get-modified-time(self):
       F.file-times(path).mtime
     end,
+    method get-uncached(_): none end,
     method get-options(self, options):
       type-check = typable-builtins.member(self.uri())
       options.{ check-mode: false, type-check: type-check }

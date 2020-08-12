@@ -1366,8 +1366,8 @@ fun resolve-alias(t :: Type, context :: Context) -> Type:
             end
           else:
             modtyp = context.modules.get-value(mod)
-            cases(Option<Type>) modtyp.types.get(a-id.toname()):
-              | some(typ) => t
+            cases(Option<DataType>) modtyp.types.get(a-id.toname()):
+              | some(typ :: DataType) => t
               | none =>
                 cases(Option<Type>) modtyp.aliases.get(a-id.toname()):
                   | none => t

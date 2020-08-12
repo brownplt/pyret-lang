@@ -4,8 +4,9 @@
 # table-column-n test.
 
 import global as G
+import equality as E
 import tables as T
-import list as L
+import lists as L
 
 my-table = table: a, b, c
   row: 1, 2, 3
@@ -22,10 +23,10 @@ expected-column-1 = [L.list: 2, 5, 8]
 expected-column-2 = [L.list: 3, 6, 9]
 
 passes-when-true =
-  T._primitiveEqual(expected-column-0, column-0)
+  E.equal-always(expected-column-0, column-0)
   and
-  T._primitiveEqual(expected-column-1, column-1)
+  E.equal-always(expected-column-1, column-1)
   and
-  T._primitiveEqual(expected-column-2, column-2)
+  E.equal-always(expected-column-2, column-2)
 
 G.console-log(passes-when-true)

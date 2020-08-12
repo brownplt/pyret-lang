@@ -7,8 +7,8 @@ provide {
     file-times : file-times,
     mtimes : mtimes,
     file-to-string : file-to-string,
-    real-path : F.real-path,
-    list-files : F.list-files
+    real-path : real-path,
+    list-files : list-files
 } end
 provide-types *
 
@@ -56,3 +56,6 @@ end
 fun output-file(path :: String, append :: Boolean):
   out-fd(F.open-output-file(path, append))
 end
+
+real-path = F.real-path
+list-files = F.list-files

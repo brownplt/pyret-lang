@@ -246,7 +246,7 @@ fun compile-worklist-known-modules<a>(dfind :: (a, CS.Dependency -> Located<a>),
         deps = locator.get-dependencies()
         found-mods = for lists.filter-map(d from deps) block:
           cases(CS.Dependency) d block:
-            | dependency(_, _) => 
+            | dependency(_, _) =>
               found = dfind(context, d)
               pmap.set-now(d.key(), found.locator.uri())
               some(found)
@@ -279,6 +279,34 @@ fun compile-worklist-known-modules<a>(dfind :: (a, CS.Dependency -> Located<a>),
   # so reverse the result
   ans = visit(locator, context, [list: locator]).reverse()
   ans
+end
+
+fun modules-from-worklist(wl, get-loadable) block:
+  max-dep-times = dep-times-from-worklist(wl)
+  maybe-modules = for map(t from wl):
+    get-loadable(t, max-dep-times)
+  end
+  modules = [SD.mutable-string-dict:]
+  for each2(m from maybe-modules, t from wl):
+    cases(Option<Loadable>) m:
+      | none => nothing
+      | some(shadow m) =>
+        modules.set-now(t.locator.uri(), m)
+    end
+  end
+  modules
+end
+
+fun dep-times-from-worklist(wl):
+  for fold(sd from [SD.string-dict:], shadow located from wl):
+    cur-mod-time = located.locator.get-modified-time()
+    dm = located.dependency-map
+    max-dep-time = for SD.fold-keys-now(mdt from cur-mod-time, dep-key from dm):
+      dep-loc = dm.get-value-now(dep-key)
+      num-max(sd.get-value(dep-loc), mdt)
+    end
+    sd.set(located.locator.uri(), max-dep-time)
+  end
 end
 
 type CompiledProgram = {loadables :: List<Loadable>, modules :: SD.MutableStringDict<Loadable>}
@@ -360,7 +388,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
       var ast-ended = AU.append-nothing-if-necessary(ast)
       ast := nothing
       add-phase("Added nothing", ast-ended)
-      ast-ended := AU.wrap-toplevels(ast-ended)
       var wf = W.check-well-formed(ast-ended)
       ast-ended := nothing
       add-phase("Checked well-formedness", wf)
@@ -371,7 +398,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
       end
       cases(CS.CompileResult) wf block:
         | ok(_) =>
-          var wf-ast = wf.code
+          var wf-ast = AU.wrap-toplevels(wf.code)
           wf := nothing
           var checked = wf-ast
           # NOTE(joe, anchor): no desugaring of check blocks
@@ -384,11 +411,11 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
           var scoped = RS.desugar-scope(imported, env)
           imported := nothing
           add-phase("Desugared scope", scoped)
-          var named-result = RS.resolve-names(scoped.ast, env)
+          var named-result = RS.resolve-names(scoped.ast, locator.uri(), env)
           var any-errors = scoped.errors + named-result.errors
           scoped := nothing
           if is-link(any-errors) block:
-            { module-as-string(AU.get-named-provides(named-result, locator.uri(), env), env, CS.computed-none, CS.err(unique(any-errors)));
+            { module-as-string(dummy-provides(locator.uri()), env, CS.computed-none, CS.err(unique(any-errors)));
               if options.collect-all or options.collect-times:
                 phase("Result", named-result.ast, time-now(), ret).tolist()
               else:
@@ -396,7 +423,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
               end }
           else:
             add-phase("Resolved names", named-result)
-            var provides = AU.get-named-provides(named-result, locator.uri(), env)
             var spied =
               if options.enable-spies: named-result.ast
               else: named-result.ast.visit(A.default-map-visitor.{
@@ -409,28 +435,34 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                     end
                   })
               end
+            var provides = dummy-provides(locator.uri())
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
             # var desugared = named-result.ast
-            
+
             # NOTE(joe, anchor): removed this to see what un-desugared output looks like
             # and changed desugared.ast to desugared below
 
-            var desugared = D.desugar(named-result.ast).ast
-            # named-result.bindings.merge-now(desugared.new-binds)
+            var desugared = D.desugar(named-result.ast)
+
+            # TODO(alex): Besides not accessing the 'env', why was this line commented out?
+            #   ORIGINAL: named-result.bindings.merge-now(desugared.new-binds)
+            named-result.env.bindings.merge-now(desugared.new-binds)
 
             # ...in order to be checked for bad assignments here
-            any-errors := RS.check-unbound-ids-bad-assignments(desugared, named-result, env)
+            any-errors := RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
             add-phase("Fully desugared", desugared)
             var type-checked =
-              if options.type-check:
-                type-checked = T.type-check(desugared, env, named-result.env, modules)
+              if is-link(any-errors):
+                CS.err(unique(any-errors))
+              else if options.type-check:
+                type-checked = T.type-check(desugared.ast, env, named-result.env, modules)
                 if CS.is-ok(type-checked) block:
                   provides := AU.get-typed-provides(named-result, type-checked.code, locator.uri(), env)
-                  CS.ok(desugared)
+                  CS.ok(desugared.ast)
                 else:
                   type-checked
                 end
-              else: CS.ok(desugared)
+              else: CS.ok(desugared.ast)
               end
             desugared := nothing
             add-phase("Type Checked", type-checked)
@@ -438,7 +470,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             cases(CS.CompileResult) type-checked block:
               | ok(_) =>
                 var tc-ast = type-checked.code
-                type-checked := nothing
                 var dp-ast = DP.desugar-post-tc(tc-ast, env)
                 tc-ast := nothing
                 var cleaned = dp-ast
@@ -451,21 +482,22 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                   cleaned := cleaned.visit(AU.strip-annotations-visitor)
                 end
                 add-phase("Cleaned AST", cleaned)
-                {final-provides; cr} = if is-empty(any-errors):
-                  JSP.trace-make-compiled-pyret(add-phase, cleaned, locator.uri(), env, named-result.env, provides, options)
-                else:
-                  if options.collect-all and options.ignore-unbound:
-                    JSP.trace-make-compiled-pyret(add-phase, cleaned, locator.uri(), env, named-result.env, provides, options)
-                  else:
-                    {provides; add-phase("Result", CS.err(unique(any-errors)))}
-                  end
+                when not(options.type-check) block:
+                  provides := AU.get-named-provides(named-result, locator.uri(), env)
                 end
+                {final-provides; cr} = JSP.trace-make-compiled-pyret(add-phase, cleaned, locator.uri(), env, named-result.env, provides, options)
                 cleaned := nothing
                 canonical-provides = AU.canonicalize-provides(final-provides, env)
+                #|
+                spy "compile-lib:canonicalize-provides":
+                  final-provides,
+                  canonical-provides
+                end
+                |#
                 mod-result = module-as-string(canonical-provides, env, named-result.env, cr)
                 {mod-result; if options.collect-all or options.collect-times: ret.tolist() else: empty end}
               | err(_) =>
-                { module-as-string(dummy-provides(locator.uri()), env, named-result.env, type-checked);
+                { module-as-string(provides, env, CS.computed-none, type-checked);
                   if options.collect-all or options.collect-times:
                     phase("Result", type-checked, time-now(), ret).tolist()
                   else: empty
@@ -540,7 +572,7 @@ fun make-standalone(wl, compiled, options):
   natives = for fold(natives from empty, w from wl):
     w.locator.get-native-modules().map(_.path) + natives
   end
-  
+
   var all-compile-problems = empty
   static-modules = j-obj(for C.map_list(w from wl):
       loadable = compiled.modules.get-value-now(w.locator.uri())
@@ -548,6 +580,9 @@ fun make-standalone(wl, compiled, options):
         | module-as-string(_, _, _, rp) =>
           cases(CS.CompileResult) rp block:
             | ok(code) =>
+              when code.pyret-to-js-runnable() == "":
+                spy: uri: w.locator.uri() end
+              end
               j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
             | err(problems) =>
               all-compile-problems := problems + all-compile-problems

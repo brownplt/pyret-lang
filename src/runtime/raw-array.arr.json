@@ -1,0 +1,36 @@
+{
+    "requires": [],
+    "provides": {
+        "shorthands": {
+            "tva": ["tid", "a"],
+            "tvb": ["tid", "b"],
+            "rOfA": ["tyapp", { "tag": "name",
+                    "origin": { "import-type": "uri", "uri": "builtin://global" },
+                    "name": "RawArray" }, [["tid", "a"]]],
+            "rOfN": ["tyapp", { "tag": "name",
+                    "origin": { "import-type": "uri", "uri": "builtin://global" },
+                    "name": "RawArray" }, ["Number"]]
+        },
+        "values": {
+            "raw-array": ["forall", ["a"], ["Maker", ["tid", "a"], "rOfA"]],
+            "raw-array-push": ["forall", ["a"], ["arrow", ["rOfA", "tva"], "rOfA"]],
+            "raw-array-set": ["forall", ["a"], ["arrow", ["rOfA", "Number", "tva"], "rOfA"]],
+            "raw-array-get": ["forall", ["a"], ["arrow", ["rOfA", "Number"], "tva"]],
+            "raw-array-fold": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "rOfA"], "tvb"]],
+            "raw-array-foldr": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "rOfA"], "tvb"]],
+            "raw-array-sum": ["arrow", ["rOfN"], "Number"],
+            "raw-array-min": ["arrow", ["rOfN"], "Number"],
+            "raw-array-max": ["arrow", ["rOfN"], "Number"],
+            "raw-array-of": ["forall", ["a"], ["arrow", ["tva", "Number"], "rOfA"]],
+            "raw-array-build": ["forall", ["a"], ["arrow", [["arrow",  ["Number"], "tva"], "Number"], "rOfA"]]
+
+
+        },
+        "aliases": {
+            "RawArray": { "tag": "name",
+                    "origin": { "import-type": "uri", "uri": "builtin://global" },
+                    "name": "RawArray" }
+        },
+        "datatypes": { }
+    }
+}

@@ -1,3 +1,12 @@
+//
+// BIG NOTE(alex): Do NOT "require()" [directly OR transitively] any builtin module in runtime-arr-stage-1
+//    It creates a cyclic dependency while compiling runtime-arr-stage-1 Pyret code.
+//    This causes a compilation failure b/c the compiler will try to find its compiled version
+//      in the "build/runtime" directory and fail.
+// To lift this restriction, see the note for "copy-js-dependencies()" in cli-module-loader.arr
+//
+
+
 var runtime = require('./runtime.js');
 var array = require('./array.js');
 var numbers = require('./js-numbers.js');
@@ -41,13 +50,6 @@ module.exports = {
   'num-to-str': numToString,
   'time-now' : timeNow,
   'js-to-string': function(v) { return String(v); },
-  'raw-array': array['raw-array'],
-  'raw-array-at': array['at'],
-  'raw-array-get': array['get'],
-  'raw-array-fold': array['fold'],
-  'raw-array-sum': array['sum'],
-  'raw-array-min': array['min'],
-  'raw-array-max': array['max'],
   'display-string': function(s) { process.stdout.write(s); },
   "console-log": function(v) { console.log(v); },
   'assert': function( lv, rv, msg ) {
@@ -71,17 +73,13 @@ module.exports = {
   '_greaterequal': _greaterequal,
   'not': _not,
 
-  'Equal': runtime['Equal'],
-  'NotEqual': runtime['NotEqual'],
-  'Unknown': runtime['Unknown'],
-  'is-Equal': runtime['is-Equal'],
-  'is-NotEqual': runtime['is-NotEqual'],
-  'is-Unknown': runtime['is-Unknown'],
-
-  'equal-always': runtime['equalAlways'],
-  'equal-always3': runtime['equalAlways3'],
+  'equal-now': runtime['equal-now'],
+  'equal-now3': runtime['equal-now3'],
+  'equal-always': runtime['equal-always'],
+  'equal-always3': runtime['equal-always3'],
   'identical': runtime['identical'],
   'identical3': runtime['identical3'],
+
   'trace-value': runtime['traceValue'],
 
   // TODO(alex): Think of better way to expose runtime
@@ -154,8 +152,6 @@ module.exports = {
       return numbers['roughlyEqualsRel'](l, r, relTol);
     };
   },
-
-  'string-to-number': runtime['string-to-number'],
 
   'string-to-lower': function(s) {
     return s.toLowerCase();

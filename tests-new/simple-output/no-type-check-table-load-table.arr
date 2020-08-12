@@ -4,6 +4,7 @@
 # load-table syntax test.
 
 import global as G
+import equality as E
 import tables as T
 
 my-table = load-table: first, second, third
@@ -19,6 +20,6 @@ expected-table = table: first, second, third
   row: 7, true, "c"
 end
 
-passes-when-true = T._primitiveEqual(expected-table, my-table)
+passes-when-true = E.equal-always(expected-table, my-table)
 
 G.console-log(passes-when-true)

@@ -4,8 +4,9 @@
 # table-add-column test.
 
 import global as G
+import equality as E
 import tables as T
-import list as L
+import lists as L
 
 my-table = table: a, b, c
   row: 1, 2, 3
@@ -21,6 +22,6 @@ expected-rows =
     [T.raw-row: {"a"; 4}, {"b"; 5}, {"c"; 6}],
     [T.raw-row: {"a"; 7}, {"b"; 8}, {"c"; 9}]]
 
-passes-when-true = T._primitiveEqual(expected-rows, rows)
+passes-when-true = E.equal-always(expected-rows, rows)
 
 G.console-log(passes-when-true)

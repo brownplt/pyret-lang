@@ -28,6 +28,7 @@ fun mockable-file-locator(file-ops):
         end
         mtime
       end,
+      method get-uncached(self): none end,
       method get-options(self, options):
         options
       end,

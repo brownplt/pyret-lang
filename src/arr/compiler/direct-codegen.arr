@@ -10,6 +10,7 @@ import file("gensym.arr") as G
 import file("concat-lists.arr") as CL
 import file("type-structs.arr") as T
 import file("provide-serialization.arr") as PSE
+import file("compile-structs.arr") as CS
 import pathlib as P
 import sha as sha
 import string-dict as D
@@ -21,9 +22,19 @@ flat-prim-app = A.prim-app-info-c(false)
 string-dict = D.string-dict
 mtd = [string-dict:]
 
+type ImportType = A.ImportType
+s-const-import = A.s-const-import
+s-special-import = A.s-special-import
+
+type CompileMode = CS.CompileMode
+cm-normal = CS.cm-normal
+cm-builtin-stage-1 = CS.cm-builtin-stage-1
+cm-builtin-general = CS.cm-builtin-general
+
 type Ann = A.Ann
 type Bind = A.Bind
 type Name = A.Name
+s-global = A.s-global
 type ColumnBinds = A.ColumnBinds
 type ColumnSort = A.ColumnSort
 type ColumnSortOrder = A.ColumnSortOrder
@@ -120,7 +131,7 @@ fun make-fun-name(compiler, loc) -> String:
   "_" + sha.sha256(compiler.uri) + "__" + num-to-string(compiler.get-loc-id(loc))
 end
 
-data CheckOpDesugar: 
+data CheckOpDesugar:
   | binop-result(op)
   | refinement-result(refinement, negate)
   | predicate-result(predicate)
@@ -285,49 +296,51 @@ fun nyi(name):
   { j-str("not implemented: " + name); [clist: j-expr(console([clist: j-str(name)]))] }
 end
 
+# TODO(alex): is this duplicating code in desugar-helpers.arr?
 fun compile-s-op(context, l, op-l, op, lv :: JExpr, rv :: JExpr):
   val = ask:
     # Pyret number operations compatible with JS numbers
     # Always assume Pyret numbers when compiling
-    | (op == "op+") then: 
-      rt-method("_add", 
+    | (op == "op+") then:
+      rt-method("_add",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-    | (op == "op-") then: 
-      rt-method("_subtract", 
+    | (op == "op-") then:
+      rt-method("_subtract",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
-    | (op == "op*") then: 
-      rt-method("_multiply", 
+    | (op == "op*") then:
+      rt-method("_multiply",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op/") then:
-      rt-method("_divide", 
+      rt-method("_divide",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op<") then:
-      rt-method("_lessThan", 
+      rt-method("_lessThan",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op>") then:
-      rt-method("_greaterThan", 
+      rt-method("_greaterThan",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op<=") then:
-      rt-method("_lessThanOrEqual", 
+      rt-method("_lessThanOrEqual",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op>=") then:
-      rt-method("_greaterThanOrEqual", 
+      rt-method("_greaterThanOrEqual",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
 
     # TODO(alex): Use equal-always, equal-now, etc
     # Call Global.py_equal
-    | op == "op==" then: 
+    | op == "op==" then:
       argvs = cl-cons(lv, cl-sing(rv))
-      j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)
+      j-app(j-bracket(j-id(RUNTIME), j-str(EQUAL-ALWAYS)), argvs)
     | op == "op<>" then:
       # Logical negation of equal-always()
       argvs = cl-cons(lv, cl-sing(rv))
-      j-unop(j-parens(j-app(j-bracket(j-id(GLOBAL), j-str(EQUAL-ALWAYS)), argvs)), J.j-not)
+      j-unop(j-parens(j-app(j-bracket(j-id(RUNTIME), j-str(EQUAL-ALWAYS)), argvs)), J.j-not)
     | op == "op<=>" then:
       argvs = cl-cons(lv, cl-sing(rv))
-      j-app(j-bracket(j-id(GLOBAL), j-str(IDENTICAL)), argvs)
+      j-app(j-bracket(j-id(RUNTIME), j-str(IDENTICAL)), argvs)
     | op == "opor" then: j-binop(lv, J.j-or, rv)
     | op == "opand" then: j-binop(lv, J.j-and, rv)
+    | op == "op^" then: j-app(rv, cl-sing(lv))
     | otherwise: nyi(op)
   end
 
@@ -350,7 +363,7 @@ fun compile-member(context, member :: A.Member) -> { BindableKind; CList<JStmt> 
       | else => { unbindable(field-val); field-stmts }
     end
 
-  | s-mutable-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) => 
+  | s-mutable-field(l :: Loc, name :: String, ann :: Ann, value :: Expr) =>
     raise("Mutable member fields not supported")
 
   | s-method-field(
@@ -364,7 +377,7 @@ fun compile-member(context, member :: A.Member) -> { BindableKind; CList<JStmt> 
       _check-loc :: Option<Loc>,
       _check :: Option<Expr>,
       blocky :: Boolean
-    ) => 
+    ) =>
       { binder-func; binder-stmts } = compile-method(context, l, name, args, body)
       { to-bind(binder-func); binder-stmts }
   end
@@ -380,7 +393,7 @@ end
 #     inner["$brand"] = METHOD-BRAND;
 #     inner["$binder'] = binderNAME;
 #     return inner;
-#   } 
+#   }
 #
 # Instantiating a method on a data variant:
 #
@@ -406,13 +419,13 @@ end
 # Rebinding should simply be calling something like:
 #   'oldObject.method["$binder"](newObject)'
 #
-fun compile-method(context, 
+fun compile-method(context,
       l :: Loc,
       name :: String,
       args :: List<Bind>, # Value parameters
       body :: Expr) -> { JExpr; CList<JStmt> }:
 
-  fun remove-self<a>(my-list :: CList<a>) -> { a; CList<a> }: 
+  fun remove-self<a>(my-list :: CList<a>) -> { a; CList<a> }:
     cases(CList) my-list:
       | concat-empty => raise("Always have at least 1 method parameter (self). Found none")
 
@@ -430,7 +443,7 @@ fun compile-method(context,
         { self-arg; cl-snoc(rest, last) }
     end
   end
-  { js-body-val; js-body-stmts } = compile-expr(context, body) 
+  { js-body-val; js-body-stmts } = compile-expr(context, body)
 
   # 'self' is included by s-method.args
   js-args-with-self = for CL.map_list(a from args): js-id-of(a.id) end
@@ -439,8 +452,8 @@ fun compile-method(context,
   { self; js-args-without-self } = remove-self(js-args-with-self)
 
   # Generate a function that closes over the 'self' arg given by the binder function
-  inner-fun = j-fun("0", 
-    js-id-of(const-id("inner" + name)).toname(), 
+  inner-fun = j-fun("0",
+    js-id-of(const-id("inner" + name)).toname(),
     js-args-without-self,
     j-block(cl-snoc(js-body-stmts, j-return(js-body-val)))
   )
@@ -454,14 +467,14 @@ fun compile-method(context,
 
   # Give the inner function a method brand
   inner-fun-brand = j-bracket-assign(
-    j-id(inner-fun-bind), 
+    j-id(inner-fun-bind),
     j-str("$brand"),
     j-str("METHOD")
   )
 
   # Give the inner function a reference to the binder function (for rebinding)
   inner-fun-binder = j-bracket-assign(
-    j-id(inner-fun-bind), 
+    j-id(inner-fun-bind),
     j-str("$binder"),
     j-id(binder-fun-name)
   )
@@ -470,8 +483,8 @@ fun compile-method(context,
   binder-fun = j-fun("0",
     binder-fun-name.to-compiled(),
     cl-sing(self),
-    j-block([clist: inner-fun-var, 
-                    j-expr(inner-fun-brand), 
+    j-block([clist: inner-fun-var,
+                    j-expr(inner-fun-brand),
                     j-expr(inner-fun-binder),
                     j-return(j-id(inner-fun-bind))
             ])
@@ -480,10 +493,16 @@ fun compile-method(context,
   { j-id(binder-fun-name); cl-sing(j-expr(binder-fun)) }
 end
 
-fun compile-srcloc(l):
+fun compile-srcloc(l, context):
   contents = cases(Loc) l:
     | builtin(name) => [clist: j-str(name)]
     | srcloc(uri, sl, sc, schar, el, ec, echar) =>
+      # Note(alex): Under cm-builtin-stage-1 and cm-builtin-general, override with the "corrected" uri
+      shadow uri = cases(CompileMode) context.options.compile-mode:
+        | cm-normal => uri
+        | cm-builtin-stage-1 => context.uri
+        | cm-builtin-general => context.uri
+      end
       [clist: j-str(uri), j-num(sl), j-num(sc), j-num(schar), j-num(el), j-num(ec), j-num(echar)]
   end
   j-list(false, contents)
@@ -501,7 +520,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           | s-defined-value(name, def-v) =>
             block:
               {val; field-stmts} = compile-expr(context, def-v)
-              sloc = compile-srcloc(def-v.l)
+              sloc = compile-srcloc(def-v.l, context)
               { cl-cons(j-field(name, val), fields); field-stmts + stmts;
                 cl-cons(j-obj([clist:
                   j-field("name", j-str(name)),
@@ -509,7 +528,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             end
 
           | s-defined-var(name, id, id-loc) =>
-            sloc = compile-srcloc(id-loc)
+            sloc = compile-srcloc(id-loc, context)
             # TODO(alex): Box variables so external code can mutate variables
             { cl-cons(j-field(name, j-id(js-id-of(id))), fields); stmts;
               cl-cons(j-obj([clist:
@@ -533,7 +552,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       assign-ans = j-bracket-assign(j-id(const-id("module")), j-str("exports"), ans)
       {assign-ans; a-stmts + cl-sing(answer-var) + stmts}
     | s-block(l, exprs) => compile-seq(context, exprs)
-    | s-num(l, n) => 
+    | s-num(l, n) =>
       e = if num-is-fixnum(n):
         j-parens(j-num(n))
       else:
@@ -541,11 +560,33 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
       {e; cl-empty}
     | s-id(l, id) =>
-      b = context.post-env.bindings
-      when b.has-key-now(id.key()) and not(b.get-value-now(id.key()).origin.new-definition):
-        context.free-bindings.set-now(id.key(), b.get-value-now(id.key()))
+
+      normal-id-action = lam() block:
+          b = context.post-env.bindings
+          when b.has-key-now(id.key()) and not(b.get-value-now(id.key()).origin.new-definition):
+            context.free-bindings.set-now(id.key(), b.get-value-now(id.key()))
+          end
+          {j-id(js-id-of(id)); cl-empty}
       end
-      {j-id(js-id-of(id)); cl-empty}
+
+      # NOTE(alex): in cm-builtin-stage-1, global is NOT imported
+      #   Attempt to replace with definitions from runtime, builtins, etc.
+      #   cm-normal and cm-builtin-general keep global imports
+      cases(CompileMode) context.options.compile-mode:
+        | cm-normal => normal-id-action()
+        | cm-builtin-general => normal-id-action()
+        | cm-builtin-stage-1 =>
+          cases(Name) id:
+            | s-global(global-name) =>
+              ask:
+                | global-name == "nothing" then:
+                  { j-id(NOTHING); cl-empty }
+                | otherwise: raise("cm-builtin-stage-1: unable to replace global name")
+              end
+            | else => normal-id-action()
+          end
+      end
+
     | s-id-letrec(l, id, _) => {j-id(js-id-of(id)); cl-empty}
     | s-id-modref(l, id, _, field) =>
       {objv; obj-stmts} = compile-expr(context, A.s-id(l, id))
@@ -553,8 +594,18 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-prim-app(l, name, args, _) =>
       {argvs; argstmts} = compile-list(context, args)
 
-      { j-app(j-bracket(j-id(GLOBAL), j-str(name)), argvs); argstmts }
-      
+      # Note(alex): builtin-stage-1 modules do NOT import global
+      #  Rely on runtime.js for functions instead
+      #  cm-normal and cm-builtin-general keep global import
+      cases(CompileMode) context.options.compile-mode:
+        | cm-normal =>
+          { j-app(j-bracket(j-id(GLOBAL), j-str(name)), argvs); argstmts }
+        | cm-builtin-general =>
+          { j-app(j-bracket(j-id(GLOBAL), j-str(name)), argvs); argstmts }
+        | cm-builtin-stage-1 =>
+          { j-app(j-bracket(j-id(RUNTIME), j-str(name)), argvs); argstmts }
+      end
+
     | s-app-enriched(l, f, args, info) =>
       # TODO(joe): Use info
       {fv; fstmts} = compile-expr(context, f)
@@ -567,7 +618,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { j-app(fv, argvs); fstmts + argstmts }
 
     | s-srcloc(_, l) =>
-      { compile-srcloc(l); cl-empty }
+      { compile-srcloc(l, context); cl-empty }
 
     | s-op(l, op-l, op, left, right) =>
       { lv; l-stmts } = compile-expr(context, left)
@@ -582,7 +633,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { body-val; body-stmts } = compile-expr(context, body)
 
       js-args = for CL.map_list(a from args): js-id-of(a.id) end
-      
+
       {j-fun("0", js-id-of(const-id(name)).toname(), js-args,
         j-block(body-stmts + [clist: j-return(body-val)])); cl-empty}
 
@@ -594,9 +645,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
       {bv; body-stmts} = compile-expr(context, body)
       {bv; prelude + body-stmts}
-      
+
     | s-letrec(l, binds, body, _) =>
-      
+
       prelude = for fold(stmts from cl-empty, v from binds.reverse()):
         { val; v-stmts } = compile-expr(context, v.value)
         v-stmts + [clist: j-var(js-id-of(v.b.id), val)] + stmts
@@ -605,28 +656,28 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       {bv; prelude + body-stmts}
 
     | s-type-let-expr(_, binds, body, _) =>
-      # Because if we're taking type seriously, this can't fail! 
+      # Because if we're taking type seriously, this can't fail!
       compile-expr(context, body)
 
     | s-data-expr(l, name, namet, params, mixins, variants, shared, _check-loc, _check) =>
 
-      # Combine compiled-shared, compiled-with, and members to initialize 
+      # Combine compiled-shared, compiled-with, and members to initialize
       #   any overlapping fields once
       # Priority order (i.e. what name gets initialized to what):
       #   1) Members
       #   2) With Members
       #   3) Shared Members
-      fun resolve-init-names(constructed-obj :: JExpr, compiled-shared, 
-                             compiled-with, variant-members) 
+      fun resolve-init-names(constructed-obj :: JExpr, compiled-shared,
+                             compiled-with, variant-members)
         -> { CList<JField>; CList<JStmt> }:
 
         # Given a shared/with member, emit the code to set the field
         # NOTE(alex): Currently cannot do recursive object initialization
         #   Manually assign the shared/with member with j-bracket vs returning a j-field
         fun compile-nonlocal-member(shadow constructed-obj :: JExpr,
-                                    member :: A.Member, 
-                                    member-val :: BindableKind, 
-                                    member-stmts :: CList<JStmt>) -> CList<JStmt>: 
+                                    member :: A.Member,
+                                    member-val :: BindableKind,
+                                    member-stmts :: CList<JStmt>) -> CList<JStmt>:
           fun bind(binder-func):
             init-expr-rhs = j-app(binder-func, [clist: constructed-obj])
             j-expr(j-bracket-assign(constructed-obj, j-str(member.name), init-expr-rhs))
@@ -642,7 +693,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               cl-snoc(member-stmts, bind(binder))
           end
         end
-        
+
         # Construct dictionary of variant member inits
         variant-member-map = for fold(dict from [string-dict: ], m from variant-members):
           field-name = m.bind.id.toname()
@@ -660,17 +711,17 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           else:
             # No conflicting variant member
             compiled-stmts = compile-nonlocal-member(
-              constructed-obj, 
-              member, 
-              member-value, 
+              constructed-obj,
+              member,
+              member-value,
               member-stmts
             )
-            dict.set(member.name, 
+            dict.set(member.name,
                      { none; compiled-stmts})
           end
         end
 
-        # Construct dictionary of shared-member inits 
+        # Construct dictionary of shared-member inits
         #   and NON-conflicting variant member inits and with-member inits
         # Variant members and with-members have priority
         shared-member-map = for CL.foldl(dict from with-member-map, m from compiled-shared):
@@ -681,12 +732,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           else:
             # No conflicting variant member OR with-member
             compiled-stmts = compile-nonlocal-member(
-              constructed-obj, 
-              member, 
-              member-value, 
+              constructed-obj,
+              member,
+              member-value,
               member-stmts
             )
-            dict.set(member.name, 
+            dict.set(member.name,
                      { none; compiled-stmts})
           end
         end
@@ -735,19 +786,19 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
             # Give object a temporary name to bind methods against
             constructor-tmp = fresh-id(compiler-name("constructorTMP"))
-            { constructed-fields; constructed-stmts } = 
+            { constructed-fields; constructed-stmts } =
               resolve-init-names(j-id(constructor-tmp),
                                  compiled-shared, compiled-with, members)
             tmp-obj = j-obj(
                     [clist: j-field("$brand", j-id(js-id-of(variant-uniqs.get-value(name)))),
-                            j-field("$tag", j-num(local-tag))] + 
+                            j-field("$tag", j-num(local-tag))] +
                     constructed-fields
             )
             tmp-obj-var = j-var(constructor-tmp, tmp-obj)
 
             { j-field(name,
               j-fun("0", js-id-of(const-id(name)).toname(), args,
-                j-block(cl-cons(tmp-obj-var, constructed-stmts) + 
+                j-block(cl-cons(tmp-obj-var, constructed-stmts) +
                   cl-sing(j-return(j-id(constructor-tmp)))
                 )
               )
@@ -758,7 +809,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             end
 
             constructor-tmp = fresh-id(compiler-name("constructorTMP"))
-            { constructed-fields; constructed-stmts } = 
+            { constructed-fields; constructed-stmts } =
               resolve-init-names(j-id(constructor-tmp),
                                  compiled-shared, compiled-with, [list:])
             tmp-obj = j-obj(
@@ -772,7 +823,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         end
       end
 
-      { shadow variant-constructors; variant-cons-stmts } = 
+      { shadow variant-constructors; variant-cons-stmts } =
        for CL.foldl({constructors; statements} from {cl-empty; cl-empty}, {vcons; vstmts} from variant-constructors):
         { cl-append(constructors, cl-sing(vcons)); cl-append(statements, vstmts) }
       end
@@ -784,20 +835,20 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               j-return(j-binop(j-dot(j-id(const-id("val")), "$brand"), j-eq, j-id(js-id-of(variant-uniqs.get-value(v.name))))))))
       end
 
-      compiled-shared-stmts = for CL.foldl(all-stmts from cl-empty, 
+      compiled-shared-stmts = for CL.foldl(all-stmts from cl-empty,
                                            { _shared-member; { shared-member-val; shared-member-stmts }} from compiled-shared):
         cl-append(all-stmts, shared-member-stmts)
       end
 
-      { 
-        j-obj(variant-constructors + variant-recognizers); 
+      {
+        j-obj(variant-constructors + variant-recognizers);
         variant-uniq-defs + variant-cons-stmts + compiled-shared-stmts
       }
-      
+
     | s-dot(l, obj, field) =>
-      
+
       {objv; obj-stmts} = compile-expr(context, obj)
-      
+
       {j-bracket(objv, j-str(field)); obj-stmts}
 
     | s-if-else(l, branches, _else, _) =>
@@ -806,7 +857,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       { else-v; else-stmts } = compile-expr(context, _else)
       else-block = j-block(else-stmts + [clist: j-assign(ans, else-v)])
-      
+
       blck = for fold(blck from else-block, b from branches.reverse()):
         { test-v; test-stmts } = compile-expr(context, b.test)
         { body-v; body-stmts } = compile-expr(context, b.body)
@@ -819,18 +870,18 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-cases-else(l, typ, val, branches, _else, blocky) =>
 
       ans = fresh-id(compiler-name("ans"))
-      
+
       { val-v; val-stmts } = compile-expr(context, val)
 
       datatype = cases(A.Ann) typ block:
         | a-name(_, name) =>
           # Datatypes in env are key'd by the raw string name
           cases(Option) context.datatypes.get-now(name.toname()):
-            | some(dt) => 
+            | some(dt) =>
               # Note(alex): Next line necessary?
               # context.provides.data-definitions.get-value(name.toname())
               dt
-            | none => 
+            | none =>
               # TODO(alex): split into helper method on CompileEnvironment
               # TODO(alex): Perform a recursive lookup on type aliases
               type-bind = context.post-env.type-bindings.get-value-now(name.key())
@@ -838,7 +889,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               type-original-name = type-bind.origin.original-name.toname()
               provides-result = context.env.provides-by-uri-value(type-uri)
               dt = provides-result.data-definitions.get-value(type-original-name)
-              dt
+              dt.typ
           end
         | else => raise("Can only do cases on a known datatype annotation, not on " + to-repr(typ))
       end
@@ -867,7 +918,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               j-block(body-stmts + [clist: j-expr(j-assign(ans, body-val)), j-break]))
         end
       end
-      
+
       { else-v; else-stmts } = compile-expr(context, _else)
 
       else-case = j-default(j-block(else-stmts + [clist: j-expr(j-assign(ans, else-v))]))
@@ -905,7 +956,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             # Binder function must be generated first
             { fieldvs; cl-append(binder-stmts, stmts); cl-cons(bind, binds) }
 
-          | else => 
+          | else =>
             # Fields are evaluated top to bottom
             { cl-snoc(fieldvs, j-field(f.name, val)); cl-append(stmts, compiled-stmts); binds }
         end
@@ -930,7 +981,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       { j-app(j-bracket(c-val, j-str("make")), [clist: j-list(false, elts-vals)]); c-stmts + elts-stmts }
 
     | s-instantiate(l, inner-expr, params) => compile-expr(context, inner-expr)
-    | s-user-block(l, body) => 
+    | s-user-block(l, body) =>
         # Just emit the body as an expression
         compile-expr(context, body)
     | s-template(l) => nyi("s-template")
@@ -941,7 +992,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Assume s-methods are only in well-formed spots and callers will generate the
       #   binding code correctly
       # Return the binder function and the required statements
-      
+
       # NOTE(alex): Currently cannot do recursive object initialization
       #   Manually assign the shared/with member with j-bracket vs returning a j-field
       { binder-func; method-stmts } = compile-method(context, l, name, args, body)
@@ -950,47 +1001,47 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
     | s-type(l, name, params, ann) => raise("s-type already removed")
     | s-newtype(l, name, namet) => raise("s-newtype already removed")
-    | s-when(l, test, body, blocky) => 
+    | s-when(l, test, body, blocky) =>
       compile-expr(
         context,
-        A.s-if-else(l, 
+        A.s-if-else(l,
                     [list: A.s-if-branch(l, test, body)],
-                    A.s-id(l, A.s-global("nothing")),   
+                    A.s-id(l, A.s-global("nothing")),
                     blocky)
       )
-    | s-if(l, branches, blocky) => 
+    | s-if(l, branches, blocky) =>
       # TODO(ALEX): check s-if handling
       # Desugar into s-if-else with raise in last branch
       compile-expr(
         context,
-        A.s-if-else(l, 
+        A.s-if-else(l,
                     branches,
-                    A.s-prim-app(l, 
-                      "throwNoBranchesMatched", 
-                      [list: A.s-srcloc(l, l), A.s-str(l, "if")], 
+                    A.s-prim-app(l,
+                      "throwNoBranchesMatched",
+                      [list: A.s-srcloc(l, l), A.s-str(l, "if")],
                       flat-prim-app),
                     blocky)
       )
-    | s-if-pipe(l, branches, blocky) => 
-      compile-expr(context, 
-                   A.s-if(l, 
-                          for map(b from branches): b.to-if-branch() end, 
+    | s-if-pipe(l, branches, blocky) =>
+      compile-expr(context,
+                   A.s-if(l,
+                          for map(b from branches): b.to-if-branch() end,
                           blocky))
-    | s-if-pipe-else(l, branches, _else, blocky) => 
-      compile-expr(context, 
-                   A.s-if-else(l, 
+    | s-if-pipe-else(l, branches, _else, blocky) =>
+      compile-expr(context,
+                   A.s-if-else(l,
                                for map(b from branches): b.to-if-branch() end,
-                               _else, 
+                               _else,
                                blocky))
     | s-cases(l, typ, val, branches, blocky) =>
       compile-expr(context,
                    A.s-cases-else(l, typ, val, branches,
-                     A.s-prim-app(l, 
+                     A.s-prim-app(l,
                                   "throwNoBranchesMatched",
-                                  [list: A.s-srcloc(l, l), A.s-str(l, "cases")], 
+                                  [list: A.s-srcloc(l, l), A.s-str(l, "cases")],
                                   flat-prim-app),
                      blocky))
-    | s-assign(l, id, val) => 
+    | s-assign(l, id, val) =>
       block:
         { e-val; e-stmts } = compile-expr(context, val)
         { j-assign(js-id-of(id), e-val); e-stmts }
@@ -1019,8 +1070,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         else:
           extend-ans
         end
-        field-extend = j-bracket-assign(j-id(shallow-copy-name), 
-                                        j-str(field.name), 
+        field-extend = j-bracket-assign(j-id(shallow-copy-name),
+                                        j-str(field.name),
                                         field-expr)
         cl-append(cl-append(stmts, extend-stmts), cl-sing(j-expr(field-extend)))
       end
@@ -1029,18 +1080,18 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       { j-id(shallow-copy-name); cl-snoc(extend-stmts, rebind-stmt) }
 
-    | s-for(l, iter, bindings, ann, body, blocky) => 
+    | s-for(l, iter, bindings, ann, body, blocky) =>
       compile-expr(context, DH.desugar-s-for(l, iter, bindings, ann, body))
-    | s-id-var(l, ident) => 
+    | s-id-var(l, ident) =>
       { j-id(js-id-of(ident)); cl-empty }
-    | s-frac(l, num, den) => 
+    | s-frac(l, num, den) =>
         # Generates a Rational (exact fraction)
-        e = rt-method("_makeRational", 
+        e = rt-method("_makeRational",
                       [clist: j-num(num), j-num(den), rt-field(NUMBER_ERR_CALLBACKS)])
         { e; cl-empty }
-    | s-rfrac(l, num, den) => 
+    | s-rfrac(l, num, den) =>
         # Generates a Roughnum
-        e = rt-method("_makeRoughnum", 
+        e = rt-method("_makeRoughnum",
                       [clist: j-num(num / den), rt-field(NUMBER_ERR_CALLBACKS)])
         { e; cl-empty }
     | s-str(l, str) => {j-str( str ); cl-empty}
@@ -1063,10 +1114,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Create tuples by calling RUNTIME.MAKETUPLE(js-tuple-array)
       js-tuple-array = j-list(false, fieldvs)
       { j-app(j-bracket(j-id(RUNTIME), j-str(MAKETUPLE)), cl-sing(js-tuple-array)); stmts }
-    | s-tuple-get(l, tup, index, index-loc) => 
+    | s-tuple-get(l, tup, index, index-loc) =>
 
       {tupv; tup-stmts} = compile-expr(context, tup)
-      
+
       # Tuples represented as arrays
       {j-bracket(tupv, j-num(index)); tup-stmts}
 
@@ -1089,7 +1140,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           { cl-append(elem-values, cl-sing(v)); cl-append(elem-stmts, stmts) }
         end
         js-row = j-list(false, elem-values)
-        
+
         # CList<CList<JExpr>> (CList<CList<j-list>>)
         { cl-append(value-list, cl-sing(js-row)); cl-append(stmt-list, elem-stmts) }
       end
@@ -1097,12 +1148,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       args = cl-cons(j-list(false, js-headers), cl-sing(j-list(false, js-rows)))
 
       { j-app(func, args); js-row-stmts }
-    | s-paren(l, e) => 
+    | s-paren(l, e) =>
         { e-ans; e-stmts } = compile-expr(context, e)
         { j-parens(e-ans); e-stmts }
     | s-let(_, _, _, _) => raise("desugared into s-let-expr")
     | s-var(l, name, value) => raise("desugared into s-let-expr")
-    | s-check(l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean) => 
+    | s-check(l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean) =>
 
       # Currently makes no assumpetions and takes no actions about where the check block is
       #   i.e. the check blocks are NOT moved to the end of a block direct-codegen.arr
@@ -1119,9 +1170,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | none => fresh-id(compiler-name("check-block"))
       end
 
-      js-check-block-func-block = j-block(cl-append(check-block-stmts, 
+      js-check-block-func-block = j-block(cl-append(check-block-stmts,
                                                     cl-sing(j-expr(check-block-val))))
-      js-check-block-func = j-fun("0", js-check-block-func-name.to-compiled(), 
+      js-check-block-func = j-fun("0", js-check-block-func-name.to-compiled(),
                                   cl-empty, js-check-block-func-block)
 
       test-block-name = cases(Option) name:
@@ -1134,24 +1185,24 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       { j-undefined; cl-sing(tester-call) }
 
-    | s-check-test(l :: Loc, 
-                   op :: A.CheckOp, 
-                   refinement :: Option<Expr>, 
-                   left :: Expr, 
-                   right :: Option<Expr>, 
+    | s-check-test(l :: Loc,
+                   op :: A.CheckOp,
+                   refinement :: Option<Expr>,
+                   left :: Expr,
+                   right :: Option<Expr>,
                    cause :: Option<Expr>) =>
 
       # Emits:
-      #   _checkTest(lh-func: () -> any, rh-func: () -> any, 
-      #              test-func: (check-expr-result, check-expr-result) -> check-op-result, 
+      #   _checkTest(lh-func: () -> any, rh-func: () -> any,
+      #              test-func: (check-expr-result, check-expr-result) -> check-op-result,
       #              loc: String) -> void
       #
-      #   _checkTest(function lh-func() {}, 
-      #              function rh-func() {}, 
+      #   _checkTest(function lh-func() {},
+      #              function rh-func() {},
       #              function test-func(lhs, rhs) {}, loc);
       #
       # _checkTest: (test-thunk: () -> check-op-result, loc: string) -> void
-      # 
+      #
       # check-expr-result = {
       #   value: any,
       #   exception: bool
@@ -1165,7 +1216,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       #
       # Individual tests are wrapped in functions to allow individual tests to fail
       #  but still possible to run other tests
-      
+
       fun make-check-op-result(success :: JExpr, lhs :: JExpr, rhs :: JExpr):
         j-obj([clist:
           j-field("success", success),
@@ -1192,12 +1243,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               end
 
               fun exception-check(exception-flag :: JExpr, lhs :: JExpr, rhs :: JExpr):
-                check-body = j-block([clist: 
+                check-body = j-block([clist:
                   j-return(make-check-op-result(j-bool(false), lhs, rhs))
                 ])
                 j-if1(exception-flag, check-body)
               end
-              
+
               # Thunk the LHS
               { lhs; l-stmt } = compile-expr(context, left)
               lh-func = thunk-it("LHS", lhs, l-stmt)
@@ -1214,7 +1265,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               # LHS exception check
               lhs-exception = j-bracket(j-id(lhs-param-name), j-str("exception"))
               lhs-exception-check = exception-check(
-                lhs-exception, 
+                lhs-exception,
                 j-id(lhs-param-name),
                 j-id(rhs-param-name)
               )
@@ -1223,13 +1274,13 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               # LHS exception check
               rhs-exception = j-bracket(j-id(rhs-param-name), j-str("exception"))
               rhs-exception-check = exception-check(
-                rhs-exception, 
+                rhs-exception,
                 j-id(lhs-param-name),
                 j-id(rhs-param-name)
               )
 
               # Assuming this compile-expr returns j-binop
-              j-test-val = 
+              j-test-val =
                 compile-s-op(context, l, l, bin-op, lhs-value, rhs-value)
 
               success-result = make-check-op-result(
@@ -1238,13 +1289,13 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                 j-id(rhs-param-name)
               )
 
-              test-body-stmts = [clist: 
-                lhs-exception-check, 
-                rhs-exception-check, 
+              test-body-stmts = [clist:
+                lhs-exception-check,
+                rhs-exception-check,
                 j-return(success-result)
-              ] 
+              ]
               test-body = j-block(test-body-stmts)
-              test-func = 
+              test-func =
                 j-fun("0", "TEST", [clist: lhs-param-name, rhs-param-name], test-body)
 
 
@@ -1259,13 +1310,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | refinement-result(the-refinement, negate) => raise("NYI check refinement")
         | predicate-result(predicate) => raise("NYI check predicate")
       end
-    | s-check-expr(l :: Loc, inner-expr :: Expr, ann :: Ann) =>
-      compile-expr(context, inner-expr)
+
     | s-load-table(
         l :: Loc,
         headers :: List<FieldName>,
         spec :: List<LoadTableSpec>) =>
-      
+
       # This case handles `load-table` syntax. The lines in the following Pyret
       # code,
       #
@@ -1279,12 +1329,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # |                 _tableSkeletonChangeHeaders(
       # |                   csvOpen('csv.txt'),
       # |                   ["a", "b", "
-      
+
       # NOTE(michael):
       #  s-load-table is currently implemented for a single LoadTableSpec of type
       #  s-table-src, meaning that using one or more `sanitize` forms will result in
       #  a not-yet-implemented error.
-      
+
       if spec.length() <> 1:
         nyi("s-load-table")
       else:
@@ -1294,30 +1344,30 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           | s-table-src(spec-l :: Loc, src :: Expr) =>
             # Set the table-import flag
             import-flags := import-flags.{ table-import: true }
-            
+
             table-id :: JExpr = j-id(TABLE)
             make-table-func :: JExpr =
               j-bracket(table-id, j-str("_makeTableFromTableSkeleton"))
             change-headers-func :: JExpr =
               j-bracket(table-id, j-str("_tableSkeletonChangeHeaders"))
-            
+
             { headers-expr-args :: JExpr; headers-expr-stmts :: CList<JStmt> } =
               compile-expr(context, src)
-            
+
             header-strings-list :: CList<JExpr> =
               for fold(acc from cl-empty, field-name from headers):
                 cl-append(acc, cl-sing(j-str(field-name.name)))
               end
-            
+
             header-strings :: JExpr = j-list(false, header-strings-list)
-            
+
             change-headers-expr :: JExpr =
               j-app(change-headers-func,
                 cl-append(cl-sing(headers-expr-args), cl-sing(header-strings)))
-            
+
             expr-args :: CList<JExpr> = cl-sing(change-headers-expr)
             make-table-expr :: JExpr = j-app(make-table-func, expr-args)
-            
+
             { make-table-expr; headers-expr-stmts }
         end
       end
@@ -1325,10 +1375,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         l :: Loc,
         column-binds :: ColumnBinds,
         extensions :: List<TableExtendField>) =>
-      
+
       # Set the table-import flag
       import-flags := import-flags.{ table-import: true }
-      
+
       # This case handles `extend` syntax. The starred lines in the following
       # Pyret code,
       #
@@ -1364,14 +1414,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # *      |   ]);
       #
       # The actual "extending" work is done by _tableReduce at runtime.
-      
+
       column-binds-l :: Loc = column-binds.l
       column-binds-binds :: List<Bind> = column-binds.binds
       column-binds-table :: Expr = column-binds.table
       { table-expr :: JExpr;
         table-stmts :: CList<JStmt> } =
         compile-expr(context, column-binds-table)
-      
+
       { reducer-exprs :: CList<JExpr>;
         reducer-stmts :: CList<JStmt> } =
         for fold(
@@ -1384,24 +1434,24 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                 reducer :: Expr,
                 col :: Name,
                 ann :: Ann) =>
-              
+
               # Handles Reducer forms, like `e: running-sum of b`.
-              
+
               { reducer-expr :: JExpr;
                 reducer-stmts :: CList<JStmt> } =
                 compile-expr(context, reducer)
-              
+
               type-field-name :: String = "type"
               type-field-value :: JExpr = j-str("reduce")
               type-field :: JField = j-field(type-field-name, type-field-value)
-              
+
               one-field-name :: String = "one"
               one-field-value-obj :: JExpr = reducer-expr
               one-field-value-field :: JExpr = j-str("one")
               one-field-value :: JExpr =
                 j-bracket(one-field-value-obj, one-field-value-field)
               one-field :: JField = j-field(one-field-name, one-field-value)
-              
+
               reduce-field-name :: String = "reduce"
               reduce-field-value-obj :: JExpr = reducer-expr
               reduce-field-value-field :: JExpr = j-str("reduce")
@@ -1409,17 +1459,17 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                 j-bracket(reduce-field-value-obj, reduce-field-value-field)
               reduce-field :: JField =
                 j-field(reduce-field-name, reduce-field-value)
-              
+
               using-field-name :: String = "using"
               using-field-value :: JExpr = j-str(col.toname())
               using-field :: JField =
                 j-field(using-field-name, using-field-value)
-              
+
               extending-field-name :: String = "extending"
               extending-field-value :: JExpr = j-str(name)
               extending-field :: JField =
                 j-field(extending-field-name, extending-field-value)
-              
+
               reducer-object-fields :: CList<JExpr> =
                 cl-cons(type-field,
                   cl-cons(one-field,
@@ -1427,7 +1477,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                       cl-cons(using-field,
                         cl-sing(extending-field)))))
               reducer-object :: JExpr = j-obj(reducer-object-fields)
-              
+
               { cl-append(acc-exprs, cl-sing(reducer-object));
                 cl-append(acc-stmts, reducer-stmts)}
             | s-table-extend-field(
@@ -1435,15 +1485,15 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                 name :: String, # name of the new column
                 value :: Expr,  # value of the element of the column in this row
                 ann :: Ann) =>
-              
+
               # Handles Mapping forms, like `d: a / 2`.
-              
+
               type-field-name :: String = "type"
               type-field-value :: JExpr = j-str("map")
               type-field :: JField = j-field(type-field-name, type-field-value)
-              
+
               reduce-field-name :: String = "reduce"
-              
+
               fun-id :: String = "0"
               fun-name :: String = fresh-id(compiler-name("s-table-extend-field")).toname()
               row-number-name :: Name = fresh-id(compiler-name("row-number"))
@@ -1451,7 +1501,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
               indexing-stmts :: CList<JStmt> =
                 for fold(stmts from cl-empty, bind from column-binds.binds):
                   bind-id :: Name = bind.id
-                  
+
                   get-index-name :: Name = fresh-id(compiler-name("column-number"))
                   get-column-index :: JExpr =
                     j-bracket(j-id(TABLE), j-str("_tableGetColumnIndex"))
@@ -1459,67 +1509,67 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                     cl-cons(table-expr, cl-sing(j-str(bind-id.toname())))
                   get-index-rhs :: JExpr = j-app(get-column-index, column-index-args)
                   get-index-stmt :: JStmt = j-var(get-index-name, get-index-rhs)
-                  
+
                   index-name :: Name = bind-id
                   table-rows :: JExpr = j-bracket(table-expr, j-str("_rows"))
                   current-row :: JExpr = j-bracket(table-rows, j-id(row-number-name))
                   index-rhs :: JExpr = j-bracket(current-row, j-id(get-index-name))
                   assign-index-stmt :: JStmt = j-var(js-id-of(index-name), index-rhs)
-                  
+
                   cl-append(stmts, cl-cons(get-index-stmt, cl-sing(assign-index-stmt)))
                 end
-              
+
               { return-expr :: JExpr;
                 return-compiled-stmts :: CList<JStmt> } =
                 compile-expr(context, value)
               return-stmt :: JStmt = j-return(return-expr)
-              
+
               body-stmts :: CList<JStmt> =
                 cl-append(indexing-stmts, cl-sing(return-stmt))
               fun-body :: JBlock = j-block(body-stmts)
-              
+
               reduce-field-value :: JExpr =
                 j-fun(fun-id, fun-name, fun-args, fun-body)
               reduce-field :: JField =
                 j-field(reduce-field-name, reduce-field-value)
-              
+
               extending-field-name :: String = "extending"
               extending-field-value :: JExpr = j-str(name)
               extending-field :: JField =
                 j-field(extending-field-name, extending-field-value)
-              
+
               mapping-object-fields :: CList<JExpr> =
                 cl-cons(type-field,
                   cl-cons(reduce-field,
                     cl-sing(extending-field)))
               mapping-object :: JExpr = j-obj(mapping-object-fields)
-              
+
               { cl-append(
                   acc-exprs,
                   cl-append(return-compiled-stmts, cl-sing(mapping-object)));
                 acc-stmts}
           end
         end
-      
+
       expr-func-obj :: JExpr = j-id(TABLE)
       expr-func-field :: JExpr = j-str("_tableReduce")
       apply-expr-func :: JExpr = j-bracket(expr-func-obj, expr-func-field)
       apply-expr-args :: CList<JExpr> =
         cl-cons(table-expr, cl-sing(j-list(false, reducer-exprs)))
       apply-expr :: JExpr = j-app(apply-expr-func, apply-expr-args)
-      
+
       apply-stmts :: CList<JStmt> =
         cl-append(table-stmts, reducer-stmts)
-      
+
       { apply-expr; apply-stmts }
     | s-table-update(
         l :: Loc,
         column-binds :: ColumnBinds,
         updates :: List<A.Member>) =>
-      
+
       # Set the table-import flag
       import-flags := import-flags.{ table-import: true }
-      
+
       # This case handles `transform` syntax. The starred lines in the following
       # Pyret code,
       #
@@ -1542,30 +1592,30 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # * | );
       #
       # The actual "transforming" work is done by _tableTransform at runtime.
-      
+
       { table-expr :: JExpr; table-stmts :: CList<JStmt> } =
         compile-expr(context, column-binds.table)
-      
+
       # makes a list of strings (column names)
       list-colnames :: CList<JExpr> = for fold(col-list from cl-empty, u from updates):
 	      cl-append( col-list, cl-sing( j-str(u.name) ) )
 	    end
-      
+
       column-update-zip :: List<{ A.Binds; A.Expr}> = map2(lam(cb, up): { cb; up.value } end,
-        column-binds.binds,
-        updates)
-      
+                               column-binds.binds,
+                               updates)
+
       # makes a list of functions
       fun-id :: String = "0"
       fun-name :: String = fresh-id(compiler-name("s-table-transform")).toname()
-      list-updates :: CList<JExpr> = for fold(update-list from cl-empty, 
-          { bind; update-expr} from column-update-zip):
-        
+      list-updates :: CList<JExpr> = for fold(update-list from cl-empty,
+                                              { bind; update-expr} from column-update-zip):
+
         # Use the Bind in ColumnBind as the parameter in the generated function
         fun-args :: CList<A.Name> = cl-sing(js-id-of(bind.id))
-        
+
         spy: id: bind.id end
-        
+
 	      { u-value-expr; u-value-stmts } = compile-expr(context, update-expr)
         block-return-stmt :: JStmt = j-return(u-value-expr)
         block-stmts :: CList<JStmt> = cl-append(table-stmts, cl-sing(block-return-stmt))
@@ -1573,40 +1623,40 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         u-fun :: JExpr = j-fun(fun-id, fun-name, fun-args, fun-body)
         cl-append( update-list, cl-sing( u-fun ) )
 	    end
-      
+
       app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableTransform"))
-      app-args :: CList<JExpr> = cl-cons( table-expr, 
+      app-args :: CList<JExpr> = cl-cons( table-expr,
         cl-cons( j-list(false, list-colnames), cl-sing(j-list(false, list-updates ))) )
-      
+
       return-expr :: JExpr = j-app(app-func, app-args)
       return-stmts :: CList<JStmt> = table-stmts
-      
+
       # tableTansform(table, colnames, updates)
       { return-expr; return-stmts }
     | s-table-select(l, columns, table) =>
       # Set the table-import flag
       import-flags := import-flags.{ table-import: true }
-      
+
       func = j-bracket(j-id(TABLE), j-str("_selectColumns"))
-      
+
       js-columns = for fold(the-list from cl-empty, c from columns):
 	      cl-append( the-list, cl-sing( j-str(c.toname()) ) )
 	    end
-      
+
       { js-table; js-table-stmts } = compile-expr(context, table)
-      
+
       args = cl-cons( js-table, cl-sing(j-list(false, js-columns)) )
-      
+
       # selectColumns(table, colnames)
       { j-app(func, args); js-table-stmts }
     | s-table-extract(
         l :: Loc,
         column :: Name,
         table :: Expr) =>
-      
+
       # Set the table-import flag
       import-flags := import-flags.{ table-import: true }
-      
+
       # This case handles `extract` syntax. The starred line in the following
       # Pyret code,
       #
@@ -1623,26 +1673,26 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # * | var columnB = _tableExtractColumn(myTable, "b");
       #
       # The actual "extracting" work is done by _tableExtractColumn at runtime.
-      
+
       {table-expr :: JExpr; table-stmts :: CList<JStmt>} =
         compile-expr(context, table)
-      
+
       app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableExtractColumn"))
       app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(j-str(column.toname())))
       apply :: JExpr = j-app(app-func, app-args)
-      
+
       return-expr :: JExpr = apply
       return-stmts :: CList<JStmt> = table-stmts
-      
+
       { return-expr; return-stmts }
     | s-table-order(
         l :: Loc,
         table :: Any,
         ordering :: List<ColumnSort>) =>
-      
+
       # Set the table-import flag
       import-flags := import-flags.{ table-import: true }
-      
+
       # This case handles `order` syntax. The starred lines in the following
       # Pyret code,
       #
@@ -1665,15 +1715,15 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # * |    {"column": "name", "direction": "ascending"}]);
       #
       # The actual "ordering" work is done by _tableOrder at runtime.
-      
+
       {table-expr :: JExpr; table-stmts :: CList<JStmt>} =
         compile-expr(context, table)
-      
+
       ordering-list-elements :: CList<JExpr> =
         for fold(elements from cl-empty, the-order from ordering):
           the-order-column :: Name = the-order.column
           the-order-direction :: ColumnSortOrder = the-order.direction
-          
+
           order-column-field :: JField =
             j-field("column", j-str(the-order-column.toname()))
           order-direction-field :: JField =
@@ -1684,32 +1734,32 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                   | ASCENDING => "ascending"
                   | DESCENDING => "descending"
                 end))
-          
+
           order-fields :: CList<JField> =
             cl-cons(order-column-field, cl-sing(order-direction-field))
           order-obj :: JExpr = j-obj(order-fields)
-          
+
           cl-append(elements, cl-sing(order-obj))
         end
-      
+
       ordering-list-expr :: JExpr = j-list(false, ordering-list-elements)
-      
+
       app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableOrder"))
       app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(ordering-list-expr))
       apply :: JExpr = j-app(app-func, app-args)
-      
+
       return-expr :: JExpr = apply
       return-stmts :: CList<JStmt> = table-stmts
-      
+
       { return-expr; return-stmts }
     | s-table-filter(
         l :: Loc,
         column-binds :: ColumnBinds,
         predicate :: Expr) =>
-      
+
       # Set the table-import flag
       import-flags := import-flags.{ table-import: true }
-      
+
       # This case handles `sieve` syntax. The starred lines in the following
       # Pyret code,
       #
@@ -1718,7 +1768,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       #   |   row: 4, 5, 6
       #   |   row: 7, 8, 9
       #   | end
-      #   | 
+      #   |
       # * | my-filtered-table = sieve my-table using b:
       # * |   (b / 4) == 2
       # * | end
@@ -1732,48 +1782,48 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # * | }
       #
       # The actual "sieving" work is done by _tableFilter at runtime.
-      
+
       {table-expr :: JExpr; table-stmts :: CList<JStmt>} =
         compile-expr(context, column-binds.table)
-      
+
       row-name :: Name = fresh-id(compiler-name("row"))
-      
+
       block-row-element-stmts :: CList<JStmt> =
         # generate the `var index = _tableGetColumnIndex(myTable, "b");` lines.
         for fold(stmts from cl-empty, bind from column-binds.binds):
-          app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableGetColumnIndex"))
-          app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(j-str(bind.id.toname())))
-          
-          # generate the `var b = row[index];` lines.
-          column-index-expr :: JExpr = j-app(app-func, app-args)
-          column-index-id :: Name = fresh-id(compiler-name("index"))
-          column-index-stmt :: JStmt = j-var(column-index-id, column-index-expr)
-          var-stmt :: JStmt = j-var(js-id-of(bind.id), j-bracket(j-id(row-name), j-id(column-index-id)))
-          
-          cl-append(stmts, cl-cons(column-index-stmt, cl-sing(var-stmt)))
-        end
-      
+        app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableGetColumnIndex"))
+        app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(j-str(bind.id.toname())))
+
+        # generate the `var b = row[index];` lines.
+        column-index-expr :: JExpr = j-app(app-func, app-args)
+        column-index-id :: Name = fresh-id(compiler-name("index"))
+        column-index-stmt :: JStmt = j-var(column-index-id, column-index-expr)
+        var-stmt :: JStmt = j-var(js-id-of(bind.id), j-bracket(j-id(row-name), j-id(column-index-id)))
+
+        cl-append(stmts, cl-cons(column-index-stmt, cl-sing(var-stmt)))
+      end
+
       fun-id :: String = "0"
       fun-name :: String = fresh-id(compiler-name("s-table-filter")).toname()
       fun-args :: CList<Name> = cl-sing(row-name)
-      
+
       {predicate-expr :: JExpr; predicate-stmts :: CList<JStmt>} = compile-expr(context, predicate)
       block-return-stmt :: JStmt = j-return(predicate-expr)
       block-stmts :: CList<JStmt> = cl-append(block-row-element-stmts, cl-sing(block-return-stmt))
       fun-body :: JBlock = j-block(block-stmts)
       filter-fun :: JExpr = j-fun(fun-id, fun-name, fun-args, fun-body)
-      
+
       app-func :: JExpr = j-bracket(j-id(TABLE), j-str("_tableFilter"))
       app-args :: CList<JExpr> = cl-cons(table-expr, cl-sing(filter-fun))
       apply :: JExpr = j-app(app-func, app-args)
-      
+
       return-expr :: JExpr = apply
       return-stmts :: CList<JStmt> = cl-append(predicate-stmts, table-stmts)
-      
+
       { return-expr; return-stmts }
-      
+
     | s-spy-block(loc, message, contents) =>
-      
+
       # Model each spy block as a spy block object
       # SpyBlockObject {
       #   message: () -> String,
@@ -1786,57 +1836,57 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       #
       # Push responsibility of runtime spy-enabling to the builtinSpyFunction
       if context.options.enable-spies:
-        
+
         # Generate spy code
-        
+
         # Generate message code
         { js-message-value; js-message-stmts } = cases(Option) message:
           | some(message-expr) => compile-expr(context, message-expr)
-            
-            # Use 'null' to signal the builtinSpyFunction that there was no spy block message
+
+          # Use 'null' to signal the builtinSpyFunction that there was no spy block message
           | none => { j-null; cl-empty }
         end
-        
+
         # Create the message generation function
         js-message-func-name = fresh-id(compiler-name("spy-message"))
         js-message-return = j-return(js-message-value)
         js-message-func-block = j-block(cl-append(js-message-stmts, cl-sing(js-message-return)))
         js-message-func = j-fun("0", js-message-func-name.to-compiled(), cl-empty, js-message-func-block)
-        
+
         # Compile each spy expression into the expression list
         js-spy-fields = for fold(js-spy-fields from cl-empty, pyret-spy-field from contents):
           { js-spy-value; js-spy-stmts } = compile-expr(context, pyret-spy-field.value)
-          
+
           js-spy-expr-func-name = fresh-id(compiler-name("spy-expr"))
-          
+
           js-spy-return = j-return(js-spy-value)
           js-spy-expr-func-block = j-block(cl-append(js-spy-stmts, cl-sing(js-spy-return)))
           js-spy-expr-fun = j-fun("0", js-spy-expr-func-name.to-compiled(), cl-empty, js-spy-expr-func-block)
-          
+
           # Create the spy expression object
           js-spy-key = j-field("key", j-str(pyret-spy-field.name))
           js-spy-expr = j-field("expr", js-spy-expr-fun)
           js-spy-loc = j-field("loc", j-str(pyret-spy-field.l.format(true)))
           js-spy-expr-obj = j-obj(cl-cons(js-spy-key, cl-cons(js-spy-expr, cl-sing(js-spy-loc))))
-          
+
           cl-append(js-spy-fields, cl-sing(js-spy-expr-obj))
         end
-        
+
         js-spy-loc = j-str(loc.format(true))
-        
+
         # Create the SpyBlockObject
         js-spy-fields-list = j-list(false, js-spy-fields)
         spy-block-obj = j-obj(cl-cons(j-field("message", js-message-func),
-            cl-cons(j-field("loc", js-spy-loc),
-              cl-sing(j-field("exprs", js-spy-fields-list))
-              )
-            )
-          )
-        
+                                cl-cons(j-field("loc", js-spy-loc),
+                                  cl-sing(j-field("exprs", js-spy-fields-list))
+                                  )
+                                )
+                              )
+
         # Builtin spy function call
         # Runtime is responsible for output
         spy-call = j-expr(rt-method("$spy", cl-sing(spy-block-obj)))
-        
+
         { j-undefined; cl-sing(spy-call) }
       else:
         # Do NOT generate spy code
@@ -1861,10 +1911,10 @@ fun gen-tuple-bind(context, fields, as-name, value):
   end
 
   { shadow bindings; shadow stmts } = cases(Option<A.Bind>) as-name:
-    | some(b) => 
+    | some(b) =>
       cases(A.Bind) b:
         | s-bind(bl, doShadow, id, ann) => { j-var(id, value); cl-empty }
-        | s-tuple-bind(l, shadow fields, shadow as-name) => 
+        | s-tuple-bind(l, shadow fields, shadow as-name) =>
           { as-bind-v; as-stmts } = gen-tuple-bind(context, fields, as-name, value)
           { cl-cons(as-bind-v, bindings); as-stmts + stmts }
       end
@@ -1903,13 +1953,13 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
     shadow base-dir = P.resolve(base-dir)
     shadow source = P.resolve(source)
     cutoff = string-substring( source, string-length( base-dir ) + 1, string-length( source ) )
-    
+
     fun calculate-relative-path( path ):
       if string-contains( path, "/" ):
         slash-location = string-index-of( path, "/" )
         remaining-path = string-substring( path, slash-location + 1, string-length( path ) )
 
-        string-append( "../", calculate-relative-path( remaining-path ) ) 
+        string-append( "../", calculate-relative-path( remaining-path ) )
       else:
         "./"
       end
@@ -1969,15 +2019,15 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   uri-to-local-js-name = [D.mutable-string-dict:]
 
   fun import-builtin(bind-name :: A.Name, name :: String):
-    the-path = cases(Option) runtime-builtin-relative-path: 
-      | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + name 
+    the-path = cases(Option) runtime-builtin-relative-path:
+      | some(shadow runtime-builtin-relative-path) => runtime-builtin-relative-path + name
 
       | none => relative-path + "../builtin/" + name
     end
 
-    J.j-var(bind-name, 
-            j-app(j-id(const-id("require")), 
-                  [clist: 
+    J.j-var(bind-name,
+            j-app(j-id(const-id("require")),
+                  [clist:
                     j-str(the-path)]))
   end
 
@@ -1989,8 +2039,13 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   table-import = import-builtin(TABLE, "tables.arr.js")
   reactor-import = import-builtin(REACTOR,"reactor.arr.js")
 
-  # Always emit global import
-  manual-imports = [clist: runtime-import, global-import, nothing-import]
+  # Note(alex): cm-builtin-stage-1 does not emit manual imports of global (i.e. "import global as _")
+  #   cm-builtin-general and cm-normal allow manual global import
+  manual-imports = cases(CompileMode) options.compile-mode:
+    | cm-normal => [clist: runtime-import, global-import, nothing-import]
+    | cm-builtin-general => [clist: runtime-import, global-import, nothing-import]
+    | cm-builtin-stage-1 => [clist: runtime-import, nothing-import]
+  end
 
   shadow manual-imports = if import-flags.table-import:
     cl-append(manual-imports, cl-sing(table-import))
@@ -2018,21 +2073,51 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   explicit-imports = for CL.map_list(import-stmt from imports):
     cases( A.Import ) import-stmt block:
       | s-import(l, file, name) =>
-        dep-key = AU.import-to-dep(file).key()
-        uri = env.uri-by-dep-key(dep-key)
-        uri-to-local-js-name.set-now(uri, name)
-        uri-to-import(uri, name)
+        import-action = lam():
+          block:
+            dep-key = AU.import-to-dep(file).key()
+            uri = env.uri-by-dep-key(dep-key)
+            uri-to-local-js-name.set-now(uri, name)
+            uri-to-import(uri, name)
+          end
+        end
+        # NOTE(alex): If cm-builtin-stage-1, do NOT emit global imports
+        cases(CompileMode) options.compile-mode:
+          | cm-normal => import-action()
+          | cm-builtin-general => import-action()
+          | cm-builtin-stage-1 =>
+            cases(ImportType) file:
+              | s-const-import(_, module-name) =>
+                if module-name == "global":
+                  CL.concat-empty
+                else:
+                  import-action()
+                end
+              | s-special-import(_, _, _) => import-action()
+            end
+        end
       | else => CL.concat-empty
     end
   end.foldl(_ + _, CL.concat-empty)
+
 
   # We _also_ insert a require for any modules that have a globally-referenced
   # name. This won't re-instantiate them since require() caches modules; it just
   # gives us a local name to use, and leverages the built-in Node module system
   # rather than having Pyret's runtime track all loaded modules.
-  non-imported-global-names = for filter(g from global-names.keys-list-now()):
-    not(uri-to-local-js-name.has-key-now(env.uri-by-value-name-value(g)))
+  #
+  # NOTE(alex): in cm-builtin-stage-1, do NOT implicitly import globals
+  non-import-action = lam():
+    for filter(g from global-names.keys-list-now()):
+      not(uri-to-local-js-name.has-key-now(env.uri-by-value-name-value(g)))
+    end
   end
+  non-imported-global-names = cases(CompileMode) options.compile-mode:
+    | cm-normal => non-import-action()
+    | cm-builtin-general => non-import-action()
+    | cm-builtin-stage-1 => [list: ]
+  end
+
   var implicit-imports = cl-empty
   for each(g from non-imported-global-names):
     uri = env.uri-by-value-name-value(g)
@@ -2048,10 +2133,20 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   # We also build up a list of var statements that bind local JS names for
   # all the globals used as identifiers, to make compiling uses of s-global
   # straightforward.
-  pyret-globals-as-js-ids = for CL.map_list(g from global-names.keys-list-now()):
-    uri = env.uri-by-value-name-value(g)
-    imported-as = uri-to-local-js-name.get-value-now(uri)
-    J.j-var(js-id-of(A.s-global(g)), J.j-dot(j-id(js-id-of(imported-as)), g))
+
+  # Note(alex): cm-builtin-stage-1 does NOT import global module
+  #   Do NOT attempt to import globals
+  pyret-global-action = lam():
+    for CL.map_list(g from global-names.keys-list-now()):
+      uri = env.uri-by-value-name-value(g)
+      imported-as = uri-to-local-js-name.get-value-now(uri)
+      J.j-var(js-id-of(A.s-global(g)), J.j-dot(j-id(js-id-of(imported-as)), g))
+    end
+  end
+  pyret-globals-as-js-ids = cases(CompileMode) options.compile-mode:
+    | cm-normal => pyret-global-action()
+    | cm-builtin-general => pyret-global-action()
+    | cm-builtin-stage-1 => cl-empty
   end
 
   from-modules = for CL.map_list(k from free-bindings.keys-list-now()):
@@ -2061,7 +2156,7 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
     J.j-var(js-id-of(binding.atom), rt-method("getModuleValue", [clist: j-str(uri), j-str(name)]))
   end
 
-  import-stmts + pyret-globals-as-js-ids + from-modules
+  import-stmts + from-modules
 end
 
 fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) block:
@@ -2079,8 +2174,17 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
 
   free-bindings = [D.mutable-string-dict:]
 
+  # Note(alex): Necessary to change URIs for builtin-stage-1 and builtin-general
+  #   modules to be used in "include from" syntax with values
+  builtin-uri-override = "builtin://" + P.basename(uri, ".arr")
+  from-uri = cases(CompileMode) options.compile-mode:
+    | cm-normal => provides.from-uri
+    | cm-builtin-general => builtin-uri-override
+    | cm-builtin-stage-1 => builtin-uri-override
+  end
+
   {ans; stmts} = compile-expr({
-    uri: provides.from-uri,
+    uri: from-uri,
     options: options,
     provides: provides,
     datatypes: translated-datatype-map,
@@ -2097,9 +2201,15 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
 
   the-module = module-body
 
-  module-and-map = the-module.to-ugly-sourcemap(provides.from-uri, 1, 1, provides.from-uri)
+  module-and-map = the-module.to-ugly-sourcemap(from-uri, 1, 1, from-uri)
 
-  serialized-provides = PSE.compile-provides(provides)
+  # Note(alex): Necessary to change URIs for builtin-stage-1 and builtin-general
+  #    modules to be used in "include from" syntax with values
+  serialized-provides = cases(CompileMode) options.compile-mode:
+    | cm-normal => PSE.compile-provides(provides)
+    | cm-builtin-general => PSE.compile-provides-override-uri(provides, from-uri)
+    | cm-builtin-stage-1 => PSE.compile-provides-override-uri(provides, from-uri)
+  end
 
   [D.string-dict:
     "requires", j-list(true, [clist:]),

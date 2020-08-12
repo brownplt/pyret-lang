@@ -7,14 +7,15 @@
       "lOfA": ["tyapp", { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://list" },
                 "name": "List" }, [["tid", "a"]]],
-      "lOfR": ["tyapp", { "tag": "name",
-                "origin": { "import-type": "uri", "uri": "builtin://list" },
-                "name": "List" }, [["local", "RawArray"]]],
       "tva": ["tid", "a"],
       "tvb": ["tid", "b"],
       "oOfN": ["tyapp", { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://option" },
-                "name": "Option" }, ["Number"]]
+                "name": "Option" }, ["Number"]],
+      "EqualityResult": { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://equality" },
+                "name": "EqualityResult"
+      }
     },
     "values": {
       "loop-a-while": ["arrow", ["Number"], "Number"],
@@ -23,13 +24,6 @@
       "num-to-str": ["arrow", ["Number"], "String"],
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "nothing": "Nothing",
-      "raw-array": ["forall", ["a"], ["Maker", ["tid", "a"], "rOfA"]],
-      "raw-array-at": ["forall", ["a"], ["arrow", ["rOfA", "Number"], "tva"]],
-      "raw-array-get": ["forall", ["a"], ["arrow", ["lOfA", "Number"], "rOfN"]],
-      "raw-array-fold": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "rOfA"], "tvb"]],
-      "raw-array-sum": ["arrow", ["rOfN"], "Number"],
-      "raw-array-min": ["arrow", ["rOfN"], "Number"],
-      "raw-array-max": ["arrow", ["rOfN"], "Number"],
       "time-now": ["arrow", [], "Number"],
       "console-log": ["arrow", ["tany"], "Nothing"],
       "assert": ["forall", ["a"], ["arrow", ["tva", "tva", "String"], "Nothing"]],
@@ -110,17 +104,12 @@
 
       "raise": ["arrow", ["Any"], "tbot"],
 
-      "is-Equal": ["arrow", ["Any"], "Boolean"],
-      "is-NotEqual": ["arrow", ["Any"], "Boolean"],
-      "is-Unknown": ["arrow", ["Any"], "Boolean"],
-
+      "equal-now": ["arrow", ["Any", "Any"], "Boolean"],
+      "equal-now3": ["arrow", ["Any", "Any"], "EqualityResult"],
       "equal-always": ["arrow", ["Any", "Any"], "Boolean"],
-      "equal-always3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
+      "equal-always3": ["arrow", ["Any", "Any"], "EqualityResult"],
       "identical": ["arrow", ["Any", "Any"], "Boolean"],
-      "identical3": ["arrow", ["Any", "Any"], ["local", "EqualityResult"]],
-      "Equal": ["local", "EqualityResult"],
-      "NotEqual": ["arrow", ["String", "Any", "Any"], ["local", "EqualityResult"]],
-      "Unknown": ["arrow", ["String", "Any", "Any"], ["local", "EqualityResult"]]
+      "identical3": ["arrow", ["Any", "Any"], "EqualityResult"]
     },
     "aliases": {
       "Any": "tany",
@@ -139,41 +128,20 @@
       "Number": "Number",
       "String": "String",
       "Nothing": "Nothing",
-      "RawArray": { "tag": "name", 
+      "RawArray": { "tag": "name",
                     "origin": { "import-type": "uri", "uri": "builtin://global" },
                     "name": "RawArray" },
-      "Row": { "tag": "name", 
+      "Row": { "tag": "name",
                     "origin": { "import-type": "uri", "uri": "builtin://global" },
                     "name": "Row" },
-      "Table": { "tag": "name", 
+      "Table": { "tag": "name",
                     "origin": { "import-type": "uri", "uri": "builtin://global" },
                     "name": "Table" },
       "List": { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://list" },
-                "name": "List" },
-      "EqualityResult": ["local", "EqualityResult"]
+                "name": "List" }
     },
     "datatypes": {
-      "EqualityResult": [
-        "data", "EqualityResult", [], [
-          ["Equal", {}],
-          ["NotEqual",
-            [
-              ["reason", "String"],
-              ["value1", "tany"],
-              ["value2", "tany"]
-            ], {}
-          ],
-          ["Unknown",
-            [
-              ["reason", "String"],
-              ["value1", "tany"],
-              ["value2", "tany"]
-            ], {}
-          ]
-        ], {}
-      ],
-
       "Number": ["data", "Number", [], [], {
         "_plus": ["arrow", ["Number"], "Number"],
         "_times": ["arrow", ["Number"], "Number"],

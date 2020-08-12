@@ -1,6 +1,6 @@
 ### 123
 
-import list as L
+import lists as L
 import global as G
 
 include from L:

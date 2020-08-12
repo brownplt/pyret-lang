@@ -1,0 +1,57 @@
+{
+  "requires": [],
+  "provides": {
+    "shorthands": {
+    },
+    "values": {
+        "is-Equal": ["arrow", [["local", "EqualityResult"]], "Boolean"],
+        "is-NotEqual": ["arrow", [["local", "EqualityResult"]], "Boolean"],
+        "is-Unknown": ["arrow", [["local", "EqualityResult"]], "Boolean"],
+
+        "Equal": ["local", "EqualityResult"],
+        "NotEqual": ["arrow", ["String", "tany", "tany"], ["local", "EqualityResult"]],
+        "Unknown": ["arrow", ["String", "tany", "tany"], ["local", "EqualityResult"]],
+
+        "to-boolean": ["arrow", [["local", "EqualityResult"]], "Boolean"],
+        "equal-and": ["arrow", [["local", "EqualityResult"], ["local", "EqualityResult"]], ["local", "EqualityResult"]],
+        "equal-or": ["arrow", [["local", "EqualityResult"], ["local", "EqualityResult"]], ["local", "EqualityResult"]],
+
+        "equal-now": ["arrow", ["tany", "tany"], "Boolean"],
+        "equal-now3": ["arrow", ["tany", "tany"], ["local", "EqualityResult"]],
+        "equal-always": ["arrow", ["tany", "tany"], "Boolean"],
+        "equal-always3": ["arrow", ["tany", "tany"], ["local", "EqualityResult"]],
+        "identical": ["arrow", ["tany", "tany"], "Boolean"],
+        "identical3": ["arrow", ["tany", "tany"], ["local", "EqualityResult"]],
+
+        "within": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+        "within-rel": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+        "within-abs": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+        "within-rel-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+        "within-abs-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]]
+    },
+    "aliases": {
+      "EqualityResult": ["local", "EqualityResult"]
+    },
+    "datatypes": {
+      "EqualityResult": [
+        "data", "EqualityResult", [], [
+          ["Equal", {}],
+          ["NotEqual",
+            [
+              ["reason", "String"],
+              ["value1", "tany"],
+              ["value2", "tany"]
+            ], {}
+          ],
+          ["Unknown",
+            [
+              ["reason", "String"],
+              ["value1", "tany"],
+              ["value2", "tany"]
+            ], {}
+          ]
+        ], {}
+      ]
+    }
+  }
+}

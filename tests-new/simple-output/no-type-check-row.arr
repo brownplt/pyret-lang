@@ -5,7 +5,8 @@
 
 import global as G
 import tables as T
-import list as L
+import lists as L
+import equality as E
 
 my-row = [T.raw-row: {"a"; 1}, {"b"; 2}, {"c"; 3}]
 
@@ -13,7 +14,7 @@ expected-column-names = [L.list: "a", "b", "c"]
 actual-column-names = my-row.get-column-names()
 
 column-names-okay =
-  T._primitiveEqual(expected-column-names, actual-column-names)
+  E.equal-always(expected-column-names, actual-column-names)
 
 expected-first-value = 1
 expected-second-value = 2

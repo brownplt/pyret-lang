@@ -120,7 +120,15 @@ fun weave-contracts(contracts, rev-binds) block:
     else if A.is-s-letrec-bind(bind): A.s-letrec-bind(bind.l, bind.b, new-v)
     end
   end
-    
+
+  fun is-blank-contract(a):
+    if A.is-a-blank(a): true
+    else if A.is-a-tuple(a):
+      a.fields.all({(elt): is-blank-contract(elt)})
+    else: false
+    end
+  end
+
   ans = for fold(acc from empty, bind from rev-binds):
     cases(A.Bind) bind.b:
       | s-bind(l, shadows, id, ann) =>
@@ -136,7 +144,7 @@ fun weave-contracts(contracts, rev-binds) block:
               else:
                 cases(A.Expr) bind.value:
                   | s-fun(l-fun, name, params, args, ret, doc, body, _check-loc, _check, blocky) =>
-                    if not(args.all({(a): A.is-a-blank(a.ann)}) and A.is-a-blank(ret)) block:
+                    if not(args.all({(a): is-blank-contract(a.ann)}) and A.is-a-blank(ret)) block:
                       errors := link(C.contract-redefined(c.l, id-name, l-fun), errors)
                       link(fun-to-lam(bind), acc)
                     else if A.is-a-arrow(c.ann):
@@ -465,7 +473,7 @@ where:
       A.s-assign(d, A.s-name(d, "x"), A.s-num(d, 3)),
       p-s(id("x"))
     ])
-  
+
   prog4 = bs("var x = 10 fun f(): 4 end f()")
   prog4
     is A.s-let-expr(d, [list:
@@ -506,7 +514,7 @@ fun rebuild-fun(rebuild, visitor, l, name, params, args, ann, doc, body, _check-
       | empty => {new-binds; new-body}
       | link(_, _) => {new-binds; A.s-let-expr(a.l, lbs.rest, new-body, false)}
     end
-  end  
+  end
   rebuild(l, name, v-params, new-binds.reverse(), v-ann, doc, new-body, _check-loc, v-check, blocky)
 end
 
@@ -605,7 +613,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
           end
         | else => raise("Impossible")
       end
-      
+
       errors := empty
 
       recombined = A.s-block(with-provides.l, #| remaining + |# with-provides.stmts)
@@ -619,6 +627,12 @@ end
 fun get-origin-loc(o):
   cases(C.BindOrigin) o:
     | bind-origin(_, definition-bind-site, _, _, _) => definition-bind-site
+  end
+end
+
+fun get-local-loc(o):
+  cases(C.BindOrigin) o:
+    | bind-origin(local-bind-site, _, _, _, _) => local-bind-site
   end
 end
 
@@ -650,7 +664,7 @@ fun path-uri(pre-path, path, compile-env, mod-env):
   maybe-uri-for-path(pre-path + path.take(path.length() - 1), compile-env, mod-env)
 end
 
-fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
+fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.CompileEnvironment):
   doc: ```
        Turn all s-names into s-atom or s-global
        Requires:
@@ -684,8 +698,31 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | s-name(l, s) =>
         when env.has-key(s) and not(is-shadowing):
           old-loc = get-origin-loc(env.get-value(s).origin)
-          name-errors := link(C.shadow-id(s, l, old-loc), name-errors)
+          local-loc = get-local-loc(env.get-value(s).origin)
+          import-loc-opt =
+            if (local-loc == p.l) or (local-loc == A.dummy-loc) block:
+              none
+            else:
+              some(local-loc)
+            end
+          #|
+          spy "import-loc-opt":
+            name,
+            use-loc: l,
+            orig-loc: old-loc,
+            local-loc
+          end
+          |#
+          name-errors := link(C.shadow-id(s, l, old-loc, import-loc-opt), name-errors)
         end
+        # when env.has-key(s):
+        #   spy "make-atom-for":
+        #     s,
+        #     use-loc: l,
+        #     is-shadowing,
+        #     origin: env.get-value(s)
+        #   end
+        # end
         atom = names.make-atom(s)
         binding = make-binding(atom)
         bindings.set-now(atom.key(), binding)
@@ -714,6 +751,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           # times. If not, then they count as shadowing one another (e.g. two
           # values named list coming from two different libs)
           shadowing = b.origin.uri-of-definition == from-uri
+          when not(shadowing) and env.has-key(name.toname()):
+            spy: from-uri, b, name end
+          end
           make-atom-for(name, shadowing, env, bindings, make-binding)
       end
     else:
@@ -723,21 +763,21 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
   fun scope-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
-    for SD.each-key(name from initial.globals.values):
-      mod-info = initial.provides-by-value-name-value(name)
-      val-info = mod-info.values.get(name)
+    for SD.each-key(name from initial.globals.values) block:
+      origin = initial.globals.values.get-value(name)
+      uri-of-definition = origin.uri-of-definition
+      val-info = initial.value-by-origin(origin)
       cases(Option) val-info block:
         | none => raise("The value is a global that doesn't exist in any module: " + name)
         | some(shadow val-info) =>
           cases(C.ValueExport) val-info block:
-              # TODO(joe): can use origin information here once v-alias and friends go through
-            | v-var(_origin-unused, t) =>
-              b = C.value-bind(C.bo-global(mod-info.from-uri, names.s-global(name)), C.vb-var, names.s-global(name), A.a-blank)
+            | v-var(_, t) =>
+              b = C.value-bind(C.bo-global(some(origin), uri-of-definition, origin.original-name), C.vb-var, names.s-global(name), A.a-blank)
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
             | else =>
               # TODO(joe): Good place to add _location_ to valueexport to report errs better
-              b = C.value-bind(C.bo-global(mod-info.from-uri, names.s-global(name)), C.vb-let, names.s-global(name), A.a-blank)
+              b = C.value-bind(C.bo-global(some(origin), uri-of-definition, origin.original-name), C.vb-let, names.s-global(name), A.a-blank)
               bindings.set-now(names.s-global(name).key(), b)
               acc.set-now(name, b)
           end
@@ -749,8 +789,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   fun type-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
     for SD.each-key(name from initial.globals.types) block:
-      mod-info = initial.provides-by-type-name-value(name)
-      b = C.type-bind(C.bo-global(mod-info.from-uri, names.s-global(name)), C.tb-type-let, names.s-type-global(name), none)
+      origin = initial.globals.types.get-value(name)
+      type-info = initial.type-by-origin-value(origin)
+      b = C.type-bind(C.bo-global(some(origin), origin.uri-of-definition, origin.original-name), C.tb-type-let, names.s-type-global(name), C.tb-typ(type-info))
       type-bindings.set-now(names.s-type-global(name).key(), b)
       acc.set-now(name, b)
     end
@@ -760,11 +801,12 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   fun module-env-from-env(initial :: C.CompileEnvironment) block:
     acc = SD.make-mutable-string-dict()
     for SD.each-key(name from initial.globals.modules) block:
-      mod-info = initial.provides-by-module-name-value(name)
+      origin = initial.globals.modules.get-value(name)
+      mod-info = initial.provides-by-origin-value(origin)
       when not(mod-info.modules.has-key(name)):
-        spy: mod-info, initial end
+        spy: mod-info end
       end
-      b = C.module-bind(C.bo-global(mod-info.from-uri, names.s-module-global(name)), names.s-module-global(name), mod-info.modules.get-value(name))
+      b = C.module-bind(C.bo-global(some(origin), origin.uri-of-definition, origin.original-name), names.s-module-global(name), mod-info.modules.get-value(name))
       module-bindings.set-now(names.s-module-global(name).key(), b)
       acc.set-now(name, b)
     end
@@ -842,65 +884,81 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     "$included-" + to-string(include-counter)
   end
 
-  fun add-value-name(env, vname, as-name, mod-info):
+  fun add-value-name(l, imp-loc, env, vname, as-name, mod-info):
     maybe-value-export = mod-info.values.get(vname.toname())
-    cases(Option) maybe-value-export:
-      | none => raise("Cannot find name " + vname.toname())
+    cases(Option) maybe-value-export block:
+      | none =>
+        name-errors := link(C.name-not-provided(l, imp-loc, vname, "value"), name-errors)
+        env
       | some(value-export) =>
         vbinder = cases(C.ValueExport) value-export block:
           | v-var(_, t) => C.vb-var
           | else => C.vb-let
         end
         atom-env = make-import-atom-for(as-name, value-export.origin.uri-of-definition, env, bindings,
-          C.value-bind(C.bo-module(vname.l, value-export.origin.uri-of-definition, value-export.origin.original-name), vbinder, _, A.a-any(vname.l)))
+          C.value-bind(C.bo-module(as-name.l, value-export.origin.definition-bind-site, value-export.origin.uri-of-definition, value-export.origin.original-name), vbinder, _, A.a-any(vname.l)))
         atom-env.env
     end
   end
 
-  fun add-type-name(type-env, tname, as-name, mod-info):
+  fun add-type-name(l, imp-loc, type-env, tname, as-name, mod-info):
     maybe-type-export = mod-info.aliases.get(tname.toname())
-    cases(Option) maybe-type-export:
-      | none => raise("Cannot find type name " + tname.toname())
+    cases(Option) maybe-type-export block:
+      | none =>
+        name-errors := link(C.name-not-provided(l, imp-loc, tname, "type"), name-errors)
+        type-env
       | some(t) =>
-        { orig-name; uri-of-typ } = cases(T.Type) t:
-          | t-name(module-name, id, _, _) =>
+        { orig-name; uri-of-typ; loc-of-typ } = cases(T.Type) t:
+          | t-name(module-name, id, loc, _) =>
             cases(T.NameOrigin) module-name:
-              | local => { id; mod-info.from-uri }
-              | module-uri(shadow uri) => { id; uri }
-              | dependency(d) => { id; mod-info.from-uri }
+              | local => { id; mod-info.from-uri; loc }
+              | module-uri(shadow uri) => { id; uri; loc }
+              | dependency(d) => { id; mod-info.from-uri; loc }
             end
-          | else => { tname; mod-info.from-uri }
+          | else => { tname; mod-info.from-uri; t.l }
         end
         atom-env = make-import-atom-for(as-name, uri-of-typ, type-env, type-bindings,
-          C.type-bind(C.bo-module(tname.l, uri-of-typ, orig-name), C.tb-type-let, _, none))
+          C.type-bind(C.bo-module(as-name.l, loc-of-typ, uri-of-typ, orig-name), C.tb-type-let, _, C.tb-typ(t)))
         atom-env.env
     end
   end
 
-  fun add-module-name(module-env, mname, as-name, mod-info):
+  fun add-module-name(l, imp-loc, module-env, mname, as-name, mod-info):
     maybe-module-export = mod-info.modules.get(mname.toname())
-    cases(Option) maybe-module-export:
-      | none => raise("Cannot find module name " + mname.toname())
+    cases(Option) maybe-module-export block:
+      | none =>
+        name-errors := link(C.name-not-provided(l, imp-loc, mname, "module"), name-errors)
+        module-env
       | some(uri) =>
         atom-env = make-import-atom-for(as-name, mod-info.from-uri, module-env, module-bindings,
-          C.module-bind(C.bo-module(mname.l, mod-info.from-uri, mname), _, uri))
+          C.module-bind(C.bo-module(as-name.l, S.builtin(uri), mod-info.from-uri, mname), _, uri))
         atom-env.env
     end
   end
 
-  fun star-names(shadow names, hidings):
+  fun star-names(l, shadow names, hidings) block:
+    for each(h from hidings):
+      when not(lists.member(names, h.toname())):
+        name-errors := link(C.wf-err-split("The name " + h.toname() + " is listed as hidden but was not included.", [list: l]), name-errors)
+      end
+    end
     for filter(n from names):
       not(lists.member(hidings.map(_.toname()), n))
     end
   end
 
-  fun add-spec({imp-e; imp-te; imp-me; imp-imps} as acc, mod-info, spec):
+  fun add-spec(imp-loc, {imp-e; imp-te; imp-me; imp-imps} as acc, mod-info, spec):
+
+    # data will spread across many
+    shared-data-hidings = [SD.mutable-string-dict:]
+
     fun add-name-spec(name-spec, dict, which-env, adder):
       cases(A.NameSpec) name-spec block:
-        | s-star(l, hidings) =>          
-          imported-names = star-names(dict.keys-list(), hidings)
+        | s-star(l, hidings) =>
+          all-names = dict.keys-list()
+          imported-names = star-names(l, all-names, hidings)
           for fold(shadow which-env from which-env, n from imported-names):
-            adder(which-env, A.s-name(l, n), A.s-name(l, n), mod-info)
+            adder(l, imp-loc, which-env, A.s-name(l, n), A.s-name(l, n), mod-info)
           end
         | s-module-ref(l, path, as-name) =>
           maybe-uri = uri-from(mod-info.from-uri, path.take(path.length() - 1), initial-env)
@@ -912,11 +970,59 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             | none => path.last()
             | some(n) => n
           end
-          adder(which-env, path.last(), as-name, mod-info)
+          adder(l, imp-loc, which-env, path.last(), as-name, mod-info)
       end
     end
 
-    cases(A.IncludeSpec) spec:
+    fun maybe-add-name-spec(name-spec, dict, which-env, adder, name, hidings):
+      if is-some(hidings.find(lam(h): h.toname() == name end)) block:
+        shared-data-hidings.remove-now(name)
+        which-env
+      else:
+        add-name-spec(name-spec, dict, which-env, adder)
+      end
+    end
+
+    fun add-data-spec(envs, name-spec, hidings):
+      cases(A.NameSpec) name-spec block:
+        | s-star(l, _) => # NOTE(joe): s-star on data-spec never has hidings, they are on the include-data-spec
+          datatype-names = mod-info.data-definitions.keys-list()
+          for fold(shadow envs from envs, dname from datatype-names):
+            add-data-spec(envs, A.s-module-ref(l, [list: A.s-name(l, dname)], none), hidings)
+          end
+        | s-module-ref(l, path, as-name) =>
+          maybe-uri = uri-from(mod-info.from-uri, path.take(path.length() - 1), initial-env)
+          shadow mod-info = cases(Option) maybe-uri:
+            | none => raise("Could not find module " + to-repr(path))
+            | some(p-uri) => initial-env.provides-by-uri-value(p-uri)
+          end
+          # NOTE(joe): the module-ref can't possibly have an as-name for data
+          # based on how the grammar is defined; we simply re-use s-module-ref
+          # rather than introduce a new variant.
+          shadow as-name = cases(Option) as-name:
+            | none => path.last()
+            | some(n) => n
+          end
+          dname = path.last().toname()
+          maybe-dt-export = initial-env.resolve-datatype-by-uri(mod-info.from-uri, dname)
+          cases(Option) maybe-dt-export:
+            | none => raise("Cannot find datatype name " + dname + " in " + mod-info.from-uri)
+            | some(typ) =>
+              {imp-e-dts; imp-te-dts} = envs
+              shadow imp-e-dts = for fold(shadow imp-e-dts from imp-e-dts, v from typ.variants):
+                constructor-ref = A.s-module-ref(l, path.take(path.length() - 1) + [list: A.s-name(l, v.name)], none)
+                checker-ref = A.s-module-ref(l, path.take(path.length() - 1) + [list: A.s-name(l, A.make-checker-name(v.name))], none)
+                env1 = maybe-add-name-spec(constructor-ref, mod-info.values, imp-e-dts, add-value-name, v.name, hidings)
+                maybe-add-name-spec(checker-ref, mod-info.values, env1, add-value-name, A.make-checker-name(v.name), hidings)
+              end
+              typ-alias-ref = A.s-module-ref(l, path.take(path.length() - 1) + [list: A.s-name(l, dname)], none)
+              shadow imp-te-dts = maybe-add-name-spec(typ-alias-ref, mod-info.aliases, imp-te-dts, add-type-name, dname, hidings)
+              { imp-e-dts; imp-te-dts}
+          end
+      end
+    end
+
+    cases(A.IncludeSpec) spec block:
       | s-include-name(l, name-spec) =>
         new-env = add-name-spec(name-spec, mod-info.values, imp-e, add-value-name)
         { new-env; imp-te; imp-me; imp-imps }
@@ -926,7 +1032,15 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       | s-include-module(l, name-spec) =>
         new-module-env = add-name-spec(name-spec, mod-info.modules, imp-me, add-module-name)
         { imp-e; imp-te; new-module-env; imp-imps }
-      | s-include-data(l, name-spec, hidings) => acc # MARK(joe): Importing datatypes once provided
+      | s-include-data(l, name-spec, hidings) =>
+        for each(h from hidings):
+          shared-data-hidings.set-now(h.toname(), true)
+        end
+        { imp-e-dts; imp-te-dts } = add-data-spec({imp-e; imp-te}, name-spec, hidings)
+        for each(extraneous-hiding from shared-data-hidings.keys-list-now()):
+          name-errors := link(C.wf-err-split("The name " + extraneous-hiding + " is listed as hidden but was not included.", [list: l]), name-errors)
+        end
+        { imp-e-dts; imp-te-dts; imp-me; imp-imps }
     end
   end
 
@@ -984,7 +1098,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
         mod-info = initial-env.provides-by-uri-value(dotted-uri)
         {specs-e; specs-te; specs-me; _ } = for fold(shadow acc from acc, s from specs):
-          add-spec(acc, mod-info, s)
+          add-spec(l, acc, mod-info, s)
         end
         {specs-e; specs-te; specs-me; link(A.s-include-from(l, [list: atom], specs), imp-imps)}
     end
@@ -1005,12 +1119,20 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     module-env: module-env-from-env(initial-env),
     method s-module(self, l, answer, _, _, _, checks) block:
 
+
+#|
+      ```
+      include from T: * end <-- defined here?
+      include from T: a, b, c end <-- defined here?
+      ```
+ |#
+
       non-globals =
         for filter(k from self.env.keys-list()):
           vb = self.env.get-value(k)
           vb.origin.new-definition
         end
-      defined-vals = for map(key from non-globals): 
+      defined-vals = for map(key from non-globals):
         vb = self.env.get-value(key)
         loc = vb.origin.local-bind-site
         atom = vb.atom
@@ -1031,7 +1153,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         A.s-defined-type(key, A.a-name(l, atom))
       end
 
-      non-global-modules = 
+      non-global-modules =
         for filter(k from self.module-env.keys-list()):
           mb = self.module-env.get-value(k)
           mb.origin.new-definition
@@ -1080,7 +1202,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             A.s-provide-data(l, A.s-star(l, [list:]), [list:]),
             A.s-provide-type(l, A.s-star(l, [list:]))])
       end
-      
+
       all-provides = [list: provide-vals-specs, provide-types-specs] + provides
 
       # Each of these dictionaries maps from plain names to atoms, for example
@@ -1103,7 +1225,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
 
       fun is-hidden(hidden :: List<A.Name>, maybe-hidden-name :: String):
         for lists.any(h from hidden):
-          h.name == maybe-hidden-name
+          h.toname() == maybe-hidden-name
         end
       end
 
@@ -1113,43 +1235,72 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
         end
       end
 
-
+      fun maybe-add-remove-if-hidden(hidden, hidden-todo, which-dict, maybe-add-name :: String, to-add) block:
+        when not(is-hidden(hidden, maybe-add-name)):
+          which-dict.set-now(maybe-add-name, to-add)
+        end
+        when hidden-todo.has-key-now(maybe-add-name):
+          hidden-todo.set-now(maybe-add-name, none)
+        end
+      end
 
       fun expand-name-spec(which-dict, which-bindings, which-env, get-provided-bindings, spec, pre-path):
         cases(A.NameSpec) spec:
           | s-star(shadow l, hidden) =>
             remote-reference-uri = maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env)
-            cases(Option) remote-reference-uri:
+            cases(Option) remote-reference-uri block:
               | none =>
-                for each(shadow k from which-env.keys-list()):
+                keys = which-env.keys-list()
+                for each(h from hidden):
+                  when not(lists.member(keys, h.toname())):
+                    name-errors := link(C.wf-err-split("The name " + h.toname() + " is listed as hidden but was not provided.", [list: l]), name-errors)
+                  end
+                end
+                for each(shadow k from keys):
                   bind = which-env.get-value(k)
                   when(bind.origin.new-definition):
-                    # TODO(joe): check hiding
-                    which-dict.set-now(bind.atom.toname(), {l; none; bind.atom})
+                    maybe-add(hidden, which-dict, bind.atom.toname(), {l; none; bind.atom})
                   end
                 end
               | some(uri) =>
                 bindings-from-module = get-provided-bindings(initial-env.provides-by-uri-value(uri))
-                for each(shadow k from bindings-from-module.keys-list()):
+                keys = bindings-from-module.keys-list()
+                for each(h from hidden):
+                  when not(lists.member(keys, h.toname())):
+                    name-errors := link(C.wf-err-split("The name " + h.toname() + " is listed as hidden but was not provided.", [list: l]), name-errors)
+                  end
+                end
+                for each(shadow k from keys):
                   # NOTE(joe): This is where we would do something like
                   # "prefix-out" by doing `prefix + k` below. The k that's the
                   # key in set-now is the name it's provided as, and the k in
                   # the s-name is the name to look for in the original module
-                  which-dict.set-now(k, {l; remote-reference-uri; A.s-name(l, k) })
+                  maybe-add(hidden, which-dict, k, {l; remote-reference-uri; A.s-name(l, k)})
                 end
             end
           | s-module-ref(shadow l, path, as-name) =>
             remote-reference-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
-            {maybe-uri; atom} = cases(Option) remote-reference-uri:
+            {maybe-uri; atom} = cases(Option) remote-reference-uri block:
               | none =>
-                b = which-env.get-value(path.first.toname())
-                if b.origin.new-definition:
-                  { none; b.atom }
-                else:
-                  { some(b.origin.uri-of-definition); b.origin.original-name }
+                b = which-env.get(path.first.toname())
+                cases(Option) b block:
+                  | some(shadow b) =>
+                    if b.origin.new-definition:
+                      { none; b.atom }
+                    else:
+                      { some(b.origin.uri-of-definition); b.origin.original-name }
+                    end
+                  | none =>
+                    name-errors := link(C.unbound-id(A.s-id(l, A.s-name(l, path.last().toname()))), name-errors)
+                    { none; A.s-name(l, path.last().toname()) }
                 end
               | some(uri) =>
-                { some(uri); A.s-name(l, path.last().toname()) }
+                bindings-from-module = get-provided-bindings(initial-env.provides-by-uri-value(uri))
+                remote-name = path.last().toname()
+                when not(bindings-from-module.has-key(remote-name)):
+                  name-errors := link(C.unbound-id(A.s-id(l, A.s-name(l, remote-name))), name-errors)
+                end
+                { some(uri); A.s-name(l, remote-name) }
             end
             cases(Option) as-name:
               | none => which-dict.set-now(atom.toname(), {l; maybe-uri; atom})
@@ -1157,20 +1308,27 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             end
         end
       end
-      fun expand-data-spec(val-env, type-env, spec, pre-path, hidden):
+
+      fun expand-data-spec(val-env, type-env, spec, pre-path, hidden, hidden-todo) block:
+        shadow maybe-add = maybe-add-remove-if-hidden(hidden, hidden-todo, _, _, _)
         cases(A.NameSpec) spec:
           | s-star(shadow l, _) => # NOTE(joe): Assumption is that this s-star's hiding is always empty for s-provide-data
-
-            # TODO(joe): need to condition on pre-path being empty/referring to
-            # another module as above in expand-name-spec
-            for each(k from datatypes.keys-list-now()):
-              data-expr = datatypes.get-value-now(k)
-
-              # NOTE(joe): Trying this as a nice collapsing of cases
-              expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-expr.name)], none), pre-path, hidden)
-
-              # TODO(joe): need to check datatypes from elsewhere with .new-definition?
-              # provided-datatypes.set-now(data-expr.name, {l; maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env); data-expr.namet})
+            remote-reference-uri = maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env)
+            cases(Option) remote-reference-uri:
+              | none =>
+                for each(k from datatypes.keys-list-now()):
+                  data-expr = datatypes.get-value-now(k)
+                  expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-expr.name)], none), pre-path, hidden, hidden-todo)
+                end
+              | some(remote-uri) =>
+                datatyps-from-module = initial-env.provides-by-uri-value(remote-uri).data-definitions
+                for each(k from datatyps-from-module.keys-list()):
+                  data-name = cases(C.DataExport) datatyps-from-module.get-value(k):
+                    | d-alias(_, name) => name
+                    | d-type(_, typ) => typ.name
+                  end
+                  expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-name)], none), pre-path, hidden, hidden-todo)
+                end
             end
           | s-module-ref(shadow l, path, as-name) =>
             maybe-uri = path-uri(pre-path, path, initial-env, final-visitor.module-env)
@@ -1178,26 +1336,26 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
               | none => # path must be a single element if there's no URI of a remote module
                         # e.g. provide: D end   NOT    provide: M.D end
                 data-expr = datatypes.get-value-now(path.first.toname())
-                maybe-add(hidden, provided-datatypes, data-expr.name, {l; none; data-expr.namet})
+                maybe-add(provided-datatypes, data-expr.name, {l; none; data-expr.namet})
                 data-checker-name = A.make-checker-name(data-expr.name)
                 data-checker-vb = val-env.get-value(data-checker-name)
-                maybe-add(hidden, provided-values, data-checker-name, {l; none; data-checker-vb.atom})
+                maybe-add(provided-values, data-checker-name, {l; none; data-checker-vb.atom})
                 data-alias-tb = type-env.get-value(data-expr.name)
-                maybe-add(hidden, provided-types, data-expr.name, {l; none; data-alias-tb.atom})
+                maybe-add(provided-types, data-expr.name, {l; none; data-alias-tb.atom})
                 for each(v from data-expr.variants) block:
                   variant-vb = val-env.get-value(v.name)
                   checker-name = A.make-checker-name(v.name)
                   variant-checker-vb = val-env.get-value(checker-name)
-                  maybe-add(hidden, provided-values, v.name, {l; none; variant-vb.atom})
-                  maybe-add(hidden, provided-values, checker-name, {l; none; variant-checker-vb.atom})
+                  maybe-add(provided-values, v.name, {l; none; variant-vb.atom})
+                  maybe-add(provided-values, checker-name, {l; none; variant-checker-vb.atom})
                 end
-                
+
               | some(uri) =>
                 datatype-name = path.last().toname()
                 providing-module = initial-env.provides-by-uri-value(uri)
-                maybe-datatype = providing-module.data-definitions.get(datatype-name)
+                maybe-datatype = initial-env.resolve-datatype-by-uri(uri, datatype-name)
                 { datatype-uri; datatype } = cases(Option) maybe-datatype:
-                  | none => 
+                  | none =>
                     cases(Option) providing-module.aliases.get(datatype-name):
                       | none => raise("Name " + datatype-name + " not defined as a type or datatype on " + uri)
                       | some(t) =>
@@ -1217,13 +1375,13 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
                 end
                 fun add-value-if-defined(name):
                   when(providing-module.values.has-key(name)):
-                    maybe-add(hidden, provided-values, name, {l; some(datatype-uri); A.s-name(l, name)})
+                    maybe-add(provided-values, name, {l; some(datatype-uri); A.s-name(l, name)})
                   end
                 end
-                # maybe-add(hidden, provided-datatypes, datatype-name, {l; some(uri); A.s-name(l, datatype-name)})
+                maybe-add(provided-datatypes, datatype-name, {l; some(uri); A.s-name(l, datatype-name)})
                 add-value-if-defined(A.make-checker-name(datatype-name))
                 when(providing-module.aliases.has-key(datatype-name)):
-                  maybe-add(hidden, provided-types, datatype-name, {l; some(datatype-uri); A.s-name(l, datatype-name)})
+                  maybe-add(provided-types, datatype-name, {l; some(datatype-uri); A.s-name(l, datatype-name)})
                 end
                 for each(v from datatype.variants) block:
                   add-value-if-defined(v.name)
@@ -1232,8 +1390,9 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             end
         end
       end
+
       fun expand(provide-spec, path):
-        cases(A.ProvideSpec) provide-spec:
+        cases(A.ProvideSpec) provide-spec block:
           | s-provide-name(shadow l, name-spec) =>
             expand-name-spec(provided-values, bindings, final-visitor.env, _.values, name-spec, path)
           | s-provide-type(shadow l, name-spec) =>
@@ -1241,7 +1400,18 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | s-provide-module(shadow l, name-spec) =>
             expand-name-spec(provided-modules, module-bindings, final-visitor.module-env, _.modules, name-spec, path)
           | s-provide-data(shadow l, name-spec, hidden) =>
-            expand-data-spec(final-visitor.env, final-visitor.type-env, name-spec, path, hidden)
+            hidden-todo = [SD.mutable-string-dict:]
+            for each(h from hidden):
+              hidden-todo.set-now(h.toname(), some(h.l))
+            end
+            expand-data-spec(final-visitor.env, final-visitor.type-env, name-spec, path, hidden, hidden-todo)
+            for SD.each-key-now(key from hidden-todo):
+              cases(Option) hidden-todo.get-value-now(key):
+                | none => nothing
+                | some(shadow l) =>
+                  name-errors := link(C.wf-err-split("The name " + key + " is listed as hidden but was not provided.", [list: l]), name-errors)
+              end
+            end
           | else => nothing
         end
       end
@@ -1258,6 +1428,11 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
           | some(uri) => A.s-remote-ref(l, uri, atom, A.s-name(l, k))
         end
         maker(name-spec)
+      end
+
+      for each(k from datatypes.keys-list-now()):
+        dt = datatypes.get-value-now(k)
+        provided-datatypes.set-now(k, {dt.l; none; dt.namet})
       end
 
       final-val-provides = for map(k from provided-values.keys-list-now()):
@@ -1285,16 +1460,27 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
             shadow acc = { env: e, te: te }
             new-types = for fold(shadow acc from {env: acc.te, atoms: empty}, param from params):
               atom-env = make-atom-for(param, false, acc.env, type-bindings,
-                C.type-bind(C.bo-local(l2, param), C.tb-type-var, _, none))
+                C.type-bind(C.bo-local(l2, param), C.tb-type-var, _, C.tb-none))
               { env: atom-env.env, atoms: link(atom-env.atom, acc.atoms) }
             end
+            visited-ann = ann.visit(self.{env: e, type-env: new-types.env})
+            full-typ = if is-empty(params):
+              U.ann-to-typ(thismodule-uri, initial-env, visited-ann)
+            else:
+              tbody = U.ann-to-typ(thismodule-uri, initial-env, visited-ann)
+              tparams = for map(id from new-types.atoms):
+                T.t-var(id, l2, false)
+              end
+              T.t-forall(tparams, tbody, l, false)
+            end
             atom-env = make-atom-for(name, false, acc.te, type-bindings,
-              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, none))
-            new-bind = A.s-type-bind(l2, atom-env.atom, new-types.atoms.reverse(), ann.visit(self.{env: e, type-env: new-types.env}))
+              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, C.tb-typ(full-typ)))
+            new-bind = A.s-type-bind(l2, atom-env.atom, new-types.atoms.reverse(), visited-ann)
             { e; atom-env.env; link(new-bind, bs) }
           | s-newtype-bind(l2, name, tname) =>
+            # TODO(joe): What should the TypeBindTyp be here?
             atom-env-t = make-atom-for(name, false, te, type-bindings,
-              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, none))
+              C.type-bind(C.bo-local(l2, name), C.tb-type-let, _, C.tb-none))
             atom-env = make-atom-for(tname, false, e, bindings,
               C.value-bind(C.bo-local(l2, tname), C.vb-let, _, A.a-blank))
             new-bind = A.s-newtype-bind(l2, atom-env-t.atom, atom-env.atom)
@@ -1345,7 +1531,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {env; fbs} = for fold(acc from { self.env; empty }, fb from binds):
         {env; fbs} = acc
         cases(A.ForBind) fb block:
-          | s-for-bind(l2, bind, val) => 
+          | s-for-bind(l2, bind, val) =>
             atom-env = make-atom-for(bind.id, bind.shadows, env, bindings,
               C.value-bind(C.bo-local(l2, bind.id), C.vb-let, _, bind.ann.visit(self)))
             new-bind = A.s-bind(bind.l, bind.shadows, atom-env.atom, bind.ann.visit(self.{env: env}))
@@ -1380,7 +1566,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {env; atoms} = for fold(acc from { self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, C.tb-none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: env}
@@ -1394,7 +1580,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
      {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, C.tb-none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: ty-env}
@@ -1422,7 +1608,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(param.l, param), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(param.l, param), C.tb-type-var, _, C.tb-none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: ty-env}
@@ -1445,7 +1631,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
         {env; atoms} = acc
         atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, none))
+          C.type-bind(C.bo-local(l, param), C.tb-type-var, _, C.tb-none))
         { atom-env.env; link(atom-env.atom, atoms) }
       end
       with-params = self.{type-env: ty-env}
@@ -1483,7 +1669,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
       cases(A.Expr) obj:
         | s-id(l2, id) =>
           cases(A.Name) id block:
-            | s-name(_, s) => 
+            | s-name(_, s) =>
               # NOTE(joe): This gives an ordering to names. If somehow we end up with
               # import foo as C
               #
@@ -1550,7 +1736,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
     method s-bind(self, l, shadows, id, ann):
       cases(A.Name) id:
         | s-underscore(_) => A.s-bind(l, shadows, id, ann)
-        | else => 
+        | else =>
           raise("Should not reach non-underscore bindings in resolve-names: " + id.key() + " at " + torepr(l))
       end
     end,
@@ -1603,6 +1789,7 @@ fun resolve-names(p :: A.Program, initial-env :: C.CompileEnvironment):
   }
   C.resolved-names(p.visit(names-visitor), name-errors, C.computed-env(module-bindings, bindings, type-bindings, datatypes, final-visitor.module-env, final-visitor.env, final-visitor.type-env))
 end
+
 
 fun check-unbound-ids-bad-assignments(ast :: A.Program, resolved :: C.NameResolution, initial-env :: C.CompileEnvironment) block:
   var shadow errors = [list: ] # THE MUTABLE LIST OF ERRORS
