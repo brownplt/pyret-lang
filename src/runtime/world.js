@@ -110,7 +110,7 @@ var makeReactorRaw = function(init, handlersArray, tracing, trace) {
 }
 
 function makeBigBangFromDict(shouldPauseAndResume) {
-    return function bigBangFromDict(init, dict, tracer) {
+    return function bigBangFromDict(init, dict, tracer, insertNode) {
         var handlers = [];
         function add(k, constr) {
             if(dict.hasOwnProperty(k)) {
@@ -141,7 +141,7 @@ function makeBigBangFromDict(shouldPauseAndResume) {
             return bigBang(init, handlers, tracer, title);
         }
 
-        return bigBangNoPauseResume(init, handlers, tracer, title);
+        return bigBangNoPauseResume(init, handlers, tracer, title, insertNode);
     };
 }
 
@@ -149,13 +149,17 @@ var bigBangFromDict = makeBigBangFromDict(true);
 var bigBangFromDictNoPauseResume = makeBigBangFromDict(false);
 
 var makeBigBang = function(shouldPauseAndResume) {
-    return function(initW, handlers, tracer, title) {
+    return function(initW, handlers, tracer, title, insertNode) {
         var closeBigBangWindow = null;
         var outerToplevelNode = document.createElement('span');
         outerToplevelNode.style.padding = '0px';
         // TODO(joe): This obviously can't stay
         // if(!runtime.hasParam("current-animation-port")) {
-        document.body.appendChild(outerToplevelNode);
+        if (insertNode !== undefined) {
+            insertNode(outerToplevelNode);
+        } else {
+            document.body.appendChild(outerToplevelNode);
+        }
         // } else {
         //     runtime.getParam("current-animation-port")(
         //         outerToplevelNode,

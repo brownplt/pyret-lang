@@ -72,7 +72,8 @@ type Reactor<A> = {
     'interact-trace': () => Table,
     'simulate-trace': (limit: number) => Table,
     interact: () => Reactor<A>,
-    $interactNoPauseResume: () => Reactor<A>,
+    $interact: (insertNode?: (node: any) => void) => Reactor<A>,
+    $interactNoPauseResume: (insertNode?: (node: any) => void) => Reactor<A>,
     'start-trace': () => Reactor<A>,
     'stop-trace': () => Reactor<A>,
     'get-trace': () => A[], // should be List<A> type
@@ -110,7 +111,7 @@ function makeReactorRaw<A>(init: A, handlers: RawReactorFields<A>, tracing: bool
 
             return r['get-trace-as-table']();
         },
-        interact: () => {
+        $interact: (insertNode) => {
             if (externalInteractionHandler === null) {
                 throw new Error('No interaction set up for this context (please report a bug if you are using code.pyret.org and see this message)')
             }
@@ -123,17 +124,20 @@ function makeReactorRaw<A>(init: A, handlers: RawReactorFields<A>, tracing: bool
                 };
             }
 
-            const newVal = externalInteractionHandler(init, handlers, tracer);
+            const newVal = externalInteractionHandler(init, handlers, tracer, insertNode);
             // This unshift prevents duplicate first elements
             thisInteractTrace.shift();
             return makeReactorRaw(newVal, handlers, tracing, trace.concat(thisInteractTrace));
         },
-        $interactNoPauseResume: () => {
+        interact: () => {
+            return self.$interact();
+        },
+        $interactNoPauseResume: (insertNode) => {
             const oldInteract = externalInteractionHandler;
             setInteract(world.$bigBangFromDictNoPauseResume);
 
             try {
-                return self.interact();
+                return self.$interact(insertNode);
             } catch (e) {
                 setInteract(oldInteract);
                 throw e;
