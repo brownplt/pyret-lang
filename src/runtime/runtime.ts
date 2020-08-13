@@ -273,10 +273,10 @@ module.exports["_subtract"] = _NUMBER["subtract"];
 module.exports["_multiply"] = _NUMBER["multiply"];
 module.exports["_divide"] = _NUMBER["divide"];
 
-module.exports["_lessThan"] = _NUMBER["lessThan"];
-module.exports["_greaterThan"] = _NUMBER["greaterThan"];
-module.exports["_lessThanOrEqual"] = _NUMBER["lessThanOrEqual"];
-module.exports["_greaterThanOrEqual"] = _NUMBER["greaterThanOrEqual"];
+module.exports["_lessthan"] = _NUMBER["lessThan"];
+module.exports["_greaterthan"] = _NUMBER["greaterThan"];
+module.exports["_lessequal"] = _NUMBER["lessThanOrEqual"];
+module.exports["_greaterequal"] = _NUMBER["greaterThanOrEqual"];
 module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
 
 module.exports["PTuple"] = _PRIMITIVES["PTuple"];

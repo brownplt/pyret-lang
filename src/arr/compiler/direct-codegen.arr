@@ -314,16 +314,16 @@ fun compile-s-op(context, l, op-l, op, lv :: JExpr, rv :: JExpr):
       rt-method("_divide",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op<") then:
-      rt-method("_lessThan",
+      rt-method("_lessthan",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op>") then:
-      rt-method("_greaterThan",
+      rt-method("_greaterthan",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op<=") then:
-      rt-method("_lessThanOrEqual",
+      rt-method("_lessequal",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op>=") then:
-      rt-method("_greaterThanOrEqual",
+      rt-method("_greaterequal",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
 
     # TODO(alex): Use equal-always, equal-now, etc
