@@ -4,6 +4,11 @@ const Either = require("./either.arr.js");
 
 var hasOwnProperty = {}.hasOwnProperty;
 
+// TODO: Add a dependency for an actual md5 implementation, or remove the dependent code.
+function md5(x) {
+  return x;
+}
+
 /* @stopify flat */
 function Color(r, g, b, a) {
   this.red = r;
