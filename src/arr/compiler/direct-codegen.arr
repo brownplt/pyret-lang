@@ -1153,6 +1153,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { j-parens(e-ans); e-stmts }
     | s-let(_, _, _, _) => raise("desugared into s-let-expr")
     | s-var(l, name, value) => raise("desugared into s-let-expr")
+    | s-check-expr(l :: Loc, the-expr :: Expr, ann :: Ann) =>
+      compile-expr(context, the-expr)
     | s-check(l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean) =>
 
       # Currently makes no assumpetions and takes no actions about where the check block is
