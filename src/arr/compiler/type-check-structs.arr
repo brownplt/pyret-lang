@@ -1479,7 +1479,7 @@ fun fold-typing<X>(f :: (X, Context -> TypingResult), lst :: List<X>, context ::
 end
 
 fun misc-test-inference(fun-examples :: List<Type>, fun-name :: String) -> Nothing:
-    shadow fun-examples = fun-examples.map(lam(example): remove-refinements-and-foralls(example) end)  
+    shadow fun-examples = fun-examples.map(lam(example): remove-refinements-and-foralls(example) end)
     cases(List<Type>) fun-examples block:
       | link(first, rest) =>
         generalized = rest.foldr(generalize-type, first)
