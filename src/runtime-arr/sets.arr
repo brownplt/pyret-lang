@@ -16,134 +16,202 @@ provide {
 } end
 provide-types *
 
-import global as _
+import global as G
 include pick
 include lists
 import equality as equality
+import raw-array as RA
 # import valueskeleton as VS
+
+include from RA:
+    raw-array-fold
+end
+
+include from G:
+  not,
+  num-max,
+  num-abs,
+  raise,
+  num-floor,
+  num-ceiling
+end
 
 # SETS
 
 data AVLTree:
   | leaf with:
-    method height(self) -> Number: 0 end,
-    method contains(self, val :: Any) -> Boolean: false end,
-    method insert(self, val :: Any) -> AVLTree: mkbranch(val, leaf, leaf) end,
-    method remove(self, val :: Any) -> AVLTree: leaf end,
-    method preorder(self) -> List: empty end,
-    method inorder(self) -> List: empty end,
-    method postorder(self) -> List: empty end,
-    method revpreorder(self) -> List: empty end,
-    method revinorder(self) -> List: empty end,
-    method revpostorder(self) -> List: empty end,
-    method fold-preorder(self, f, base): base end,
-    method fold-inorder(self, f, base): base end,
-    method fold-postorder(self, f, base): base end,
-    method fold-revpreorder(self, f, base): base end,
-    method fold-revinorder(self, f, base): base end,
-    method fold-revpostorder(self, f, base): base end,
+    method preorder(self) -> List<Any>: empty end,
+    method inorder(self) -> List<Any>: empty end,
+    method postorder(self) -> List<Any>: empty end,
+    method revpreorder(self) -> List<Any>: empty end,
+    method revinorder(self) -> List<Any>: empty end,
+    method revpostorder(self) -> List<Any>: empty end,
+    method fold-preorder(self, f, base) -> AVLTree: base end,
+    method fold-inorder(self, f, base) -> AVLTree: base end,
+    method fold-postorder(self, f, base) -> AVLTree: base end,
+    method fold-revpreorder(self, f, base) -> AVLTree: base end,
+    method fold-revinorder(self, f, base) -> AVLTree: base end,
+    method fold-revpostorder(self, f, base) -> AVLTree: base end,
     method count(self): 0 end,
     method all(self, f): true end,
     method any(self, f): false end
 
-  | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree) with:
-    method height(self) -> Number:
-      doc: "Returns the depth of the tree"
-      self.h
-    end,
-    method contains(self, val :: Any) -> Boolean:
-      doc: "Returns true of the tree contains val, otherwise returns false"
-      if val == self.value: true
-      else if val < self.value: self.left.contains(val)
-      else: self.right.contains(val)
-      end
-    end,
-    method insert(self, val :: Any) -> AVLTree:
-      doc: "Returns a new tree containing val but otherwise equal"
-      if val == self.value: mkbranch(val, self.left, self.right)
-      else if val < self.value:
-        rebalance(mkbranch(self.value, self.left.insert(val), self.right))
-      else:
-        rebalance(mkbranch(self.value, self.left, self.right.insert(val)))
-      end
-    end,
-    method remove(self, val :: Any) -> AVLTree:
-      doc: "Returns a new tree without val but otherwise equal"
-      if val == self.value: remove-root(self)
-      else if val < self.value:
-        rebalance(mkbranch(self.value, self.left.remove(val), self.right))
-      else:
-        rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
-      end
-    end,
-    method preorder(self) -> List:
-      doc: "Returns a list of all elements from a left-to-right preorder traversal"
-      fun knil(l, x): link(x, l) end # needed because argument order of link is backwards to fold
-      self.fold-revpreorder(knil, empty) # reversed because knil is reversed
-    end,
-    method inorder(self) -> List:
-      doc: "Returns a list of all elements from a left-to-right inorder traversal"
-      fun knil(l, x): link(x, l) end
-      self.fold-revinorder(knil, empty)
-    end,
-    method postorder(self) -> List:
-      doc: "Returns a list of all elements from a left-to-right postorder traversal"
-      fun knil(l, x): link(x, l) end
-      self.fold-revpostorder(knil, empty)
-    end,
-    method revpreorder(self) -> List:
-      doc: "Returns a list of all elements from a right-to-left preorder traversal"
-      fun knil(l, x): link(x, l) end
-      self.fold-preorder(knil, empty)
-    end,
-    method revinorder(self) -> List:
-      doc: "Returns a list of all elements from a right-to-leftinorder traversal"
-      fun knil(l, x): link(x, l) end
-      self.fold-inorder(knil, empty)
-    end,
-    method revpostorder(self) -> List:
-      doc: "Returns a list of all elements from a roght-to-left postorder traversal"
-      fun knil(l, x): link(x, l) end
-      self.fold-postorder(knil, empty)
-    end,
-    method fold-preorder(self, f, base):
-      doc: ```Folds the elements contained in the tree into a single value with f.
-            analogous to folding a list, in a preorder traversal```
-      self.right.fold-preorder(f, self.left.fold-preorder(f, f(base, self.value)))
-    end,
-    method fold-inorder(self, f, base):
-      doc: ```Folds the elements contained in the tree into a single value with f.
-            analogous to folding a list, in an inorder traversal```
-      self.right.fold-inorder(f, f(self.left.fold-inorder(f, base), self.value))
-    end,
-    method fold-postorder(self, f, base):
-      doc: ```Folds the elements contained in the tree into a single value with f.
-            analogous to folding a list, in a postorder traversal```
-      f(self.right.fold-postorder(f, self.left.fold-postorder(f, base)), self.value)
-    end,
-    method fold-revpreorder(self, f, base):
-      doc: ```Folds the elements contained in the tree into a single value with f.
-            analogous to folding a list, in a right-to-left preorder traversal```
-      self.left.fold-revpreorder(f, self.right.fold-revpreorder(f, f(base, self.value)))
-    end,
-    method fold-revinorder(self, f, base):
-      doc: ```Folds the elements contained in the tree into a single value with f.
-            analogous to folding a list, in a right-to-left inorder traversal```
-      self.left.fold-revinorder(f, f(self.right.fold-revinorder(f, base), self.value))
-    end,
-    method fold-revpostorder(self, f, base):
-      doc: ```Folds the elements contained in the tree into a single value with f.
-            analogous to folding a list, in a right-to-left postorder traversal```
-      f(self.left.fold-revpostorder(f, self.right.fold-revpostorder(f, base)), self.value)
-    end,
-    method count(self): 1 + self.left.count() + self.right.count() end,
-    method all(self, f):
-      f(self.value) and self.right.all(f) and self.left.all(f)
-    end,
-    method any(self, f):
-      f(self.value) or self.right.all(f) or self.left.all(f)
-    end
+  | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree)
 sharing:
+  method height(self) -> Number:
+    doc: "Returns the depth of the tree"
+    cases(AVLTree) self:
+      | leaf => 0
+      | branch(_, _, _, _) => self.h
+    end
+  end,
+  method contains(self, val :: Any) -> Boolean:
+    doc: "Returns true of the tree contains val, otherwise returns false"
+    cases(AVLTree) self:
+      | leaf => false
+      | branch(value, _, left, right) =>
+        if (val == value):
+          true
+        else if val < value:
+          left.contains(val)
+        else:
+          right.contains(val)
+        end
+    end
+  end,
+  method insert(self, val :: Any) -> AVLTree:
+    doc: "Returns a new tree containing val but otherwise equal"
+    cases(AVLTree) self:
+      | leaf => mkbranch(val, leaf, leaf)
+      | branch(value, _, left, right) =>
+        if val == value:
+          mkbranch(val, left, right)
+        else if val < value:
+          rebalance(mkbranch(value, left.insert(val), right))
+        else:
+          rebalance(mkbranch(value, left, right.insert(val)))
+        end
+    end
+  end,
+  method remove(self, val :: Any) -> AVLTree:
+    doc: "Returns a new tree without val but otherwise equal"
+    cases(AVLTree) self:
+      | leaf => leaf
+      | branch(value, _, left, right) =>
+        if val == value:
+          remove-root(self)
+        else if val < value:
+          rebalance(mkbranch(value, left.remove(val), right))
+        else:
+          rebalance(mkbranch(value, left, right.remove(val)))
+        end
+    end
+  end,
+  method preorder(self) -> List:
+    doc: "Returns a list of all elements from a left-to-right preorder traversal"
+    fun knil(l, x): link(x, l) end # needed because argument order of link is backwards to fold
+    self.fold-revpreorder(knil, empty) # reversed because knil is reversed
+  end,
+  method inorder(self) -> List:
+    doc: "Returns a list of all elements from a left-to-right inorder traversal"
+    fun knil(l, x): link(x, l) end
+    self.fold-revinorder(knil, empty)
+  end,
+  method postorder(self) -> List:
+    doc: "Returns a list of all elements from a left-to-right postorder traversal"
+    fun knil(l, x): link(x, l) end
+    self.fold-revpostorder(knil, empty)
+  end,
+  method revpreorder(self) -> List:
+    doc: "Returns a list of all elements from a right-to-left preorder traversal"
+    fun knil(l, x): link(x, l) end
+    self.fold-preorder(knil, empty)
+  end,
+  method revinorder(self) -> List:
+    doc: "Returns a list of all elements from a right-to-leftinorder traversal"
+    fun knil(l, x): link(x, l) end
+    self.fold-inorder(knil, empty)
+  end,
+  method revpostorder(self) -> List:
+    doc: "Returns a list of all elements from a roght-to-left postorder traversal"
+    fun knil(l, x): link(x, l) end
+    self.fold-postorder(knil, empty)
+  end,
+  method fold-preorder(self, f, base):
+    doc: ```Folds the elements contained in the tree into a single value with f.
+          analogous to folding a list, in a preorder traversal```
+    cases(AVLTree) self:
+      | leaf => base
+      | branch(value, _, left, right) =>
+        right.fold-preorder(f, left.fold-preorder(f, f(base, value)))
+    end
+  end,
+  method fold-inorder(self, f, base):
+    doc: ```Folds the elements contained in the tree into a single value with f.
+          analogous to folding a list, in an inorder traversal```
+    cases(AVLTree) self:
+      | leaf => base
+      | branch(value, _, left, right) =>
+        right.fold-inorder(f, f(left.fold-inorder(f, base), value))
+    end
+  end,
+  method fold-postorder(self, f, base):
+    doc: ```Folds the elements contained in the tree into a single value with f.
+          analogous to folding a list, in a postorder traversal```
+    cases(AVLTree) self:
+      | leaf => base
+      | branch(value, _, left, right) =>
+        f(right.fold-postorder(f, left.fold-postorder(f, base)), value)
+    end
+  end,
+  method fold-revpreorder(self, f, base):
+    doc: ```Folds the elements contained in the tree into a single value with f.
+          analogous to folding a list, in a right-to-left preorder traversal```
+    cases(AVLTree) self:
+      | leaf => base
+      | branch(value, _, left, right) =>
+        left.fold-revpreorder(f, right.fold-revpreorder(f, f(base, value)))
+    end
+  end,
+  method fold-revinorder(self, f, base):
+    doc: ```Folds the elements contained in the tree into a single value with f.
+          analogous to folding a list, in a right-to-left inorder traversal```
+    cases(AVLTree) self:
+      | leaf => base
+      | branch(value, _, left, right) =>
+        left.fold-revinorder(f, f(right.fold-revinorder(f, base), value))
+    end
+  end,
+  method fold-revpostorder(self, f, base):
+    doc: ```Folds the elements contained in the tree into a single value with f.
+          analogous to folding a list, in a right-to-left postorder traversal```
+    cases(AVLTree) self:
+      | leaf => base
+      | branch(value, _, left, right) =>
+        f(left.fold-revpostorder(f, right.fold-revpostorder(f, base)), value)
+    end
+  end,
+  method count(self):
+    cases(AVLTree) self:
+      | leaf => 0
+      | branch(value, _, left, right) =>
+        1 + left.count() + right.count()
+    end
+  end,
+  method all(self, f):
+    cases(AVLTree) self:
+      | leaf => true
+      | branch(value, _, left, right) =>
+        f(value) and right.all(f) and left.all(f)
+    end
+  end,
+  method any(self, f):
+    cases(AVLTree) self:
+      | leaf => false
+      | branch(value, _, left, right) =>
+        f(value) or right.all(f) or left.all(f)
+    end
+  end,
   method to-list(self) -> List:
     doc: "Returns a list of all elements from a inorder traversal"
     self.inorder()
@@ -266,7 +334,9 @@ data Set:
           cases(List) r:
             | empty => pick-some(f, list-set(empty))
             | link(f2, r2) =>
-              get-first = random(2)
+              # TODO(alex): implement rng
+              # get-first = random(2)
+              get-first = raise("sets TODO: random")
               if get-first == 0:
                 pick-some(f, list-set(r))
               else:
