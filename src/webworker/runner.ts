@@ -138,6 +138,9 @@ export const makeRequireAsync = (
       }
       currentRunner.evalCompiled(stopifiedCode, (result: any) => {
         cwd = oldWd;
+          if (/image/.test(nextPath)) {
+          console.log(result);
+        }
         if (result.type !== 'normal') {
           kontinue(result);
           return;

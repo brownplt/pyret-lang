@@ -4,6 +4,10 @@ const jsnums = require('./js-numbers.js');
 const anchorRuntime = require('./runtime.js');
 
 console.log('image library', imageLibrary);
+console.log('rawJsworld', rawJsworld);
+console.log('jsnums', jsnums);
+console.log('anchorRuntime', anchorRuntime);
+console.log('module.exports', module.exports);
 
 // TODO(michael): this should throw pretty error messages via error.arr
 function makeCheckType(pred, type) {
