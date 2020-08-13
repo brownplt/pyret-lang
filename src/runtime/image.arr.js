@@ -1298,7 +1298,7 @@ TextImage.prototype.equals = /* @stopify flat */ function (other) {
     this.weight === other.weight &&
     this.font === other.font &&
     this.underline === other.underline &&
-    ColorEquals(this.color, other.color))
+    ColorsEqual(this.color, other.color))
     || BaseImage.prototype.equals.call(this, other);
 };
 
@@ -1523,7 +1523,7 @@ EllipseImage.prototype.equals = /* @stopify flat */ function (other) {
     this.width === other.width &&
     this.height === other.height &&
     this.style === other.style &&
-    ColorEquals(this.color, other.color))
+    ColorsEqual(this.color, other.color))
     || BaseImage.prototype.equals.call(this, other);
 };
 
