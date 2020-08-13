@@ -1649,6 +1649,7 @@ var colorAtPosition = /* @stopify flat */ function (img, x, y) {
     canvas = makeCanvas(width, height),
     ctx = canvas.getContext("2d"),
     r, g, b, a;
+    imageData,
 
   if (x >= width) {
     throw new Error("color-at-position: The given x coordinate, " + x
