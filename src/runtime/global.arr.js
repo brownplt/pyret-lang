@@ -32,13 +32,20 @@ function timeNow() {
 
 var realMakeReactor = null;
 
+
+// (Big Hack): Alias for require to stop the Pyret compiler's dependency
+// tracing. Needed because requiring option introduces a circular dependency
+// with runtime-arr-stage-1.
+const untracedRequire = require;
+
 function makeSome(v) {
-  const option = require('./option.arr.js');
+  const option = untracedRequire('./option.arr.js');
   return option.some(v);
 }
 
 function makeNone() {
-  const option = require('./option.arr.js');
+  const untracedRequire = require;
+  const option = untracedRequire('./option.arr.js');
   return option.none;
 }
 
