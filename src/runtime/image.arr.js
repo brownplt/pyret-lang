@@ -1902,7 +1902,7 @@ var DoesPauseAndKontinue = function (mode) {
 }
 
 
-return module.exports = {
+module.exports = {
   makeCanvas,
   triangle: /* @stopify flat */ function (size, style, color) {
     return new TriangleImage(jsnums.toFixnum(size), 360 - 60, jsnums.toFixnum(size), style,
