@@ -336,180 +336,172 @@ end
 
 
 data Set:
-  | list-set(elems :: List<Any>) with:
-    method pick(self):
-      lst = self.elems
-      cases(List) lst:
-        | empty => pick-none
-        | link(f, r) =>
-          cases(List) r:
-            | empty => pick-some(f, list-set(empty))
-            | link(f2, r2) =>
-              # TODO(alex): implement rng
-              # get-first = random(2)
-              get-first = raise("sets TODO: random")
-              if get-first == 0:
-                pick-some(f, list-set(r))
-              else:
-                pick-some(f2, list-set(link(f, r2)))
-              end
-          end
-      end
-    end,
+  | list-set(elems :: List<Any>)
 
     # TODO(alex): valueskeleton
     # method _output(self): VS.vs-collection("list-set", self.to-list().map(VS.vs-value)) end,
 
-    method fold(self, f :: (Any, Any -> Any), base :: Any):
-      fold(f, base, self.elems)
-    end,
-
-    method member(self, elem :: Any) -> Boolean:
-      doc: 'Check to see if an element is in a set.'
-      self.elems.member(elem)
-    end,
-
-    method add(self, elem :: Any) -> Set:
-      doc: "Add an element to the set if it is not already present."
-      if (self.elems.member(elem)):
-        self
-      else:
-        list-set(link(elem, self.elems))
-      end
-    end,
-
-    method remove(self, elem :: Any) -> Set:
-      doc: "Remove an element from the set if it is present."
-      list-set(self.elems.remove(elem))
-    end,
-
-    method to-list(self) -> List:
-      doc: 'Convert a set into a list of elements.'
-      self.elems
-    end,
-
-    method union(self :: Set, other :: Set) -> Set:
-      doc: 'Compute the union of this set and another set.'
-      other.fold(lam(u, elem):
-        u.add(elem)
-      end, self)
-    end,
-
-    method intersect(self :: Set, other :: Set) -> Set:
-      doc: 'Compute the intersection of this set and another set.'
-      new-elems = for fold(elems from self.elems, elem from self.elems):
-        if other.member(elem):
-          elems
-        else:
-          elems.remove(elem)
-        end
-      end
-      list-set(new-elems)
-    end,
-
-    method overlaps(self :: Set, other :: Set) -> Boolean:
-      doc: 'Determines if the intersection of this set and another set is non-empty.'
-      self.any(other.member)
-    end,
-
-    method difference(self :: Set, other :: Set) -> Set:
-      doc: 'Compute the difference of this set and another set.'
-      new-elems = for fold(elems from self.elems, elem from self.elems):
-        if other.member(elem):
-          elems.remove(elem)
-        else:
-          elems
-        end
-      end
-      list-set(new-elems)
-    end,
-
-    method size(self :: Set) -> Number:
-      self.elems.length()
-    end,
-
-    method is-empty(self): is-empty(self.elems) end,
-
-    method all(self, f) -> Boolean:
-      self.elems.all(f)
-    end,
-
-    method any(self, f) -> Boolean:
-      self.elems.any(f)
-    end
-
-  | tree-set(elems :: AVLTree) with:
-    method pick(self):
-      t = self.elems
-      cases(AVLTree) t:
-        | leaf => pick-none
-        | branch(v, _, _, _) =>
-          pick-some(v, tree-set(t.remove(v)))
-      end
-    end,
-
-    # TODO(alex): valueskeleton
-    # method _output(self): VS.vs-collection("tree-set", self.to-list().map(VS.vs-value)) end,
-
-    method fold(self, f :: (Any -> Any), base :: Any):
-      tree-fold(f, base, self.elems)
-    end,
-
-    method member(self, elem :: Any) -> Boolean:
-      doc: 'Check to see if an element is in a set.'
-      self.elems.contains(elem)
-    end,
-
-    method add(self, elem :: Any) -> Set:
-      doc: "Add an element to the set if it is not already present."
-      tree-set(self.elems.insert(elem))
-    end,
-
-    method remove(self, elem :: Any) -> Set:
-      doc: "Remove an element from the set if it is present."
-      tree-set(self.elems.remove(elem))
-    end,
-
-    method to-list(self) -> List:
-      doc: 'Convert a set into a list of elements.'
-      self.elems.inorder()
-    end,
-
-    method union(self, other):
-      doc: 'Compute the union of this set and another set.'
-      tree-set-union(self, other)
-    end,
-
-    method intersect(self, other):
-      doc: 'Compute the intersection of this set and another set.'
-      tree-set-intersect(self, other)
-    end,
-
-    method overlaps(self :: Set, other :: Set) -> Boolean:
-      doc: 'Determines if the intersection of this set and another set is non-empty.'
-      self.any(other.member)
-    end,
-
-    method difference(self :: Set, other :: Set) -> Set:
-      doc: 'Compute the difference of this set and another set.'
-      tree-set-difference(self, other)
-    end,
-
-    method size(self :: Set) -> Number:
-      self.elems.count()
-    end,
-
-    method is-empty(self): is-leaf(self.elems) end,
-
-    method all(self, f) -> Boolean:
-      self.elems.all(f)
-    end,
-
-    method any(self, f) -> Boolean:
-      self.elems.any(f)
-    end
+  | tree-set(elems :: AVLTree)
 
 sharing:
+  # Note(alex): Many methods are implemented as "sharing" b/c "with" methods cannot see other "with" methods
+  #   Known restriction of the typechecker (see type-checker.arr:1226)
+
+
+  method pick(self):
+    cases(Set) self:
+      | list-set(elems) =>
+        lst = elems
+        cases(List) lst:
+          | empty => pick-none
+          | link(f, r) =>
+            cases(List) r:
+              | empty => pick-some(f, list-set(empty))
+              | link(f2, r2) =>
+                # TODO(alex): implement rng
+                # get-first = random(2)
+                get-first = raise("sets TODO: random")
+                if get-first == 0:
+                  pick-some(f, list-set(r))
+                else:
+                  pick-some(f2, list-set(link(f, r2)))
+                end
+            end
+        end
+      | tree-set(elems) =>
+        cases(AVLTree) elems:
+          | leaf => pick-none
+          | branch(v, _, _, _) =>
+            pick-some(v, tree-set(elems.remove(v)))
+        end
+    end
+  end,
+
+  # TODO(alex): valueskeleton
+  # method _output(self): VS.vs-collection("tree-set", self.to-list().map(VS.vs-value)) end,
+
+  method fold(self, f :: (Any -> Any), base :: Any):
+    cases(Set) self:
+      | list-set(elems) => fold(f, base, elems)
+      | tree-set(elems) => tree-fold(f, base, elems)
+    end
+  end,
+
+  method member(self, elem :: Any) -> Boolean:
+    doc: 'Check to see if an element is in a set.'
+
+    cases(Set) self:
+      | list-set(elems) => elems.member(elem)
+      | tree-set(elems) => elems.contains(elem)
+    end
+  end,
+
+  method add(self, elem :: Any) -> Set:
+    doc: "Add an element to the set if it is not already present."
+    cases(Set) self:
+      | list-set(elems) =>
+        if (elems.member(elem)):
+          self
+        else:
+          list-set(link(elem, elems))
+        end
+      | tree-set(elems) => tree-set(elems.insert(elem))
+    end
+  end,
+
+  method remove(self, elem :: Any) -> Set:
+    doc: "Remove an element from the set if it is present."
+    cases(Set) self:
+      | list-set(elems) => list-set(elems.remove(elem))
+      | tree-set(elems) => tree-set(elems.remove(elem))
+    end
+  end,
+
+  method to-list(self) -> List:
+    doc: 'Convert a set into a list of elements.'
+    cases(Set) self:
+      | list-set(elems) => elems
+      | tree-set(elems) => elems.inorder()
+    end
+  end,
+
+  method union(self, other):
+    doc: 'Compute the union of this set and another set.'
+    cases(Set) self:
+      | list-set(elems) =>
+        other.fold(lam(u, elem):
+          u.add(elem)
+        end, elems)
+      | tree-set(elems) => tree-set-union(elems, other)
+    end
+  end,
+
+  method intersect(self, other):
+    doc: 'Compute the intersection of this set and another set.'
+
+    cases(Set) self:
+      | list-set(elems) =>
+        new-elems = for fold(shadow elems from elems, elem from elems):
+          if other.member(elem):
+            elems
+          else:
+            elems.remove(elem)
+          end
+        end
+        list-set(new-elems)
+      | tree-set(elems) => tree-set-intersect(elems, other)
+    end
+  end,
+
+  method overlaps(self :: Set, other :: Set) -> Boolean:
+    doc: 'Determines if the intersection of this set and another set is non-empty.'
+    self.any(other.member)
+  end,
+
+  method difference(self :: Set, other :: Set) -> Set:
+    doc: 'Compute the difference of this set and another set.'
+    cases(Set) self:
+      | list-set(elems) =>
+        new-elems = for fold(shadow elems from elems, elem from elems):
+          if other.member(elem):
+            elems.remove(elem)
+          else:
+            elems
+          end
+        end
+      list-set(new-elems)
+      | tree-set(elems) => tree-set-difference(elems, other)
+    end
+
+  end,
+
+  method size(self :: Set) -> Number:
+    cases(Set) self:
+      | list-set(elems) => elems.length()
+      | tree-set(elems) => elems.count()
+    end
+  end,
+
+  method is-empty(self):
+    cases(Set) self:
+      | list-set(elems) => is-empty(elems)
+      | tree-set(elems) => is-leaf(elems)
+    end
+  end,
+
+  method all(self, f) -> Boolean:
+    cases(Set) self:
+      | list-set(elems) => elems.all(f)
+      | tree-set(elems) => elems.all(f)
+    end
+  end,
+
+  method any(self, f) -> Boolean:
+    cases(Set) self:
+      | list-set(elems) => elems.any(f)
+      | tree-set(elems) => elems.any(f)
+    end
+  end,
 
   method symmetric-difference(self :: Set, other :: Set) -> Set:
     doc: 'Compute the symmetric difference of this set and another set.'
