@@ -198,6 +198,38 @@ function customAdd(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
   }
 }
 
+function customLessThan(lhs: any, rhs: any): boolean {
+    // Check if object has a '<' custom implementation
+    if ("_lessthan" in lhs) {
+        return lhs._lessthan(rhs);
+    } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
+        return _NUMBER.lessThan(lhs, rhs);
+    } else {
+        // NOTE: may be a dynamic error
+        try {
+            return lhs < rhs;
+        } catch (error) {
+            throw `Unable to perform '<' on (${lhs}) and (${rhs})`;
+        }
+    }
+}
+
+function customGreaterThan(lhs: any, rhs: any): boolean {
+    // Check if object has a '>' custom implementation
+    if ("_greaterthan" in lhs) {
+        return lhs._greaterthan(rhs);
+    } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
+        return _NUMBER.greaterThan(lhs, rhs);
+    } else {
+        // NOTE: may be a dynamic error
+        try {
+            return lhs > rhs;
+        } catch (error) {
+            throw `Unable to perform '>' on (${lhs}) and (${rhs})`;
+        }
+    }
+}
+
 // MUTATES an object to rebind any methods to it
 function _rebind(toRebind: any): any {
   if (typeof toRebind === "object") {
@@ -303,8 +335,8 @@ module.exports["_subtract"] = _NUMBER["subtract"];
 module.exports["_multiply"] = _NUMBER["multiply"];
 module.exports["_divide"] = _NUMBER["divide"];
 
-module.exports["_lessthan"] = _NUMBER["lessThan"];
-module.exports["_greaterthan"] = _NUMBER["greaterThan"];
+module.exports["_lessthan"] = customLessThan;
+module.exports["_greaterthan"] = customGreaterThan;
 module.exports["_lessequal"] = _NUMBER["lessThanOrEqual"];
 module.exports["_greaterequal"] = _NUMBER["greaterThanOrEqual"];
 module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
