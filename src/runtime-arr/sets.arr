@@ -236,22 +236,30 @@ sharing:
   end
 end
 
-fun tree-fold(f, base, tree): tree.fold-preorder(f, base) end
-fun tree-all(f, tree): tree.all(f) end
-fun tree-any(f, tree): tree.any(f) end
+fun tree-fold<a>(f :: (a, Any -> a), base :: a, tree :: AVLTree) -> a:
+  tree.fold-preorder(f, base)
+end
+
+fun tree-all(f :: (Any -> Boolean), tree :: AVLTree) -> Boolean:
+  tree.all(f)
+end
+
+fun tree-any(f :: (Any -> Boolean), tree :: AVLTree) -> Boolean:
+  tree.any(f)
+end
 
 fun mkbranch(val :: Any, left :: AVLTree, right :: AVLTree):
   branch(val, num-max(left.height(), right.height()) + 1, left, right)
 end
 
 fun rebalance(tree :: AVLTree):
-  fun left-left(t):
+  fun left-left(t :: AVLTree):
     mkbranch(t.left.value, t.left.left, mkbranch(t.value, t.left.right, t.right))
   end
-  fun right-right(t):
+  fun right-right(t :: AVLTree):
     mkbranch(t.right.value, mkbranch(t.value, t.left, t.right.left), t.right.right)
   end
-  fun left-right(t):
+  fun left-right(t :: AVLTree):
     mkbranch(t.left.right.value,
       mkbranch(t.left.value, t.left.left, t.left.right.left),
       mkbranch(t.value, t.left.right.right, t.right))
@@ -380,7 +388,7 @@ sharing:
   # TODO(alex): valueskeleton
   # method _output(self): VS.vs-collection("tree-set", self.to-list().map(VS.vs-value)) end,
 
-  method fold(self, f :: (Any -> Any), base :: Any):
+  method fold<a>(self, f :: (a, Any -> a), base :: a) -> a:
     cases(Set) self:
       | list-set(elems) => fold(f, base, elems)
       | tree-set(elems) => tree-fold(f, base, elems)
@@ -417,7 +425,7 @@ sharing:
     end
   end,
 
-  method to-list(self) -> List:
+  method to-list(self) -> List<Any>:
     doc: 'Convert a set into a list of elements.'
     cases(Set) self:
       | list-set(elems) => elems
@@ -425,18 +433,18 @@ sharing:
     end
   end,
 
-  method union(self, other):
+  method union(self, other :: Set) -> Set:
     doc: 'Compute the union of this set and another set.'
     cases(Set) self:
       | list-set(elems) =>
-        other.fold(lam(u, elem):
+        other.fold(lam(u :: Set, elem :: Any):
           u.add(elem)
-        end, elems)
+        end, list-set(elems))
       | tree-set(elems) => tree-set-union(elems, other)
     end
   end,
 
-  method intersect(self, other):
+  method intersect(self, other :: Set) -> Set:
     doc: 'Compute the intersection of this set and another set.'
 
     cases(Set) self:
@@ -512,8 +520,8 @@ sharing:
     if not(is-Set(other)):
       equality.NotEqual("Non-Set", self, other)
     else:
-      self-list = self.to-list()
-      other-list = other.to-list()
+      self-list :: List<Any> = self.to-list()
+      other-list :: List<Any> = other.to-list()
       if not(other-list.length() == self-list.length()):
         equality.NotEqual("set size", self, other)
       else:
