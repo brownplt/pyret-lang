@@ -39,6 +39,16 @@ end
 
 # SETS
 
+# NOTE(alex): Sets are NOT parameterized by a type variable
+#   b/c Pyret has no way to constrain type arguments to comparables
+# To get around the lack of a guarenteed '<' operator, punt the
+#   details to the "_lessthan" function which may throw a dynamic error
+#
+#   _lessthan :: (Any, Any -> Boolean)
+#
+# TODO(alex): Now that we rely on the the "_lessthan" function, can we parameterize
+#   Sets? Otherwise, all type annotations will need to be in terms of Any
+#
 data AVLTree:
   | leaf with:
     method preorder(self) -> List<Any>: empty end,
@@ -108,37 +118,37 @@ sharing:
         end
     end
   end,
-  method preorder(self) -> List:
+  method preorder(self) -> List<Any>:
     doc: "Returns a list of all elements from a left-to-right preorder traversal"
     fun knil(l, x): link(x, l) end # needed because argument order of link is backwards to fold
     self.fold-revpreorder(knil, empty) # reversed because knil is reversed
   end,
-  method inorder(self) -> List:
+  method inorder(self) -> List<Any>:
     doc: "Returns a list of all elements from a left-to-right inorder traversal"
     fun knil(l, x): link(x, l) end
     self.fold-revinorder(knil, empty)
   end,
-  method postorder(self) -> List:
+  method postorder(self) -> List<Any>:
     doc: "Returns a list of all elements from a left-to-right postorder traversal"
     fun knil(l, x): link(x, l) end
     self.fold-revpostorder(knil, empty)
   end,
-  method revpreorder(self) -> List:
+  method revpreorder(self) -> List<Any>:
     doc: "Returns a list of all elements from a right-to-left preorder traversal"
     fun knil(l, x): link(x, l) end
     self.fold-preorder(knil, empty)
   end,
-  method revinorder(self) -> List:
+  method revinorder(self) -> List<Any>:
     doc: "Returns a list of all elements from a right-to-leftinorder traversal"
     fun knil(l, x): link(x, l) end
     self.fold-inorder(knil, empty)
   end,
-  method revpostorder(self) -> List:
+  method revpostorder(self) -> List<Any>:
     doc: "Returns a list of all elements from a roght-to-left postorder traversal"
     fun knil(l, x): link(x, l) end
     self.fold-postorder(knil, empty)
   end,
-  method fold-preorder(self, f, base):
+  method fold-preorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in a preorder traversal```
     cases(AVLTree) self:
@@ -147,7 +157,7 @@ sharing:
         right.fold-preorder(f, left.fold-preorder(f, f(base, value)))
     end
   end,
-  method fold-inorder(self, f, base):
+  method fold-inorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in an inorder traversal```
     cases(AVLTree) self:
@@ -156,7 +166,7 @@ sharing:
         right.fold-inorder(f, f(left.fold-inorder(f, base), value))
     end
   end,
-  method fold-postorder(self, f, base):
+  method fold-postorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in a postorder traversal```
     cases(AVLTree) self:
@@ -165,7 +175,7 @@ sharing:
         f(right.fold-postorder(f, left.fold-postorder(f, base)), value)
     end
   end,
-  method fold-revpreorder(self, f, base):
+  method fold-revpreorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in a right-to-left preorder traversal```
     cases(AVLTree) self:
@@ -174,7 +184,7 @@ sharing:
         left.fold-revpreorder(f, right.fold-revpreorder(f, f(base, value)))
     end
   end,
-  method fold-revinorder(self, f, base):
+  method fold-revinorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in a right-to-left inorder traversal```
     cases(AVLTree) self:
@@ -183,7 +193,7 @@ sharing:
         left.fold-revinorder(f, f(right.fold-revinorder(f, base), value))
     end
   end,
-  method fold-revpostorder(self, f, base):
+  method fold-revpostorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in a right-to-left postorder traversal```
     cases(AVLTree) self:
@@ -199,21 +209,21 @@ sharing:
         1 + left.count() + right.count()
     end
   end,
-  method all(self, f):
+  method all(self, f :: (Any -> Boolean)) -> Boolean:
     cases(AVLTree) self:
       | leaf => true
       | branch(value, _, left, right) =>
         f(value) and right.all(f) and left.all(f)
     end
   end,
-  method any(self, f):
+  method any(self, f :: (Any -> Boolean)) -> Boolean:
     cases(AVLTree) self:
       | leaf => false
       | branch(value, _, left, right) =>
         f(value) or right.all(f) or left.all(f)
     end
   end,
-  method to-list(self) -> List:
+  method to-list(self) -> List<Any>:
     doc: "Returns a list of all elements from a inorder traversal"
     self.inorder()
   end,
@@ -326,7 +336,7 @@ end
 
 
 data Set:
-  | list-set(elems :: List) with:
+  | list-set(elems :: List<Any>) with:
     method pick(self):
       lst = self.elems
       cases(List) lst:
