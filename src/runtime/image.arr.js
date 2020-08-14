@@ -439,7 +439,7 @@ function RGBtoLAB(r, g, b) {
     var var_X = x / 95.047;           //ref_X =  95.047   Observer= 2°, Illuminant= D65
     var var_Y = y / 100.000;          //ref_Y = 100.000
     var var_Z = z / 108.883;          //ref_Z = 108.883
-    function process(v) { return v > 0.008856 ? Math.pow(v, 1 / 3) : (7.787 * v) + (16 / 116); }
+    /* @stopify flat */ function process(v) { return v > 0.008856 ? Math.pow(v, 1 / 3) : (7.787 * v) + (16 / 116); }
     var_X = process(var_X); var_Y = process(var_Y); var_Z = process(var_Z);
     var CIE_L = (116 * var_Y) - 16;
     var CIE_a = 500 * (var_X - var_Y);
@@ -759,7 +759,7 @@ BaseImage.prototype.difference = /* @stopify flat */ function (other) {
   }
 
   // http://stackoverflow.com/questions/9136524/are-there-any-javascript-libs-to-pixel-compare-images-using-html5-canvas-or-any
-  function rmsDiff(data1, data2) {
+  /* @stopify flat */ function rmsDiff(data1, data2) {
     var squares = 0;
     for (var i = 0; i < data1.length; i++) {
       squares += (data1[i] - data2[i]) * (data1[i] - data2[i]);
@@ -1375,7 +1375,7 @@ var TriangleASS = /* @stopify flat */ function (angleA, sideB, sideC, style, col
 };
 
 // return c^2 = a^2 + b^2 - 2ab cos(C)
-function cosRel(sideA, sideB, angleC) {
+/* @stopify flat */ function cosRel(sideA, sideB, angleC) {
   return (sideA * sideA) + (sideB * sideB) - (2 * sideA * sideB * Math.cos(angleC * Math.PI / 180));
 }
 
