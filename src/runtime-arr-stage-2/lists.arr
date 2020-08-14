@@ -555,9 +555,12 @@ end
 
 # TODO(alex): why are these type annotations necessary
 #   Are they even correct?
-list = {
+# NOTE(alex): `rec` is required to make constructor syntax
+#   available to functions ABOVE the declaration.
+#   Because the constructor declaration is an expression
+rec list = {
   make: raw-array-to-list,
-  make0: lam(): empty end,
+  make0: lam<x>() -> List<x>: empty end,
   make1: lam<x>(a :: x) -> List<x>: link(a, empty) end,
   make2: lam<x>(a :: x, b :: x) -> List<x>: link(a, link(b, empty)) end,
   make3: lam<x>(a :: x, b :: x, c :: x) -> List<x>: link(a, link(b, link(c, empty))) end,
