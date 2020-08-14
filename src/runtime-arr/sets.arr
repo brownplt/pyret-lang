@@ -50,23 +50,7 @@ end
 #   Sets? Otherwise, all type annotations will need to be in terms of Any
 #
 data AVLTree:
-  | leaf with:
-    method preorder(self) -> List<Any>: empty end,
-    method inorder(self) -> List<Any>: empty end,
-    method postorder(self) -> List<Any>: empty end,
-    method revpreorder(self) -> List<Any>: empty end,
-    method revinorder(self) -> List<Any>: empty end,
-    method revpostorder(self) -> List<Any>: empty end,
-    method fold-preorder(self, f, base) -> AVLTree: base end,
-    method fold-inorder(self, f, base) -> AVLTree: base end,
-    method fold-postorder(self, f, base) -> AVLTree: base end,
-    method fold-revpreorder(self, f, base) -> AVLTree: base end,
-    method fold-revinorder(self, f, base) -> AVLTree: base end,
-    method fold-revpostorder(self, f, base) -> AVLTree: base end,
-    method count(self): 0 end,
-    method all(self, f): true end,
-    method any(self, f): false end
-
+  | leaf
   | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree)
 sharing:
   method height(self) -> Number:
