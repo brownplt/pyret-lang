@@ -1,8 +1,10 @@
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 
-import React, { useRef } from 'react';
+import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
+import { Dialog } from '@reach/dialog';
+import '@reach/dialog/styles.css';
 // import { interact } from './control';
 // import { State } from './state';
 // import { Action } from './action';
@@ -35,7 +37,10 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type Props = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
 function Reactor({ reactor, convert }: Props) {
-  const divref = useRef(null);
+  const [showDialog, setShowDialog] = React.useState(false);
+  const [node, setNode]: [any, (node: any) => void] = React.useState(false);
+  const open = () => setShowDialog(true);
+  const close = () => setShowDialog(false);
 
   function getInitialValue() {
     try {
@@ -48,20 +53,11 @@ function Reactor({ reactor, convert }: Props) {
   const value = getInitialValue();
   return (
     <div
-      ref={divref}
       onClick={() => {
         try {
-          reactor.$interactNoPauseResume((node) => {
-            console.log('here is the node, ', node, divref);
-            const div = divref.current;
-
-            if ((div as any) !== null) {
-              while ((div as any).firstChild) {
-                (div as any).removeChild((div as any).lastChild);
-              }
-
-              (div as any).appendChild(node);
-            }
+          reactor.$interactNoPauseResume((newNode) => {
+            setNode(newNode);
+            open();
           });
         } catch (e) {
           console.log('failed with', e);
@@ -69,6 +65,26 @@ function Reactor({ reactor, convert }: Props) {
       }}
     >
       {value}
+      <Dialog
+        isOpen={showDialog}
+        onDismiss={close}
+        aria-label="Reactor"
+      >
+        <button
+          className="close-button"
+          onClick={close}
+          type="button"
+        >
+          <span aria-hidden>×</span>
+        </button>
+        <div
+          ref={((div) => {
+            if (div !== null && node !== false) {
+              div.appendChild(node);
+            }
+          })}
+        />
+      </Dialog>
     </div>
   );
 }

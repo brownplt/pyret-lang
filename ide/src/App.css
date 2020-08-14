@@ -350,3 +350,7 @@ button::-moz-focus-inner {
     translate: 0px;
   }
 }
+
+[data-reach-dialog-overlay] {
+  z-index: 100;
+}
