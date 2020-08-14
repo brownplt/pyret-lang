@@ -90,22 +90,28 @@ fun cl-map-sd(f, sd):
 end
 
 fun compile-origin(bo):
+  normal-origin = j-obj([clist:
+    j-field("local-bind-site", srcloc-to-raw(bo.local-bind-site)),
+    j-field("definition-bind-site", srcloc-to-raw(bo.definition-bind-site)),
+    j-field("new-definition", j-bool(bo.new-definition)),
+    j-field("uri-of-definition", j-str(bo.uri-of-definition))
+  ])
   cases(Option) ORIGIN_URI_OVERRIDE:
     | some(override) =>
-      j-obj([clist:
-        j-field("local-bind-site", srcloc-to-raw(SL.builtin(override))),
-        j-field("definition-bind-site", srcloc-to-raw(SL.builtin(override))),
-        j-field("new-definition", j-bool(bo.new-definition)),
-        j-field("uri-of-definition", j-str(override))
-      ])
+      # NOTE(alex): Only override the URIs of non-builtin data
+      #   Needed to NOT override imports/re-exports of builtins relying on other builtins
+      if bo.definition-bind-site.is-builtin():
+        normal-origin
+      else:
+        j-obj([clist:
+          j-field("local-bind-site", srcloc-to-raw(SL.builtin(override))),
+          j-field("definition-bind-site", srcloc-to-raw(SL.builtin(override))),
+          j-field("new-definition", j-bool(bo.new-definition)),
+          j-field("uri-of-definition", j-str(override))
+        ])
+      end
 
-    | none =>
-      j-obj([clist:
-        j-field("local-bind-site", srcloc-to-raw(bo.local-bind-site)),
-        j-field("definition-bind-site", srcloc-to-raw(bo.definition-bind-site)),
-        j-field("new-definition", j-bool(bo.new-definition)),
-        j-field("uri-of-definition", j-str(bo.uri-of-definition))
-      ])
+    | none => normal-origin
   end
 end
 
