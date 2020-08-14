@@ -30,6 +30,8 @@ export interface SpyObject {
   exprs: SpyExpr[],
 }
 
+function _not(x: boolean): boolean { return !x; }
+
 function _spy(spyObject: SpyObject): void {
   const message = spyObject.message();
   const spyLoc = spyObject.loc;
@@ -293,6 +295,8 @@ module.exports["$getCheckResults"] = getCheckResults;
 module.exports["$makeRational"] = _NUMBER["makeRational"];
 module.exports["$makeRoughnum"] = _NUMBER["makeRoughnum"];
 module.exports["$errCallbacks"] = _EQUALITY.NumberErrbacks;
+
+module.exports["_not"] = _not;
 
 module.exports["_add"] = customAdd;
 module.exports["_subtract"] = _NUMBER["subtract"];

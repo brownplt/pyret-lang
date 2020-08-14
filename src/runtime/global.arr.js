@@ -11,17 +11,6 @@ var runtime = require('./runtime.js');
 var array = require('./array.js');
 var numbers = require('./js-numbers.js');
 
-function _plus(l, r) { return l + r; }
-function _minus(l, r) { return l - r; }
-function _times(l, r) { return l * r; }
-function _divide(l, r) { return l / r; }
-function _lessthan(l, r) { return l < r; }
-function _greaterthan(l, r) { return l > r; }
-function _lessequal(l, r) { return l <= r; }
-function _greaterequal(l, r) { return l >= r; }
-
-function _not(x) { return !x; }
-
 function numToString(n) {
   return String(n);
 }
@@ -74,15 +63,15 @@ module.exports = {
   print: function(v) {
     process.stdout.write(String(v));
   },
-  '_plus': _plus,
-  '_minus': _minus,
-  '_times': _times,
-  '_divide': _divide,
-  '_lessthan': _lessthan,
-  '_greaterthan': _greaterthan,
-  '_lessequal': _lessequal,
-  '_greaterequal': _greaterequal,
-  'not': _not,
+  '_plus': runtime["_add"],
+  '_minus': runtime["_subtract"],
+  '_times': runtime["multiply"],
+  '_divide': runtime["_divide"],
+  '_lessthan': runtime["_lessthan"],
+  '_greaterthan': runtime["_greaterthan"],
+  '_lessequal': runtime["_lessequal"],
+  '_greaterequal': runtime["_greaterequal"],
+  'not': runtime["_not"],
 
   'equal-now': runtime['equal-now'],
   'equal-now3': runtime['equal-now3'],
