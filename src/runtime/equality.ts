@@ -420,3 +420,35 @@ export function withinRelNow(tolerance) {
 export function withinAbsNow(tolerance) {
     throw "Implement withinAbsNow";
 }
+
+export function _lessthan(lhs: any, rhs: any): boolean {
+    // Check if object has a '<' custom implementation
+    if ("_lessthan" in lhs) {
+        return lhs._lessthan(rhs);
+    } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
+        return _NUMBER.lessThan(lhs, rhs);
+    } else {
+        // NOTE: may be a dynamic error
+        try {
+            return lhs < rhs;
+        } catch (error) {
+            throw `Unable to perform '<' on (${lhs}) and (${rhs})`;
+        }
+    }
+}
+
+export function _greaterthan(lhs: any, rhs: any): boolean {
+    // Check if object has a '>' custom implementation
+    if ("_greaterthan" in lhs) {
+        return lhs._greaterthan(rhs);
+    } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
+        return _NUMBER.greaterThan(lhs, rhs);
+    } else {
+        // NOTE: may be a dynamic error
+        try {
+            return lhs > rhs;
+        } catch (error) {
+            throw `Unable to perform '>' on (${lhs}) and (${rhs})`;
+        }
+    }
+}

@@ -27,7 +27,10 @@
         "within-rel": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
         "within-abs": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
         "within-rel-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
-        "within-abs-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]]
+        "within-abs-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+
+        "_lessthan": ["arrow", ["tany", "tany"], "Boolean"],
+        "_greaterthan": ["arrow", ["tany", "tany"], "Boolean"]
     },
     "aliases": {
       "EqualityResult": ["local", "EqualityResult"]

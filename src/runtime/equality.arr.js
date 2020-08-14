@@ -35,3 +35,5 @@ module.exports["identical3"] = EQUALITY_CORE.identical3;
 module.exports["equal-always"] = EQUALITY_CORE.equalAlways;
 module.exports["equal-always3"] = EQUALITY_CORE.equalAlways3;
 
+module.exports["_lessthan"] = EQUALITY_CORE._lessthan;
+module.exports["_greaterthan"] = EQUALITY_CORE._greaterthan;
