@@ -401,7 +401,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
                     end)
                   end, defined-types, context, info)
               end)
-                  
+
               with-types.typing-bind(lam(shadow info, shadow context):
                   typing-result(A.s-module(l, new-answer, defined-modules, defined-values, defined-types, checks), expect-type, context.set-info(info))
                 end)
@@ -594,9 +594,9 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             typing-result(A.s-array(l, new-values), expect-type, context)
           end)
         | s-construct(l, modifier, constructor, values) =>
-          check-synthesis(A.s-app(l, A.s-dot(l, constructor, "make"), [list: A.s-array(l, values)]), 
+          check-synthesis(A.s-app(l, A.s-dot(l, constructor, "make"), [list: A.s-array(l, values)]),
                           expect-type,
-                          top-level, 
+                          top-level,
                           context)
           #raise("checking for s-construct not implemented")
         | s-app(l, _fun, args) =>
@@ -746,7 +746,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-contract not implemented")
     | s-when(l, test, block, blocky) =>
       synthesis(
-        A.s-if-else(l, 
+        A.s-if-else(l,
                     [list: A.s-if-branch(l, test, block)],
                     A.s-id(l, A.s-global("nothing")),   # TODO(alex): How to use nothing value?
                     blocky),
@@ -766,16 +766,16 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       end)
     | s-if-pipe(l, branches, blocky) =>
       _synthesis(
-        A.s-if(l, 
-               for map(b from branches): b.to-if-branch() end, 
+        A.s-if(l,
+               for map(b from branches): b.to-if-branch() end,
                blocky),
         top-level,
         context)
     | s-if-pipe-else(l, branches, _else, blocky) =>
       _synthesis(
-        A.s-if-else(l, 
+        A.s-if-else(l,
                     for map(b from branches): b.to-if-branch() end,
-                    _else, 
+                    _else,
                     blocky),
         top-level,
         context)
@@ -783,11 +783,11 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       # TODO(ALEX): check s-if handling
       # Manually desurgar into s-if-else
       _synthesis(
-        A.s-if-else(l, 
+        A.s-if-else(l,
                     branches,
-                    A.s-prim-app(l, 
-                      "throwNoBranchesMatched", 
-                      [list: A.s-srcloc(l, l), A.s-str(l, "if")], 
+                    A.s-prim-app(l,
+                      "throwNoBranchesMatched",
+                      [list: A.s-srcloc(l, l), A.s-str(l, "if")],
                       flat-prim-app),
                     blocky),
         top-level,
@@ -2029,7 +2029,7 @@ end
 
 fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
 
-  fun field-lookup(shadow obj-type  :: Type, 
+  fun field-lookup(shadow obj-type  :: Type,
                     correct-result   :: TypingResult,
                     available-fields :: StringDict<Type>) -> TypingResult:
     # Type check fields
@@ -2052,22 +2052,22 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
             | typing-error(field-error-list) =>
              cases(TypingResult) result:
                 | typing-result(ast, ty, _) => typing-error(field-error-list)
-                | typing-error(result-error-list) => 
+                | typing-error(result-error-list) =>
                   typing-error(result-error-list.append(field-error-list))
-              end 
+              end
           end
 
         # Missing field; update result
         | none =>
           current-err = C.object-missing-field(
-                                  field.name, 
-                                  tostring(obj-type), 
-                                  obj-type.l, 
+                                  field.name,
+                                  tostring(obj-type),
+                                  obj-type.l,
                                   field.l)
           cases(TypingResult) result:
-            | typing-result(_, _, _) => 
+            | typing-result(_, _, _) =>
               typing-error([list: current-err])
-            | typing-error(error-list) => 
+            | typing-error(error-list) =>
               typing-error(error-list.push(current-err))
           end
       end
@@ -2084,7 +2084,7 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
           end, t-fields)
           typing-result(A.s-extend(update-loc, obj, fields), t-record(final-fields, update-loc, inferred), context)
 
-        | t-name(_, _, _, _) => 
+        | t-name(_, _, _, _) =>
           instantiate-data-type(obj-type, context)
             .typing-bind(lam(shadow concrete-data-type, shadow context):
 
@@ -2100,8 +2100,8 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
         # This allows the type of an extend expression on a data variant is that data variant.
         # Previously, this behavior was not supported and exposed runtime-implementations of
         #   data variants and removed the type.
-        | t-data-refinement(data-type :: Type, 
-                            variant-name :: String, 
+        | t-data-refinement(data-type :: Type,
+                            variant-name :: String,
                             l :: Loc, inferred :: Boolean) =>
           instantiate-data-type(data-type, context)
             .typing-bind(lam(shadow concrete-data-type, shadow context):
@@ -2133,8 +2133,8 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
                             _l          :: Loc) => with-fields
               end
 
-              correct-result = 
-                typing-result(A.s-extend(update-loc, obj, fields), 
+              correct-result =
+                typing-result(A.s-extend(update-loc, obj, fields),
                               t-data-refinement(data-type, variant-name, l, inferred), context)
 
               field-lookup(obj-type, correct-result, available-fields)
@@ -2474,7 +2474,7 @@ fun gather-provides(_provide :: A.ProvideBlock, context :: Context) -> FoldResul
             end
         end
       end, provide-specs, context, initial-info)
-      
+
     | else => raise("By type-check time, all provides should be resolved to a provide-block")
   end
 end
