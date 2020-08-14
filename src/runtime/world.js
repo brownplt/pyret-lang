@@ -605,4 +605,5 @@ module.exports = {
     $adaptWorldFunction: adaptWorldFunction,
     $bigBangFromDict: bigBangFromDict,
     $bigBangFromDictNoPauseResume: bigBangFromDictNoPauseResume,
+    $shutdown: rawJsworld.shutdown,
 };

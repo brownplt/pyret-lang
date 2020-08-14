@@ -75,6 +75,7 @@ type Reactor<A> = {
     interact: () => Reactor<A>,
     $interact: (insertNode?: (node: any) => void) => Reactor<A>,
     $interactNoPauseResume: (insertNode?: (node: any) => void) => Reactor<A>,
+    $shutdown: () => void,
     'start-trace': () => Reactor<A>,
     'stop-trace': () => Reactor<A>,
     'get-trace': () => A[], // should be List<A> type
@@ -144,6 +145,7 @@ function makeReactorRaw<A>(init: A, handlers: RawReactorFields<A>, tracing: bool
                 throw e;
             }
         },
+        $shutdown: () => world.$shutdown({cleanShutdown: true}),
         'start-trace': () => {
             return makeReactorRaw(init, handlers, true, [init]);
         },

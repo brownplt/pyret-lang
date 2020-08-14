@@ -29,6 +29,7 @@ type PropsFromReact = {
     'get-value': () => any,
     'draw': () => any,
     '$interactNoPauseResume': (insertNode?: (node: any) => void) => any,
+    '$shutdown': () => void,
   },
   convert: (value: any) => any,
 };
@@ -40,7 +41,10 @@ function Reactor({ reactor, convert }: Props) {
   const [showDialog, setShowDialog] = React.useState(false);
   const [node, setNode]: [any, (node: any) => void] = React.useState(false);
   const open = () => setShowDialog(true);
-  const close = () => setShowDialog(false);
+  const close = () => {
+    reactor.$shutdown();
+    setShowDialog(false);
+  };
 
   function getInitialValue() {
     try {
