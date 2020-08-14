@@ -75,6 +75,7 @@ export const makeRequireAsync = (
       String,
       $STOPIFY: runner,
       setTimeout,
+      clearTimeout,
       console,
       parseFloat,
       isNaN,
