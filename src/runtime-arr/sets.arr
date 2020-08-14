@@ -33,7 +33,8 @@ include from G:
   num-abs,
   raise,
   num-floor,
-  num-ceiling
+  num-ceiling,
+  _lessthan
 end
 
 # SETS
@@ -72,7 +73,7 @@ sharing:
       | branch(value, _, left, right) =>
         if (val == value):
           true
-        else if val < value:
+        else if _lessthan(val, value):
           left.contains(val)
         else:
           right.contains(val)
@@ -86,7 +87,7 @@ sharing:
       | branch(value, _, left, right) =>
         if val == value:
           mkbranch(val, left, right)
-        else if val < value:
+        else if _lessthan(val, value):
           rebalance(mkbranch(value, left.insert(val), right))
         else:
           rebalance(mkbranch(value, left, right.insert(val)))
@@ -100,7 +101,7 @@ sharing:
       | branch(value, _, left, right) =>
         if val == value:
           remove-root(self)
-        else if val < value:
+        else if _lessthan(val, value):
           rebalance(mkbranch(value, left.remove(val), right))
         else:
           rebalance(mkbranch(value, left, right.remove(val)))
