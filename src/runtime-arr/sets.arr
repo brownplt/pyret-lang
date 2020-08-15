@@ -324,18 +324,22 @@ fun tree-get-right(tree :: AVLTree) -> { Any; Number; AVLTree; AVLTree }:
 end
 
 fun remove-root(tree :: AVLTree):
-  if is-leaf(tree.left):
-    if is-leaf(tree.right):
-      leaf
-    else:
-      tree.right
-    end
-  else:
-    if is-leaf(tree.right):
-      tree.left
-    else:
-      swap-next-lowest(tree)
-    end
+  cases(AVLTree) tree:
+    | leaf => raise("Trying to remove the root of a leaf")
+    | branch(_, _, left, right) =>
+      if is-leaf(left):
+        if is-leaf(right):
+          leaf
+        else:
+          right
+        end
+      else:
+        if is-leaf(right):
+          left
+        else:
+          swap-next-lowest(tree)
+        end
+      end
   end
 end
 
