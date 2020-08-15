@@ -343,14 +343,14 @@ fun remove-root(tree :: AVLTree):
   end
 end
 
-fun swap-next-lowest(tree :: AVLTree):
-  fun greatest(t):
+fun swap-next-lowest(tree :: AVLTree) -> AVLTree:
+  fun greatest(t :: AVLTree) -> AVLTree:
     cases(AVLTree) t:
       | leaf => raise("Went too far in traversal step")
       | branch(_, _, _, right) => if is-leaf(right): t else: greatest(right) end
     end
   end
-  fun remove-greatest-and-rebalance(t):
+  fun remove-greatest-and-rebalance(t :: AVLTree) -> AVLTree:
     cases(AVLTree) t:
       | leaf => raise("Went too far in removal step")
       | branch(val, _, left, right) =>
@@ -361,9 +361,12 @@ fun swap-next-lowest(tree :: AVLTree):
         end
     end
   end
-  rebalance(mkbranch(greatest(tree.left).value,
-      remove-greatest-and-rebalance(tree.left),
-      tree.right))
+
+  { _; _; left; right } = tree-get(tree)
+  { new-value; _; _; _ } = tree-get(greatest(left))
+  rebalance(mkbranch(new-value,
+      remove-greatest-and-rebalance(left),
+      right))
 end
 
 
