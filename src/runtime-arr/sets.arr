@@ -574,7 +574,7 @@ sharing:
   end
 end
 
-fun set-to-sorted-elems(s):
+fun set-to-sorted-elems(s :: Set) -> List<Any>:
   cases(Set) s:
     | list-set(elems) => elems.sort()
     | tree-set(elems) => elems.inorder()
@@ -677,24 +677,24 @@ fun set-fold(f, base, s :: Set):
   s.fold(f, base)
 end
 
-fun list-to-set(lst :: List, base-set :: Set) -> Set:
+fun list-to-set(lst :: List<Any>, base-set :: Set) -> Set:
   doc: "Convert a list into a set."
-  for fold(s from base-set, elem from lst):
+  for fold(s :: Set from base-set, elem from lst):
     s.add(elem)
   end
 end
 
-fun list-to-list-set(lst :: List) -> Set:
+fun list-to-list-set(lst :: List<Any>) -> Set:
   doc: "Convert a list into a list-based set."
   list-to-set(lst, list-set(empty))
 end
 
-fun list-to-tree-set(lst :: List) -> Set:
+fun list-to-tree-set(lst :: List<Any>) -> Set:
   doc: "Convert a list into a tree-based set."
   list-to-set(lst, tree-set(leaf))
 end
 
-fun list-to-tree(lst :: List):
+fun list-to-tree(lst :: List<Any>) -> AVLTree:
   for fold(tree from leaf, elt from lst):
     tree.insert(elt)
   end
