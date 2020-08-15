@@ -700,16 +700,24 @@ fun list-to-tree(lst :: List<Any>) -> AVLTree:
   end
 end
 
-fun arr-to-list-set(arr :: RawArray) -> Set:
-  for raw-array-fold(ls from list-set(empty), elt from arr, _ from 0):
-    ls.add(elt)
-  end
+fun arr-to-list-set(arr :: RawArray<Any>) -> Set:
+  raw-array-fold(
+    lam(acc :: Set, elem :: Any):
+      acc.add(elem)
+    end,
+    list-set(empty),
+    arr
+  )
 end
 
-fun arr-to-tree-set(arr :: RawArray) -> Set:
-  tree = for raw-array-fold(t from leaf, elt from arr, _ from 0):
-    t.insert(elt)
-  end
+fun arr-to-tree-set(arr :: RawArray<Any>) -> Set:
+  tree = raw-array-fold(
+    lam(acc :: AVLTree, elem :: Any):
+      acc.insert(elem)
+    end,
+    leaf,
+    arr
+  )
   tree-set(tree)
 end
 
