@@ -53,6 +53,7 @@ data AVLTree:
   | leaf
   | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree)
 sharing:
+
   method height(self) -> Number:
     doc: "Returns the depth of the tree"
     cases(AVLTree) self:
@@ -236,41 +237,89 @@ fun mkbranch(val :: Any, left :: AVLTree, right :: AVLTree):
   branch(val, num-max(left.height(), right.height()) + 1, left, right)
 end
 
-fun rebalance(tree :: AVLTree):
-  fun left-left(t :: AVLTree):
-    mkbranch(t.left.value, t.left.left, mkbranch(t.value, t.left.right, t.right))
+fun rebalance(tree :: AVLTree) -> AVLTree:
+  fun left-left(t :: AVLTree) -> AVLTree:
+    { value; _; left; right } = tree-get(t)
+    { left-value; _; left-left-subtree; left-right-subtree } = tree-get(left)
+    mkbranch(left-value, left-left-subtree, mkbranch(value, left-right-subtree, right))
   end
-  fun right-right(t :: AVLTree):
-    mkbranch(t.right.value, mkbranch(t.value, t.left, t.right.left), t.right.right)
+
+  fun right-right(t :: AVLTree) -> AVLTree:
+    { value; _; left; right } = tree-get(t)
+    { right-value; _; right-left-subtree; right-right-subtree } = tree-get(right)
+    mkbranch(right-value, mkbranch(value, left, right-left-subtree), right-right-subtree)
   end
-  fun left-right(t :: AVLTree):
-    mkbranch(t.left.right.value,
-      mkbranch(t.left.value, t.left.left, t.left.right.left),
-      mkbranch(t.value, t.left.right.right, t.right))
+  fun left-right(t :: AVLTree) -> AVLTree:
+    { value; _; left; right } = tree-get(t)
+    { left-value; _; left-left-subtree; left-right-subtree } = tree-get(left)
+    { left-right-value; _; left-right-left-subtree; left-right-right-subtree } = tree-get(left-right-subtree)
+    mkbranch(left-right-value,
+      mkbranch(left-value, left-left-subtree, left-right-left-subtree),
+      mkbranch(value, left-right-right-subtree, right))
   end
-  fun right-left(t):
-    mkbranch(t.right.left.value,
-      mkbranch(t.value, t.left, t.right.left.left),
-      mkbranch(t.right.value, t.right.left.right, t.right.right))
+  fun right-left(t :: AVLTree) -> AVLTree:
+    { value; _; left; right } = tree-get(t)
+    { right-value; _; right-left-subtree; right-right-subtree } = tree-get(right)
+    { right-left-value; _; right-left-left-subtree; right-left-right-subtree } = tree-get(right-left-subtree)
+    mkbranch(right-left-value,
+      mkbranch(value, left, right-left-left-subtree),
+      mkbranch(right-value, right-left-right-subtree, right-right-subtree))
   end
-  lh = tree.left.height()
-  rh = tree.right.height()
-  if num-abs(lh - rh) <= 1:
-    tree
-  else if (lh - rh) == 2:
-    if tree.left.left.height() >= tree.left.right.height():
-      left-left(tree)
-    else:
-      left-right(tree)
-    end
-  else if (rh - lh) == 2:
-    if tree.right.right.height() >= tree.right.left.height():
-      right-right(tree)
-    else:
-      right-left(tree)
-    end
-  else:
-    raise("AVL tree invariant has been broken!")
+
+  cases(AVLTree) tree:
+    | leaf => leaf
+    | branch(value, height, left, right) =>
+      lh = left.height()
+      rh = right.height()
+      if num-abs(lh - rh) <= 1:
+        tree
+      else if (lh - rh) == 2:
+        { _; left-height; left-left-subtree; left-right-subtree } = tree-get-left(tree)
+        if left-left-subtree.height() >= left-right-subtree.height():
+          left-left(tree)
+        else:
+          left-right(tree)
+        end
+      else if (rh - lh) == 2:
+        { _; right-height; right-left-subtree; right-right-subtree } = tree-get-right(tree)
+        if right-right-subtree.height() >= right-left-subtree.height():
+          right-right(tree)
+        else:
+          right-left(tree)
+        end
+      else:
+        raise("AVL tree invariant has been broken!")
+      end
+  end
+end
+
+fun tree-get(tree :: AVLTree) -> { Any; Number; AVLTree; AVLTree }:
+  cases(AVLTree) tree:
+    | leaf => raise("Parent was a leaf")
+    | branch(v, h, l, r) => { v; h; l; r}
+  end
+end
+
+
+fun tree-get-left(tree :: AVLTree) -> { Any; Number; AVLTree; AVLTree }:
+  cases(AVLTree) tree:
+    | leaf => raise("Parent was a leaf")
+    | branch(_, _, left, _) =>
+      cases(AVLTree) left:
+        | leaf => raise("Left subtree was a leaf")
+        | branch(v, h, l, r) => { v; h; l ;r }
+      end
+  end
+end
+
+fun tree-get-right(tree :: AVLTree) -> { Any; Number; AVLTree; AVLTree }:
+  cases(AVLTree) tree:
+    | leaf => raise("Parent was a leaf")
+    | branch(_, _, _, right) =>
+      cases(AVLTree) right:
+        | leaf => raise("Right subtree was a leaf")
+        | branch(v, h, l, r) => { v; h; l ;r }
+      end
   end
 end
 
