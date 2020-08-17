@@ -226,6 +226,18 @@ function getModuleValue(uri : string, k : string) {
   return allModules[uri].values[k];
 }
 
+function raise(msg: object) {
+  // NOTE(alex): Changing the representation needs to be reflected in raiseExtract()
+  throw msg;
+}
+
+function raiseExtract(exception: object): object {
+  // NOTE(alex): Used by `raises` check operator
+  //   Any changes to the `raise` exception format needs to be reflected
+  //   here as well.
+  return exception;
+}
+
 module.exports["addModule"] = addModule;
 module.exports["getModuleValue"] = getModuleValue;
 
@@ -253,6 +265,8 @@ module.exports["identical"] = _EQUALITY.identical;
 module.exports["identical3"] = _EQUALITY.identical3;
 
 // Expected runtime functions
+module.exports["raise"] = raise;
+module.exports["$raiseExtract"] = raiseExtract;
 module.exports["trace-value"] = traceValue;
 module.exports["$getTraces"] = getTraces;
 
