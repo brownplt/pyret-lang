@@ -305,8 +305,8 @@ module.exports["_divide"] = _NUMBER["divide"];
 
 module.exports["_lessthan"] = _EQUALITY._lessthan;
 module.exports["_greaterthan"] = _EQUALITY._greaterthan;
-module.exports["_lessequal"] = _NUMBER["lessThanOrEqual"];
-module.exports["_greaterequal"] = _NUMBER["greaterThanOrEqual"];
+module.exports["_lessequal"] = _EQUALITY._lessequal;
+module.exports["_greaterequal"] = _EQUALITY._greaterequal;
 module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
 
 module.exports["PTuple"] = _PRIMITIVES["PTuple"];

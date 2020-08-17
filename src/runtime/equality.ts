@@ -452,3 +452,11 @@ export function _greaterthan(lhs: any, rhs: any): boolean {
         }
     }
 }
+
+export function _lessequal(lhs: any, rhs: any): boolean {
+    return equalAlways(lhs, rhs) || _lessthan(lhs, rhs);
+}
+
+export function _greaterequal(lhs: any, rhs: any): boolean {
+    return equalAlways(lhs, rhs) || _greaterthan(lhs, rhs);
+}

@@ -30,7 +30,10 @@
         "within-abs-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
 
         "_lessthan": ["arrow", ["tany", "tany"], "Boolean"],
-        "_greaterthan": ["arrow", ["tany", "tany"], "Boolean"]
+        "_greaterthan": ["arrow", ["tany", "tany"], "Boolean"],
+        "_lessequal": ["arrow", ["tany", "tany"], "Boolean"],
+        "_greaterequal": ["arrow", ["tany", "tany"], "Boolean"]
+
     },
     "aliases": {
       "EqualityResult": ["local", "EqualityResult"]
