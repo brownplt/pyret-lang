@@ -753,22 +753,22 @@ end
 
 shadow list-set = {
   make: arr-to-list-set,
-  make0: lam(): empty-list-set end,
-  make1: lam(a): list-set(link(a, empty)) end,
-  make2: lam(a, b): list-set(makeSet2(a, b)) end,
-  make3: lam(a, b, c): list-set(makeSet3(a, b, c)) end,
-  make4: lam(a, b, c, d): list-set(makeSet4(a, b, c, d)) end,
-  make5: lam(a, b, c, d, e): list-set(makeSet5(a, b, c, d, e)) end
+  make0: lam() -> Set: empty-list-set end,
+  make1: lam<x>(a :: x) -> Set: list-set(link(a, empty)) end,
+  make2: lam<x>(a :: x, b :: x) -> Set: list-set(makeSet2(a, b)) end,
+  make3: lam<x>(a :: x, b :: x, c :: x) -> Set: list-set(makeSet3(a, b, c)) end,
+  make4: lam<x>(a :: x, b :: x, c :: x, d :: x) -> Set: list-set(makeSet4(a, b, c, d)) end,
+  make5: lam<x>(a :: x, b :: x, c :: x, d :: x, e :: x) -> Set: list-set(makeSet5(a, b, c, d, e)) end
 }
 
 shadow tree-set = {
   make: arr-to-tree-set,
-  make0: lam(): empty-tree-set end,
-  make1: lam(a): empty-tree-set.add(a) end,
-  make2: lam(a, b): empty-tree-set.add(a).add(b) end,
-  make3: lam(a, b, c): empty-tree-set.add(a).add(b).add(c) end,
-  make4: lam(a, b, c, d): empty-tree-set.add(a).add(b).add(c).add(d) end,
-  make5: lam(a, b, c, d, e): empty-tree-set.add(a).add(b).add(c).add(d).add(e) end
+  make0: lam() -> Set: empty-tree-set end,
+  make1: lam<x>(a :: x) -> Set: empty-tree-set.add(a) end,
+  make2: lam<x>(a :: x, b :: x) -> Set: empty-tree-set.add(a).add(b) end,
+  make3: lam<x>(a :: x, b :: x, c :: x) -> Set: empty-tree-set.add(a).add(b).add(c) end,
+  make4: lam<x>(a :: x, b :: x, c :: x, d :: x) -> Set: empty-tree-set.add(a).add(b).add(c).add(d) end,
+  make5: lam<x>(a :: x, b :: x, c :: x, d :: x, e :: x) -> Set: empty-tree-set.add(a).add(b).add(c).add(d).add(e) end
 }
 
 empty-set = empty-list-set
