@@ -32,6 +32,8 @@ export interface Unknown {
 
 export type EqualityResult = Equal | NotEqual | Unknown;
 
+// This function is used by flat functions in image.arr.js, so it must also be flat.
+/* @stopify flat */
 export function Equal(): Equal {
   return {
     "$brand": $EqualBrand,
@@ -39,6 +41,8 @@ export function Equal(): Equal {
   };
 }
 
+// This function is used by flat functions in image.arr.js, so it must also be flat.
+/* @stopify flat */
 export function NotEqual(reason: string, value1: any, value2: any): NotEqual {
   return {
     "$brand": $NotEqualBrand,

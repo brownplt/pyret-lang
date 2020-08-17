@@ -5,6 +5,7 @@ const Either = require("./either.arr.js");
 var hasOwnProperty = {}.hasOwnProperty;
 
 // TODO: Add a dependency for an actual md5 implementation, or remove the dependent code.
+/* @stopify flat */
 function md5(x) {
   return x;
 }
@@ -367,9 +368,9 @@ colorDb.put("TRANSPARENT", makeColor(0, 0, 0, 0));
 // whalesong/whalesong/js-assembler/runtime-src/baselib.js
 // and we're keeping it for now (March 31, 2014) to avoid changing
 // potentially fragile prototype semantics
-var clone = function (obj) {
+var clone = /* @stopify flat */ function (obj) {
   var property;
-  var C = function () { };
+  var C = /* @stopify flat */ function () { };
   C.prototype = obj;
   var c = new C();
   for (property in obj) {
@@ -557,7 +558,7 @@ var translateVertices = /* @stopify flat */ function (vertices) {
 var BaseImage = /* @stopify flat */ function () {
   const that = this;
   this.$brand = "image";
-  this._equals = function (img) {
+  this._equals = /* @stopify flat */ function (img) {
     if (imageEquals(that, img)) {
       return RUNTIME.Equal;
     } else {
@@ -661,7 +662,7 @@ var makeCanvas = /* @stopify flat */ function (width, height) {
 
 // Images are expected to define a render() method, which is used
 // here to draw to the canvas.
-BaseImage.prototype.toDomNode = function (params) {
+BaseImage.prototype.toDomNode = /* @stopify flat */ function (params) {
   var that = this;
   var width = that.getWidth();
   var height = that.getHeight();
@@ -672,7 +673,7 @@ BaseImage.prototype.toDomNode = function (params) {
   // We initialize an afterAttach hook; the client's responsible
   // for calling this after the dom node is attached to the
   // document.
-  var onAfterAttach = function (event) {
+  var onAfterAttach = /* @stopify flat */ function (event) {
     // jQuery(canvas).unbind('afterAttach', onAfterAttach);
     ctx = this.getContext("2d");
     that.render(ctx, 0, 0);
@@ -838,7 +839,7 @@ var SceneImage = /* @stopify flat */ function (width, height, children, withBord
   this.children = children; // arrayof [image, number, number]
   this.withBorder = withBorder;
   this.ariaText = " scene that is " + width + " by " + height + ". children are: ";
-  this.ariaText += children.map(function (c, i) {
+  this.ariaText += children.map(/* @stopify flat */ function (c, i) {
     return "child " + (i + 1) + ": " + c[0].ariaText + ", positioned at " + c[1] + "," + c[2] + " ";
   }).join(". ");
 };
@@ -868,7 +869,7 @@ SceneImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
   ctx.rect(x, y, this.width, this.height);
   ctx.clip();
   // Ask every object to render itself inside the region
-  this.children.forEach(function (child) {
+  this.children.forEach(/* @stopify flat */ function (child) {
     // then, render the child images
     childImage = child[0];
     childX = child[1];
@@ -889,7 +890,7 @@ SceneImage.prototype.equals = /* @stopify flat */ function (other) {
     this.width == other.width &&
     this.height == other.height &&
     this.children.length == other.children.length &&
-    this.children.every(function (child1, i) {
+    this.children.every(/* @stopify flat */ function (child1, i) {
       var child2 = other.children[i];
       return (child1[1] == child2[1] &&
         child1[2] == child2[2] &&
@@ -953,8 +954,8 @@ var OverlayImage = /* @stopify flat */ function (img1, img2, placeX, placeY) {
 
   // calculate the vertices of this image by translating the vertices of the sub-images
   var i, v1 = img1.getVertices(), v2 = img2.getVertices(), xs = [], ys = [];
-  v1 = v1.map(function (v) { return { x: v.x + x1, y: v.y + y1 }; });
-  v2 = v2.map(function (v) { return { x: v.x + x2, y: v.y + y2 }; });
+  v1 = v1.map(/* @stopify flat */ function (v) { return { x: v.x + x1, y: v.y + y1 }; });
+  v2 = v2.map(/* @stopify flat */ function (v) { return { x: v.x + x2, y: v.y + y2 }; });
 
   // store the vertices as something private, so this.getVertices() will still return undefined
   this._vertices = v1.concat(v2);
@@ -1030,7 +1031,7 @@ var RotateImage = /* @stopify flat */ function (angle, img) {
   var cos = Math.cos(angle * Math.PI / 180);
 
   // rotate each point as if it were rotated about (0,0)
-  var vertices = img.getVertices().map(function (v) {
+  var vertices = img.getVertices().map(/* @stopify flat */ function (v) {
     return { x: v.x * cos - v.y * sin, y: v.x * sin + v.y * cos };
   });
 
@@ -1183,7 +1184,7 @@ CropImage.prototype.equals = /* @stopify flat */ function (other) {
 var ScaleImage = /* @stopify flat */ function (xFactor, yFactor, img) {
   BaseImage.call(this);
   // grab the img vertices, scale them, and save the result to this_vertices
-  this._vertices = img.getVertices().map(function (v) {
+  this._vertices = img.getVertices().map(/* @stopify flat */ function (v) {
     return { x: v.x * xFactor, y: v.y * yFactor };
   });
 
@@ -1198,7 +1199,7 @@ var ScaleImage = /* @stopify flat */ function (xFactor, yFactor, img) {
 
 ScaleImage.prototype = heir(BaseImage.prototype);
 
-ScaleImage.prototype.getVertices = function () { return this._vertices; };
+ScaleImage.prototype.getVertices = /* @stopify flat */ function () { return this._vertices; };
 
 // scale the context, and pass it to the image's render function
 ScaleImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
@@ -1340,7 +1341,7 @@ var TriangleImage = /* @stopify flat */ function (sideC, angleA, sideB, style, c
 };
 TriangleImage.prototype = heir(BaseImage.prototype);
 
-var less = function (lhs, rhs) {
+var less = /* @stopify flat */ function (lhs, rhs) {
   return (rhs - lhs) > 0.00001;
 };
 
@@ -1348,6 +1349,7 @@ var less = function (lhs, rhs) {
 //  Note: If the excess is 0, then C is 90 deg.
 //        If the excess is negative, then C is obtuse.
 //        If the excess is positive, then C is acuse.
+/* @stopify flat */
 function excess(sideA, sideB, sideC) {
   return sideA * sideA + sideB * sideB - sideC * sideC;
 };
@@ -1839,12 +1841,12 @@ var FileImage = /* @stopify flat */ function (src, rawImage) {
     // should be, nor will drawImage do the right thing until the
     // file is loaded.
     this.img = new Image();
-    this.img.onload = function () {
+    this.img.onload = /* @stopify flat */ function () {
       self.isLoaded = true;
       self.width = self.img.width;
       self.height = self.img.height;
     };
-    this.img.onerror = function (e) {
+    this.img.onerror = /* @stopify flat */ function (e) {
       self.img.onerror = "";
       self.img.src = "http://www.wescheme.org/images/broken.png";
     }
