@@ -342,6 +342,14 @@ fun add-contracts(bg :: BindingGroup, cs :: List<Contract>, stmts :: List<A.Expr
   end
 end
 
+fun where-as-check(orig-loc :: S.Srcloc, name :: String, check-lock :: Option<S.Srcloc>, where-block :: A.Expr) -> A.Expr:
+  shadow check-loc = cases(Option) check-lock:
+    | some(c) => c
+    | none => orig-loc
+  end
+  A.s-check(check-loc, some(name), where-block, false)
+end
+
 
 fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) -> A.Expr:
   doc: ```
@@ -364,6 +372,14 @@ fun desugar-scope-block(stmts :: List<A.Expr>, binding-group :: BindingGroup) ->
         | s-rec(l, bind, expr) =>
           add-letrec-bind(binding-group, A.s-letrec-bind(l, bind, expr), rest-stmts)
         | s-fun(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
+          # TODO(alex): should where-clause desugaring be done elsewhere?
+          #   where clause needs to come AFTER the function definition during codegen
+          #   but thats difficult to do within directcodegen.arr b/c of its recursive
+          #   nature.
+          shadow rest-stmts = cases(Option) _check:
+            | some(c) => link(where-as-check(l, name, _check-loc, c), rest-stmts)
+            | none => rest-stmts
+          end
           add-letrec-bind(binding-group, A.s-letrec-bind(
               l,
               A.s-bind(l, false, A.s-name(l, name), A.a-blank),
