@@ -106,7 +106,8 @@ sharing:
   method preorder(self) -> List<Any>:
     doc: "Returns a list of all elements from a left-to-right preorder traversal"
     fun knil(l, x): link(x, l) end # needed because argument order of link is backwards to fold
-    self.fold-revpreorder(knil, empty) # reversed because knil is reversed
+    # TODO(alex): Why did self.fold-revpreorder() give the postorder?
+    self.fold-revpostorder(knil, empty) # reversed because knil is reversed
   end,
   method inorder(self) -> List<Any>:
     doc: "Returns a list of all elements from a left-to-right inorder traversal"
@@ -116,7 +117,8 @@ sharing:
   method postorder(self) -> List<Any>:
     doc: "Returns a list of all elements from a left-to-right postorder traversal"
     fun knil(l, x): link(x, l) end
-    self.fold-revpostorder(knil, empty)
+    # TODO(alex): Why did self.fold-revpostorder() give the preorder?
+    self.fold-revpreorder(knil, empty)
   end,
   method revpreorder(self) -> List<Any>:
     doc: "Returns a list of all elements from a right-to-left preorder traversal"
