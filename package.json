@@ -60,6 +60,7 @@
     "web-tests": "make web-tests",
     "stopify-web-tests": "make stopify-web-tests",
     "offline-tests": "make offline-tests",
+    "simple-output-tests": "make simple-output-tests",
     "check-block-tests": "make check-block-tests",
     "all-tests": "make all-tests"
   },
