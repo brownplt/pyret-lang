@@ -86,9 +86,9 @@ function checkResults(): CheckResult[] {
   });
 
   if (errorCount === 0) {
-    console.log("All tests pass");
+    console.log("Looks shipshape, all tests passed, mate!");
   } else {
-    console.log("Some tests failed");
+    console.log("Some tests failed.");
   }
   _globalCheckResults.forEach((result) => {
     let result_lhs = JSON.stringify(result.lhs, null, "\t");

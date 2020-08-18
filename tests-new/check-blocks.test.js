@@ -7,7 +7,7 @@ const stream = require('stream');
 
 const RUN_TIMEOUT = 5000; // ms, for each program execution
 
-const FAIL_SIGNAL = "[FAIL]";
+const FAIL_SIGNAL = "Some tests failed";
 
 describe("running check blocks", () => {
   const files = glob.sync("build/runtime/*.arr.js", {});
@@ -18,7 +18,7 @@ describe("running check blocks", () => {
       assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);
 
       assert(runProcess.stdout.indexOf(FAIL_SIGNAL) === -1,
-          `${runProcess.stdout} should not contain ${FAIL_SIGNAL} and stderr was ${runProcess.stderr}`);
+          `${runProcess.stdout} should not contain \"${FAIL_SIGNAL}\" and stderr was ${runProcess.stderr}`);
 
     });
   });
