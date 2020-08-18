@@ -1,4 +1,4 @@
-.PHONY: all clean build parser web runtime fix-runtime
+.PHONY: all clean build parser web runtime fix-runtime offline-tests
 
 all: build parser
 
@@ -24,7 +24,9 @@ web-tests: web
 stopify-web-tests: web
 	jest --verbose "stopify"
 
-offline-tests: build runtime check-block-tests
+offline-tests: check-block-tests simple-output-tests
+
+simple-output-tests: build runtime
 	rm -r -f tests-new/.pyret
 	jest --verbose "tests-new/simple-output.test.js"
 
