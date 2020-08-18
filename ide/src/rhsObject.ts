@@ -115,7 +115,8 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObjects
     value: (result as any).result[location.name],
   })));
 
-  const withChecks = withLocations.concat($checks);
+  const nonBuiltinChecks = $checks.filter((c) => !/builtin/.test(c.loc));
+  const withChecks = withLocations.concat(nonBuiltinChecks);
 
   const sorted = withChecks.sort(compareRHSObjects);
 
