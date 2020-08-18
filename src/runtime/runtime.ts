@@ -245,6 +245,11 @@ function raiseExtract(exception: object): object {
   return exception;
 }
 
+// NOTE(alex): stub implementation used by testing infrastructure
+function torepr(v) {
+  return JSON.stringify(v);
+}
+
 module.exports["addModule"] = addModule;
 module.exports["getModuleValue"] = getModuleValue;
 
@@ -301,3 +306,6 @@ module.exports["_greaterequal"] = _NUMBER["greaterThanOrEqual"];
 module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
 
 module.exports["PTuple"] = _PRIMITIVES["PTuple"];
+
+
+module.exports["$torepr"] = torepr;
