@@ -185,6 +185,7 @@ fun compiler-name(id):
 end
 
 CHECK-TEST = "$checkTest"
+TO-REPR = "$torepr"
 RAISE-EXTRACT = "$raiseExtract"
 EQUAL-ALWAYS = "equal-always"
 IDENTICAL = "identical"
@@ -1342,9 +1343,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           #   LHS = thunk(lhs)
           #   RHS = thunk(rhs)
           #   test = function(lhs, rhs) {
-          #     let success = RUNTIME.exception && (RUNTIME["equal-always"](
-          #         RUNTIME.$raiseExtract(lhs.exception_val),
-          #         rhs.value)
+          #     let success = RUNTIME.exception && (RUNTIME.$torepr(RUNTIME.$raiseExtract(lhs.exception_val).index(rhs.value))
           #     );
           #     return testResult(success, lhs, asException(rhs));
           #   };
@@ -1352,6 +1351,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
           #
           # ```
           # where testResult() and asException() are conversions emitted in place
+          #
+          # The `raises` operator checks that the rhs is contained within the
+          #   string representation of the lhs.
           #
 
           { lhs; l-stmt } = compile-expr(context, left)
@@ -1373,8 +1375,9 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
           test-result = block:
             lhs-exception-val = j-dot(j-id(lhs-param-name), "exception_val")
-            lhs-exception-extract = rt-method(RAISE-EXTRACT, cl-sing(lhs-exception-val))
-            extraction-result = rt-method(EQUAL-ALWAYS, [clist: lhs-exception-extract, rhs-value])
+            lhs-exception-extract = rt-method(TO-REPR, cl-sing(rt-method(RAISE-EXTRACT, cl-sing(lhs-exception-val))))
+            extraction-result = j-app(j-dot(lhs-exception-extract, "includes"),
+              [clist: rhs-value])
 
             lhs-is-exception-val = j-dot(j-id(lhs-param-name), "exception")
 
