@@ -28,7 +28,7 @@ type PropsFromReact = {
     $brand: 'reactor',
     'get-value': () => any,
     'draw': () => any,
-    '$interactNoPauseResume': (insertNode: (node: any, setupClose: (close: () => void) => void) => void) => any,
+    '$interactNoPauseResume': (insertNode: (node: any, title: string, setupClose: (close: () => void) => void) => void) => any,
     '$shutdown': () => void,
   },
   convert: (value: any) => any,
@@ -40,6 +40,7 @@ type Props = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 function Reactor({ reactor, convert }: Props) {
   const [showDialog, setShowDialog] = React.useState(false);
   const [node, setNode]: [any, (node: any) => void] = React.useState(false);
+  const [title, setTitle]: [any, (title: string) => void] = React.useState('Reactor');
   const open = () => setShowDialog(true);
   const close = () => {
     reactor.$shutdown();
@@ -60,9 +61,10 @@ function Reactor({ reactor, convert }: Props) {
       onClick={() => {
         try {
           reactor.$interactNoPauseResume(
-            (newNode, setupClose) => {
+            (newNode, newTitle, setupClose) => {
               setupClose(close);
               setNode(newNode);
+              setTitle(newTitle);
               open();
             },
           );
@@ -84,6 +86,7 @@ function Reactor({ reactor, convert }: Props) {
         >
           <span aria-hidden>×</span>
         </button>
+        {title}
         <div
           ref={((div) => {
             if (div !== null && node !== false) {

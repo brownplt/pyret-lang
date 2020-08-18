@@ -164,6 +164,7 @@ var makeBigBang = function(shouldPauseAndResume) {
         if (insertNode !== undefined) {
             insertNode(
                 outerToplevelNode,
+                title,
                 function(closeWindow) {
                     closeBigBangWindow = closeWindow;
                 });
