@@ -700,7 +700,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this.app   = fun;
 
       /**@type {string}*/
-      this.name = name || "<anonymous function>";
+      this.name = name || "anonymous";
     }
 
     /**Clones the function
@@ -748,7 +748,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this['full_meth']   = full_meth;
 
       /**@type {string}*/
-      this.name = name || "<anonymous method>";
+      this.name = name || "anonymous";
 
     }
 
@@ -1722,6 +1722,27 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       else { return toReprJS(val, ReprMethods._tostring); }
     }, "tostring");
 
+    /**
+       Prints the value to the world by passing the repr to stdout
+       @param {!PBase} val
+
+       @return {!PBase} the value given in
+    */
+    var displayAsString = function(val) {
+      if (isString(val)) {
+        theOutsideWorld.stdout(val);
+        return val;
+      }
+      else {
+        return thisRuntime.safeCall(function() {
+          return toReprJS(val, ReprMethods._tostring);
+        }, function(repr) {
+          theOutsideWorld.stdout(repr);
+          return val;
+        }, "display");
+      }
+    }
+
     var print = makeFunction(
       /**
          Prints the value to the world by passing the repr to stdout
@@ -1731,37 +1752,43 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       */
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print"], 1, $a, false); }
-
-        return thisRuntime.safeCall(function() {
-          return display.app(val);
-        }, function(_) {
-          return val;
-        }, "print");
+        return displayAsString(val);
       }, "print");
 
     var display = makeFunction(
       /**
-         Prints the value to the world by passing the repr to stdout
+         Displays the value using whatever parameterized displayRenderer is installed.
+         By default, this behaves the same as `print`.
          @param {!PBase} val
 
          @return {!PBase} the value given in
       */
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display"], 1, $a, false); }
-        if (isString(val)) {
-          theOutsideWorld.stdout(val);
-          return val;
-        }
-        else {
-          return thisRuntime.safeCall(function() {
-            return toReprJS(val, ReprMethods._tostring);
-          }, function(repr) {
-            theOutsideWorld.stdout(repr);
-            return val;
-          }, "display");
-        }
+        var displayRenderer = getParamOrSetDefault("displayRenderer", displayAsString);
+        return displayRenderer(val);
       }, "display");
 
+    /**
+       Prints the value to the world by passing the repr to stderr
+       @param {!PBase} val
+
+       @return {!PBase} the value given in
+    */
+    var errorDisplayAsString = function(val) {
+      if (isString(val)) {
+        theOutsideWorld.stderr(val);
+        return val;
+      }
+      else {
+        return thisRuntime.safeCall(function() {
+          return toReprJS(val, ReprMethods._tostring);
+        }, function(repr) {
+          theOutsideWorld.stderr(repr);
+          return val;
+        }, "display-error");
+      }
+    };
     var print_error = makeFunction(
       /**
          Prints the value to the world by passing the repr to stderr
@@ -1772,11 +1799,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print-error"], 1, $a, false); }
 
-        return thisRuntime.safeCall(function() {
-          return display_error.app(val);
-        }, function(_) {
-          return val;
-        }, "print-error");
+        return errorDisplayAsString(val);
       }, "print-error");
 
     var display_error = makeFunction(
@@ -1788,18 +1811,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       */
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display-error"], 1, $a, false); }
-        if (isString(val)) {
-          theOutsideWorld.stderr(val);
-          return val;
-        }
-        else {
-          return thisRuntime.safeCall(function() {
-            return toReprJS(val, ReprMethods._tostring);
-          }, function(repr) {
-            theOutsideWorld.stderr(repr);
-            return val;
-          }, "display-error");
-        }
+        var errorDisplayRenderer = getParamOrSetDefault("errorDisplayRenderer", errorDisplayAsString);
+        return errorDisplayRenderer(val);
       }, "display-error");
 
     /********************
