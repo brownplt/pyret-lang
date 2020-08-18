@@ -159,8 +159,6 @@ var makeBigBang = function(shouldPauseAndResume) {
         var closeBigBangWindow = null;
         var outerToplevelNode = document.createElement('span');
         outerToplevelNode.style.padding = '0px';
-        // TODO(joe): This obviously can't stay
-        // if(!runtime.hasParam("current-animation-port")) {
         if (insertNode !== undefined) {
             insertNode(
                 outerToplevelNode,
@@ -171,15 +169,6 @@ var makeBigBang = function(shouldPauseAndResume) {
         } else {
             document.body.appendChild(outerToplevelNode);
         }
-        // } else {
-        //     runtime.getParam("current-animation-port")(
-        //         outerToplevelNode,
-        //         title,
-        //         function(closeWindow) {
-        //             closeBigBangWindow = closeWindow;
-        //         }
-        //     );
-        // }
 
         var toplevelNode = document.createElement('span');
         toplevelNode.style.padding = '0px';
