@@ -842,12 +842,59 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         { cl-append(constructors, cl-sing(vcons)); cl-append(statements, vstmts) }
       end
 
-      variant-recognizers = for CL.map_list(v from variants):
-        j-field("is-" + v.name,
-          j-fun("0", js-id-of(const-id(v.name)).toname(), [clist: const-id("val")],
+      # NOTE(alex): The following does NOT work:
+      #  ```(js)
+      #  v = {
+      #      "x": function _x() {
+      #          console.log("x");
+      #      },
+      #      "y": function y() {
+      #          _x();
+      #      }
+      #  }
+      #  v.y(); // x is undefined
+      # ```
+      # Need to move variant recognizer functions into their own "declaration" space
+      #   so that the data type recognizer can use them
+      #
+      variant-recognizer-decls = for CL.map_list(v from variants):
+          j-fun("0", js-id-of(const-id(v.name)).to-compiled(), [clist: const-id("val")],
             j-block1(
-              j-return(j-binop(j-dot(j-id(const-id("val")), "$brand"), j-eq, j-id(js-id-of(variant-uniqs.get-value(v.name))))))))
+              j-return(j-binop(j-dot(j-id(const-id("val")), "$brand"), j-eq, j-id(js-id-of(variant-uniqs.get-value(v.name)))))))
+        end
+
+      variant-recognizers = for CL.map_list(v from variants):
+        j-field("is-" + v.name, j-id(js-id-of(const-id(v.name))))
       end
+
+      fun recognizer-app(variant-name, value):
+        j-app(j-id(js-id-of(const-id(variant-name))), [clist: value])
+      end
+      # NOTE(alex): or's togther variant recognizers
+      #   If no variants, always return false
+      data-recognizer-body = block:
+        cases(List) variants:
+          | link(first, rest) =>
+              test-expr = rest.foldl(
+                lam(elem, acc):
+                  j-binop(recognizer-app(elem.name, j-id(const-id("val"))), j-or, acc)
+                end,
+                recognizer-app(first.name, j-id(const-id("val")))
+              )
+              [clist: j-return(test-expr)]
+
+            # TODO(alex): how to recognize a data value with 0 variants?
+            #   Should be non-constructible so always return false?
+            #   Interacation with opaque type gadgets for Jetsam?
+          | empty => [clist: j-return(j-false)]
+        end
+      end
+
+      data-recognizer = j-field(name,
+        j-fun("0", js-id-of(const-id(name)).toname(), [clist: const-id("val")],
+          j-block(
+            data-recognizer-body
+          )))
 
       compiled-shared-stmts = for CL.foldl(all-stmts from cl-empty,
                                            { _shared-member; { shared-member-val; shared-member-stmts }} from compiled-shared):
@@ -855,8 +902,8 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
 
       {
-        j-obj(variant-constructors + variant-recognizers);
-        variant-uniq-defs + variant-cons-stmts + compiled-shared-stmts
+        j-obj(variant-constructors + variant-recognizers + cl-sing(data-recognizer));
+        variant-uniq-defs + variant-cons-stmts + compiled-shared-stmts + variant-recognizer-decls
       }
 
     | s-dot(l, obj, field) =>
