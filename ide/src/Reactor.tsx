@@ -28,7 +28,7 @@ type PropsFromReact = {
     $brand: 'reactor',
     'get-value': () => any,
     'draw': () => any,
-    '$interactNoPauseResume': (insertNode?: (node: any) => void) => any,
+    '$interactNoPauseResume': (insertNode: (node: any, setupClose: (close: () => void) => void) => void) => any,
     '$shutdown': () => void,
   },
   convert: (value: any) => any,
@@ -59,10 +59,13 @@ function Reactor({ reactor, convert }: Props) {
     <div
       onClick={() => {
         try {
-          reactor.$interactNoPauseResume((newNode) => {
-            setNode(newNode);
-            open();
-          });
+          reactor.$interactNoPauseResume(
+            (newNode, setupClose) => {
+              setupClose(close);
+              setNode(newNode);
+              open();
+            },
+          );
         } catch (e) {
           console.log('failed with', e);
         }

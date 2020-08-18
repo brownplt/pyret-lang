@@ -162,7 +162,11 @@ var makeBigBang = function(shouldPauseAndResume) {
         // TODO(joe): This obviously can't stay
         // if(!runtime.hasParam("current-animation-port")) {
         if (insertNode !== undefined) {
-            insertNode(outerToplevelNode);
+            insertNode(
+                outerToplevelNode,
+                function(closeWindow) {
+                    closeBigBangWindow = closeWindow;
+                });
         } else {
             document.body.appendChild(outerToplevelNode);
         }
