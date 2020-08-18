@@ -820,7 +820,7 @@ function on_key(press) {
         return {
             onRegister: function(top) {
                 //http://www.w3.org/TR/html5/editing.html#sequential-focus-navigation-and-the-tabindex-attribue
-                top.tabindex = 1;
+                top.tabIndex = 1;
                 top.focus();
                 attachEvent(top, 'keydown', wrappedPress);
             },
