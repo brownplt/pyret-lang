@@ -91,10 +91,17 @@ function checkResults(): CheckResult[] {
     console.log("Some tests failed");
   }
   _globalCheckResults.forEach((result) => {
+    let result_lhs = JSON.stringify(result.lhs, null, "\t");
+    let result_rhs = JSON.stringify(result.rhs, null, "\t");
     if (result.success) {
-      console.log(`[PASS] Found <${result.lhs}>. Expected <${result.rhs}> ([${result.path}], at ${result.loc})`);
+      console.log(`[PASS] ([${result.path}], at ${result.loc})`);
     } else {
-      console.log(`[FAIL] Found <${result.lhs}>. Expected <${result.rhs}> ([${result.path}], at ${result.loc})`);
+      if (result.exception !== undefined) {
+        console.log(`[FAIL] Caught exception <${result.exception}>. Found <${result_lhs}>. Expected <${result_rhs}> ([${result.path}], at ${result.loc})`);
+
+      } else {
+        console.log(`[FAIL] Found <${result_lhs}>. Expected <${result_rhs}> ([${result.path}], at ${result.loc})`);
+      }
     }
   });
 
