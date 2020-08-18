@@ -11,6 +11,7 @@ import file("concat-lists.arr") as CL
 import file("type-structs.arr") as T
 import file("provide-serialization.arr") as PSE
 import file("compile-structs.arr") as CS
+import either as EI
 import pathlib as P
 import sha as sha
 import string-dict as D
@@ -133,6 +134,7 @@ end
 
 data CheckOpDesugar:
   | binop-result(op)
+  | expect-raises
   | refinement-result(refinement, negate)
   | predicate-result(predicate)
 end
@@ -182,6 +184,9 @@ fun compiler-name(id):
   const-id(string-append("$",id))
 end
 
+CHECK-TEST = "$checkTest"
+TO-REPR = "$torepr"
+RAISE-EXTRACT = "$raiseExtract"
 EQUAL-ALWAYS = "equal-always"
 IDENTICAL = "identical"
 MAKETUPLE = "PTuple"
@@ -493,16 +498,25 @@ fun compile-method(context,
   { j-id(binder-fun-name); cl-sing(j-expr(binder-fun)) }
 end
 
-fun compile-srcloc(l, context):
-  contents = cases(Loc) l:
-    | builtin(name) => [clist: j-str(name)]
+fun choose-srcloc(l, context):
+  cases(Loc) l:
+    | builtin(_) => l
     | srcloc(uri, sl, sc, schar, el, ec, echar) =>
       # Note(alex): Under cm-builtin-stage-1 and cm-builtin-general, override with the "corrected" uri
-      shadow uri = cases(CompileMode) context.options.compile-mode:
-        | cm-normal => uri
-        | cm-builtin-stage-1 => context.uri
-        | cm-builtin-general => context.uri
+      override = SL.srcloc(context.uri, sl, sc, schar, el, ec, echar)
+      cases(CompileMode) context.options.compile-mode:
+        | cm-normal => l
+        | cm-builtin-stage-1 => override
+        | cm-builtin-general => override
       end
+  end
+
+end
+
+fun compile-srcloc(l, context):
+  contents = cases(Loc) choose-srcloc(l, context):
+    | builtin(name) => [clist: j-str(name)]
+    | srcloc(uri, sl, sc, schar, el, ec, echar) =>
       [clist: j-str(uri), j-num(sl), j-num(sc), j-num(schar), j-num(el), j-num(ec), j-num(echar)]
   end
   j-list(false, contents)
@@ -1208,12 +1222,14 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # check-expr-result = {
       #   value: any,
       #   exception: bool
+      #   exception_val: object;
       # }
       #
       # check-op-result = {
       #   success: boolean,
       #   lhs: check-expr-result,
       #   rhs: check-expr-result,
+      #   exception: object | undefined,
       # }
       #
       # Individual tests are wrapped in functions to allow individual tests to fail
@@ -1227,30 +1243,48 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         ])
       end
 
-      test-loc = j-str(l.format(true))
+      # left => exception
+      # right => value
+      fun make-check-expr-result(value :: EI.Either<JExpr, JExpr>):
+        cases(EI.Either) value:
+          | left(exn) => j-obj([clist:
+              j-field("value", j-undefined),
+              j-field("exception", j-true),
+              j-field("exception_value", exn),
+            ])
+          | right(expected) => j-obj([clist:
+              j-field("value", expected),
+              j-field("exception", j-false),
+              j-field("exception_value", j-undefined),
+            ])
+        end
+      end
+
+      fun thunk-it(name :: String, val :: JExpr, stmts :: CList<JStmt>):
+        body = j-block(cl-snoc(stmts, j-return(val)))
+        j-fun("0", name, cl-empty, body)
+      end
+
+      fun exception-check(exception-flag :: JExpr, lhs :: JExpr, rhs :: JExpr):
+        check-body = j-block([clist:
+          j-return(make-check-op-result(j-bool(false), lhs, rhs))
+        ])
+        j-if1(exception-flag, check-body)
+      end
+
+      test-loc = j-str(choose-srcloc(l, context).format(true))
 
       check-op = cases(A.CheckOp) op:
         | s-op-is(_) => binop-result("op==")
         | s-op-is-not(_) => binop-result("op<>")
-        | else => raise("NYI check op ID")
+        | s-op-raises(_) => expect-raises
+        | else => raise("NYI check op ID: " + torepr(op))
       end
 
       cases(CheckOpDesugar) check-op:
         | binop-result(bin-op) =>
           cases(Option) right:
             | some(right-expr) =>
-              fun thunk-it(name :: String, val :: JExpr, stmts :: CList<JStmt>):
-                body = j-block(cl-snoc(stmts, j-return(val)))
-                j-fun("0", name, cl-empty, body)
-              end
-
-              fun exception-check(exception-flag :: JExpr, lhs :: JExpr, rhs :: JExpr):
-                check-body = j-block([clist:
-                  j-return(make-check-op-result(j-bool(false), lhs, rhs))
-                ])
-                j-if1(exception-flag, check-body)
-              end
-
               # Thunk the LHS
               { lhs; l-stmt } = compile-expr(context, left)
               lh-func = thunk-it("LHS", lhs, l-stmt)
@@ -1308,6 +1342,73 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
             | none => raise("Attempting to use a binary check op without the RHS")
           end
+
+        | expect-raises =>
+          # Transforms the following Pyret test expression:
+          #   `lhs raises rhs`
+          # into
+          # ```
+          #   LHS = thunk(lhs)
+          #   RHS = thunk(rhs)
+          #   test = function(lhs, rhs) {
+          #     let success = RUNTIME.exception && (RUNTIME.$torepr(RUNTIME.$raiseExtract(lhs.exception_val).index(rhs.value))
+          #     );
+          #     return testResult(success, lhs, asException(rhs));
+          #   };
+          #   RUNTIME.$checkTest(LHS, RHS, test)
+          #
+          # ```
+          # where testResult() and asException() are conversions emitted in place
+          #
+          # The `raises` operator checks that the rhs is contained within the
+          #   string representation of the lhs.
+          #
+
+          { lhs; l-stmt } = compile-expr(context, left)
+          lh-func = thunk-it("LHS", lhs, l-stmt)
+
+          # Thunk the RHS
+          { rhs; r-stmt } = cases(Option) right:
+            | some(right-expr) => compile-expr(context, right-expr)
+            | none => raise("`raises` checkop did not have a RHS; should be parsing err")
+          end
+          rh-func = thunk-it("RHS", rhs, r-stmt)
+
+          # Thunk the bin check op
+          lhs-param-name = fresh-id(compiler-name("lhs"))
+          rhs-param-name = fresh-id(compiler-name("rhs"))
+
+          rhs-value = j-dot(j-id(rhs-param-name), "value")
+          expected-rhs = make-check-expr-result(EI.left(rhs-value))
+
+          test-result = block:
+            lhs-exception-val = j-dot(j-id(lhs-param-name), "exception_val")
+            lhs-exception-extract = rt-method(TO-REPR, cl-sing(rt-method(RAISE-EXTRACT, cl-sing(lhs-exception-val))))
+            extraction-result = j-app(j-dot(lhs-exception-extract, "includes"),
+              [clist: rhs-value])
+
+            lhs-is-exception-val = j-dot(j-id(lhs-param-name), "exception")
+
+            j-binop(lhs-is-exception-val, j-and, extraction-result)
+          end
+
+          success-result = make-check-op-result(
+            test-result,
+            j-id(lhs-param-name),
+            expected-rhs
+          )
+
+          test-body-stmts = [clist:
+            j-return(success-result)
+          ]
+          test-body = j-block(test-body-stmts)
+          test-func =
+            j-fun("0", "TEST", [clist: lhs-param-name, rhs-param-name], test-body)
+
+          tester-call-args = [clist: lh-func, rh-func, test-func, test-loc]
+          tester-call = j-expr(rt-method(CHECK-TEST, tester-call-args))
+
+          { j-undefined; [clist: tester-call] }
 
         | refinement-result(the-refinement, negate) => raise("NYI check refinement")
         | predicate-result(predicate) => raise("NYI check predicate")

@@ -168,9 +168,7 @@ module.exports = {
     return s.toLowerCase();
   },
 
-  'raise': function(v) {
-    throw v;
-  },
+  'raise': runtime["raise"],
 
   'loop-a-while': function(n) {
     let s = 0;

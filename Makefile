@@ -1,4 +1,4 @@
-.PHONY: all clean build parser web runtime fix-runtime
+.PHONY: all clean build parser web runtime fix-runtime offline-tests
 
 all: build parser
 
@@ -24,9 +24,14 @@ web-tests: web
 stopify-web-tests: web
 	jest --verbose "stopify"
 
-offline-tests: build runtime
+offline-tests: check-block-tests simple-output-tests
+
+simple-output-tests: build runtime
 	rm -r -f tests-new/.pyret
 	jest --verbose "tests-new/simple-output.test.js"
+
+check-block-tests: build runtime
+	jest --verbose "tests-new/check-blocks.test.js"
 
 WEBWORKER_BUILD_DIR := build/worker
 WEBWORKER_SRC_DIR := src/webworker

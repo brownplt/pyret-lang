@@ -86,15 +86,22 @@ function checkResults(): CheckResult[] {
   });
 
   if (errorCount === 0) {
-    console.log("All tests pass");
+    console.log("Looks shipshape, all tests passed, mate!");
   } else {
-    console.log("Some tests failed");
+    console.log("Some tests failed.");
   }
   _globalCheckResults.forEach((result) => {
+    let result_lhs = JSON.stringify(result.lhs, null, "\t");
+    let result_rhs = JSON.stringify(result.rhs, null, "\t");
     if (result.success) {
-      console.log(`[PASS] Found <${result.lhs}>. Expected <${result.rhs}> ([${result.path}], at ${result.loc})`);
+      console.log(`[PASS] ([${result.path}], at ${result.loc})`);
     } else {
-      console.log(`[FAIL] Found <${result.lhs}>. Expected <${result.rhs}> ([${result.path}], at ${result.loc})`);
+      if (result.exception !== undefined) {
+        console.log(`[FAIL] Caught exception <${result.exception}>. Found <${result_lhs}>. Expected <${result_rhs}> ([${result.path}], at ${result.loc})`);
+
+      } else {
+        console.log(`[FAIL] Found <${result_lhs}>. Expected <${result_rhs}> ([${result.path}], at ${result.loc})`);
+      }
     }
   });
 
@@ -226,6 +233,23 @@ function getModuleValue(uri : string, k : string) {
   return allModules[uri].values[k];
 }
 
+function raise(msg: object) {
+  // NOTE(alex): Changing the representation needs to be reflected in raiseExtract()
+  throw msg;
+}
+
+function raiseExtract(exception: object): object {
+  // NOTE(alex): Used by `raises` check operator
+  //   Any changes to the `raise` exception format needs to be reflected
+  //   here as well.
+  return exception;
+}
+
+// NOTE(alex): stub implementation used by testing infrastructure
+function torepr(v) {
+  return JSON.stringify(v);
+}
+
 module.exports["addModule"] = addModule;
 module.exports["getModuleValue"] = getModuleValue;
 
@@ -253,6 +277,8 @@ module.exports["identical"] = _EQUALITY.identical;
 module.exports["identical3"] = _EQUALITY.identical3;
 
 // Expected runtime functions
+module.exports["raise"] = raise;
+module.exports["$raiseExtract"] = raiseExtract;
 module.exports["trace-value"] = traceValue;
 module.exports["$getTraces"] = getTraces;
 
@@ -280,3 +306,6 @@ module.exports["_greaterequal"] = _NUMBER["greaterThanOrEqual"];
 module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
 
 module.exports["PTuple"] = _PRIMITIVES["PTuple"];
+
+
+module.exports["$torepr"] = torepr;
