@@ -498,16 +498,25 @@ fun compile-method(context,
   { j-id(binder-fun-name); cl-sing(j-expr(binder-fun)) }
 end
 
-fun compile-srcloc(l, context):
-  contents = cases(Loc) l:
-    | builtin(name) => [clist: j-str(name)]
+fun choose-srcloc(l, context):
+  cases(Loc) l:
+    | builtin(_) => l
     | srcloc(uri, sl, sc, schar, el, ec, echar) =>
       # Note(alex): Under cm-builtin-stage-1 and cm-builtin-general, override with the "corrected" uri
-      shadow uri = cases(CompileMode) context.options.compile-mode:
-        | cm-normal => uri
-        | cm-builtin-stage-1 => context.uri
-        | cm-builtin-general => context.uri
+      override = SL.srcloc(context.uri, sl, sc, schar, el, ec, echar)
+      cases(CompileMode) context.options.compile-mode:
+        | cm-normal => l
+        | cm-builtin-stage-1 => override
+        | cm-builtin-general => override
       end
+  end
+
+end
+
+fun compile-srcloc(l, context):
+  contents = cases(Loc) choose-srcloc(l, context):
+    | builtin(name) => [clist: j-str(name)]
+    | srcloc(uri, sl, sc, schar, el, ec, echar) =>
       [clist: j-str(uri), j-num(sl), j-num(sc), j-num(schar), j-num(el), j-num(ec), j-num(echar)]
   end
   j-list(false, contents)
@@ -1263,8 +1272,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         j-if1(exception-flag, check-body)
       end
 
-
-      test-loc = j-str(l.format(true))
+      test-loc = j-str(choose-srcloc(l, context).format(true))
 
       check-op = cases(A.CheckOp) op:
         | s-op-is(_) => binop-result("op==")
