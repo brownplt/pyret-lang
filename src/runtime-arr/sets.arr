@@ -589,12 +589,13 @@ fun elems-to-balanced-avl<a>(elems :: List<a>) -> AVLTree<a> block:
        Note: algorithm is O(elems.length()), using a mutable pointer into the element list to ensure
        that each item gets processed once, in order, as the tree is being constructed.
        ```
+
+  len = elems.length()
   # TODO(alex): This implementation results in a type checking error for `head := rest`
   #   Found t-data-refinement(x) but expected t-ref(t-data-refinement(x))
   #
   # var head = empty
   # head := elems
-  # len = elems.length()
   # fun helper(l :: Number) -> AVLTree<a>:
   #   if l <= 0 block: leaf
   #   else:
@@ -611,9 +612,38 @@ fun elems-to-balanced-avl<a>(elems :: List<a>) -> AVLTree<a> block:
   #     end
   #   end
   # end
+
+  # TODO(alex): Swap back to normal helper() once type checking works
+  #   v2 probably has worse performance characteristics unoptimized
+  fun helperv2(l :: Number, head :: List<a>) -> { List<a>; AVLTree<a> }:
+    if l <= 0 block: { head; leaf }
+    else:
+      cases(List) head:
+        | link(first :: a, rest :: List<a>) =>
+          { left-head-out; left } = helperv2(num-floor(l / 2), head)
+          { right-head-in; item } = cases(List) left-head-out:
+            | link(newf, inner-rest) => { inner-rest; newf }
+            | empty => raise("unreachable")
+          end
+
+          { right-head-out; right } = helperv2(num-ceiling((l / 2) - 1), right-head-in)
+          { right-head-out; branch(item, left.height() + 1, left, right) }
+        | empty => { head; leaf }
+      end
+    end
+  end
+
+  { _; result } = helperv2(len, elems)
+  result
   # helper(len)
-  raise("elems-to-balanced-avl")
 where:
+  elems-to-balanced-avl([list: 1]) is
+  branch(1, 1, leaf, leaf)
+  elems-to-balanced-avl([list: 1, 2]) is
+  branch(2, 2, branch(1, 1, leaf, leaf), leaf)
+  elems-to-balanced-avl([list: 1, 2, 3]) is
+  branch(2, 2, branch(1, 1, leaf, leaf), branch(3, 1, leaf, leaf))
+
   elems-to-balanced-avl(empty) is leaf
   elems-to-balanced-avl([list: 1, 2, 3, 4, 5]) is
   branch(3, 3, branch(2, 2, branch(1, 1, leaf, leaf), leaf),
