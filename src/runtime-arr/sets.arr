@@ -49,9 +49,9 @@ end
 # TODO(alex): Now that we rely on the the "_lessthan" function, can we parameterize
 #   Sets? Otherwise, all type annotations will need to be in terms of Any
 #
-data AVLTree:
+data AVLTree<a>:
   | leaf
-  | branch(value :: Any, h :: Number, left :: AVLTree, right :: AVLTree)
+  | branch(value :: a, h :: Number, left :: AVLTree<a>, right :: AVLTree<a>)
 sharing:
 
   method height(self) -> Number:
@@ -61,7 +61,7 @@ sharing:
       | branch(_, _, _, _) => self.h
     end
   end,
-  method contains(self, val :: Any) -> Boolean:
+  method contains(self, val :: a) -> Boolean:
     doc: "Returns true of the tree contains val, otherwise returns false"
     cases(AVLTree) self:
       | leaf => false
@@ -75,7 +75,7 @@ sharing:
         end
     end
   end,
-  method insert(self, val :: Any) -> AVLTree:
+  method insert(self, val :: a) -> AVLTree<a>:
     doc: "Returns a new tree containing val but otherwise equal"
     cases(AVLTree) self:
       | leaf => mkbranch(val, leaf, leaf)
@@ -89,7 +89,7 @@ sharing:
         end
     end
   end,
-  method remove(self, val :: Any) -> AVLTree:
+  method remove(self, val :: a) -> AVLTree<a>:
     doc: "Returns a new tree without val but otherwise equal"
     cases(AVLTree) self:
       | leaf => leaf
@@ -103,39 +103,39 @@ sharing:
         end
     end
   end,
-  method preorder(self) -> List<Any>:
+  method preorder(self) -> List<a>:
     doc: "Returns a list of all elements from a left-to-right preorder traversal"
     fun knil(l, x): link(x, l) end # needed because argument order of link is backwards to fold
     # TODO(alex): Why did self.fold-revpreorder() give the postorder?
     self.fold-revpostorder(knil, empty) # reversed because knil is reversed
   end,
-  method inorder(self) -> List<Any>:
+  method inorder(self) -> List<a>:
     doc: "Returns a list of all elements from a left-to-right inorder traversal"
     fun knil(l, x): link(x, l) end
     self.fold-revinorder(knil, empty)
   end,
-  method postorder(self) -> List<Any>:
+  method postorder(self) -> List<a>:
     doc: "Returns a list of all elements from a left-to-right postorder traversal"
     fun knil(l, x): link(x, l) end
     # TODO(alex): Why did self.fold-revpostorder() give the preorder?
     self.fold-revpreorder(knil, empty)
   end,
-  method revpreorder(self) -> List<Any>:
+  method revpreorder(self) -> List<a>:
     doc: "Returns a list of all elements from a right-to-left preorder traversal"
     fun knil(l, x): link(x, l) end
     self.fold-preorder(knil, empty)
   end,
-  method revinorder(self) -> List<Any>:
+  method revinorder(self) -> List<a>:
     doc: "Returns a list of all elements from a right-to-leftinorder traversal"
     fun knil(l, x): link(x, l) end
     self.fold-inorder(knil, empty)
   end,
-  method revpostorder(self) -> List<Any>:
+  method revpostorder(self) -> List<a>:
     doc: "Returns a list of all elements from a roght-to-left postorder traversal"
     fun knil(l, x): link(x, l) end
     self.fold-postorder(knil, empty)
   end,
-  method fold-preorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
+  method fold-preorder<b>(self, f :: (b, a -> b), base :: b) -> b:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in a preorder traversal```
     cases(AVLTree) self:
@@ -144,7 +144,7 @@ sharing:
         right.fold-preorder(f, left.fold-preorder(f, f(base, value)))
     end
   end,
-  method fold-inorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
+  method fold-inorder<b>(self, f :: (b, a -> b), base :: b) -> b:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in an inorder traversal```
     cases(AVLTree) self:
@@ -153,7 +153,7 @@ sharing:
         right.fold-inorder(f, f(left.fold-inorder(f, base), value))
     end
   end,
-  method fold-postorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
+  method fold-postorder<b>(self, f :: (b, a -> b), base :: b) -> b:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in a postorder traversal```
     cases(AVLTree) self:
@@ -162,7 +162,7 @@ sharing:
         f(right.fold-postorder(f, left.fold-postorder(f, base)), value)
     end
   end,
-  method fold-revpreorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
+  method fold-revpreorder<b>(self, f :: (b, a -> b), base :: b) -> b:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in a right-to-left preorder traversal```
     cases(AVLTree) self:
@@ -171,7 +171,7 @@ sharing:
         left.fold-revpreorder(f, right.fold-revpreorder(f, f(base, value)))
     end
   end,
-  method fold-revinorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
+  method fold-revinorder<b>(self, f :: (b, a -> b), base :: b) -> b:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in a right-to-left inorder traversal```
     cases(AVLTree) self:
@@ -180,7 +180,7 @@ sharing:
         left.fold-revinorder(f, f(right.fold-revinorder(f, base), value))
     end
   end,
-  method fold-revpostorder<a>(self, f :: (a, Any -> a), base :: a) -> a:
+  method fold-revpostorder<b>(self, f :: (b, a -> b), base :: b) -> b:
     doc: ```Folds the elements contained in the tree into a single value with f.
           analogous to folding a list, in a right-to-left postorder traversal```
     cases(AVLTree) self:
@@ -196,21 +196,21 @@ sharing:
         1 + left.count() + right.count()
     end
   end,
-  method all(self, f :: (Any -> Boolean)) -> Boolean:
+  method all(self, f :: (a -> Boolean)) -> Boolean:
     cases(AVLTree) self:
       | leaf => true
       | branch(value, _, left, right) =>
         f(value) and right.all(f) and left.all(f)
     end
   end,
-  method any(self, f :: (Any -> Boolean)) -> Boolean:
+  method any(self, f :: (a -> Boolean)) -> Boolean:
     cases(AVLTree) self:
       | leaf => false
       | branch(value, _, left, right) =>
         f(value) or right.all(f) or left.all(f)
     end
   end,
-  method to-list(self) -> List<Any>:
+  method to-list(self) -> List<a>:
     doc: "Returns a list of all elements from a inorder traversal"
     self.inorder()
   end,
@@ -223,35 +223,35 @@ sharing:
   end
 end
 
-fun tree-fold<a>(f :: (a, Any -> a), base :: a, tree :: AVLTree) -> a:
+fun tree-fold<a, b>(f :: (b, a -> b), base :: b, tree :: AVLTree<a>) -> b:
   tree.fold-preorder(f, base)
 end
 
-fun tree-all(f :: (Any -> Boolean), tree :: AVLTree) -> Boolean:
+fun tree-all<a>(f :: (a -> Boolean), tree :: AVLTree<a>) -> Boolean:
   tree.all(f)
 end
 
-fun tree-any(f :: (Any -> Boolean), tree :: AVLTree) -> Boolean:
+fun tree-any<a>(f :: (a -> Boolean), tree :: AVLTree<a>) -> Boolean:
   tree.any(f)
 end
 
-fun mkbranch(val :: Any, left :: AVLTree, right :: AVLTree):
+fun mkbranch<a>(val :: a, left :: AVLTree<a>, right :: AVLTree<a>) -> AVLTree<a>:
   branch(val, num-max(left.height(), right.height()) + 1, left, right)
 end
 
-fun rebalance(tree :: AVLTree) -> AVLTree:
-  fun left-left(t :: AVLTree) -> AVLTree:
+fun rebalance<a>(tree :: AVLTree<a>) -> AVLTree<a>:
+  fun left-left(t :: AVLTree<a>) -> AVLTree<a>:
     { value; _; left; right } = tree-get(t)
     { left-value; _; left-left-subtree; left-right-subtree } = tree-get(left)
     mkbranch(left-value, left-left-subtree, mkbranch(value, left-right-subtree, right))
   end
 
-  fun right-right(t :: AVLTree) -> AVLTree:
+  fun right-right(t :: AVLTree<a>) -> AVLTree<a>:
     { value; _; left; right } = tree-get(t)
     { right-value; _; right-left-subtree; right-right-subtree } = tree-get(right)
     mkbranch(right-value, mkbranch(value, left, right-left-subtree), right-right-subtree)
   end
-  fun left-right(t :: AVLTree) -> AVLTree:
+  fun left-right(t :: AVLTree<a>) -> AVLTree<a>:
     { value; _; left; right } = tree-get(t)
     { left-value; _; left-left-subtree; left-right-subtree } = tree-get(left)
     { left-right-value; _; left-right-left-subtree; left-right-right-subtree } = tree-get(left-right-subtree)
@@ -259,7 +259,7 @@ fun rebalance(tree :: AVLTree) -> AVLTree:
       mkbranch(left-value, left-left-subtree, left-right-left-subtree),
       mkbranch(value, left-right-right-subtree, right))
   end
-  fun right-left(t :: AVLTree) -> AVLTree:
+  fun right-left(t :: AVLTree<a>) -> AVLTree<a>:
     { value; _; left; right } = tree-get(t)
     { right-value; _; right-left-subtree; right-right-subtree } = tree-get(right)
     { right-left-value; _; right-left-left-subtree; right-left-right-subtree } = tree-get(right-left-subtree)
@@ -295,7 +295,7 @@ fun rebalance(tree :: AVLTree) -> AVLTree:
   end
 end
 
-fun tree-get(tree :: AVLTree) -> { Any; Number; AVLTree; AVLTree }:
+fun tree-get<a>(tree :: AVLTree<a>) -> { a; Number; AVLTree<a>; AVLTree<a> }:
   cases(AVLTree) tree:
     | leaf => raise("Parent was a leaf")
     | branch(v, h, l, r) => { v; h; l; r}
@@ -303,7 +303,7 @@ fun tree-get(tree :: AVLTree) -> { Any; Number; AVLTree; AVLTree }:
 end
 
 
-fun tree-get-left(tree :: AVLTree) -> { Any; Number; AVLTree; AVLTree }:
+fun tree-get-left<a>(tree :: AVLTree<a>) -> { a; Number; AVLTree<a>; AVLTree<a> }:
   cases(AVLTree) tree:
     | leaf => raise("Parent was a leaf")
     | branch(_, _, left, _) =>
@@ -314,7 +314,7 @@ fun tree-get-left(tree :: AVLTree) -> { Any; Number; AVLTree; AVLTree }:
   end
 end
 
-fun tree-get-right(tree :: AVLTree) -> { Any; Number; AVLTree; AVLTree }:
+fun tree-get-right<a>(tree :: AVLTree<a>) -> { a; Number; AVLTree<a>; AVLTree<a> }:
   cases(AVLTree) tree:
     | leaf => raise("Parent was a leaf")
     | branch(_, _, _, right) =>
@@ -325,7 +325,7 @@ fun tree-get-right(tree :: AVLTree) -> { Any; Number; AVLTree; AVLTree }:
   end
 end
 
-fun remove-root(tree :: AVLTree):
+fun remove-root<a>(tree :: AVLTree<a>) -> AVLTree<a>:
   cases(AVLTree) tree:
     | leaf => raise("Trying to remove the root of a leaf")
     | branch(_, _, left, right) =>
@@ -345,14 +345,14 @@ fun remove-root(tree :: AVLTree):
   end
 end
 
-fun swap-next-lowest(tree :: AVLTree) -> AVLTree:
-  fun greatest(t :: AVLTree) -> AVLTree:
+fun swap-next-lowest<a>(tree :: AVLTree<a>) -> AVLTree<a>:
+  fun greatest(t :: AVLTree<a>) -> AVLTree<a>:
     cases(AVLTree) t:
       | leaf => raise("Went too far in traversal step")
       | branch(_, _, _, right) => if is-leaf(right): t else: greatest(right) end
     end
   end
-  fun remove-greatest-and-rebalance(t :: AVLTree) -> AVLTree:
+  fun remove-greatest-and-rebalance(t :: AVLTree<a>) -> AVLTree<a>:
     cases(AVLTree) t:
       | leaf => raise("Went too far in removal step")
       | branch(val, _, left, right) =>
@@ -385,13 +385,13 @@ check:
 end
 
 
-data Set:
-  | list-set(elems :: List<Any>)
+data Set<a>:
+  | list-set(elems :: List<a>)
 
     # TODO(alex): valueskeleton
     # method _output(self): VS.vs-collection("list-set", self.to-list().map(VS.vs-value)) end,
 
-  | tree-set(elems :: AVLTree)
+  | tree-set(elems :: AVLTree<a>)
 
 sharing:
   # Note(alex): Many methods are implemented as "sharing" b/c "with" methods cannot see other "with" methods
@@ -430,14 +430,14 @@ sharing:
   # TODO(alex): valueskeleton
   # method _output(self): VS.vs-collection("tree-set", self.to-list().map(VS.vs-value)) end,
 
-  method fold<a>(self, f :: (a, Any -> a), base :: a) -> a:
+  method fold<b>(self, f :: (b, a -> b), base :: b) -> b:
     cases(Set) self:
       | list-set(elems) => fold(f, base, elems)
       | tree-set(elems) => tree-fold(f, base, elems)
     end
   end,
 
-  method member(self, elem :: Any) -> Boolean:
+  method member(self, elem :: a) -> Boolean:
     doc: 'Check to see if an element is in a set.'
 
     cases(Set) self:
@@ -446,7 +446,7 @@ sharing:
     end
   end,
 
-  method add(self, elem :: Any) -> Set:
+  method add(self, elem :: a) -> Set<a>:
     doc: "Add an element to the set if it is not already present."
     cases(Set) self:
       | list-set(elems) =>
@@ -459,7 +459,7 @@ sharing:
     end
   end,
 
-  method remove(self, elem :: Any) -> Set:
+  method remove(self, elem :: a) -> Set<a>:
     doc: "Remove an element from the set if it is present."
     cases(Set) self:
       | list-set(elems) => list-set(elems.remove(elem))
@@ -467,7 +467,7 @@ sharing:
     end
   end,
 
-  method to-list(self) -> List<Any>:
+  method to-list(self) -> List<a>:
     doc: 'Convert a set into a list of elements.'
     cases(Set) self:
       | list-set(elems) => elems
@@ -475,18 +475,18 @@ sharing:
     end
   end,
 
-  method union(self, other :: Set) -> Set:
+  method union(self, other :: Set<a>) -> Set<a>:
     doc: 'Compute the union of this set and another set.'
     cases(Set) self:
       | list-set(elems) =>
-        other.fold(lam(u :: Set, elem :: Any):
+        other.fold(lam(u :: Set<a>, elem :: a):
           u.add(elem)
         end, list-set(elems))
-      | tree-set(elems) => tree-set-union(elems, other)
+      | tree-set(_) => tree-set-union(self, other)
     end
   end,
 
-  method intersect(self, other :: Set) -> Set:
+  method intersect(self, other :: Set<a>) -> Set<a>:
     doc: 'Compute the intersection of this set and another set.'
 
     cases(Set) self:
@@ -499,16 +499,16 @@ sharing:
           end
         end
         list-set(new-elems)
-      | tree-set(elems) => tree-set-intersect(elems, other)
+      | tree-set(_) => tree-set-intersect(self, other)
     end
   end,
 
-  method overlaps(self :: Set, other :: Set) -> Boolean:
+  method overlaps(self :: Set<a>, other :: Set<a>) -> Boolean:
     doc: 'Determines if the intersection of this set and another set is non-empty.'
     self.any(other.member)
   end,
 
-  method difference(self :: Set, other :: Set) -> Set:
+  method difference(self :: Set<a>, other :: Set<a>) -> Set<a>:
     doc: 'Compute the difference of this set and another set.'
     cases(Set) self:
       | list-set(elems) =>
@@ -520,12 +520,12 @@ sharing:
           end
         end
       list-set(new-elems)
-      | tree-set(elems) => tree-set-difference(elems, other)
+      | tree-set(_) => tree-set-difference(self, other)
     end
 
   end,
 
-  method size(self :: Set) -> Number:
+  method size(self :: Set<a>) -> Number:
     cases(Set) self:
       | list-set(elems) => elems.length()
       | tree-set(elems) => elems.count()
@@ -553,7 +553,7 @@ sharing:
     end
   end,
 
-  method symmetric-difference(self :: Set, other :: Set) -> Set:
+  method symmetric-difference(self :: Set<a>, other :: Set<a>) -> Set<a>:
     doc: 'Compute the symmetric difference of this set and another set.'
     self.union(other).difference(self.intersect(other))
   end,
@@ -562,8 +562,8 @@ sharing:
     if not(is-Set(other)):
       equality.NotEqual("Non-Set", self, other)
     else:
-      self-list :: List<Any> = self.to-list()
-      other-list :: List<Any> = other.to-list()
+      self-list :: List<a> = self.to-list()
+      other-list :: List<a> = other.to-list()
       if not(other-list.length() == self-list.length()):
         equality.NotEqual("set size", self, other)
       else:
@@ -576,32 +576,43 @@ sharing:
   end
 end
 
-fun set-to-sorted-elems(s :: Set) -> List<Any>:
+fun set-to-sorted-elems<a>(s :: Set<a>) -> List<a>:
   cases(Set) s:
     | list-set(elems) => elems.sort()
     | tree-set(elems) => elems.inorder()
   end
 end
 
-fun elems-to-balanced-avl(elems):
+fun elems-to-balanced-avl<a>(elems :: List<a>) -> AVLTree<a> block:
   doc: ```
        Constructs a balanced (but not full) binary search tree from the given sorted list of items.
        Note: algorithm is O(elems.length()), using a mutable pointer into the element list to ensure
        that each item gets processed once, in order, as the tree is being constructed.
        ```
-  var head = elems
-  len = elems.length()
-  fun helper(l):
-    if l <= 0 block: leaf
-    else if is-empty(head): leaf
-    else:
-      left = helper(num-floor(l / 2))
-      item = head.first
-      head := head.rest
-      branch(item, left.height() + 1, left, helper(num-ceiling((l / 2) - 1)))
-    end
-  end
-  helper(len)
+  # TODO(alex): This implementation results in a type checking error for `head := rest`
+  #   Found t-data-refinement(x) but expected t-ref(t-data-refinement(x))
+  #
+  # var head = empty
+  # head := elems
+  # len = elems.length()
+  # fun helper(l :: Number) -> AVLTree<a>:
+  #   if l <= 0 block: leaf
+  #   else:
+  #     cases(List) head:
+  #       | link(first :: a, rest :: List<a>) =>
+  #         block:
+  #           left = helper(num-floor(l / 2))
+  #           item = first
+  #           head := rest
+  #           branch(item, left.height() + 1, left, helper(num-ceiling((l / 2) - 1)))
+  #         end
+
+  #       | empty => leaf
+  #     end
+  #   end
+  # end
+  # helper(len)
+  raise("elems-to-balanced-avl")
 where:
   elems-to-balanced-avl(empty) is leaf
   elems-to-balanced-avl([list: 1, 2, 3, 4, 5]) is
@@ -624,7 +635,7 @@ where:
   merge-no-dups([list: 1, 3, 5, 6], [list: 1, 2, 4, 5]) is [list: 1, 2, 3, 4, 5, 6]
 end
 
-fun tree-set-union(s1, s2) -> Set:
+fun tree-set-union<a>(s1 :: Set<a>, s2 :: Set<a>) -> Set<a>:
   s1-elems = set-to-sorted-elems(s1)
   s2-elems = set-to-sorted-elems(s2)
   new-elems = merge-no-dups(s1-elems, s2-elems)
@@ -642,7 +653,7 @@ where:
   merge-only-dups([list: 1, 3, 5, 6], [list: 1, 2, 4, 5]) is [list: 1, 5]
 end
 
-fun tree-set-intersect(s1, s2) -> Set:
+fun tree-set-intersect<a>(s1 :: Set<a>, s2 :: Set<a>) -> Set<a>:
   s1-elems = set-to-sorted-elems(s1)
   s2-elems = set-to-sorted-elems(s2)
   new-elems = merge-only-dups(s1-elems, s2-elems)
@@ -660,51 +671,51 @@ where:
   merge-drop-l2([list: 1, 3, 5, 6], [list: 1, 2, 4, 5]) is [list: 3, 6]
 end
 
-fun tree-set-difference(s1, s2) -> Set:
+fun tree-set-difference<a>(s1 :: Set<a>, s2 :: Set<a>) -> Set<a>:
   s1-elems = set-to-sorted-elems(s1)
   s2-elems = set-to-sorted-elems(s2)
   new-elems = merge-drop-l2(s1-elems, s2-elems)
   tree-set(elems-to-balanced-avl(new-elems))
 end
 
-fun set-all(f, s :: Set) -> Boolean:
+fun set-all<a>(f, s :: Set<a>) -> Boolean:
   s.all(f)
 end
 
-fun set-any(f, s :: Set) -> Boolean:
+fun set-any<a>(f, s :: Set<a>) -> Boolean:
   s.any(f)
 end
 
-fun set-fold(f, base, s :: Set):
+fun set-fold<a, b>(f :: (b, a -> b), base :: b, s :: Set<a>) -> b:
   s.fold(f, base)
 end
 
-fun list-to-set(lst :: List<Any>, base-set :: Set) -> Set:
+fun list-to-set<a>(lst :: List<a>, base-set :: Set<a>) -> Set<a>:
   doc: "Convert a list into a set."
-  for fold(s :: Set from base-set, elem from lst):
+  for fold(s :: Set<a> from base-set, elem :: a from lst):
     s.add(elem)
   end
 end
 
-fun list-to-list-set(lst :: List<Any>) -> Set:
+fun list-to-list-set<a>(lst :: List<a>) -> Set<a>:
   doc: "Convert a list into a list-based set."
   list-to-set(lst, list-set(empty))
 end
 
-fun list-to-tree-set(lst :: List<Any>) -> Set:
+fun list-to-tree-set<a>(lst :: List<a>) -> Set<a>:
   doc: "Convert a list into a tree-based set."
   list-to-set(lst, tree-set(leaf))
 end
 
-fun list-to-tree(lst :: List<Any>) -> AVLTree:
+fun list-to-tree<a>(lst :: List<a>) -> AVLTree<a>:
   for fold(tree from leaf, elt from lst):
     tree.insert(elt)
   end
 end
 
-fun arr-to-list-set(arr :: RawArray<Any>) -> Set:
+fun arr-to-list-set<a>(arr :: RawArray<a>) -> Set<a>:
   raw-array-fold(
-    lam(acc :: Set, elem :: Any):
+    lam(acc :: Set<a>, elem :: a):
       acc.add(elem)
     end,
     list-set(empty),
@@ -712,9 +723,9 @@ fun arr-to-list-set(arr :: RawArray<Any>) -> Set:
   )
 end
 
-fun arr-to-tree-set(arr :: RawArray<Any>) -> Set:
+fun arr-to-tree-set<a>(arr :: RawArray<a>) -> Set<a>:
   tree = raw-array-fold(
-    lam(acc :: AVLTree, elem :: Any):
+    lam(acc :: AVLTree<a>, elem :: a):
       acc.insert(elem)
     end,
     leaf,
@@ -755,22 +766,22 @@ end
 
 shadow list-set = {
   make: arr-to-list-set,
-  make0: lam() -> Set: empty-list-set end,
-  make1: lam<x>(a :: x) -> Set: list-set(link(a, empty)) end,
-  make2: lam<x>(a :: x, b :: x) -> Set: list-set(makeSet2(a, b)) end,
-  make3: lam<x>(a :: x, b :: x, c :: x) -> Set: list-set(makeSet3(a, b, c)) end,
-  make4: lam<x>(a :: x, b :: x, c :: x, d :: x) -> Set: list-set(makeSet4(a, b, c, d)) end,
-  make5: lam<x>(a :: x, b :: x, c :: x, d :: x, e :: x) -> Set: list-set(makeSet5(a, b, c, d, e)) end
+  make0: lam<x>() -> Set<x>: empty-list-set end,
+  make1: lam<x>(a :: x) -> Set<x>: list-set(link(a, empty)) end,
+  make2: lam<x>(a :: x, b :: x) -> Set<x>: list-set(makeSet2(a, b)) end,
+  make3: lam<x>(a :: x, b :: x, c :: x) -> Set<x>: list-set(makeSet3(a, b, c)) end,
+  make4: lam<x>(a :: x, b :: x, c :: x, d :: x) -> Set<x>: list-set(makeSet4(a, b, c, d)) end,
+  make5: lam<x>(a :: x, b :: x, c :: x, d :: x, e :: x) -> Set<x>: list-set(makeSet5(a, b, c, d, e)) end
 }
 
 shadow tree-set = {
   make: arr-to-tree-set,
-  make0: lam() -> Set: empty-tree-set end,
-  make1: lam<x>(a :: x) -> Set: empty-tree-set.add(a) end,
-  make2: lam<x>(a :: x, b :: x) -> Set: empty-tree-set.add(a).add(b) end,
-  make3: lam<x>(a :: x, b :: x, c :: x) -> Set: empty-tree-set.add(a).add(b).add(c) end,
-  make4: lam<x>(a :: x, b :: x, c :: x, d :: x) -> Set: empty-tree-set.add(a).add(b).add(c).add(d) end,
-  make5: lam<x>(a :: x, b :: x, c :: x, d :: x, e :: x) -> Set: empty-tree-set.add(a).add(b).add(c).add(d).add(e) end
+  make0: lam<x>() -> Set<x>: empty-tree-set end,
+  make1: lam<x>(a :: x) -> Set<x>: empty-tree-set.add(a) end,
+  make2: lam<x>(a :: x, b :: x) -> Set<x>: empty-tree-set.add(a).add(b) end,
+  make3: lam<x>(a :: x, b :: x, c :: x) -> Set<x>: empty-tree-set.add(a).add(b).add(c) end,
+  make4: lam<x>(a :: x, b :: x, c :: x, d :: x) -> Set<x>: empty-tree-set.add(a).add(b).add(c).add(d) end,
+  make5: lam<x>(a :: x, b :: x, c :: x, d :: x, e :: x) -> Set<x>: empty-tree-set.add(a).add(b).add(c).add(d).add(e) end
 }
 
 empty-set = empty-list-set
