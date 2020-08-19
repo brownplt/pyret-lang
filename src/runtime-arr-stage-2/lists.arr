@@ -18,6 +18,7 @@ include from G:
     num-ceiling,
     num-max,
     num-is-integer,
+    _lessthan,
 end
 
 # NOTE(alex): "include from" syntax for values NEEDS the file origin to be correct
@@ -36,7 +37,12 @@ end
 
 include from equality:
     type EqualityResult,
-    within
+    within,
+    # TODO(alex): attempting to import _lessthan here results in a shadow of a global import
+    #  even if _lessthan is NOT explicitly imported
+    #  This appears to occur b/c standard-globals in compile-structs.arr defines
+    #    _lessthan as built on globals.
+    # _lessthan,
 end
 
 
@@ -94,9 +100,7 @@ data List<a>:
     method sort(self) -> List<a>:
       doc: ```Returns a new list whose contents are the same as those in this list,
             sorted by the default ordering and equality```
-      # TODO(alex): fix ordering/sort type checking
-      # self.sort-by(lam(e1,e2): e1 < e2 end, equality.within(~0))
-      raise("TODO: fix typechecker / ordering to implement sort()")
+      self.sort-by(lam(e1,e2): _lessthan(e1, e2) end, equality.within(~0))
     end,
 sharing:
   # Note(alex): Many methods are implemented as "sharing" b/c "with" methods cannot see other "with" methods
