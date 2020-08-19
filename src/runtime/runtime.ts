@@ -191,11 +191,65 @@ function getTraces() { return _globalTraceValues; }
 // Allow '+' for string concat.
 // Otherwise, defer to the number library.
 function customPlus(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
-  if (typeof(lhs) === "string" && typeof(rhs) === "string") {
-    return lhs + rhs;
-  } else {
-    return _NUMBER["add"](lhs, rhs, errbacks);
-  }
+    if ((typeof lhs === "object") && ("_plus" in lhs)) {
+        return lhs._plus(rhs);
+    } else if (_PRIMITIVES.isString(lhs) && _PRIMITIVES.isString(rhs)) {
+        return lhs + rhs;
+    } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
+        return _NUMBER.add(lhs, rhs, errbacks);
+    } else {
+        // NOTE: may be a dynamic error
+        try {
+            return lhs + rhs;
+        } catch (error) {
+            throw `Unable to perform '+' on (${lhs}) and (${rhs})`;
+        }
+    }
+}
+
+function customMinus(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
+    if ((typeof lhs === "object") && ("_minus" in lhs)) {
+        return lhs._minus(rhs);
+    } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
+        return _NUMBER.subtract(lhs, rhs, errbacks);
+    } else {
+        // NOTE: may be a dynamic error
+        try {
+            return lhs - rhs;
+        } catch (error) {
+            throw `Unable to perform '-' on (${lhs}) and (${rhs})`;
+        }
+    }
+}
+
+function customTimes(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
+    if ((typeof lhs === "object") && ("_times" in lhs)) {
+        return lhs._times(rhs);
+    } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
+        return _NUMBER.multiply(lhs, rhs, errbacks);
+    } else {
+        // NOTE: may be a dynamic error
+        try {
+            return lhs * rhs;
+        } catch (error) {
+            throw `Unable to perform '*' on (${lhs}) and (${rhs})`;
+        }
+    }
+}
+
+function customDivide(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
+    if ((typeof lhs === "object") && ("_divide" in lhs)) {
+        return lhs._divide(rhs);
+    } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
+        return _NUMBER.divide(lhs, rhs, errbacks);
+    } else {
+        // NOTE: may be a dynamic error
+        try {
+            return lhs / rhs;
+        } catch (error) {
+            throw `Unable to perform '/' on (${lhs}) and (${rhs})`;
+        }
+    }
 }
 
 // MUTATES an object to rebind any methods to it
@@ -299,9 +353,9 @@ module.exports["$errCallbacks"] = _EQUALITY.NumberErrbacks;
 module.exports["_not"] = _not;
 
 module.exports["_plus"] = customPlus;
-module.exports["_minus"] = _NUMBER["subtract"];
-module.exports["_times"] = _NUMBER["multiply"];
-module.exports["_divide"] = _NUMBER["divide"];
+module.exports["_minus"] = customMinus;
+module.exports["_times"] = customTimes;
+module.exports["_divide"] = customDivide;
 
 module.exports["_lessthan"] = _EQUALITY._lessthan;
 module.exports["_greaterthan"] = _EQUALITY._greaterthan;
