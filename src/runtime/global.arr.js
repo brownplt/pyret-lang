@@ -63,9 +63,9 @@ module.exports = {
   print: function(v) {
     process.stdout.write(String(v));
   },
-  '_plus': runtime["_add"],
-  '_minus': runtime["_subtract"],
-  '_times': runtime["multiply"],
+  '_plus': runtime["_plus"],
+  '_minus': runtime["_minus"],
+  '_times': runtime["_times"],
   '_divide': runtime["_divide"],
   '_lessthan': runtime["_lessthan"],
   '_greaterthan': runtime["_greaterthan"],

@@ -307,13 +307,13 @@ fun compile-s-op(context, l, op-l, op, lv :: JExpr, rv :: JExpr):
     # Pyret number operations compatible with JS numbers
     # Always assume Pyret numbers when compiling
     | (op == "op+") then:
-      rt-method("_add",
+      rt-method("_plus",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op-") then:
-      rt-method("_subtract",
+      rt-method("_minus",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op*") then:
-      rt-method("_multiply",
+      rt-method("_times",
                 [clist: lv, rv, rt-field(NUMBER_ERR_CALLBACKS)])
     | (op == "op/") then:
       rt-method("_divide",

@@ -190,7 +190,7 @@ function getTraces() { return _globalTraceValues; }
 
 // Allow '+' for string concat.
 // Otherwise, defer to the number library.
-function customAdd(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
+function customPlus(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
   if (typeof(lhs) === "string" && typeof(rhs) === "string") {
     return lhs + rhs;
   } else {
@@ -298,9 +298,9 @@ module.exports["$errCallbacks"] = _EQUALITY.NumberErrbacks;
 
 module.exports["_not"] = _not;
 
-module.exports["_add"] = customAdd;
-module.exports["_subtract"] = _NUMBER["subtract"];
-module.exports["_multiply"] = _NUMBER["multiply"];
+module.exports["_plus"] = customPlus;
+module.exports["_minus"] = _NUMBER["subtract"];
+module.exports["_times"] = _NUMBER["multiply"];
 module.exports["_divide"] = _NUMBER["divide"];
 
 module.exports["_lessthan"] = _EQUALITY._lessthan;
