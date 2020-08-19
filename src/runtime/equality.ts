@@ -283,7 +283,8 @@ export function equalAlways3(e1: any, e2: any): EqualityResult {
       if(v1.$brand && v1.$brand === v2.$brand) {
         if ("_equals" in v1) {
           // TODO(alex): Recursive callback that closes over the environment as specified by:
-          //   https://www.pyret.org/docs/latest/equality.html#%28part._equality__greaterequal%29          //   NOTE(alex): CURRENTLY FAILS WITH CYCLIC STRUCTURES
+          //   https://www.pyret.org/docs/latest/equality.html#%28part._s~3adatatype-defined-equality%29
+          //   NOTE(alex): CURRENTLY FAILS WITH CYCLIC STRUCTURES
           var ans = v1["_equals"](v2, equalAlways3);
 
           if (!isEqual(ans)) {
