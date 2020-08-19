@@ -2,6 +2,7 @@
 
 const _NUMBER = require("./js-numbers.js");
 
+const $PMethodBrand = "METHOD";
 const $PRowBrand = "row";
 const $PTableBrand = "$table";
 const $PTupleBrand = "tuple";
@@ -17,7 +18,8 @@ export {
   $PRowBrand,
   $PTableBrand,
   $PTupleBrand,
-  $PRefBrand
+  $PRefBrand,
+  $PMethodBrand
 }
 
 // ********* Runtime Type Representations (Non-Primitives) *********
@@ -55,7 +57,7 @@ export function isFunction(obj: any): boolean {
 }
 
 export function isMethod(obj: any): boolean {
-  return typeof obj === "function" && "$brand" in obj && obj["$brand"] === "METHOD";
+  return typeof obj === "function" && "$brand" in obj && obj["$brand"] === $PMethodBrand;
 }
 
 // TODO(alex): Will nothing always be value 'undefined'?
@@ -90,4 +92,19 @@ export function isArray(val: any): boolean {
 
 export function isPRef(val: any): boolean {
   return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === $PRefBrand);
+}
+
+export function makeMethodBinder(inner: any): any {
+  return function binder(pyretSelf) {
+    inner["$brand"] = $PMethodBrand;
+    inner["$binder"] = binder;
+
+    var mainArguments = Array.prototype.slice.call(arguments);
+    mainArguments.push("extra data");
+
+    return function() {
+      const innerArgs = [pyretSelf].concat(Array.prototype.slice.call(arguments));
+      return inner.apply(this, innerArgs);
+    }
+  };
 }

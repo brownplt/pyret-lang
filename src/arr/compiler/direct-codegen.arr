@@ -383,119 +383,29 @@ fun compile-member(context, member :: A.Member) -> { BindableKind; CList<JStmt> 
       _check :: Option<Expr>,
       blocky :: Boolean
     ) =>
-      { binder-func; binder-stmts } = compile-method(context, l, name, args, body)
-      { to-bind(binder-func); binder-stmts }
+      { method-func; method-stmts } = compile-expr(context,
+        A.s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
+      )
+      binder-func = compile-method-binder(context, method-func)
+
+      { to-bind(binder-func); method-stmts }
   end
 end
 
-#
 # Does NOT support method expressions
 #
-# Generates a function and a nested function of the form:
+# Code generations assumes `$makeMethodBinder` is a function on the RUNTIME
+# Usage:
+#   `selfObject.method = ($makeMethodBinder(method-as-function))(selfObject);
 #
-#   function binderNAME(self) {
-#     var inner = function innerNAME(method-args-no-self) { ... };
-#     inner["$brand"] = METHOD-BRAND;
-#     inner["$binder'] = binderNAME;
-#     return inner;
-#   }
+# Method binders simply provide an environment for method-as-function's self parameter
+#   (effectively partially applying method-as-function with a self argument)
 #
-# Instantiating a method on a data variant:
+# Rebinding methods should be handled by the $binder function on the method
+#   'newObject.method = oldObject.method["$binder"](newObject);'
 #
-#   var $singletonTMP = {
-#     ...
-#     "methodName": bindermethodName($singletonTMP)
-#     ...
-#   };
-#
-#   ...
-#
-#   "variant": function(...) {
-#     var tmpObj = {
-#       ...
-#       "methodName": bindermethodName(tmpObj),
-#       ...
-#     };
-#     return tmpObj;
-#   },
-#   "singleton": $singletonTMP,
-#
-# Rebinding methods should be handled by a RUNTIME function.
-# Rebinding should simply be calling something like:
-#   'oldObject.method["$binder"](newObject)'
-#
-fun compile-method(context,
-      l :: Loc,
-      name :: String,
-      args :: List<Bind>, # Value parameters
-      body :: Expr) -> { JExpr; CList<JStmt> }:
-
-  fun remove-self<a>(my-list :: CList<a>) -> { a; CList<a> }:
-    cases(CList) my-list:
-      | concat-empty => raise("Always have at least 1 method parameter (self). Found none")
-
-      | concat-singleton(self-arg) => { self-arg; cl-empty }
-
-      | concat-append(left :: CList<a>, right :: CList<a>) =>
-        { self-arg; rest-left } = remove-self(list)
-        { self-arg; cl-append(rest-left, right) }
-
-      | concat-cons(self-arg :: a, rest :: CList<a>) =>
-        { self-arg; rest }
-
-      | concat-snoc(head :: CList<a>, last :: a) =>
-        { self-arg; rest } = remove-self(list)
-        { self-arg; cl-snoc(rest, last) }
-    end
-  end
-  { js-body-val; js-body-stmts } = compile-expr(context, body)
-
-  # 'self' is included by s-method.args
-  js-args-with-self = for CL.map_list(a from args): js-id-of(a.id) end
-
-  # NOTE(alex): assuming 'self' is always first
-  { self; js-args-without-self } = remove-self(js-args-with-self)
-
-  # Generate a function that closes over the 'self' arg given by the binder function
-  inner-fun = j-fun("0",
-    js-id-of(const-id("inner" + name)).toname(),
-    js-args-without-self,
-    j-block(cl-snoc(js-body-stmts, j-return(js-body-val)))
-  )
-
-  binder-fun-name = fresh-id(compiler-name("binder" + name))
-
-  inner-fun-bind = fresh-id(compiler-name("inner"))
-
-  # Assign inner function to a variable
-  inner-fun-var = j-var(inner-fun-bind, inner-fun)
-
-  # Give the inner function a method brand
-  inner-fun-brand = j-bracket-assign(
-    j-id(inner-fun-bind),
-    j-str("$brand"),
-    j-str("METHOD")
-  )
-
-  # Give the inner function a reference to the binder function (for rebinding)
-  inner-fun-binder = j-bracket-assign(
-    j-id(inner-fun-bind),
-    j-str("$binder"),
-    j-id(binder-fun-name)
-  )
-
-  # Generate the binder function
-  binder-fun = j-fun("0",
-    binder-fun-name.to-compiled(),
-    cl-sing(self),
-    j-block([clist: inner-fun-var,
-                    j-expr(inner-fun-brand),
-                    j-expr(inner-fun-binder),
-                    j-return(j-id(inner-fun-bind))
-            ])
-  )
-
-  { j-id(binder-fun-name); cl-sing(j-expr(binder-fun)) }
+fun compile-method-binder(context, inner) -> JExpr:
+  rt-method("$makeMethodBinder", [clist: inner])
 end
 
 fun choose-srcloc(l, context):
@@ -1056,7 +966,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       # NOTE(alex): Currently cannot do recursive object initialization
       #   Manually assign the shared/with member with j-bracket vs returning a j-field
-      { binder-func; method-stmts } = compile-method(context, l, name, args, body)
+      { method-func; method-stmts } = compile-expr(context,
+        A.s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, _blocky)
+      )
+      binder-func = compile-method-binder(context, method-func)
 
       { binder-func; method-stmts }
 

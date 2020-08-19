@@ -310,6 +310,6 @@ module.exports["_greaterequal"] = _EQUALITY._greaterequal;
 module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
 
 module.exports["PTuple"] = _PRIMITIVES["PTuple"];
-
+module.exports["$makeMethodBinder"] = _PRIMITIVES["makeMethodBinder"];
 
 module.exports["$torepr"] = torepr;
