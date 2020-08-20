@@ -255,6 +255,10 @@ function handleChunkLint(text: string, id: string): void {
   control.lint(text, id);
 }
 
+function handleFirstChunkLink(text: string): void {
+  control.lint(text, 'first-chunk-lint');
+}
+
 // Removes consecutive, duplicate effects, so we don't do extra work.
 function collapseEffectQueue(effectQueue: Effect[]): Effect[] {
   const collapsedEffectQueue: Effect[] = [];
@@ -349,6 +353,7 @@ function handleFirstActionableEffect(
           currentFileContents,
           isSetupFinished,
           isFileSaved,
+          chunksInitiallyLinted,
         } = state;
 
         if (isSetupFinished && isFileSaved) {
@@ -360,14 +365,24 @@ function handleFirstActionableEffect(
           }
 
           if (editorMode === EditorMode.Chunks) {
-            const sendLintRequests = (): void => {
-              chunks.forEach(({ text, errorState, id }) => {
-                if (errorState.status !== 'succeeded') {
-                  console.log(`linting chunk ${id}`);
-                  handleChunkLint(text, id);
-                }
-              });
-            };
+            let sendLintRequests;
+
+            if (chunksInitiallyLinted) {
+              sendLintRequests = (): void => {
+                chunks.forEach(({ text, errorState, id }) => {
+                  if (errorState.status !== 'succeeded') {
+                    console.log(`linting chunk ${id}`);
+                    handleChunkLint(text, id);
+                  }
+                });
+              };
+            } else if (currentFileContents !== undefined) {
+              sendLintRequests = (): void => {
+                handleFirstChunkLink(currentFileContents);
+              };
+            } else {
+              throw new Error('currentFileContents should not be undefined');
+            }
 
             return {
               effect: i,
