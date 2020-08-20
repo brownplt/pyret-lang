@@ -427,6 +427,9 @@ export function _lessthan(lhs: any, rhs: any): boolean {
     // Check if object has a '<' custom implementation
     if ((typeof lhs === "object") && ("_lessthan" in lhs)) {
         return lhs._lessthan(rhs);
+    } else if (PRIMTIVES.isString(lhs) && PRIMTIVES.isString(rhs)) {
+        // NOTE: JS uses lexicographical order
+        return lhs < rhs;
     } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
         return _NUMBER.lessThan(lhs, rhs);
     } else {
@@ -443,6 +446,9 @@ export function _greaterthan(lhs: any, rhs: any): boolean {
     // Check if object has a '>' custom implementation
     if ((typeof lhs === "object") && ("_greaterthan" in lhs)) {
         return lhs._greaterthan(rhs);
+    } else if (PRIMTIVES.isString(lhs) && PRIMTIVES.isString(rhs)) {
+        // NOTE: JS uses lexicographical order
+        return lhs > rhs;
     } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
         return _NUMBER.greaterThan(lhs, rhs);
     } else {

@@ -153,7 +153,9 @@
         "_greaterequal": ["arrow", ["Number"], "Boolean"]
       }],
       "String": ["data", "String", [], [], {
-        "_plus": ["arrow", ["String"], "String"]
+        "_plus": ["arrow", ["String"], "String"],
+        "_lessthan": ["arrow", ["String"], "Boolean"],
+        "_greaterthan": ["arrow", ["String"], "Boolean"]
       }],
       "Boolean": ["data", "Boolean", [], [], {}],
       "Nothing": ["data", "Nothing", [], [], {}],
