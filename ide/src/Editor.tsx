@@ -190,6 +190,8 @@ export class Editor extends React.Component<EditorProps, any> {
 
   render() {
     const {
+      compiling,
+      linting,
       fontSize,
       interactionErrors,
       stopify,
@@ -290,6 +292,9 @@ export class Editor extends React.Component<EditorProps, any> {
                 className="run-ready"
                 type="button"
                 onClick={run}
+                style={{
+                  background: compiling || running || linting ? 'gray' : '#317bcf',
+                }}
               >
                 Run
               </button>
@@ -298,6 +303,9 @@ export class Editor extends React.Component<EditorProps, any> {
                 className="run-options"
                 onClick={() => setDropdownVisible(!dropdownVisible)}
                 onBlur={() => setDropdownVisible(false)}
+                style={{
+                  background: compiling || running || linting ? 'gray' : '#317bcf',
+                }}
               >
                 &#8628;
                 {dropdown}

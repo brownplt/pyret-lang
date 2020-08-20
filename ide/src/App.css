@@ -33,7 +33,7 @@ html, body, #root {
     text-indent: -0.2em;
     cursor: pointer;
     transition: box-shadow 0.2s;
-    background: #317bcf;
+    background: gray;
     color: #fff;
 }
 
@@ -79,9 +79,9 @@ button::-moz-focus-inner {
     transition: box-shadow 0.2s;
     width: 12em;
     float: right;
-    background: #317bcf;
     color: #fff;
     border: none;
+    background: gray;
     border-right: 2px solid rgba(0, 0, 0, 0.26);
 }
 
