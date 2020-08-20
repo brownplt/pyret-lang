@@ -219,6 +219,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setRHS,
     } = this.props;
 
+    const { editor } = chunks[index];
+
+    if (editor !== false) {
+      const marks = editor.getDoc().getAllMarks();
+      marks.forEach((m) => m.clear());
+    }
+
     const newChunks = [...chunks];
     newChunks[index] = {
       ...newChunks[index],
