@@ -119,7 +119,7 @@ function RHS({
       throw new Error(`RHS: malformed RHSObject, ${JSON.stringify(rhsObject)}`);
     }));
 
-  const outdatedBackground = 'repeating-linear-gradient(45deg, #c8c8c8, #c8c8c8 8em, #979797 8em, #979797 16em)';
+  const outdatedBackground = 'repeating-linear-gradient(45deg, #c8c8c8, #c8c8c8 4em, #979797 4em, #979797 8em)';
 
   return (
     <div
@@ -131,6 +131,21 @@ function RHS({
         position: 'relative',
       }}
     >
+      {rhs.outdated && (
+        <div
+          style={{
+            position: 'sticky',
+            display: 'flex',
+            background: 'black',
+            color: 'white',
+            fontSize: '2em',
+            justifyContent: 'center',
+            top: '0',
+          }}
+        >
+          Press Shift+Enter to re-run
+        </div>
+      )}
       {elements}
     </div>
   );
