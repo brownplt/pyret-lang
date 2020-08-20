@@ -16,6 +16,8 @@
             "raw-array-push": ["forall", ["a"], ["arrow", ["rOfA", "tva"], "rOfA"]],
             "raw-array-set": ["forall", ["a"], ["arrow", ["rOfA", "Number", "tva"], "rOfA"]],
             "raw-array-get": ["forall", ["a"], ["arrow", ["rOfA", "Number"], "tva"]],
+            "raw-array-map": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], "rOfA"], "rOfB"]],
+            "raw-array-for-each": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "Nothing"], "rOfA"], "Nothing"]],
             "raw-array-fold": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "rOfA"], "tvb"]],
             "raw-array-foldr": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "rOfA"], "tvb"]],
             "raw-array-sum": ["arrow", ["rOfN"], "Number"],

@@ -15,6 +15,12 @@ module.exports = {
     arr.push( elm );
     return arr;
   },
+  'raw-array-map': function(fun, arr) {
+    return arr.map(fun);
+  },
+  'raw-array-for-each': function(fun, arr) {
+    return arr.forEach(fun);
+  },
   'raw-array-fold': function( fun, val, arr ) {
     return arr.reduce( fun, val );
   },
