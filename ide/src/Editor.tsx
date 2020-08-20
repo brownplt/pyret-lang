@@ -196,8 +196,6 @@ export class Editor extends React.Component<EditorProps, any> {
       stop,
       run,
       running,
-      compiling,
-      linting,
       dropdownVisible,
       autoRun,
       typeCheck,
@@ -322,7 +320,7 @@ export class Editor extends React.Component<EditorProps, any> {
             {rightHandSide}
           </SplitterLayout>
         </div>
-        <Footer message={`linting; ${linting}; compiling: ${compiling}; running: ${running}`} />
+        <Footer />
       </div>
     );
   }
