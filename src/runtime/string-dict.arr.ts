@@ -10,12 +10,8 @@ const RAW_ARRAY = require("./raw-array.arr.js");
 // TODO(alex): valueskeleton
 // var VS = get(VSlib, "values");
 
-const $PMutableStringDictBrand = runtime.namedBrander("mutable-string-dict", ["string-dict: mutable-string-dict brander"]);
+const $PMutableStringDictBrand = "mutable-string-dict";
 const $PBrandImmutable = "immutable-string-dict";
-
-function applyBrand(brand, val) {
-  return get(brand, "brand").app(val);
-}
 
 // used for removing values
 var NOT_SET = {}
@@ -88,7 +84,7 @@ function popCount(x) {
 }
 
 function setIn(array, idx, val, canEdit) {
-  var newArray = canEdit ? array : arrCopy(array);
+  var newArray = canEdit ? array : arrCopy(array, 0);
   newArray[idx] = val;
   return newArray;
 }
@@ -149,7 +145,9 @@ function SetRef(ref) {
 }
 
 function emptyMap() {
-  return new ImmutableMap(0);
+    // NOTE: originally last two arugments were omitted
+    //   Set to undefined?
+  return new ImmutableMap(0, undefined, undefined);
 }
 
 function ImmutableMap(size, root, ownerID) {
@@ -203,7 +201,7 @@ function updateMap(map, k, v) {
     map._root = newRoot;
     return map;
   }
-  return newRoot ? new ImmutableMap(newSize, newRoot) : new ImmutableMap(0);
+  return newRoot ? new ImmutableMap(newSize, newRoot, undefined) : new ImmutableMap(0, undefined, undefined);
 }
 
 function updateNode(node, ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
@@ -322,7 +320,7 @@ function ArrayMapNode(ownerID, entries) {
     }
 
     var isEditable = ownerID && ownerID === this.ownerID;
-    var newEntries = isEditable ? entries : arrCopy(entries);
+    var newEntries = isEditable ? entries : arrCopy(entries, 0);
 
     if (exists) {
       if (removed) {
@@ -442,7 +440,7 @@ function HashCollisionNode(ownerID, keyHash, entries) {
     }
 
     var isEditable = ownerID && ownerID === this.ownerID;
-    var newEntries = isEditable ? entries : arrCopy(entries);
+    var newEntries = isEditable ? entries : arrCopy(entries, 0);
 
     if (exists) {
       if (removed) {
@@ -622,7 +620,6 @@ function eqHelp(pyretSelf, other, selfKeys, recEq) {
     }
 
     return EQUALITY.Equal();
-  }
 }
 
 
@@ -661,7 +658,7 @@ const mergeISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, otherDict
     let newMap = pyretSelf.$underlyingMap;
     for (let i = 0; i < otherKeysArr.length; i++) {
         let currKey = otherKeysArr[i];
-        newMap = newMap.set(currKey, other["get-value"](currKey));
+        newMap = newMap.set(currKey, otherDict["get-value"](currKey));
     }
     return makeImmutableStringDict(newMap);
 });
@@ -763,7 +760,7 @@ const unfreezeISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
         const val = pyretSelf.$underlyingMap.get(key);
         dict[key] = val;
     }
-    return makeMutableStringDict(dict);
+    return makeMutableStringDict(dict, undefined);
 });
 
 function makeImmutableStringDict(underlyingMap) {
@@ -808,7 +805,7 @@ const getValueMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
 });
 
 const setMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key, val) {
-    if (self.$sealed) {
+    if (pyretSelf.$sealed) {
         throw ("Cannot modify sealed string dict");
     }
     pyretSelf.$underlyingDict[key] = val;
@@ -824,10 +821,10 @@ const mergeMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, other) {
 
 const cloneMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
     const newDict = Object.create(null);
-    for (var key in self.$underlyingDict) {
-        newDict[key] = self.$underlyingDict[key];
+    for (var key in pyretSelf.$underlyingDict) {
+        newDict[key] = pyretSelf.$underlyingDict[key];
     }
-    return makeMutableStringDict(newDict);
+    return makeMutableStringDict(newDict, undefined);
 });
 
 const removeMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
@@ -835,11 +832,11 @@ const removeMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
     throw ("Cannot modify sealed string dict");
   }
   delete pyretSelf.$underlyingDict[key];
-  return runtime.nothing;
+  return RUNTIME.$nothing;
 });
 
 const hasKeyMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
-  if (key in selfpyretSelf.$underlyingDict) {
+  if (key in pyretSelf.$underlyingDict) {
       return true;
   } else {
       return false;
@@ -893,7 +890,7 @@ const toreprMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, recursiv
       // calling convention, which makes this work with the stack
       // compilation strategy for Pyret.
         const result = recursiveToRepr(pyretSelf.$underlyingDict[thisKey]);
-        elts.push(recusriveToRepr(thisKey));
+        elts.push(recursiveToRepr(thisKey));
         elts.push(result);
         return toreprElts();
     }
@@ -972,7 +969,7 @@ function makeMutableStringDict(underlyingDict, sealed) {
 }
 
 function internal_isMSD(obj) {
-  return hasBrand($PMutableStringDictBrand, obj);
+  return PRIMITIVES.hasBrand($PMutableStringDictBrand, obj);
 }
 
 function isMutableStringDict(obj) {
@@ -981,7 +978,7 @@ function isMutableStringDict(obj) {
 
 function createMutableStringDict() {
   var dict = Object.create(null);
-  return makeMutableStringDict(dict);
+  return makeMutableStringDict(dict, undefined);
 }
 
 function createMutableStringDictFromArray(array) {
@@ -995,11 +992,11 @@ function createMutableStringDictFromArray(array) {
     const val = array[i + 1];
     dict[key] = val;
   }
-  return makeMutableStringDict(dict);
+  return makeMutableStringDict(dict, undefined);
 }
 
 function internal_isISD(obj) {
-  return hasBrand($PBrandImmutable, obj);
+  return PRIMITIVES.hasBrand($PBrandImmutable, obj);
 }
 
 function isImmutableStringDict(obj) {
@@ -1021,7 +1018,6 @@ function createImmutableStringDictFromArray(array) {
   for(var i = 0; i < len; i += 2) {
     let key = array[i];
     let val = array[i + 1];
-    runtime.checkString(key);
     if (map.get(key, key_missing) !== key_missing) {
       throw ("Creating immutable string dict with duplicate key " + key);
     }
@@ -1067,7 +1063,7 @@ function eachKeyNow(f, msd) {
 
 function createMutableStringDict0() {
   const dict = Object.create(null);
-  return makeMutableStringDict(dict);
+  return makeMutableStringDict(dict, undefined);
 }
 
 function createMutableStringDict1(arg) {
@@ -1077,7 +1073,7 @@ function createMutableStringDict1(arg) {
 function createMutableStringDict2(a, b) {
   const dict = Object.create(null);
   dict[a] = b;
-  return makeMutableStringDict(dict);
+  return makeMutableStringDict(dict, undefined);
 }
 
 function createMutableStringDict3(a, b, c) {
@@ -1088,7 +1084,7 @@ function createMutableStringDict4(a, b, c, d) {
   const dict = Object.create(null);
   dict[a] = b;
   dict[c] = d;
-  return makeMutableStringDict(dict);
+  return makeMutableStringDict(dict, undefined);
 }
 
 function createMutableStringDict5(a, b, c, d, e) {
