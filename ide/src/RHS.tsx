@@ -112,6 +112,31 @@ function RHS({
             at
             {' '}
             {rhsObject.loc}
+            {rhsObject.success === false && (
+              <div style={{
+                paddingLeft: '1em',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                >
+                  {'The left side was: '}
+                  <RenderedValue value={rhsObject.lhs.value} />
+                </div>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+                >
+                  {'The right side was: '}
+                  <RenderedValue value={rhsObject.rhs.value} />
+                </div>
+              </div>
+            )}
           </pre>
         );
       }
