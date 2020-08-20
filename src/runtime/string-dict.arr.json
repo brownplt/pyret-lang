@@ -30,6 +30,7 @@
                                           ["List", "idB"]]],
       "map-keys-now": ["forall", ["a", "b"], ["arrow", [["arrow", ["String"], "idB"],
                                                         "msdOfA"],
+                                              ["List", "idB"]]],
       "fold-keys": ["forall", ["a", "b"], ["arrow", [["arrow", ["idB", "String"], "idB"],
                                                      "idB",
                                                      "sdOfA"],
