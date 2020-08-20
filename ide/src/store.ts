@@ -7,6 +7,7 @@ import {
 } from './chunk';
 import { Action } from './action';
 import { RunKind } from './backend';
+import { Effect } from './effect';
 import * as control from './control';
 
 type Dispatch = (action: Action) => void;
@@ -254,6 +255,21 @@ function handleChunkLint(text: string, id: string): void {
   control.lint(text, id);
 }
 
+// Removes consecutive, duplicate effects, so we don't do extra work.
+function collapseEffectQueue(effectQueue: Effect[]): Effect[] {
+  const collapsedEffectQueue: Effect[] = [];
+  let lastElement: undefined | Effect;
+
+  effectQueue.forEach((effect) => {
+    if (lastElement !== effect) {
+      collapsedEffectQueue.push(effect);
+      lastElement = effect;
+    }
+  });
+
+  return collapsedEffectQueue;
+}
+
 function handleFirstActionableEffect(
   state: State,
   dispatch: Dispatch,
@@ -446,8 +462,14 @@ store.subscribe(() => {
   const state = store.getState();
 
   const { dispatch } = store;
+  const { effectQueue } = state;
 
-  const maybeEffect = handleFirstActionableEffect(state, dispatch);
+  const collapsedState = {
+    ...state,
+    effectQueue: collapseEffectQueue(effectQueue),
+  };
+
+  const maybeEffect = handleFirstActionableEffect(collapsedState, dispatch);
 
   if (!maybeEffect) {
     return;
