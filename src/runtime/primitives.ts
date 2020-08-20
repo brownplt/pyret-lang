@@ -8,6 +8,8 @@ const $PTableBrand = "$table";
 const $PTupleBrand = "tuple";
 const $PRefBrand = "ref";
 
+const $nothing = undefined;
+
 // NOTE(alex): Hack required b/c of TS "export const" desugaring and Stopify
 // `export const X = FOO;` => `export.X = FOO` => `$S.g.export.X = FOO`
 // Stopify only has one global object. Cannot switch global object variables within the same run
@@ -19,7 +21,8 @@ export {
   $PTableBrand,
   $PTupleBrand,
   $PRefBrand,
-  $PMethodBrand
+  $PMethodBrand,
+  $nothing
 }
 
 // ********* Runtime Type Representations (Non-Primitives) *********
@@ -107,4 +110,13 @@ export function makeMethodBinder(inner: any): any {
       return inner.apply(this, innerArgs);
     }
   };
+}
+
+export function hasBrand(brand: any, val: object): boolean {
+    return ("$brand" in val) && (val["$brand"] === brand);
+}
+
+export function applyBrand(brand: any, val: object): any {
+    val["$brand"] = brand;
+    return val;
 }
