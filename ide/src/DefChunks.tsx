@@ -15,6 +15,7 @@ type StateProps = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
   rhs: RHSObjects,
+  debugBorders: boolean,
 };
 
 type DispatchProps = {
@@ -27,12 +28,14 @@ function mapStateToProps(state: State): StateProps {
     chunks,
     focusedChunk,
     rhs,
+    debugBorders,
   } = state;
 
   return {
     chunks,
     focusedChunk,
     rhs,
+    debugBorders,
   };
 }
 
@@ -113,6 +116,7 @@ function DefChunks({
   focusedChunk,
   rhs,
   setRHS,
+  debugBorders,
 }: DefChunksProps) {
   const onDragEnd = (result: DropResult) => {
     if (result.destination !== null
@@ -143,12 +147,14 @@ function DefChunks({
         return '#ff9999';
       }
 
-      if (focused && chunk.errorState.status === 'notLinted') {
-        return 'orange';
-      }
+      if (debugBorders === true) {
+        if (focused && chunk.errorState.status === 'notLinted') {
+          return 'orange';
+        }
 
-      if (!focused && chunk.errorState.status === 'notLinted') {
-        return 'yellow';
+        if (!focused && chunk.errorState.status === 'notLinted') {
+          return 'yellow';
+        }
       }
 
       if (focused) {

@@ -56,8 +56,9 @@ export type Update =
   | { key: 'typeCheck', value: boolean }
   | { key: 'shouldAdvanceCursor', value: boolean }
   | { key: 'dropdownVisible', value: boolean }
-  | { key: 'menuTabVisible', value: false | number}
-  | { key: 'firstSelectedChunkIndex', value: false | number}
+  | { key: 'menuTabVisible', value: false | number }
+  | { key: 'firstSelectedChunkIndex', value: false | number }
+  | { key: 'debugBorders', value: boolean }
   | { key: 'rhs', value: RHSObjects });
 
 export type UpdateKey = Update['key'];

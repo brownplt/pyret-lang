@@ -13,21 +13,26 @@ import FontSize from './FontSize';
 type StateProps = {
   menuItems: MenuItems,
   menuTabVisible: false | number,
+  debugBorders: boolean,
 };
 
 function mapStateToProps(state: State): StateProps {
-  const { menuItems, menuTabVisible } = state;
-  return { menuItems, menuTabVisible };
+  const { menuItems, menuTabVisible, debugBorders } = state;
+  return { menuItems, menuTabVisible, debugBorders };
 }
 
 type DispatchProps = {
   setEditorMode: (mode: EditorMode) => void,
+  setDebugBorders: (debugBorders: boolean) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     setEditorMode: (mode: EditorMode) => {
       dispatch({ type: 'update', key: 'editorMode', value: mode });
+    },
+    setDebugBorders: (debugBorders: boolean) => {
+      dispatch({ type: 'update', key: 'debugBorders', value: debugBorders });
     },
   };
 }
@@ -37,7 +42,13 @@ const connector = connect(mapStateToProps, mapDispatchToProps);
 type PropsFromRedux = ConnectedProps<typeof connector>;
 type MenuProps = PropsFromRedux & DispatchProps & StateProps;
 
-function Menu({ menuItems, menuTabVisible, setEditorMode }: MenuProps) {
+function Menu({
+  menuItems,
+  menuTabVisible,
+  setEditorMode,
+  debugBorders,
+  setDebugBorders,
+}: MenuProps) {
   function getTab() {
     if (menuTabVisible === false) {
       return false;
@@ -86,6 +97,21 @@ function Menu({ menuItems, menuTabVisible, setEditorMode }: MenuProps) {
               </button>
             </div>
             <FontSize key="FontSize" />
+            <button
+              onClick={() => setDebugBorders(!debugBorders)}
+              className="option"
+              key="debugBorders"
+              type="button"
+              style={{
+                height: '2.7em',
+              }}
+            >
+              {debugBorders ? (
+                'Turn off debug borders'
+              ) : (
+                'Turn on debug borders'
+              )}
+            </button>
           </div>
         );
       default:
