@@ -125,7 +125,11 @@ function RHS({
                 }}
                 >
                   {'The left side was: '}
-                  <RenderedValue value={rhsObject.lhs.value} />
+                  {rhsObject.lhs.exception === true ? (
+                    <RenderedValue value={rhsObject.lhs.exception_val} />
+                  ) : (
+                    <RenderedValue value={rhsObject.lhs.value} />
+                  )}
                 </div>
                 <div style={{
                   display: 'flex',
@@ -133,7 +137,11 @@ function RHS({
                 }}
                 >
                   {'The right side was: '}
-                  <RenderedValue value={rhsObject.rhs.value} />
+                  {rhsObject.rhs.exception === true ? (
+                    <RenderedValue value={rhsObject.rhs.exception_val} />
+                  ) : (
+                    <RenderedValue value={rhsObject.rhs.value} />
+                  )}
                 </div>
               </div>
             )}

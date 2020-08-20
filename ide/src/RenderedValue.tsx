@@ -65,6 +65,14 @@ function convert(value: any) {
     );
   }
 
+  if (value['$template-not-finished'] !== undefined) {
+    return (
+      <div>
+        an expression containing a template
+      </div>
+    );
+  }
+
   if (typeof value === 'object') {
     if (Array.isArray(value) && value.length > 100) {
       const message = `${value.length - 100} elements hidden`;

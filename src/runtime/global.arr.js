@@ -165,5 +165,11 @@ module.exports = {
       s += i;
     }
     return s;
-  }
+  },
+
+  'throwUnfinishedTemplate': function(srcloc) {
+    throw {
+      '$template-not-finished': srcloc,
+    };
+  },
 };
