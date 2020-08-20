@@ -1,3 +1,12 @@
+const RUNTIME = require("./runtime.js");
+const PRIMITIVES = require("./primitives.js");
+const EQUALITY = require("./equality.js");
+
+const OPTION = require("./option.arr.js");
+const SETS = require("./sets.arr.js");
+const LISTS = require("./lists.arr.js");
+const RAW_ARRAY = require("./raw-array.arr.js");
+
 var O = runtime.makeObject;
 var F = runtime.makeFunction;
 var arity = runtime.checkArity;
@@ -6,20 +15,17 @@ var get = runtime.getField;
 // TODO(alex): valueskeleton
 // var VS = get(VSlib, "values");
 
-var brandMutable = runtime.namedBrander("mutable-string-dict", ["string-dict: mutable-string-dict brander"]);
-var brandImmutable = runtime.namedBrander("string-dict", ["string-dict: string-dict brander"]);
+const brandMutable = runtime.namedBrander("mutable-string-dict", ["string-dict: mutable-string-dict brander"]);
+const $PBrandImmutable = "immutable-string-dict";
 
 var annMutable = runtime.makeBranderAnn(brandMutable, "MutableStringDict");
-var annImmutable = runtime.makeBranderAnn(brandImmutable, "StringDict");
+var annImmutable = runtime.makeBranderAnn($PBrandImmutable, "StringDict");
 
 var checkMSD = function(v) { runtime._checkAnn(["string-dict"], annMutable, v); };
 var checkISD = function(v) { runtime._checkAnn(["string-dict"], annImmutable, v); };
 
 function applyBrand(brand, val) {
   return get(brand, "brand").app(val);
-}
-function hasBrand(brand, val) {
-  return get(brand, "test").app(val);
 }
 
 // used for removing values
@@ -610,168 +616,125 @@ function HashArrayMapNode(ownerID, count, nodes) {
   };
 }
 
-function eqHelp(self, other, selfKeys, hasKey, getValue, recEq) {
-  if (runtime.isActivationRecord(self)) {
-    var $ar = sekf;
-    $step = $ar.step;
-    $ans = $ar.ans;
-    curIdx = $ar.vars[0];
-    curEq = $ar.vars[1];
-    self = $ar.args[0];
-    other = $ar.args[1];
-    selfKeys = $ar.args[2];
-    hasKey = $ar.args[3];
-    getValue = $ar.args[4];
-    recEq = $ar.args[5];
-  } else {
-    var curIdx = 0;
-    var curEq = runtime.ffi.equal;
-    var $step = 0;
-    var $ans = undefined;
-  }
-  while(true) {
-    switch($step) {
-    case 0:
-      if (curIdx == selfKeys.length)
-        return curEq;
-      $step = 1;
-      if (!hasKey.full_meth(other, selfKeys[curIdx])) {
-        return runtime.ffi.notEqual.app("", self, other);
-      }
-      $ans = recEq.app(getValue.full_meth(self, selfKeys[curIdx]), getValue.full_meth(other, selfKeys[curIdx]));
-      if (runtime.isContinuation($ans)) {
-        $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-          stackFrameDesc,
-          equalFun,
-          $step,
-          [],
-          []);
-        return $ans;
-      }
-      break;
-    case 1:
-      curEq = runtime.combineEquality(curEq, $ans);
-      curIdx++;
-      $step = 0;
-      break;
+function eqHelp(pyretSelf, other, selfKeys, recEq) {
+    // NOTES
+    //   * The original implementation was heavily integrated in the old Pyret runtime
+    //   * pyretSelf and other are dictionaries of the same length
+    for (let i = 0; i < selfKeys.length; i++) {
+        const currKey = selfKeys[i];
+        if (other["has-key"]) {
+            const recResult = recEq(pyretSelf["get-value"](currKey), other["get-value"](currKey));
+            if (!EQUALITY.isEqual(recResult)) {
+                return recResult;
+            }
+        } else {
+            return EQUALITY.NotEqual("Missing key", pyretSelf, other);
+        }
     }
+
+    return EQUALITY.Equal();
   }
 }
 
 
 //////////////////////////////////////////////////
-var getISD = runtime.makeMethod1(function(self, key) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get'], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "get",
-    key, runtime.String);
-  var missing_value = {};
-  var val = self.$underlyingMap.get(key, missing_value);
+const getISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
+  const missing_value = {};
+  const val = pyretSelf.$underlyingMap.get(key, missing_value);
   if (val === missing_value) {
-    return runtime.ffi.makeNone();
+    return OPTION.none;
   } else {
-    return runtime.ffi.makeSome(val);
+    return OPTION.some(val);
   }
 });
 
-var getValueISD = runtime.makeMethod1(function(self, key) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get-value'], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "get-value",
-    key, runtime.String);
-  var missing_value = {};
-  var val = self.$underlyingMap.get(key, missing_value);
+const getValueISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
+    const missing_value = {};
+    const val = pyretSelf.$underlyingMap.get(key, missing_value);
+    if (val === missing_value) {
+        throw ('Key ' + key + ' not found');
+    }
+    return val;
+});
+
+const setISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key, val) {
+  const newMap = pyretSelf.$underlyingMap.set(key, val);
+  return makeImmutableStringDict(newMap);
+});
+
+const mergeISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, otherDict) {
+    // keys-list returns a PyretList
+    const otherKeys = otherDict["keys-list"]();
+    const otherKeysArr = LISTS["to-raw-array"](otherKeys);
+
+    if (otherKeysArr.length === 0) { return pyretSelf; }
+
+    let newMap = pyretSelf.$underlyingMap;
+    for (let i = 0; i < otherKeysArr.length; i++) {
+        let currKey = otherKeysArr[i];
+        newMap = newMap.set(currKey, other["get-value"](currKey));
+    }
+    return makeImmutableStringDict(newMap);
+});
+
+const removeISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
+  const newMap = pyretSelf.$underlyingMap.remove(key);
+  return makeImmutableStringDict(newMap);
+});
+
+const hasKeyISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
+  const missing_value = {};
+  const val = pyretSelf.$underlyingMap.get(key, missing_value);
   if (val === missing_value) {
-    runtime.ffi.throwMessageException('Key ' + key + ' not found');
-  }
-  return val;
-});
-
-var setISD = runtime.makeMethod2(function(self, key, val) {
-  if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['set'], 3, $a, true); }
-  runtime.checkArgsInternal2("string-dict", "set",
-    key, runtime.String, val, runtime.Any);
-  var newMap = self.$underlyingMap.set(key, val);
-  return makeImmutableStringDict(newMap);
-});
-
-var mergeISD = runtime.makeMethod1(function(self, other) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge"], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "merge",
-    other, annImmutable);
-  var otherKeys = runtime.getField(other, "keys-list").app();
-  var otherKeysArr = runtime.ffi.toArray(otherKeys);
-  if (otherKeysArr.length === 0) { return self; }
-  var newMap = self.$underlyingMap;
-  for (var i = 0; i < otherKeysArr.length; i++) {
-    newMap = newMap.set(otherKeysArr[i], runtime.getField(other, "get-value").app(otherKeysArr[i]));
-  }
-  return makeImmutableStringDict(newMap);
-});
-
-var removeISD = runtime.makeMethod1(function(self, key) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['remove'], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "remove",
-    key, runtime.String);
-  var newMap = self.$underlyingMap.remove(key);
-  return makeImmutableStringDict(newMap);
-});
-
-var hasKeyISD = runtime.makeMethod1(function(self, key) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['has-key'], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "has-key",
-    key, runtime.String);
-  var missing_value = {};
-  var val = self.$underlyingMap.get(key, missing_value);
-  if (val === missing_value) {
-    return runtime.makeBoolean(false);
+    return false;
   } else {
-    return runtime.makeBoolean(true);
+    return true;
   }
 });
 
-var eachKeyISD = runtime.makeMethod1(function(self, f) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["each-key"], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "each-key",
-    f, runtime.Function);
-  return runtime.raw_array_each(f, self.$underlyingMap.keys());
+const eachKeyISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, f) {
+    RAW_ARRAY["raw-array-for-each"]["raw-array-for-each"](f, pyretSelf.$underlinyMaps.keys());
+    return RUNTIME.Nothing;
 });
 
-var mapKeysISD = runtime.makeMethod1(function(self, f) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["map-keys"], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "map-keys",
-    f, runtime.Function);
-  return runtime.safeCall(function() { return runtime.raw_array_map(f, self.$underlyingMap.keys()); },
-                          runtime.ffi.makeList,
-                          "map-keys")
+const mapKeysISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, f) {
+    const mapResult = RAW_ARRAY["raw-array-map"](f, pyretSelf.$underlyingMap.keys());
+    return LISTS["raw-array-to-list"](mapResult);
 });
 
-var foldKeysISD = runtime.makeMethod2(function(self, f, init) {
-  if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["fold-keys"], 3, $a, true); }
-  runtime.checkArgsInternal2("string-dict", "fold-keys",
-    f, runtime.Function, init, runtime.Any);
-  return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(key, acc); }),
-                                init, self.$underlyingMap.keys(), 0);
+const foldKeysISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, f, init) {
+    // NOTE(alex): Double check type signatures for higher order functions
+        //      acc comes first for raw arrays
+        //      acc comes second for Pyret
+    return RAW_ARRAY["raw-array-fold"](function(acc, key) {
+        return f(key, acc);
+    }, init, pyretSelf.$underlyingMap.keys());
 });
 
-var keysISD = runtime.makeMethod0(function(self) {
-  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys'], 1, $a, true); }
-  var keys = self.$underlyingMap.keys();
-  return runtime.ffi.makeTreeSet(keys.map(function(key) {
-    return runtime.makeString(key);
-  }));
+const keysISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
+    const keys = pyretSelf.$underlyingMap.keys();
+    return SETS["tree-set"].make(keys);
+    //return SETS["tree-set"].make(keys.map(function(key) {
+    //    TODO(alex): Do we need a JS String conversion?
+    //    return key;
+    //    // return RUNTIME.makeString(key);
+    //}));
 });
 
-var keysListISD = runtime.makeMethod0(function(self) {
-  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list'], 1, $a, true); }
-  var keys = self.$underlyingMap.keys();
-  return runtime.ffi.makeList(keys.map(function(key) {
-    return runtime.makeString(key);
-  }));
+const keysListISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
+    const keys = pyretSelf.$underlyingMap.keys();
+    return LISTS.list.make(keys);
+    //return runtime.ffi.makeList(keys.map(function(key) {
+    //  return runtime.makeString(key);
+    //}));
 });
 
-var countISD = runtime.makeMethod0(function(self) {
-  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['count'], 1, $a, true); }
-  var count = self.$underlyingMap.size;
-  return runtime.makeNumber(count);
+const countISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
+    const count = pyretSelf.$underlyingMap.size;
+    // NOTE(alex): The $makeRational() call is not strictly necessary
+    //   b/c JS Numbers are a subset of Pyret numbers.
+    //   Added for (potentially useless) future-proofing
+    return RUNTIME.$makeRational(count);
 });
 
 // TODO(alex): valueskeleton
@@ -789,52 +752,50 @@ var countISD = runtime.makeMethod0(function(self) {
 //    runtime.ffi.makeList(elts));
 //});
 
-var equalsISD = runtime.makeMethod2(function(self, other, recursiveEquality) {
-  if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['equals'], 3, $a, true); }
-  if (!hasBrand(brandImmutable, other)) {
-    return runtime.ffi.notEqual.app('', self, other);
-  } else {
-    var keys = self.$underlyingMap.keys();
-    var otherKeysLength = get(other, 'count').app();
-    if (keys.length !== otherKeysLength) {
-      return runtime.ffi.notEqual.app('', self, other);
+const equalsISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, other, recursiveEquality) {
+    if (!PRIMITIVES.hasBrand($PBrandImmutable, other)) {
+        return EQUALITY.NotEqual("Different brands", pyretSelf, other);
     } else {
-      return eqHelp(self, other, keys, hasKeyISD, getValueISD, recursiveEquality);
+        const keys = pyretSelf.$underlyingMap.keys();
+        const otherKeysLength = other.count();
+        if (keys.length !== otherKeysLength) {
+          return EQUALITY.NotEqual("Different key lengths", pyretSelf, other);
+        } else {
+            return eqHelp(pyretSelf, other, keys, recursiveEquality);
+        }
     }
-  }
 });
 
-var unfreezeISD = runtime.makeMethod0(function(self) {
-  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['unfreeze'], 1, $a, true); }
-  var dict = Object.create(null);
-  var keys = self.$underlyingMap.keys();
-  for (var ii = 0; ii < keys.length; ii++) {
-    var key = keys[ii];
-    var val = self.$underlyingMap.get(key);
-    dict[key] = val;
-  }
-  return makeMutableStringDict(dict);
+const unfreezeISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
+    const dict = Object.create(null);
+    const keys = pyretSelf.$underlyingMap.keys();
+    for (var ii = 0; ii < keys.length; ii++) {
+        const key = keys[ii];
+        const val = pyretSelf.$underlyingMap.get(key);
+        dict[key] = val;
+    }
+    return makeMutableStringDict(dict);
 });
 
 function makeImmutableStringDict(underlyingMap) {
   var obj = O({
-    get: getISD,
-    'get-value': getValueISD,
-    set: setISD,
-    merge: mergeISD,
-    remove: removeISD,
-    keys: keysISD,
-    "keys-list": keysListISD,
-    'map-keys': mapKeysISD,
-    'fold-keys': foldKeysISD,
-    'each-key': eachKeyISD,
-    count: countISD,
-    'has-key': hasKeyISD,
-    _equals: equalsISD,
+    get: getISDBinder(obj),
+    'get-value': getValueISDBinder(obj),
+    set: setISDBinder(obj),
+    merge: mergeISDBinder(obj),
+    remove: removeISDBinder(obj),
+    keys: keysISDBinder(obj),
+    "keys-list": keysListISDBinder(obj),
+    'map-keys': mapKeysISDBinder(obj),
+    'fold-keys': foldKeysISDBinder(obj),
+    'each-key': eachKeyISDBinder(obj),
+    count: countISDBinder(obj),
+    'has-key': hasKeyISDBinder(obj),
+    _equals: equalsISDBinder(obj),
     // _output: outputISD,
-    unfreeze: unfreezeISD
+    unfreeze: unfreezeISDBinder(obj)
   });
-  obj = applyBrand(brandImmutable, obj);
+  obj = PRIMITIVES.applyBrand($PBrandImmutable, obj);
   obj.$underlyingMap = underlyingMap;
   return obj;
 }
@@ -1101,7 +1062,7 @@ function createMutableStringDictFromArray(array) {
 }
 
 function internal_isISD(obj) {
-  return hasBrand(brandImmutable, obj);
+  return hasBrand($PBrandImmutable, obj);
 }
 
 var jsCheckISD =
@@ -1113,7 +1074,6 @@ var jsCheckISD =
   }
 
 function createImmutableStringDict() {
-  arity(0, arguments, "make-string-dict", false);
   var map = emptyMap();
   return makeImmutableStringDict(map);
 }
