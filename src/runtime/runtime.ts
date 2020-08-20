@@ -367,3 +367,4 @@ module.exports["PTuple"] = _PRIMITIVES["PTuple"];
 module.exports["$makeMethodBinder"] = _PRIMITIVES["makeMethodBinder"];
 
 module.exports["$torepr"] = torepr;
+module.exports["$nothing"] = _PRIMITIVES["$nothing"];
