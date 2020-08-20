@@ -999,17 +999,14 @@ function createMutableStringDict() {
 }
 
 function createMutableStringDictFromArray(array) {
-  arity(1, arguments, "mutable-string-dict", false);
-  runtime.checkArray(array);
-  var dict = Object.create(null);
-  var len = array.length;
+  const dict = Object.create(null);
+  const len = array.length;
   if(len % 2 !== 0) {
-    runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got array of length " + len);
+    throw ("Expected an even number of arguments to constructor for mutable dictionaries, got array of length " + len);
   }
-  for(var i = 0; i < len; i += 2) {
-    var key = array[i];
-    var val = array[i + 1];
-    runtime.checkString(key);
+  for(let i = 0; i < len; i += 2) {
+    const key = array[i];
+    const val = array[i + 1];
     dict[key] = val;
   }
   return makeMutableStringDict(dict);
@@ -1020,12 +1017,11 @@ function internal_isISD(obj) {
 }
 
 var jsCheckISD =
-  runtime.makeCheckType(internal_isISD, "StringDict")
+  runtime.makeCheckType(internal_isISD, "StringDict");
 
-  function isImmutableStringDict(obj) {
-    arity(1, arguments, "is-immutable-string-dict", false)
-      return runtime.makeBoolean(internal_isISD(obj))
-  }
+function isImmutableStringDict(obj) {
+  return internal_isISD(obj);
+}
 
 function createImmutableStringDict() {
   var map = emptyMap();
@@ -1033,20 +1029,18 @@ function createImmutableStringDict() {
 }
 
 function createImmutableStringDictFromArray(array) {
-  arity(1, arguments, "string-dict", false);
-  runtime.checkArray(array);
-  var key_missing = {};
-  var map = emptyMap();
-  var len = array.length;
+  const key_missing = {};
+  let map = emptyMap();
+  const len = array.length;
   if(len % 2 !== 0) {
-    runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got array of length " + len);
+    throw ("Expected an even number of arguments to constructor for immutable dictionaries, got array of length " + len);
   }
   for(var i = 0; i < len; i += 2) {
-    var key = array[i];
-    var val = array[i + 1];
+    let key = array[i];
+    let val = array[i + 1];
     runtime.checkString(key);
     if (map.get(key, key_missing) !== key_missing) {
-      runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + key);
+      throw ("Creating immutable string dict with duplicate key " + key);
     }
     map = map.set(key, val);
   }
@@ -1054,11 +1048,8 @@ function createImmutableStringDictFromArray(array) {
 }
 
 function createConstImmutableStringDict(names, val) {
-  arity(2, arguments, "string-dict-of", false);
-  runtime.checkArgsInternal2("string-dict", "string-dict-of",
-    names, runtime.List, val, runtime.Any);
-  var arr = runtime.ffi.toArray(names);
-  var map = emptyMap();
+  const arr = LISTS["to-raw-array"](names);
+  let map = emptyMap();
   arr.forEach(function(k) {
     map = map.set(k, val)
   });
@@ -1066,119 +1057,84 @@ function createConstImmutableStringDict(names, val) {
 }
 
 function mapKeys(f, isd) {
-  arity(2, arguments, "map-keys", false);
-  runtime.checkArgsInternal2("string-dict", "map-keys",
-    f, runtime.Function, isd, annImmutable);
-  return runtime.getColonField(isd, "map-keys").full_meth(isd, f);
+    return isd["map-keys"](f);
 }
 
 function mapKeysNow(f, msd) {
-  arity(2, arguments, "map-keys-now", false);
-  runtime.checkArgsInternal2("string-dict", "map-keys-now",
-    f, runtime.Function, msd, annMutable);
-  return runtime.getColonField(msd, "map-keys-now").full_meth(msd, f);
+    return msd["map-keys-now"](f);
 }
 
 function foldKeys(f, init, isd) {
-  arity(3, arguments, "fold-keys", false);
-  runtime.checkArgsInternal3("string-dict", "fold-keys",
-    f, runtime.Function, init, runtime.Any, isd, annImmutable);
-  return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(acc, key); }),
-                                init, isd.$underlyingMap.keys(), 0);
+    // NOTE: f's type matches raw-array-fold's expected
+    return RAW_ARRAY["raw-array-fold"](f, init, isd.$underlyingMap.keys());
 }
 
 function foldKeysNow(f, init, msd) {
-  arity(3, arguments, "fold-keys-now", false);
-  runtime.checkArgsInternal3("string-dict", "fold-keys-now",
-    f, runtime.Function, init, runtime.Any, msd, annMutable);
-  return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(acc, key); }),
-                                init, Object.keys(msd.$underlyingDict), 0);
+    // NOTE: f's type matches raw-array-fold's expected
+    return RAW_ARRAY["raw-array-fold"](f, init, Object.keys(msd.$underlyingDict));
 }
 
 function eachKey(f, isd) {
-  arity(2, arguments, "each-key-now", false);
-  runtime.checkArgsInternal2("string-dict", "each-key",
-    f, runtime.Function, isd, annImmutable);
-  return runtime.getColonField(isd, "each-key").full_meth(isd, f);
+    return isd["each-key"](f);
 }
 
 function eachKeyNow(f, msd) {
-  arity(2, arguments, "each-key-now", false);
-  runtime.checkArgsInternal2("string-dict", "each-key-now",
-    f, runtime.Function, msd, annMutable);
-  return runtime.getColonField(msd, "each-key-now").full_meth(msd, f);
+    return msd["each-key-now"](f);
 }
 
 function createMutableStringDict0() {
-  arity(0, arguments, "mutable-string-dict0", false);
-  var dict = Object.create(null);
+  const dict = Object.create(null);
   return makeMutableStringDict(dict);
 }
 
 function createMutableStringDict1(arg) {
-  arity(1, arguments, "mutable-string-dict1", false);
-  runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+  throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
 }
 
 function createMutableStringDict2(a, b) {
-  arity(2, arguments, "mutable-string-dict2", false);
-  var dict = Object.create(null);
-  runtime.checkString(a);
+  const dict = Object.create(null);
   dict[a] = b;
   return makeMutableStringDict(dict);
 }
 
 function createMutableStringDict3(a, b, c) {
-  arity(3, arguments, "mutable-string-dict3", false);
-  runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+  throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
 }
 
 function createMutableStringDict4(a, b, c, d) {
-  arity(4, arguments, "mutable-string-dict4", false);
-  var dict = Object.create(null);
-  runtime.checkString(a);
-  runtime.checkString(c);
+  const dict = Object.create(null);
   dict[a] = b;
   dict[c] = d;
   return makeMutableStringDict(dict);
 }
 
 function createMutableStringDict5(a, b, c, d, e) {
-  arity(5, arguments, "mutable-string-dict5", false);
-  runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+  throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
 }
 
 function createImmutableStringDict0() {
-  arity(0, arguments, "string-dict0", false);
-  var map = emptyMap();
+  const map = emptyMap();
   return makeImmutableStringDict(map);
 }
 
 function createImmutableStringDict1(arg) {
-  arity(1, arguments, "string-dict1", false);
-  runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+  throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
 }
 
 function createImmutableStringDict2(a, b) {
-  arity(2, arguments, "string-dict2", false);
-  var map = emptyMap();
-  runtime.checkString(a);
+  let map = emptyMap();
   map = map.set(a, b);
   return makeImmutableStringDict(map);
 }
 
 function createImmutableStringDict3(a, b, c) {
-  arity(3, arguments, "string-dict3", false);
-  runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+  throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
 }
 
 function createImmutableStringDict4(a, b, c, d) {
-  arity(4, arguments, "string-dict4", false);
-  var map = emptyMap();
-  runtime.checkString(a);
-  runtime.checkString(c);
+  let map = emptyMap();
   if (a === c) {
-    runtime.ffi.throwMessageException("Creating immutable string dict with duplicate key " + a)
+    throw ("Creating immutable string dict with duplicate key " + a)
   }
   map = map.set(a, b);
   map = map.set(c, d);
@@ -1186,8 +1142,7 @@ function createImmutableStringDict4(a, b, c, d) {
 }
 
 function createImmutableStringDict5(a, b, c, d, e) {
-  arity(5, arguments, "string-dict5", false);
-  runtime.ffi.throwMessageException("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+  throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
 }
 
 var vals = {
