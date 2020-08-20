@@ -7,22 +7,11 @@ const SETS = require("./sets.arr.js");
 const LISTS = require("./lists.arr.js");
 const RAW_ARRAY = require("./raw-array.arr.js");
 
-var O = runtime.makeObject;
-var F = runtime.makeFunction;
-var arity = runtime.checkArity;
-var get = runtime.getField;
-
 // TODO(alex): valueskeleton
 // var VS = get(VSlib, "values");
 
 const $PMutableStringDictBrand = runtime.namedBrander("mutable-string-dict", ["string-dict: mutable-string-dict brander"]);
 const $PBrandImmutable = "immutable-string-dict";
-
-var annMutable = runtime.makeBranderAnn($PMutableStringDictBrand, "MutableStringDict");
-var annImmutable = runtime.makeBranderAnn($PBrandImmutable, "StringDict");
-
-var checkMSD = function(v) { runtime._checkAnn(["string-dict"], annMutable, v); };
-var checkISD = function(v) { runtime._checkAnn(["string-dict"], annImmutable, v); };
 
 function applyBrand(brand, val) {
   return get(brand, "brand").app(val);
@@ -986,9 +975,6 @@ function internal_isMSD(obj) {
   return hasBrand($PMutableStringDictBrand, obj);
 }
 
-var jsCheckMSD =
-  runtime.makeCheckType(internal_isMSD, "MutableStringDict");
-
 function isMutableStringDict(obj) {
     return internal_isMSD(obj);
 }
@@ -1015,9 +1001,6 @@ function createMutableStringDictFromArray(array) {
 function internal_isISD(obj) {
   return hasBrand($PBrandImmutable, obj);
 }
-
-var jsCheckISD =
-  runtime.makeCheckType(internal_isISD, "StringDict");
 
 function isImmutableStringDict(obj) {
   return internal_isISD(obj);
@@ -1145,43 +1128,34 @@ function createImmutableStringDict5(a, b, c, d, e) {
   throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
 }
 
-var vals = {
-  "make-mutable-string-dict": F(createMutableStringDict, "make-mutable-string-dict"),
-  "mutable-string-dict": O({
-    make: F(createMutableStringDictFromArray, "mutable-string-dict:make"),
-    make0: F(createMutableStringDict0, "mutable-string-dict:make0"),
-    make1: F(createMutableStringDict1, "mutable-string-dict:make1"),
-    make2: F(createMutableStringDict2, "mutable-string-dict:make2"),
-    make3: F(createMutableStringDict3, "mutable-string-dict:make3"),
-    make4: F(createMutableStringDict4, "mutable-string-dict:make4"),
-    make5: F(createMutableStringDict5, "mutable-string-dict:make5")
-  }),
-  "is-mutable-string-dict": F(isMutableStringDict, "is-mutable-string-dict"),
-  "make-string-dict": F(createImmutableStringDict, "make-string-dict"),
-  "map-keys": F(mapKeys, "map-keys"),
-  "map-keys-now": F(mapKeysNow, "map-keys-now"),
-  "fold-keys": F(foldKeys, "fold-keys"),
-  "fold-keys-now": F(foldKeysNow, "fold-keys-now"),
-  "each-key": F(eachKey, "each-key"),
-  "each-key-now": F(eachKeyNow, "each-key-now"),
-  "string-dict": O({
-    make: F(createImmutableStringDictFromArray, "string-dict:make"),
-    make0: F(createImmutableStringDict0, "string-dict:make0"),
-    make1: F(createImmutableStringDict1, "string-dict:make1"),
-    make2: F(createImmutableStringDict2, "string-dict:make2"),
-    make3: F(createImmutableStringDict3, "string-dict:make3"),
-    make4: F(createImmutableStringDict4, "string-dict:make4"),
-    make5: F(createImmutableStringDict5, "string-dict:make5")
-  }),
-  "string-dict-of": F(createConstImmutableStringDict, "string-dict-of"),
-  "is-string-dict": F(isImmutableStringDict, "is-string-dict")
+module.exports = {
+  "make-mutable-string-dict": createMutableStringDict,
+  "mutable-string-dict": {
+    make: createMutableStringDictFromArray,
+    make0: createMutableStringDict0,
+    make1: createMutableStringDict1,
+    make2: createMutableStringDict2,
+    make3: createMutableStringDict3,
+    make4: createMutableStringDict4,
+    make5: createMutableStringDict5
+  },
+  "is-mutable-string-dict": isMutableStringDict,
+  "make-string-dict": createImmutableStringDict,
+  "map-keys": mapKeys,
+  "map-keys-now": mapKeysNow,
+  "fold-keys": foldKeys,
+  "fold-keys-now": foldKeysNow,
+  "each-key": eachKey,
+  "each-key-now": eachKeyNow,
+  "string-dict": {
+    make: createImmutableStringDictFromArray,
+    make0: createImmutableStringDict0,
+    make1: createImmutableStringDict1,
+    make2: createImmutableStringDict2,
+    make3: createImmutableStringDict3,
+    make4: createImmutableStringDict4,
+    make5: createImmutableStringDict5
+  },
+  "string-dict-of": createConstImmutableStringDict,
+  "is-string-dict": isImmutableStringDict
 };
-var types = {
-  MutableStringDict: annMutable,
-  StringDict: annImmutable
-};
-var internal = {
-  checkISD: jsCheckISD,
-  checkMSD: jsCheckMSD
-};
-return runtime.makeModuleReturn(vals, types, internal);
