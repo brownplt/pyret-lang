@@ -25,10 +25,6 @@ import {
 } from './chunk';
 
 import {
-  Effect,
-} from './effect';
-
-import {
   makeRHSObjects,
 } from './rhsObject';
 
@@ -217,13 +213,13 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
 
       const shouldCompile = allLinted && !compiling && !running;
 
-      return {
+      return handleEnter({
         ...state,
         chunks: newChunks,
         linted: allLinted,
         linting: !allLinted,
         effectQueue: shouldCompile ? [...effectQueue, 'compile'] : effectQueue,
-      };
+      });
     }
     default:
       throw new Error('handleLintSuccess: unknown editor mode');
@@ -332,33 +328,41 @@ function handleSaveFileSuccess(state: State): State {
     chunks,
   } = state;
 
-  function getNewEffectQueue(): Effect[] {
-    let needsLint = false;
+  let newEffectQueue = effectQueue;
+  let needsLint = false;
+  let shouldHandleEnter = false;
 
-    for (let i = 0; i < chunks.length; i += 1) {
-      if (chunks[i].errorState.status !== 'succeeded') {
-        needsLint = true;
-        break;
-      }
+  for (let i = 0; i < chunks.length; i += 1) {
+    if (chunks[i].errorState.status !== 'succeeded') {
+      needsLint = true;
+      break;
     }
+  }
 
-    if (autoRun && compiling !== true && !running) {
-      if (needsLint) {
-        return [...effectQueue, 'lint'];
-      }
-
-      if (autoRun) {
-        return [...effectQueue, 'compile'];
-      }
+  if (autoRun && compiling !== true && !running) {
+    if (needsLint) {
+      newEffectQueue = [...effectQueue, 'lint'];
+    } else if (autoRun) {
+      // Chunks are inserted after a lint success. In this case, we aren't
+      // linting, but we still would like to possibly create a new chunk.
+      shouldHandleEnter = true;
+      newEffectQueue = [...effectQueue, 'compile'];
     }
+  }
 
-    return effectQueue;
+  if (shouldHandleEnter) {
+    return handleEnter({
+      ...state,
+      isFileSaved: true,
+      effectQueue: newEffectQueue,
+      linted: true,
+    });
   }
 
   return {
     ...state,
     isFileSaved: true,
-    effectQueue: getNewEffectQueue(),
+    effectQueue: newEffectQueue,
   };
 }
 
