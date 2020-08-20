@@ -38,569 +38,569 @@ function OwnerID() {}
 // This function drops the highest order bit in a signed number, maintaining
 // the sign bit.
 function smi(i32) {
-  return ((i32 >>> 1) & 0x40000000) | (i32 & 0xBFFFFFFF);
+    return ((i32 >>> 1) & 0x40000000) | (i32 & 0xBFFFFFFF);
 }
 
 function hash(str) {
-  return str.length > STRING_HASH_CACHE_MIN_STRLEN ? cachedHashString(str) : hashString(str);
+    return str.length > STRING_HASH_CACHE_MIN_STRLEN ? cachedHashString(str) : hashString(str);
 }
 
 function cachedHashString(string) {
-  var hash = stringHashCache[string];
-  if (hash === undefined) {
-    hash = hashString(string);
-    if (STRING_HASH_CACHE_SIZE === STRING_HASH_CACHE_MAX_SIZE) {
-      STRING_HASH_CACHE_SIZE = 0;
-      stringHashCache = {};
+    var hash = stringHashCache[string];
+    if (hash === undefined) {
+        hash = hashString(string);
+        if (STRING_HASH_CACHE_SIZE === STRING_HASH_CACHE_MAX_SIZE) {
+            STRING_HASH_CACHE_SIZE = 0;
+            stringHashCache = {};
+        }
+        STRING_HASH_CACHE_SIZE++;
+        stringHashCache[string] = hash;
     }
-    STRING_HASH_CACHE_SIZE++;
-    stringHashCache[string] = hash;
-  }
-  return hash;
+    return hash;
 }
 
 // http://jsperf.com/hashing-strings
 function hashString(string) {
-  // This is the hash from JVM
-  // The hash code for a string is computed as
-  // s[0] * 31 ^ (n - 1) + s[1] * 31 ^ (n - 2) + ... + s[n - 1],
-  // where s[i] is the ith character of the string and n is the length of
-  // the string. We "mod" the result to make it between 0 (inclusive) and 2^31
-  // (exclusive) by dropping high bits.
-  var hash = 0;
-  for (var ii = 0; ii < string.length; ii++) {
-    hash = 31 * hash + string.charCodeAt(ii) | 0;
-  }
-  return smi(hash);
+    // This is the hash from JVM
+    // The hash code for a string is computed as
+    // s[0] * 31 ^ (n - 1) + s[1] * 31 ^ (n - 2) + ... + s[n - 1],
+    // where s[i] is the ith character of the string and n is the length of
+    // the string. We "mod" the result to make it between 0 (inclusive) and 2^31
+    // (exclusive) by dropping high bits.
+    var hash = 0;
+    for (var ii = 0; ii < string.length; ii++) {
+        hash = 31 * hash + string.charCodeAt(ii) | 0;
+    }
+    return smi(hash);
 }
 
 function popCount(x) {
-  x = x - ((x >> 1) & 0x55555555);
-  x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
-  x = (x + (x >> 4)) & 0x0f0f0f0f;
-  x = x + (x >> 8);
-  x = x + (x >> 16);
-  return x & 0x7f;
+    x = x - ((x >> 1) & 0x55555555);
+    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+    x = (x + (x >> 4)) & 0x0f0f0f0f;
+    x = x + (x >> 8);
+    x = x + (x >> 16);
+    return x & 0x7f;
 }
 
 function setIn(array, idx, val, canEdit) {
-  var newArray = canEdit ? array : arrCopy(array, 0);
-  newArray[idx] = val;
-  return newArray;
+    var newArray = canEdit ? array : arrCopy(array, 0);
+    newArray[idx] = val;
+    return newArray;
 }
 
 function spliceIn(array, idx, val, canEdit) {
-  var newLen = array.length + 1;
-  if (canEdit && idx + 1 === newLen) {
-    array[idx] = val;
-    return array;
-  }
-  var newArray = new Array(newLen);
-  var after = 0;
-  for (var ii = 0; ii < newLen; ii++) {
-    if (ii === idx) {
-      newArray[ii] = val;
-      after = -1;
-    } else {
-      newArray[ii] = array[ii + after];
+    var newLen = array.length + 1;
+    if (canEdit && idx + 1 === newLen) {
+        array[idx] = val;
+        return array;
     }
-  }
-  return newArray;
+    var newArray = new Array(newLen);
+    var after = 0;
+    for (var ii = 0; ii < newLen; ii++) {
+        if (ii === idx) {
+            newArray[ii] = val;
+            after = -1;
+        } else {
+            newArray[ii] = array[ii + after];
+        }
+    }
+    return newArray;
 }
 
 function spliceOut(array, idx, canEdit) {
-  var newLen = array.length - 1;
-  if (canEdit && idx === newLen) {
-    array.pop();
-    return array;
-  }
-  var newArray = new Array(newLen);
-  var after = 0;
-  for (var ii = 0; ii < newLen; ii++) {
-    if (ii === idx) {
-      after = 1;
+    var newLen = array.length - 1;
+    if (canEdit && idx === newLen) {
+        array.pop();
+        return array;
     }
-    newArray[ii] = array[ii + after];
-  }
-  return newArray;
+    var newArray = new Array(newLen);
+    var after = 0;
+    for (var ii = 0; ii < newLen; ii++) {
+        if (ii === idx) {
+            after = 1;
+        }
+        newArray[ii] = array[ii + after];
+    }
+    return newArray;
 }
 
 function arrCopy(arr, offset) {
-  offset = offset || 0;
-  var len = Math.max(0, arr.length - offset);
-  var newArr = new Array(len);
-  for (var ii = 0; ii < len; ii++) {
-    newArr[ii] = arr[ii + offset];
-  }
-  return newArr;
+    offset = offset || 0;
+    var len = Math.max(0, arr.length - offset);
+    var newArr = new Array(len);
+    for (var ii = 0; ii < len; ii++) {
+        newArr[ii] = arr[ii + offset];
+    }
+    return newArr;
 }
 
 function MakeRef(ref) {
-  ref.value = false;
-  return ref;
+    ref.value = false;
+    return ref;
 }
 
 function SetRef(ref) {
-  ref && (ref.value = true);
+    ref && (ref.value = true);
 }
 
 function emptyMap() {
     // NOTE: originally last two arugments were omitted
     //   Set to undefined?
-  return new ImmutableMap(0, undefined, undefined);
+    return new ImmutableMap(0, undefined, undefined);
 }
 
 function ImmutableMap(size, root, ownerID) {
-  this.size = size;
-  this._root = root;
-  this.__ownerID = ownerID;
+    this.size = size;
+    this._root = root;
+    this.__ownerID = ownerID;
 
-  this.get = function(k, notSetValue) {
-    return this._root ?
-      this._root.get(0, undefined, k, notSetValue) :
-      notSetValue;
-  };
+    this.get = function(k, notSetValue) {
+        return this._root ?
+            this._root.get(0, undefined, k, notSetValue) :
+            notSetValue;
+    };
 
-  this.set = function(k, v) {
-    return updateMap(this, k, v);
-  };
+    this.set = function(k, v) {
+        return updateMap(this, k, v);
+    };
 
-  this.remove = function(k) {
-    return updateMap(this, k, NOT_SET);
-  };
+    this.remove = function(k) {
+        return updateMap(this, k, NOT_SET);
+    };
 
-  this.keys = function() {
-    if (!this._root) {
-      return [];
-    } else {
-      return this._root.keys([]);
-    }
-  };
+    this.keys = function() {
+        if (!this._root) {
+            return [];
+        } else {
+            return this._root.keys([]);
+        }
+    };
 }
 
 function updateMap(map, k, v) {
-  var newRoot;
-  var newSize;
-  if (!map._root) {
-    if (v == NOT_SET) {
-      return map;
+    var newRoot;
+    var newSize;
+    if (!map._root) {
+        if (v == NOT_SET) {
+            return map;
+        }
+        newSize = 1;
+        newRoot = new ArrayMapNode(map.__ownerID, [[k, v]]);
+    } else {
+        var didChangeSize = MakeRef(CHANGE_LENGTH);
+        var didAlter = MakeRef(DID_ALTER);
+        newRoot = updateNode(map._root, map.__ownerID, 0, undefined, k, v, didChangeSize, didAlter);
+        if (!didAlter.value) {
+            return map;
+        }
+        newSize = map.size + (didChangeSize.value ? v === NOT_SET ? -1 : 1 : 0);
     }
-    newSize = 1;
-    newRoot = new ArrayMapNode(map.__ownerID, [[k, v]]);
-  } else {
-    var didChangeSize = MakeRef(CHANGE_LENGTH);
-    var didAlter = MakeRef(DID_ALTER);
-    newRoot = updateNode(map._root, map.__ownerID, 0, undefined, k, v, didChangeSize, didAlter);
-    if (!didAlter.value) {
-      return map;
+    if (map.__ownerID) {
+        map.size = newSize;
+        map._root = newRoot;
+        return map;
     }
-    newSize = map.size + (didChangeSize.value ? v === NOT_SET ? -1 : 1 : 0);
-  }
-  if (map.__ownerID) {
-    map.size = newSize;
-    map._root = newRoot;
-    return map;
-  }
-  return newRoot ? new ImmutableMap(newSize, newRoot, undefined) : new ImmutableMap(0, undefined, undefined);
+    return newRoot ? new ImmutableMap(newSize, newRoot, undefined) : new ImmutableMap(0, undefined, undefined);
 }
 
 function updateNode(node, ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
-  if (!node) {
-    if (value === NOT_SET) {
-      return node;
+    if (!node) {
+        if (value === NOT_SET) {
+            return node;
+        }
+        SetRef(didAlter);
+        SetRef(didChangeSize);
+        return new ValueNode(ownerID, keyHash, [key, value]);
     }
-    SetRef(didAlter);
-    SetRef(didChangeSize);
-    return new ValueNode(ownerID, keyHash, [key, value]);
-  }
-  return node.update(ownerID, shift, keyHash, key, value, didChangeSize, didAlter);
+    return node.update(ownerID, shift, keyHash, key, value, didChangeSize, didAlter);
 }
 
 function createNodes(ownerID, entries, key, value) {
-  if (!ownerID) {
-    ownerID = new OwnerID();
-  }
-  var node = new ValueNode(ownerID, hash(key), [key, value]);
-  for (var ii = 0; ii < entries.length; ii++) {
-    var entry = entries[ii];
-    node = node.update(ownerID, 0, undefined, entry[0], entry[1]);
-  }
-  return node;
+    if (!ownerID) {
+        ownerID = new OwnerID();
+    }
+    var node = new ValueNode(ownerID, hash(key), [key, value]);
+    for (var ii = 0; ii < entries.length; ii++) {
+        var entry = entries[ii];
+        node = node.update(ownerID, 0, undefined, entry[0], entry[1]);
+    }
+    return node;
 }
 
 function packNodes(ownerID, nodes, count, excluding) {
-  var bitmap = 0;
-  var packedII =0;
-  var packedNodes = new Array(count);
-  for (var ii = 0, bit = 1, len = nodes.length; ii < len; ii++, bit <<= 1) {
-    var node = nodes[ii];
-    if (node !== undefined && ii !== excluding) {
-      bitmap |= bit;
-      packedNodes[packedII++] = node;
+    var bitmap = 0;
+    var packedII =0;
+    var packedNodes = new Array(count);
+    for (var ii = 0, bit = 1, len = nodes.length; ii < len; ii++, bit <<= 1) {
+        var node = nodes[ii];
+        if (node !== undefined && ii !== excluding) {
+            bitmap |= bit;
+            packedNodes[packedII++] = node;
+        }
     }
-  }
-  return new BitmapIndexedNode(ownerID, bitmap, packedNodes);
+    return new BitmapIndexedNode(ownerID, bitmap, packedNodes);
 }
 
 function expandNodes(ownerID, nodes, bitmap, including, node) {
-  var count = 0;
-  var expandedNodes = new Array(SIZE);
-  for (var ii = 0; bitmap !== 0; ii++, bitmap >>>= 1) {
-    expandedNodes[ii] = bitmap & 1 ? nodes[count++] : undefined;
-  }
-  expandedNodes[including] = node;
-  return new HashArrayMapNode(ownerID, count + 1, expandedNodes);
+    var count = 0;
+    var expandedNodes = new Array(SIZE);
+    for (var ii = 0; bitmap !== 0; ii++, bitmap >>>= 1) {
+        expandedNodes[ii] = bitmap & 1 ? nodes[count++] : undefined;
+    }
+    expandedNodes[including] = node;
+    return new HashArrayMapNode(ownerID, count + 1, expandedNodes);
 }
 
 function mergeIntoNode(node, ownerID, shift, keyHash, entry) {
-  if (node.keyHash === keyHash) {
-    return new HashCollisionNode(ownerID, keyHash, [node.entry, entry]);
-  }
+    if (node.keyHash === keyHash) {
+        return new HashCollisionNode(ownerID, keyHash, [node.entry, entry]);
+    }
 
-  var idx1 = (shift === 0 ? node.keyHash : node.keyHash >>> shift) & MASK;
-  var idx2 = (shift === 0 ? keyHash : keyHash >>> shift) & MASK;
+    var idx1 = (shift === 0 ? node.keyHash : node.keyHash >>> shift) & MASK;
+    var idx2 = (shift === 0 ? keyHash : keyHash >>> shift) & MASK;
 
-  var newNode;
-  var nodes = (idx1 === idx2) ?
-    [mergeIntoNode(node, ownerID, shift + SHIFT, keyHash, entry)] :
-    ((newNode = new ValueNode(ownerID, keyHash, entry)), idx1 < idx2 ? [node, newNode] : [newNode, node]);
+    var newNode;
+    var nodes = (idx1 === idx2) ?
+        [mergeIntoNode(node, ownerID, shift + SHIFT, keyHash, entry)] :
+        ((newNode = new ValueNode(ownerID, keyHash, entry)), idx1 < idx2 ? [node, newNode] : [newNode, node]);
 
-  return new BitmapIndexedNode(ownerID, (1 << idx1) | (1 << idx2), nodes);
+    return new BitmapIndexedNode(ownerID, (1 << idx1) | (1 << idx2), nodes);
 }
 
 function isLeafNode(node) {
-  return node.constructor === ValueNode || node.constructor === HashCollisionNode;
+    return node.constructor === ValueNode || node.constructor === HashCollisionNode;
 }
 
 function ArrayMapNode(ownerID, entries) {
-  this.ownerID = ownerID;
-  this.entries = entries;
+    this.ownerID = ownerID;
+    this.entries = entries;
 
-  this.get = function(shift, keyHash, key, notSetValue) {
-    var entries = this.entries;
-    for (var ii = 0, len = entries.length; ii < len; ii++) {
-      if (key === entries[ii][0]) {
-        return entries[ii][1];
-      }
-    }
-    return notSetValue;
-  };
+    this.get = function(shift, keyHash, key, notSetValue) {
+        var entries = this.entries;
+        for (var ii = 0, len = entries.length; ii < len; ii++) {
+            if (key === entries[ii][0]) {
+                return entries[ii][1];
+            }
+        }
+        return notSetValue;
+    };
 
-  this.keys = function(ret) {
-    for (var i = 0; i < this.entries.length; i++)
-      ret.push(this.entries[i][0]);
-    return ret;
-  };
+    this.keys = function(ret) {
+        for (var i = 0; i < this.entries.length; i++)
+            ret.push(this.entries[i][0]);
+        return ret;
+    };
 
-  this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
-    var removed = (value === NOT_SET);
+    this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
+        var removed = (value === NOT_SET);
 
-    var entries = this.entries;
-    var idx = 0;
-    for (var len = entries.length; idx < len; idx++) {
-      if (key === entries[idx][0]) {
-        break;
-      }
-    }
-    var exists = idx < len;
+        var entries = this.entries;
+        var idx = 0;
+        for (var len = entries.length; idx < len; idx++) {
+            if (key === entries[idx][0]) {
+                break;
+            }
+        }
+        var exists = idx < len;
 
-    if (exists ? entries[idx][1] === value : removed) {
-      return this;
-    }
+        if (exists ? entries[idx][1] === value : removed) {
+            return this;
+        }
 
-    SetRef(didAlter);
-    (removed || !exists) && SetRef(didChangeSize);
+        SetRef(didAlter);
+        (removed || !exists) && SetRef(didChangeSize);
 
-    if (removed && entries.length === 1) {
-      return undefined;
-    }
+        if (removed && entries.length === 1) {
+            return undefined;
+        }
 
-    if (!exists && !removed && entries.length >= MAX_ARRAY_MAP_SIZE) {
-      return createNodes(ownerID, entries, key, value);
-    }
+        if (!exists && !removed && entries.length >= MAX_ARRAY_MAP_SIZE) {
+            return createNodes(ownerID, entries, key, value);
+        }
 
-    var isEditable = ownerID && ownerID === this.ownerID;
-    var newEntries = isEditable ? entries : arrCopy(entries, 0);
+        var isEditable = ownerID && ownerID === this.ownerID;
+        var newEntries = isEditable ? entries : arrCopy(entries, 0);
 
-    if (exists) {
-      if (removed) {
-        idx === len - 1 ? newEntries.pop() : (newEntries[idx] = newEntries.pop());
-      } else {
-        newEntries[idx] = [key, value];
-      }
-    } else {
-      newEntries.push([key, value]);
-    }
+        if (exists) {
+            if (removed) {
+                idx === len - 1 ? newEntries.pop() : (newEntries[idx] = newEntries.pop());
+            } else {
+                newEntries[idx] = [key, value];
+            }
+        } else {
+            newEntries.push([key, value]);
+        }
 
-    if (isEditable) {
-      this.entries = newEntries;
-      return this;
-    }
+        if (isEditable) {
+            this.entries = newEntries;
+            return this;
+        }
 
-    return new ArrayMapNode(ownerID, newEntries);
-  };
+        return new ArrayMapNode(ownerID, newEntries);
+    };
 }
 
 function ValueNode(ownerID, keyHash, entry) {
-  this.ownerID = ownerID;
-  this.keyHash = keyHash;
-  this.entry = entry;
+    this.ownerID = ownerID;
+    this.keyHash = keyHash;
+    this.entry = entry;
 
-  this.get = function(shift, keyHash, key, notSetValue) {
-    return key === this.entry[0] ? this.entry[1] : notSetValue;
-  };
+    this.get = function(shift, keyHash, key, notSetValue) {
+        return key === this.entry[0] ? this.entry[1] : notSetValue;
+    };
 
-  this.keys = function(ret) {
-    ret.push(this.entry[0]);
-    return ret;
-  };
+    this.keys = function(ret) {
+        ret.push(this.entry[0]);
+        return ret;
+    };
 
-  this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
-    var removed = (value === NOT_SET);
-    var keyMatch = (key === this.entry[0]);
-    if (keyMatch ? value === this.entry[1] : removed) {
-      return this;
-    }
+    this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
+        var removed = (value === NOT_SET);
+        var keyMatch = (key === this.entry[0]);
+        if (keyMatch ? value === this.entry[1] : removed) {
+            return this;
+        }
 
-    SetRef(didAlter);
+        SetRef(didAlter);
 
-    if (removed) {
-      SetRef(didChangeSize);
-      return undefined;
-    }
+        if (removed) {
+            SetRef(didChangeSize);
+            return undefined;
+        }
 
-    if (keyMatch) {
-      if (ownerID && ownerID === this.ownerID) {
-        this.entry[1] = value;
-        return this;
-      }
-      return new ValueNode(ownerID, this.keyHash, [key, value]);
-    }
+        if (keyMatch) {
+            if (ownerID && ownerID === this.ownerID) {
+                this.entry[1] = value;
+                return this;
+            }
+            return new ValueNode(ownerID, this.keyHash, [key, value]);
+        }
 
-    SetRef(didChangeSize);
-    return mergeIntoNode(this, ownerID, shift, hash(key), [key, value]);
-  };
+        SetRef(didChangeSize);
+        return mergeIntoNode(this, ownerID, shift, hash(key), [key, value]);
+    };
 }
 
 function HashCollisionNode(ownerID, keyHash, entries) {
-  this.ownerID = ownerID;
-  this.keyHash = keyHash;
-  this.entries = entries;
+    this.ownerID = ownerID;
+    this.keyHash = keyHash;
+    this.entries = entries;
 
-  this.get = function(shift, keyHash, key, notSetValue) {
-    var entries = this.entries;
-    for (var ii = 0, len = entries.length; ii < len; ii++) {
-      if (key === entries[ii][0]) {
-        return entries[ii][1];
-      }
-    }
-    return notSetValue;
-  };
+    this.get = function(shift, keyHash, key, notSetValue) {
+        var entries = this.entries;
+        for (var ii = 0, len = entries.length; ii < len; ii++) {
+            if (key === entries[ii][0]) {
+                return entries[ii][1];
+            }
+        }
+        return notSetValue;
+    };
 
-  this.keys = function(ret) {
-    for (var i = 0; i < this.entries.length; i++)
-      ret.push(this.entries[i][0]);
-    return ret;
-  };
+    this.keys = function(ret) {
+        for (var i = 0; i < this.entries.length; i++)
+            ret.push(this.entries[i][0]);
+        return ret;
+    };
 
-  this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
-    if (keyHash === undefined) {
-      keyHash = hash(key);
-    }
+    this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
+        if (keyHash === undefined) {
+            keyHash = hash(key);
+        }
 
-    var removed = (value === NOT_SET);
+        var removed = (value === NOT_SET);
 
-    if (keyHash !== this.keyHash) {
-      if (removed) {
-        return this;
-      }
-      SetRef(didAlter);
-      SetRef(didChangeSize);
-      return mergeIntoNode(this, ownerID, shift, keyHash, [key, value]);
-    }
+        if (keyHash !== this.keyHash) {
+            if (removed) {
+                return this;
+            }
+            SetRef(didAlter);
+            SetRef(didChangeSize);
+            return mergeIntoNode(this, ownerID, shift, keyHash, [key, value]);
+        }
 
-    var entries = this.entries;
-    var idx = 0;
-    for (var len = entries.length; idx < len; idx++) {
-      if (key === entries[idx][0]) {
-        break;
-      }
-    }
-    var exists = idx < len;
+        var entries = this.entries;
+        var idx = 0;
+        for (var len = entries.length; idx < len; idx++) {
+            if (key === entries[idx][0]) {
+                break;
+            }
+        }
+        var exists = idx < len;
 
-    if (exists ? entries[idx][1] === value : removed) {
-      return this;
-    }
+        if (exists ? entries[idx][1] === value : removed) {
+            return this;
+        }
 
-    SetRef(didAlter);
-    (removed || !exists) && SetRef(didChangeSize);
+        SetRef(didAlter);
+        (removed || !exists) && SetRef(didChangeSize);
 
-    if (removed && len === 2) {
-      return new ValueNode(ownerID, this.keyHAsh, entries[idx ^ 1]);
-    }
+        if (removed && len === 2) {
+            return new ValueNode(ownerID, this.keyHAsh, entries[idx ^ 1]);
+        }
 
-    var isEditable = ownerID && ownerID === this.ownerID;
-    var newEntries = isEditable ? entries : arrCopy(entries, 0);
+        var isEditable = ownerID && ownerID === this.ownerID;
+        var newEntries = isEditable ? entries : arrCopy(entries, 0);
 
-    if (exists) {
-      if (removed) {
-        idx === len - 1 ? newEntries.pop() : (newEntries[idx] = newEntries.pop());
-      } else {
-        newEntries[idx] = [key, value];
-      }
-    } else {
-      newEntries.push([key, value]);
-    }
+        if (exists) {
+            if (removed) {
+                idx === len - 1 ? newEntries.pop() : (newEntries[idx] = newEntries.pop());
+            } else {
+                newEntries[idx] = [key, value];
+            }
+        } else {
+            newEntries.push([key, value]);
+        }
 
-    if (isEditable) {
-      this.entries = newEntries;
-      return this;
-    }
+        if (isEditable) {
+            this.entries = newEntries;
+            return this;
+        }
 
-    return new HashCollisionNode(ownerID, this.keyHash, newEntries);
-  };
+        return new HashCollisionNode(ownerID, this.keyHash, newEntries);
+    };
 }
 
 function BitmapIndexedNode(ownerID, bitmap, nodes) {
-  this.ownerID = ownerID;
-  this.bitmap = bitmap;
-  this.nodes = nodes;
+    this.ownerID = ownerID;
+    this.bitmap = bitmap;
+    this.nodes = nodes;
 
-  this.get = function(shift, keyHash, key, notSetValue) {
-    if (keyHash === undefined) {
-      keyHash = hash(key);
-    }
-    var bit = (1 << ((shift === 0 ? keyHash : keyHash >>> shift) & MASK));
-    var bitmap = this.bitmap;
-    return (bitmap & bit) === 0 ? notSetValue :
-      this.nodes[popCount(bitmap & (bit -1))].get(shift + SHIFT, keyHash, key, notSetValue);
-  };
+    this.get = function(shift, keyHash, key, notSetValue) {
+        if (keyHash === undefined) {
+            keyHash = hash(key);
+        }
+        var bit = (1 << ((shift === 0 ? keyHash : keyHash >>> shift) & MASK));
+        var bitmap = this.bitmap;
+        return (bitmap & bit) === 0 ? notSetValue :
+            this.nodes[popCount(bitmap & (bit -1))].get(shift + SHIFT, keyHash, key, notSetValue);
+    };
 
-  this.keys = function(ret) {
-    var nodes = this.nodes;
-    for (var ii = 0, maxIndex = nodes.length - 1; ii <= maxIndex; ii++) {
-      var node = nodes[ii];
-      if (node) {
-        node.keys(ret);
-      }
-    }
-    return ret;
-  };
+    this.keys = function(ret) {
+        var nodes = this.nodes;
+        for (var ii = 0, maxIndex = nodes.length - 1; ii <= maxIndex; ii++) {
+            var node = nodes[ii];
+            if (node) {
+                node.keys(ret);
+            }
+        }
+        return ret;
+    };
 
-  this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
-    if (keyHash === undefined) {
-      keyHash = hash(key);
-    }
-    var keyHashFrag = (shift === 0 ? keyHash : keyHash >>> shift) & MASK;
-    var bit = 1 << keyHashFrag;
-    var bitmap = this.bitmap;
-    var exists = (bitmap & bit) !== 0;
+    this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
+        if (keyHash === undefined) {
+            keyHash = hash(key);
+        }
+        var keyHashFrag = (shift === 0 ? keyHash : keyHash >>> shift) & MASK;
+        var bit = 1 << keyHashFrag;
+        var bitmap = this.bitmap;
+        var exists = (bitmap & bit) !== 0;
 
-    if (!exists && value === NOT_SET) {
-      return this;
-    }
+        if (!exists && value === NOT_SET) {
+            return this;
+        }
 
-    var idx = popCount(bitmap & (bit - 1));
-    var nodes = this.nodes;
-    var node = exists ? nodes[idx] : undefined;
-    var newNode = updateNode(node, ownerID, shift + SHIFT, keyHash, key, value, didChangeSize, didAlter);
+        var idx = popCount(bitmap & (bit - 1));
+        var nodes = this.nodes;
+        var node = exists ? nodes[idx] : undefined;
+        var newNode = updateNode(node, ownerID, shift + SHIFT, keyHash, key, value, didChangeSize, didAlter);
 
-    if (newNode === node) {
-      return this;
-    }
+        if (newNode === node) {
+            return this;
+        }
 
-    if (!exists && newNode && nodes.length >= MAX_BITMAP_INDEXED_SIZE) {
-      return expandNodes(ownerID, nodes, bitmap, keyHashFrag, newNode);
-    }
+        if (!exists && newNode && nodes.length >= MAX_BITMAP_INDEXED_SIZE) {
+            return expandNodes(ownerID, nodes, bitmap, keyHashFrag, newNode);
+        }
 
-    if (exists && !newNode && nodes.length === 2 && isLeafNode(nodes[idx ^ 1])) {
-      return nodes[idx ^ 1];
-    }
+        if (exists && !newNode && nodes.length === 2 && isLeafNode(nodes[idx ^ 1])) {
+            return nodes[idx ^ 1];
+        }
 
-    if (exists && newNode && nodes.length === 1 && isLeafNode(newNode)) {
-      return newNode;
-    }
+        if (exists && newNode && nodes.length === 1 && isLeafNode(newNode)) {
+            return newNode;
+        }
 
-    var isEditable = ownerID && ownerID === this.ownerID;
-    var newBitmap = exists ? newNode ? bitmap : bitmap ^ bit : bitmap | bit;
-    var newNodes = exists ? newNode ?
-      setIn(nodes, idx, newNode, isEditable) :
-      spliceOut(nodes, idx, isEditable) :
-      spliceIn(nodes, idx, newNode, isEditable);
+        var isEditable = ownerID && ownerID === this.ownerID;
+        var newBitmap = exists ? newNode ? bitmap : bitmap ^ bit : bitmap | bit;
+        var newNodes = exists ? newNode ?
+            setIn(nodes, idx, newNode, isEditable) :
+            spliceOut(nodes, idx, isEditable) :
+            spliceIn(nodes, idx, newNode, isEditable);
 
-    if (isEditable) {
-      this.bitmap = newBitmap;
-      this.nodes = newNodes;
-      return this;
-    }
+        if (isEditable) {
+            this.bitmap = newBitmap;
+            this.nodes = newNodes;
+            return this;
+        }
 
-    return new BitmapIndexedNode(ownerID, newBitmap, newNodes);
-  };
+        return new BitmapIndexedNode(ownerID, newBitmap, newNodes);
+    };
 }
 
 function HashArrayMapNode(ownerID, count, nodes) {
-  this.ownerID = ownerID;
-  this.count = count;
-  this.nodes = nodes;
+    this.ownerID = ownerID;
+    this.count = count;
+    this.nodes = nodes;
 
-  this.get = function(shift, keyHash, key, notSetValue) {
-    if (keyHash === undefined) {
-      keyHash = hash(key);
-    }
-    var idx = (shift === 0 ? keyHash : keyHash >>> shift) & MASK;
-    var node = this.nodes[idx];
-    return node ? node.get(shift + SHIFT, keyHash, key, notSetValue) : notSetValue;
-  };
-  this.keys = function(ret) {
-    var nodes = this.nodes;
-    for (var ii = 0, maxIndex = nodes.length - 1; ii <= maxIndex; ii++) {
-      var node = nodes[ii];
-      if (node) {
-        node.keys(ret);
-      }
-    }
-    return ret;
-  };
+    this.get = function(shift, keyHash, key, notSetValue) {
+        if (keyHash === undefined) {
+            keyHash = hash(key);
+        }
+        var idx = (shift === 0 ? keyHash : keyHash >>> shift) & MASK;
+        var node = this.nodes[idx];
+        return node ? node.get(shift + SHIFT, keyHash, key, notSetValue) : notSetValue;
+    };
+    this.keys = function(ret) {
+        var nodes = this.nodes;
+        for (var ii = 0, maxIndex = nodes.length - 1; ii <= maxIndex; ii++) {
+            var node = nodes[ii];
+            if (node) {
+                node.keys(ret);
+            }
+        }
+        return ret;
+    };
 
-  this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
-    if (keyHash === undefined) {
-      keyHash = hash(key);
-    }
-    var idx = (shift === 0 ? keyHash : keyHash >>> shift) & MASK;
-    var removed = (value === NOT_SET);
-    var nodes = this.nodes;
-    var node = nodes[idx];
+    this.update = function(ownerID, shift, keyHash, key, value, didChangeSize, didAlter) {
+        if (keyHash === undefined) {
+            keyHash = hash(key);
+        }
+        var idx = (shift === 0 ? keyHash : keyHash >>> shift) & MASK;
+        var removed = (value === NOT_SET);
+        var nodes = this.nodes;
+        var node = nodes[idx];
 
-    if (removed && !node) {
-      return this;
-    }
+        if (removed && !node) {
+            return this;
+        }
 
-    var newNode = updateNode(node, ownerID, shift + SHIFT, keyHash, key, value, didChangeSize, didAlter);
-    if (newNode === node) {
-      return this;
-    }
+        var newNode = updateNode(node, ownerID, shift + SHIFT, keyHash, key, value, didChangeSize, didAlter);
+        if (newNode === node) {
+            return this;
+        }
 
-    var newCount = this.count;
-    if (!node) {
-      newCount++;
-    } else if (!newNode) {
-      newCount--;
-      if (newCount < MIN_HASH_ARRAY_MAP_SIZE) {
-        return packNodes(ownerID, nodes, newCount, idx);
-      }
-    }
+        var newCount = this.count;
+        if (!node) {
+            newCount++;
+        } else if (!newNode) {
+            newCount--;
+            if (newCount < MIN_HASH_ARRAY_MAP_SIZE) {
+                return packNodes(ownerID, nodes, newCount, idx);
+            }
+        }
 
-    var isEditable = ownerID && ownerID === this.ownerID;
-    var newNodes = setIn(nodes, idx, newNode, isEditable);
+        var isEditable = ownerID && ownerID === this.ownerID;
+        var newNodes = setIn(nodes, idx, newNode, isEditable);
 
-    if (isEditable) {
-      this.count = newCount;
-      this.nodes = newNodes;
-      return this;
-    }
+        if (isEditable) {
+            this.count = newCount;
+            this.nodes = newNodes;
+            return this;
+        }
 
-    return new HashArrayMapNode(ownerID, newCount, newNodes);
-  };
+        return new HashArrayMapNode(ownerID, newCount, newNodes);
+    };
 }
 
 function eqHelp(pyretSelf, other, selfKeys, recEq) {
@@ -625,13 +625,13 @@ function eqHelp(pyretSelf, other, selfKeys, recEq) {
 
 //////////////////////////////////////////////////
 const getISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
-  const missing_value = {};
-  const val = pyretSelf.$underlyingMap.get(key, missing_value);
-  if (val === missing_value) {
-    return OPTION.none;
-  } else {
-    return OPTION.some(val);
-  }
+    const missing_value = {};
+    const val = pyretSelf.$underlyingMap.get(key, missing_value);
+    if (val === missing_value) {
+        return OPTION.none;
+    } else {
+        return OPTION.some(val);
+    }
 });
 
 const getValueISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
@@ -644,8 +644,8 @@ const getValueISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
 });
 
 const setISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key, val) {
-  const newMap = pyretSelf.$underlyingMap.set(key, val);
-  return makeImmutableStringDict(newMap);
+    const newMap = pyretSelf.$underlyingMap.set(key, val);
+    return makeImmutableStringDict(newMap);
 });
 
 const mergeISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, otherDict) {
@@ -664,18 +664,18 @@ const mergeISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, otherDict
 });
 
 const removeISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
-  const newMap = pyretSelf.$underlyingMap.remove(key);
-  return makeImmutableStringDict(newMap);
+    const newMap = pyretSelf.$underlyingMap.remove(key);
+    return makeImmutableStringDict(newMap);
 });
 
 const hasKeyISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
-  const missing_value = {};
-  const val = pyretSelf.$underlyingMap.get(key, missing_value);
-  if (val === missing_value) {
-    return false;
-  } else {
-    return true;
-  }
+    const missing_value = {};
+    const val = pyretSelf.$underlyingMap.get(key, missing_value);
+    if (val === missing_value) {
+        return false;
+    } else {
+        return true;
+    }
 });
 
 const eachKeyISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, f) {
@@ -690,8 +690,8 @@ const mapKeysISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, f) {
 
 const foldKeysISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, f, init) {
     // NOTE(alex): Double check type signatures for higher order functions
-        //      acc comes first for raw arrays
-        //      acc comes second for Pyret
+    //      acc comes first for raw arrays
+    //      acc comes second for Pyret
     return RAW_ARRAY["raw-array-fold"](function(acc, key) {
         return f(key, acc);
     }, init, pyretSelf.$underlyingMap.keys());
@@ -745,7 +745,7 @@ const equalsISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, other, r
         const keys = pyretSelf.$underlyingMap.keys();
         const otherKeysLength = other.count();
         if (keys.length !== otherKeysLength) {
-          return EQUALITY.NotEqual("Different key lengths", pyretSelf, other);
+            return EQUALITY.NotEqual("Different key lengths", pyretSelf, other);
         } else {
             return eqHelp(pyretSelf, other, keys, recursiveEquality);
         }
@@ -764,26 +764,26 @@ const unfreezeISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
 });
 
 function makeImmutableStringDict(underlyingMap) {
-  var obj = {
-    get: getISDBinder(obj),
-    'get-value': getValueISDBinder(obj),
-    set: setISDBinder(obj),
-    merge: mergeISDBinder(obj),
-    remove: removeISDBinder(obj),
-    keys: keysISDBinder(obj),
-    "keys-list": keysListISDBinder(obj),
-    'map-keys': mapKeysISDBinder(obj),
-    'fold-keys': foldKeysISDBinder(obj),
-    'each-key': eachKeyISDBinder(obj),
-    count: countISDBinder(obj),
-    'has-key': hasKeyISDBinder(obj),
-    _equals: equalsISDBinder(obj),
-    // _output: outputISD,
-    unfreeze: unfreezeISDBinder(obj)
-  };
-  obj = PRIMITIVES.applyBrand($PBrandImmutable, obj);
-  obj.$underlyingMap = underlyingMap;
-  return obj;
+    var obj = {
+        get: getISDBinder(obj),
+        'get-value': getValueISDBinder(obj),
+        set: setISDBinder(obj),
+        merge: mergeISDBinder(obj),
+        remove: removeISDBinder(obj),
+        keys: keysISDBinder(obj),
+        "keys-list": keysListISDBinder(obj),
+        'map-keys': mapKeysISDBinder(obj),
+        'fold-keys': foldKeysISDBinder(obj),
+        'each-key': eachKeyISDBinder(obj),
+        count: countISDBinder(obj),
+        'has-key': hasKeyISDBinder(obj),
+        _equals: equalsISDBinder(obj),
+        // _output: outputISD,
+        unfreeze: unfreezeISDBinder(obj)
+    };
+    obj = PRIMITIVES.applyBrand($PBrandImmutable, obj);
+    obj.$underlyingMap = underlyingMap;
+    return obj;
 }
 
 //////////////////////////////////////////////////
@@ -814,7 +814,7 @@ const setMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key, val) {
 
 const mergeMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, other) {
     for (var key in other.$underlyingDict) {
-       pyretSelf.$underlyingDict[key] = other.$underlyingDict[key];
+        pyretSelf.$underlyingDict[key] = other.$underlyingDict[key];
     }
     return RUNTIME.$nothing;
 });
@@ -828,29 +828,29 @@ const cloneMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
 });
 
 const removeMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
-  if (pyretSelf.$sealed) {
-    throw ("Cannot modify sealed string dict");
-  }
-  delete pyretSelf.$underlyingDict[key];
-  return RUNTIME.$nothing;
+    if (pyretSelf.$sealed) {
+        throw ("Cannot modify sealed string dict");
+    }
+    delete pyretSelf.$underlyingDict[key];
+    return RUNTIME.$nothing;
 });
 
 const hasKeyMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
-  if (key in pyretSelf.$underlyingDict) {
-      return true;
-  } else {
-      return false;
-  }
+    if (key in pyretSelf.$underlyingDict) {
+        return true;
+    } else {
+        return false;
+    }
 });
 
 const keysMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
-  const keys = Object.keys(pyretSelf.$underlyingDict);
-  return SETS["tree-set"].make(keys);
+    const keys = Object.keys(pyretSelf.$underlyingDict);
+    return SETS["tree-set"].make(keys);
 });
 
 const keysListMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
-  const keys = Object.keys(pyretSelf.$underlyingDict);
-  return LISTS.list.make(keys);
+    const keys = Object.keys(pyretSelf.$underlyingDict);
+    return LISTS.list.make(keys);
 });
 
 const eachKeyMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, f) {
@@ -870,32 +870,32 @@ const foldKeysMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, f, ini
 });
 
 const countMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
-  return RUNTIME.$makeRational(Object.keys(pyretSelf.$underlyingDict).length);
+    return RUNTIME.$makeRational(Object.keys(pyretSelf.$underlyingDict).length);
 });
 
 const toreprMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, recursiveToRepr) {
-  const keys = Object.keys(pyretSelf.$underlyingDict);
-  const elts = [];
-  function combine(elts) {
-    //return "[string-dict: " + elts.join(", ") + "]";
-    return "[mutable-string-dict: " + elts.join(", ") + "]";
-  }
-  function toreprElts() {
-    if (keys.length === 0) { return combine(elts); }
-    else {
-      const thisKey = keys.pop();
-      // The function recursiveToRepr is a callback for rendering
-      // sub-elements of collections.  If we call it on anything other
-      // than flat primitives, we need to use the following safeCall
-      // calling convention, which makes this work with the stack
-      // compilation strategy for Pyret.
-        const result = recursiveToRepr(pyretSelf.$underlyingDict[thisKey]);
-        elts.push(recursiveToRepr(thisKey));
-        elts.push(result);
-        return toreprElts();
+    const keys = Object.keys(pyretSelf.$underlyingDict);
+    const elts = [];
+    function combine(elts) {
+        //return "[string-dict: " + elts.join(", ") + "]";
+        return "[mutable-string-dict: " + elts.join(", ") + "]";
     }
-  }
-  return toreprElts();
+    function toreprElts() {
+        if (keys.length === 0) { return combine(elts); }
+        else {
+            const thisKey = keys.pop();
+            // The function recursiveToRepr is a callback for rendering
+            // sub-elements of collections.  If we call it on anything other
+            // than flat primitives, we need to use the following safeCall
+            // calling convention, which makes this work with the stack
+            // compilation strategy for Pyret.
+            const result = recursiveToRepr(pyretSelf.$underlyingDict[thisKey]);
+            elts.push(recursiveToRepr(thisKey));
+            elts.push(result);
+            return toreprElts();
+        }
+    }
+    return toreprElts();
 });
 
 // TODO(alex): valueskeleton
@@ -914,62 +914,62 @@ const toreprMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, recursiv
 //});
 
 const equalsMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, other, recursiveEquality) {
-  if (!PRIMITIVES.hasBrand($PMutableStringDictBrand, other)) {
-    return EQUALITY.NotEqual("Not a mutable dictionary", pyretSelf, other);
-  } else {
-    const selfKeys = Object.keys(pyretSelf.$underlyingDict);
-    const otherKeys = Object.keys(other.$underlyingDict);
-    if (selfKeys.length !== otherKeys.length) {
-      return EQUALITY.NotEqual("Different key lengths", pyretSelf, other);
+    if (!PRIMITIVES.hasBrand($PMutableStringDictBrand, other)) {
+        return EQUALITY.NotEqual("Not a mutable dictionary", pyretSelf, other);
     } else {
-      return eqHelp(pyretSelf, other, selfKeys, recursiveEquality);
+        const selfKeys = Object.keys(pyretSelf.$underlyingDict);
+        const otherKeys = Object.keys(other.$underlyingDict);
+        if (selfKeys.length !== otherKeys.length) {
+            return EQUALITY.NotEqual("Different key lengths", pyretSelf, other);
+        } else {
+            return eqHelp(pyretSelf, other, selfKeys, recursiveEquality);
+        }
     }
-  }
 });
 
 const freezeMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
-  var map = emptyMap();
-  for (let key in pyretSelf.$underlyingDict) {
-    map = map.set(key, pyretSelf.$underlyingDict[key]);
-  }
-  return makeImmutableStringDict(map);
+    var map = emptyMap();
+    for (let key in pyretSelf.$underlyingDict) {
+        map = map.set(key, pyretSelf.$underlyingDict[key]);
+    }
+    return makeImmutableStringDict(map);
 });
 
 const sealMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
-  return makeMutableStringDict(pyretSelf.$underlyingDict, true);
+    return makeMutableStringDict(pyretSelf.$underlyingDict, true);
 });
 
 function makeMutableStringDict(underlyingDict, sealed) {
 
-  var obj = {
-    'get-now': getMSDBinder(obj),
-    'get-value-now': getValueMSDBinder(obj),
-    'set-now': setMSDBinder(obj),
-    'merge-now': mergeMSDBinder(obj),
-    'remove-now': removeMSDBinder(obj),
-    'keys-now': keysMSDBinder(obj),
-    'keys-list-now': keysListMSDBinder(obj),
-    'map-keys-now': mapKeysMSDBinder(obj),
-    'fold-keys-now': foldKeysMSDBinder(obj),
-    'each-key-now': eachKeyMSDBinder(obj),
-    'count-now': countMSDBinder(obj),
-    'has-key-now': hasKeyMSDBinder(obj),
-    'clone-now': cloneMSDBinder(obj),
-    _equals: equalsMSDBinder(obj),
-    // _output: outputMSD,
-    freeze: freezeMSDBinder(obj),
-    seal: sealMSDBinder(obj)
-  };
-  // Applying a brand creates a new object, so we need to add the reflective field afterward
-  obj = PRIMITIVES.applyBrand($PMutableStringDictBrand, obj);
-  obj.$underlyingDict = underlyingDict;
-  obj.$sealed = sealed
+    var obj = {
+        'get-now': getMSDBinder(obj),
+        'get-value-now': getValueMSDBinder(obj),
+        'set-now': setMSDBinder(obj),
+        'merge-now': mergeMSDBinder(obj),
+        'remove-now': removeMSDBinder(obj),
+        'keys-now': keysMSDBinder(obj),
+        'keys-list-now': keysListMSDBinder(obj),
+        'map-keys-now': mapKeysMSDBinder(obj),
+        'fold-keys-now': foldKeysMSDBinder(obj),
+        'each-key-now': eachKeyMSDBinder(obj),
+        'count-now': countMSDBinder(obj),
+        'has-key-now': hasKeyMSDBinder(obj),
+        'clone-now': cloneMSDBinder(obj),
+        _equals: equalsMSDBinder(obj),
+        // _output: outputMSD,
+        freeze: freezeMSDBinder(obj),
+        seal: sealMSDBinder(obj)
+    };
+    // Applying a brand creates a new object, so we need to add the reflective field afterward
+    obj = PRIMITIVES.applyBrand($PMutableStringDictBrand, obj);
+    obj.$underlyingDict = underlyingDict;
+    obj.$sealed = sealed
 
-  return obj;
+    return obj;
 }
 
 function internal_isMSD(obj) {
-  return PRIMITIVES.hasBrand($PMutableStringDictBrand, obj);
+    return PRIMITIVES.hasBrand($PMutableStringDictBrand, obj);
 }
 
 function isMutableStringDict(obj) {
@@ -977,62 +977,62 @@ function isMutableStringDict(obj) {
 }
 
 function createMutableStringDict() {
-  var dict = Object.create(null);
-  return makeMutableStringDict(dict, undefined);
+    var dict = Object.create(null);
+    return makeMutableStringDict(dict, undefined);
 }
 
 function createMutableStringDictFromArray(array) {
-  const dict = Object.create(null);
-  const len = array.length;
-  if(len % 2 !== 0) {
-    throw ("Expected an even number of arguments to constructor for mutable dictionaries, got array of length " + len);
-  }
-  for(let i = 0; i < len; i += 2) {
-    const key = array[i];
-    const val = array[i + 1];
-    dict[key] = val;
-  }
-  return makeMutableStringDict(dict, undefined);
+    const dict = Object.create(null);
+    const len = array.length;
+    if(len % 2 !== 0) {
+        throw ("Expected an even number of arguments to constructor for mutable dictionaries, got array of length " + len);
+    }
+    for(let i = 0; i < len; i += 2) {
+        const key = array[i];
+        const val = array[i + 1];
+        dict[key] = val;
+    }
+    return makeMutableStringDict(dict, undefined);
 }
 
 function internal_isISD(obj) {
-  return PRIMITIVES.hasBrand($PBrandImmutable, obj);
+    return PRIMITIVES.hasBrand($PBrandImmutable, obj);
 }
 
 function isImmutableStringDict(obj) {
-  return internal_isISD(obj);
+    return internal_isISD(obj);
 }
 
 function createImmutableStringDict() {
-  var map = emptyMap();
-  return makeImmutableStringDict(map);
+    var map = emptyMap();
+    return makeImmutableStringDict(map);
 }
 
 function createImmutableStringDictFromArray(array) {
-  const key_missing = {};
-  let map = emptyMap();
-  const len = array.length;
-  if(len % 2 !== 0) {
-    throw ("Expected an even number of arguments to constructor for immutable dictionaries, got array of length " + len);
-  }
-  for(var i = 0; i < len; i += 2) {
-    let key = array[i];
-    let val = array[i + 1];
-    if (map.get(key, key_missing) !== key_missing) {
-      throw ("Creating immutable string dict with duplicate key " + key);
+    const key_missing = {};
+    let map = emptyMap();
+    const len = array.length;
+    if(len % 2 !== 0) {
+        throw ("Expected an even number of arguments to constructor for immutable dictionaries, got array of length " + len);
     }
-    map = map.set(key, val);
-  }
-  return makeImmutableStringDict(map);
+    for(var i = 0; i < len; i += 2) {
+        let key = array[i];
+        let val = array[i + 1];
+        if (map.get(key, key_missing) !== key_missing) {
+            throw ("Creating immutable string dict with duplicate key " + key);
+        }
+        map = map.set(key, val);
+    }
+    return makeImmutableStringDict(map);
 }
 
 function createConstImmutableStringDict(names, val) {
-  const arr = LISTS["to-raw-array"](names);
-  let map = emptyMap();
-  arr.forEach(function(k) {
-    map = map.set(k, val)
-  });
-  return makeImmutableStringDict(map);
+    const arr = LISTS["to-raw-array"](names);
+    let map = emptyMap();
+    arr.forEach(function(k) {
+        map = map.set(k, val)
+    });
+    return makeImmutableStringDict(map);
 }
 
 function mapKeys(f, isd) {
@@ -1062,96 +1062,96 @@ function eachKeyNow(f, msd) {
 }
 
 function createMutableStringDict0() {
-  const dict = Object.create(null);
-  return makeMutableStringDict(dict, undefined);
+    const dict = Object.create(null);
+    return makeMutableStringDict(dict, undefined);
 }
 
 function createMutableStringDict1(arg) {
-  throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+    throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
 }
 
 function createMutableStringDict2(a, b) {
-  const dict = Object.create(null);
-  dict[a] = b;
-  return makeMutableStringDict(dict, undefined);
+    const dict = Object.create(null);
+    dict[a] = b;
+    return makeMutableStringDict(dict, undefined);
 }
 
 function createMutableStringDict3(a, b, c) {
-  throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+    throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
 }
 
 function createMutableStringDict4(a, b, c, d) {
-  const dict = Object.create(null);
-  dict[a] = b;
-  dict[c] = d;
-  return makeMutableStringDict(dict, undefined);
+    const dict = Object.create(null);
+    dict[a] = b;
+    dict[c] = d;
+    return makeMutableStringDict(dict, undefined);
 }
 
 function createMutableStringDict5(a, b, c, d, e) {
-  throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+    throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
 }
 
 function createImmutableStringDict0() {
-  const map = emptyMap();
-  return makeImmutableStringDict(map);
+    const map = emptyMap();
+    return makeImmutableStringDict(map);
 }
 
 function createImmutableStringDict1(arg) {
-  throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+    throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
 }
 
 function createImmutableStringDict2(a, b) {
-  let map = emptyMap();
-  map = map.set(a, b);
-  return makeImmutableStringDict(map);
+    let map = emptyMap();
+    map = map.set(a, b);
+    return makeImmutableStringDict(map);
 }
 
 function createImmutableStringDict3(a, b, c) {
-  throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+    throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
 }
 
 function createImmutableStringDict4(a, b, c, d) {
-  let map = emptyMap();
-  if (a === c) {
-    throw ("Creating immutable string dict with duplicate key " + a)
-  }
-  map = map.set(a, b);
-  map = map.set(c, d);
-  return makeImmutableStringDict(map);
+    let map = emptyMap();
+    if (a === c) {
+        throw ("Creating immutable string dict with duplicate key " + a)
+    }
+    map = map.set(a, b);
+    map = map.set(c, d);
+    return makeImmutableStringDict(map);
 }
 
 function createImmutableStringDict5(a, b, c, d, e) {
-  throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+    throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
 }
 
 module.exports = {
-  "make-mutable-string-dict": createMutableStringDict,
-  "mutable-string-dict": {
-    make: createMutableStringDictFromArray,
-    make0: createMutableStringDict0,
-    make1: createMutableStringDict1,
-    make2: createMutableStringDict2,
-    make3: createMutableStringDict3,
-    make4: createMutableStringDict4,
-    make5: createMutableStringDict5
-  },
-  "is-mutable-string-dict": isMutableStringDict,
-  "make-string-dict": createImmutableStringDict,
-  "map-keys": mapKeys,
-  "map-keys-now": mapKeysNow,
-  "fold-keys": foldKeys,
-  "fold-keys-now": foldKeysNow,
-  "each-key": eachKey,
-  "each-key-now": eachKeyNow,
-  "string-dict": {
-    make: createImmutableStringDictFromArray,
-    make0: createImmutableStringDict0,
-    make1: createImmutableStringDict1,
-    make2: createImmutableStringDict2,
-    make3: createImmutableStringDict3,
-    make4: createImmutableStringDict4,
-    make5: createImmutableStringDict5
-  },
-  "string-dict-of": createConstImmutableStringDict,
-  "is-string-dict": isImmutableStringDict
+    "make-mutable-string-dict": createMutableStringDict,
+    "mutable-string-dict": {
+        make: createMutableStringDictFromArray,
+        make0: createMutableStringDict0,
+        make1: createMutableStringDict1,
+        make2: createMutableStringDict2,
+        make3: createMutableStringDict3,
+        make4: createMutableStringDict4,
+        make5: createMutableStringDict5
+    },
+    "is-mutable-string-dict": isMutableStringDict,
+    "make-string-dict": createImmutableStringDict,
+    "map-keys": mapKeys,
+    "map-keys-now": mapKeysNow,
+    "fold-keys": foldKeys,
+    "fold-keys-now": foldKeysNow,
+    "each-key": eachKey,
+    "each-key-now": eachKeyNow,
+    "string-dict": {
+        make: createImmutableStringDictFromArray,
+        make0: createImmutableStringDict0,
+        make1: createImmutableStringDict1,
+        make2: createImmutableStringDict2,
+        make3: createImmutableStringDict3,
+        make4: createImmutableStringDict4,
+        make5: createImmutableStringDict5
+    },
+    "string-dict-of": createConstImmutableStringDict,
+    "is-string-dict": isImmutableStringDict
 };
