@@ -767,7 +767,7 @@ const unfreezeISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
 });
 
 function makeImmutableStringDict(underlyingMap) {
-  var obj = O({
+  var obj = {
     get: getISDBinder(obj),
     'get-value': getValueISDBinder(obj),
     set: setISDBinder(obj),
@@ -783,7 +783,7 @@ function makeImmutableStringDict(underlyingMap) {
     _equals: equalsISDBinder(obj),
     // _output: outputISD,
     unfreeze: unfreezeISDBinder(obj)
-  });
+  };
   obj = PRIMITIVES.applyBrand($PBrandImmutable, obj);
   obj.$underlyingMap = underlyingMap;
   return obj;
@@ -944,7 +944,7 @@ const sealMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
 
 function makeMutableStringDict(underlyingDict, sealed) {
 
-  var obj = O({
+  var obj = {
     'get-now': getMSDBinder(obj),
     'get-value-now': getValueMSDBinder(obj),
     'set-now': setMSDBinder(obj),
@@ -962,7 +962,7 @@ function makeMutableStringDict(underlyingDict, sealed) {
     // _output: outputMSD,
     freeze: freezeMSDBinder(obj),
     seal: sealMSDBinder(obj)
-  });
+  };
   // Applying a brand creates a new object, so we need to add the reflective field afterward
   obj = PRIMITIVES.applyBrand($PMutableStringDictBrand, obj);
   obj.$underlyingDict = underlyingDict;
