@@ -13,6 +13,9 @@ import {
   Chunk,
   findChunkFromSrcloc,
 } from './chunk';
+import {
+  Action,
+} from './action';
 
 type StateProps = {
   rhs: RHSObjects,
@@ -39,10 +42,22 @@ function mapStateToProps(state: State): StateProps {
   };
 }
 
-const connector = connect(mapStateToProps);
+type DispatchProps = {
+  setFocusedChunk: (index: number) => void,
+};
+
+function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
+  return {
+    setFocusedChunk(index: number) {
+      dispatch({ type: 'update', key: 'focusedChunk', value: index });
+    },
+  };
+}
+
+const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
-type RHSProps = StateProps & PropsFromRedux;
+type RHSProps = StateProps & PropsFromRedux & DispatchProps;
 
 function RHS({
   rhs,
@@ -50,19 +65,29 @@ function RHS({
   chunks,
   currentFile,
   focusedChunk,
+  setFocusedChunk,
 }: RHSProps) {
   const elements = (
     rhs.objects.map((rhsObject) => {
-      const isSelected = !rhs.outdated && focusedChunk !== undefined && findChunkFromSrcloc(
+      const row = getRow(rhsObject);
+      const chunk = findChunkFromSrcloc(
         chunks,
-        [`file://${currentFile}`, getRow(rhsObject)],
+        [`file://${currentFile}`, row],
         currentFile,
-      ) === focusedChunk;
+      );
+      const isSelected = !rhs.outdated && focusedChunk !== undefined && chunk === focusedChunk;
       const selectedStyle = {
         background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
         borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
         borderBottom: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
       };
+
+      function selectThisChunk() {
+        if (chunk !== false) {
+          setFocusedChunk(chunk);
+        }
+      }
+
       if (isTrace(rhsObject)) {
         return (
           <pre
@@ -71,6 +96,7 @@ function RHS({
               paddingLeft: '1em',
               ...selectedStyle,
             }}
+            onMouseEnter={selectThisChunk}
           >
             <RenderedValue value={rhsObject.value} />
           </pre>
@@ -87,6 +113,7 @@ function RHS({
               paddingLeft: '1em',
               ...selectedStyle,
             }}
+            onMouseEnter={selectThisChunk}
           >
             {rhsObject.name}
             {' '}
@@ -104,6 +131,7 @@ function RHS({
               paddingLeft: '1em',
               ...selectedStyle,
             }}
+            onMouseEnter={selectThisChunk}
           >
             Test
             {' '}
