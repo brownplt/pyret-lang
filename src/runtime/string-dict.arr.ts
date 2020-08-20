@@ -764,25 +764,25 @@ const unfreezeISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
 });
 
 function makeImmutableStringDict(underlyingMap) {
-    var obj = {
-        get: getISDBinder(obj),
-        'get-value': getValueISDBinder(obj),
-        set: setISDBinder(obj),
-        merge: mergeISDBinder(obj),
-        remove: removeISDBinder(obj),
-        keys: keysISDBinder(obj),
-        "keys-list": keysListISDBinder(obj),
-        'map-keys': mapKeysISDBinder(obj),
-        'fold-keys': foldKeysISDBinder(obj),
-        'each-key': eachKeyISDBinder(obj),
-        count: countISDBinder(obj),
-        'has-key': hasKeyISDBinder(obj),
-        _equals: equalsISDBinder(obj),
-        // _output: outputISD,
-        unfreeze: unfreezeISDBinder(obj)
-    };
+    let obj = {};
+
+    obj['get'] = getISDBinder(obj);
+    obj['get-value'] = getValueISDBinder(obj);
+    obj['set'] = setISDBinder(obj);
+    obj['merge'] = mergeISDBinder(obj);
+    obj['remove'] = removeISDBinder(obj);
+    obj['keys'] = keysISDBinder(obj);
+    obj["keys-list"] = keysListISDBinder(obj);
+    obj['map-keys'] = mapKeysISDBinder(obj);
+    obj['fold-keys'] = foldKeysISDBinder(obj);
+    obj['each-key'] = eachKeyISDBinder(obj);
+    obj['count'] = countISDBinder(obj);
+    obj['has-key'] = hasKeyISDBinder(obj);
+    obj['_equals'] = equalsISDBinder(obj);
+    // obj. _output = outputISD,
+    obj['unfreeze'] = unfreezeISDBinder(obj);
     obj = PRIMITIVES.applyBrand($PBrandImmutable, obj);
-    obj.$underlyingMap = underlyingMap;
+    obj['$underlyingMap'] = underlyingMap;
     return obj;
 }
 
@@ -940,30 +940,28 @@ const sealMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
 });
 
 function makeMutableStringDict(underlyingDict, sealed) {
-
-    var obj = {
-        'get-now': getMSDBinder(obj),
-        'get-value-now': getValueMSDBinder(obj),
-        'set-now': setMSDBinder(obj),
-        'merge-now': mergeMSDBinder(obj),
-        'remove-now': removeMSDBinder(obj),
-        'keys-now': keysMSDBinder(obj),
-        'keys-list-now': keysListMSDBinder(obj),
-        'map-keys-now': mapKeysMSDBinder(obj),
-        'fold-keys-now': foldKeysMSDBinder(obj),
-        'each-key-now': eachKeyMSDBinder(obj),
-        'count-now': countMSDBinder(obj),
-        'has-key-now': hasKeyMSDBinder(obj),
-        'clone-now': cloneMSDBinder(obj),
-        _equals: equalsMSDBinder(obj),
-        // _output: outputMSD,
-        freeze: freezeMSDBinder(obj),
-        seal: sealMSDBinder(obj)
-    };
+    let obj = {};
+    obj['get-now'] = getMSDBinder(obj);
+    obj['get-value-now'] = getValueMSDBinder(obj);
+    obj['set-now'] = setMSDBinder(obj);
+    obj['merge-now'] = mergeMSDBinder(obj);
+    obj['remove-now'] = removeMSDBinder(obj);
+    obj['keys-now'] = keysMSDBinder(obj);
+    obj['keys-list-now'] = keysListMSDBinder(obj);
+    obj['map-keys-now'] = mapKeysMSDBinder(obj);
+    obj['fold-keys-now'] = foldKeysMSDBinder(obj);
+    obj['each-key-now'] = eachKeyMSDBinder(obj);
+    obj['count-now'] = countMSDBinder(obj);
+    obj['has-key-now'] = hasKeyMSDBinder(obj);
+    obj['clone-now'] = cloneMSDBinder(obj);
+    obj['_equals'] = equalsMSDBinder(obj);
+    //obj._output = outputMSD;
+    obj['freeze'] = freezeMSDBinder(obj);
+    obj['seal'] = sealMSDBinder(obj);
     // Applying a brand creates a new object, so we need to add the reflective field afterward
     obj = PRIMITIVES.applyBrand($PMutableStringDictBrand, obj);
-    obj.$underlyingDict = underlyingDict;
-    obj.$sealed = sealed
+    obj['$underlyingDict'] = underlyingDict;
+    obj['$sealed'] = sealed;
 
     return obj;
 }
