@@ -15,10 +15,10 @@ var get = runtime.getField;
 // TODO(alex): valueskeleton
 // var VS = get(VSlib, "values");
 
-const brandMutable = runtime.namedBrander("mutable-string-dict", ["string-dict: mutable-string-dict brander"]);
+const $PMutableStringDictBrand = runtime.namedBrander("mutable-string-dict", ["string-dict: mutable-string-dict brander"]);
 const $PBrandImmutable = "immutable-string-dict";
 
-var annMutable = runtime.makeBranderAnn(brandMutable, "MutableStringDict");
+var annMutable = runtime.makeBranderAnn($PMutableStringDictBrand, "MutableStringDict");
 var annImmutable = runtime.makeBranderAnn($PBrandImmutable, "StringDict");
 
 var checkMSD = function(v) { runtime._checkAnn(["string-dict"], annMutable, v); };
@@ -801,128 +801,95 @@ function makeImmutableStringDict(underlyingMap) {
 }
 
 //////////////////////////////////////////////////
-var getMSD = runtime.makeMethod1(function(self, key) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['get-now'], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "get-now",
-    key, runtime.String);
-  var val = self.$underlyingDict[key];
-  if (val === undefined) {
-    return runtime.ffi.makeNone();
+const getMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
+    const val = pyretSelf.$underlyingDict[key];
+    if (val === undefined) {
+        return OPTION.none;
+    } else {
+        return OPTION.some(val);
+    }
+});
+
+const getValueMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
+    const val = pyretSelf.$underlyingDict[key];
+    if (val === undefined) {
+        throw ("Key " + key + " not found");
+    }
+    return val;
+});
+
+const setMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key, val) {
+    if (self.$sealed) {
+        throw ("Cannot modify sealed string dict");
+    }
+    pyretSelf.$underlyingDict[key] = val;
+    return RUNTIME.$nothing;
+});
+
+const mergeMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, other) {
+    for (var key in other.$underlyingDict) {
+       pyretSelf.$underlyingDict[key] = other.$underlyingDict[key];
+    }
+    return RUNTIME.$nothing;
+});
+
+const cloneMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
+    const newDict = Object.create(null);
+    for (var key in self.$underlyingDict) {
+        newDict[key] = self.$underlyingDict[key];
+    }
+    return makeMutableStringDict(newDict);
+});
+
+const removeMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
+  if (pyretSelf.$sealed) {
+    throw ("Cannot modify sealed string dict");
+  }
+  delete pyretSelf.$underlyingDict[key];
+  return runtime.nothing;
+});
+
+const hasKeyMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
+  if (key in selfpyretSelf.$underlyingDict) {
+      return true;
   } else {
-    return runtime.ffi.makeSome(val);
+      return false;
   }
 });
 
-var getValueMSD = runtime.makeMethod1(function(self, key) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["get-value-now"], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "get-value-now",
-    key, runtime.String);
-  var val = self.$underlyingDict[key];
-  if (val === undefined) {
-    runtime.ffi.throwMessageException("Key " + key + " not found");
-  }
-  return val;
+const keysMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
+  const keys = Object.keys(pyretSelf.$underlyingDict);
+  return SETS["tree-set"].make(keys);
 });
 
-var setMSD = runtime.makeMethod2(function(self, key, val) {
-  if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["set-now"], 3, $a, true); }
-  runtime.checkArgsInternal2("string-dict", "set-now",
-    key, runtime.String, val, runtime.Any);
-  if (self.$sealed) {
-    runtime.ffi.throwMessageException("Cannot modify sealed string dict");
-  }
-  self.$underlyingDict[key] = val;
-  return runtime.nothing;
+const keysListMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
+  const keys = Object.keys(pyretSelf.$underlyingDict);
+  return LISTS.list.make(keys);
 });
 
-var mergeMSD = runtime.makeMethod1(function(self, other) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["merge-now"], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "merge-now",
-    other, annMutable);
-  for (var key in other.$underlyingDict)
-    self.$underlyingDict[key] = other.$underlyingDict[key];
-  return runtime.nothing;
+const eachKeyMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, f) {
+    RAW_ARRAY["raw-array-for-each"](f, Object.keys(pyretSelf.$underlyingDict));
+    return RUNTIME.$nothing;
 });
 
-var cloneMSD = runtime.makeMethod0(function(self) {
-  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["clone-now"], 1, $a, true); }
-  var newDict = Object.create(null);
-  for (var key in self.$underlyingDict)
-    newDict[key] = self.$underlyingDict[key];
-  return makeMutableStringDict(newDict);
+const mapKeysMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, f) {
+    const mapResult = RAW_ARRAY["raw-array-map"](f, Object.keys(pyretSelf.$underlyingDict));
+    return LISTS.list.make(mapResult);
 });
 
-var removeMSD = runtime.makeMethod1(function(self, key) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["remove-now"], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "remove-now",
-    key, runtime.String);
-  if (self.$sealed) {
-    runtime.ffi.throwMessageException("Cannot modify sealed string dict");
-  }
-  delete self.$underlyingDict[key];
-  return runtime.nothing;
+const foldKeysMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, f, init) {
+    return RAW_ARRAY["raw-array-fold"](function(acc, key) {
+        return f(key, acc);
+    }, init, Object.keys(pyretSelf.$underlyingDict));
 });
 
-var hasKeyMSD = runtime.makeMethod1(function(self, key) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["has-key-now"], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "has-key-now",
-    key, runtime.String);
-  if (key in self.$underlyingDict) {
-    return runtime.makeBoolean(true);
-  } else {
-    return runtime.makeBoolean(false);
-  }
+const countMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
+  return RUNTIME.$makeRational(Object.keys(pyretSelf.$underlyingDict).length);
 });
 
-var keysMSD = runtime.makeMethod0(function(self) {
-  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["keys-now"], 1, $a, true); }
-  var keys = Object.keys(self.$underlyingDict);
-  return runtime.ffi.makeTreeSet(keys.map(function(mkey) {
-    return runtime.makeString(mkey);
-  }));
-});
-
-var keysListMSD = runtime.makeMethod0(function(self) {
-  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['keys-list-now'], 1, $a, true); }
-  var keys = Object.keys(self.$underlyingDict);
-  return runtime.ffi.makeList(keys.map(function(mkey) {
-    return runtime.makeString(mkey);
-  }));
-});
-
-var eachKeyMSD = runtime.makeMethod1(function(self, f) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["each-key-now"], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "each-key-now",
-    f, runtime.Function);
-  return runtime.raw_array_each(f, Object.keys(self.$underlyingDict));
-});
-
-var mapKeysMSD = runtime.makeMethod1(function(self, f) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["map-keys-now"], 2, $a, true); }
-  runtime.checkArgsInternal1("string-dict", "map-keys-now",
-    f, runtime.Function);
-  return runtime.safeCall(function() { return runtime.raw_array_map(f, Object.keys(self.$underlyingDict)); },
-                          runtime.ffi.makeList,
-                          "map-keys-now");
-});
-
-var foldKeysMSD = runtime.makeMethod2(function(self, f, init) {
-  if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["fold-keys-now"], 3, $a, true); }
-  runtime.checkArgsInternal2("string-dict", "fold-keys-now",
-    f, runtime.Function, init, runtime.Any);
-  return runtime.raw_array_fold(F(function(acc, key, _) { return f.app(key, acc); }),
-                                init, Object.keys(self.$underlyingDict), 0);
-});
-
-var countMSD = runtime.makeMethod0(function(self) {
-  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["count-now"], 1, $a, true); }
-  return runtime.makeNumber(Object.keys(self.$underlyingDict).length);
-});
-
-var toreprMSD = runtime.makeMethod1(function(self, recursiveToRepr) {
-  if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["torepr"], 2, $a, true); }
-  var keys = Object.keys(self.$underlyingDict);
-  var elts = [];
+const toreprMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, recursiveToRepr) {
+  const keys = Object.keys(pyretSelf.$underlyingDict);
+  const elts = [];
   function combine(elts) {
     //return "[string-dict: " + elts.join(", ") + "]";
     return "[mutable-string-dict: " + elts.join(", ") + "]";
@@ -930,21 +897,16 @@ var toreprMSD = runtime.makeMethod1(function(self, recursiveToRepr) {
   function toreprElts() {
     if (keys.length === 0) { return combine(elts); }
     else {
-      var thisKey = keys.pop();
+      const thisKey = keys.pop();
       // The function recursiveToRepr is a callback for rendering
       // sub-elements of collections.  If we call it on anything other
       // than flat primitives, we need to use the following safeCall
       // calling convention, which makes this work with the stack
       // compilation strategy for Pyret.
-      return runtime.safeCall(function() {
-        return recursiveToRepr.app(self.$underlyingDict[thisKey]);
-      },
-                              function(result /* stringification of element */) {
-                                elts.push(recursiveToRepr.app(thisKey));
-                                elts.push(result);
-                                return toreprElts();
-                              },
-                             "toreprMSD");
+        const result = recursiveToRepr(pyretSelf.$underlyingDict[thisKey]);
+        elts.push(recusriveToRepr(thisKey));
+        elts.push(result);
+        return toreprElts();
     }
   }
   return toreprElts();
@@ -965,61 +927,55 @@ var toreprMSD = runtime.makeMethod1(function(self, recursiveToRepr) {
 //    runtime.ffi.makeList(elts));
 //});
 
-var equalsMSD = runtime.makeMethod2(function(self, other, recursiveEquality) {
-  if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(["equals"], 3, $a, true); }
-  if (!hasBrand(brandMutable, other)) {
-    return runtime.ffi.notEqual.app("", self, other);
+const equalsMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, other, recursiveEquality) {
+  if (!PRIMITIVES.hasBrand($PMutableStringDictBrand, other)) {
+    return EQUALITY.NotEqual("Not a mutable dictionary", pyretSelf, other);
   } else {
-    var selfKeys = Object.keys(self.$underlyingDict);
-    var otherKeys = Object.keys(other.$underlyingDict);
+    const selfKeys = Object.keys(pyretSelf.$underlyingDict);
+    const otherKeys = Object.keys(other.$underlyingDict);
     if (selfKeys.length !== otherKeys.length) {
-      return runtime.ffi.notEqual.app("", self, other);
+      return EQUALITY.NotEqual("Different key lengths", pyretSelf, other);
     } else {
-      return eqHelp(self, other, selfKeys, hasKeyMSD, getValueMSD, recursiveEquality);
+      return eqHelp(pyretSelf, other, selfKeys, recursiveEquality);
     }
   }
 });
 
-var freezeMSD = runtime.makeMethod0(function(self) {
-  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['freeze'], 1, $a, true); }
+const freezeMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
   var map = emptyMap();
-  for (var key in self.$underlyingDict) {
-    map = map.set(key, self.$underlyingDict[key]);
+  for (let key in pyretSelf.$underlyingDict) {
+    map = map.set(key, pyretSelf.$underlyingDict[key]);
   }
   return makeImmutableStringDict(map);
 });
 
-var sealMSD = runtime.makeMethod0(function(self) {
-  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['seal'], 1, $a, true); }
-  return makeMutableStringDict(self.$underlyingDict, true);
+const sealMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
+  return makeMutableStringDict(pyretSelf.$underlyingDict, true);
 });
-
-
-
 
 function makeMutableStringDict(underlyingDict, sealed) {
 
   var obj = O({
-    'get-now': getMSD,
-    'get-value-now': getValueMSD,
-    'set-now': setMSD,
-    'merge-now': mergeMSD,
-    'remove-now': removeMSD,
-    'keys-now': keysMSD,
-    'keys-list-now': keysListMSD,
-    'map-keys-now': mapKeysMSD,
-    'fold-keys-now': foldKeysMSD,
-    'each-key-now': eachKeyMSD,
-    'count-now': countMSD,
-    'has-key-now': hasKeyMSD,
-    'clone-now': cloneMSD,
-    _equals: equalsMSD,
+    'get-now': getMSDBinder(obj),
+    'get-value-now': getValueMSDBinder(obj),
+    'set-now': setMSDBinder(obj),
+    'merge-now': mergeMSDBinder(obj),
+    'remove-now': removeMSDBinder(obj),
+    'keys-now': keysMSDBinder(obj),
+    'keys-list-now': keysListMSDBinder(obj),
+    'map-keys-now': mapKeysMSDBinder(obj),
+    'fold-keys-now': foldKeysMSDBinder(obj),
+    'each-key-now': eachKeyMSDBinder(obj),
+    'count-now': countMSDBinder(obj),
+    'has-key-now': hasKeyMSDBinder(obj),
+    'clone-now': cloneMSDBinder(obj),
+    _equals: equalsMSDBinder(obj),
     // _output: outputMSD,
-    freeze: freezeMSD,
-    seal: sealMSD
+    freeze: freezeMSDBinder(obj),
+    seal: sealMSDBinder(obj)
   });
   // Applying a brand creates a new object, so we need to add the reflective field afterward
-  obj = applyBrand(brandMutable, obj);
+  obj = PRIMITIVES.applyBrand($PMutableStringDictBrand, obj);
   obj.$underlyingDict = underlyingDict;
   obj.$sealed = sealed
 
@@ -1027,19 +983,17 @@ function makeMutableStringDict(underlyingDict, sealed) {
 }
 
 function internal_isMSD(obj) {
-  return hasBrand(brandMutable, obj);
+  return hasBrand($PMutableStringDictBrand, obj);
 }
 
 var jsCheckMSD =
-  runtime.makeCheckType(internal_isMSD, "MutableStringDict")
+  runtime.makeCheckType(internal_isMSD, "MutableStringDict");
 
-  function isMutableStringDict(obj) {
-    arity(1, arguments, "is-mutable-string-dict", false)
-      return runtime.makeBoolean(internal_isMSD(obj))
-  }
+function isMutableStringDict(obj) {
+    return internal_isMSD(obj);
+}
 
 function createMutableStringDict() {
-  arity(0, arguments, "make-mutable-string-dict", false);
   var dict = Object.create(null);
   return makeMutableStringDict(dict);
 }
