@@ -48,11 +48,11 @@ export interface PRef {
 }
 
 export function isRow(val: any): boolean {
-  return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === $PRowBrand);
+    return hasBrand($PRowBrand, val);
 }
 
 export function isTable(val: any): boolean {
-  return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === $PTableBrand);
+    return hasBrand($PTableBrand, val);
 }
 
 export function isFunction(obj: any): boolean {
@@ -60,7 +60,7 @@ export function isFunction(obj: any): boolean {
 }
 
 export function isMethod(obj: any): boolean {
-  return typeof obj === "function" && "$brand" in obj && obj["$brand"] === $PMethodBrand;
+    return hasBrand($PMethodBrand, obj);
 }
 
 // TODO(alex): Will nothing always be value 'undefined'?
@@ -94,7 +94,7 @@ export function isArray(val: any): boolean {
 }
 
 export function isPRef(val: any): boolean {
-  return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === $PRefBrand);
+    return hasBrand($PRefBrand, val);
 }
 
 export function makeMethodBinder(inner: any): any {
