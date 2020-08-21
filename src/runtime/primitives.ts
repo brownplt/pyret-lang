@@ -102,9 +102,6 @@ export function makeMethodBinder(inner: any): any {
     inner["$brand"] = $PMethodBrand;
     inner["$binder"] = binder;
 
-    var mainArguments = Array.prototype.slice.call(arguments);
-    mainArguments.push("extra data");
-
     return function() {
       const innerArgs = [pyretSelf].concat(Array.prototype.slice.call(arguments));
       return inner.apply(this, innerArgs);
