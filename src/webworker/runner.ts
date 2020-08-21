@@ -36,14 +36,18 @@ export const makeRequireAsync = (
     const oldWd = cwd;
     const nextPath = path.join(cwd, importPath);
     cwd = path.parse(nextPath).dir;
-    if (!fs.existsSync(nextPath)) {
-      throw new Error(`Path did not exist in requireSync: ${nextPath}`);
-    }
-    const stoppedPath = `${nextPath}.stopped`;
+    const stoppedPath = `${nextPath}.stopped.main`;
     // Get the absolute path to uniquely identify modules
     // Cache modules based upon the absolute path for singleton modules
     const cachePath = path.resolve(stoppedPath);
-    if (cachePath in cache) { resolve(cache[cachePath]); return; }
+    if (cachePath in cache) {
+      cwd = oldWd;
+      resolve(cache[cachePath]);
+      return;
+    }
+    if (!fs.existsSync(nextPath)) {
+      throw new Error(`Path did not exist in requireAsyncMain: ${nextPath}`);
+    }
     let runner: any = null;
     const contents = String(fs.readFileSync(nextPath));
     const toStopify = wrapContent(contents);
@@ -87,7 +91,9 @@ export const makeRequireAsync = (
     resolve({
       run: new Promise((resolve, reject) => runner.run((result : any) => {
         cwd = oldWd;
-        if (result.type !== 'normal') { reject(result); } else {
+        if (result.type !== 'normal') {
+          reject(result);
+        } else {
           const toReturn = runner.g.module.exports;
           cache[cachePath] = toReturn;
           resolve(toReturn);
@@ -108,15 +114,19 @@ export const makeRequireAsync = (
     }
     const oldWd = cwd;
     const nextPath = path.join(cwd, importPath);
+    console.log(`Storing ${oldWd} in requireAsync before processing ${nextPath}`);
     cwd = path.parse(nextPath).dir;
-    if (!fs.existsSync(nextPath)) {
-      throw new Error(`Path did not exist in requireSync: ${nextPath}`);
-    }
     const stoppedPath = `${nextPath}.stopped`;
     // Get the absolute path to uniquely identify modules
     // Cache modules based upon the absolute path for singleton modules
     const cachePath = path.resolve(stoppedPath);
-    if (cachePath in cache) { return cache[cachePath]; }
+    if (cachePath in cache) {
+      cwd = oldWd;
+      return cache[cachePath];
+    }
+    if (!fs.existsSync(nextPath)) {
+      throw new Error(`Path did not exist in requireSync: ${nextPath}`);
+    }
     currentRunner.pauseK((kontinue: (result: any) => void) => {
       const lastPath = currentRunner.path;
       const module = {
@@ -139,9 +149,6 @@ export const makeRequireAsync = (
       }
       currentRunner.evalCompiled(stopifiedCode, (result: any) => {
         cwd = oldWd;
-          if (/image/.test(nextPath)) {
-          console.log(result);
-        }
         if (result.type !== 'normal') {
           kontinue(result);
           return;
