@@ -4,14 +4,17 @@ import string-dict as D
 import global as G
 
 member-list = [L.list: "a", "b", "c", "d"]
-dict = D.apply( member-list, lam( str ): str + "a" end )
 
-G.assert( D.has-key( dict, 'b' ), true, "Missing key" )
-G.assert( L.get( D.values( dict ), 3 ), 'da', "Non-matching value" )
+dict = L.fold(lam(dict, elem):
+  dict.set(elem, elem + 'a')
+end, [D.string-dict: ], member-list)
 
-fresh-dict = D.insert( dict, "e", 'ea' )
+G.assert( dict.has-key('b'), true, "Missing key" )
+G.assert( dict.get-value('d'), 'da', "Non-matching value" )
 
-msg = for L.fold( s from "", k from D.keys(fresh-dict)):
+fresh-dict = dict.set("e", "ea")
+
+msg = for L.fold( s from "", k from fresh-dict.keys-list()):
  s + k
 end
 
