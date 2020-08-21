@@ -2,6 +2,7 @@ import global as G
 include option
 include string-dict
 include lists
+import string as STR
 import sets as S
 
 include from S:
@@ -56,6 +57,8 @@ check "remove":
   sd1.has-key("a") is true
   sd1.has-key("b") is true
   sd2 = sd1.remove("b")
+  sd1.has-key("a") is true
+  sd1.has-key("b") is true
   sd2.has-key("a") is true
   sd2.has-key("b") is false
 end
@@ -67,6 +70,44 @@ check "count":
   sd2.count() is 3
   sd3 = sd1.remove("a")
   sd3.count() is 1
+end
+
+check "map-keys":
+  sd1 = [string-dict: "a", 5, "BBB", 10]
+  sd1.map-keys(lam(string):
+    STR.length(string)
+  end) is [list: 1, 3]
+  map-keys(lam(string):
+    STR.length(string)
+  end, sd1) is [list: 1, 3]
+
+end
+
+check "fold-keys":
+  sd1 = [string-dict: "a", 5, "BBB", 10]
+  sd1.fold-keys(lam(string, acc):
+    acc + STR.length(string)
+  end, 0) is 4
+  fold-keys(lam(acc, string):
+    acc + STR.length(string)
+  end, 0, sd1) is 4
+
+end
+
+check "merge":
+  sd1 = [string-dict: "a", 5, "b", 10]
+  sd2 = [string-dict: "b", 200, "c", 9000]
+  sd1.merge(sd2) is [string-dict: "a", 5, "b", 200, "c", 9000]
+end
+
+check "is-string-dict":
+  is-string-dict(5) is false
+  is-string-dict([string-dict: ]) is true
+  is-string-dict([string-dict: "a", 5, "b", 10]) is true
+end
+
+check "string-dict-of":
+  string-dict-of([list: "foo", "bar"], 5) is [string-dict: "foo", 5, "bar", 5]
 end
 
 check "unfreeze":
