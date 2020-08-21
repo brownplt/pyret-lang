@@ -113,7 +113,7 @@ export function makeMethodBinder(inner: any): any {
 }
 
 export function hasBrand(brand: any, val: object): boolean {
-    return ("$brand" in val) && (val["$brand"] === brand);
+    return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === brand);
 }
 
 export function applyBrand(brand: any, val: object): any {
