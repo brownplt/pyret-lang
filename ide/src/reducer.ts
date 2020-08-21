@@ -195,21 +195,6 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
         running,
       } = state;
 
-      if (action.name === 'first-chunk-lint') {
-        const newChunks: Chunk[] = chunks.map((chunk) => ({
-          ...chunk,
-          errorState: { status: 'succeeded', effect: 'lint' },
-        }));
-
-        return handleEnter({
-          ...state,
-          chunks: newChunks,
-          linted: true,
-          linting: false,
-          effectQueue: [...effectQueue, 'compile'],
-        });
-      }
-
       let allLinted = true;
       const newChunks: Chunk[] = chunks.map((chunk) => {
         if (chunk.id === action.name) {
@@ -428,15 +413,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
     case EditorMode.Text:
       throw new Error('handleLintFailure: not yet implemented for text mode');
     case EditorMode.Chunks: {
-      const { chunks, effectQueue } = state;
-
-      if (action.name === 'first-chunk-lint') {
-        return {
-          ...state,
-          chunksInitiallyLinted: true,
-          effectQueue: [...effectQueue, 'lint'],
-        };
-      }
+      const { chunks } = state;
 
       let allLinted = true;
       const newChunks: Chunk[] = chunks.map((chunk) => {
@@ -639,7 +616,6 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         ...state,
         editorMode: EditorMode.Chunks,
         chunks: [],
-        chunksInitiallyLinted: false,
       };
     }
 
@@ -663,7 +639,6 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
       ...state,
       editorMode: EditorMode.Chunks,
       chunks,
-      effectQueue: ['saveFile'],
     };
   }
 
