@@ -1,4 +1,4 @@
-.PHONY: all clean build parser web runtime
+.PHONY: all clean build parser web runtime fix-runtime offline-tests
 
 all: build parser
 
@@ -7,7 +7,7 @@ PYRET_JARR_DEPS := $(wildcard src/arr/compiler/*.arr)
 PYRET_JARR := build/phaseA/pyret.jarr
 
 $(PYRET_JARR) : $(PYRET_JARR_DEPS)
-	pyret --checks none -c src/arr/compiler/pyret.arr -o $(PYRET_JARR) 
+	pyret --checks none -c src/arr/compiler/pyret.arr -o $(PYRET_JARR)
 
 BUILD_DEPS := \
 	src/arr/compiler/pyret-parser.js \
@@ -24,8 +24,14 @@ web-tests: web
 stopify-web-tests: web
 	jest --verbose "stopify"
 
-offline-tests: build runtime
+offline-tests: check-block-tests simple-output-tests
+
+simple-output-tests: build runtime
+	rm -r -f tests-new/.pyret
 	jest --verbose "tests-new/simple-output.test.js"
+
+check-block-tests: build runtime
+	jest --verbose "tests-new/check-blocks.test.js"
 
 WEBWORKER_BUILD_DIR := build/worker
 WEBWORKER_SRC_DIR := src/webworker
@@ -38,16 +44,27 @@ RUNTIME_TS_COMPILED_FILES := $(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME
 RUNTIME_COPIED_BUILTINS := \
 	$(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%=$(RUNTIME_BUILD_DIR)/%) \
 	$(RUNTIME_JSON_SRCS:$(RUNTIME_SRC_DIR)/%=$(RUNTIME_BUILD_DIR)/%)
+
+RUNTIME_ARR_STAGE_1_SRC_DIR := src/runtime-arr-stage-1
+RUNTIME_ARR_STAGE_1_SRCS := $(wildcard $(RUNTIME_ARR_STAGE_1_SRC_DIR)/*.arr)
+RUNTIME_ARR_STAGE_1_COMPILED_FILES := $(RUNTIME_ARR_STAGE_1_SRCS:$(RUNTIME_ARR_STAGE_1_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
+
+RUNTIME_ARR_STAGE_2_SRC_DIR := src/runtime-arr-stage-2
+RUNTIME_ARR_STAGE_2_SRCS := $(wildcard $(RUNTIME_ARR_STAGE_2_SRC_DIR)/*.arr)
+RUNTIME_ARR_STAGE_2_COMPILED_FILES := $(RUNTIME_ARR_STAGE_2_SRCS:$(RUNTIME_ARR_STAGE_2_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
+
 RUNTIME_ARR_SRC_DIR := src/runtime-arr
 RUNTIME_ARR_SRCS := $(wildcard $(RUNTIME_ARR_SRC_DIR)/*.arr)
 RUNTIME_ARR_COMPILED_FILES := $(RUNTIME_ARR_SRCS:$(RUNTIME_ARR_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
 STOPIFIED_BUILTINS := \
 	$(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%.js=$(RUNTIME_BUILD_DIR)/%.js.stopped) \
 	$(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME_BUILD_DIR)/%.js.stopped) \
-	$(RUNTIME_ARR_SRCS:$(RUNTIME_ARR_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js.stopped)
+	$(RUNTIME_ARR_SRCS:$(RUNTIME_ARR_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js.stopped) \
+	$(RUNTIME_ARR_STAGE_1_SRCS:$(RUNTIME_ARR_STAGE_1_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js.stopped) \
+	$(RUNTIME_ARR_STAGE_2_SRCS:$(RUNTIME_ARR_STAGE_2_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js.stopped) \
 
 $(RUNTIME_BUILD_DIR)/%.js : $(RUNTIME_SRC_DIR)/%.ts
-	tsc $< --outDir $(RUNTIME_BUILD_DIR)
+	`npm bin`/tsc $< --outDir $(RUNTIME_BUILD_DIR)
 
 $(RUNTIME_SRC_DIR):
 	mkdir -p $(RUNTIME_SRC_DIR)
@@ -72,9 +89,33 @@ $(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_SRC_DIR)/%.arr
 		--build-runnable $*.arr \
 		--builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" \
 		--runtime-builtin-relative-path "./" \
-		--type-check true
+		--type-check true \
+		--compile-mode "builtin-general"
 	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
 	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
+
+
+$(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_STAGE_1_SRC_DIR)/%.arr
+	cd $(RUNTIME_ARR_STAGE_1_SRC_DIR) && node ../../build/phaseA/pyret.jarr \
+		--build-runnable $*.arr \
+		--builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" \
+		--runtime-builtin-relative-path "./" \
+		--type-check true \
+		--compile-mode "builtin-stage-1"
+	mv $(RUNTIME_ARR_STAGE_1_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
+	mv $(RUNTIME_ARR_STAGE_1_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
+
+$(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_STAGE_2_SRC_DIR)/%.arr
+	cd $(RUNTIME_ARR_STAGE_2_SRC_DIR) && node ../../build/phaseA/pyret.jarr \
+		--build-runnable $*.arr \
+		--builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" \
+		--runtime-builtin-relative-path "./" \
+		--type-check true \
+		--compile-mode "builtin-general"
+	mv $(RUNTIME_ARR_STAGE_2_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
+	mv $(RUNTIME_ARR_STAGE_2_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
+
+
 
 RUNTIME_DEPS := \
 	$(BUILD_DEPS) \
@@ -82,6 +123,8 @@ RUNTIME_DEPS := \
 	$(RUNTIME_BUILD_DIR) \
 	$(RUNTIME_TS_COMPILED_FILES) \
 	$(RUNTIME_COPIED_BUILTINS) \
+	$(RUNTIME_ARR_STAGE_1_COMPILED_FILES) \
+	$(RUNTIME_ARR_STAGE_2_COMPILED_FILES) \
 	$(RUNTIME_ARR_COMPILED_FILES) \
 	$(STOPIFIED_BUILTINS) \
 
@@ -102,19 +145,19 @@ build/worker/runtime-files.json: src/webworker/scripts/runtime-bundler.ts $(RUNT
 	node $(WEBWORKER_BUILD_DIR)/runtime-bundler.js $(RUNTIME_BUILD_DIR) build/worker/runtime-files.json
 
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
-	browserify src/js/trove/require-node-compile-dependencies.js -o $@
+	`npm bin`/browserify src/js/trove/require-node-compile-dependencies.js -o $@
 
-build/phaseA/pyret-grammar.js: lib/jglr/parser-generator.js 
-	mkdir -p build/phaseA 
-	mkdir -p build/worker 
-	node lib/jglr/parser-generator.js src/js/base/pyret-grammar.bnf build/phaseA/pyret-grammar.js "../../lib/jglr" "jglr/jglr" "pyret-base/js/pyret-parser" 
- 
-src/arr/compiler/pyret-parser.js: build/phaseA/pyret-grammar.js 
-	node build/phaseA/pyret-grammar.js src/arr/compiler/pyret-parser.js 
- 
-build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js 
-	cp build/phaseA/pyret-grammar.js build/worker/pyret-grammar.js 
- 
+build/phaseA/pyret-grammar.js: lib/jglr/parser-generator.js
+	mkdir -p build/phaseA
+	mkdir -p build/worker
+	node lib/jglr/parser-generator.js src/js/base/pyret-grammar.bnf build/phaseA/pyret-grammar.js "../../lib/jglr" "jglr/jglr" "pyret-base/js/pyret-parser"
+
+src/arr/compiler/pyret-parser.js: build/phaseA/pyret-grammar.js
+	node build/phaseA/pyret-grammar.js src/arr/compiler/pyret-parser.js
+
+build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js
+	cp build/phaseA/pyret-grammar.js build/worker/pyret-grammar.js
+
 parser: src/arr/compiler/pyret-parser.js
 
 build/worker/main.js: src/webworker/*.ts build/worker/runtime-files.json
@@ -128,3 +171,7 @@ clean:
 	rm -f src/arr/compiler/pyret-parser.js
 	rm -r -f tests-new/.pyret
 	rm -r -f build/runtime
+
+fix-runtime:
+	rm -r -f build/runtime
+	npm run runtime

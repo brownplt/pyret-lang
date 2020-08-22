@@ -1,6 +1,6 @@
 ### 55
-import list as L
+import lists as L
 import global as G
 
 list = [L.list: 11, 33, 55]
-G.console-log( L.at( list, 2 ) )
+G.console-log( L.get( list, 2 ) )

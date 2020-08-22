@@ -1,8 +1,9 @@
 # pass
 import global as G
-import list as L
+import lists as L
+import equality as E
 
-# TODO(alex): Due to type checker limitations, _equality cannot be directly 
+# TODO(alex): Due to type checker limitations, _equality cannot be directly
 #   implemented by variants as with-members b/c the type checker does not have
 #   access to common fields nor does type-refinement on 'other' work
 #
@@ -11,20 +12,20 @@ import list as L
 #     method _equals(self, other :: Foo%(is-bar), recursive):
 #       # 'my-field' not detected on 'other'
 #       if self.my-field > other.my-field:
-#       G.Equal
+#       E.Equal
 #       else:
-#         G.NotEqual("self.my-field <= other.my-field", self, other)
+#         E.NotEqual("self.my-field <= other.my-field", self, other)
 #       end
 #     end
 data Foo:
-  | bar(my-field :: Number) 
-sharing: 
+  | bar(my-field :: Number)
+sharing:
   method _equals(self, other :: Foo, recursive):
     # NOTE(alex): This is a BAD equality function
     if self.my-field > other.my-field:
-      G.Equal
+      E.Equal
     else:
-      G.NotEqual("self.my-field <= other.my-field", self, other)
+      E.NotEqual("self.my-field <= other.my-field", self, other)
     end
   end
 end

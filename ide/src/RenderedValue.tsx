@@ -1,9 +1,9 @@
 import React from 'react';
 
-import { TableWidget } from './Table';
-import { ImageWidget } from './Image';
-import { ChartWidget } from './Chart';
-
+import TableWidget from './Table';
+import ImageWidget from './Image';
+import ChartWidget from './Chart';
+import ReactorWidget from './Reactor';
 
 type RenderedValueProps = {
   value: any;
@@ -13,49 +13,80 @@ type RenderedValueState = {};
 
 function convert(value: any) {
   if (value === undefined) {
-    return "undefined";
-  } else if (typeof value === 'number') {
+    return 'undefined';
+  }
+
+  if (typeof value === 'number') {
     return value.toString();
-  } else if (typeof value === 'string') {
+  }
+
+  if (typeof value === 'string') {
     return `"${value}"`;
-  } else if (typeof value === 'boolean') {
+  }
+
+  if (typeof value === 'boolean') {
     return value.toString();
-  } else if (typeof value === 'function') {
+  }
+
+  if (typeof value === 'function') {
     // TODO(michael) can we display more info than just <function> ?
-    return "<function>";
-  } else if (value.$brand === '$table') {
+    return '<function>';
+  }
+
+  if (value.$brand === '$table') {
     return (
-      <TableWidget headers={value._headers}
+      <TableWidget
+        headers={value._headers}
         rows={value._rows}
-        htmlify={(v) => convert(v)}>
-      </TableWidget>
+        htmlify={(v) => convert(v)}
+      />
     );
-  } else if (value.$brand === 'image') {
+  }
+
+  if (value.$brand === 'image') {
     return (
-      <ImageWidget image={value}>
-      </ImageWidget>
+      <ImageWidget image={value} />
     );
-  } else if (value.$brand === 'chart') {
+  }
+
+  if (value.$brand === 'chart') {
     return (
       <ChartWidget
         headers={value._headers}
         rows={value._rows}
-        chartType={value.chartType}>
-      </ChartWidget>
+        chartType={value.chartType}
+      />
     );
-  } else if (typeof value === 'object') {
-    if(Array.isArray(value) && value.length > 100) {
-      const message = (value.length - 100) + " elements hidden"
-      return JSON.stringify(value.slice(0, 100).concat(["... " + message]));
+  }
+
+  if (value.$brand === 'reactor') {
+    return (
+      <ReactorWidget reactor={value} convert={convert} />
+    );
+  }
+
+  if (value['$template-not-finished'] !== undefined) {
+    return (
+      <div>
+        an expression containing a template
+      </div>
+    );
+  }
+
+  if (typeof value === 'object') {
+    if (Array.isArray(value) && value.length > 100) {
+      const message = `${value.length - 100} elements hidden`;
+      return JSON.stringify(value.slice(0, 100).concat([`... ${message}`]));
     }
     // TODO(michael) palceholder for better object display
     return JSON.stringify(value);
   }
-};
+  return 'error: data is not string-convertible';
+}
 
-
-export class RenderedValue extends React.Component<RenderedValueProps, RenderedValueState> {
+export default class RenderedValue extends React.Component<RenderedValueProps, RenderedValueState> {
   render() {
-    return convert(this.props.value);
+    const { value } = this.props;
+    return convert(value);
   }
 }

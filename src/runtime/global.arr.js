@@ -1,17 +1,15 @@
+//
+// BIG NOTE(alex): Do NOT "require()" [directly OR transitively] any builtin module in runtime-arr-stage-1
+//    It creates a cyclic dependency while compiling runtime-arr-stage-1 Pyret code.
+//    This causes a compilation failure b/c the compiler will try to find its compiled version
+//      in the "build/runtime" directory and fail.
+// To lift this restriction, see the note for "copy-js-dependencies()" in cli-module-loader.arr
+//
+
+
 var runtime = require('./runtime.js');
 var array = require('./array.js');
 var numbers = require('./js-numbers.js');
-
-function _plus(l, r) { return l + r; }
-function _minus(l, r) { return l - r; }
-function _times(l, r) { return l * r; }
-function _divide(l, r) { return l / r; }
-function _lessthan(l, r) { return l < r; }
-function _greaterthan(l, r) { return l > r; }
-function _lessequal(l, r) { return l <= r; }
-function _greaterequal(l, r) { return l >= r; }
-
-function _not(x) { return !x; }
 
 function numToString(n) {
   return String(n);
@@ -21,17 +19,37 @@ function timeNow() {
   return new Date().getTime();
 }
 
+var realMakeReactor = null;
+
+
+// (Big Hack): Alias for require to stop the Pyret compiler's dependency
+// tracing. Needed because requiring option introduces a circular dependency
+// with runtime-arr-stage-1.
+const untracedRequire = require;
+
+function makeSome(v) {
+  const option = untracedRequire('./option.arr.js');
+  return option.some(v);
+}
+
+function makeNone() {
+  const untracedRequire = require;
+  const option = untracedRequire('./option.arr.js');
+  return option.none;
+}
+
 module.exports = {
+  makeSome,
+  makeNone,
+  makeReactor: (init, fields) => {
+    return realMakeReactor(init, fields);
+  },
+  $setMakeReactor: (f) => {
+    realMakeReactor = f;
+  },
   'num-to-str': numToString,
   'time-now' : timeNow,
   'js-to-string': function(v) { return String(v); },
-  'raw-array': array['raw-array'],
-  'raw-array-at': array['at'],
-  'raw-array-get': array['get'],
-  'raw-array-fold': array['fold'],
-  'raw-array-sum': array['sum'],
-  'raw-array-min': array['min'],
-  'raw-array-max': array['max'],
   'display-string': function(s) { process.stdout.write(s); },
   "console-log": function(v) { console.log(v); },
   'assert': function( lv, rv, msg ) {
@@ -45,27 +63,23 @@ module.exports = {
   print: function(v) {
     process.stdout.write(String(v));
   },
-  '_plus': _plus,
-  '_minus': _minus,
-  '_times': _times,
-  '_divide': _divide,
-  '_lessthan': _lessthan,
-  '_greaterthan': _greaterthan,
-  '_lessequal': _lessequal,
-  '_greaterequal': _greaterequal,
-  'not': _not,
+  '_plus': runtime["_plus"],
+  '_minus': runtime["_minus"],
+  '_times': runtime["_times"],
+  '_divide': runtime["_divide"],
+  '_lessthan': runtime["_lessthan"],
+  '_greaterthan': runtime["_greaterthan"],
+  '_lessequal': runtime["_lessequal"],
+  '_greaterequal': runtime["_greaterequal"],
+  'not': runtime["_not"],
 
-  'Equal': runtime['Equal'],
-  'NotEqual': runtime['NotEqual'],
-  'Unknown': runtime['Unknown'],
-  'is-Equal': runtime['is-Equal'],
-  'is-NotEqual': runtime['is-NotEqual'],
-  'is-Unknown': runtime['is-Unknown'],
-
-  'equal-always': runtime['equalAlways'],
-  'equal-always3': runtime['equalAlways3'],
+  'equal-now': runtime['equal-now'],
+  'equal-now3': runtime['equal-now3'],
+  'equal-always': runtime['equal-always'],
+  'equal-always3': runtime['equal-always3'],
   'identical': runtime['identical'],
   'identical3': runtime['identical3'],
+
   'trace-value': runtime['traceValue'],
 
   // TODO(alex): Think of better way to expose runtime
@@ -139,13 +153,23 @@ module.exports = {
     };
   },
 
-  'string-to-number': runtime['string-to-number'],
-
   'string-to-lower': function(s) {
     return s.toLowerCase();
   },
 
-  'raise': function(v) {
-    throw v;
-  }
+  'raise': runtime["raise"],
+
+  'loop-a-while': function(n) {
+    let s = 0;
+    for (let i = 0; i < n; i += 1) {
+      s += i;
+    }
+    return s;
+  },
+
+  'throwUnfinishedTemplate': function(srcloc) {
+    throw {
+      '$template-not-finished': srcloc,
+    };
+  },
 };

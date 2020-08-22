@@ -1,72 +1,203 @@
+// TODO (michael): improve accessibilty by enabling these rules
+/* eslint-disable jsx-a11y/click-events-have-key-events */
+/* eslint-disable jsx-a11y/no-static-element-interactions */
+
 import React from 'react';
+import { connect, ConnectedProps } from 'react-redux';
+import { MenuItems } from './menu-types';
+import { State, EditorMode } from './state';
+import { Action } from './action';
+import FSBrowser from './FSBrowser';
+import FontSize from './FontSize';
 
-type TabProps = {
-    name: any,
+type StateProps = {
+  menuItems: MenuItems,
+  menuTabVisible: false | number,
+  debugBorders: boolean,
 };
 
-type TabState = {};
-
-export class Tab extends React.Component<TabProps, TabState> {
-    render() {
-        return <div className="menu-content">{this.props.children}</div>
-    }
+function mapStateToProps(state: State): StateProps {
+  const { menuItems, menuTabVisible, debugBorders } = state;
+  return { menuItems, menuTabVisible, debugBorders };
 }
 
-type MenuProps = {};
-
-type MenuState = {
-    visible: boolean,
-    tab: number,
+type DispatchProps = {
+  setEditorMode: (mode: EditorMode) => void,
+  setDebugBorders: (debugBorders: boolean) => void,
 };
 
-export class Menu extends React.Component<MenuProps, MenuState> {
-    constructor(props: MenuProps) {
-        super(props);
+function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
+  return {
+    setEditorMode: (mode: EditorMode) => {
+      dispatch({ type: 'update', key: 'editorMode', value: mode });
+    },
+    setDebugBorders: (debugBorders: boolean) => {
+      dispatch({ type: 'update', key: 'debugBorders', value: debugBorders });
+    },
+  };
+}
 
-        this.state = {
-            visible: false,
-            tab: 0,
-        };
+const connector = connect(mapStateToProps, mapDispatchToProps);
+
+type PropsFromRedux = ConnectedProps<typeof connector>;
+type MenuProps = PropsFromRedux & DispatchProps & StateProps;
+
+function Menu({
+  menuItems,
+  menuTabVisible,
+  setEditorMode,
+  debugBorders,
+  setDebugBorders,
+}: MenuProps) {
+  function getTab() {
+    if (menuTabVisible === false) {
+      return false;
     }
 
-    toggleTab = (n: number): void => {
-        if (this.state.tab === n) {
-            this.setState({
-                visible: !this.state.visible,
-            });
-        } else {
-            this.setState({
-                tab: n,
-                visible: true,
-            })
-        }
-    };
-
-    render() {
-        const childNodes = Array.isArray(this.props.children) &&
-                           this.props.children.map((tab: any, index: number) => {
-                               return (
-                                   <div className={(
-                                       this.state.visible && this.state.tab === index) ? (
-                                           "menu-tab-active"
-                                       ) : (
-                                           "menu-tab-inactive"
-                                       )}
-                                        key={index}
-                                        onClick={() => this.toggleTab(index)}>
-                                       {tab.props.name}
-                                   </div>
-                               );
-                           });
-        const content = Array.isArray(this.props.children) &&
-                        this.props.children[this.state.tab];
+    switch (menuItems[menuTabVisible].name) {
+      case 'Files':
         return (
-            <div className="menu-container">
-                <div className="menu-tabbar">
-                    {childNodes}
-                </div>
-                {this.state.visible && content}
-            </div>
+          <FSBrowser />
         );
+      case 'Options':
+        return (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                height: '2.7em',
+              }}
+            >
+              <button
+                onClick={() => setEditorMode(EditorMode.Text)}
+                className="option"
+                key="TextEditor"
+                type="button"
+                style={{
+                  width: '50%',
+                }}
+              >
+                Text
+              </button>
+              <button
+                onClick={() => setEditorMode(EditorMode.Chunks)}
+                className="option"
+                key="ChunkEditor"
+                type="button"
+                style={{
+                  width: '50%',
+                }}
+              >
+                Chunks
+              </button>
+            </div>
+            <FontSize key="FontSize" />
+            <button
+              onClick={() => setDebugBorders(!debugBorders)}
+              className="option"
+              key="debugBorders"
+              type="button"
+              style={{
+                height: '2.7em',
+              }}
+            >
+              {debugBorders ? (
+                'Turn off debug borders'
+              ) : (
+                'Turn on debug borders'
+              )}
+            </button>
+          </div>
+        );
+      default:
+        throw new Error(`Menu: unknown menu item name, ${menuItems[menuTabVisible].name}`);
     }
+  }
+
+  const tab = getTab();
+
+  return (
+    <div
+      style={{
+        height: '100%',
+        background: '#c8c8c8',
+        overflowY: tab === false ? undefined : 'scroll',
+        minWidth: tab === false ? undefined : '16em',
+      }}
+    >
+      {tab}
+    </div>
+  );
 }
+
+export default connector(Menu);
+
+// export default class Menu extends React.Component<MenuProps, MenuState> {
+//   constructor(props: MenuProps) {
+//     super(props);
+//
+//     this.state = {
+//       visible: false,
+//       tab: 0,
+//     };
+//   }
+//
+//   toggleTab = (n: number): void => {
+//     const { tab, visible } = this.state;
+//     if (tab === n) {
+//       this.setState({
+//         visible: !visible,
+//       });
+//     } else {
+//       this.setState({
+//         tab: n,
+//         visible: true,
+//       });
+//     }
+//   };
+//
+//   render() {
+//     const { children } = this.props;
+//     const { visible, tab } = this.state;
+//
+//     function getChildArray() {
+//       if (Array.isArray(children)) {
+//         return children;
+//       }
+//       return [children];
+//     }
+//
+//     const childArray = getChildArray();
+//
+//     const childNodes = childArray.map((childTab: any, index: number) => (
+//       <div
+//         className={(
+//           visible && tab === index) ? (
+//             'menu-tab-active'
+//           ) : (
+//             'menu-tab-inactive'
+//           )}
+//         key={childTab.props.name}
+//         onClick={() => this.toggleTab(index)}
+//       >
+//         {childTab.props.icon}
+//       </div>
+//     ));
+//
+//     const content = childArray[tab];
+//
+//     return (
+//       <div className="menu-container">
+//         <div className="menu-tabbar">
+//           {childNodes}
+//         </div>
+//         {visible && content}
+//       </div>
+//     );
+//   }
+// }

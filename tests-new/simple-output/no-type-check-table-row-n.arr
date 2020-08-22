@@ -4,8 +4,9 @@
 # table.row-n test.
 
 import global as G
+import equality as E
 import tables as T
-import list as L
+import lists as L
 
 my-table = table: a, b, c
   row: 1, 2, 3
@@ -22,10 +23,10 @@ expected-row-1 = [T.raw-row: {"a"; 4}, {"b"; 5}, {"c"; 6}]
 expected-row-2 = [T.raw-row: {"a"; 7}, {"b"; 8}, {"c"; 9}]
 
 passes-when-true =
-  T._primitiveEqual(expected-row-0, row-0)
+  E.equal-always(expected-row-0, row-0)
   and
-  T._primitiveEqual(expected-row-1, row-1)
+  E.equal-always(expected-row-1, row-1)
   and
-  T._primitiveEqual(expected-row-2, row-2)
+  E.equal-always(expected-row-2, row-2)
 
 G.console-log(passes-when-true)

@@ -247,6 +247,7 @@ data Program:
           [list:
             self._provide.tosource(),
             self.provided-types.tosource()]
+            + self.provides.map(_.tosource())
             + self.imports.map(_.tosource())
             + [list: self.block.tosource()]
           ))
@@ -377,7 +378,16 @@ end
 data ProvideBlock:
   | s-provide-block(l :: Loc, path :: List<Name>, specs :: List<ProvideSpec>) with:
     method label(self): "s-provide-block" end,
-    method tosource(self): PP.str("provide-block") end
+    method tosource(self):
+      start = 
+        if is-empty(self.path):
+          PP.str("provide:")
+        else:
+          PP.flow([list: PP.str("provide from"), PP.separate(PP.str("."), self.path.map(_.tosource()))]) + str-colon
+        end
+      PP.surround-separate(INDENT, 1, start + str-space + str-end, start, PP.commabreak, str-end,
+        self.specs.map(_.tosource()))
+    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
@@ -390,13 +400,16 @@ data ProvideSpec:
     method tosource(self): self.name-spec.tosource() end
   | s-provide-data(l :: Loc, name-spec :: NameSpec, hidden :: List<Name>) with:
     method label(self): "s-provide-data" end,
-    method tosource(self): PP.flow([list: self.name-spec.tosource(), PP.str("hiding"), PP.separate(PP.str(","), self.hidden.map(_.tosource()))]) end
+    method tosource(self):
+      PP.flow([list: PP.str("data"), self.name-spec.tosource(), PP.str("hiding"),
+          PP.parens(PP.separate(PP.str(","), self.hidden.map(_.tosource())))])
+    end
   | s-provide-type(l :: Loc, name-spec :: NameSpec) with:
     method label(self): "s-provide-type" end,
-    method tosource(self): self.name-spec.tosource() end
+    method tosource(self): PP.flow([list: PP.str("type"), self.name-spec.tosource()]) end
   | s-provide-module(l :: Loc, name-spec :: NameSpec) with:
     method label(self): "s-provide-module" end,
-    method tosource(self): self.name-spec.tosource() end
+    method tosource(self): PP.flow([list: PP.str("module"), self.name-spec.tosource()]) end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
@@ -406,7 +419,8 @@ end
 data NameSpec:
   | s-star(l :: Loc, hidden :: List<Name>) with:
     method label(self): "s-star" end,
-    method tosource(self): PP.flow([list: PP.str("*"), PP.separate(PP.str(","), self.hidden.map(_.tosource()))]) end
+    method tosource(self): PP.flow([list: PP.str("*"), PP.str("hiding"),
+        PP.parens(PP.separate(PP.str(","), self.hidden.map(_.tosource())))]) end
   | s-module-ref(l :: Loc, path :: List<Name>, as-name :: Option<Name>) with:
     method label(self): "s-module-ref" end,
     method tosource(self):
@@ -1823,68 +1837,6 @@ fun flatten(list-of-lists :: List):
   end
 end
 
-fun binding-type-ids(stmt) -> List<Name>:
-  cases(Expr) stmt:
-    | s-newtype(l, name, _) => [list: {bind-type: "normal", name: name}]
-    | s-type(l, name, params,  _) => [list: {bind-type: "normal", name: name}]
-    | s-data(l, name, _, _, _, _, _, _) => [list: {bind-type: "data", name: s-name(l, name)}]
-    | else => empty
-  end
-end
-
-fun block-type-ids(b :: Expr%(is-s-block)) -> List<Name>:
-  cases(Expr) b:
-    | s-block(_, stmts) => flatten(stmts.map(binding-type-ids))
-    | else => raise("Non-block given to block-ids")
-  end
-end
-
-fun binding-ids(stmt) -> List<Name>:
-  fun variant-ids(variant):
-    cases(Variant) variant:
-      | s-variant(_, l2, name, _, _) => [list: s-name(l2, name), s-name(l2, make-checker-name(name))]
-      | s-singleton-variant(l, name, _) => [list: s-name(l, name), s-name(l, make-checker-name(name))]
-    end
-  end
-  fun bind-ids(b):
-    cases(Bind) b:
-      | s-bind(_,_,id,_) => [list: id]
-      | s-tuple-bind(_, fields, as-name) =>
-        extra = cases(Option) as-name:
-          | none => empty
-          | some(n) => [list: n.id]
-        end
-        tup-ids = for foldr(acc from extra, f from fields):
-          bind-ids(f) + acc
-        end
-        tup-ids
-    end
-  end
-  cases(Expr) stmt:
-    | s-let(_, b, _, _) => bind-ids(b)
-    | s-var(_, b, _) => bind-ids(b)
-    | s-rec(_, b, _) => bind-ids(b)
-    | s-fun(l, name, _, _, _, _, _, _, _, _) => [list: s-name(l, name)]
-    | s-data(l, name, _, _, variants, _, _, _) =>
-      s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids)))
-    | else => [list: ]
-  end
-end
-
-fun block-ids(b :: Expr%(is-s-block)) -> List<Name>:
-  cases(Expr) b:
-    | s-block(_, stmts) => flatten(stmts.map(binding-ids))
-    | else => raise("Non-block given to block-ids")
-  end
-end
-
-fun toplevel-ids(program :: Program) -> List<Name>:
-  cases(Program) program:
-    | s-program(_, _, _, _, _, b) => block-ids(b)
-    | else => raise("Non-program given to toplevel-ids")
-  end
-end
-    
 default-map-visitor = {
   method option(self, opt):
     cases(Option) opt:

@@ -137,9 +137,14 @@ fun make-default-types() block:
   default-typs.set-now("makeSrcloc", t-arrow([list: t-srcloc], t-bot))
 
   default-typs.set-now("not", t-arrow([list: t-boolean], t-boolean))
+  default-typs.set-now("roughly-equal-always", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("roughly-equal-now", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("roughly-equal", t-arrow([list: t-top, t-top], t-boolean))
   default-typs.set-now("equal-always", t-arrow([list: t-top, t-top], t-boolean))
   default-typs.set-now("equal-now", t-arrow([list: t-top, t-top], t-boolean))
   default-typs.set-now("identical", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("roughly-equal-always3", t-arrow([list: t-top, t-top], t-equality-result))
+  default-typs.set-now("roughly-equal-now3", t-arrow([list: t-top, t-top], t-equality-result))
   default-typs.set-now("equal-always3", t-arrow([list: t-top, t-top], t-equality-result))
   default-typs.set-now("equal-now3", t-arrow([list: t-top, t-top], t-equality-result))
   default-typs.set-now("identical3", t-arrow([list: t-top, t-top], t-equality-result))
@@ -634,7 +639,7 @@ module-const-error = t-module("builtin://error",
       [list: ],
       [list:
         t-variant("parse-error-next-token", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
-        t-variant("parse-error-bad-check-operator", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
+        t-variant("parse-error-bad-check-operator", [list: {"op"; t-top}], [string-dict: ]),
         t-variant("parse-error-bad-operator", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
         t-variant("parse-error-bad-number", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
         t-variant("parse-error-eof", [list: {"loc"; t-top}], [string-dict: ]),
@@ -826,18 +831,11 @@ module-const-json-structs = t-module("builtin://json-structs",
     .set("List", t-list)
     .set("JSON", t-json))
 
+# TODO(alex): remove the default module values
+# TODO(alex): is anything relying on default module values?
+#   Removed because they were overriding the actual definitions
+#     found in src/runtime and potentially src/runtime-arr
 default-modules = SD.make-mutable-string-dict()
-default-modules.set-now("builtin://equality", module-const-equality)
-default-modules.set-now("builtin://lists", module-const-lists)
-default-modules.set-now("builtin://option", module-const-option)
-default-modules.set-now("builtin://error", module-const-error)
-default-modules.set-now("builtin://either", module-const-either)
-default-modules.set-now("builtin://arrays", module-const-arrays)
-default-modules.set-now("builtin://pick", module-const-pick)
-default-modules.set-now("builtin://sets", module-const-sets)
-default-modules.set-now("builtin://s-exp", module-const-s-exp)
-default-modules.set-now("builtin://s-exp-structs", module-const-s-exp-structs)
-default-modules.set-now("builtin://json-structs", module-const-json-structs)
 shadow default-modules = default-modules.freeze()
 
 fun make-default-modules() block:

@@ -2,9 +2,10 @@ provide *
 provide-types *
 
 import global as G
+import raw-array as RA
 import chart-lib as CL
 import image as IM
-import list as L
+import lists as L
 import option as O
 
 include from O: type Option end
@@ -25,10 +26,10 @@ type TableIntern = RawArray<RawArray<Any>>
 # HELPERS
 ################################################################################
 
-posn = {(x :: Number, y :: Number): [G.raw-array: x, y]}
+posn = {(x :: Number, y :: Number): [RA.raw-array: x, y]}
 
 fun map2(xs :: L.List<Any>, ys :: L.List<Any>):
-  L.map2({(x, y): [G.raw-array: x, y]}, xs, ys)
+  L.map2({(x, y): [RA.raw-array: x, y]}, xs, ys)
 end
 
 fun raw-array-from-list(l :: L.List<Any>) -> RawArray<Any>:
@@ -36,7 +37,7 @@ fun raw-array-from-list(l :: L.List<Any>) -> RawArray<Any>:
 end
 
 fun to-table2(xs :: L.List<Any>, ys :: L.List<Any>) -> TableIntern:
-  L.to-raw-array(L.map2({(x, y): [G.raw-array: x, y]}, xs, ys))
+  L.to-raw-array(L.map2({(x, y): [RA.raw-array: x, y]}, xs, ys))
 end
 
 # TODO(tiffany): add in get-vs-from-img after VS is implemented
@@ -67,19 +68,19 @@ default-bounding-box :: BoundingBox = {
 }
 
 fun compute-min(ps :: RawArray<Number>) -> Number:
-  G.raw-array-min(ps)
+  RA.raw-array-min(ps)
 end
 
 fun compute-max(ps :: RawArray<Number>) -> Number:
-  G.raw-array-max(ps)
+  RA.raw-array-max(ps)
 end
 
 fun get-bounding-box(ps :: L.List<Posn>) -> BoundingBox:
   if L.length(ps) == 0:
     default-bounding-box.{is-valid: false}
   else:
-    x-arr = G.raw-array-get(ps, 0)
-    y-arr = G.raw-array-get(ps, 1)
+    x-arr = L.get(ps, 0)
+    y-arr = L.get(ps, 1)
     default-bounding-box.{
       x-min: compute-min(x-arr),
       x-max: compute-max(x-arr),
@@ -202,7 +203,7 @@ fun bar-chart-from-list(labels :: L.List<String>, values :: L.List<Number>) -> D
   #labels.each(check-string)
   bar-chart-series(default-bar-chart-series.{
     tab: to-table2(labels, values),
-    legends: [G.raw-array: ''],
+    legends: [RA.raw-array: ''],
     has-legend: false,
   })
 end

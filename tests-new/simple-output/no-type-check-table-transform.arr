@@ -4,6 +4,7 @@
 # `transform` syntax.
 
 import global as G
+import equality as E
 import tables as T
 
 my-table = table: name, age, favNum
@@ -23,9 +24,9 @@ my-correct-transform-table = table: name, age, favNum
   row: "Eve", 14, 8
 end
 
-are-equal = T._primitiveEqual(my-correct-transform-table, my-transform-table)
+are-equal = E.equal-always(my-correct-transform-table, my-transform-table)
 
-are-not-equal = T._primitiveEqual(my-correct-transform-table, my-table)
+are-not-equal = E.equal-always(my-correct-transform-table, my-table)
 
 passes-when-true = are-equal and G.not(are-not-equal)
 

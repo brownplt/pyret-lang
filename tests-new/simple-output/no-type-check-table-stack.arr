@@ -4,6 +4,7 @@
 # stack function
 
 import global as G
+import equality as E
 import tables as T
 
 my-table = table: name, age, favNum
@@ -27,9 +28,9 @@ my-correct-table = table: name, age, favNum
   row: "Frank", 15, 5
 end
 
-are-equal = T._primitiveEqual(my-correct-table, my-stacked-table)
+are-equal = E.equal-always(my-correct-table, my-stacked-table)
 
-are-not-equal = T._primitiveEqual(my-correct-table, my-table)
+are-not-equal = E.equal-always(my-correct-table, my-table)
 
 passes-when-true = are-equal and G.not(are-not-equal)
 

@@ -119,6 +119,8 @@ check "malformed blocks":
        "10")
     satisfies CS.is-block-needed
 
+  c("for map(): end") satisfies CS.is-wf-empty-block
+
   run-str("lam(): x = 5 end") is%(output) compile-error(CS.is-block-ending)
   run-str("lam(): var x = 5 end") is%(output) compile-error(CS.is-block-ending)
   run-str("lam(): fun f(): nothing end end") is%(output) compile-error(CS.is-block-ending)
@@ -262,6 +264,18 @@ check "underscores":
   run-str("{a: 1}.{_: 2}") is%(output) compile-error(CS.is-underscore-as)
   run-str("{a: 1}._") is%(output) compile-error(CS.is-underscore-as)
 end
+
+check "standalone expressions":
+  cok("1 + 2\n1 + 5") is empty
+  cok("x = 5\n1 == 1\nx") is empty
+  cok("x = 10\nx + 1\nx") is empty
+  cok("x = 5\ny = 12\nx\ny") is empty
+
+  run-str("block: 1 + 2\n1 + 3 end") is%(output) compile-error(CS.is-wf-err)
+  run-str("block: x\ny end") is%(output) compile-error(CS.is-wf-err)
+  run-str("block: x = 10\nx\nx + 1 end") is%(output) compile-error(CS.is-wf-err)
+end
+
 
 #|
       it("should notice empty blocks", function(done) {

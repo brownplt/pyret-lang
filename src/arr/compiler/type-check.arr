@@ -172,13 +172,12 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
     if context.global-types.has-key(A.s-global(g).key()):
       context
     else:
-      dep-key = globvs.get-value(g)
       # TODO(joe): type-check vars by making them refs
 
       if (g == "_"):
         context
       else:
-        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.value-by-uri-value(dep-key, g).t))
+        context.set-global-types(context.global-types.set(A.s-global(g).key(), compile-env.global-value-value(g).t))
       end
     end
   end, context)
@@ -186,11 +185,11 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
     if context.aliases.has-key(A.s-type-global(g).key()):
       context
     else:
-      dep-key = globts.get-value(g)
+      origin = globts.get-value(g)
       if (g == "_"):
         context
       else:
-        cases(Option<C.Provides>) compile-env.provides-by-uri(dep-key):
+        cases(Option<C.Provides>) compile-env.provides-by-uri(origin.uri-of-definition):
           | some(provs) =>
             t = cases(Option<Type>) provs.aliases.get(g):
               | none =>
@@ -202,7 +201,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
             end
             context.set-aliases(context.aliases.set(A.s-type-global(g).key(), t))
           | none =>
-            raise("Could not find module " + torepr(dep-key) + " in " + torepr(compile-env.all-modules) + " in " + torepr(program.l))
+            raise("Could not find module " + torepr(origin.uri-of-definition) + " in " + torepr(compile-env.all-modules) + " in " + torepr(program.l))
         end
       end
     end
@@ -222,14 +221,23 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
         end
         sd.set(k, typ)
       end
+      dts-dict = for SD.fold-keys(sd from [string-dict:], shadow k from mod.data-definitions):
+        de = mod.data-definitions.get-value(k)
+        typ = cases(C.DataExport) de:
+          | d-alias(origin, name) =>
+            compile-env.resolve-datatype-by-uri-value(origin.uri-of-definition, origin.original-name.toname())
+          | d-type(origin, typ) => typ
+        end
+        sd.set(k, typ)
+      end
       val-provides = t-record(vals-types-dict, program.l, false)
       module-type = t-module(key,
                              val-provides,
-                             mod.data-definitions,
+                             dts-dict,
                              mod.aliases)
       shadow context = context.set-modules(context.modules.set(key, module-type))
       mod.data-definitions.fold-keys(lam(d, shadow context):
-        context.set-data-types(context.data-types.set(d, mod.data-definitions.get-value(d)))
+        context.set-data-types(context.data-types.set(d, compile-env.resolve-datatype-by-uri(mod.from-uri, d)))
       end, context)
     end
   end, context)
@@ -273,9 +281,8 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
           tbind = tbinds.get-value-now(key)
           if tbind.origin.new-definition: global-aliases
           else:
-            thismod = context.modules.get-value(tbind.origin.uri-of-definition)
-            cases(Option) thismod.aliases.get(tbind.origin.original-name.toname()):
-              | none => raise("Cannot find type binding for " + tbind.origin.original-name.toname())
+            cases(Option) compile-env.type-by-uri(tbind.origin.uri-of-definition, tbind.origin.original-name.toname()):
+              | none => raise("Cannot find type binding for " + to-repr(tbind))
               | some(typ) => global-aliases.set(key, typ)
             end
           end
@@ -394,7 +401,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
                     end)
                   end, defined-types, context, info)
               end)
-                  
+
               with-types.typing-bind(lam(shadow info, shadow context):
                   typing-result(A.s-module(l, new-answer, defined-modules, defined-values, defined-types, checks), expect-type, context.set-info(info))
                 end)
@@ -587,9 +594,9 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             typing-result(A.s-array(l, new-values), expect-type, context)
           end)
         | s-construct(l, modifier, constructor, values) =>
-          check-synthesis(A.s-app(l, A.s-dot(l, constructor, "make"), [list: A.s-array(l, values)]), 
+          check-synthesis(A.s-app(l, A.s-dot(l, constructor, "make"), [list: A.s-array(l, values)]),
                           expect-type,
-                          top-level, 
+                          top-level,
                           context)
           #raise("checking for s-construct not implemented")
         | s-app(l, _fun, args) =>
@@ -739,7 +746,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       raise("synthesis for s-contract not implemented")
     | s-when(l, test, block, blocky) =>
       synthesis(
-        A.s-if-else(l, 
+        A.s-if-else(l,
                     [list: A.s-if-branch(l, test, block)],
                     A.s-id(l, A.s-global("nothing")),   # TODO(alex): How to use nothing value?
                     blocky),
@@ -759,16 +766,16 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       end)
     | s-if-pipe(l, branches, blocky) =>
       _synthesis(
-        A.s-if(l, 
-               for map(b from branches): b.to-if-branch() end, 
+        A.s-if(l,
+               for map(b from branches): b.to-if-branch() end,
                blocky),
         top-level,
         context)
     | s-if-pipe-else(l, branches, _else, blocky) =>
       _synthesis(
-        A.s-if-else(l, 
+        A.s-if-else(l,
                     for map(b from branches): b.to-if-branch() end,
-                    _else, 
+                    _else,
                     blocky),
         top-level,
         context)
@@ -776,11 +783,11 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       # TODO(ALEX): check s-if handling
       # Manually desurgar into s-if-else
       _synthesis(
-        A.s-if-else(l, 
+        A.s-if-else(l,
                     branches,
-                    A.s-prim-app(l, 
-                      "throwNoBranchesMatched", 
-                      [list: A.s-srcloc(l, l), A.s-str(l, "if")], 
+                    A.s-prim-app(l,
+                      "throwNoBranchesMatched",
+                      [list: A.s-srcloc(l, l), A.s-str(l, "if")],
                       flat-prim-app),
                     blocky),
         top-level,
@@ -1900,13 +1907,7 @@ fun collect-bindings(binds :: List<A.Bind>, context :: Context) -> FoldResult<SD
     to-type(binding.ann, context).bind(lam(maybe-type, shadow context):
       new-type = cases(Option<Type>) maybe-type:
         | some(typ) => typ.set-loc(binding.l)
-        | none =>
-          cases(A.Name) binding.id:
-            | s-atom(base, _) =>
-              new-existential(binding.l, true)
-            | else =>
-              new-existential(binding.l, true)
-          end
+        | none => new-existential(binding.l, true)
       end
       shadow context = context.add-variable(new-type)
       fold-result(dict.set(binding.id.key(), new-type), context)
@@ -2028,7 +2029,7 @@ end
 
 fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
 
-  fun field-lookup(shadow obj-type  :: Type, 
+  fun field-lookup(shadow obj-type  :: Type,
                     correct-result   :: TypingResult,
                     available-fields :: StringDict<Type>) -> TypingResult:
     # Type check fields
@@ -2051,22 +2052,22 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
             | typing-error(field-error-list) =>
              cases(TypingResult) result:
                 | typing-result(ast, ty, _) => typing-error(field-error-list)
-                | typing-error(result-error-list) => 
+                | typing-error(result-error-list) =>
                   typing-error(result-error-list.append(field-error-list))
-              end 
+              end
           end
 
         # Missing field; update result
         | none =>
           current-err = C.object-missing-field(
-                                  field.name, 
-                                  tostring(obj-type), 
-                                  obj-type.l, 
+                                  field.name,
+                                  tostring(obj-type),
+                                  obj-type.l,
                                   field.l)
           cases(TypingResult) result:
-            | typing-result(_, _, _) => 
+            | typing-result(_, _, _) =>
               typing-error([list: current-err])
-            | typing-error(error-list) => 
+            | typing-error(error-list) =>
               typing-error(error-list.push(current-err))
           end
       end
@@ -2083,7 +2084,7 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
           end, t-fields)
           typing-result(A.s-extend(update-loc, obj, fields), t-record(final-fields, update-loc, inferred), context)
 
-        | t-name(_, _, _, _) => 
+        | t-name(_, _, _, _) =>
           instantiate-data-type(obj-type, context)
             .typing-bind(lam(shadow concrete-data-type, shadow context):
 
@@ -2099,8 +2100,8 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
         # This allows the type of an extend expression on a data variant is that data variant.
         # Previously, this behavior was not supported and exposed runtime-implementations of
         #   data variants and removed the type.
-        | t-data-refinement(data-type :: Type, 
-                            variant-name :: String, 
+        | t-data-refinement(data-type :: Type,
+                            variant-name :: String,
                             l :: Loc, inferred :: Boolean) =>
           instantiate-data-type(data-type, context)
             .typing-bind(lam(shadow concrete-data-type, shadow context):
@@ -2132,8 +2133,8 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
                             _l          :: Loc) => with-fields
               end
 
-              correct-result = 
-                typing-result(A.s-extend(update-loc, obj, fields), 
+              correct-result =
+                typing-result(A.s-extend(update-loc, obj, fields),
                               t-data-refinement(data-type, variant-name, l, inferred), context)
 
               field-lookup(obj-type, correct-result, available-fields)
@@ -2148,32 +2149,50 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
 end
 
 fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields :: List<A.Member>, context :: Context) -> TypingResult:
-  collect-members(fields, false, context).typing-bind(lam(new-members, shadow context):
-    instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
-      cases(Type) obj-type:
-        | t-record(t-fields, _, inferred, _) =>
-          foldr-fold-result(lam(key, shadow context, final-fields):
-            cases(Option<Type>) t-fields.get(key):
+  instantiate-object-type(obj-type, context).typing-bind(lam(shadow obj-type, shadow context):
+    cases(Type) obj-type:
+      | t-record(t-fields, _, inferred) =>
+        foldr-fold-result(lam(field, shadow context, new-fields):
+          cases(Option<Type>) t-fields.get(field.name):
+            | none =>
+              fold-errors([list: C.object-missing-field(field.name, tostring(obj-type), obj-type.l, update-loc)])
+            | some(old-type) =>
+              cases(Type) old-type:
+                | t-ref(onto, l, ref-inferred) =>
+                  checking(field.value, onto, false, context).fold-bind(lam(new-value, _, shadow context):
+                    fold-result(link(A.s-data-field(field.l, field.name, new-value), fields), context)
+                  end)
+                | else =>
+                  fold-errors([list: C.incorrect-type(tostring(old-type), old-type.l, tostring(t-ref(old-type, update-loc, false)), update-loc)])
+              end
+          end
+        end, fields, context, empty).typing-bind(lam(final-fields, shadow context):
+          typing-result(A.s-update(update-loc, obj, final-fields), obj-type, context)
+        end)
+      | t-existential(_, l, _) =>
+        typing-error([list: C.unable-to-infer(l)])
+      | else =>
+        instantiate-data-type(obj-type, context).typing-bind(lam(data-type, shadow context):
+          foldr-fold-result(lam(field, shadow context, new-fields):
+            cases(Option<Type>) data-type.fields.get(field.name):
               | none =>
-                fold-errors([list: C.object-missing-field(key, tostring(obj-type), obj-type.l, update-loc)])
+                fold-errors([list: C.object-missing-field(field.name, tostring(obj-type), obj-type.l, update-loc)])
               | some(old-type) =>
                 cases(Type) old-type:
-                  | t-ref(onto, l, ref-inferred, _) =>
-                    new-type = new-members.get-value(key)
-                    fold-result(final-fields.set(key, t-ref(new-type, new-type.l, ref-inferred)), context)
+                  | t-ref(onto, l, ref-inferred) =>
+                    checking(field.value, onto, false, context).fold-bind(lam(new-value, _, shadow context):
+                      fold-result(link(A.s-data-field(field.l, field.name, new-value), fields), context)
+                    end)
                   | else =>
                     fold-errors([list: C.incorrect-type(tostring(old-type), old-type.l, tostring(t-ref(old-type, update-loc, false)), update-loc)])
                 end
             end
-          end, new-members.keys-list(), context, t-fields).typing-bind(lam(final-fields, shadow context):
-            typing-result(A.s-update(update-loc, obj, fields), t-record(final-fields, update-loc, inferred), context)
+          end, fields, context, empty).typing-bind(lam(final-fields, shadow context):
+            typing-result(A.s-update(update-loc, obj, final-fields), obj-type, context)
           end)
-        | t-existential(_, l, _) =>
-          typing-error([list: C.unable-to-infer(l)])
-        | else =>
-          typing-error([list: C.incorrect-type-expression(tostring(obj-type), obj-type.l, "an object type", update-loc, obj)])
-      end
-    end)
+        end)
+        # typing-error([list: C.incorrect-type-expression(tostring(obj-type), obj-type.l, "an object type", update-loc, obj)])
+    end
   end)
 end
 
@@ -2455,7 +2474,7 @@ fun gather-provides(_provide :: A.ProvideBlock, context :: Context) -> FoldResul
             end
         end
       end, provide-specs, context, initial-info)
-      
+
     | else => raise("By type-check time, all provides should be resolved to a provide-block")
   end
 end

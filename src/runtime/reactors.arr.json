@@ -1,0 +1,56 @@
+{
+    "requires": [
+        { "import-type": "builtin", "name": "reactor-events" },
+        { "import-type": "builtin", "name": "tables" }
+    ],
+    "nativeRequires": [],
+    "provides": {
+        "shorthands": {
+            "RofA": ["tyapp", ["local", "Reactor"], [["tid", "a"]]],
+            "ReactorEvent": { "tag": "name",
+                              "origin": { "import-type": "uri", "uri": "builtin://reactor-events" },
+                              "name": "Event" },
+            "Image": { "tag": "name",
+                       "origin": { "import-type": "uri", "uri": "builtin://image" },
+                       "name": "Image" },
+            "Table": { "tag": "name",
+                       "origin": { "import-type": "uri", "uri": "builtin://global" },
+                       "name": "Table" }
+        },
+        "values": {
+            "keypress": ["arrow", ["String"], ["local", "Event"]],
+            "mouse": ["arrow", ["Number", "Number", "String"], ["local", "Event"]],
+            "time-tick": ["local", "Event"],
+            "get-value": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
+            "get-instance": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
+            "draw": ["forall", ["a"], ["arrow", ["RofA"], "Image"]],
+            "interact": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
+            "interact-trace": ["forall", ["a"], ["arrow", ["RofA"], "Table"]],
+            "simulate-trace": ["forall", ["a"], ["arrow", ["RofA", "Number"], "Table"]],
+            "start-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
+            "stop-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
+            "get-trace": ["forall", ["a"], ["arrow", ["RofA"], ["List", ["tid", "a"]]]],
+            "get-trace-as-table": ["forall", ["a"], ["arrow", ["RofA"], "Table"]],
+            "react": ["forall", ["a"], ["arrow", ["RofA", ["local", "Event"]], "RofA"]]
+        },
+        "aliases": {
+            "Event": "ReactorEvent",
+            "Reactor": ["local", "Reactor"]
+        },
+        "datatypes": {
+            "Reactor": ["data", "Reactor", ["a"], [], {
+                "get-value": ["arrow", [], ["tid", "a"]],
+                "draw": ["arrow", [], "Image"],
+                "interact": ["arrow", [], "RofA"],
+                "interact-trace": ["forall", ["a"], ["arrow", [], "Any"]],
+                "simulate-trace": ["forall", ["a"], ["arrow", ["Number"], "Any"]],
+                "start-trace": ["arrow", [], "RofA"],
+                "stop-trace": ["arrow", [], "RofA"],
+                "get-trace": ["arrow", [], ["List", ["tid", "a"]]],
+                "get-trace-as-table": ["arrow", [], "Any"],
+                "react": ["arrow", [["local", "Event"]], "RofA"],
+                "is-stopped": ["arrow", [], "Boolean"]
+            }]
+        }
+    }
+}

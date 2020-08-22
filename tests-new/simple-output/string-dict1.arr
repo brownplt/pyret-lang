@@ -2,11 +2,11 @@
 import string-dict as D
 import global as G
 
-dict = [D.string-dict: {x: 1, y: 2, z: 3}]
+dict = [D.string-dict: "x", 1, "y", 2, "z", 3]
 
-xValue = D.get(dict, "x")
-yValue = D.get(dict, "y")
-zValue = D.get(dict, "z")
+xValue = dict.get-value("x")
+yValue = dict.get-value("y")
+zValue = dict.get-value("z")
 
 output = G.js-to-string(xValue) + G.js-to-string(yValue) + G.js-to-string(zValue)
 

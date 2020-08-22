@@ -13,7 +13,6 @@ html, body, #root {
     height: 2.7em;
     background: #c8c8c8;
     box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.6);
-    flex: none;
     position: relative;
     z-index: 10;
 }
@@ -34,7 +33,7 @@ html, body, #root {
     text-indent: -0.2em;
     cursor: pointer;
     transition: box-shadow 0.2s;
-    background: #317bcf;
+    background: gray;
     color: #fff;
 }
 
@@ -80,9 +79,9 @@ button::-moz-focus-inner {
     transition: box-shadow 0.2s;
     width: 12em;
     float: right;
-    background: #317bcf;
     color: #fff;
     border: none;
+    background: gray;
     border-right: 2px solid rgba(0, 0, 0, 0.26);
 }
 
@@ -152,8 +151,7 @@ button::-moz-focus-inner {
     background: #b30c00;
 }
 
-.run-option-disabled:hover, .run-queued:hover, .menu:hover, .menu-content-button:hover, .fs-browser-item:hover, .font-label:hover, .font-minus:hover, .font-plus:hover {
-    box-shadow: 0px -5px 10px 5px rgba(0, 0, 0, 0.2);
+.run-option-disabled:hover, .run-queued:hover, .menu:hover, .menu-content-button:hover, .fs-browser-item:hover, .option:hover {
     background: #979797;
 }
 
@@ -194,15 +192,6 @@ button::-moz-focus-inner {
     background: linear-gradient(to top, #bfbfbf 0%, #d9d9d9 40%, #d9d9d9 60%, #bfbfbf 100%);
 }
 
-.footer-container {
-    height: 2.7em;
-    background: #111;
-    flex: none;
-    color: #fff;
-    display: flex;
-    align-items: center;
-}
-
 .run-dropdown {
     position: absolute;
     right: 10em;
@@ -216,11 +205,16 @@ button::-moz-focus-inner {
 
 .react-codemirror2 {
     height: 100%;
+    width: 100%;
 }
 
 .CodeMirror {
     min-height: 100% !important;
     border: none !important;
+}
+
+.CodeMirror-linenumber {
+    user-select: none;
 }
 
 .interactions-area-container {
@@ -270,34 +264,11 @@ button::-moz-focus-inner {
     flex: none;
 }
 
-.font-size-options {
-    display: flex;
-    flex-direction: row;
-}
-
-.font-label {
-    flex-grow: 2;
-    border: none;
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
-}
-
-.font-minus {
-    border: none;
-    width: 2.7em;
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
-}
-
-.font-plus {
-    border: none;
-    width: 2.7em;
-    background: rgba(0, 0, 0, 0.3);
-    color: #fff;
-}
-
-.font-size-options {
-    height: 2.7em;
+.option {
+  border: none;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  border: 1px solid darkgray;
 }
 
 .table-copy {
@@ -354,4 +325,23 @@ button::-moz-focus-inner {
     position: relative;
     z-index: 5;
     overflow-y: scroll;
+}
+
+@keyframes chunk-jiggle {
+  0% {
+    translate: 0px;
+  }
+  33% {
+    translate: 5px;
+  }
+  66% {
+    translate: -5px;
+  }
+  100% {
+    translate: 0px;
+  }
+}
+
+[data-reach-dialog-overlay] {
+  z-index: 100;
 }

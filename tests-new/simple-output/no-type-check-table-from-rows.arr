@@ -4,6 +4,7 @@
 # `table-from-rows` function.
 
 import global as G
+import equality as E
 import tables as T
 
 my-table =
@@ -16,6 +17,6 @@ my-correct-table = table: A, B, C
   row: 1, 2, 3
 end
 
-passes-when-true = T._primitiveEqual(my-correct-table, my-table)
+passes-when-true = E.equal-always(my-correct-table, my-table)
 
 G.console-log(passes-when-true)

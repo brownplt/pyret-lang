@@ -1,4 +1,4 @@
-### All tests pass
+### all tests passed
 import global as G
 
 check "FOO":

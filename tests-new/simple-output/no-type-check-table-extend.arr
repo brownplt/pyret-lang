@@ -4,6 +4,7 @@
 # `extend` syntax.
 
 import global as G
+import equality as E
 import tables as T
 
 my-table = table: a, b, c
@@ -33,6 +34,6 @@ my-correct-extended-table = table: a, b, c, d, e, f, g
 end
 
 passes-when-true =
-  T._primitiveEqual(my-correct-extended-table, my-extended-table)
+  E.equal-always(my-correct-extended-table, my-extended-table)
 
 G.console-log(passes-when-true)

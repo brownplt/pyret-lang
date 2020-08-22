@@ -3,16 +3,24 @@ provide *
 provide-types *
 import global as G
 import option as O
+import string as S
+
+include from G:
+  num-to-str as num-to-string,
+  raise,
+  js-to-string as torepr,
+  string-to-lower as string-tolower
+end
+
 include from O:
   type Option,
+  some,
+  none,
 end
-none = O.none
-some = O.some
-num-to-string = G.num-to-str
-string-to-number = G.string-to-number
-raise = G.raise
-torepr = G.js-to-string
-string-tolower = G.string-to-lower
+
+include from S:
+  string-to-number
+end
 
 data CellContent<A>:
   | c-empty

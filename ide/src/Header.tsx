@@ -1,14 +1,15 @@
 import React from 'react';
 
-type HeaderProps = {};
-type HeaderState = {};
-
-export class Header extends React.Component<HeaderProps, HeaderState> {
-    render() {
-        return (
-            <div className="header-container">
-                {this.props.children}
-            </div>
-        );
-    }
+export default function Header({ children }: { children: any }) {
+  return (
+    <div
+      className="header-container"
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+      }}
+    >
+      {children}
+    </div>
+  );
 }
