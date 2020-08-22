@@ -282,11 +282,14 @@ fun compile-worklist-known-modules<a>(dfind :: (a, CS.Dependency -> Located<a>),
 end
 
 fun modules-from-worklist(wl, get-loadable) block:
+  modules = [SD.mutable-string-dict:]
+  modules-from-worklist-known-modules(wl, modules, get-loadable)
+end
+fun modules-from-worklist-known-modules(wl, modules, get-loadable) block:
   max-dep-times = dep-times-from-worklist(wl)
   maybe-modules = for map(t from wl):
     get-loadable(t, max-dep-times)
   end
-  modules = [SD.mutable-string-dict:]
   for each2(m from maybe-modules, t from wl):
     cases(Option<Loadable>) m:
       | none => nothing
@@ -303,7 +306,10 @@ fun dep-times-from-worklist(wl):
     dm = located.dependency-map
     max-dep-time = for SD.fold-keys-now(mdt from cur-mod-time, dep-key from dm):
       dep-loc = dm.get-value-now(dep-key)
-      num-max(sd.get-value(dep-loc), mdt)
+      cases(Option) sd.get(dep-loc):
+        | none => mdt
+        | some(dependency-mod-time) => num-max(dependency-mod-time, mdt)
+      end
     end
     sd.set(located.locator.uri(), max-dep-time)
   end

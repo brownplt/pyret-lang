@@ -549,20 +549,30 @@ fun build-program(path, options, stats) block:
     options: options
   }, base-module)
   clear-and-print("Compiling worklist...")
-  wl = CL.compile-worklist(module-finder, base.locator, base.context)
 
+  starter-modules = if options.recompile-builtins: [SD.mutable-string-dict:] else: module-cache end
+  for each(sm from starter-modules.keys-list-now()):
+    when string-index-of(sm, "builtin://") <> 0:
+      starter-modules.remove-now(sm)
+    end
+  end
+  clear-and-print("Found " + to-repr(starter-modules.keys-now()) + " as starter modules in-memory")
+  wl = CL.compile-worklist-known-modules(module-finder, base.locator, base.context, starter-modules)
+  clear-and-print("Found worklist of length: " + to-repr(wl.length()))
   max-dep-times = CL.dep-times-from-worklist(wl)
-
+  clear-and-print("Found max-dep-times: " + to-repr(max-dep-times))
   shadow wl = for map(located from wl):
     located.{ locator: get-cached-if-available-known-mtimes(options.compiled-cache, located.locator, max-dep-times) }
   end
+  length-before-wl = starter-modules.count-now()
   copy-js-dependencies( wl, options )
+
   clear-and-print("Loading existing compiled modules...")
 
-  starter-modules = CL.modules-from-worklist(wl, get-loadable(options.compiled-cache, options.compiled-read-only.map(P.resolve), _, _))
+  CL.modules-from-worklist-known-modules(wl, starter-modules, get-loadable(options.compiled-cache, options.compiled-read-only.map(P.resolve), _, _))
+  clear-and-print("Found " + to-repr(starter-modules.keys-now()) + " after looking at dep times")
 
-
-  cached-modules = starter-modules.count-now() - starter-modules.count-now()
+  cached-modules = starter-modules.count-now() - length-before-wl
   total-modules = wl.length() - cached-modules
   var num-compiled = 0
   when total-modules == 0:
