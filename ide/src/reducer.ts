@@ -293,13 +293,10 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
 }
 
 function handleSetupSuccess(state: State): State {
-  const { effectQueue } = state;
-
   return {
     ...state,
     isSetupFinished: true,
     settingUp: false,
-    effectQueue: [...effectQueue, 'saveFile'],
   };
 }
 
@@ -690,7 +687,7 @@ function handleSetCurrentFile(state: State, file: string): State {
 }
 
 function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
-  const { editorMode } = state;
+  const { editorMode, isFileSaved } = state;
   if (editorMode !== EditorMode.Chunks) {
     throw new Error('handleSetChunks: not in chunk mode');
   }
@@ -715,10 +712,15 @@ function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
 
   const chunk = chunksOrChunk;
   const { chunks } = state;
+  let modifiesText = false;
 
   const newChunks = [];
   for (let i = 0; i < chunks.length; i += 1) {
     if (chunks[i].id === chunk.id) {
+      if (chunks[i].text !== chunk.text) {
+        modifiesText = true;
+      }
+
       newChunks.push(chunk);
     } else {
       newChunks.push(chunks[i]);
@@ -731,8 +733,8 @@ function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
     ...state,
     chunks: newChunks,
     currentFileContents: contents,
-    isFileSaved: false,
-    compiling: compiling ? 'out-of-date' : false,
+    isFileSaved: isFileSaved && !modifiesText,
+    compiling: modifiesText && (compiling ? 'out-of-date' : false),
   };
 }
 

@@ -483,6 +483,5 @@ store.subscribe(() => {
 
 store.dispatch({ type: 'enqueueEffect', effect: 'setupWorkerMessageHandler' });
 store.dispatch({ type: 'enqueueEffect', effect: 'loadFile' });
-store.dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
 
 export default store;
