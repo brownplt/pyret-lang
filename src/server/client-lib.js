@@ -29,7 +29,7 @@ function tmpdir() {
       process.exit(1);
     }
   }
-  return fulldir; 
+  return fulldir;
 }
 
 function getSocket() {
@@ -60,7 +60,7 @@ function start(options) {
   const log = makeLogger(LOG);
   const warn = makeLogger(WARN);
   const error = makeLogger(ERROR);
-  
+
   const localParley = options["_all"]["local-parley"];
   var localParleyDir = findLocalParleyDir(process.cwd(), localParley);
 
@@ -75,7 +75,7 @@ function start(options) {
       process.exit(1);
     }
   }
-  
+
   const serverModule = options.client.compiler;
   var portFile = getSocket();
 
@@ -102,7 +102,7 @@ function start(options) {
       client.on('open', function(connection) {
         client.send(JSON.stringify({ command: 'shutdown' }));
       });
-      
+
       tryToRemoveFiles();
     }
     catch(e) {
@@ -147,7 +147,7 @@ function start(options) {
       log('parley connection closed');
       process.removeListener('SIGINT', sigint);
     });
-     
+
     client.on('open', function(connection) {
       log('parley protocol connected');
 
@@ -171,6 +171,8 @@ function start(options) {
           process.stderr.write(parsed.contents);
         }
         else if(parsed.type === "compile-failure") {
+          // TODO(alex): Prettier error messages
+          process.stderr.write(JSON.stringify(parsed.data));
           process.exit(1);
         }
         else if(parsed.type === "compile-success") {
