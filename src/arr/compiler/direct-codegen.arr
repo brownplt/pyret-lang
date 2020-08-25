@@ -2270,8 +2270,8 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
   #    modules to be used in "include from" syntax with values
   serialized-provides = cases(CompileMode) options.compile-mode:
     | cm-normal => PSE.compile-provides(provides)
-    | cm-builtin-general => PSE.compile-provides-override-uri(provides, from-uri)
-    | cm-builtin-stage-1 => PSE.compile-provides-override-uri(provides, from-uri)
+    | cm-builtin-general => PSE.compile-provides-override-uri(provides, true)
+    | cm-builtin-stage-1 => PSE.compile-provides-override-uri(provides, true)
   end
 
   [D.string-dict:
