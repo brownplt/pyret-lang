@@ -18,14 +18,25 @@ const nodeModules = {
   immutable,
 };
 
+/**
+  This wrapping is necessary because otherwise require, exports, and module
+  will be interpreted as *global* by stopify. However, these really need to
+  be module-local as they have context like the working directory, and
+  exports/module are per-module even though they “act” like a global
+  variable.
+
+  We still set these fields on runner.g (g is the global field for
+  stopify), but immediately apply the function to the values we just set
+  before it evaluates and goes on to process any more requires. Stopify
+  then won't compile uses of module/exports/require within the generated
+  function to use .g, and each module gets its own copy.
+*/
 function wrapContent(content: string): string {
-  return `(function() { ${content} })();`;
+  return `(function(require, exports, module) { ${content} })(require, exports, module);`;
 }
 
-export const makeRequireAsync = (
-  basePath: string): ((importPath: string) => Promise<any>
+export const makeRequireAsync = (basePath: string): ((importPath: string) => Promise<any>
   ) => {
-  let cwd = basePath;
   let currentRunner: any = null;
   const cache : {[key:string]: any} = {};
 
@@ -33,15 +44,13 @@ export const makeRequireAsync = (
     if (importPath in nodeModules) {
       return (nodeModules as any)[importPath];
     }
-    const oldWd = cwd;
-    const nextPath = path.join(cwd, importPath);
-    cwd = path.parse(nextPath).dir;
+    const nextPath = path.join(basePath, importPath);
+    const cwd = path.parse(nextPath).dir;
     const stoppedPath = `${nextPath}.stopped.main`;
     // Get the absolute path to uniquely identify modules
     // Cache modules based upon the absolute path for singleton modules
     const cachePath = path.resolve(stoppedPath);
     if (cachePath in cache) {
-      cwd = oldWd;
       resolve(cache[cachePath]);
       return;
     }
@@ -50,6 +59,7 @@ export const makeRequireAsync = (
     }
     let runner: any = null;
     const contents = String(fs.readFileSync(nextPath));
+
     const toStopify = wrapContent(contents);
     runner = stopify.stopifyLocally(toStopify, { newMethod: 'direct' });
     if (runner.kind !== 'ok') { reject(runner); }
@@ -59,6 +69,7 @@ export const makeRequireAsync = (
         __pyretExports: nextPath,
       },
     };
+
     runner.g = Object.assign(runner.g, {
       document,
       Number,
@@ -72,7 +83,7 @@ export const makeRequireAsync = (
       JSON,
       Date,
       decodeURIComponent,
-      require: requireAsync,
+      require: requireAsyncFromDir(cwd),
       module: stopifyModuleExports,
       // TS 'export' syntax desugars to 'exports.name = value;'
       exports: stopifyModuleExports.exports,
@@ -90,7 +101,6 @@ export const makeRequireAsync = (
 
     resolve({
       run: new Promise((resolve, reject) => runner.run((result : any) => {
-        cwd = oldWd;
         if (result.type !== 'normal') {
           reject(result);
         } else {
@@ -108,63 +118,62 @@ export const makeRequireAsync = (
     });
   }));
 
-  const requireAsync = (importPath: string) => {
-    if (importPath in nodeModules) {
-      return (nodeModules as any)[importPath];
-    }
-    const oldWd = cwd;
-    const nextPath = path.join(cwd, importPath);
-    console.log(`Storing ${oldWd} in requireAsync before processing ${nextPath}`);
-    cwd = path.parse(nextPath).dir;
-    const stoppedPath = `${nextPath}.stopped`;
-    // Get the absolute path to uniquely identify modules
-    // Cache modules based upon the absolute path for singleton modules
-    const cachePath = path.resolve(stoppedPath);
-    if (cachePath in cache) {
-      cwd = oldWd;
-      return cache[cachePath];
-    }
-    if (!fs.existsSync(nextPath)) {
-      throw new Error(`Path did not exist in requireSync: ${nextPath}`);
-    }
-    currentRunner.pauseK((kontinue: (result: any) => void) => {
-      const lastPath = currentRunner.path;
-      const module = {
-        exports: {
-          __pyretExports: nextPath,
-        },
-      };
-      const lastModule = currentRunner.g.module;
-      currentRunner.g.module = module;
-      // Need to set 'exports' global to work with TS export desugaring
-      currentRunner.g.exports = module.exports;
-      currentRunner.path = nextPath;
-      let stopifiedCode = '';
-      if (fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
-        stopifiedCode = String(fs.readFileSync(stoppedPath));
-      } else {
-        const contents = String(fs.readFileSync(nextPath));
-        stopifiedCode = currentRunner.compile(wrapContent(contents));
-        fs.writeFileSync(stoppedPath, stopifiedCode);
+  const requireAsyncFromDir = (requiringWd : string) => {
+    return (importPath: string) => {
+      if (importPath in nodeModules) {
+        return (nodeModules as any)[importPath];
       }
-      currentRunner.evalCompiled(stopifiedCode, (result: any) => {
-        cwd = oldWd;
-        if (result.type !== 'normal') {
-          kontinue(result);
-          return;
+      const nextPath = path.join(requiringWd, importPath);
+      const cwd = path.parse(nextPath).dir;
+      const stoppedPath = `${nextPath}.stopped`;
+      // Get the absolute path to uniquely identify modules
+      // Cache modules based upon the absolute path for singleton modules
+      const cachePath = path.resolve(stoppedPath);
+      if (cachePath in cache) { return cache[cachePath]; }
+      if (!fs.existsSync(nextPath)) {
+        throw new Error(`Path did not exist in requireSync: ${nextPath}`);
+      }
+      currentRunner.pauseK((kontinue: (result: any) => void) => {
+        const lastPath = currentRunner.path;
+        const module = {
+          exports: {
+            __pyretExports: nextPath,
+          },
+        };
+        const lastModule = currentRunner.g.module;
+        // Note: It's important that module.exports is an alias of exports, and
+        // that both module and exports are available globals. This has to do
+        // with differing patterns in how e.g. TypeScript, best-practice JS
+        // code, and so on generate export code.
+        currentRunner.g.module = module;
+        currentRunner.g.exports = module.exports;
+        currentRunner.g.require = requireAsyncFromDir(cwd);
+        currentRunner.path = nextPath;
+        let stopifiedCode = '';
+        if (fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
+          stopifiedCode = String(fs.readFileSync(stoppedPath));
+        } else {
+          const contents = String(fs.readFileSync(nextPath));
+          stopifiedCode = currentRunner.compile(wrapContent(contents));
+          fs.writeFileSync(stoppedPath, stopifiedCode);
         }
-        const toReturn = currentRunner.g.module.exports;
-        currentRunner.path = lastPath;
-        // g.exports and g.module may be overwritten by JS code. Need to restore
-        currentRunner.g.module = lastModule;
-        // Need to set 'exports' global to work with TS export desugaring
-        currentRunner.g.exports = lastModule.exports;
-        cache[cachePath] = toReturn;
-        kontinue({ type: 'normal', value: toReturn });
+        currentRunner.evalCompiled(stopifiedCode, (result: any) => {
+          if (result.type !== 'normal') {
+            kontinue(result);
+            return;
+          }
+          const toReturn = currentRunner.g.module.exports;
+          currentRunner.path = lastPath;
+          // g.exports and g.module may be overwritten by JS code. Need to restore
+          currentRunner.g.module = lastModule;
+          // Need to set 'exports' global to work with TS export desugaring
+          currentRunner.g.exports = lastModule.exports;
+          cache[cachePath] = toReturn;
+          kontinue({ type: 'normal', value: toReturn });
+        });
       });
-    });
-  };
-
+    };
+  }
   return requireAsyncMain;
 };
 
