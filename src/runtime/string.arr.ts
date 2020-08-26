@@ -11,6 +11,9 @@ function stringToNumber(s: string): any {
   }
 }
 
+function numToString(n) {
+  return String(n);
+}
 
 module.exports = {
   'length': function( str ) {
@@ -38,4 +41,6 @@ module.exports = {
     return str.match( RegExp( pattern ) );
   },
   "string-to-number": stringToNumber,
+  'num-to-string': numToString,
+  'num-to-string-digits': NUMBER['toStringDigits'],
 };
