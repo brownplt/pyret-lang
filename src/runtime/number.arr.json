@@ -1,24 +1,8 @@
 {
     "requires": [],
     "provides": {
-        "shorthands": {
-          "rOfA": ["tyapp", ["local", "RawArray"], [["tid", "a"]]],
-          "rOfN": ["tyapp", ["local", "RawArray"], ["Number"]],
-          "lOfA": ["tyapp", { "tag": "name",
-                    "origin": { "import-type": "uri", "uri": "builtin://list" },
-                    "name": "List" }, [["tid", "a"]]],
-          "tva": ["tid", "a"],
-          "tvb": ["tid", "b"],
-          "oOfN": ["tyapp", { "tag": "name",
-                    "origin": { "import-type": "uri", "uri": "builtin://option" },
-                    "name": "Option" }, ["Number"]],
-          "EqualityResult": { "tag": "name",
-                    "origin": { "import-type": "uri", "uri": "builtin://equality" },
-                    "name": "EqualityResult"
-          }
-        },
+        "shorthands": { },
         "values": {
-          "num-to-str": ["arrow", ["Number"], "String"],
           "num-equal": ["arrow", ["Number", "Number"], "Boolean"],
           "num-is-integer": ["arrow", ["Number"], "Boolean"],
           "num-is-rational": ["arrow", ["Number"], "Boolean"],
@@ -56,8 +40,7 @@
           "num-to-string-digits": ["arrow", ["Number", "Number"], "String"],
           "num-within-abs": ["arrow", ["Number"], ["arrow", ["Number", "Number"], "Boolean"]],
           "num-within-rel": ["arrow", ["Number"], ["arrow", ["Number", "Number"], "Boolean"]],
-          "not": ["arrow", ["Boolean"], "Boolean"],
-          "string-to-number": ["arrow", ["String"], "oOfN"]
+          "not": ["arrow", ["Boolean"], "Boolean"]
         }
     }
 }
