@@ -416,9 +416,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         return;
       }
       const doc = editor.getDoc();
-      doc.setSelections([
-        { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
-      ]); // remove all selections
+      const selections = doc.getSelection();
+      if (selections !== '') {
+        doc.setSelections([
+          { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
+        ]); // remove all selections
+      }
     });
     setFirstSelectedChunkIndex(index);
   }
@@ -504,9 +507,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 }
                 const doc = chunkEditor.getDoc();
                 if (i < index || i > firstSelectedChunkIndex) {
-                  doc.setSelections([
-                    { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
-                  ]); // remove all selections
+                  if (doc.getSelection() !== '') {
+                    doc.setSelections([
+                      { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
+                    ]); // remove all selections
+                  }
                 } else {
                   chunkEditor.execCommand('selectAll');
                 }
@@ -520,9 +525,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 }
                 const doc = chunkEditor.getDoc();
                 if (i > index || i < firstSelectedChunkIndex) {
-                  doc.setSelections([
-                    { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
-                  ]); // remove all selections
+                  if (doc.getSelection() !== '') {
+                    doc.setSelections([
+                      { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
+                    ]); // remove all selections
+                  }
                 } else {
                   chunkEditor.execCommand('selectAll');
                 }
