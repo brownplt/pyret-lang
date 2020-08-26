@@ -6,7 +6,6 @@ import option as O
 import string as S
 
 include from G:
-  num-to-str as num-to-string,
   raise,
   js-to-string as torepr,
   string-to-lower as string-tolower
@@ -19,7 +18,8 @@ include from O:
 end
 
 include from S:
-  string-to-number
+  string-to-number,
+  num-to-string
 end
 
 data CellContent<A>:
