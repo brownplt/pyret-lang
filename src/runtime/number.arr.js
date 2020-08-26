@@ -1,4 +1,4 @@
-const NUMBERS = require('./js-NUMBERS.js');
+const NUMBERS = require('./js-numbers.js');
 
 function numToString(n) {
   return String(n);
