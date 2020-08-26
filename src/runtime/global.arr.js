@@ -81,14 +81,6 @@ module.exports = {
 
   'raise': runtime["raise"],
 
-  'loop-a-while': function(n) {
-    let s = 0;
-    for (let i = 0; i < n; i += 1) {
-      s += i;
-    }
-    return s;
-  },
-
   'throwUnfinishedTemplate': function(srcloc) {
     throw {
       '$template-not-finished': srcloc,
