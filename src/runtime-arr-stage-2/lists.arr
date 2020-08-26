@@ -8,14 +8,18 @@ import either as E
 import equality as equality
 import raw-array as RA
 import number as N
+import string as S
 # import valueskeleton as VS
 # valueskeleton only used on one method (_output)
+
+include from S:
+  num-to-string as tostring,
+end
 
 include from N:
   num-ceiling,
   num-max,
   num-is-integer,
-  num-to-string as tostring,
 end
 
 include from G:

@@ -79,10 +79,6 @@ module.exports = {
    // TODO(alex): Think of better way to expose runtime
   'runtime': runtime,
 
-  'string-to-lower': function(s) {
-    return s.toLowerCase();
-  },
-
   'raise': runtime["raise"],
 
   'loop-a-while': function(n) {

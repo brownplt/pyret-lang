@@ -59,8 +59,6 @@
                   "name": "_plus",
                   "typ": ["arrow", ["Any", "Any"], "Boolean"]},
 
-      "string-to-lower": ["arrow", ["String"], "String"],
-
       "raise": ["arrow", ["Any"], "tbot"],
 
       "equal-now": ["arrow", ["Any", "Any"], "Boolean"],

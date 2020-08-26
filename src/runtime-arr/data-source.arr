@@ -8,7 +8,6 @@ import string as S
 include from G:
   raise,
   js-to-string as torepr,
-  string-to-lower as string-tolower
 end
 
 include from O:
@@ -19,7 +18,8 @@ end
 
 include from S:
   string-to-number,
-  num-to-string
+  num-to-string,
+  string-to-lower as string-tolower,
 end
 
 data CellContent<A>:
