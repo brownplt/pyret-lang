@@ -5,7 +5,7 @@
       "rOfA": ["tyapp", ["local", "RawArray"], [["tid", "a"]]],
       "rOfN": ["tyapp", ["local", "RawArray"], ["Number"]],
       "lOfA": ["tyapp", { "tag": "name",
-                "origin": { "import-type": "uri", "uri": "builtin://list" },
+                "origin": { "import-type": "uri", "uri": "builtin://lists" },
                 "name": "List" }, [["tid", "a"]]],
       "tva": ["tid", "a"],
       "tvb": ["tid", "b"],
@@ -138,7 +138,7 @@
                     "origin": { "import-type": "uri", "uri": "builtin://global" },
                     "name": "Table" },
       "List": { "tag": "name",
-                "origin": { "import-type": "uri", "uri": "builtin://list" },
+                "origin": { "import-type": "uri", "uri": "builtin://lists" },
                 "name": "List" }
     },
     "datatypes": {
