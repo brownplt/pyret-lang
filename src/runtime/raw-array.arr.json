@@ -16,6 +16,7 @@
         },
         "values": {
             "raw-array": ["forall", ["a"], ["Maker", ["tid", "a"], "rOfA"]],
+            "raw-array-length": ["forall", ["a"], ["arrow", ["rOfA"], "Number"]],
             "raw-array-push": ["forall", ["a"], ["arrow", ["rOfA", "tva"], "rOfA"]],
             "raw-array-set": ["forall", ["a"], ["arrow", ["rOfA", "Number", "tva"], "rOfA"]],
             "raw-array-get": ["forall", ["a"], ["arrow", ["rOfA", "Number"], "tva"]],
@@ -27,7 +28,8 @@
             "raw-array-min": ["arrow", ["rOfN"], "Number"],
             "raw-array-max": ["arrow", ["rOfN"], "Number"],
             "raw-array-of": ["forall", ["a"], ["arrow", ["tva", "Number"], "rOfA"]],
-            "raw-array-build": ["forall", ["a"], ["arrow", [["arrow",  ["Number"], "tva"], "Number"], "rOfA"]]
+            "raw-array-build": ["forall", ["a"], ["arrow", [["arrow",  ["Number"], "tva"], "Number"], "rOfA"]],
+            "is-raw-array": ["arrow", ["tany"], "Boolean"]
 
 
         },
