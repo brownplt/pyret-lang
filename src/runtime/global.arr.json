@@ -68,7 +68,8 @@
       "equal-always": ["arrow", ["Any", "Any"], "Boolean"],
       "equal-always3": ["arrow", ["Any", "Any"], "EqualityResult"],
       "identical": ["arrow", ["Any", "Any"], "Boolean"],
-      "identical3": ["arrow", ["Any", "Any"], "EqualityResult"]
+      "identical3": ["arrow", ["Any", "Any"], "EqualityResult"],
+      "not": ["arrow", ["Boolean"], "Boolean"]
     },
     "aliases": {
       "Any": "tany",
