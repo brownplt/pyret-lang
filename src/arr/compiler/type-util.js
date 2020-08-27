@@ -330,7 +330,9 @@
         "Array": function(name, arg) {
           return mkApp1(mkName({ "import-type": "uri", uri: "builtin://arrays" }, name), arg);
         },
-        "RawArray": function(name, arg) { return mkApp1(mkName(fromGlobal, name), arg); },
+        "RawArray": function(name, arg) {
+          return mkApp1(mkName({ "import-type": "uri", uri: "builtin://raw-array" }, name), arg);
+        },
         "List": function(name, arg) {
           return mkApp1(mkName({ "import-type": "uri", uri: "builtin://lists" }, name), arg);
         },
