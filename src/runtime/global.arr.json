@@ -1,5 +1,30 @@
 {
-  "requires": [ ],
+  "requires": [
+    {
+        "import-type": "builtin",
+        "name": "number"
+    },
+    {
+        "import-type": "builtin",
+        "name": "boolean"
+    },
+    {
+        "import-type": "builtin",
+        "name": "nothing"
+    },
+    {
+        "import-type": "builtin",
+        "name": "equality"
+    },
+    {
+        "import-type": "builtin",
+        "name": "raw-array"
+    },
+    {
+        "import-type": "builtin",
+        "name": "string"
+    }
+  ],
   "provides": {
     "shorthands": {
       "rOfA": ["tyapp", { "tag": "name",
