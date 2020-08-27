@@ -348,12 +348,22 @@ function handleSaveFileSuccess(state: State): State {
   }
 
   if (shouldHandleEnter) {
-    return handleEnter({
+    // Make sure not to lint / compile if all of the following are true:
+    // 1. enter was pressed
+    // 2. the current chunk had no text in it
+    // 3. the current chunk was the last chunk in the file
+    const newState = handleEnter({
       ...state,
       isFileSaved: true,
       effectQueue: newEffectQueue,
       linted: true,
     });
+    if (newState.chunks.length === state.chunks.length + 1
+      && newState.focusedChunk === newState.chunks.length - 1
+      && newState.chunks[newState.chunks.length - 2].text === '') {
+      return { ...newState, effectQueue };
+    }
+    return newState;
   }
 
   return {
