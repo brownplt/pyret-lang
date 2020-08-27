@@ -2,8 +2,12 @@
   "requires": [ ],
   "provides": {
     "shorthands": {
-      "rOfA": ["tyapp", ["local", "RawArray"], [["tid", "a"]]],
-      "rOfN": ["tyapp", ["local", "RawArray"], ["Number"]],
+      "rOfA": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://raw-array" },
+                "name": "RawArray" }, [["tid", "a"]]],
+      "rOfN": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://raw-array" },
+                "name": "RawArray" }, ["Number"]],
       "lOfA": ["tyapp", { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://list" },
                 "name": "List" }, [["tid", "a"]]],
@@ -86,40 +90,31 @@
       "String": "String",
       "Nothing": "Nothing",
       "RawArray": { "tag": "name",
-                    "origin": { "import-type": "uri", "uri": "builtin://global" },
+                    "origin": { "import-type": "uri", "uri": "builtin://raw-array" },
                     "name": "RawArray" },
       "Row": { "tag": "name",
-                    "origin": { "import-type": "uri", "uri": "builtin://global" },
+                    "origin": { "import-type": "uri", "uri": "builtin://tables" },
                     "name": "Row" },
       "Table": { "tag": "name",
-                    "origin": { "import-type": "uri", "uri": "builtin://global" },
+                    "origin": { "import-type": "uri", "uri": "builtin://tables" },
                     "name": "Table" },
       "List": { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://list" },
-                "name": "List" }
+                "name": "List" },
+      "Nothing": { "tag": "name",
+               "origin": { "import-type": "uri", "uri": "builtin://nothing" },
+                "name": "Nothing" },
+      "Boolean": { "tag": "name",
+               "origin": { "import-type": "uri", "uri": "builtin://boolean" },
+                "name": "Boolean" },
+      "String": { "tag": "name",
+               "origin": { "import-type": "uri", "uri": "builtin://string" },
+                "name": "String" },
+      "Number": { "tag": "name",
+               "origin": { "import-type": "uri", "uri": "builtin://number" },
+                "name": "Number" }
     },
-    "datatypes": {
-      "Number": ["data", "Number", [], [], {
-        "_plus": ["arrow", ["Number"], "Number"],
-        "_times": ["arrow", ["Number"], "Number"],
-        "_divide": ["arrow", ["Number"], "Number"],
-        "_minus": ["arrow", ["Number"], "Number"],
-        "_lessthan": ["arrow", ["Number"], "Boolean"],
-        "_lessequal": ["arrow", ["Number"], "Boolean"],
-        "_greaterthan": ["arrow", ["Number"], "Boolean"],
-        "_greaterequal": ["arrow", ["Number"], "Boolean"]
-      }],
-      "String": ["data", "String", [], [], {
-        "_plus": ["arrow", ["String"], "String"],
-        "_lessthan": ["arrow", ["String"], "Boolean"],
-        "_greaterthan": ["arrow", ["String"], "Boolean"]
-      }],
-      "Boolean": ["data", "Boolean", [], [], {}],
-      "Nothing": ["data", "Nothing", [], [], {}],
-      "RawArray": ["data", "RawArray", ["a"], [], {
-        "length": "Number"
-      }]
-    }
+    "datatypes": { }
   }
 }
 

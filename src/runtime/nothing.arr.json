@@ -1,0 +1,11 @@
+{
+  "requires": [],
+  "provides": {
+
+    "shorthands": {},
+    "values": {},
+    "datatypes": {
+        "Nothing": ["data", "Nothing", [], [], {}]
+    }
+  }
+}

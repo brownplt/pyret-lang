@@ -34,10 +34,12 @@
 
         },
         "aliases": {
-            "RawArray": { "tag": "name",
-                    "origin": { "import-type": "uri", "uri": "builtin://global" },
-                    "name": "RawArray" }
+            "RawArray": ["local", "RawArray"]
         },
-        "datatypes": { }
+        "datatypes": {
+            "RawArray": ["data", "RawArray", ["a"], [], {
+                "length": "Number"
+            }]
+        }
     }
 }

@@ -19,6 +19,13 @@
       "split": ["arrow", ["String", "String"], "tany"],
       "split-pattern": ["arrow", ["String", "String"], "tany"],
       "match": ["arrow", ["String", "String"], "tany"]
+    },
+    "datatypes": {
+        "String": ["data", "String", [], [], {
+            "_plus": ["arrow", ["String"], "String"],
+            "_lessthan": ["arrow", ["String"], "Boolean"],
+            "_greaterthan": ["arrow", ["String"], "Boolean"]
+        }]
     }
   }
 }
