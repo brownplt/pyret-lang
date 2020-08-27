@@ -7,6 +7,7 @@
 //
 
 
+var NUMBER = require("./js-numbers.js");
 var runtime = require('./runtime.js');
 var array = require('./array.js');
 
@@ -31,6 +32,17 @@ function makeNone() {
   const untracedRequire = require;
   const option = untracedRequire('./option.arr.js');
   return option.none;
+}
+
+// TODO(alex): Move implementation to builtin module string once dependency graph
+//   has been untangled
+function stringToNumber(s) {
+  var result = NUMBER['fromString'](s);
+  if (result === false) {
+    return makeNone();
+  } else {
+    return makeSome(result);
+  }
 }
 
 module.exports = {
@@ -80,6 +92,8 @@ module.exports = {
   'runtime': runtime,
 
   'raise': runtime["raise"],
+
+  'string-to-number': stringToNumber,
 
   'throwUnfinishedTemplate': function(srcloc) {
     throw {

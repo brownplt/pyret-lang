@@ -8,6 +8,7 @@ import string as S
 include from G:
   raise,
   js-to-string as torepr,
+  string-to-number,     # TODO(alex): Move to module string once dependency graph sorted out
 end
 
 include from O:
@@ -17,7 +18,6 @@ include from O:
 end
 
 include from S:
-  string-to-number,
   num-to-string,
   string-to-lower as string-tolower,
 end
