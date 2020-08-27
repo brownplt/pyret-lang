@@ -611,6 +611,10 @@ end
 builtin-uri = module-uri("builtin://global")
 
 # TODO(alex): Might need to change more uri's to match module declaration location
+# NOTE(alex): To change, need to potentially update
+#   1) Here
+#   2) type-util.js
+#   3) compile-structs.arr (runtime-types)
 number-uri = module-uri("builtin://number")
 string-uri = module-uri("builtin://string")
 boolean-uri = module-uri("builtin://boolean")
