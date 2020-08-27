@@ -4,6 +4,9 @@
 
     "shorthands": {},
     "values": {},
+    "aliases": {
+        "Boolean": ["local", "Boolean"]
+    },
     "datatypes": {
         "Boolean": ["data", "Boolean", [], [], {}]
     }

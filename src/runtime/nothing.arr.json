@@ -4,6 +4,9 @@
 
     "shorthands": {},
     "values": {},
+    "aliases": {
+        "Nothing": ["local", "Nothing"]
+    },
     "datatypes": {
         "Nothing": ["data", "Nothing", [], [], {}]
     }
