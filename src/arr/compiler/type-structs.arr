@@ -610,12 +610,19 @@ end
 # TODO(MATT): which of these should be kept
 builtin-uri = module-uri("builtin://global")
 
-t-array-name = t-name(builtin-uri, A.s-type-global("RawArray"), A.dummy-loc, false)
+# TODO(alex): Might need to change more uri's to match module declaration location
+number-uri = module-uri("builtin://number")
+string-uri = module-uri("builtin://string")
+boolean-uri = module-uri("builtin://boolean")
+nothing-uri = module-uri("builtin://nothing")
+raw-array-uri = module-uri("builtin://raw-array")
 
-t-number  = lam(l): t-name(builtin-uri, A.s-type-global("Number"), l, false) end
-t-string  = lam(l): t-name(builtin-uri, A.s-type-global("String"), l, false) end
-t-boolean = lam(l): t-name(builtin-uri, A.s-type-global("Boolean"), l, false) end
-t-nothing = lam(l): t-name(builtin-uri, A.s-type-global("Nothing"), l, false) end
+t-array-name = t-name(raw-array-uri, A.s-type-global("RawArray"), A.dummy-loc, false)
+
+t-number  = lam(l): t-name(number-uri, A.s-type-global("Number"), l, false) end
+t-string  = lam(l): t-name(string-uri, A.s-type-global("String"), l, false) end
+t-boolean = lam(l): t-name(boolean-uri, A.s-type-global("Boolean"), l, false) end
+t-nothing = lam(l): t-name(nothing-uri, A.s-type-global("Nothing"), l, false) end
 t-srcloc  = lam(l): t-name(builtin-uri, A.s-type-global("Loc"), l, false) end
 t-array   = lam(v, l): t-app(t-array-name.set-loc(l), [list: v], l, false) end
 t-option  = lam(v, l): t-app(t-name(module-uri("builtin://option"), A.s-type-global("Option"), l, false), [list: v], l, false) end

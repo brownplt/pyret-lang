@@ -3060,12 +3060,18 @@ runtime-values = for SD.fold-keys(rb from [string-dict:], k from runtime-provide
   rb.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
 end
 
-runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides.aliases):
-  rt.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
-end
-shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-provides.data-definitions):
-  rt.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
-end
+shadow runtime-types = [string-dict:
+  "Number", bind-origin(SL.builtin("number"), SL.builtin("number"), true, "builtin://number", A.s-name(A.dummy-loc, "Number")),
+
+  "Boolean", bind-origin(SL.builtin("boolean"), SL.builtin("boolean"), true, "builtin://boolean", A.s-name(A.dummy-loc, "Boolean")),
+
+  "String", bind-origin(SL.builtin("string"), SL.builtin("string"), true, "builtin://string", A.s-name(A.dummy-loc, "String")),
+
+  "Nothing", bind-origin(SL.builtin("nothing"), SL.builtin("nothing"), true, "builtin://nothing", A.s-name(A.dummy-loc, "Nothing")),
+
+  "RawArray", bind-origin(SL.builtin("raw-array"), SL.builtin("raw-array"), true, "builtin://raw-array", A.s-name(A.dummy-loc, "RawArray"))
+
+]
 
 # MARK(joe/ben): modules
 # no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])

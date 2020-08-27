@@ -302,7 +302,23 @@
       function mkName(origin, name) {
         return { tag: "name", origin: origin, name: name };
       }
-      function p(name) { return mkName(fromGlobal, name); }
+      function p(name) {
+        // NOTE(alex): guarenteed to be a name in prims
+        //   Manually assign the builtin module uri
+        // TODO(alex): centralized source of truth for primtiive locations?
+        if (name === "Number") {
+          return mkName({ "import-type": "uri", uri: "builtin://number" }, name);
+        } else if (name === "String") {
+          return mkName({ "import-type": "uri", uri: "builtin://string" }, name);
+        } else if (name === "Boolean") {
+          return mkName({ "import-type": "uri", uri: "builtin://boolean" }, name);
+        } else if (name === "Nothing") {
+          return mkName({ "import-type": "uri", uri: "builtin://nothing" }, name);
+        } else if (name === "Any") {
+          return mkName({ "import-type": "uri", uri: "builtin://any" }, name);
+        }
+        return mkName(fromGlobal, name);
+      }
       function mkApp1(tycon, arg) {
         return {
           tag: "tyapp",
