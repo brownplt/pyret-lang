@@ -413,7 +413,7 @@ function handleCreateReplFailure(): State {
 }
 
 function handleLintFailure(state: State, action: FailureForEffect<'lint'>): State {
-  const { editorMode } = state;
+  const { editorMode, focusedChunk, shouldAdvanceCursor } = state;
 
   switch (editorMode) {
     case EditorMode.Text:
@@ -422,7 +422,8 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
       const { chunks } = state;
 
       let allLinted = true;
-      const newChunks: Chunk[] = chunks.map((chunk) => {
+      let currentChunkFailed = false;
+      const newChunks: Chunk[] = chunks.map((chunk, chunkIndex) => {
         if (chunk.id === action.name) {
           const highlights: number[][] = [];
           for (let i = 0; i < action.errors.length; i += 1) {
@@ -432,6 +433,10 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
                 highlights.push(m.match(/\d+/g)!.map(Number));
               });
             }
+          }
+
+          if (chunkIndex === focusedChunk) {
+            currentChunkFailed = true;
           }
 
           return {
@@ -458,6 +463,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
         chunks: newChunks,
         linted: allLinted,
         linting: !allLinted,
+        shouldAdvanceCursor: shouldAdvanceCursor && !currentChunkFailed,
       });
     }
     default:
