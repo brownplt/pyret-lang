@@ -1,0 +1,13 @@
+{
+  "requires": [],
+  "provides": {
+
+    "shorthands": {},
+    "values": {},
+    "aliases": {
+        "Any": "tany"
+    },
+    "datatypes": {
+    }
+  }
+}

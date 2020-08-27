@@ -23,6 +23,10 @@
     {
         "import-type": "builtin",
         "name": "string"
+    },
+    {
+        "import-type": "builtin",
+        "name": "any"
     }
   ],
   "provides": {
