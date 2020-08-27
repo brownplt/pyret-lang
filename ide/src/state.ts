@@ -1,4 +1,3 @@
-import { Check } from './Check';
 import { Chunk } from './chunk';
 import { Effect } from './effect';
 import { MenuItems } from './menu-types';
@@ -12,17 +11,14 @@ export type State = {
   currentFile: string,
   currentFileContents: string | undefined,
   typeCheck: boolean,
-  checks: Check[],
   rhs: RHSObjects,
   interactionErrors: string[],
-  lintFailures: LintFailures,
   runKind: control.backend.RunKind,
   autoRun: boolean,
   editTimer: NodeJS.Timer | false,
   dropdownVisible: boolean,
   editorMode: EditorMode,
   fontSize: number,
-  message: string,
   definitionsHighlights: number[][],
   fsBrowserVisible: boolean,
   currentRunner: any,
@@ -68,20 +64,17 @@ export const initialState: State = {
   currentFile: '/projects/program.arr',
   currentFileContents: undefined,
   typeCheck: true,
-  checks: [],
   rhs: {
     objects: [],
     outdated: false,
   },
   interactionErrors: [],
-  lintFailures: {},
   runKind: control.backend.RunKind.Async,
   autoRun: true,
   editTimer: false,
   dropdownVisible: false,
   editorMode: EditorMode.Chunks,
   fontSize: 12,
-  message: 'Ready to rock',
   definitionsHighlights: [],
   fsBrowserVisible: false,
   currentRunner: undefined,

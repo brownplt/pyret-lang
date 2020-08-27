@@ -286,7 +286,6 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
   return handleEnter({
     ...state,
     chunks: newChunks,
-    checks: status.result.result.$checks,
     running: false,
     rhs,
   });
