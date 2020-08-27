@@ -4,15 +4,9 @@
         "shorthands": {
             "tva": ["tid", "a"],
             "tvb": ["tid", "b"],
-            "rOfA": ["tyapp", { "tag": "name",
-                    "origin": { "import-type": "uri", "uri": "builtin://global" },
-                    "name": "RawArray" }, [["tid", "a"]]],
-            "rOfB": ["tyapp", { "tag": "name",
-                    "origin": { "import-type": "uri", "uri": "builtin://global" },
-                    "name": "RawArray" }, [["tid", "b"]]],
-            "rOfN": ["tyapp", { "tag": "name",
-                    "origin": { "import-type": "uri", "uri": "builtin://global" },
-                    "name": "RawArray" }, ["Number"]]
+            "rOfA": ["tyapp", ["local", "RawArray"], [["tid", "a"]]],
+            "rOfB": ["tyapp", ["local", "RawArray"], [["tid", "b"]]],
+            "rOfN": ["tyapp", ["local", "RawArray"], ["Number"]]
         },
         "values": {
             "raw-array": ["forall", ["a"], ["Maker", ["tid", "a"], "rOfA"]],
