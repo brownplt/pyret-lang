@@ -10,7 +10,6 @@
     "values": {
       "num-to-string-digits": ["arrow", ["Number", "Number"], "String"],
       "num-to-string": ["arrow", ["Number"], "String"],
-      "string-to-number": ["arrow", ["String"], "oOfN"],
       "length": ["arrow", ["String"], "Number"],
       "string-to-lower": ["arrow", ["String"], "String"],
       "concat": ["arrow", ["String", "String"], "String"],

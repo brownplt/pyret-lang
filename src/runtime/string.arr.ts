@@ -5,6 +5,7 @@ let NUMBER = require("./js-numbers.js");
 //   To work nicely, global needs to Pyret require all primitive modules
 //   Depending on option will cause a cyclic depedency
 
+// "string-to-number": ["arrow", ["String"], "oOfN"],
 // NOTE(alex): removed from runtime.ts to break cyclic import between runtime.ts and option module
 //function stringToNumber(s: string): any {
 //  var result = NUMBER['fromString'](s);
