@@ -297,6 +297,7 @@
       else if (typ.bind === 'var') {
         return { bind: typ.bind, origin: typ.origin, typ: expandType(typ.typ, shorthands) };
       }
+      const fromPrim = { "import-type": "uri", uri: "builtin://primitive-types" };
       var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
       var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
       function mkName(origin, name) {
@@ -306,18 +307,7 @@
         // NOTE(alex): guarenteed to be a name in prims
         //   Manually assign the builtin module uri
         // TODO(alex): centralized source of truth for primtiive locations?
-        if (name === "Number") {
-          return mkName({ "import-type": "uri", uri: "builtin://number" }, name);
-        } else if (name === "String") {
-          return mkName({ "import-type": "uri", uri: "builtin://string" }, name);
-        } else if (name === "Boolean") {
-          return mkName({ "import-type": "uri", uri: "builtin://boolean" }, name);
-        } else if (name === "Nothing") {
-          return mkName({ "import-type": "uri", uri: "builtin://nothing" }, name);
-        } else if (name === "Any") {
-          return mkName({ "import-type": "uri", uri: "builtin://any" }, name);
-        }
-        return mkName(fromGlobal, name);
+        return mkName(fromPrim, name);
       }
       function mkApp1(tycon, arg) {
         return {
@@ -331,7 +321,7 @@
           return mkApp1(mkName({ "import-type": "uri", uri: "builtin://arrays" }, name), arg);
         },
         "RawArray": function(name, arg) {
-          return mkApp1(mkName({ "import-type": "uri", uri: "builtin://raw-array" }, name), arg);
+          return mkApp1(mkName(fromPrim, name), arg);
         },
         "List": function(name, arg) {
           return mkApp1(mkName({ "import-type": "uri", uri: "builtin://lists" }, name), arg);

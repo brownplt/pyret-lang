@@ -615,11 +615,12 @@ builtin-uri = module-uri("builtin://global")
 #   1) Here
 #   2) type-util.js
 #   3) compile-structs.arr (runtime-types)
-number-uri = module-uri("builtin://number")
-string-uri = module-uri("builtin://string")
-boolean-uri = module-uri("builtin://boolean")
-nothing-uri = module-uri("builtin://nothing")
-raw-array-uri = module-uri("builtin://raw-array")
+primitive-types-uri = module-uri("builtin://primitive-types")
+number-uri = primitive-types-uri
+string-uri = primitive-types-uri
+boolean-uri = primitive-types-uri
+nothing-uri = primitive-types-uri
+raw-array-uri = primitive-types-uri
 
 t-array-name = t-name(raw-array-uri, A.s-type-global("RawArray"), A.dummy-loc, false)
 
