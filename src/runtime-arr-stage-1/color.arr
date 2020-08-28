@@ -1,7 +1,7 @@
 provide *
 provide-types *
 
-import global as _
+import primitive-types as _
 
 data Color:
   | color(
