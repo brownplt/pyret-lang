@@ -3047,9 +3047,9 @@ runtime-provides = provides("builtin://global",
      "NumPositive", t-top ],
   [string-dict:])
 
-runtime-values = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
-  rb.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
-end
+runtime-values = [string-dict:
+  "nothing", bind-origin(SL.builtin("primitive-types"), SL.builtin("primitive-types"), true, "builtin://primitive-types", A.s-name(A.dummy-loc, "nothing"))
+]
 
 runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides.aliases):
   rt.set(k, bind-origin(SL.builtin("primitive-types"), SL.builtin("primitive-types"), true, "builtin://primitive-types", A.s-name(A.dummy-loc, k)))

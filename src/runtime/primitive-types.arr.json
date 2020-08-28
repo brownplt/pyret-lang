@@ -4,7 +4,7 @@
 
     "shorthands": {},
     "values": {
-        "nothing": "t-bot"
+        "nothing": ["local", "Nothing"]
     },
     "aliases": {
         "Nothing": ["local", "Nothing"],
