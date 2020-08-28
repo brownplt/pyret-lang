@@ -3032,20 +3032,11 @@ fun t-forall1(f):
   t-forall([list: t-var(n)], f(t-var(n)))
 end
 
+# NOTE(alex): Removed runtime-values to avoid name weird name clashes
+#   _times and co desugar to functions calls on the runtime module
 runtime-provides = provides("builtin://global",
   [string-dict:],
-  [string-dict:
-    "nothing", t-top,
-    '_plus', t-top,
-    '_minus', t-top,
-    '_times', t-top,
-    '_divide', t-top,
-    '_lessthan', t-top,
-    '_greaterthan', t-top,
-    '_lessequal', t-top,
-    '_greaterequal', t-top,
-    "print", t-forall1(lam(a): t-arrow([list: a], a) end)
-  ],
+  [string-dict:],
   [string-dict:
      "Number", t-top,
      "String", t-str,
