@@ -1,5 +1,10 @@
 {
-  "requires": [],
+  "requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    }
+  ],
   "provides": {
 
     "shorthands": {
@@ -20,14 +25,8 @@
       "match": ["arrow", ["String", "String"], "tany"]
     },
     "aliases": {
-        "String": ["local", "String"]
     },
     "datatypes": {
-        "String": ["data", "String", [], [], {
-            "_plus": ["arrow", ["String"], "String"],
-            "_lessthan": ["arrow", ["String"], "Boolean"],
-            "_greaterthan": ["arrow", ["String"], "Boolean"]
-        }]
     }
   }
 }

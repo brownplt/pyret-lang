@@ -27,13 +27,7 @@
 
 
         },
-        "aliases": {
-            "RawArray": ["local", "RawArray"]
-        },
-        "datatypes": {
-            "RawArray": ["data", "RawArray", ["a"], [], {
-                "length": "Number"
-            }]
-        }
+        "aliases": { },
+        "datatypes": { }
     }
 }

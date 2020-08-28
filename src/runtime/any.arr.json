@@ -4,10 +4,7 @@
 
     "shorthands": {},
     "values": {},
-    "aliases": {
-        "Any": "tany"
-    },
-    "datatypes": {
-    }
+    "aliases": { },
+    "datatypes": { }
   }
 }

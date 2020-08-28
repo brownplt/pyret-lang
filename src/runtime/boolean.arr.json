@@ -1,14 +1,17 @@
 {
-  "requires": [],
+  "requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    }
+  ],
   "provides": {
 
     "shorthands": {},
     "values": {},
     "aliases": {
-        "Boolean": ["local", "Boolean"]
     },
     "datatypes": {
-        "Boolean": ["data", "Boolean", [], [], {}]
     }
   }
 }
