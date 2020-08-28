@@ -3055,7 +3055,7 @@ runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides
   rt.set(k, bind-origin(SL.builtin("primitive-types"), SL.builtin("primitive-types"), true, "builtin://primitive-types", A.s-name(A.dummy-loc, k)))
 end
 
-shadow runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides.data-definitions):
+shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-provides.data-definitions):
   rt.set(k, bind-origin(SL.builtin("primitive-types"), SL.builtin("primitive-types"), true, "builtin://primitive-types", A.s-name(A.dummy, k)))
 end
 
