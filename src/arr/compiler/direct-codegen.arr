@@ -522,17 +522,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
     | s-prim-app(l, name, args, _) =>
       {argvs; argstmts} = compile-list(context, args)
 
-      # Note(alex): builtin-stage-1 modules do NOT import global
-      #  Rely on runtime.js for functions instead
-      #  cm-normal and cm-builtin-general keep global import
-      cases(CompileMode) context.options.compile-mode:
-        | cm-normal =>
-          { j-app(j-bracket(j-id(GLOBAL), j-str(name)), argvs); argstmts }
-        | cm-builtin-general =>
-          { j-app(j-bracket(j-id(GLOBAL), j-str(name)), argvs); argstmts }
-        | cm-builtin-stage-1 =>
-          { j-app(j-bracket(j-id(RUNTIME), j-str(name)), argvs); argstmts }
-      end
+      { j-app(j-bracket(j-id(RUNTIME), j-str(name)), argvs); argstmts }
 
     | s-app-enriched(l, f, args, info) =>
       # TODO(joe): Use info
@@ -2094,7 +2084,6 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
                     j-str(the-path)]))
   end
 
-  global-import = import-builtin(GLOBAL, "global.arr.js")
   runtime-import = import-builtin(RUNTIME, "runtime.js")
   nothing-import = J.j-var(NOTHING, j-undefined)
 
@@ -2102,11 +2091,9 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   table-import = import-builtin(TABLE, "tables.arr.js")
   reactor-import = import-builtin(REACTOR,"reactor.arr.js")
 
-  # Note(alex): cm-builtin-stage-1 does not emit manual imports of global (i.e. "import global as _")
-  #   cm-builtin-general and cm-normal allow manual global import
   manual-imports = cases(CompileMode) options.compile-mode:
-    | cm-normal => [clist: runtime-import, global-import, nothing-import]
-    | cm-builtin-general => [clist: runtime-import, global-import, nothing-import]
+    | cm-normal => [clist: runtime-import, nothing-import]
+    | cm-builtin-general => [clist: runtime-import, nothing-import]
     | cm-builtin-stage-1 => [clist: runtime-import, nothing-import]
   end
 
@@ -2148,16 +2135,7 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
         cases(CompileMode) options.compile-mode:
           | cm-normal => import-action()
           | cm-builtin-general => import-action()
-          | cm-builtin-stage-1 =>
-            cases(ImportType) file:
-              | s-const-import(_, module-name) =>
-                if module-name == "global":
-                  CL.concat-empty
-                else:
-                  import-action()
-                end
-              | s-special-import(_, _, _) => import-action()
-            end
+          | cm-builtin-stage-1 => import-action()
         end
       | else => CL.concat-empty
     end
@@ -2178,7 +2156,7 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   non-imported-global-names = cases(CompileMode) options.compile-mode:
     | cm-normal => non-import-action()
     | cm-builtin-general => non-import-action()
-    | cm-builtin-stage-1 => [list: ]
+    | cm-builtin-stage-1 => non-import-action()
   end
 
   var implicit-imports = cl-empty
@@ -2209,7 +2187,7 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   pyret-globals-as-js-ids = cases(CompileMode) options.compile-mode:
     | cm-normal => pyret-global-action()
     | cm-builtin-general => pyret-global-action()
-    | cm-builtin-stage-1 => cl-empty
+    | cm-builtin-stage-1 => pyret-global-action()
   end
 
   from-modules = for CL.map_list(k from free-bindings.keys-list-now()):
