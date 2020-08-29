@@ -200,7 +200,6 @@ ARRAY = const-id("_array")
 TABLE = const-id("_table")
 REACTOR = const-id("_reactor")
 NUMBER = const-id("_number")
-NOTHING = const-id("_nothing")
 
 RUNTIME = const-id("_runtime")
 NAMESPACE = j-id(const-id("NAMESPACE"))
@@ -2076,16 +2075,15 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   end
 
   runtime-import = import-builtin(RUNTIME, "runtime.js")
-  nothing-import = J.j-var(NOTHING, j-undefined)
 
   array-import = import-builtin(ARRAY, "array.arr.js")
   table-import = import-builtin(TABLE, "tables.arr.js")
   reactor-import = import-builtin(REACTOR,"reactor.arr.js")
 
   manual-imports = cases(CompileMode) options.compile-mode:
-    | cm-normal => [clist: runtime-import, nothing-import]
-    | cm-builtin-general => [clist: runtime-import, nothing-import]
-    | cm-builtin-stage-1 => [clist: runtime-import, nothing-import]
+    | cm-normal => [clist: runtime-import]
+    | cm-builtin-general => [clist: runtime-import]
+    | cm-builtin-stage-1 => [clist: runtime-import]
   end
 
   shadow manual-imports = if import-flags.table-import:
