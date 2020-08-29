@@ -503,16 +503,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       cases(CompileMode) context.options.compile-mode:
         | cm-normal => normal-id-action()
         | cm-builtin-general => normal-id-action()
-        | cm-builtin-stage-1 =>
-          cases(Name) id:
-            | s-global(global-name) =>
-              ask:
-                | global-name == "nothing" then:
-                  { j-id(NOTHING); cl-empty }
-                | otherwise: raise("cm-builtin-stage-1: unable to replace global name")
-              end
-            | else => normal-id-action()
-          end
+        | cm-builtin-stage-1 => normal-id-action()
       end
 
     | s-id-letrec(l, id, _) => {j-id(js-id-of(id)); cl-empty}
