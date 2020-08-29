@@ -2113,7 +2113,7 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
   # gives us a local name to use, and leverages the built-in Node module system
   # rather than having Pyret's runtime track all loaded modules.
   #
-  for filter(g from global-names.keys-list-now()):
+  non-imported-global-names = for filter(g from global-names.keys-list-now()):
     not(uri-to-local-js-name.has-key-now(env.uri-by-value-name-value(g)))
   end
 
