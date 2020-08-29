@@ -16,7 +16,8 @@ provide {
 } end
 provide-types *
 
-import global as G
+import primitive-types as _
+import runtime-global as G
 include pick
 include lists
 import equality as equality

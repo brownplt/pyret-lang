@@ -1,14 +1,13 @@
 # Data Source Pyret Definitions
 provide *
 provide-types *
-import global as G
+import runtime-global as G
 import option as O
 import string as S
 
 include from G:
   raise,
   js-to-string as torepr,
-  string-to-number,     # TODO(alex): Move to module string once dependency graph sorted out
 end
 
 include from O:
@@ -20,6 +19,7 @@ end
 include from S:
   num-to-string,
   string-to-lower as string-tolower,
+  string-to-number
 end
 
 data CellContent<A>:

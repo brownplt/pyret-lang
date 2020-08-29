@@ -2,7 +2,8 @@
 provide *
 provide-types *
 
-import global as G
+import primitive-types as _
+import runtime-global as G
 import option as O
 import either as E
 import equality as equality
@@ -24,8 +25,6 @@ end
 
 include from G:
     raise,
-    equal-always3,
-    identical3,
     _lessthan,
 end
 
@@ -40,7 +39,7 @@ end
 include from E:
     type Either,
     left,
-    right
+    right,
 end
 
 include from equality:
@@ -51,6 +50,8 @@ include from equality:
     #  This appears to occur b/c standard-globals in compile-structs.arr defines
     #    _lessthan as built on globals.
     # _lessthan,
+    equal-always3,
+    identical3,
 end
 
 
