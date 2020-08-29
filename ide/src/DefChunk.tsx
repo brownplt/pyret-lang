@@ -150,6 +150,18 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     this.input = React.createRef();
   }
 
+  shouldComponentUpdate(newProps: DefChunkProps) {
+    const n = newProps;
+    const o = this.props;
+
+    if (n.focusedChunk === o.focusedChunk
+        && n.chunks[n.index] === o.chunks[o.index]) {
+      return false;
+    }
+
+    return true;
+  }
+
   componentDidUpdate() {
     const {
       chunks,
