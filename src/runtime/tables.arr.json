@@ -1,5 +1,8 @@
 {
-  "requires": [ ],
+  "requires": [
+    { "import-type": "builtin", "name": "primitive-types" }
+  ],
+
   "provides": {
     "values": {
       "_makeTableSkeletonFromCSVString": ["arrow", ["String"], "Any"],

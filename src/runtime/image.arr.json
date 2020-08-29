@@ -1,5 +1,10 @@
 {
-  "requires": [ ],
+  "requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    }
+  ],
   "provides": {
     "shorthands": {
       "Image": ["local", "Image"],
@@ -43,7 +48,7 @@
       "above-align": ["arrow", ["String", "Image", "Image"], "Image"],
       "rotate": ["arrow", ["Number", "Image"], "Image"],
       "text": ["arrow", ["String", "Number", "String"], "Image"],
-      "text-font": ["arrow", ["String", "Number", "String", "String", "String", "String", 
+      "text-font": ["arrow", ["String", "Number", "String", "String", "String", "String",
         "String", "Boolean"], "Image"],
       "flip-horizontal": ["arrow", ["Image"], "Image"],
       "flip-vertical": ["arrow", ["Image"], "Image"],
@@ -82,7 +87,7 @@
       "colorDb": "Any"
     },
     "aliases": {
-      "Image": { "tag": "name", 
+      "Image": { "tag": "name",
                  "origin": { "import-type": "uri", "uri": "builtin://image" },
                  "name": "Image" },
       "Color": ["local", "Color"]
