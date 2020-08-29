@@ -22,7 +22,8 @@
       "charAt": ["arrow", ["String", "Number"], "String"],
       "split": ["arrow", ["String", "String"], "tany"],
       "split-pattern": ["arrow", ["String", "String"], "tany"],
-      "match": ["arrow", ["String", "String"], "tany"]
+      "match": ["arrow", ["String", "String"], "tany"],
+      "string-to-number": ["arrow", ["String"], "oOfN"]
     },
     "aliases": {
     },

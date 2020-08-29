@@ -1,20 +1,14 @@
 let NUMBER = require("./js-numbers.js");
-// let OPTION = require("./option.arr.js");
+let OPTION = require("./option.arr.js");
 
-// TODO(alex): restructure runtime files to rely on a different "global" builtin module
-//   To work nicely, global needs to Pyret require all primitive modules
-//   Depending on option will cause a cyclic depedency
-
-// "string-to-number": ["arrow", ["String"], "oOfN"],
-// NOTE(alex): removed from runtime.ts to break cyclic import between runtime.ts and option module
-//function stringToNumber(s: string): any {
-//  var result = NUMBER['fromString'](s);
-//  if (result === false) {
-//    return OPTION['none'];
-//  } else {
-//    return OPTION['some'](result);
-//  }
-//}
+function stringToNumber(s: string): any {
+  var result = NUMBER['fromString'](s);
+  if (result === false) {
+    return OPTION['none'];
+  } else {
+    return OPTION['some'](result);
+  }
+}
 
 function numToString(n) {
   return String(n);
@@ -45,7 +39,7 @@ module.exports = {
   'match': function( str, pattern ) {
     return str.match( RegExp( pattern ) );
   },
-  //"string-to-number": stringToNumber,
+  "string-to-number": stringToNumber,
   'num-to-string': numToString,
   'num-to-string-digits': NUMBER['toStringDigits'],
 };
