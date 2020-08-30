@@ -138,6 +138,8 @@ export const run = (
       try {
         if (runKind === backend.RunKind.Async) {
           receivedRunner.run(callback);
+        } else if (runKind === backend.RunKind.Sync) {
+          callback(receivedRunner);
         }
       } catch (x) {
         console.error(x);
