@@ -2100,6 +2100,11 @@ fun create-prelude(prog, provides, env, free-bindings, options, shadow import-fl
           block:
             dep-key = AU.import-to-dep(file).key()
             uri = env.uri-by-dep-key(dep-key)
+            shadow uri = cases(CompileMode) options.compile-mode:
+              | cm-normal => uri
+              | cm-builtin-stage-1 => "builtin://" + P.basename(uri, ".arr")
+              | cm-builtin-general => "builtin://" + P.basename(uri, ".arr")
+            end
             uri-to-local-js-name.set-now(uri, name)
             uri-to-import(uri, name)
           end
