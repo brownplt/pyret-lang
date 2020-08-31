@@ -1,6 +1,11 @@
+#
+# NOTES:
+#   * Translated from standard-imports in arr/compiler/compile-structs.arr
+#   * Needs to be compiled with compile-mode builtin-general to replace "file" imports
+#
+
 # TODO(alex): make-array vs array?
 
-# NOTE(alex): Translated from standard-imports in arr/compiler/compile-structs.arr
 provide from A:
   raw-array as array,
   raw-array-length as array-length,
@@ -11,14 +16,69 @@ provide from A:
 end
 
 provide from L:
+  type List,
   to-raw-array as array-from-list,
   raw-array-to-list as array-to-list-now,
+
+  list,
+  is-List,
+  is-empty,
+  is-link,
+  empty,
+  link,
+  range,
+  range-by,
+  repeat,
+  filter,
+  partition,
+  split-at,
+  any,
+  find,
+  map,
+  map2,
+  map3,
+  map4,
+  map_n,
+  map2_n,
+  map3_n,
+  map4_n,
+  each,
+  each2,
+  each3,
+  each4,
+  each_n,
+  each2_n,
+  each3_n,
+  each4_n,
+  fold,
+  fold2,
+  fold3,
+  fold4
 end
 
-provide from G:
-  type RawArray as Array
+provide from O:
+  type Option,
+  is-Option,
+  is-some,
+  is-none,
+  some,
+  none
 end
 
-import global as G
+provide from S:
+  type Set,
+  tree-set,
+  list-set,
+  empty-set,
+  empty-tree-set,
+  empty-list-set,
+  list-to-set,
+  list-to-list-set,
+  list-to-tree-set,
+end
+
+import primitive-types as PT
 import raw-array as A
 import lists as L
+import option as O
+import file("./sets.arr") as S
