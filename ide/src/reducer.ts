@@ -417,7 +417,12 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
 
   switch (editorMode) {
     case EditorMode.Text:
-      throw new Error('handleLintFailure: not yet implemented for text mode');
+      return {
+        ...state,
+        linted: true,
+        linting: false,
+        interactionErrors: action.errors,
+      };
     case EditorMode.Chunks: {
       const { chunks } = state;
 

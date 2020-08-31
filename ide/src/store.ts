@@ -390,13 +390,16 @@ function handleFirstActionableEffect(
             running,
             isFileSaved,
             chunks,
+            editorMode,
           } = state;
           let allLinted = true;
 
-          for (let j = 0; j < chunks.length; j += 1) {
-            if (chunks[j].errorState.status !== 'succeeded') {
-              allLinted = false;
-              break;
+          if (editorMode === EditorMode.Chunks) {
+            for (let j = 0; j < chunks.length; j += 1) {
+              if (chunks[j].errorState.status !== 'succeeded') {
+                allLinted = false;
+                break;
+              }
             }
           }
 
