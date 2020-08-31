@@ -8,4 +8,4 @@ end
 
 import global as G
 import lists as L
-import file("sets.arr") as S
+import sets as S

@@ -89,4 +89,4 @@ import raw-array as A
 import lists as L
 import option as O
 import sets as S
-import global-runtime as RG
+import runtime-global as RG
