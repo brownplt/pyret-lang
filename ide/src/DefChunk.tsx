@@ -160,7 +160,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
 
     if (n.focusedChunk === o.focusedChunk
-        && n.chunks[n.index].text === o.chunks[o.index].text) {
+        && n.chunks[n.index].text === o.chunks[o.index].text
+        && n.chunks[n.index].errorState === o.chunks[o.index].errorState) {
       return false;
     }
 
