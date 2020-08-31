@@ -18,9 +18,6 @@
                 "name": "List" }, [["tid", "a"]]],
       "tva": ["tid", "a"],
       "tvb": ["tid", "b"],
-      "oOfN": ["tyapp", { "tag": "name",
-                "origin": { "import-type": "uri", "uri": "builtin://option" },
-                "name": "Option" }, ["Number"]],
       "EqualityResult": { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://equality" },
                 "name": "EqualityResult"
@@ -76,7 +73,6 @@
       "identical": ["arrow", ["Any", "Any"], "Boolean"],
       "identical3": ["arrow", ["Any", "Any"], "EqualityResult"],
       "not": ["arrow", ["Boolean"], "Boolean"],
-      "string-to-number": ["arrow", ["String"], "oOfN"]
     },
     "aliases": {
       "Any": "tany",

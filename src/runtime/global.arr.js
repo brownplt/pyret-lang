@@ -34,17 +34,6 @@ function makeNone() {
   return option.none;
 }
 
-// TODO(alex): Move implementation to builtin module string once dependency graph
-//   has been untangled
-function stringToNumber(s) {
-  var result = NUMBER['fromString'](s);
-  if (result === false) {
-    return makeNone();
-  } else {
-    return makeSome(result);
-  }
-}
-
 module.exports = {
   makeSome,
   makeNone,
@@ -92,6 +81,4 @@ module.exports = {
   'runtime': runtime,
 
   'raise': runtime["raise"],
-
-  'string-to-number': stringToNumber,
 };
