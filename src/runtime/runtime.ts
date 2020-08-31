@@ -373,21 +373,21 @@ module.exports["$makeMethodBinder"] = _PRIMITIVES["makeMethodBinder"];
 module.exports["$torepr"] = torepr;
 module.exports["$nothing"] = _PRIMITIVES["$nothing"];
 
-module.export["throwUnfinishedTemplate"] = function(srcloc) {
+module.exports["throwUnfinishedTemplate"] = function(srcloc) {
   customThrow({
     "$template-not-finished": srcloc
   });
 };
 
 // TODO(alex): Fill out exceptions with useful info
-module.export["throwNoCasesMatched"] = function(srcloc) {
+module.exports["throwNoCasesMatched"] = function(srcloc) {
   customThrow({
     "kind": "throwNoCasesMatched",
     "$srcloc": srcloc
   });
 };
 
-module.export["throwNoBranchesMatched"] = function(srcloc) {
+module.exports["throwNoBranchesMatched"] = function(srcloc) {
   customThrow({
     "kind": "throwNoBranchesMatched",
     "$srcloc": srcloc
@@ -395,7 +395,7 @@ module.export["throwNoBranchesMatched"] = function(srcloc) {
 };
 
 // TODO(alex): is exn necessary?
-module.export["throwNonBooleanOp"] = function(srcloc) {
+module.exports["throwNonBooleanOp"] = function(srcloc) {
   customThrow({
     "kind": "throwNonBooleanOp",
     "$srcloc": srcloc
@@ -403,7 +403,7 @@ module.export["throwNonBooleanOp"] = function(srcloc) {
 };
 
 // TODO(alex): is exn necessary?
-module.export["throwNonBooleanCondition"] = function(srcloc) {
+module.exports["throwNonBooleanCondition"] = function(srcloc) {
   customThrow({
     "kind": "throwNonBooleanCondition",
     "$srcloc": srcloc
