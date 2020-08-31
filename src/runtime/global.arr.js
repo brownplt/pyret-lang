@@ -94,10 +94,4 @@ module.exports = {
   'raise': runtime["raise"],
 
   'string-to-number': stringToNumber,
-
-  'throwUnfinishedTemplate': function(srcloc) {
-    throw {
-      '$template-not-finished': srcloc,
-    };
-  },
 };
