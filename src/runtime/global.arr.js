@@ -9,7 +9,6 @@
 
 var NUMBER = require("./js-numbers.js");
 var runtime = require('./runtime.js');
-var array = require('./array.js');
 
 function timeNow() {
   return new Date().getTime();
