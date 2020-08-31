@@ -77,8 +77,16 @@ provide from S:
   list-to-tree-set,
 end
 
+provide from RG:
+  not,
+  raise
+  # including 'nothing' will cause a shadowing error
+  # nothing
+end
+
 import primitive-types as PT
 import raw-array as A
 import lists as L
 import option as O
 import file("./sets.arr") as S
+import global-runtime as RG
