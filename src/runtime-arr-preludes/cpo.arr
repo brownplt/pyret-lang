@@ -88,5 +88,5 @@ import primitive-types as PT
 import raw-array as A
 import lists as L
 import option as O
-import file("./sets.arr") as S
+import sets as S
 import global-runtime as RG
