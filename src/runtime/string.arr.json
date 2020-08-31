@@ -1,5 +1,10 @@
 {
-  "requires": [],
+  "requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    }
+  ],
   "provides": {
 
     "shorthands": {
@@ -8,7 +13,8 @@
             "name": "Option" }, ["Number"]]
     },
     "values": {
-      "string-to-number": ["arrow", ["String"], "oOfN"],
+      "num-to-string-digits": ["arrow", ["Number", "Number"], "String"],
+      "num-to-string": ["arrow", ["Number"], "String"],
       "length": ["arrow", ["String"], "Number"],
       "string-to-lower": ["arrow", ["String"], "String"],
       "concat": ["arrow", ["String", "String"], "String"],
@@ -16,7 +22,12 @@
       "charAt": ["arrow", ["String", "Number"], "String"],
       "split": ["arrow", ["String", "String"], "tany"],
       "split-pattern": ["arrow", ["String", "String"], "tany"],
-      "match": ["arrow", ["String", "String"], "tany"]
+      "match": ["arrow", ["String", "String"], "tany"],
+      "string-to-number": ["arrow", ["String"], "oOfN"]
+    },
+    "aliases": {
+    },
+    "datatypes": {
     }
   }
 }

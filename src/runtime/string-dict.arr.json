@@ -1,5 +1,7 @@
 {
-  "requires": [],
+  "requires": [
+    { "import-type": "builtin", "name": "primitive-types" }
+  ],
   "provides": {
     "shorthands": {
       "sdOfA": ["tyapp", ["local", "StringDict"], [["tid", "a"]]],

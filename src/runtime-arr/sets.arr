@@ -16,24 +16,29 @@ provide {
 } end
 provide-types *
 
-import global as G
+import primitive-types as _
+import runtime-global as G
 include pick
 include lists
 import equality as equality
 import raw-array as RA
+import number as N
 # import valueskeleton as VS
 
 include from RA:
     raw-array-fold
 end
 
-include from G:
-  not,
+include from N:
   num-max,
   num-abs,
-  raise,
   num-floor,
   num-ceiling,
+end
+
+include from G:
+  not,
+  raise,
   _lessthan
 end
 

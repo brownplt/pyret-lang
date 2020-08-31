@@ -210,4 +210,10 @@
 "aliases":{"Event":{"tag":"name",
 "origin":{"import-type":"$ELF"},
 "name":"Event"}}},
-"requires":[]}
+"requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    }
+  ]
+}

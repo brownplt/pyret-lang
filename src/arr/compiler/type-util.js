@@ -9,7 +9,7 @@
     var number = { "tag": "name", "module": "builtin", "name": "Number" }
     var boolean = { "tag": "name", "module": "builtin", "name": "Boolean" }
     var nothing = { "tag": "name", "module": "builtin", "name": "Nothing" }
-  
+
     function forall(args, onto) {
       if(!Array.isArray(args)) { throw "Expected list for args, but got " + String(args); }
       args.forEach(function(a) {
@@ -21,7 +21,7 @@
         onto: onto
       }
     }
-  
+
     function arrow(args, ret) {
       if(!Array.isArray(args)) { throw "Expected list for arrow args, but got " + String(args); }
       return {
@@ -30,7 +30,7 @@
         ret: ret
       };
     }
-  
+
     function tyapp(onto, args) {
       if(!Array.isArray(args)) { throw "Expected list for tyapp args, but got " + String(args); }
       return {
@@ -39,14 +39,14 @@
         args: args
       };
     }
-  
+
     function tyvar(name) {
       return {
         tag: "tyvar",
         name: name
       };
     }
-  
+
     function builtinName(name) {
       return {
         tag: "name",
@@ -54,7 +54,7 @@
         name: name
       };
     }
-  
+
     function libName(lib, name) {
       return {
         tag: "name",
@@ -62,7 +62,7 @@
         name: name
       };
     }
-  
+
     function localType(name) {
       return {
         tag: "name",
@@ -70,14 +70,14 @@
         name: name
       };
     }
-  
+
     function record(fields) {
       return {
         tag: "record",
         fields: fields
       };
     }
-  
+
     function dataRefinement(basetype, variant) {
       return {
         tag: "data-refinement",
@@ -85,7 +85,7 @@
         variant: variant
       };
     }
-  
+
     function dataType(origin, name, params, variants, methods) {
       return {
         tag: "data",
@@ -96,7 +96,7 @@
         methods: methods
       };
     }
-  
+
     function variant(name, vmembers, withmembers) {
       return {
         tag: "variant",
@@ -105,7 +105,7 @@
         withmembers: withmembers
       };
     }
-  
+
     function singletonVariant(name, withmembers) {
       return {
         tag: "singleton-variant",
@@ -113,7 +113,7 @@
         withmembers: withmembers
       }
     }
-  
+
     function variantMember(name, kind, typ) {
       return {
         tag: "variant-member",
@@ -121,7 +121,7 @@
         typ: typ
       };
     }
-  
+
     function bindToPyret(runtime, value, shorthands) {
       var origin = runtime.makeObject({ provided: false });
       if(!value.bind) {
@@ -178,8 +178,8 @@
         }
       }
     }
-  
-  
+
+
     function toPyretType(runtime, typ) {
       var O = runtime.makeObject;
       var L = runtime.ffi.makeList;
@@ -283,7 +283,7 @@
           throw new Error("No such tag: " + typ.tag);
       }
     }
-  
+
     function expandType(typ, shorthands) {
       if(typ.bind == 'fun') {
         return {
@@ -297,12 +297,18 @@
       else if (typ.bind === 'var') {
         return { bind: typ.bind, origin: typ.origin, typ: expandType(typ.typ, shorthands) };
       }
+      const fromPrim = { "import-type": "uri", uri: "builtin://primitive-types" };
       var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
       var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
       function mkName(origin, name) {
         return { tag: "name", origin: origin, name: name };
       }
-      function p(name) { return mkName(fromGlobal, name); }
+      function p(name) {
+        // NOTE(alex): guarenteed to be a name in prims
+        //   Manually assign the builtin module uri
+        // TODO(alex): centralized source of truth for primtiive locations?
+        return mkName(fromPrim, name);
+      }
       function mkApp1(tycon, arg) {
         return {
           tag: "tyapp",
@@ -311,18 +317,20 @@
         };
       }
       var constrs = {
-        "Array": function(name, arg) { 
+        "Array": function(name, arg) {
           return mkApp1(mkName({ "import-type": "uri", uri: "builtin://arrays" }, name), arg);
         },
-        "RawArray": function(name, arg) { return mkApp1(mkName(fromGlobal, name), arg); },
-        "List": function(name, arg) { 
-          return mkApp1(mkName({ "import-type": "uri", uri: "builtin://lists" }, name), arg); 
+        "RawArray": function(name, arg) {
+          return mkApp1(mkName(fromPrim, name), arg);
         },
-        "Option": function(name, arg) { 
-          return mkApp1(mkName({ "import-type": "uri", uri: "builtin://option" }, name), arg); 
+        "List": function(name, arg) {
+          return mkApp1(mkName({ "import-type": "uri", uri: "builtin://lists" }, name), arg);
         },
-        "Either": function(name, arg1, arg2) { 
-          return mkApp1(mkName({ "import-type": "uri", uri: "builtin://either" }, name), arg1, arg2); 
+        "Option": function(name, arg) {
+          return mkApp1(mkName({ "import-type": "uri", uri: "builtin://option" }, name), arg);
+        },
+        "Either": function(name, arg1, arg2) {
+          return mkApp1(mkName({ "import-type": "uri", uri: "builtin://either" }, name), arg1, arg2);
         },
         "Maker": function(_, arg, ret) {
           var maker = {
@@ -339,8 +347,8 @@
       };
       var iA = Array.isArray;
       var iO = function(o) { return typeof o === "object" && o !== null && !(iA(o)); };
-  
-  
+
+
       function expandMember(m, shorthands) {
         if(!iA(m)) {
           throw new Error("Serialized members should be arrays, got: " + String(m));
@@ -365,7 +373,7 @@
           throw new Error("Bad serialized member: " + String(m));
         }
       }
-  
+
       function expandVariant(v, shorthands) {
         if(!iA(v)) {
           throw new Error("Serialized variant types should be arrays, got: " + String(v));
@@ -392,7 +400,7 @@
           }
         }
       }
-  
+
       if(typeof typ === "string") {
         if(typ === "tany") {
           return "tany";
@@ -526,7 +534,7 @@
         throw new Error("Unknown description for serialized type: " + String(typ));
       }
     }
-  
+
     function expandRecord(r, shorthands) {
       var o = {};
       Object.keys(r).forEach(function(k) {
@@ -534,8 +542,8 @@
       });
       return o;
     }
-  
-  
+
+
     return runtime.makeJSModuleReturn({
       any: any,
       string: string,

@@ -7,13 +7,8 @@
 //
 
 
+var NUMBER = require("./js-numbers.js");
 var runtime = require('./runtime.js');
-var array = require('./array.js');
-var numbers = require('./js-numbers.js');
-
-function numToString(n) {
-  return String(n);
-}
 
 function timeNow() {
   return new Date().getTime();
@@ -47,7 +42,6 @@ module.exports = {
   $setMakeReactor: (f) => {
     realMakeReactor = f;
   },
-  'num-to-str': numToString,
   'time-now' : timeNow,
   'js-to-string': function(v) { return String(v); },
   'display-string': function(s) { process.stdout.write(s); },
@@ -82,94 +76,8 @@ module.exports = {
 
   'trace-value': runtime['traceValue'],
 
-  // TODO(alex): Think of better way to expose runtime
+   // TODO(alex): Think of better way to expose runtime
   'runtime': runtime,
 
-  // Number Functions
-
-  'num-equal': numbers['equals'],
-  'num-is-integer': numbers['isInteger'],
-  'num-is-rational': numbers['isRational'],
-  'num-is-roughnum': numbers['isRoughnum'],
-  'num-is-positive': numbers['isPositive'],
-  'num-is-negative': numbers['isNegative'],
-  'num-is-non-positive': numbers['isNonPositive'],
-  'num-is-non-negative': numbers['isNonNegative'],
-  'num-max': function(a, b) {
-    if (numbers['greaterThan'](a, b)) {
-      return a;
-    } else {
-      return b;
-    }
-  },
-  'num-min': function(a, b) {
-    if (numbers['greaterThan'](a, b)) {
-      return b;
-    } else {
-      return a;
-    }
-  },
-  'num-abs': numbers['abs'],
-  'num-sin': numbers['sin'],
-  'num-cos': numbers['cos'],
-  'num-tan': numbers['tan'],
-  'num-asin': numbers['asin'],
-  'num-acos': numbers['acos'],
-  'num-atan': numbers['atan'],
-  'num-atan2': numbers['atan2'],
-  'num-modulo': numbers['modulo'],
-  'num-truncate': function(n) {
-    if (numbers['greaterThan'](n, 0)) {
-      return numbers['floor'](n);
-    } else {
-      return numbers['ceiling'](n);
-    }
-  },
-  'num-sqrt': numbers['sqrt'],
-  'num-sqr': numbers['sqr'],
-  'num-ceiling': numbers['ceiling'],
-  'num-floor': numbers['floor'],
-  'num-round': numbers['round'],
-  'num-round-even': numbers['round-even'],
-  'num-log': numbers['log'],
-  'num-exp': numbers['exp'],
-  'num-expt': numbers['expt'],
-  'num-to-roughnum': numbers['toRoughnum'],
-  'num-is-integer': numbers['isInteger'],
-  'num-is-rational': numbers['isRational'],
-  'num-is-roughnum': numbers['isRoughnum'],
-  'num-to-string': function(n) {
-    return String(n);
-  },
-  'num-to-string-digits': numbers['toStringDigits'],
-  'num-within-abs': function(tol) {
-    return function(l, r) {
-      return numbers['roughlyEquals'](l, r, tol);
-    };
-  },
-  'num-within-rel': function(relTol) {
-    return function(l, r) {
-      return numbers['roughlyEqualsRel'](l, r, relTol);
-    };
-  },
-
-  'string-to-lower': function(s) {
-    return s.toLowerCase();
-  },
-
   'raise': runtime["raise"],
-
-  'loop-a-while': function(n) {
-    let s = 0;
-    for (let i = 0; i < n; i += 1) {
-      s += i;
-    }
-    return s;
-  },
-
-  'throwUnfinishedTemplate': function(srcloc) {
-    throw {
-      '$template-not-finished': srcloc,
-    };
-  },
 };

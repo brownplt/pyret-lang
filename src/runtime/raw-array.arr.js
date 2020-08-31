@@ -4,6 +4,9 @@ module.exports = {
       return arr;
     }
   },
+  'raw-array-length': function(arr) {
+    return arr.length;
+  },
   'raw-array-set': function( arr, index, value ) {
     arr[index] = value;
     return arr;
@@ -50,5 +53,9 @@ module.exports = {
     }
 
     return array;
+  },
+  'is-raw-array': function(v) {
+    // TODO(alex): may need to move this to primitives.ts
+    return Array.isArray(v);
   }
 }

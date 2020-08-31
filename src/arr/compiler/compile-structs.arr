@@ -3032,20 +3032,11 @@ fun t-forall1(f):
   t-forall([list: t-var(n)], f(t-var(n)))
 end
 
+# NOTE(alex): Removed runtime-values to avoid name weird name clashes
+#   _times and co desugar to functions calls on the runtime module
 runtime-provides = provides("builtin://global",
   [string-dict:],
-  [string-dict:
-    "nothing", t-top,
-    '_plus', t-top,
-    '_minus', t-top,
-    '_times', t-top,
-    '_divide', t-top,
-    '_lessthan', t-top,
-    '_greaterthan', t-top,
-    '_lessequal', t-top,
-    '_greaterequal', t-top,
-    "print", t-forall1(lam(a): t-arrow([list: a], a) end)
-  ],
+  [string-dict:],
   [string-dict:
      "Number", t-top,
      "String", t-str,
@@ -3056,15 +3047,16 @@ runtime-provides = provides("builtin://global",
      "NumPositive", t-top ],
   [string-dict:])
 
-runtime-values = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
-  rb.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
-end
+runtime-values = [string-dict:
+  "nothing", bind-origin(SL.builtin("primitive-types"), SL.builtin("primitive-types"), true, "builtin://primitive-types", A.s-name(A.dummy-loc, "nothing"))
+]
 
 runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides.aliases):
-  rt.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
+  rt.set(k, bind-origin(SL.builtin("primitive-types"), SL.builtin("primitive-types"), true, "builtin://primitive-types", A.s-name(A.dummy-loc, k)))
 end
+
 shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-provides.data-definitions):
-  rt.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
+  rt.set(k, bind-origin(SL.builtin("primitive-types"), SL.builtin("primitive-types"), true, "builtin://primitive-types", A.s-name(A.dummy, k)))
 end
 
 # MARK(joe/ben): modules

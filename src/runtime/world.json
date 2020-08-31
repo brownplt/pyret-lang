@@ -1,7 +1,8 @@
 {
   "requires": [
     { "import-type": "builtin", "name": "image-lib" },
-    { "import-type": "builtin", "name": "world-lib" }
+    { "import-type": "builtin", "name": "world-lib" },
+    { "import-type": "builtin", "name": "primitive-types" }
   ],
   "nativeRequires": ["pyret-base/js/js-numbers"],
   "provides": {

@@ -4,6 +4,7 @@ import file("js-ast.arr") as J
 import file("concat-lists.arr") as CL
 import file("compile-structs.arr") as CS
 import file("type-structs.arr") as T
+import pathlib as P
 import option as O
 import srcloc as SL
 import string-dict as D
@@ -72,7 +73,7 @@ j-raw-code = J.j-raw-code
 
 # NOTE(alex): Used only by compile mode cm-builtin-stage-1
 #   See compile-provides-override-uri() for more info
-var ORIGIN_URI_OVERRIDE = none
+var ORIGIN_URI_OVERRIDE = false
 
 
 fun srcloc-to-raw(l):
@@ -96,22 +97,16 @@ fun compile-origin(bo):
     j-field("new-definition", j-bool(bo.new-definition)),
     j-field("uri-of-definition", j-str(bo.uri-of-definition))
   ])
-  cases(Option) ORIGIN_URI_OVERRIDE:
-    | some(override) =>
-      # NOTE(alex): Only override the URIs of non-builtin data
-      #   Needed to NOT override imports/re-exports of builtins relying on other builtins
-      if bo.definition-bind-site.is-builtin():
-        normal-origin
-      else:
-        j-obj([clist:
-          j-field("local-bind-site", srcloc-to-raw(SL.builtin(override))),
-          j-field("definition-bind-site", srcloc-to-raw(SL.builtin(override))),
-          j-field("new-definition", j-bool(bo.new-definition)),
-          j-field("uri-of-definition", j-str(override))
-        ])
-      end
-
-    | none => normal-origin
+  override = "builtin://" + P.basename(bo.uri-of-definition, ".arr")
+  if not(ORIGIN_URI_OVERRIDE) or bo.definition-bind-site.is-builtin():
+    normal-origin
+  else:
+    j-obj([clist:
+      j-field("local-bind-site", srcloc-to-raw(SL.builtin(override))),
+      j-field("definition-bind-site", srcloc-to-raw(SL.builtin(override))),
+      j-field("new-definition", j-bool(bo.new-definition)),
+      j-field("uri-of-definition", j-str(override))
+    ])
   end
 end
 
@@ -220,10 +215,10 @@ end
 #   Needed to override origin URIs in order for "include from" syntax to function with values
 #   Used to compile builtin arr modules without messing with URIs before codegen which
 #     MAY or MAY NOT break the compilation pipeline
-fun compile-provides-override-uri(provides, uri) block:
-  ORIGIN_URI_OVERRIDE := some(uri)
+fun compile-provides-override-uri(provides, override :: Boolean) block:
+  ORIGIN_URI_OVERRIDE := override
   result = compile-provides(provides)
-  ORIGIN_URI_OVERRIDE := none
+  ORIGIN_URI_OVERRIDE := false
   result
 end
 

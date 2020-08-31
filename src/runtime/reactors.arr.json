@@ -1,7 +1,8 @@
 {
     "requires": [
         { "import-type": "builtin", "name": "reactor-events" },
-        { "import-type": "builtin", "name": "tables" }
+        { "import-type": "builtin", "name": "tables" },
+        { "import-type": "builtin", "name": "primitive-types" }
     ],
     "nativeRequires": [],
     "provides": {

@@ -2,22 +2,29 @@
 provide *
 provide-types *
 
-import global as G
+import primitive-types as _
+import runtime-global as G
 import option as O
 import either as E
 import equality as equality
 import raw-array as RA
+import number as N
+import string as S
 # import valueskeleton as VS
 # valueskeleton only used on one method (_output)
 
+include from S:
+  num-to-string as tostring,
+end
+
+include from N:
+  num-ceiling,
+  num-max,
+  num-is-integer,
+end
+
 include from G:
     raise,
-    num-to-string as tostring,
-    equal-always3,
-    identical3,
-    num-ceiling,
-    num-max,
-    num-is-integer,
     _lessthan,
 end
 
@@ -32,7 +39,7 @@ end
 include from E:
     type Either,
     left,
-    right
+    right,
 end
 
 include from equality:
@@ -43,6 +50,8 @@ include from equality:
     #  This appears to occur b/c standard-globals in compile-structs.arr defines
     #    _lessthan as built on globals.
     # _lessthan,
+    equal-always3,
+    identical3,
 end
 
 
@@ -406,7 +415,7 @@ end
 
 fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> } block:
   doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
-  when (n < 0) or G.not(G.num-is-integer(n)):
+  when (n < 0) or G.not(num-is-integer(n)):
     raise("Invalid index")
   end
   var prefix = empty

@@ -306,6 +306,10 @@ function torepr(v) {
   return JSON.stringify(v);
 }
 
+function customThrow(exn) {
+  throw exn;
+}
+
 module.exports["addModule"] = addModule;
 module.exports["getModuleValue"] = getModuleValue;
 
@@ -368,3 +372,40 @@ module.exports["$makeMethodBinder"] = _PRIMITIVES["makeMethodBinder"];
 
 module.exports["$torepr"] = torepr;
 module.exports["$nothing"] = _PRIMITIVES["$nothing"];
+
+module.exports["throwUnfinishedTemplate"] = function(srcloc) {
+  customThrow({
+    "$template-not-finished": srcloc
+  });
+};
+
+// TODO(alex): Fill out exceptions with useful info
+module.exports["throwNoCasesMatched"] = function(srcloc) {
+  customThrow({
+    "kind": "throwNoCasesMatched",
+    "$srcloc": srcloc
+  });
+};
+
+module.exports["throwNoBranchesMatched"] = function(srcloc) {
+  customThrow({
+    "kind": "throwNoBranchesMatched",
+    "$srcloc": srcloc
+  });
+};
+
+// TODO(alex): is exn necessary?
+module.exports["throwNonBooleanOp"] = function(srcloc) {
+  customThrow({
+    "kind": "throwNonBooleanOp",
+    "$srcloc": srcloc
+  });
+};
+
+// TODO(alex): is exn necessary?
+module.exports["throwNonBooleanCondition"] = function(srcloc) {
+  customThrow({
+    "kind": "throwNonBooleanCondition",
+    "$srcloc": srcloc
+  });
+};
