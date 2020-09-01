@@ -3,6 +3,18 @@
     {
         "import-type": "builtin",
         "name": "primitive-types"
+    },
+    {
+        "import-type": "builtin",
+        "name": "tables"
+    },
+    {
+        "import-type": "builtin",
+        "name": "equality"
+    },
+    {
+        "import-type": "builtin",
+        "name": "lists"
     }
   ],
   "provides": {
@@ -27,7 +39,6 @@
       "display-string": ["arrow", ["String"], "Nothing"],
       "js-to-string": ["arrow", ["Any"], "String"],
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
-      "nothing": "Nothing",
       "time-now": ["arrow", [], "Number"],
       "console-log": ["arrow", ["tany"], "Nothing"],
       "assert": ["forall", ["a"], ["arrow", ["tva", "tva", "String"], "Nothing"]],
@@ -78,7 +89,6 @@
       "Any": "tany",
       "Method": "tany",
       "Object": "tany",
-      "Function": "tany",
       "NumNonNegative": "Number",
       "NumNonPositive": "Number",
       "NumNegative": "Number",
