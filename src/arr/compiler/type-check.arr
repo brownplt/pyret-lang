@@ -1668,37 +1668,16 @@ fun synthesis-op(top-level, app-loc, op, op-loc, left, right, context):
   end
 end
 
+# NOTE(alex): This origilly special-cased global "_lessthan(x1, x2)", etc. function calls to
+#   desugar into "x1._lessthan(x2)" calls
+#   Removed desugaring b/c _lessthan, etc are not in scope as runtime-values are brought into scope
+#     through the normal import system.
+#
+# TODO(alex): remove?
 fun synthesis-app-fun(app-loc :: Loc, _fun :: Expr, args :: List<Expr>, context :: Context) -> FoldResult<Type>:
-  fun choose-type(method-name :: String) -> FoldResult<Type>:
-    # there should be two args here because its a binop
-    obj-exists = new-existential(args.get(0).l, false)
-    other-type = new-existential(args.get(1).l, false)
-    ret-type = new-existential(app-loc, false)
-    arrow-type = t-arrow([list: obj-exists, other-type], ret-type, app-loc, false)
-    shadow context = context.add-variable(obj-exists).add-variable(other-type).add-variable(ret-type).add-field-constraint(obj-exists, method-name, t-arrow([list: other-type], ret-type, app-loc, false))
-    fold-result(arrow-type, context)
-  end
-  cases(Expr) _fun:
-    | s-id(fun-loc, id) =>
-      ask:
-        | id == A.s-global("_plus") then: choose-type("_plus")
-        | id == A.s-global("_times") then: choose-type("_times")
-        | id == A.s-global("_divide") then: choose-type("_divide")
-        | id == A.s-global("_minus") then: choose-type("_minus")
-        | id == A.s-global("_lessthan") then: choose-type("_lessthan")
-        | id == A.s-global("_lessequal") then: choose-type("_lessequal")
-        | id == A.s-global("_greaterthan") then: choose-type("_greaterthan")
-        | id == A.s-global("_greaterequal") then: choose-type("_greaterequal")
-        | otherwise:
-          synthesis(_fun, false, context).fold-bind(lam(_, new-type, shadow context):
-            fold-result(new-type, context)
-          end)
-      end
-    | else =>
-      synthesis(_fun, false, context).fold-bind(lam(_, new-type, shadow context):
-        fold-result(new-type, context)
-      end)
-  end
+  synthesis(_fun, false, context).fold-bind(lam(_, new-type, shadow context):
+    fold-result(new-type, context)
+  end)
 end
 
 fun handle-type-let-binds(bindings :: List<A.TypeLetBind>, context :: Context) -> FoldResult<Nothing>:
