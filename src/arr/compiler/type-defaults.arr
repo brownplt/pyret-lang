@@ -831,9 +831,7 @@ module-const-json-structs = t-module("builtin://json-structs",
     .set("List", t-list)
     .set("JSON", t-json))
 
-# TODO(alex): remove the default module values
-# TODO(alex): is anything relying on default module values?
-#   Removed because they were overriding the actual definitions
+#   NOTE(alex): Removed because they were overriding the actual definitions
 #     found in src/runtime and potentially src/runtime-arr
 default-modules = SD.make-mutable-string-dict()
 shadow default-modules = default-modules.freeze()

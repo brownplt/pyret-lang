@@ -450,8 +450,6 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
 
             var desugared = D.desugar(named-result.ast)
 
-            # TODO(alex): Besides not accessing the 'env', why was this line commented out?
-            #   ORIGINAL: named-result.bindings.merge-now(desugared.new-binds)
             named-result.env.bindings.merge-now(desugared.new-binds)
 
             # ...in order to be checked for bad assignments here
