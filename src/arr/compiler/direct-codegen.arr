@@ -154,6 +154,7 @@ default-import-flags = {
 
 # Update by 'import-flags := import-flags.{ flags to change here }'
 var import-flags = default-import-flags
+var check-block-test-calls = cl-empty
 
 js-names = A.MakeName(0)
 js-ids = D.make-mutable-string-dict()
@@ -477,7 +478,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
                 j-field("$locations", j-list(true, locs))])
 
       assign-ans = j-bracket-assign(j-id(const-id("module")), j-str("exports"), ans)
-      {assign-ans; a-stmts + cl-sing(answer-var) + stmts}
+      {assign-ans; a-stmts + check-block-test-calls + cl-sing(answer-var) + stmts}
     | s-block(l, exprs) => compile-seq(context, exprs)
     | s-num(l, n) =>
       e = if num-is-fixnum(n):
@@ -1132,7 +1133,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Pass function check-block and the name to the test runner
       tester-call = j-expr(rt-method("$checkBlock", [clist: test-block-name, js-check-block-func]))
 
-      { j-undefined; cl-sing(tester-call) }
+      # NOTE(alex): Check blocks are emitted/executed at the END of the program
+      #   However, their bindings are still as if they were emitted in place
+      #   To change the "scope" of check blocks, need to desugar BEFORE codegen
+      check-block-test-calls := cl-snoc(check-block-test-calls, tester-call)
+
+      { j-undefined; cl-empty }
 
     | s-check-test(l :: Loc,
                    op :: A.CheckOp,
@@ -2217,6 +2223,7 @@ end
 fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) block:
   # Reset import flags between compile-program calls
   import-flags := default-import-flags
+  check-block-test-calls := cl-empty
 
   # TODO(alex): Find out if a uri is actually required by AU.data-expr-to-datatype
 
