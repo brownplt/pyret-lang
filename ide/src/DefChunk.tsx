@@ -115,6 +115,12 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
         shouldPreventDefault = true;
       }
 
+      const newChunk = removeSelectedText(chunk);
+
+      if (newChunk.text === '') {
+        return newChunks;
+      }
+
       newChunks.push(removeSelectedText(chunk));
 
       return newChunks;
