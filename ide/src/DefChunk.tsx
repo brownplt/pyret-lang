@@ -10,6 +10,8 @@ import {
   removeSelection,
   removeAllSelections,
   selectAll,
+  isEmptySelection,
+  removeSelectedText,
 } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
@@ -91,35 +93,28 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
 } {
   let shouldPreventDefault = false;
   let firstSelectedChunk: false | number = false;
+
   const updatedChunks = chunks.reduce(
     (newChunks: Chunk[], chunk, i) => {
-      const { editor } = chunk;
-      if (editor === false) {
+      const {
+        selection,
+      } = chunk;
+
+      if (isEmptySelection(selection)) {
         newChunks.push(chunk);
         return newChunks;
       }
-      const doc = editor.getDoc();
-      const selection = doc.getSelection();
-      if (selection === '') {
-        newChunks.push(chunk);
-        return newChunks;
-      }
+
       if (firstSelectedChunk === false) {
         firstSelectedChunk = i;
       }
+
       if (i === index) {
         shouldPreventDefault = true;
       }
-      doc.replaceSelection(''); // delete selected text
-      const newText = editor.getValue();
-      if (newText.trim() === '') {
-        return newChunks;
-      }
-      newChunks.push({
-        ...chunk,
-        text: newText,
-        errorState: { status: 'notLinted' },
-      });
+
+      newChunks.push(removeSelectedText(chunk));
+
       return newChunks;
     },
     [],

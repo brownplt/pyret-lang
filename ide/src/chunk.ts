@@ -111,9 +111,9 @@ function getLineAndChIndex(text: string, lineAndCh: LineAndCh): false | number {
     if (i === lineAndCh.line) {
       if (lines[i].length >= lineAndCh.ch) {
         return characters + lineAndCh.ch;
-      } else {
-        return false;
       }
+
+      return false;
     }
 
     characters += lines[i].length + 1; // 1 for the newline character
@@ -122,11 +122,12 @@ function getLineAndChIndex(text: string, lineAndCh: LineAndCh): false | number {
   return false;
 }
 
-export function isEmptySelection(selection: Selection): boolean {
-  return selection.anchor.line === 0
-    && selection.anchor.ch === 0
-    && selection.head.line === 0
-    && selection.head.ch === 0;
+export function isEmptySelection(selection: Selection | false): boolean {
+  return selection === false
+    || (selection.anchor.line === 0
+      && selection.anchor.ch === 0
+      && selection.head.line === 0
+      && selection.head.ch === 0);
 }
 
 export function removeSelectedText(chunk: Chunk): Chunk {
@@ -149,8 +150,9 @@ export function removeSelectedText(chunk: Chunk): Chunk {
       ...chunk,
       text: newText,
       selection: false,
-    }
-  } else {
-    return chunk;
+      errorState: notLintedState,
+    };
   }
+
+  return chunk;
 }
