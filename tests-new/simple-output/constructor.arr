@@ -1,6 +1,6 @@
 ### 3
 import global as G
-import string as S
+import number as N
 
 counter = {
   make: lam(arr :: RawArray<Any>) -> Number: arr.length end
@@ -8,4 +8,4 @@ counter = {
 
 c = [counter: "a", "b", "c"]
 
-G.console-log(S.num-to-string(c))
+G.console-log(N.num-to-string(c))
