@@ -17,6 +17,12 @@ export const notLintedState: ErrorState = {
 };
 
 type LineAndCh = { line: number, ch: number };
+type Selection = { anchor: LineAndCh, head: LineAndCh };
+
+const emptySelection = {
+  anchor: { line: 0, ch: 0 },
+  head: { line: 0, ch: 0 },
+};
 
 export type Chunk = {
   startLine: number,
@@ -25,7 +31,7 @@ export type Chunk = {
   errorState: ErrorState,
   editor: false | CodeMirror.Editor;
   needsJiggle: boolean,
-  selection: false | { anchor: LineAndCh, head: LineAndCh },
+  selection: false | Selection,
 };
 
 export function getStartLineForIndex(chunks : Chunk[], index : number) {
@@ -68,4 +74,15 @@ export function emptyChunk(options?: Partial<Chunk>): Chunk {
     selection: false,
     ...options,
   };
+}
+
+export function removeSelection(chunk: Chunk): Chunk {
+  return {
+    ...chunk,
+    selection: emptySelection,
+  };
+}
+
+export function removeAllSelections(chunks: Chunk[]): Chunk[] {
+  return chunks.map(removeSelection);
 }
