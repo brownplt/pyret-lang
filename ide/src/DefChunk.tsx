@@ -121,7 +121,7 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
         return newChunks;
       }
 
-      newChunks.push(removeSelectedText(chunk));
+      newChunks.push(newChunk);
 
       return newChunks;
     },
