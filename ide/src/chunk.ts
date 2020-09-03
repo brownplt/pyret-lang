@@ -107,7 +107,7 @@ export function selectAll(chunk: Chunk): Chunk {
 
 // Returns the number of characters from the start of `text` to the line and character
 // location, `lineAndCh`, or `false` if `lineAndCh` isn't inside the text.
-function getLineAndChIndex(text: string, lineAndCh: LineAndCh): false | number {
+function getLineAndChIndex(text: string, lineAndCh: LineAndCh): number {
   const lines = text.split('\n');
 
   let characters = 0;
@@ -118,22 +118,18 @@ function getLineAndChIndex(text: string, lineAndCh: LineAndCh): false | number {
         return characters + lineAndCh.ch;
       }
 
-      return false;
+      throw new Error(`srcloc '${lineAndCh} out of bounds for text '${text}`);
     }
 
     characters += lines[i].length + 1; // 1 for the newline character
   }
 
-  return false;
+  throw new Error(`srcloc '${lineAndCh} out of bounds for text '${text}`);
 }
 
-function getSelectedText(text: string, selection: Selection): false | string {
+function getSelectedText(text: string, selection: Selection): string {
   const anchorIndex = getLineAndChIndex(text, selection.anchor);
   const headIndex = getLineAndChIndex(text, selection.head);
-
-  if (anchorIndex === false || headIndex === false) {
-    return false;
-  }
 
   return text.substring(anchorIndex, headIndex);
 }
@@ -145,10 +141,6 @@ export function getChunkSelectedText(chunk: Chunk): string {
   } = chunk;
 
   const selectedText = getSelectedText(text, selection);
-
-  if (selectedText === false) {
-    throw new Error(`Selection '${selection}' out of bounds for text '${text}'`);
-  }
 
   return selectedText;
 }
@@ -170,10 +162,6 @@ export function removeSelectedText(chunk: Chunk): Chunk {
     const anchorIndex = getLineAndChIndex(text, selection.anchor);
     const headIndex = getLineAndChIndex(text, selection.head);
 
-    if (anchorIndex === false || headIndex === false) {
-      throw new Error(`Selection '${selection}' out of bounds for text '${text}'`);
-    }
-
     const newText = text.substring(0, anchorIndex) + text.substring(headIndex + 1, text.length);
 
     return {
@@ -193,10 +181,6 @@ export function compareLineAndCh(text: string, a: LineAndCh, b: LineAndCh): numb
   const aIndex = getLineAndChIndex(text, a);
   const bIndex = getLineAndChIndex(text, b);
 
-  if (aIndex === false || bIndex === false) {
-    throw new Error('todo');
-  }
-
   if (aIndex > bIndex) {
     return 1;
   }
@@ -209,5 +193,5 @@ export function compareLineAndCh(text: string, a: LineAndCh, b: LineAndCh): numb
     return -1;
   }
 
-  throw new Error('reached unreachable point');
+  throw new Error('Error comparing srclocs');
 }
