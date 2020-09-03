@@ -128,3 +128,29 @@ export function isEmptySelection(selection: Selection): boolean {
     && selection.head.line === 0
     && selection.head.ch === 0;
 }
+
+export function removeSelectedText(chunk: Chunk): Chunk {
+  const {
+    selection,
+    text,
+  } = chunk;
+
+  if (selection !== false) {
+    const anchorIndex = getLineAndChIndex(text, selection.anchor);
+    const headIndex = getLineAndChIndex(text, selection.head);
+
+    if (anchorIndex === false || headIndex === false) {
+      throw new Error(`Selection '${selection}' out of bounds for text '${text}'`);
+    }
+
+    const newText = text.substring(anchorIndex, headIndex + 1);
+
+    return {
+      ...chunk,
+      text: newText,
+      selection: false,
+    }
+  } else {
+    return chunk;
+  }
+}
