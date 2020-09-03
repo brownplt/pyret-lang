@@ -104,3 +104,9 @@ export function selectAll(chunk: Chunk): Chunk {
     selection: { anchor, head },
   };
 }
+export function isEmptySelection(selection: Selection): boolean {
+  return selection.anchor.line === 0
+    && selection.anchor.ch === 0
+    && selection.head.line === 0
+    && selection.head.ch === 0;
+}
