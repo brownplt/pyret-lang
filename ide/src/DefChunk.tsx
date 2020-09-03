@@ -12,6 +12,7 @@ import {
   selectAll,
   isEmptySelection,
   removeSelectedText,
+  emptySelection,
 } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
@@ -100,7 +101,7 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
         selection,
       } = chunk;
 
-      if (isEmptySelection(selection)) {
+      if (selection === false || isEmptySelection(selection)) {
         newChunks.push(chunk);
         return newChunks;
       }
@@ -150,6 +151,10 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const n = newProps;
     const o = this.props;
 
+    if (n.chunks[n.index].selection !== o.chunks[o.index].selection) {
+      return true;
+    }
+
     if (n.index === o.index
       && n.focusedChunk !== n.index) {
       return false;
@@ -174,7 +179,19 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       editor,
       errorState,
       startLine,
+      selection,
     } = chunks[index];
+
+    if (editor !== false) {
+      const doc = editor.getDoc();
+
+      if (selection === false || isEmptySelection(selection)) {
+        doc.setSelection(emptySelection.anchor, emptySelection.head);
+      } else {
+        doc.setSelection(selection.anchor, selection.head);
+      }
+    }
+
     if (editor && errorState.status === 'succeeded') {
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());

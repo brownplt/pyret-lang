@@ -19,6 +19,11 @@ export const notLintedState: ErrorState = {
 type LineAndCh = { line: number, ch: number };
 type Selection = { anchor: LineAndCh, head: LineAndCh };
 
+export const emptySelection = {
+  anchor: { line: 0, ch: 0 },
+  head: { line: 0, ch: 0 },
+};
+
 export type Chunk = {
   startLine: number,
   text: string,
@@ -122,12 +127,11 @@ function getLineAndChIndex(text: string, lineAndCh: LineAndCh): false | number {
   return false;
 }
 
-export function isEmptySelection(selection: Selection | false): boolean {
-  return selection === false
-    || (selection.anchor.line === 0
+export function isEmptySelection(selection: Selection): boolean {
+  return selection.anchor.line === 0
       && selection.anchor.ch === 0
       && selection.head.line === 0
-      && selection.head.ch === 0);
+      && selection.head.ch === 0;
 }
 
 export function removeSelectedText(chunk: Chunk): Chunk {
