@@ -127,6 +127,32 @@ function getLineAndChIndex(text: string, lineAndCh: LineAndCh): false | number {
   return false;
 }
 
+function getSelectedText(text: string, selection: Selection): false | string {
+  const anchorIndex = getLineAndChIndex(text, selection.anchor);
+  const headIndex = getLineAndChIndex(text, selection.head);
+
+  if (anchorIndex === false || headIndex === false) {
+    return false;
+  }
+
+  return text.substring(anchorIndex, headIndex);
+}
+
+export function getChunkSelectedText(chunk: Chunk): string {
+  const {
+    text,
+    selection,
+  } = chunk;
+
+  const selectedText = getSelectedText(text, selection);
+
+  if (selectedText === false) {
+    throw new Error(`Selection '${selection}' out of bounds for text '${text}'`);
+  }
+
+  return selectedText;
+}
+
 export function isEmptySelection(selection: Selection): boolean {
   return selection.anchor.line === 0
       && selection.anchor.ch === 0
