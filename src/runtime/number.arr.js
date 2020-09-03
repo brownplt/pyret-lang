@@ -7,7 +7,7 @@ function numToString(n) {
 
 module.exports = {
   'num-to-string': numToString,
-  'num-to-string-digits': NUMBER['toStringDigits'],
+  'num-to-string-digits': NUMBERS['toStringDigits'],
   'num-equal': NUMBERS['equals'],
   'num-is-integer': NUMBERS['isInteger'],
   'num-is-rational': NUMBERS['isRational'],
