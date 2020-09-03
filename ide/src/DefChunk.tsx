@@ -7,6 +7,7 @@ import {
   getStartLineForIndex,
   emptyChunk,
   lintSuccessState,
+  removeAllSelections,
 } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
@@ -419,6 +420,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setFocusedChunk,
       setShouldAdvanceCursor,
       setFirstSelectedChunkIndex,
+      setChunks,
     } = this.props;
     setShouldAdvanceCursor(false);
     setFocusedChunk(index);
@@ -426,20 +428,70 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     if (event.buttons !== 1) {
       return;
     }
-    chunks.forEach((chunk) => {
-      const { editor } = chunk;
-      if (editor === false) {
-        return;
-      }
-      const doc = editor.getDoc();
-      const selections = doc.getSelection();
-      if (selections !== '') {
-        doc.setSelections([
-          { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
-        ]); // remove all selections
-      }
-    });
+
+    const newChunks = removeAllSelections(chunks);
+    setChunks(newChunks);
     setFirstSelectedChunkIndex(index);
+  }
+
+  handleMouseEnter(e: any) {
+    const {
+      chunks,
+      index,
+      firstSelectedChunkIndex,
+      setFirstSelectedChunkIndex,
+    } = this.props;
+
+    if (e.buttons !== 1) {
+      return;
+    }
+
+    const { editor } = chunks[index];
+
+    if (editor === false) {
+      return;
+    }
+
+    if (firstSelectedChunkIndex === false) {
+      setFirstSelectedChunkIndex(index);
+      editor.execCommand('selectAll');
+    } else if (index <= firstSelectedChunkIndex) {
+      // selecting from bottom to the top
+      for (let i = 0; i < chunks.length; i += 1) {
+        const chunkEditor = chunks[i].editor;
+        if (chunkEditor === false) {
+          return;
+        }
+        const doc = chunkEditor.getDoc();
+        if (i < index || i > firstSelectedChunkIndex) {
+          if (doc.getSelection() !== '') {
+            doc.setSelections([
+              { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
+            ]); // remove all selections
+          }
+        } else {
+          chunkEditor.execCommand('selectAll');
+        }
+      }
+    } else if (index > firstSelectedChunkIndex) {
+      // selecting from top to bottom
+      for (let i = 0; i < chunks.length; i += 1) {
+        const chunkEditor = chunks[i].editor;
+        if (chunkEditor === false) {
+          return;
+        }
+        const doc = chunkEditor.getDoc();
+        if (i > index || i < firstSelectedChunkIndex) {
+          if (doc.getSelection() !== '') {
+            doc.setSelections([
+              { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
+            ]); // remove all selections
+          }
+        } else {
+          chunkEditor.execCommand('selectAll');
+        }
+      }
+    }
   }
 
   render() {
@@ -495,62 +547,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           style={{
             width: '100%',
           }}
-          onMouseEnter={(e: any) => {
-            if (e.buttons !== 1) {
-              return;
-            }
-
-            const { editor } = chunks[index];
-
-            if (editor === false) {
-              return;
-            }
-
-            const {
-              firstSelectedChunkIndex,
-              setFirstSelectedChunkIndex,
-            } = this.props;
-
-            if (firstSelectedChunkIndex === false) {
-              setFirstSelectedChunkIndex(index);
-              editor.execCommand('selectAll');
-            } else if (index <= firstSelectedChunkIndex) {
-              // selecting from bottom to the top
-              for (let i = 0; i < chunks.length; i += 1) {
-                const chunkEditor = chunks[i].editor;
-                if (chunkEditor === false) {
-                  return;
-                }
-                const doc = chunkEditor.getDoc();
-                if (i < index || i > firstSelectedChunkIndex) {
-                  if (doc.getSelection() !== '') {
-                    doc.setSelections([
-                      { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
-                    ]); // remove all selections
-                  }
-                } else {
-                  chunkEditor.execCommand('selectAll');
-                }
-              }
-            } else if (index > firstSelectedChunkIndex) {
-              // selecting from top to bottom
-              for (let i = 0; i < chunks.length; i += 1) {
-                const chunkEditor = chunks[i].editor;
-                if (chunkEditor === false) {
-                  return;
-                }
-                const doc = chunkEditor.getDoc();
-                if (i > index || i < firstSelectedChunkIndex) {
-                  if (doc.getSelection() !== '') {
-                    doc.setSelections([
-                      { anchor: { line: 0, ch: 0 }, head: { line: 0, ch: 0 } },
-                    ]); // remove all selections
-                  }
-                } else {
-                  chunkEditor.execCommand('selectAll');
-                }
-              }
-            }
+          onMouseEnter={(event: any) => {
+            this.handleMouseEnter(event);
           }}
         >
           <CodeMirror
