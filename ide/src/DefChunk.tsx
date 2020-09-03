@@ -13,6 +13,7 @@ import {
   isEmptySelection,
   removeSelectedText,
   emptySelection,
+  getChunkSelectedText,
 } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
@@ -185,10 +186,15 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     if (editor !== false) {
       const doc = editor.getDoc();
 
-      if (isEmptySelection(selection)) {
-        doc.setSelection(emptySelection.anchor, emptySelection.head);
-      } else {
-        doc.setSelection(selection.anchor, selection.head);
+      const cmSelectedText = doc.getSelection();
+      const selectedText = getChunkSelectedText(chunks[index]);
+
+      if (cmSelectedText !== selectedText) {
+        if (isEmptySelection(selection)) {
+          doc.setSelection(emptySelection.anchor, emptySelection.head);
+        } else {
+          doc.setSelection(selection.anchor, selection.head);
+        }
       }
     }
 

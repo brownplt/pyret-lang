@@ -96,7 +96,7 @@ export function selectAll(chunk: Chunk): Chunk {
   // error here.
   const head = {
     line: lines.length - 1,
-    ch: lines[lines.length - 1].length - 1,
+    ch: lines[lines.length - 1].length,
   };
 
   return {
@@ -174,7 +174,7 @@ export function removeSelectedText(chunk: Chunk): Chunk {
       throw new Error(`Selection '${selection}' out of bounds for text '${text}'`);
     }
 
-    const newText = text.substring(anchorIndex, headIndex + 1);
+    const newText = text.substring(0, anchorIndex) + text.substring(headIndex + 1, text.length);
 
     return {
       ...chunk,
