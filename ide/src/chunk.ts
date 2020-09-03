@@ -7,6 +7,17 @@ export type ErrorState =
   | { status: 'succeeded', effect: 'run', result: any }
   | { status: 'notLinted' });
 
+export const lintSuccessState: ErrorState = {
+  status: 'succeeded',
+  effect: 'lint',
+};
+
+export const notLintedState: ErrorState = {
+  status: 'notLinted',
+};
+
+type LineAndCh = { line: number, ch: number };
+
 export type Chunk = {
   startLine: number,
   text: string,
@@ -14,6 +25,7 @@ export type Chunk = {
   errorState: ErrorState,
   editor: false | CodeMirror.Editor;
   needsJiggle: boolean,
+  selection: false | { anchor: LineAndCh, head: LineAndCh },
 };
 
 export function getStartLineForIndex(chunks : Chunk[], index : number) {
@@ -43,4 +55,17 @@ export function findChunkFromSrcloc(
   }
 
   return false;
+}
+
+export function emptyChunk(options?: Partial<Chunk>): Chunk {
+  return {
+    startLine: 0,
+    text: '',
+    id: newId(),
+    errorState: { status: 'notLinted' },
+    editor: false,
+    needsJiggle: false,
+    selection: false,
+    ...options,
+  };
 }

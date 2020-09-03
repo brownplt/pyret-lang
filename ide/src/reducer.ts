@@ -19,9 +19,11 @@ import {
 
 import {
   Chunk,
-  newId,
   getStartLineForIndex,
   findChunkFromSrcloc,
+  emptyChunk,
+  lintSuccessState,
+  notLintedState,
 } from './chunk';
 
 import {
@@ -42,14 +44,10 @@ function handleEnter(state: State): State {
     if (focusedChunk + 1 === chunks.length) {
       const nextChunks: Chunk[] = [
         ...chunks,
-        {
-          text: '',
+        emptyChunk({
           startLine: getStartLineForIndex(chunks, focusedChunk + 1),
-          id: newId(),
-          errorState: { status: 'succeeded', effect: 'lint' },
-          editor: false,
-          needsJiggle: false,
-        },
+          errorState: lintSuccessState,
+        }),
       ];
       return {
         ...state,
@@ -62,14 +60,10 @@ function handleEnter(state: State): State {
     if (chunks[focusedChunk + 1].text.trim() !== '') {
       const nextChunks: Chunk[] = [
         ...chunks.slice(0, focusedChunk + 1),
-        {
-          text: '',
+        emptyChunk({
           startLine: getStartLineForIndex(chunks, focusedChunk + 1),
-          id: newId(),
-          errorState: { status: 'succeeded', effect: 'lint' },
-          editor: false,
-          needsJiggle: false,
-        },
+          errorState: lintSuccessState,
+        }),
         ...chunks.slice(focusedChunk + 1),
       ];
       for (let i = focusedChunk + 1; i < nextChunks.length; i += 1) {
@@ -640,14 +634,11 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
     const chunks: Chunk[] = [];
 
     currentFileContents.split(CHUNKSEP).forEach((chunkString) => {
-      chunks.push({
+      chunks.push(emptyChunk({
         text: chunkString,
         startLine: totalLines,
-        id: newId(),
-        errorState: { status: 'notLinted' },
-        editor: false,
-        needsJiggle: false,
-      });
+        errorState: notLintedState,
+      }));
 
       totalLines += chunkString.split('\n').length;
     });

@@ -2,8 +2,9 @@ import { createStore } from 'redux';
 import ideApp from './reducer';
 import { EditorMode, CHUNKSEP, State } from './state';
 import {
-  newId,
   Chunk,
+  emptyChunk,
+  notLintedState,
 } from './chunk';
 import { Action } from './action';
 import { RunKind } from './backend';
@@ -48,14 +49,11 @@ function handleLoadFile(
       const chunkStrings = contents.split(CHUNKSEP);
       let totalLines = 0;
       const chunks = chunkStrings.map((chunkString) => {
-        const chunk: Chunk = {
+        const chunk: Chunk = emptyChunk({
           text: chunkString,
           startLine: totalLines,
-          id: newId(),
-          errorState: { status: 'notLinted' },
-          editor: false,
-          needsJiggle: false,
-        };
+          errorState: notLintedState,
+        });
 
         totalLines += chunkString.split('\n').length;
 
