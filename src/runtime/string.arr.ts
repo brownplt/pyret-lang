@@ -39,6 +39,20 @@ module.exports = {
     'string-substring': function(str: string, start, exEnd): string {
         start = NUMBER["toFixnum"](start);
         exEnd = NUMBER["toFixnum"](exEnd);
+
+
+        // TODO(alex): Better messages
+        if (start < 0) {
+            throw `Invalid inclusive start index: ${start}`;
+        }
+
+        if (exEnd > str.length || exEnd < 0) {
+            throw `Invalid exclusive end index: ${exEnd}`;
+        }
+
+        if (start > exEnd) {
+            throw `Invalid inclusive start index vs end index: ${start} > ${exEnd}`;
+        }
         return str.substring(start, exEnd);
     },
 
@@ -51,7 +65,7 @@ module.exports = {
         if (toFind.length === 0) {
             let result = "";
             for (let i = 0; i < original.length; i++) {
-                result.concat(original[i]);
+                result = result.concat(original[i]);
                 if (i < original.length - 1) {
                     result = result.concat(replacement);
                 }
@@ -72,9 +86,13 @@ module.exports = {
             return LISTS["list"].make(["", original]);
         } else {
             const separated = original.split(splitOn);
-            const first = separated[0];
-            const rest = separated.slice(1).join();
-            return LISTS["raw-array-to-list"]([first, rest]);
+            if (separated.length > 1) {
+                const first = separated[0];
+                const rest = separated.slice(1).join(splitOn);
+                return LISTS["raw-array-to-list"]([first, rest]);
+            } else {
+                return LISTS["raw-array-to-list"](separated);
+            }
         }
     },
 
@@ -116,13 +134,14 @@ module.exports = {
             throw "String length !== 1";
         }
 
-        return str.codePointAt(1);
+        return str.codePointAt(0);
     },
 
     'string-to-code-points': function(str: string): number {
         const results = new Array();
         for (let i = 0; i < str.length; i++) {
-            results.push(str.codePointAt(i));
+            console.log(`FOO ${i}::${str.codePointAt(i)} (${str})`);
+            results.push(str.charCodeAt(i));
         }
 
         return LISTS["list"].make(results);
@@ -142,6 +161,6 @@ module.exports = {
             return String.fromCodePoint(fixedNum);
         });
 
-        return stringArray.join();
+        return stringArray.join("");
     }
 };
