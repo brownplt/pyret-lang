@@ -104,6 +104,29 @@ export function selectAll(chunk: Chunk): Chunk {
     selection: { anchor, head },
   };
 }
+
+// Returns the number of characters from the start of `text` to the line and character
+// location, `lineAndCh`, or `false` if `lineAndCh` isn't inside the text.
+function getLineAndChIndex(text: string, lineAndCh: LineAndCh): false | number {
+  const lines = text.split('\n');
+
+  let characters = 0;
+
+  for (let i = 0; i < lines.length; i += 1) {
+    if (i === lineAndCh.line) {
+      if (lines[i].length >= lineAndCh.ch) {
+        return characters + lineAndCh.ch;
+      } else {
+        return false;
+      }
+    }
+
+    characters += lines[i].length;
+  }
+
+  return false;
+}
+
 export function isEmptySelection(selection: Selection): boolean {
   return selection.anchor.line === 0
     && selection.anchor.ch === 0
