@@ -1,4 +1,4 @@
-.PHONY: all clean build parser web runtime fix-runtime offline-tests
+.PHONY: all clean build parser web runtime fix-runtime offline-tests clean-tests
 
 all: build parser
 
@@ -27,7 +27,6 @@ stopify-web-tests: web
 offline-tests: check-block-tests simple-output-tests
 
 simple-output-tests: build runtime
-	rm -r -f tests-new/.pyret
 	jest --verbose "tests-new/simple-output.test.js"
 
 check-block-tests: build runtime
@@ -187,6 +186,9 @@ clean:
 	rm -f src/arr/compiler/pyret-parser.js
 	rm -r -f tests-new/.pyret
 	rm -r -f build/runtime
+
+clean-tests:
+	rm -r -f tests-new/.pyret
 
 fix-runtime:
 	rm -r -f build/runtime
