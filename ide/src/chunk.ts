@@ -19,11 +19,6 @@ export const notLintedState: ErrorState = {
 type LineAndCh = { line: number, ch: number };
 type Selection = { anchor: LineAndCh, head: LineAndCh };
 
-const emptySelection = {
-  anchor: { line: 0, ch: 0 },
-  head: { line: 0, ch: 0 },
-};
-
 export type Chunk = {
   startLine: number,
   text: string,
@@ -79,7 +74,7 @@ export function emptyChunk(options?: Partial<Chunk>): Chunk {
 export function removeSelection(chunk: Chunk): Chunk {
   return {
     ...chunk,
-    selection: emptySelection,
+    selection: false,
   };
 }
 
