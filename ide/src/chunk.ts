@@ -31,7 +31,7 @@ export type Chunk = {
   errorState: ErrorState,
   editor: false | CodeMirror.Editor;
   needsJiggle: boolean,
-  selection: false | Selection,
+  selection: Selection,
 };
 
 export function getStartLineForIndex(chunks : Chunk[], index : number) {
@@ -71,7 +71,7 @@ export function emptyChunk(options?: Partial<Chunk>): Chunk {
     errorState: { status: 'notLinted' },
     editor: false,
     needsJiggle: false,
-    selection: false,
+    selection: emptySelection,
     ...options,
   };
 }
@@ -79,7 +79,7 @@ export function emptyChunk(options?: Partial<Chunk>): Chunk {
 export function removeSelection(chunk: Chunk): Chunk {
   return {
     ...chunk,
-    selection: false,
+    selection: emptySelection,
   };
 }
 
@@ -140,7 +140,7 @@ export function removeSelectedText(chunk: Chunk): Chunk {
     text,
   } = chunk;
 
-  if (selection !== false) {
+  if (isEmptySelection(selection) === false) {
     const anchorIndex = getLineAndChIndex(text, selection.anchor);
     const headIndex = getLineAndChIndex(text, selection.head);
 
@@ -153,7 +153,7 @@ export function removeSelectedText(chunk: Chunk): Chunk {
     return {
       ...chunk,
       text: newText,
-      selection: false,
+      selection: emptySelection,
       errorState: notLintedState,
     };
   }

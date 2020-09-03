@@ -101,7 +101,7 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
         selection,
       } = chunk;
 
-      if (selection === false || isEmptySelection(selection)) {
+      if (isEmptySelection(selection)) {
         newChunks.push(chunk);
         return newChunks;
       }
@@ -185,7 +185,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     if (editor !== false) {
       const doc = editor.getDoc();
 
-      if (selection === false || isEmptySelection(selection)) {
+      if (isEmptySelection(selection)) {
         doc.setSelection(emptySelection.anchor, emptySelection.head);
       } else {
         doc.setSelection(selection.anchor, selection.head);
