@@ -4,6 +4,7 @@ provide-types *
 import runtime-global as G
 import option as O
 import string as S
+import number as N
 
 include from G:
   raise,
@@ -16,8 +17,11 @@ include from O:
   none,
 end
 
-include from S:
+include from N:
   num-to-string,
+end
+
+include from S:
   string-to-lower as string-tolower,
   string-to-number
 end
