@@ -16,8 +16,8 @@ export const notLintedState: ErrorState = {
   status: 'notLinted',
 };
 
-type LineAndCh = { line: number, ch: number };
-type Selection = { anchor: LineAndCh, head: LineAndCh };
+export type LineAndCh = { line: number, ch: number };
+export type Selection = { anchor: LineAndCh, head: LineAndCh };
 
 export const emptySelection = {
   anchor: { line: 0, ch: 0 },
@@ -185,4 +185,29 @@ export function removeSelectedText(chunk: Chunk): Chunk {
   }
 
   return chunk;
+}
+
+// Returns 1 when `a` is at a larger index than `b`, -1 when the opposite is
+// true, and 0 when they are at the same index.
+export function compareLineAndCh(text: string, a: LineAndCh, b: LineAndCh): number {
+  const aIndex = getLineAndChIndex(text, a);
+  const bIndex = getLineAndChIndex(text, b);
+
+  if (aIndex === false || bIndex === false) {
+    throw new Error('todo');
+  }
+
+  if (aIndex > bIndex) {
+    return 1;
+  }
+
+  if (aIndex === bIndex) {
+    return 0;
+  }
+
+  if (aIndex < bIndex) {
+    return -1;
+  }
+
+  throw new Error('reached unreachable point');
 }

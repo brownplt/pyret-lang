@@ -4,6 +4,7 @@ import { Controlled as CodeMirror } from 'react-codemirror2';
 import { State } from './state';
 import {
   Chunk,
+  Selection,
   getStartLineForIndex,
   emptyChunk,
   lintSuccessState,
@@ -14,6 +15,7 @@ import {
   removeSelectedText,
   emptySelection,
   getChunkSelectedText,
+  compareLineAndCh,
 } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
@@ -497,6 +499,38 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
+  handleOnSelection({ ranges, origin }: { ranges: Selection[], origin?: string }) {
+    const {
+      chunks,
+      index,
+      setChunks,
+    } = this.props;
+
+    if (origin !== '*mouse') {
+      // This happens when we manually call setSelection, as opposed to the user
+      // selecting text with their mouse.
+      return;
+    }
+
+    if (ranges.length < 1) {
+      return;
+    }
+
+    const cmp = compareLineAndCh(chunks[index].text, ranges[0].anchor, ranges[0].head);
+
+    if (cmp <= 0) {
+      setChunks({
+        ...chunks[index],
+        selection: { anchor: ranges[0].anchor, head: ranges[0].head },
+      });
+    } else {
+      setChunks({
+        ...chunks[index],
+        selection: { anchor: ranges[0].head, head: ranges[0].anchor },
+      });
+    }
+  }
+
   render() {
     const {
       chunks, index, focusedChunk,
@@ -579,6 +613,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             }}
             onBeforeChange={(editor, data, value) => {
               this.scheduleUpdate(value);
+            }}
+            onSelection={(editor, data) => {
+              this.handleOnSelection(data);
             }}
             onKeyDown={(editor, event) => {
               switch ((event as any).key) {
