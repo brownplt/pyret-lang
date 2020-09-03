@@ -86,3 +86,21 @@ export function removeSelection(chunk: Chunk): Chunk {
 export function removeAllSelections(chunks: Chunk[]): Chunk[] {
   return chunks.map(removeSelection);
 }
+
+export function selectAll(chunk: Chunk): Chunk {
+  const anchor = { line: 0, ch: 0 };
+
+  const lines = chunk.text.split('\n');
+
+  // TODO: Are lines, characters zero-indexed? There might be an off-by-one
+  // error here.
+  const head = {
+    line: lines.length - 1,
+    ch: lines[lines.length - 1].length - 1,
+  };
+
+  return {
+    ...chunk,
+    selection: { anchor, head },
+  };
+}
