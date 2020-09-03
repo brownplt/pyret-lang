@@ -75,10 +75,10 @@ end
 check "map-keys":
   sd1 = [string-dict: "a", 5, "BBB", 10]
   sd1.map-keys(lam(string):
-    STR.length(string)
+    STR.string-length(string)
   end) is [list: 1, 3]
   map-keys(lam(string):
-    STR.length(string)
+    STR.string-length(string)
   end, sd1) is [list: 1, 3]
 
 end
@@ -86,10 +86,10 @@ end
 check "fold-keys":
   sd1 = [string-dict: "a", 5, "BBB", 10]
   sd1.fold-keys(lam(string, acc):
-    acc + STR.length(string)
+    acc + STR.string-length(string)
   end, 0) is 4
   fold-keys(lam(acc, string):
-    acc + STR.length(string)
+    acc + STR.string-length(string)
   end, 0, sd1) is 4
 
 end
