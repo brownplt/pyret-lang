@@ -1,6 +1,13 @@
 const NUMBERS = require('./js-numbers.js');
 
+
+function numToString(n) {
+    return String(n);
+}
+
 module.exports = {
+  'num-to-string': numToString,
+  'num-to-string-digits': NUMBER['toStringDigits'],
   'num-equal': NUMBERS['equals'],
   'num-is-integer': NUMBERS['isInteger'],
   'num-is-rational': NUMBERS['isRational'],
@@ -61,5 +68,5 @@ module.exports = {
     return function(l, r) {
       return NUMBERS['roughlyEqualsRel'](l, r, relTol);
     };
-  }
+  },
 };
