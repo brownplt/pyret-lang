@@ -121,7 +121,7 @@ function getLineAndChIndex(text: string, lineAndCh: LineAndCh): false | number {
       }
     }
 
-    characters += lines[i].length;
+    characters += lines[i].length + 1; // 1 for the newline character
   }
 
   return false;
