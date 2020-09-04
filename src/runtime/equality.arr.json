@@ -39,8 +39,8 @@
         "within-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], ["local", "EqualityResult"]]],
         "within-rel3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], ["local", "EqualityResult"]]],
         "within-abs3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], ["local", "EqualityResult"]]],
-        "within-rel-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], ["local", "EqualityResult]"]],
-        "within-abs-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "["local", "EqualityResult"]"]],
+        "within-rel-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], ["local", "EqualityResult"]]],
+        "within-abs-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], ["local", "EqualityResult"]]],
 
 
         "_lessthan": ["arrow", ["tany", "tany"], "Boolean"],
