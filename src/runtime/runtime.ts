@@ -98,7 +98,7 @@ function checkResults(): CheckResult[] {
     if (result.success) {
       console.log(`[PASS] ([${result.path}], at ${result.loc})`);
     } else {
-      if (result.exception !== undefined) {
+      if (result.exception) {
         console.log(`[FAIL] Caught exception <${result.exception}>. Found <${result_lhs}>. Expected <${result_rhs}> ([${result.path}], at ${result.loc})`);
 
       } else {
