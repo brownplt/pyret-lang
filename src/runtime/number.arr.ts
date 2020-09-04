@@ -100,7 +100,7 @@ module.exports = {
         return typeof(num) === "number";
     },
 
-    'num-to-exact': function(num): number {
+    'num-exact': function(num): number {
         return NUMBERS["toExact"](num);
     },
 
