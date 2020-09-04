@@ -45,9 +45,9 @@ module.exports = {
     'num-asin':wrap1(NUMBERS['asin']),
     'num-acos':wrap1(NUMBERS['acos']),
     'num-atan':wrap1(NUMBERS['atan']),
-    'num-atan2': wrap1(NUMBERS['atan2']),
+    'num-atan2': wrap2(NUMBERS['atan2']),
 
-    'num-modulo': wrap1(NUMBERS['modulo']),
+    'num-modulo': wrap2(NUMBERS['modulo']),
     'num-truncate': function(n) {
         if (NUMBERS['greaterThan'](n, 0, EQUALITY.NumberErrbacks)) {
             return NUMBERS['floor'](n, EQUALITY.NumberErrbacks);
