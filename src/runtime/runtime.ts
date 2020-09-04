@@ -99,7 +99,7 @@ function checkResults(): CheckResult[] {
       console.log(`[PASS] ([${result.path}], at ${result.loc})`);
     } else {
       if (result.exception) {
-        console.log(`[FAIL] Caught exception <${result.exception}>. Found <${result_lhs}>. Expected <${result_rhs}> ([${result.path}], at ${result.loc})`);
+        console.log(`[FAIL] Caught exception <${JSON.stringify(result.exception)}>. Found <${result_lhs}>. Expected <${result_rhs}> ([${result.path}], at ${result.loc})`);
 
       } else {
         console.log(`[FAIL] Found <${result_lhs}>. Expected <${result_rhs}> ([${result.path}], at ${result.loc})`);
