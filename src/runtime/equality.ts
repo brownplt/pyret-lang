@@ -114,7 +114,7 @@ export interface NumericErrorCallbacks {
   throwInternalError: (msg: any) => void,
 }
 
-export var NumberErrbacks: NumericErrorCallbacks = {
+const NumberErrbacks: NumericErrorCallbacks = {
   throwDivByZero: function(msg) { throw msg; },
   throwToleranceError: function(msg) { throw msg; },
   throwRelToleranceError: function(msg) { throw msg; },
@@ -125,6 +125,12 @@ export var NumberErrbacks: NumericErrorCallbacks = {
   throwIncomparableValues: function(msg) { throw msg; },
   throwInternalError: function(msg) { throw msg; },
 };
+
+// Hack needed to not mess with Stopify
+// See primitives.ts for more info
+export {
+    NumberErrbacks
+}
 
 // ********* Equality Functions *********
 export function identical3(v1: any, v2: any): EqualityResult {
