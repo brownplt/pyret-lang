@@ -156,7 +156,13 @@ export class Editor extends React.Component<EditorProps, any> {
     return (e: any) => {
       const {
         chunks,
+        editorMode,
       } = that.props;
+
+      if (editorMode === EditorMode.Text) {
+        // We can rely on the browser's native copy here, since there's only one CodeMirror.
+        return;
+      }
 
       let data = '';
 
