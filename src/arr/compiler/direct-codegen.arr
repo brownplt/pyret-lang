@@ -1213,72 +1213,89 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
       test-loc = j-str(choose-srcloc(l, context).format(true))
 
-      check-op = cases(A.CheckOp) op:
-        | s-op-is(_) => binop-result("op==")
-        | s-op-is-not(_) => binop-result("op<>")
-        | s-op-raises(_) => expect-raises
+      { check-op; check-op-stmts } = cases(A.CheckOp) op:
+        | s-op-is(_) =>
+          cases(Option) refinement:
+            | some(refinement-expr) =>
+              { shadow refinement-expr; refinement-stmts } = compile-expr(context, refinement-expr)
+              { refinement-result(refinement-expr, false); refinement-stmts }
+            | none => { binop-result("op=="); cl-empty }
+          end
+
+        | s-op-is-not(_) =>
+          cases(Option) refinement:
+            | some(refinement-expr) =>
+              { shadow refinement-expr; refinement-stmts } = compile-expr(context, refinement-expr)
+              { refinement-result(refinement-expr, true); refinement-stmts }
+            | none => { binop-result("op<>"); cl-empty }
+          end
+
+        | s-op-is-roughly(_) => { refinement-result(rt-method("within", [clist: j-num(0.000001)]), false); cl-empty }
+        | s-op-raises(_) => { expect-raises; cl-empty }
         | else => raise("NYI check op ID: " + torepr(op))
+      end
+
+      fun define-bin-test(right-expr, bin-op :: (JExpr, JExpr -> JExpr)):
+        # Thunk the LHS
+        { lhs; l-stmt } = compile-expr(context, left)
+        lh-func = thunk-it("LHS", lhs, l-stmt)
+
+        # Thunk the RHS
+        { rhs; r-stmt } = compile-expr(context, right-expr)
+        rh-func = thunk-it("RHS", rhs, r-stmt)
+
+        # Thunk the bin check op
+        lhs-param-name = fresh-id(compiler-name("lhs"))
+        rhs-param-name = fresh-id(compiler-name("rhs"))
+
+        lhs-value = j-bracket(j-id(lhs-param-name), j-str("value"))
+        # LHS exception check
+        lhs-exception = j-bracket(j-id(lhs-param-name), j-str("exception"))
+        lhs-exception-check = exception-check(
+          lhs-exception,
+          j-id(lhs-param-name),
+          j-id(rhs-param-name)
+        )
+
+        rhs-value = j-bracket(j-id(rhs-param-name), j-str("value"))
+        # LHS exception check
+        rhs-exception = j-bracket(j-id(rhs-param-name), j-str("exception"))
+        rhs-exception-check = exception-check(
+          rhs-exception,
+          j-id(lhs-param-name),
+          j-id(rhs-param-name)
+        )
+
+        j-test-val = bin-op(lhs-value, rhs-value)
+
+        success-result = make-check-op-result(
+          j-test-val,
+          j-id(lhs-param-name),
+          j-id(rhs-param-name)
+        )
+
+        test-body-stmts = [clist:
+          lhs-exception-check,
+          rhs-exception-check,
+        ] + check-op-stmts + cl-sing(j-return(success-result))
+
+        test-body = j-block(test-body-stmts)
+        test-func =
+          j-fun("0", "TEST", [clist: lhs-param-name, rhs-param-name], test-body)
+
+
+        tester-call-args = [clist: lh-func, rh-func, test-func, test-loc]
+        tester-call = j-expr(rt-method("$checkTest", tester-call-args))
+
+        { j-undefined; [clist: tester-call] }
       end
 
       cases(CheckOpDesugar) check-op:
         | binop-result(bin-op) =>
           cases(Option) right:
-            | some(right-expr) =>
-              # Thunk the LHS
-              { lhs; l-stmt } = compile-expr(context, left)
-              lh-func = thunk-it("LHS", lhs, l-stmt)
-
-              # Thunk the RHS
-              { rhs; r-stmt } = compile-expr(context, right-expr)
-              rh-func = thunk-it("RHS", rhs, r-stmt)
-
-              # Thunk the bin check op
-              lhs-param-name = fresh-id(compiler-name("lhs"))
-              rhs-param-name = fresh-id(compiler-name("rhs"))
-
-              lhs-value = j-bracket(j-id(lhs-param-name), j-str("value"))
-              # LHS exception check
-              lhs-exception = j-bracket(j-id(lhs-param-name), j-str("exception"))
-              lhs-exception-check = exception-check(
-                lhs-exception,
-                j-id(lhs-param-name),
-                j-id(rhs-param-name)
-              )
-
-              rhs-value = j-bracket(j-id(rhs-param-name), j-str("value"))
-              # LHS exception check
-              rhs-exception = j-bracket(j-id(rhs-param-name), j-str("exception"))
-              rhs-exception-check = exception-check(
-                rhs-exception,
-                j-id(lhs-param-name),
-                j-id(rhs-param-name)
-              )
-
-              # Assuming this compile-expr returns j-binop
-              j-test-val =
+            | some(right-expr) => define-bin-test(right-expr, lam(lhs-value, rhs-value):
                 compile-s-op(context, l, l, bin-op, lhs-value, rhs-value)
-
-              success-result = make-check-op-result(
-                j-test-val,
-                j-id(lhs-param-name),
-                j-id(rhs-param-name)
-              )
-
-              test-body-stmts = [clist:
-                lhs-exception-check,
-                rhs-exception-check,
-                j-return(success-result)
-              ]
-              test-body = j-block(test-body-stmts)
-              test-func =
-                j-fun("0", "TEST", [clist: lhs-param-name, rhs-param-name], test-body)
-
-
-              tester-call-args = [clist: lh-func, rh-func, test-func, test-loc]
-              tester-call = j-expr(rt-method("$checkTest", tester-call-args))
-
-              { j-undefined; [clist: tester-call] }
-
+              end)
             | none => raise("Attempting to use a binary check op without the RHS")
           end
 
@@ -1337,7 +1354,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
             expected-rhs
           )
 
-          test-body-stmts = [clist:
+          test-body-stmts = check-op-stmts + [clist:
             j-return(success-result)
           ]
           test-body = j-block(test-body-stmts)
@@ -1349,7 +1366,18 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
 
           { j-undefined; [clist: tester-call] }
 
-        | refinement-result(the-refinement, negate) => raise("NYI check refinement")
+        | refinement-result(the-refinement, negate) =>
+          cases(Option) right:
+            | some(right-expr) =>
+              define-bin-test(right-expr, lam(lhs-value, rhs-value):
+                if negate:
+                  j-unop(j-app(the-refinement, [clist: lhs-value, rhs-value]), j-not)
+                else:
+                  j-app(the-refinement, [clist: lhs-value, rhs-value])
+                end
+              end)
+            | none => raise("Attempting to use a predicate check without the RHS")
+          end
         | predicate-result(predicate) => raise("NYI check predicate")
       end
 
