@@ -8,6 +8,9 @@ import {
   Action,
   SuccessForEffect,
   EnqueueEffect,
+  ChunksUpdate,
+  isMultipleChunkUpdate,
+  isSingleChunkUpdate,
 } from './action';
 
 import {
@@ -697,7 +700,7 @@ function handleSetCurrentFile(state: State, file: string): State {
   };
 }
 
-function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
+function handleSetChunks(state: State, update: ChunksUpdate): State {
   const { editorMode, isFileSaved } = state;
   if (editorMode !== EditorMode.Chunks) {
     throw new Error('handleSetChunks: not in chunk mode');
@@ -705,48 +708,67 @@ function handleSetChunks(state: State, chunksOrChunk: Chunk[] | Chunk): State {
 
   const {
     compiling,
+    currentFileContents,
   } = state;
 
-  if (Array.isArray(chunksOrChunk)) {
-    const chunks = chunksOrChunk;
+  function nextCompilingState(): boolean | 'out-of-date' {
+    if (compiling === true) {
+      if (update.modifiesText) {
+        return 'out-of-date';
+      }
 
-    const contents = chunks.map((chunk) => chunk.text).join(CHUNKSEP);
+      return true;
+    }
+
+    return false;
+  }
+
+  if (isMultipleChunkUpdate(update)) {
+    let contents = currentFileContents;
+
+    if (update.modifiesText) {
+      contents = update.chunks.map((chunk) => chunk.text).join(CHUNKSEP);
+    }
 
     return {
       ...state,
-      chunks,
+      chunks: update.chunks,
       currentFileContents: contents,
-      isFileSaved: false,
-      compiling: compiling ? 'out-of-date' : false,
+      isFileSaved: isFileSaved && update.modifiesText === false,
+      compiling: nextCompilingState(),
     };
   }
 
-  const chunk = chunksOrChunk;
-  const { chunks } = state;
-  let modifiesText = false;
+  if (isSingleChunkUpdate(update)) {
+    const {
+      chunks,
+    } = state;
 
-  const newChunks = [];
-  for (let i = 0; i < chunks.length; i += 1) {
-    if (chunks[i].id === chunk.id) {
-      if (chunks[i].text !== chunk.text) {
-        modifiesText = true;
+    const newChunks = [];
+    for (let i = 0; i < chunks.length; i += 1) {
+      if (chunks[i].id === update.chunk.id) {
+        newChunks.push(update.chunk);
+      } else {
+        newChunks.push(chunks[i]);
       }
-
-      newChunks.push(chunk);
-    } else {
-      newChunks.push(chunks[i]);
     }
+
+    let contents = currentFileContents;
+
+    if (update.modifiesText) {
+      contents = newChunks.map((chunk) => chunk.text).join(CHUNKSEP);
+    }
+
+    return {
+      ...state,
+      chunks: newChunks,
+      currentFileContents: contents,
+      isFileSaved: isFileSaved && update.modifiesText === false,
+      compiling: nextCompilingState(),
+    };
   }
 
-  const contents = newChunks.map((c) => c.text).join(CHUNKSEP);
-
-  return {
-    ...state,
-    chunks: newChunks,
-    currentFileContents: contents,
-    isFileSaved: isFileSaved && !modifiesText,
-    compiling: modifiesText && (compiling ? 'out-of-date' : false),
-  };
+  throw new Error('handleSetChunks: unreachable point reached');
 }
 
 function handleSetFocusedChunk(state: State, index: number): State {

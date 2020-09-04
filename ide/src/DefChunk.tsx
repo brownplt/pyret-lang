@@ -2,6 +2,7 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { State } from './state';
+
 import {
   Chunk,
   Selection,
@@ -17,7 +18,12 @@ import {
   getChunkSelectedText,
   compareLineAndCh,
 } from './chunk';
-import { Action } from './action';
+
+import {
+  Action,
+  ChunksUpdate,
+} from './action';
+
 import { Effect } from './effect';
 import { RHSObjects } from './rhsObject';
 
@@ -50,8 +56,7 @@ type PropsFromReact = {
 
 type DispatchProps = {
   setFocusedChunk: (index: number) => void,
-  setChunks: (chunks: Chunk | Chunk[]) => void,
-  setChunk: (chunk: Chunk) => void,
+  setChunks: (chunks: ChunksUpdate) => void,
   enqueueEffect: (effect: Effect) => void,
   setShouldAdvanceCursor: (value: boolean) => void,
   setRHS: (value: RHSObjects) => void,
@@ -63,11 +68,8 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     setFocusedChunk(index: number) {
       dispatch({ type: 'update', key: 'focusedChunk', value: index });
     },
-    setChunks(chunks: Chunk | Chunk[]) {
+    setChunks(chunks: ChunksUpdate) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });
-    },
-    setChunk(chunk: Chunk) {
-      dispatch({ type: 'update', key: 'chunks', value: chunk });
     },
     enqueueEffect(effect: Effect) {
       dispatch({ type: 'enqueueEffect', effect });
@@ -283,7 +285,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         startLine: getStartLineForIndex(newChunks, i),
       };
     }
-    setChunks(newChunks);
+
+    setChunks({
+      chunks: newChunks,
+      modifiesText: true,
+    });
 
     if (!rhs.outdated) {
       setRHS({ ...rhs, outdated: true });
@@ -354,7 +360,10 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           startLine: getStartLineForIndex(newChunks, i),
         };
       }
-      setChunks(newChunks);
+      setChunks({
+        chunks: newChunks,
+        modifiesText: true,
+      });
       setFocusedChunk(0);
       event.preventDefault();
     } else if (index > 0 && index < chunks.length - 1 && chunks[index].text.trim() === '') {
@@ -367,11 +376,17 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           startLine: getStartLineForIndex(newChunks, i),
         };
       }
-      setChunks(newChunks);
+      setChunks({
+        chunks: newChunks,
+        modifiesText: true,
+      });
       event.preventDefault();
     } else {
       const result = deleteSelectedChunks(chunks, index);
-      setChunks(result.chunks);
+      setChunks({
+        chunks: result.chunks,
+        modifiesText: true,
+      });
 
       const {
         shouldPreventDefault,
@@ -406,7 +421,10 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           startLine: getStartLineForIndex(newChunks, i),
         };
       }
-      setChunks(newChunks);
+      setChunks({
+        chunks: newChunks,
+        modifiesText: true,
+      });
       setFocusedChunk(0);
       event.preventDefault();
     } else if (index > 0 && chunks[index].text.trim() === '') {
@@ -419,12 +437,18 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           startLine: getStartLineForIndex(newChunks, i),
         };
       }
-      setChunks(newChunks);
+      setChunks({
+        chunks: newChunks,
+        modifiesText: true,
+      });
       setFocusedChunk(index - 1);
       event.preventDefault();
     } else {
       const result = deleteSelectedChunks(chunks, index);
-      setChunks(result.chunks);
+      setChunks({
+        chunks: result.chunks,
+        modifiesText: true,
+      });
 
       const {
         shouldPreventDefault,
@@ -458,7 +482,10 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
 
     const newChunks = removeAllSelections(chunks);
-    setChunks(newChunks);
+    setChunks({
+      chunks: newChunks,
+      modifiesText: false,
+    });
     setFirstSelectedChunkIndex(index);
   }
 
@@ -477,25 +504,34 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
     if (firstSelectedChunkIndex === false) {
       setFirstSelectedChunkIndex(index);
-      setChunks(selectAll(chunks[index]));
+      setChunks({
+        chunk: selectAll(chunks[index]),
+        modifiesText: false,
+      });
     } else if (index <= firstSelectedChunkIndex) {
       // selecting from bottom to the top
-      setChunks(chunks.map((chunk, i) => {
-        if (i < index || i > firstSelectedChunkIndex) {
-          return removeSelection(chunk);
-        }
+      setChunks({
+        chunks: chunks.map((chunk, i) => {
+          if (i < index || i > firstSelectedChunkIndex) {
+            return removeSelection(chunk);
+          }
 
-        return selectAll(chunk);
-      }));
+          return selectAll(chunk);
+        }),
+        modifiesText: false,
+      });
     } else if (index > firstSelectedChunkIndex) {
       // selecting from top to bottom
-      setChunks(chunks.map((chunk, i) => {
-        if (i > index || i < firstSelectedChunkIndex) {
-          return removeSelection(chunk);
-        }
+      setChunks({
+        chunks: chunks.map((chunk, i) => {
+          if (i > index || i < firstSelectedChunkIndex) {
+            return removeSelection(chunk);
+          }
 
-        return selectAll(chunk);
-      }));
+          return selectAll(chunk);
+        }),
+        modifiesText: false,
+      });
     }
   }
 
@@ -520,13 +556,19 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
     if (cmp <= 0) {
       setChunks({
-        ...chunks[index],
-        selection: { anchor: ranges[0].anchor, head: ranges[0].head },
+        chunk: {
+          ...chunks[index],
+          selection: { anchor: ranges[0].anchor, head: ranges[0].head },
+        },
+        modifiesText: false,
       });
     } else {
       setChunks({
-        ...chunks[index],
-        selection: { anchor: ranges[0].head, head: ranges[0].anchor },
+        chunk: {
+          ...chunks[index],
+          selection: { anchor: ranges[0].head, head: ranges[0].anchor },
+        },
+        modifiesText: false,
       });
     }
   }
@@ -594,13 +636,21 @@ class DefChunk extends React.Component<DefChunkProps, any> {
               this.handleMouseDown(e);
             }}
             editorDidMount={(editor) => {
-              const { setChunk } = this.props;
+              const {
+                setChunks,
+              } = this.props;
 
               const marks = editor.getDoc().getAllMarks();
               marks.forEach((m) => m.clear());
               editor.setSize(null, 'auto');
 
-              setChunk({ ...chunks[index], editor });
+              setChunks({
+                chunk: {
+                  ...chunks[index],
+                  editor,
+                },
+                modifiesText: false,
+              });
             }}
             value={text}
             options={{

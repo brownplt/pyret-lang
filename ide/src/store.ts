@@ -60,7 +60,15 @@ function handleLoadFile(
         return chunk;
       });
 
-      dispatch({ type: 'update', key: 'chunks', value: chunks });
+      dispatch({
+        type: 'update',
+        key: 'chunks',
+        value: {
+          chunks,
+          modifiesText: true,
+        },
+      });
+
       break;
     }
     default:

@@ -42,13 +42,28 @@ export type EffectFailed = { status: 'failed' } & FailureForEffect<Effect>;
 
 export type EffectEnded = EffectSucceeded | EffectFailed;
 
+// We don't need to recompile every time we change the chunks. Doing so would be
+// needlessly inefficient; we only need to recompile when the text of the program
+// changes, hence the `modifiesText` key.
+export type MultipleChunkUpdate = { chunks: Chunk[], modifiesText: boolean };
+export type SingleChunkUpdate = { chunk: Chunk, modifiesText: boolean };
+export type ChunksUpdate = SingleChunkUpdate | MultipleChunkUpdate;
+
+export function isMultipleChunkUpdate(update: ChunksUpdate): update is MultipleChunkUpdate {
+  return (update as any).chunks !== undefined;
+}
+
+export function isSingleChunkUpdate(update: ChunksUpdate): update is SingleChunkUpdate {
+  return (update as any).chunk !== undefined;
+}
+
 export type Update =
   (| { key: 'editorMode', value: EditorMode }
   | { key: 'currentRunner', value: any }
   | { key: 'currentFileContents', value: string }
   | { key: 'browsePath', value: string }
   | { key: 'currentFile', value: string }
-  | { key: 'chunks', value: Chunk[] | Chunk }
+  | { key: 'chunks', value: ChunksUpdate }
   | { key: 'focusedChunk', value: number }
   | { key: 'fontSize', value: number }
   | { key: 'autoRun', value: boolean }

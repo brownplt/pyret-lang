@@ -82,7 +82,14 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
         return false;
       }
 
-      dispatch({ type: 'update', key: 'chunks', value: newChunks });
+      dispatch({
+        type: 'update',
+        key: 'chunks',
+        value: {
+          chunks: newChunks,
+          modifiesText: true,
+        },
+      });
 
       if (oldFocusedId !== false) {
         const newFocusedChunk = getNewFocusedChunk();
