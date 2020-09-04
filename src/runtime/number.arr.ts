@@ -72,6 +72,17 @@ module.exports = {
 
     'num-within-abs': EQUALITY["withinAbs"],
     'num-within-rel': EQUALITY["withinRel"],
+    'within': EQUALITY["within"],
+    'within-abs': EQUALITY["withinAbs"],
+    'within-rel': EQUALITY["withinRel"],
+    'within-abs-now': EQUALITY["withinAbsNow"],
+    'within-rel-now': EQUALITY["withinRelNow"],
+    'within-abs3': EQUALITY["withinAbs3"],
+    'within-rel3': EQUALITY["withinRel3"],
+    'within-abs-now3': EQUALITY["withinAbsNow3"],
+    'within-rel-now3': EQUALITY["withinRelNow3"],
+
+
 
     'num-is-fixnum': function(num): boolean {
         return NUMBERS["isFixnum"](num);

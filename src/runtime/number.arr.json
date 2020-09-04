@@ -7,7 +7,13 @@
 
     ],
     "provides": {
-        "shorthands": { },
+        "shorthands": {
+            "Exactnum": {
+                "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://primitive-types" },
+                "name": "Exactnum"
+            }
+        },
         "values": {
           "num-equal": ["arrow", ["Number", "Number"], "Boolean"],
           "num-is-integer": ["arrow", ["Number"], "Boolean"],
@@ -48,8 +54,27 @@
           "num-to-string-digits": ["arrow", ["Number", "Number"], "String"],
           "num-is-fixnum": ["arrow", ["Number"], "Boolean"],
           "num-exact": ["arrow", ["Number"], "Exactnum"],
-          "num-to-rational": ["arrow", ["Number"], "Exactnum"]
+          "num-to-rational": ["arrow", ["Number"], "Exactnum"],
+
+          "within": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+
+          "within-rel": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+
+          "within-abs": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+
+          "within-rel-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+
+          "within-abs-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+
+          "within-rel3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+
+          "within-abs3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+
+          "within-rel-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+
+          "within-abs-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]]
         },
+
         "aliases": { }
     }
 }
