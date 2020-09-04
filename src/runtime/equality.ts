@@ -1,3 +1,5 @@
+// TODO(alex): roughly-equals and co (not documented but found in js/base/runtime.js)
+
 const _NUMBER = require("./js-numbers.js");
 const PRIMTIVES = require("./primitives.js");
 
@@ -65,6 +67,9 @@ export function Unknown(reason: string, value1: any, value2: any): Unknown {
 
 const TOL_IS_REL = true;
 const TOL_IS_ABS = false;
+const EQUAL_ALWAYS = true;
+const EQUAL_NOW = false;
+const FROM_WITHIN = true;
 
 const numericEquals: (v1: any, v2: any, callbacks: NumericErrorCallbacks) => boolean = _NUMBER["equals"];
 
@@ -147,7 +152,7 @@ export function equalNow(v1: any, v2: any): boolean {
 }
 
 export function equalNow3(v1: any, v2: any): EqualityResult {
-  return equalCore3(v1, v2, false, 0, TOL_IS_ABS, false);
+  return equalCore3(v1, v2, EQUAL_NOW, 0, TOL_IS_ABS, false);
 }
 
 /*
@@ -158,7 +163,7 @@ export function equalNow3(v1: any, v2: any): EqualityResult {
  *
  */
 export function equalAlways3(v1: any, v2: any): EqualityResult {
-  return equalCore3(v1, v2, true, 0, TOL_IS_ABS, false);
+  return equalCore3(v1, v2, EQUAL_ALWAYS, 0, TOL_IS_ABS, false);
 }
 
 export function equalAlways(v1: any, v2: any): boolean {
@@ -227,20 +232,73 @@ export function to_boolean(er: EqualityResult): boolean {
 
 }
 
+/// within-*
+
+const within = withinRel;
+const withinNow = withinRelNow;
+const within3 = withinRel3;
+const withinNow3 = withinRelNow3;
+
+// NOTE(alex): DO NOT EXPORT CONSTANTS DIRECTLY
+//   Hack required by Stopify (see primitives.ts for more details)
+export {
+  within,
+  withinNow,
+  within3,
+  withinNow3,
+}
+
 export function withinRel(tolerance) {
-    throw "Implement withinRel";
+  const inner = withinRel3(tolerance);
+  return function(l, r) {
+    to_boolean(inner(l, r));
+  };
 }
 
 export function withinAbs(tolerance) {
-    throw "Implement withinAbs";
+  const inner = withinAbs3(tolerance);
+  return function(l, r) {
+    to_boolean(inner(l, r));
+  };
 }
 
 export function withinRelNow(tolerance) {
-    throw "Implement withinRelNow";
+  const inner = withinRelNow3(tolerance);
+  return function(l, r) {
+    to_boolean(inner(l, r));
+  };
 }
 
 export function withinAbsNow(tolerance) {
-    throw "Implement withinAbsNow";
+  const inner = withinAbsNow3(tolerance);
+  return function(l, r) {
+    to_boolean(inner(l, r));
+  };
+}
+
+/// within-*3
+export function withinRel3(tolerance) {
+  return function(l, r) {
+    return equalCore3(l, r, EQUAL_ALWAYS, tolerance, TOL_IS_REL, FROM_WITHIN);
+  };
+}
+
+export function withinAbs3(tolerance) {
+  return function(l, r) {
+    return equalCore3(l, r, EQUAL_ALWAYS, tolerance, TOL_IS_ABS, FROM_WITHIN);
+  };
+}
+
+export function withinRelNow3(tolerance) {
+  return function(l, r) {
+    return equalCore3(l, r, EQUAL_NOW, tolerance, TOL_IS_REL, FROM_WITHIN);
+  };
+}
+
+export function withinAbsNow3(tolerance) {
+  return function(l, r) {
+    return equalCore3(l, r, EQUAL_NOW, tolerance, TOL_IS_ABS, FROM_WITHIN);
+  };
 }
 
 export function _lessthan(lhs: any, rhs: any): boolean {
