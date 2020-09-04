@@ -35,6 +35,7 @@ html, body, #root {
     transition: box-shadow 0.2s;
     background: gray;
     color: #fff;
+    border-left: 2px solid rgba(0, 0, 0, 0.26);
 }
 
 button::-moz-focus-inner {
@@ -82,7 +83,6 @@ button::-moz-focus-inner {
     color: #fff;
     border: none;
     background: gray;
-    border-right: 2px solid rgba(0, 0, 0, 0.26);
 }
 
 .run-queued {
