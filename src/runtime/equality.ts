@@ -250,29 +250,29 @@ export {
 
 export function withinRel(tolerance) {
   const inner = withinRel3(tolerance);
-  return function(l, r) {
-    to_boolean(inner(l, r));
+  return function(l, r): boolean {
+    return to_boolean(inner(l, r));
   };
 }
 
 export function withinAbs(tolerance) {
   const inner = withinAbs3(tolerance);
-  return function(l, r) {
-    to_boolean(inner(l, r));
+  return function(l, r): boolean {
+    return to_boolean(inner(l, r));
   };
 }
 
 export function withinRelNow(tolerance) {
   const inner = withinRelNow3(tolerance);
-  return function(l, r) {
-    to_boolean(inner(l, r));
+  return function(l, r): boolean {
+    return to_boolean(inner(l, r));
   };
 }
 
 export function withinAbsNow(tolerance) {
   const inner = withinAbsNow3(tolerance);
-  return function(l, r) {
-    to_boolean(inner(l, r));
+  return function(l, r): boolean {
+    return to_boolean(inner(l, r));
   };
 }
 
