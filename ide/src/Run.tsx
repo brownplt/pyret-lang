@@ -166,6 +166,16 @@ function Run({
     buttonBackground = 'green';
   }
 
+  let dropdownBackground = '#317bcf';
+
+  if (linting || compiling) {
+    dropdownBackground = 'gray';
+  }
+
+  if (running) {
+    dropdownBackground = 'green';
+  }
+
   return (
     <div
       style={{
@@ -207,7 +217,7 @@ function Run({
           onClick={() => setDropdownVisible(!dropdownVisible)}
           onBlur={() => setDropdownVisible(false)}
           style={{
-            background: compiling || running || linting ? 'gray' : '#317bcf',
+            background: dropdownBackground,
           }}
         >
           &#8628;
