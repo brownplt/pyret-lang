@@ -23,7 +23,7 @@ module.exports = {
     'num-equal': wrap2(NUMBERS['equals']),
 
     'num-max': function(a, b) {
-        if (NUMBERS['greaterThan'](a, b, EQUALITY.NumberErrbacks)) {
+        if (NUMBERS['greaterThanOrEqual'](a, b, EQUALITY.NumberErrbacks)) {
             return a;
         } else {
             return b;
@@ -31,10 +31,10 @@ module.exports = {
     },
 
     'num-min': function(a, b) {
-        if (NUMBERS['greaterThan'](a, b, EQUALITY.NumberErrbacks)) {
-            return b;
-        } else {
+        if (NUMBERS['lessThanOrEqual'](a, b, EQUALITY.NumberErrbacks)) {
             return a;
+        } else {
+            return b;
         }
     },
 
