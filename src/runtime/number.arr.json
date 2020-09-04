@@ -45,7 +45,10 @@
           "num-within-abs": ["arrow", ["Number"], ["arrow", ["Number", "Number"], "Boolean"]],
           "num-within-rel": ["arrow", ["Number"], ["arrow", ["Number", "Number"], "Boolean"]],
           "num-to-string": ["arrow", ["Number"], "String"],
-          "num-to-string-digits": ["arrow", ["Number", "Number"], "String"]
+          "num-to-string-digits": ["arrow", ["Number", "Number"], "String"],
+          "num-is-fixnum": ["arrow", ["Number"], "Boolean"],
+          "num-exact": ["arrow", ["Number"], "Exactnum"],
+          "num-to-rational": ["arrow", ["Number"], "Exactnum"]
         },
         "aliases": { }
     }
