@@ -8,7 +8,9 @@ function numToString(n) {
 
 module.exports = {
 
-    'num-equal': NUMBERS['equals'],
+    'num-equal': function(v1, v2) {
+        return NUMBERS['equals'](v1, v2, EQUALITY.NumberErrbacks);
+    },
 
     'num-max': function(a, b) {
         if (NUMBERS['greaterThan'](a, b)) {
