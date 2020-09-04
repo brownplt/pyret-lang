@@ -6,14 +6,24 @@ function numToString(n) {
     return String(n);
 }
 
+function wrap1(f) {
+    return function(v1) {
+        return f(v1, EQUALITY.NumberErrbacks);
+    };
+}
+
+function wrap2(f) {
+    return function(v1, v2) {
+        return f(v1, v2, EQUALITY.NumberErrbacks);
+    };
+}
+
 module.exports = {
 
-    'num-equal': function(v1, v2) {
-        return NUMBERS['equals'](v1, v2, EQUALITY.NumberErrbacks);
-    },
+    'num-equal': wrap2(NUMBERS['equals']),
 
     'num-max': function(a, b) {
-        if (NUMBERS['greaterThan'](a, b)) {
+        if (NUMBERS['greaterThan'](a, b, EQUALITY.NumberErrbacks)) {
             return a;
         } else {
             return b;
@@ -21,44 +31,44 @@ module.exports = {
     },
 
     'num-min': function(a, b) {
-        if (NUMBERS['greaterThan'](a, b)) {
+        if (NUMBERS['greaterThan'](a, b, EQUALITY.NumberErrbacks)) {
             return b;
         } else {
             return a;
         }
     },
 
-    'num-abs': NUMBERS['abs'],
-    'num-sin': NUMBERS['sin'],
-    'num-cos': NUMBERS['cos'],
-    'num-tan': NUMBERS['tan'],
-    'num-asin': NUMBERS['asin'],
-    'num-acos': NUMBERS['acos'],
-    'num-atan': NUMBERS['atan'],
-    'num-atan2': NUMBERS['atan2'],
+    'num-abs': wrap1(NUMBERS['abs']),
+    'num-sin': wrap1(NUMBERS['sin']),
+    'num-cos': wrap1(NUMBERS['cos']),
+    'num-tan': wrap1(NUMBERS['tan']),
+    'num-asin':wrap1(NUMBERS['asin']),
+    'num-acos':wrap1(NUMBERS['acos']),
+    'num-atan':wrap1(NUMBERS['atan']),
+    'num-atan2': wrap1(NUMBERS['atan2']),
 
-    'num-modulo': NUMBERS['modulo'],
+    'num-modulo': wrap1(NUMBERS['modulo']),
     'num-truncate': function(n) {
-        if (NUMBERS['greaterThan'](n, 0)) {
-            return NUMBERS['floor'](n);
+        if (NUMBERS['greaterThan'](n, 0, EQUALITY.NumberErrbacks)) {
+            return NUMBERS['floor'](n, EQUALITY.NumberErrbacks);
         } else {
-            return NUMBERS['ceiling'](n);
+            return NUMBERS['ceiling'](n, EQUALITY.NumberErrbacks);
         }
     },
-    'num-sqrt': NUMBERS['sqrt'],
-    'num-sqr': NUMBERS['sqr'],
+    'num-sqrt': wrap1(NUMBERS['sqrt']),
+    'num-sqr': wrap1(NUMBERS['sqr']),
 
-    'num-ceiling': NUMBERS['ceiling'],
-    'num-floor': NUMBERS['floor'],
+    'num-ceiling': wrap1(NUMBERS['ceiling']),
+    'num-floor': wrap1(NUMBERS['floor']),
 
-    'num-round': NUMBERS['round'],
-    'num-round-even': NUMBERS['round-even'],
+    'num-round': wrap1(NUMBERS['round']),
+    'num-round-even': wrap1(NUMBERS['round-even']),
 
-    'num-log': NUMBERS['log'],
-    'num-exp': NUMBERS['exp'],
-    'num-expt': NUMBERS['expt'],
+    'num-log': wrap1(NUMBERS['log']),
+    'num-exp': wrap1(NUMBERS['exp']),
+    'num-expt': wrap2(NUMBERS['expt']),
 
-    'num-to-roughnum': NUMBERS['toRoughnum'],
+    'num-to-roughnum': wrap1(NUMBERS['toRoughnum']),
 
     'num-is-integer': NUMBERS['isInteger'],
     'num-is-rational': NUMBERS['isRational'],
