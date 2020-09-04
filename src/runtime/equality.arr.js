@@ -20,11 +20,20 @@ module.exports["to-boolean"] = EQUALITY_CORE.to_boolean;
 module.exports["equal-or"] = EQUALITY_CORE.equal_or;
 module.exports["equal-and"] = EQUALITY_CORE.equal_and;
 
-module.exports["within"] = EQUALITY_CORE.withinRel;
+module.exports["within"] = EQUALITY_CORE.within;
+module.exports["within-now"] = EQUALITY_CORE.withinNow;
 module.exports["within-rel"] = EQUALITY_CORE.withinRel;
 module.exports["within-abs"] = EQUALITY_CORE.withinAbs;
 module.exports["within-rel-now"] = EQUALITY_CORE.withinRelNow;
 module.exports["within-abs-now"] = EQUALITY_CORE.withinAbsNow;
+
+module.exports["within3"] = EQUALITY_CORE.within3;
+module.exports["within-now3"] = EQUALITY_CORE.withinNow3;
+module.exports["within-rel3"] = EQUALITY_CORE.withinRel3;
+module.exports["within-abs3"] = EQUALITY_CORE.withinAbs3;
+module.exports["within-rel-now3"] = EQUALITY_CORE.withinRelNow3;
+module.exports["within-abs-now3"] = EQUALITY_CORE.withinAbsNow3;
+
 
 module.exports["equal-now"] = EQUALITY_CORE.equalNow;
 module.exports["equal-now3"] = EQUALITY_CORE.equalNow3;

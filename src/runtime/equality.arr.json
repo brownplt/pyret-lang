@@ -29,10 +29,19 @@
         "identical3": ["arrow", ["tany", "tany"], ["local", "EqualityResult"]],
 
         "within": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+        "within-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
         "within-rel": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
         "within-abs": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
         "within-rel-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
         "within-abs-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
+
+        "within3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "["local", "EqualityResult"]"]],
+        "within-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "["local", "EqualityResult"]"]],
+        "within-rel3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "["local", "EqualityResult"]"]],
+        "within-abs3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "["local", "EqualityResult"]"]],
+        "within-rel-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "["local", "EqualityResult"]"]],
+        "within-abs-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "["local", "EqualityResult"]"]],
+
 
         "_lessthan": ["arrow", ["tany", "tany"], "Boolean"],
         "_greaterthan": ["arrow", ["tany", "tany"], "Boolean"],
