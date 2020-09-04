@@ -363,7 +363,15 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
     }
   }
 
+  // TODO(alex): handle cycles
   let worklist = [[left, right]];
+
+  // TODO(alex): Generic worklist push/pop + result caching
+  //   to handle cycles
+  function equalRec(l: any, r: any): EqualityResult {
+    worklist.push([l, r]);
+    return equalHelp();
+  }
 
   // Actual equality implementation on individual items
   function equalHelp(): EqualityResult {
@@ -504,7 +512,7 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
       if(v1.$brand && v1.$brand === v2.$brand) {
         if ("_equals" in v1) {
           //   NOTE(alex): CURRENTLY FAILS WITH CYCLIC STRUCTURES
-          var ans = v1["_equals"](v2, equalHelp);
+          var ans = v1["_equals"](v2, equalRec);
 
           return ans;
         }
