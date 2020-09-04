@@ -62,7 +62,7 @@ module.exports = {
     'num-floor': wrap1(NUMBERS['floor']),
 
     'num-round': wrap1(NUMBERS['round']),
-    'num-round-even': wrap1(NUMBERS['round-even']),
+    'num-round-even': wrap1(NUMBERS['roundEven']),
 
     'num-log': wrap1(NUMBERS['log']),
     'num-exp': wrap1(NUMBERS['exp']),
@@ -97,7 +97,7 @@ module.exports = {
 
 
     'num-is-fixnum': function(num): boolean {
-        return NUMBERS["isFixnum"](num);
+        return typeof(num) === "number";
     },
 
     'num-to-exact': function(num): number {
