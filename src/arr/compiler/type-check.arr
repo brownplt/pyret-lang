@@ -474,7 +474,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
               | t-ref(arg-type, _, _) =>
                 checking(value, arg-type, top-level, context)
               | else =>
-                typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l, false)), l, e)])
+                typing-error([list: C.incorrect-type-expression(id-type.to-string(), l, t-ref(id-type, l, false).to-string(), l, e)])
             end
           end)
         | s-if-pipe(l, branches) =>
@@ -878,7 +878,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           | t-ref(arg-type, _, _) =>
             typing-result(e, arg-type.set-loc(l), context)
           | else =>
-            typing-error([list: C.incorrect-type-expression(tostring(id-type), id-type.l, tostring(t-ref(id-type, l, false)), l, e)])
+            typing-error([list: C.incorrect-type-expression(id-type.to-string(), id-type.l, t-ref(id-type, l, false).to-string(), l, e)])
         end
       end)
     | s-id-letrec(l, id, safe) =>
@@ -911,7 +911,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           | t-ref(typ, _, _) =>
             typing-result(new-get-bang, typ.set-loc(l), context)
           | else =>
-            typing-error([list: C.incorrect-type-expression(tostring(field-type), field-type.l, "a ref type", l, e)])
+            typing-error([list: C.incorrect-type-expression(field-type.to-string(), field-type.l, "a ref type", l, e)])
         end
       end)
     | s-bracket(l, obj, field) =>
@@ -1923,7 +1923,7 @@ fun synthesis-extend(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
         | t-existential(_, l, _) =>
           typing-error([list: C.unable-to-infer(l)])
         | else =>
-          typing-error([list: C.incorrect-type-expression(tostring(obj-type), obj-type.l, "an object type", update-loc, obj)])
+          typing-error([list: C.incorrect-type-expression(obj-type.to-string(), obj-type.l, "an object type", update-loc, obj)])
       end
     end)
   end)
@@ -1944,7 +1944,7 @@ fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
                     fold-result(link(A.s-data-field(field.l, field.name, new-value), fields), context)
                   end)
                 | else =>
-                  fold-errors([list: C.incorrect-type(tostring(old-type), old-type.l, tostring(t-ref(old-type, update-loc, false)), update-loc)])
+                  fold-errors([list: C.incorrect-type(old-type.to-string(), old-type.l, t-ref(old-type, update-loc, false).to-string(), update-loc)])
               end
           end
         end, fields, context, empty).typing-bind(lam(final-fields, shadow context):
@@ -1965,14 +1965,14 @@ fun synthesis-update(update-loc :: Loc, obj :: Expr, obj-type :: Type, fields ::
                       fold-result(link(A.s-data-field(field.l, field.name, new-value), fields), context)
                     end)
                   | else =>
-                    fold-errors([list: C.incorrect-type(tostring(old-type), old-type.l, tostring(t-ref(old-type, update-loc, false)), update-loc)])
+                    fold-errors([list: C.incorrect-type(old-type.to-string(), old-type.l, t-ref(old-type, update-loc, false).to-string(), update-loc)])
                 end
             end
           end, fields, context, empty).typing-bind(lam(final-fields, shadow context):
             typing-result(A.s-update(update-loc, obj, final-fields), obj-type, context)
           end)
         end)
-        # typing-error([list: C.incorrect-type-expression(tostring(obj-type), obj-type.l, "an object type", update-loc, obj)])
+        # typing-error([list: C.incorrect-type-expression(obj-type.to-string(), obj-type.l, "an object type", update-loc, obj)])
     end
   end)
 end
@@ -2035,7 +2035,7 @@ fun check-fun(fun-loc :: Loc, body :: Expr, params :: List<A.Name>, args :: List
         end)
       end)
     | else =>
-      typing-error([list: C.incorrect-type(tostring(expect-type), expect-type.l, "a function", fun-loc)])
+      typing-error([list: C.incorrect-type(expect-type.to-string(), expect-type.l, "a function", fun-loc)])
   end.solve-bind()
 end
 
@@ -2075,7 +2075,7 @@ fun synthesis-instantiation(l :: Loc, expr :: Expr, params :: List<A.Ann>, top-l
         end)
       | t-existential(_, exists-l, _) =>
         typing-error([list: C.unable-to-infer(exists-l)])
-      | else => typing-error([list: C.incorrect-type(tostring(tmp-type), tmp-type.l, "a polymorphic type", l)])
+      | else => typing-error([list: C.incorrect-type(tmp-type.to-string(), tmp-type.l, "a polymorphic type", l)])
     end
   end)
 end
@@ -2092,7 +2092,7 @@ fun handle-if-branch(branch :: A.IfBranch, context :: Context) -> FoldResult<{A.
 end
 
 fun synthesis-tuple-index(access-loc :: Loc, tup :: Expr, tup-type-loc :: Loc, tup-type :: Type, index :: Number, recreate :: (Loc, Expr, Number -> Expr), context :: Context) -> TypingResult:
-  non-tup-err = typing-error([list: C.incorrect-type(tostring(tup-type), tup-type-loc, "a tuple type", access-loc)])
+  non-tup-err = typing-error([list: C.incorrect-type(tup-type.to-string(), tup-type-loc, "a tuple type", access-loc)])
   tuple-view(access-loc, tup-type-loc, tup-type,
   lam(l, maybe-tup-members):
     cases(Option<List<Type>>) maybe-tup-members:
@@ -2112,7 +2112,7 @@ end
 fun tuple-view(access-loc :: Loc, tup-type-loc :: Loc, tup-type :: Type,
                 handle :: (Loc, Option<List<Type>> -> TypingResult),
                 context :: Context) -> TypingResult:
-  non-tup-err = typing-error([list: C.incorrect-type(tostring(tup-type), tup-type-loc, "a tuple type", access-loc)])
+  non-tup-err = typing-error([list: C.incorrect-type(tup-type.to-string(), tup-type-loc, "a tuple type", access-loc)])
   cases(Type) tup-type:
     | t-tuple(fields, _, _) =>
       handle(tup-type-loc, some(fields))

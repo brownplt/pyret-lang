@@ -1206,7 +1206,7 @@ fun instantiate-object-type(typ :: Type, context :: Context) -> FoldResult<Type>
         | t-existential(_, exists-l, _) =>
           typing-error([list: C.unable-to-infer(exists-l)])
         | else =>
-          fold-errors([list: C.incorrect-type(tostring(a-onto), a-onto.l, "a polymorphic type", a-l)])
+          fold-errors([list: C.incorrect-type(a-onto.to-string(), a-onto.l, "a polymorphic type", a-l)])
       end
     | t-record(_, _, _) =>
       fold-result(typ, context)
@@ -1221,7 +1221,7 @@ fun instantiate-object-type(typ :: Type, context :: Context) -> FoldResult<Type>
         instantiate-object-type(typ, context)
       end)
     | else =>
-      fold-errors([list: C.incorrect-type(tostring(typ), typ.l, "an object type", typ.l)])
+      fold-errors([list: C.incorrect-type(typ.to-string(), typ.l, "an object type", typ.l)])
   end
 end
 
