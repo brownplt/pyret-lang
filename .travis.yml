@@ -3,6 +3,8 @@ env:
 git:
   submodules: false
 language: node_js
+version:
+- node
 install:
 - npm update
 - make install
