@@ -488,7 +488,6 @@ fun make-prog-flatness-env(anfed :: AA.AProg, post-env :: C.ComputedEnvironment,
       # can use ann-flatness on them
       ad.set-now(tb.atom.key(), none)
     else:
-      spy: provides, tb end
       raise("Unknown type key (shouldn't happen): " + name)
     end
   end

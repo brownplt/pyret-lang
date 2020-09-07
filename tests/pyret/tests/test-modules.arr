@@ -464,3 +464,20 @@ import file("internal-image-shared.arr") as IS
   errs is empty
 end
 
+check:
+  m = make-fresh-module-testing-context()
+  m.save-module("main.arr", ```
+provide:
+  data MyPosn hiding (j, MyPosn), # j is not reported as nonsense
+  type MyPosn as P
+end
+data MyPosn:
+  | pos2d(x, y)
+  | pos3d(x, y, z)
+end
+```)
+
+  errs = m.compile-error-messages("main.arr")
+  errs is%(error-with) "j"
+end
+

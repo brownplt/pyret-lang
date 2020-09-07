@@ -700,7 +700,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this.app   = fun;
 
       /**@type {string}*/
-      this.name = name || "<anonymous function>";
+      this.name = name || "anonymous";
     }
 
     /**Clones the function
@@ -748,7 +748,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this['full_meth']   = full_meth;
 
       /**@type {string}*/
-      this.name = name || "<anonymous method>";
+      this.name = name || "anonymous";
 
     }
 
@@ -1722,6 +1722,27 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       else { return toReprJS(val, ReprMethods._tostring); }
     }, "tostring");
 
+    /**
+       Prints the value to the world by passing the repr to stdout
+       @param {!PBase} val
+
+       @return {!PBase} the value given in
+    */
+    var displayAsString = function(val) {
+      if (isString(val)) {
+        theOutsideWorld.stdout(val);
+        return val;
+      }
+      else {
+        return thisRuntime.safeCall(function() {
+          return toReprJS(val, ReprMethods._tostring);
+        }, function(repr) {
+          theOutsideWorld.stdout(repr);
+          return val;
+        }, "display");
+      }
+    }
+
     var print = makeFunction(
       /**
          Prints the value to the world by passing the repr to stdout
@@ -1731,37 +1752,43 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       */
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print"], 1, $a, false); }
-
-        return thisRuntime.safeCall(function() {
-          return display.app(val);
-        }, function(_) {
-          return val;
-        }, "print");
+        return displayAsString(val);
       }, "print");
 
     var display = makeFunction(
       /**
-         Prints the value to the world by passing the repr to stdout
+         Displays the value using whatever parameterized displayRenderer is installed.
+         By default, this behaves the same as `print`.
          @param {!PBase} val
 
          @return {!PBase} the value given in
       */
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display"], 1, $a, false); }
-        if (isString(val)) {
-          theOutsideWorld.stdout(val);
-          return val;
-        }
-        else {
-          return thisRuntime.safeCall(function() {
-            return toReprJS(val, ReprMethods._tostring);
-          }, function(repr) {
-            theOutsideWorld.stdout(repr);
-            return val;
-          }, "display");
-        }
+        var displayRenderer = getParamOrSetDefault("displayRenderer", displayAsString);
+        return displayRenderer(val);
       }, "display");
 
+    /**
+       Prints the value to the world by passing the repr to stderr
+       @param {!PBase} val
+
+       @return {!PBase} the value given in
+    */
+    var errorDisplayAsString = function(val) {
+      if (isString(val)) {
+        theOutsideWorld.stderr(val);
+        return val;
+      }
+      else {
+        return thisRuntime.safeCall(function() {
+          return toReprJS(val, ReprMethods._tostring);
+        }, function(repr) {
+          theOutsideWorld.stderr(repr);
+          return val;
+        }, "display-error");
+      }
+    };
     var print_error = makeFunction(
       /**
          Prints the value to the world by passing the repr to stderr
@@ -1772,11 +1799,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print-error"], 1, $a, false); }
 
-        return thisRuntime.safeCall(function() {
-          return display_error.app(val);
-        }, function(_) {
-          return val;
-        }, "print-error");
+        return errorDisplayAsString(val);
       }, "print-error");
 
     var display_error = makeFunction(
@@ -1788,18 +1811,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       */
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display-error"], 1, $a, false); }
-        if (isString(val)) {
-          theOutsideWorld.stderr(val);
-          return val;
-        }
-        else {
-          return thisRuntime.safeCall(function() {
-            return toReprJS(val, ReprMethods._tostring);
-          }, function(repr) {
-            theOutsideWorld.stderr(repr);
-            return val;
-          }, "display-error");
-        }
+        var errorDisplayRenderer = getParamOrSetDefault("errorDisplayRenderer", errorDisplayAsString);
+        return errorDisplayRenderer(val);
       }, "display-error");
 
     /********************
@@ -3073,7 +3086,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         for(var i = 0; i < that.anns.length; i++) {
           var result = that.anns[i].check(that.locs[i], val.vals[i]);
           if(!thisRuntime.ffi.isOk(result)) {
-            return this.createTupleFailureError(compilerLoc, val, this.anns[i], result);
+            return this.createTupleFailureError(compilerLoc, val, i, result);
             //return result;
           }
         }
@@ -3081,36 +3094,31 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
 
       // Slow path for annotations with nonflat refinements, which may call back into Pyret
-      function deepCheckFields(remainingAnns) {
-        var thisAnn;
+      function deepCheckFields(curIndex) {
         return safeCall(function() {
-          var thisChecker = remainingAnns.pop();
-          thisAnn = thisChecker;
-          return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val.vals[remainingAnns.length]);
+          var thisChecker = that.anns[curIndex];
+          return thisChecker.check(that.locs[curIndex], val.vals[curIndex]);
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) {
-            if(remainingAnns.length === 0) { return thisRuntime.ffi.contractOk; }
-            else { return deepCheckFields(remainingAnns); }
+            if(curIndex === that.anns.length - 1) { return thisRuntime.ffi.contractOk; }
+            else { return deepCheckFields(curIndex + 1); }
           }
           else if(thisRuntime.ffi.isFail(result)) {
-            return that.createTupleFailureError(compilerLoc, val, thisAnn, result);
+            return that.createTupleFailureError(compilerLoc, val, curIndex, result);
             //return ffi.throwMessageException("types are wrong");
           }
         },
         "PTupleAnn:deepCheckFields");
       }
       if(that.anns.length === 0) { return thisRuntime.ffi.contractOk; }
-      else { return deepCheckFields(that.anns.slice()); }
+      else { return deepCheckFields(0); }
     }
     PTupleAnn.prototype.createTupleLengthMismatch = function(compilerLoc, val, annLength, tupLength) {
       return thisRuntime.ffi.contractFail(compilerLoc, thisRuntime.ffi.makeTupleLengthMismatch(compilerLoc, val, annLength, tupLength));
     };
-    PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, ann, result) {
-      var that = this;
-      var loc;
-      for(var i = 0; i < that.anns.length; i++) {
-        if(that.anns[i] === ann) { loc = that.locs[i]; }
-      }
+    PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, fieldIndex, result) {
+      var loc = this.locs[fieldIndex];
+      var ann = this.anns[fieldIndex];
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
         thisRuntime.ffi.makeTupleAnnsFail(val, thisRuntime.ffi.makeList([
@@ -3203,16 +3211,16 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
 
       // Slow path: not flat, so need to stack guard
-      function deepCheckFields(remainingFields) {
+      function deepCheckFields(curIndex) {
         var thisField;
         return safeCall(function() {
-          thisField = remainingFields.pop();
+          thisField = that.fields[curIndex];
           var thisChecker = that.anns[thisField];
-          return thisChecker.check(that.locs[that.locs.length - remainingFields.length], getColonField(val, thisField));
+          return thisChecker.check(that.locs[curIndex], getColonField(val, thisField));
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) {
-            if(remainingFields.length === 0) { return thisRuntime.ffi.contractOk; }
-            else { return deepCheckFields(remainingFields); }
+            if(curIndex === that.locs.length - 1) { return thisRuntime.ffi.contractOk; }
+            else { return deepCheckFields(curIndex + 1); }
           }
           else if(thisRuntime.ffi.isFail(result)) {
             return that.createRecordFailureError(compilerLoc, val, thisField, result);
@@ -3221,7 +3229,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         "PRecordAnn:deepCheckFields");
       }
       if(that.fields.length === 0) { return thisRuntime.ffi.contractOk; }
-      else { return deepCheckFields(that.fields.slice()); }
+      else { return deepCheckFields(0); }
     }
 
     /********************

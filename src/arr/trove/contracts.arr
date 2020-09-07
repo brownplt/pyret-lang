@@ -359,11 +359,11 @@ data FailureReason:
           end, 1, self.field-failures) ^ ED.bulleted-sequence]]
     end,
     method render-reason(self, loc, from-fail-arg):
-      [ED.error:
+      [ED.vert:
         [ED.para:
           ED.text("The record annotation at "),
-          ED.loc-display(loc, "error-highlight", ED.code(ED.text("this annotation"))),
-          ED.text("failed on this value:")],
+          ED.loc(loc),
+          ED.text(" failed on this value:")],
         ED.embed(self.val),
         [ED.para: ED.text("Because:")],
         ED.bulleted-sequence(self.field-failures.map(_.render-reason(loc, false)))
@@ -374,27 +374,20 @@ data FailureReason:
       [ED.error:
         if loc.is-builtin():
           [ED.para:
-            ED.text("A tuple annotation, "),
-            #ED.code(ED.text(self.name)),
-            ED.text(", in "),
+            ED.text("The tuple annotation at "),
             ED.loc(loc)]
         else if src-available(loc):
           [ED.sequence:
             [ED.para:
-              ED.text("The tuple annotation "),
-              #ED.code(ED.text(self.name)),
-              ED.text(" in the "),
+              ED.text("The tuple annotation in the "),
               ED.highlight(ED.text("annotation"), [ED.locs: loc], 0)],
             ED.cmcode(loc)]
         else:
           [ED.para:
-              ED.text("The tuple annotation, "),
-              #ED.code(ED.text(self.name)),
-              ED.text(", at "),
-              ED.loc(loc)]
+            ED.text("The tuple annotation at "),
+            ED.loc(loc)]
         end,
-        [ED.para:
-          ED.text("was not satisfied by the value")],
+        [ED.para: ED.text("was not satisfied by the value")],
         ED.embed(self.val),
         if from-fail-arg:
           cases(Option) maybe-stack-loc(1, true):
@@ -437,13 +430,13 @@ data FailureReason:
           end, 0, self.anns-failures) ^ ED.bulleted-sequence]]
     end,
     method render-reason(self, loc, from-fail-arg):
-      [ED.error:
+      [ED.vert:
         [ED.para:
-          ED.text("The tuple annotation "),
-          ED.loc-display(loc, "error-highlight", ED.text("this annotation")),
-          ED.text("failed on this value:")],
+          ED.text("The tuple annotation at "),
+          ED.loc(loc),
+          ED.text(" failed on this value:")],
         ED.embed(self.val),
-        [ED.para: ED.text("Because:")],
+        [ED.para: ED.text("Because: ")],
         ED.bulleted-sequence(self.anns-failures.map(_.render-reason(loc, false)))
       ]
     end
@@ -452,9 +445,7 @@ data FailureReason:
       [ED.error:
           if loc.is-builtin():
             [ED.para:
-              ED.text("A tuple annotation, "),
-              ED.code(ED.text(self.name)),
-              ED.text(", in "),
+              ED.text("The tuple annotation at "),
               ED.loc(loc)]
           else if src-available(loc):
             [ED.sequence:
@@ -464,10 +455,8 @@ data FailureReason:
               ED.cmcode(loc)]
           else:
             [ED.para:
-                ED.text("The tuple annotation, "),
-                ED.code(ED.text(self.name)),
-                ED.text(", at "),
-                ED.loc(loc)]
+              ED.text("The tuple annotation at "),
+              ED.loc(loc)]
           end,
           [ED.para:
             ED.text("which expects a tuple containing exactly "),

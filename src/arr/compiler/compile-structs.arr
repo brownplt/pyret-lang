@@ -175,9 +175,6 @@ data CompileEnvironment:
       )
 sharing:
   method value-by-uri(self, uri :: String, name :: String) block:
-    when not(self.all-modules.has-key-now(uri)):
-      spy: keys: self.all-modules.keys-list-now(), uri, name end
-    end
     cases(Option) self.all-modules
       .get-value-now(uri)
       .provides.values
@@ -906,11 +903,10 @@ data CompileError:
         [ED.para:
           ED.text("The "),
           ED.code(ED.highlight(ED.text(self.op-a-name),[list: self.op-a-loc], 0)),
-          ED.text(" operation is at the same level as the "),
+          ED.text(" and "),
           ED.code(ED.highlight(ED.text(self.op-b-name),[list: self.op-b-loc], 1)),
-          ED.text(" operation.")],
-        [ED.para:
-          ED.text("Use parentheses to group the operations and to make the order of operations clear.")]]
+          ED.text(" operations are at the same grouping level. "),
+          ED.text("Add parentheses to group the operations, and make the order of operations clear.")]]
     end,
     method render-reason(self):
       [ED.error:
@@ -1000,7 +996,9 @@ data CompileError:
         ED.cmcode(self.expr.l),
         [ED.para:
           ED.code(ED.text("example")),
-          ED.text(" blocks must only contain testing statements.")]]
+          ED.text(" blocks must only contain testing statements.  "),
+          ED.text("A test consists of an expression followed by an answer connected by a testing keyword, usually "),
+          ED.code(ED.text("is")), ED.text(".")]]
     end,
     method render-reason(self):
       [ED.error:
@@ -1008,7 +1006,8 @@ data CompileError:
           ED.code(ED.text("example")),
           ED.text(" blocks must only contain testing statements, but the statement at "),
           ED.loc(self.expr.l),
-          ED.text(" isn't a testing statement.")]]
+          ED.text(" isn't a testing statement.  "),
+          ED.text("A test consists of an expression followed by an answer connected by a testing keyword, usually ")]]
     end
   | tuple-get-bad-index(l, tup, index, index-loc) with:
     method render-fancy-reason(self):
