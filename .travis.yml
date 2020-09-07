@@ -4,7 +4,7 @@ git:
   submodules: false
 language: node_js
 node_js:
-- 8.3.0
+- 12
 install:
 - npm update
 - make install

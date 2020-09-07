@@ -36,13 +36,6 @@ define("q", [], function() {
 
 </head>
 <script>
-require.config({
-  paths: {
-    "stacktrace-js": "node_modules/stacktrace-js/stacktrace"
-  }
-});
-</script>
-<script>
 window.process = {
   stdout: {write: function(s) { console.log(s); } },
   stderr: {write: function(s) { console.error(s); } },
