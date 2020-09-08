@@ -1,3 +1,6 @@
+const NUMBERS = require("./js-numbers.js");
+const EQUALITY = require("./equality.js");
+
 module.exports = {
   'raw-array': {
     'make': function(arr) {
@@ -31,24 +34,54 @@ module.exports = {
     return arr.reduceRight( fun, val );
   },
   'raw-array-sum': function( arr ) {
-    return arr.reduce( function( x, y ) { return x + y; }, 0 );
+    return arr.reduce(function( x, y) {
+      return NUMBERS["add"](x, y);
+    }, 0);
   },
   'raw-array-min': function( arr ) {
-    return arr.reduce( function( x, y ) { return Math.min( x, y ); }, arr[0] );
+    if (arr.length == 0) {
+      throw new Error("Invalid array length: 0");
+    }
+
+    return arr.reduce(function(x, y) {
+      if (EQUALITY["_lessthan"](x, y)) {
+        return x;
+      } else {
+        return y;
+      }
+    }, arr[0]);
   },
   'raw-array-max': function( arr ) {
-    return arr.reduce( function( x, y ) { return Math.max( x, y ); }, arr[0] );
+    if (arr.length == 0) {
+      throw new Error("Invalid array length: 0");
+    }
+
+    return arr.reduce(function(x, y) {
+      if (EQUALITY["_greaterthan"](x, y)) {
+        return x;
+      } else {
+        return y;
+      }
+    }, arr[0]);
   },
   'raw-array-of': function(elem, n) {
-    if (n <= 0) {
+    if (EQUALITY["_lessthan"](n, 0)) {
       throw "raw-array-of: <0 repititions";
     }
 
-    return new Array(n).fill(elem);
+    const jsN = NUMBERS["toFixnum"](n);
+
+    return new Array(jsN).fill(elem);
   },
   'raw-array-build': function(f, n) {
-    let array = new Array(n);
-    for (let i = 0; i < n; i++) {
+
+    if (EQUALITY["_lessthan"](n, 0)) {
+      throw "raw-array-build: <0";
+    }
+
+    const jsN = NUMBERS["toFixnum"](n);
+    let array = new Array(jsN);
+    for (let i = 0; i < jsN; i++) {
       array[i] = f(i);
     }
 
