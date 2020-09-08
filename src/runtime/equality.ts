@@ -231,7 +231,7 @@ export function to_boolean(er: EqualityResult): boolean {
         // TODO(alex): Fill this in with the generic `raise` function
         //   CANNOT IMPORT "global.arr.js" OR "runtime.ts" directly b/c the circular depenency
         //   will mess with loading...
-        throw "Unable to convert Unknown (EqualityResult) to boolean";
+        throw new Error("Unable to convert Unknown (EqualityResult) to boolean");
     } else {
         return isEqual(er);
     }
@@ -321,7 +321,7 @@ export function _lessthan(lhs: any, rhs: any): boolean {
         try {
             return lhs < rhs;
         } catch (error) {
-            throw `Unable to perform '<' on (${lhs}) and (${rhs})`;
+            throw new Error(`Unable to perform '<' on (${lhs}) and (${rhs})`);
         }
     }
 }
@@ -340,7 +340,7 @@ export function _greaterthan(lhs: any, rhs: any): boolean {
         try {
             return lhs > rhs;
         } catch (error) {
-            throw `Unable to perform '>' on (${lhs}) and (${rhs})`;
+            throw new Error(`Unable to perform '>' on (${lhs}) and (${rhs})`);
         }
     }
 }

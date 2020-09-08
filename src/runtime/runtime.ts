@@ -202,7 +202,7 @@ function customPlus(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
         try {
             return lhs + rhs;
         } catch (error) {
-            throw `Unable to perform '+' on (${lhs}) and (${rhs})`;
+            throw new Error(`Unable to perform '+' on (${lhs}) and (${rhs})`);
         }
     }
 }
@@ -217,7 +217,7 @@ function customMinus(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
         try {
             return lhs - rhs;
         } catch (error) {
-            throw `Unable to perform '-' on (${lhs}) and (${rhs})`;
+            throw new Error(`Unable to perform '-' on (${lhs}) and (${rhs})`);
         }
     }
 }
@@ -232,7 +232,7 @@ function customTimes(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
         try {
             return lhs * rhs;
         } catch (error) {
-            throw `Unable to perform '*' on (${lhs}) and (${rhs})`;
+            throw new Error(`Unable to perform '*' on (${lhs}) and (${rhs})`);
         }
     }
 }
@@ -247,7 +247,7 @@ function customDivide(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any 
         try {
             return lhs / rhs;
         } catch (error) {
-            throw `Unable to perform '/' on (${lhs}) and (${rhs})`;
+            throw new Error(`Unable to perform '/' on (${lhs}) and (${rhs})`);
         }
     }
 }

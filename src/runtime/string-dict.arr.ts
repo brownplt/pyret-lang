@@ -638,7 +638,7 @@ const getValueISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
     const missing_value = {};
     const val = pyretSelf.$underlyingMap.get(key, missing_value);
     if (val === missing_value) {
-        throw ('Key ' + key + ' not found');
+        throw new Error('Key ' + key + ' not found');
     }
     return val;
 });
@@ -799,14 +799,14 @@ const getMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
 const getValueMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
     const val = pyretSelf.$underlyingDict[key];
     if (val === undefined) {
-        throw ("Key " + key + " not found");
+        throw new Error("Key " + key + " not found");
     }
     return val;
 });
 
 const setMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key, val) {
     if (pyretSelf.$sealed) {
-        throw ("Cannot modify sealed string dict");
+        throw new Error("Cannot modify sealed string dict");
     }
     pyretSelf.$underlyingDict[key] = val;
     return RUNTIME.$nothing;
@@ -829,7 +829,7 @@ const cloneMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
 
 const removeMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
     if (pyretSelf.$sealed) {
-        throw ("Cannot modify sealed string dict");
+        throw new Error("Cannot modify sealed string dict");
     }
     delete pyretSelf.$underlyingDict[key];
     return RUNTIME.$nothing;
@@ -983,7 +983,7 @@ function createMutableStringDictFromArray(array) {
     const dict = Object.create(null);
     const len = array.length;
     if(len % 2 !== 0) {
-        throw ("Expected an even number of arguments to constructor for mutable dictionaries, got array of length " + len);
+        throw new Error("Expected an even number of arguments to constructor for mutable dictionaries, got array of length " + len);
     }
     for(let i = 0; i < len; i += 2) {
         const key = array[i];
@@ -1011,13 +1011,13 @@ function createImmutableStringDictFromArray(array) {
     let map = emptyMap();
     const len = array.length;
     if(len % 2 !== 0) {
-        throw ("Expected an even number of arguments to constructor for immutable dictionaries, got array of length " + len);
+        throw new Error("Expected an even number of arguments to constructor for immutable dictionaries, got array of length " + len);
     }
     for(var i = 0; i < len; i += 2) {
         let key = array[i];
         let val = array[i + 1];
         if (map.get(key, key_missing) !== key_missing) {
-            throw ("Creating immutable string dict with duplicate key " + key);
+            throw new Error("Creating immutable string dict with duplicate key " + key);
         }
         map = map.set(key, val);
     }
@@ -1065,7 +1065,7 @@ function createMutableStringDict0() {
 }
 
 function createMutableStringDict1(arg) {
-    throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+    throw new Error("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
 }
 
 function createMutableStringDict2(a, b) {
@@ -1075,7 +1075,7 @@ function createMutableStringDict2(a, b) {
 }
 
 function createMutableStringDict3(a, b, c) {
-    throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+    throw new Error("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
 }
 
 function createMutableStringDict4(a, b, c, d) {
@@ -1086,7 +1086,7 @@ function createMutableStringDict4(a, b, c, d) {
 }
 
 function createMutableStringDict5(a, b, c, d, e) {
-    throw ("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
+    throw new Error("Expected an even number of arguments to constructor for mutable dictionaries, got " + arguments.length);
 }
 
 function createImmutableStringDict0() {
@@ -1095,7 +1095,7 @@ function createImmutableStringDict0() {
 }
 
 function createImmutableStringDict1(arg) {
-    throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+    throw new Error("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
 }
 
 function createImmutableStringDict2(a, b) {
@@ -1105,13 +1105,13 @@ function createImmutableStringDict2(a, b) {
 }
 
 function createImmutableStringDict3(a, b, c) {
-    throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+    throw new Error("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
 }
 
 function createImmutableStringDict4(a, b, c, d) {
     let map = emptyMap();
     if (a === c) {
-        throw ("Creating immutable string dict with duplicate key " + a)
+        throw new Error("Creating immutable string dict with duplicate key " + a)
     }
     map = map.set(a, b);
     map = map.set(c, d);
@@ -1119,7 +1119,7 @@ function createImmutableStringDict4(a, b, c, d) {
 }
 
 function createImmutableStringDict5(a, b, c, d, e) {
-    throw ("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
+    throw new Error("Expected an even number of arguments to constructor for immutable dictionaries, got " + arguments.length);
 }
 
 module.exports = {
