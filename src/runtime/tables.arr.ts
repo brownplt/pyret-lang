@@ -1,4 +1,8 @@
 // @ts-ignore
+
+// TODO(alex): Swapped from equalAlways to equalNow internally
+//   to test equality for (potentially) mutable raw arrays properly.
+//   Is this "correct"?
 const Equality = require("./equality.js");
 const Primitives = require("./primitives.js");
 const PyretOption = require("./option.arr.js");
@@ -163,7 +167,7 @@ function _addRow(table: any, row: Row): Table {
   const tableHeaders = table._headers;
   const rowHeaders = row._headers;
 
-  if (!Equality.equalAlways(tableHeaders, rowHeaders)) {
+  if (!Equality.equalNow(tableHeaders, rowHeaders)) {
     throw new Error("table does not have the same column names as the new row");
   }
 
@@ -862,7 +866,7 @@ function stack(table: Table, bot: Table): Table {
   var tableHeaders = table._headers;
   var headersToSort = _deepCopy(table._headers);
   var botHeaders = _deepCopy(bot._headers);
-  if ( !(Equality.equalAlways(headersToSort.sort(), botHeaders.sort())) ) {
+  if ( !(Equality.equalNow(headersToSort.sort(), botHeaders.sort())) ) {
     throw new Error("headers do not match");
   }
 
@@ -888,7 +892,7 @@ function tableFromRows(rows: Row[]): Table {
   const headers: string[][] = rows.map(row => row._headers);
 
   for (let i = 0; i < headers.length; i++) {
-    if (!Equality.equalAlways(headers[i], headers[0])) {
+    if (!Equality.equalNow(headers[i], headers[0])) {
       throw "table-from-rows: row name mismatch";
     }
   }
