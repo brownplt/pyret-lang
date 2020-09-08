@@ -289,16 +289,17 @@ function getModuleValue(uri : string, k : string) {
   return allModules[uri].values[k];
 }
 
+// TODO(alex): common Pyret error objects
 function raise(msg: object) {
   // NOTE(alex): Changing the representation needs to be reflected in raiseExtract()
   throw msg;
 }
 
-function raiseExtract(exception: object): object {
+function raiseExtract(exception: any): string {
   // NOTE(alex): Used by `raises` check operator
   //   Any changes to the `raise` exception format needs to be reflected
   //   here as well.
-  return exception;
+  return exception.toString();
 }
 
 // NOTE(alex): stub implementation used by testing infrastructure
