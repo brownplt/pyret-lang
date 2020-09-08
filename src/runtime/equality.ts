@@ -364,20 +364,23 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
   }
 
   // TODO(alex): handle cycles
-  let worklist = [[left, right]];
+  // TODO(alex): Result caching
+  let worklist: [any, any][] = [[left, right]];
 
-  // TODO(alex): Generic worklist push/pop + result caching
-  //   to handle cycles
+  function worklistPush(v1: any, v2: any) {
+    worklist.push([v1, v2]);
+  }
+
+  function worklistPop(): [any, any] {
+    return worklist.pop();
+  }
+
   function equalRec(l: any, r: any): EqualityResult {
-    worklist.push([l, r]);
-    return equalHelp();
+    return equalHelp(l, r);
   }
 
   // Actual equality implementation on individual items
-  function equalHelp(): EqualityResult {
-    let curr = worklist.pop();
-    let v1: any = curr[0];
-    let v2: any = curr[1];
+  function equalHelp(v1: any, v2: any): EqualityResult {
 
     if (isEqual(identical3(v1, v2))) {
       // Identical so must always be equal
@@ -425,7 +428,7 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
       }
 
       for (var i = 0; i < v1.length; i++) {
-        worklist.push([v1[i], v2[i]]);
+        worklistPush(v1[i], v2[i]);
       }
       return Equal();
 
@@ -435,7 +438,7 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
       }
 
       for (var i = 0; i < v1.length; i++) {
-        worklist.push([v1[i], v2[i]]);
+        worklistPush(v1[i], v2[i]);
       }
       return Equal();
 
@@ -478,7 +481,7 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
             let v2_row = v2._rows[row];
 
             for (let i = 0; i < v1_row.length; i++) {
-                worklist.push([v1_row[i], v2_row[i]]);
+                worklistPush(v1_row[i], v2_row[i]);
             }
         }
 
@@ -503,7 +506,7 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
         }
 
         for (let i = 0; i < v1._elements.length; i++) {
-            worklist.push([v1[i], v2[i]]);
+            worklistPush(v1[i], v2[i]);
         }
 
         return Equal();
@@ -529,7 +532,7 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
             // Not the same brand
             return NotEqual("Field Brands", fields1[i], fields2[i]);
           }
-          worklist.push([v1[fields1[i]], v2[fields2[i]]]);
+          worklistPush(v1[fields1[i]], v2[fields2[i]]);
         }
         return Equal();
 
@@ -552,7 +555,7 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
           return NotEqual(`Raw Object Missing Field '${keys1[i]}'`, v1, v2);
         } else {
           // Push common field to worklist
-          worklist.push([v1[keys1[i]], v2[keys2[key2Index]]]);
+          worklistPush(v1[keys1[i]], v2[keys2[key2Index]]);
         }
       }
 
@@ -564,7 +567,8 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
 
   while (worklist.length > 0) {
     // Scaffolding to set use equalHelp()
-    const result = equalHelp();
+    const curr = worklistPop();
+    const result = equalHelp(curr[0], curr[1]);
     if (!isEqual(result)) {
       return result;
     }
