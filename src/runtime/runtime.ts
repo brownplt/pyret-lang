@@ -18,6 +18,10 @@ const _PRIMITIVES = require("./primitives.js");
 
 
 // *********Spy Stuff*********
+
+var $spyMessageHandler = null;
+var $spyValueHandler = null;
+
 export interface SpyExpr {
   key: string,
   expr: () => any,
@@ -30,12 +34,24 @@ export interface SpyObject {
   exprs: SpyExpr[],
 }
 
+export function $setSpyMessageHandler(handler) {
+  $spyMessageHandler = handler;
+}
+
+export function $setSpyValueHandler(handler) {
+  $spyValueHandler = handler;
+}
+
 function _not(x: boolean): boolean { return !x; }
 
 function _spy(spyObject: SpyObject): void {
+
   const message = spyObject.message();
   const spyLoc = spyObject.loc;
-  if (message != null) {
+  if ($spyMessageHandler) {
+    $spyMessageHandler({ message: message, loc: spyLoc });
+  }
+  if (message) {
     console.log(`Spying "${message}" (at ${spyLoc})`);
   } else {
     console.log(`Spying (at ${spyLoc})`);
@@ -46,6 +62,9 @@ function _spy(spyObject: SpyObject): void {
     const key = exprs[i].key;
     const loc = exprs[i].loc;
     const value = exprs[i].expr();
+    if ($spyValueHandler) {
+      $spyValueHandler({ key: key, value: value, loc: loc });
+    }
     console.log(`    ${key}: ${value} (at ${loc})`);
   }
 }
