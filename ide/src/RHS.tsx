@@ -4,6 +4,8 @@ import RenderedValue from './RenderedValue';
 import { State } from './state';
 import {
   RHSObjects,
+  isSpyValue,
+  isSpyMessage,
   isTrace,
   isLocation,
   isRHSCheck,
@@ -86,6 +88,34 @@ function RHS({
         if (chunk !== false) {
           setFocusedChunk(chunk);
         }
+      }
+
+      if (isSpyMessage(rhsObject)) {
+        return (
+          <pre
+            key={rhsObject.key}
+            style={{
+              paddingLeft: '1em',
+              ...selectedStyle,
+            }}
+          >
+            <RenderedValue value={rhsObject.value} />
+          </pre>
+        );
+      }
+
+      if (isSpyValue(rhsObject)) {
+        return (
+          <pre
+            key={rhsObject.key}
+            style={{
+              paddingLeft: '1em',
+              ...selectedStyle,
+            }}
+          >
+            <RenderedValue value={rhsObject.value} />
+          </pre>
+        );
       }
 
       if (isTrace(rhsObject)) {

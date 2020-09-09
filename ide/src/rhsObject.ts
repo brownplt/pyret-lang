@@ -21,6 +21,18 @@ export type RHSCheck = {
 type N = number;
 export type SrcLoc = [string, N, N, N, N, N, N];
 
+export type SpyMessage = {
+  key?: string,
+  value: any,
+  loc: string,
+};
+
+export type SpyValue = {
+  key: string,
+  value: any,
+  loc: string,
+};
+
 export type Location = {
   key?: string,
   name: string,
@@ -34,7 +46,17 @@ export type Trace = {
   srcloc: SrcLoc,
 };
 
-export type RHSObject = Trace | Location | RHSCheck;
+export type RHSObject = Trace | Location | RHSCheck | SpyMessage | SpyValue;
+
+export function isSpyValue(a: RHSObject): a is SpyValue {
+  const hasProp = Object.prototype.hasOwnProperty;
+  return hasProp.call(a, 'key') && hasProp.call(a, 'value') && hasProp.call(a, 'loc');
+}
+
+export function isSpyMessage(a: RHSObject): a is SpyMessage {
+  const hasProp = Object.prototype.hasOwnProperty;
+  return hasProp.call(a, 'message') && hasProp.call(a, 'loc');
+}
 
 export function isTrace(a: RHSObject): a is Trace {
   const hasProp = Object.prototype.hasOwnProperty;
