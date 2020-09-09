@@ -280,6 +280,8 @@ function handleFirstActionableEffect(
   state: State,
   dispatch: Dispatch,
 ): false | { effect: number, applyEffect: () => void } {
+  window.dispatch = dispatch;
+
   const { effectQueue } = state;
 
   for (let i = 0; i < effectQueue.length; i += 1) {
