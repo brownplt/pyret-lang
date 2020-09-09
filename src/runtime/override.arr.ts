@@ -4,11 +4,16 @@ RUNTIME.$setSpyMessageHandler((data: { message: string, loc: string}) => {
 
   // @ts-ignore
   if (dispatch) {
+    const value = (data.message) ? data.message : data.loc;
     // @ts-ignore
     dispatch({
       type: 'update',
       key: 'rhs',
-      value: data,
+      value: {
+        value,
+        key: data.loc,
+        loc: data.loc,
+      },
     });
     console.log("Dispatch");
   } else {
