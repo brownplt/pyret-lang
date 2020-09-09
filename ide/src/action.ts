@@ -1,7 +1,10 @@
 import { Chunk } from './chunk';
 import { EditorMode } from './state';
 import { Effect } from './effect';
-import { RHSObjects } from './rhsObject';
+import {
+  RHSObjects,
+  RHSObject,
+} from './rhsObject';
 import * as control from './control';
 
 export type EffectFailure =
@@ -75,7 +78,7 @@ export type Update =
   | { key: 'firstSelectedChunkIndex', value: false | number }
   | { key: 'debugBorders', value: boolean }
   | { key: 'displayResultsInline', value: boolean }
-  | { key: 'rhs', value: RHSObjects });
+  | { key: 'rhs', value: RHSObjects | RHSObject });
 
 export type UpdateKey = Update['key'];
 

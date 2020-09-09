@@ -31,6 +31,8 @@ import {
 
 import {
   makeRHSObjects,
+  RHSObjects,
+  RHSObject,
 } from './rhsObject';
 
 function handleEnter(state: State): State {
@@ -801,6 +803,29 @@ function handleSetMenuTabVisible(state: State, tab: false | number) {
   return { ...state, menuTabVisible: tab };
 }
 
+function handleSetRHS(state: State, value: RHSObjects | RHSObject) {
+  if (Object.prototype.hasOwnProperty.call(value, 'objects')) {
+    const v: RHSObjects = (value as any);
+    return { ...state, rhs: v };
+  }
+
+  const {
+    rhs,
+  } = state;
+
+  const v: RHSObject = (value as any);
+  const newObjects: RHSObject[] = [...rhs.objects, v];
+  const newRHS: RHSObjects = {
+    ...rhs,
+    objects: newObjects,
+  };
+
+  return {
+    ...state,
+    rhs: newRHS,
+  };
+}
+
 function handleUpdate(
   state: State,
   action: Update,
@@ -835,7 +860,7 @@ function handleUpdate(
     case 'menuTabVisible':
       return handleSetMenuTabVisible(state, action.value);
     case 'rhs':
-      return { ...state, rhs: action.value };
+      return handleSetRHS(state, action.value);
     case 'firstSelectedChunkIndex':
       return { ...state, firstSelectedChunkIndex: action.value };
     case 'debugBorders':
