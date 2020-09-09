@@ -14,16 +14,32 @@ type StateProps = {
   menuItems: MenuItems,
   menuTabVisible: false | number,
   debugBorders: boolean,
+  displayResultsInline: boolean,
+  editorMode: EditorMode,
 };
 
 function mapStateToProps(state: State): StateProps {
-  const { menuItems, menuTabVisible, debugBorders } = state;
-  return { menuItems, menuTabVisible, debugBorders };
+  const {
+    menuItems,
+    menuTabVisible,
+    debugBorders,
+    displayResultsInline,
+    editorMode,
+  } = state;
+
+  return {
+    menuItems,
+    menuTabVisible,
+    debugBorders,
+    displayResultsInline,
+    editorMode,
+  };
 }
 
 type DispatchProps = {
   setEditorMode: (mode: EditorMode) => void,
   setDebugBorders: (debugBorders: boolean) => void,
+  setDisplayResultsInline: (displayResultsInline: boolean) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
@@ -33,6 +49,9 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     },
     setDebugBorders: (debugBorders: boolean) => {
       dispatch({ type: 'update', key: 'debugBorders', value: debugBorders });
+    },
+    setDisplayResultsInline: (displayResultsInline) => {
+      dispatch({ type: 'update', key: 'displayResultsInline', value: displayResultsInline });
     },
   };
 }
@@ -48,6 +67,9 @@ function Menu({
   setEditorMode,
   debugBorders,
   setDebugBorders,
+  displayResultsInline,
+  setDisplayResultsInline,
+  editorMode,
 }: MenuProps) {
   function getTab() {
     if (menuTabVisible === false) {
@@ -97,21 +119,40 @@ function Menu({
               </button>
             </div>
             <FontSize key="FontSize" />
-            <button
-              onClick={() => setDebugBorders(!debugBorders)}
-              className="option"
-              key="debugBorders"
-              type="button"
-              style={{
-                height: '2.7em',
-              }}
-            >
-              {debugBorders ? (
-                'Turn off debug borders'
-              ) : (
-                'Turn on debug borders'
-              )}
-            </button>
+            {editorMode === EditorMode.Chunks && (
+              <button
+                onClick={() => setDebugBorders(!debugBorders)}
+                className="option"
+                key="debugBorders"
+                type="button"
+                style={{
+                  height: '2.7em',
+                }}
+              >
+                {debugBorders ? (
+                  'Turn off debug borders'
+                ) : (
+                  'Turn on debug borders'
+                )}
+              </button>
+            )}
+            {editorMode === EditorMode.Chunks && (
+              <button
+                onClick={() => setDisplayResultsInline(!displayResultsInline)}
+                className="option"
+                key="displayResultsInline"
+                type="button"
+                style={{
+                  height: '2.7em',
+                }}
+              >
+                {displayResultsInline ? (
+                  'Turn off inline results'
+                ) : (
+                  'Turn on inline results'
+                )}
+              </button>
+            )}
           </div>
         );
       default:

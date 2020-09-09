@@ -74,6 +74,7 @@ export type Update =
   | { key: 'menuTabVisible', value: false | number }
   | { key: 'firstSelectedChunkIndex', value: false | number }
   | { key: 'debugBorders', value: boolean }
+  | { key: 'displayResultsInline', value: boolean }
   | { key: 'rhs', value: RHSObjects });
 
 export type UpdateKey = Update['key'];

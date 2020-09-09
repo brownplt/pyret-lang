@@ -840,6 +840,8 @@ function handleUpdate(
       return { ...state, firstSelectedChunkIndex: action.value };
     case 'debugBorders':
       return { ...state, debugBorders: action.value };
+    case 'displayResultsInline':
+      return { ...state, displayResultsInline: action.value };
     default:
       throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }

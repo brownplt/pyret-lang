@@ -42,6 +42,7 @@ export type State = {
   menuTabVisible: false | number,
   firstSelectedChunkIndex: false | number,
   debugBorders: boolean,
+  displayResultsInline: boolean,
 };
 
 export enum EditorMode {
@@ -108,6 +109,7 @@ export const initialState: State = {
   ],
   firstSelectedChunkIndex: false,
   debugBorders: false,
+  displayResultsInline: false,
 };
 
 export const CHUNKSEP = '#.CHUNK#\n';

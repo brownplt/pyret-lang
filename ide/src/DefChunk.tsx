@@ -3,6 +3,8 @@ import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { State } from './state';
 
+import RenderedValue from './RenderedValue';
+
 import {
   Chunk,
   Selection,
@@ -17,6 +19,7 @@ import {
   emptySelection,
   getChunkSelectedText,
   compareLineAndCh,
+  findChunkFromSrcloc,
 } from './chunk';
 
 import {
@@ -25,27 +28,62 @@ import {
 } from './action';
 
 import { Effect } from './effect';
-import { RHSObjects } from './rhsObject';
+import {
+  RHSObject,
+  RHSObjects,
+  getRow,
+  isRHSCheck,
+} from './rhsObject';
 
 type StateProps = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
   rhs: RHSObjects,
   firstSelectedChunkIndex: false | number,
+  currentFile: string,
+  thisChunkRHSObjects: RHSObject[],
+  displayResultsInline: boolean,
 };
 
-function mapStateToProps(state: State): StateProps {
+function mapStateToProps(state: State, ownProps: any): StateProps {
   const {
     chunks,
     focusedChunk,
     rhs,
     firstSelectedChunkIndex,
+    currentFile,
+    displayResultsInline,
   } = state;
+
+  const {
+    index,
+  } = ownProps;
+
+  const thisChunkRHSObjects: RHSObject[] = [];
+
+  rhs.objects.forEach((rhsObject) => {
+    const correspondingChunk = findChunkFromSrcloc(
+      chunks,
+      [
+        `file://${currentFile}`,
+        getRow(rhsObject),
+      ],
+      currentFile,
+    );
+
+    if (index === correspondingChunk) {
+      thisChunkRHSObjects.push(rhsObject);
+    }
+  });
+
   return {
     chunks,
     focusedChunk,
     rhs,
     firstSelectedChunkIndex,
+    currentFile,
+    thisChunkRHSObjects,
+    displayResultsInline,
   };
 }
 
@@ -162,11 +200,16 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const n = newProps;
     const o = this.props;
 
+    if (n.thisChunkRHSObjects !== o.thisChunkRHSObjects) {
+      return true;
+    }
+
     if (n.chunks[n.index].selection !== o.chunks[o.index].selection) {
       return true;
     }
 
     if (n.index === o.index
+      && n.chunks[n.index].text === o.chunks[o.index].text
       && n.focusedChunk !== n.index) {
       return false;
     }
@@ -625,6 +668,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         <div
           style={{
             width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
           }}
           onMouseEnter={(event: any) => {
             this.handleMouseEnter(event);
@@ -689,6 +734,55 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             }}
             autoCursor
           />
+          <div>
+            {(() => {
+              const {
+                thisChunkRHSObjects,
+                displayResultsInline,
+              } = this.props;
+
+              if (displayResultsInline && thisChunkRHSObjects.length > 0) {
+                const isSelected = index === focusedChunk;
+
+                return (
+                  <pre
+                    style={{
+                      margin: 0,
+                      background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
+                      borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
+                      borderBottom: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'row',
+                      justifyContent: 'flex-end',
+                    }}
+                  >
+                    {thisChunkRHSObjects.map((val) => {
+                      if (!isRHSCheck(val)) {
+                        return (
+                          <div style={{
+                            display: 'flex',
+                          }}
+                          >
+                            <RenderedValue key={getRow(val)} value={val.value} />
+                            <div
+                              style={{
+                                width: '1em',
+                              }}
+                            />
+                          </div>
+                        );
+                      }
+
+                      return false;
+                    })}
+                  </pre>
+                );
+              }
+
+              return false;
+            })()}
+          </div>
         </div>
       </div>
     );
