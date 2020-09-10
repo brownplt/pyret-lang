@@ -285,9 +285,6 @@ function handleFirstActionableEffect(
   state: State,
   dispatch: Dispatch,
 ): false | { effect: number, applyEffect: () => void } {
-  // @ts-ignore
-  window.dispatch = dispatch;
-
   const { effectQueue } = state;
 
   for (let i = 0; i < effectQueue.length; i += 1) {
@@ -474,6 +471,9 @@ const store = createStore(
   ideApp,
   (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__(),
 );
+
+// @ts-ignore
+window.dispatch = store.dispatch;
 
 store.subscribe(() => {
   const state = store.getState();
