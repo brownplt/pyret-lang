@@ -29,7 +29,10 @@ export type SpyMessage = {
 
 export type SpyValue = {
   key: string,
-  value: any,
+  value: {
+    key: string,
+    value: any
+  },
   loc: string,
 };
 

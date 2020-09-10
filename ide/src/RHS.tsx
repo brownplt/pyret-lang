@@ -105,8 +105,9 @@ function RHS({
               paddingLeft: '1em',
               ...selectedStyle,
             }}
+            onMouseEnter={selectThisChunk}
           >
-            <RenderedValue value={rhsObject.value} />
+            <RenderedValue value={rhsObject.value ? `Spying "${rhsObject.value}" at: ${rhsObject.loc}` : `Spying at ${rhsObject.loc}`} />
           </pre>
         );
       }
@@ -119,8 +120,9 @@ function RHS({
               paddingLeft: '1em',
               ...selectedStyle,
             }}
+            onMouseEnter={selectThisChunk}
           >
-            <RenderedValue value={rhsObject.value} />
+            <RenderedValue value={`${rhsObject.value.key} = ${rhsObject.value.value} (${rhsObject.loc})`} />
           </pre>
         );
       }
