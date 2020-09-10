@@ -804,19 +804,14 @@ function handleSetMenuTabVisible(state: State, tab: false | number) {
 }
 
 function handleSetRHS(state: State, value: RHSObjects | RHSObject) {
+  if (Object.prototype.hasOwnProperty.call(value, 'objects')) {
+    const v: RHSObjects = (value as any);
+    return { ...state, rhs: v };
+  }
+
   const {
     rhs,
   } = state;
-
-  if (Object.prototype.hasOwnProperty.call(value, 'objects')) {
-    const v: RHSObjects = (value as any);
-    const newObjects: RHSObject[] = rhs.objects.concat(v.objects);
-    const newRHS: RHSObjects = {
-      ...v,
-      objects: newObjects,
-    };
-    return { ...state, rhs: newRHS };
-  }
 
   const v: RHSObject = (value as any);
   const newObjects: RHSObject[] = [...rhs.objects, v];
