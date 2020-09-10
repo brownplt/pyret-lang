@@ -107,7 +107,7 @@ export function selectAll(chunk: Chunk): Chunk {
 
 // Returns the number of characters from the start of `text` to the line and character
 // location, `lineAndCh`, or `false` if `lineAndCh` isn't inside the text.
-function getLineAndChIndex(text: string, lineAndCh: LineAndCh): number {
+function getLineAndChIndex(text: string, lineAndCh: LineAndCh): number | false {
   const lines = text.split('\n');
 
   let characters = 0;
@@ -118,20 +118,24 @@ function getLineAndChIndex(text: string, lineAndCh: LineAndCh): number {
         return characters + lineAndCh.ch;
       }
 
-      throw new Error(`srcloc '${lineAndCh} out of bounds for text '${text}`);
+      return false;
     }
 
     characters += lines[i].length + 1; // 1 for the newline character
   }
 
-  throw new Error(`srcloc '${lineAndCh} out of bounds for text '${text}`);
+  return false;
 }
 
 function getSelectedText(text: string, selection: Selection): string {
   const anchorIndex = getLineAndChIndex(text, selection.anchor);
   const headIndex = getLineAndChIndex(text, selection.head);
 
-  return text.substring(anchorIndex, headIndex);
+  if (anchorIndex !== false && headIndex !== false) {
+    return text.substring(anchorIndex, headIndex);
+  }
+
+  return '';
 }
 
 export function getChunkSelectedText(chunk: Chunk): string {
@@ -162,13 +166,20 @@ export function removeSelectedText(chunk: Chunk): Chunk {
     const anchorIndex = getLineAndChIndex(text, selection.anchor);
     const headIndex = getLineAndChIndex(text, selection.head);
 
-    const newText = text.substring(0, anchorIndex) + text.substring(headIndex + 1, text.length);
+    if (anchorIndex !== false && headIndex !== false) {
+      const newText = text.substring(0, anchorIndex) + text.substring(headIndex + 1, text.length);
+
+      return {
+        ...chunk,
+        text: newText,
+        selection: emptySelection,
+        errorState: notLintedState,
+      };
+    }
 
     return {
       ...chunk,
-      text: newText,
       selection: emptySelection,
-      errorState: notLintedState,
     };
   }
 
