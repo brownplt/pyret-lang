@@ -22,6 +22,7 @@ type N = number;
 export type SrcLoc = [string, N, N, N, N, N, N];
 
 export type SpyMessage = {
+  message: true,
   key?: string,
   value: any,
   loc: string,
@@ -53,7 +54,7 @@ export type RHSObject = Trace | Location | RHSCheck | SpyMessage | SpyValue;
 
 export function isSpyValue(a: RHSObject): a is SpyValue {
   const hasProp = Object.prototype.hasOwnProperty;
-  return hasProp.call(a, 'key') && hasProp.call(a, 'value') && hasProp.call(a, 'loc');
+  return hasProp.call(a, 'key') && hasProp.call(a, 'value') && hasProp.call(a, 'loc') && !hasProp.call(a, 'message');
 }
 
 export function isSpyMessage(a: RHSObject): a is SpyMessage {

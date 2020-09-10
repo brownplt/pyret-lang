@@ -107,7 +107,7 @@ function RHS({
             }}
             onMouseEnter={selectThisChunk}
           >
-            <RenderedValue value={rhsObject.value ? `Spying "${rhsObject.value}" at: ${rhsObject.loc}` : `Spying at ${rhsObject.loc}`} />
+            <RenderedValue value={rhsObject} />
           </pre>
         );
       }
@@ -122,7 +122,7 @@ function RHS({
             }}
             onMouseEnter={selectThisChunk}
           >
-            <RenderedValue value={`${rhsObject.value.key} = ${rhsObject.value.value} (${rhsObject.loc})`} />
+            <RenderedValue value={rhsObject} />
           </pre>
         );
       }

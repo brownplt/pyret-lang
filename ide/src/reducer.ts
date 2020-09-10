@@ -814,6 +814,8 @@ function handleSetRHS(
   state: State,
   value: 'make-outdated' | 'reset-spy-data' | SpyMessage | SpyValue,
 ) {
+  console.log('handleSetRHS', value);
+
   const {
     rhs,
   } = state;

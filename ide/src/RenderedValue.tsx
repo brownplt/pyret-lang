@@ -5,13 +5,18 @@ import ImageWidget from './Image';
 import ChartWidget from './Chart';
 import ReactorWidget from './Reactor';
 
+import {
+  isSpyMessage,
+  isSpyValue,
+} from './rhsObject';
+
 type RenderedValueProps = {
   value: any;
 };
 
 type RenderedValueState = {};
 
-function convert(value: any) {
+function convert(value: any): any {
   if (value === undefined) {
     return 'undefined';
   }
@@ -78,7 +83,17 @@ function convert(value: any) {
       const message = `${value.length - 100} elements hidden`;
       return JSON.stringify(value.slice(0, 100).concat([`... ${message}`]));
     }
+
+    if (isSpyValue(value)) {
+      return `${value.value.key} = ${convert(value.value.value)} (${value.loc})`;
+    }
+
+    if (isSpyMessage(value)) {
+      return value.value ? `Spying "${value.value}" at: ${value.loc}` : `Spying at ${value.loc}`;
+    }
+
     // TODO(michael) palceholder for better object display
+    console.log('idk: ', value);
     return `${value}`;
   }
   return 'error: data is not string-convertible';
