@@ -79,7 +79,7 @@ function convert(value: any) {
       return JSON.stringify(value.slice(0, 100).concat([`... ${message}`]));
     }
     // TODO(michael) palceholder for better object display
-    return JSON.stringify(value);
+    return `${value}`;
   }
   return 'error: data is not string-convertible';
 }
