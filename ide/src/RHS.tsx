@@ -3,6 +3,7 @@ import { connect, ConnectedProps } from 'react-redux';
 import RenderedValue from './RenderedValue';
 import { State } from './state';
 import {
+  RHSObject,
   RHSObjects,
   isSpyValue,
   isSpyMessage,
@@ -69,8 +70,14 @@ function RHS({
   focusedChunk,
   setFocusedChunk,
 }: RHSProps) {
+  function compareRHSObjects(a: RHSObject, b: RHSObject): number {
+    return getRow(a) - getRow(b);
+  }
+
+  const objects = [...rhs.objects, ...rhs.spyData].sort(compareRHSObjects);
+
   const elements = (
-    rhs.objects.map((rhsObject) => {
+    objects.map((rhsObject) => {
       const row = getRow(rhsObject);
       const chunk = findChunkFromSrcloc(
         chunks,

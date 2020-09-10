@@ -126,10 +126,6 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObjects
     $traces,
   } = result.result;
 
-  function compareRHSObjects(a: RHSObject, b: RHSObject): number {
-    return getRow(a) - getRow(b);
-  }
-
   // only keep toplevel expressions from this module.
   const justTraces: RHSObject[] = $traces.filter((t) => t.srcloc[0] === moduleUri);
 
@@ -141,11 +137,9 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObjects
   const nonBuiltinChecks = $checks.filter((c) => !/builtin/.test(c.loc));
   const withChecks = withLocations.concat(nonBuiltinChecks);
 
-  const sorted = withChecks.sort(compareRHSObjects);
-
   // Add unique keys to each object so that React can re-render them properly.
   // We assume that each trace / check / location came from a different row.
-  const withKeys = sorted.map((rhsObject) => ({
+  const withKeys = withChecks.map((rhsObject) => ({
     key: getRow(rhsObject).toString(),
     ...rhsObject,
   }));
