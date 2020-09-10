@@ -97,7 +97,7 @@ type DispatchProps = {
   setChunks: (chunks: ChunksUpdate) => void,
   enqueueEffect: (effect: Effect) => void,
   setShouldAdvanceCursor: (value: boolean) => void,
-  setRHS: (value: RHSObjects) => void,
+  setRHS: () => void,
   setFirstSelectedChunkIndex: (value: false | number) => void,
 };
 
@@ -115,8 +115,8 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     setShouldAdvanceCursor(value: boolean) {
       dispatch({ type: 'update', key: 'shouldAdvanceCursor', value });
     },
-    setRHS(value: RHSObjects) {
-      dispatch({ type: 'update', key: 'rhs', value });
+    setRHS() {
+      dispatch({ type: 'update', key: 'rhs', value: 'make-outdated' });
     },
     setFirstSelectedChunkIndex(value: false | number) {
       dispatch({ type: 'update', key: 'firstSelectedChunkIndex', value });
@@ -335,7 +335,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     });
 
     if (!rhs.outdated) {
-      setRHS({ ...rhs, outdated: true });
+      setRHS();
     }
   }
 

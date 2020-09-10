@@ -2,8 +2,8 @@ import { Chunk } from './chunk';
 import { EditorMode } from './state';
 import { Effect } from './effect';
 import {
-  RHSObjects,
-  RHSObject,
+  SpyMessage,
+  SpyValue,
 } from './rhsObject';
 import * as control from './control';
 
@@ -78,7 +78,7 @@ export type Update =
   | { key: 'firstSelectedChunkIndex', value: false | number }
   | { key: 'debugBorders', value: boolean }
   | { key: 'displayResultsInline', value: boolean }
-  | { key: 'rhs', value: RHSObjects | RHSObject });
+  | { key: 'rhs', value: 'make-outdated' | 'reset-spy-data' | SpyMessage | SpyValue });
 
 export type UpdateKey = Update['key'];
 

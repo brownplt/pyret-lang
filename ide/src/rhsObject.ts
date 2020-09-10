@@ -105,6 +105,7 @@ export function getRow(hasSrcLoc: HasSrcLoc): number {
 
 export type RHSObjects = {
   objects: RHSObject[],
+  spyData: (SpyMessage | SpyValue)[]
   outdated: boolean,
 };
 
@@ -152,5 +153,10 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObjects
   return {
     objects: withKeys,
     outdated: false,
+
+    // The spy messages (if any) are already present in the Redux store. A
+    // reducer will interleave them with this object so we don't have to!
+    // See also: 'handleRunSuccess' (reducer).
+    spyData: [],
   };
 }

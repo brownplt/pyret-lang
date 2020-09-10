@@ -67,6 +67,7 @@ export const initialState: State = {
   typeCheck: true,
   rhs: {
     objects: [],
+    spyData: [],
     outdated: false,
   },
   interactionErrors: [],

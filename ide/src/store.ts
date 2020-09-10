@@ -214,6 +214,11 @@ function handleCompile(dispatch: Dispatch, path: string, typeCheck: boolean) {
 
 function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
   const { base } = control.bfsSetup.path.parse(currentFile);
+  dispatch({
+    type: 'update',
+    key: 'rhs',
+    value: 'reset-spy-data',
+  });
   control.run(
     control.path.runBase,
     `${base}.js`,
