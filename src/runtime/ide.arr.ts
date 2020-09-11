@@ -10,6 +10,7 @@ RUNTIME.$setSpyMessageHandler((data: { message: string, loc: string}) => {
       type: 'update',
       key: 'rhs',
       value: {
+        tag: "spy-message",
         message: true,
         value,
         key: data.loc,
@@ -32,6 +33,7 @@ RUNTIME.$setSpyValueHandler((data: { key: string, value: any, loc: string}) => {
       type: 'update',
       key: 'rhs',
       value: {
+        tag: "spy-value",
         value: {
           key: data.key,
           value: data.value,
