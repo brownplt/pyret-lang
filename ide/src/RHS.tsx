@@ -172,46 +172,7 @@ function RHS({
             }}
             onMouseEnter={selectThisChunk}
           >
-            Test
-            {' '}
-            {rhsObject.success ? 'succeeded' : 'failed'}
-            {' '}
-            at
-            {' '}
-            {rhsObject.loc}
-            {rhsObject.success === false && (
-              <div style={{
-                paddingLeft: '1em',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                >
-                  {'The left side was: '}
-                  {rhsObject.lhs.exception === true ? (
-                    <RenderedValue value={rhsObject.lhs.exception_val} />
-                  ) : (
-                    <RenderedValue value={rhsObject.lhs.value} />
-                  )}
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                >
-                  {'The right side was: '}
-                  {rhsObject.rhs.exception === true ? (
-                    <RenderedValue value={rhsObject.rhs.exception_val} />
-                  ) : (
-                    <RenderedValue value={rhsObject.rhs.value} />
-                  )}
-                </div>
-              </div>
-            )}
+            <RenderedValue value={rhsObject} />
           </pre>
         );
       }
