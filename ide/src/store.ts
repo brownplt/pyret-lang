@@ -473,7 +473,9 @@ const store = createStore(
 );
 
 // @ts-ignore
-window.dispatch = store.dispatch;
+window.ide = {
+  dispatch: store.dispatch,
+};
 
 store.subscribe(() => {
   const state = store.getState();

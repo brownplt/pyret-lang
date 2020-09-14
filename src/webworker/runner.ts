@@ -96,7 +96,7 @@ export const makeRequireAsync = (basePath: string): ((importPath: string) => Pro
       isNaN,
       isFinite,
       // @ts-ignore
-      dispatch: window.dispatch,
+      ide: window.ide,
     });
     runner.path = nextPath;
     currentRunner = runner;
