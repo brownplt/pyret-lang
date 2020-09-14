@@ -129,6 +129,11 @@ export class Editor extends React.Component<EditorProps, any> {
         return;
       }
 
+      const shareableLink = document.getElementById('shareableLink');
+      if (shareableLink) {
+        return;
+      }
+
       let data = '';
 
       chunks.forEach((chunk, i) => {
