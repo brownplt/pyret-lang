@@ -5,13 +5,19 @@ import ImageWidget from './Image';
 import ChartWidget from './Chart';
 import ReactorWidget from './Reactor';
 
+import {
+  isSpyMessage,
+  isSpyValue,
+  isRHSCheck,
+} from './rhsObject';
+
 type RenderedValueProps = {
   value: any;
 };
 
 type RenderedValueState = {};
 
-function convert(value: any) {
+function convert(value: any): any {
   if (value === undefined) {
     return 'undefined';
   }
@@ -79,8 +85,65 @@ function convert(value: any) {
       const message = `${value.length - 100} elements hidden`;
       return JSON.stringify(value.slice(0, 100).concat([`... ${message}`]));
     }
+
+    if (isSpyValue(value)) {
+      return `${value.value.key} = ${convert(value.value.value)} (${value.loc})`;
+    }
+
+    if (isSpyMessage(value)) {
+      return value.value ? `Spying "${value.value}" at: ${value.loc}` : `Spying at ${value.loc}`;
+    }
+
+    if (isRHSCheck(value)) {
+      return (
+        <div>
+          Test
+          {' '}
+          {value.success ? 'succeeded' : 'failed'}
+          {' '}
+          at
+          {' '}
+          {value.loc}
+          {value.success === false && (
+            <div style={{
+              paddingLeft: '1em',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              >
+                {'The left side was: '}
+                {value.lhs.exception === true ? (
+                  <RenderedValue value={value.lhs.exception_val} />
+                ) : (
+                  <RenderedValue value={value.lhs.value} />
+                )}
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+              }}
+              >
+                {'The right side was: '}
+                {value.rhs.exception === true ? (
+                  <RenderedValue value={value.rhs.exception_val} />
+                ) : (
+                  <RenderedValue value={value.rhs.value} />
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     // TODO(michael) palceholder for better object display
-    return JSON.stringify(value);
+    console.log('idk: ', value);
+    return `${value}`;
   }
   return 'error: data is not string-convertible';
 }

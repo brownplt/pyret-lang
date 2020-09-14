@@ -3,7 +3,10 @@ import { connect, ConnectedProps } from 'react-redux';
 import RenderedValue from './RenderedValue';
 import { State } from './state';
 import {
+  RHSObject,
   RHSObjects,
+  isSpyValue,
+  isSpyMessage,
   isTrace,
   isLocation,
   isRHSCheck,
@@ -67,8 +70,14 @@ function RHS({
   focusedChunk,
   setFocusedChunk,
 }: RHSProps) {
+  function compareRHSObjects(a: RHSObject, b: RHSObject): number {
+    return getRow(a) - getRow(b);
+  }
+
+  const objects = [...rhs.objects, ...rhs.spyData].sort(compareRHSObjects);
+
   const elements = (
-    rhs.objects.map((rhsObject) => {
+    objects.map((rhsObject) => {
       const row = getRow(rhsObject);
       const chunk = findChunkFromSrcloc(
         chunks,
@@ -86,6 +95,36 @@ function RHS({
         if (chunk !== false) {
           setFocusedChunk(chunk);
         }
+      }
+
+      if (isSpyMessage(rhsObject)) {
+        return (
+          <pre
+            key={rhsObject.key}
+            style={{
+              paddingLeft: '1em',
+              ...selectedStyle,
+            }}
+            onMouseEnter={selectThisChunk}
+          >
+            <RenderedValue value={rhsObject} />
+          </pre>
+        );
+      }
+
+      if (isSpyValue(rhsObject)) {
+        return (
+          <pre
+            key={rhsObject.key}
+            style={{
+              paddingLeft: '1em',
+              ...selectedStyle,
+            }}
+            onMouseEnter={selectThisChunk}
+          >
+            <RenderedValue value={rhsObject} />
+          </pre>
+        );
       }
 
       if (isTrace(rhsObject)) {
@@ -133,46 +172,7 @@ function RHS({
             }}
             onMouseEnter={selectThisChunk}
           >
-            Test
-            {' '}
-            {rhsObject.success ? 'succeeded' : 'failed'}
-            {' '}
-            at
-            {' '}
-            {rhsObject.loc}
-            {rhsObject.success === false && (
-              <div style={{
-                paddingLeft: '1em',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                >
-                  {'The left side was: '}
-                  {rhsObject.lhs.exception === true ? (
-                    <RenderedValue value={rhsObject.lhs.exception_val} />
-                  ) : (
-                    <RenderedValue value={rhsObject.lhs.value} />
-                  )}
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                >
-                  {'The right side was: '}
-                  {rhsObject.rhs.exception === true ? (
-                    <RenderedValue value={rhsObject.rhs.exception_val} />
-                  ) : (
-                    <RenderedValue value={rhsObject.rhs.value} />
-                  )}
-                </div>
-              </div>
-            )}
+            <RenderedValue value={rhsObject} />
           </pre>
         );
       }

@@ -20,7 +20,7 @@ type StateProps = {
 
 type DispatchProps = {
   handleReorder: any,
-  setRHS: (value: RHSObjects) => void,
+  setRHS: () => void,
 };
 
 function mapStateToProps(state: State): StateProps {
@@ -106,8 +106,8 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
         dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
       }
     },
-    setRHS(value: RHSObjects) {
-      dispatch({ type: 'update', key: 'rhs', value });
+    setRHS() {
+      dispatch({ type: 'update', key: 'rhs', value: 'make-outdated' });
     },
   };
 }
@@ -121,7 +121,6 @@ function DefChunks({
   handleReorder,
   chunks,
   focusedChunk,
-  rhs,
   setRHS,
   debugBorders,
 }: DefChunksProps) {
@@ -130,14 +129,14 @@ function DefChunks({
         && result.source!.index !== result.destination!.index) {
       if (focusedChunk === undefined) {
         handleReorder(result, chunks, false);
-        setRHS({ ...rhs, outdated: true });
+        setRHS();
       } else {
         const fc = chunks[focusedChunk];
         if (fc === undefined) {
           throw new Error('onDragEnd: chunks[focusedChunk] is undefined');
         }
         handleReorder(result, chunks, fc.id);
-        setRHS({ ...rhs, outdated: true });
+        setRHS();
       }
     }
   };

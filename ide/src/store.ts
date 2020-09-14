@@ -202,6 +202,11 @@ function handleCompile(dispatch: Dispatch, path: string, typeCheck: boolean) {
 
 function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
   const { base } = control.bfsSetup.path.parse(currentFile);
+  dispatch({
+    type: 'update',
+    key: 'rhs',
+    value: 'reset-spy-data',
+  });
   control.run(
     control.path.runBase,
     `${base}.js`,
@@ -454,6 +459,11 @@ const store = createStore(
   ideApp,
   (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__(),
 );
+
+// @ts-ignore
+window.ide = {
+  dispatch: store.dispatch,
+};
 
 store.subscribe(() => {
   const state = store.getState();

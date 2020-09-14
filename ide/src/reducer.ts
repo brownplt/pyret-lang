@@ -32,7 +32,8 @@ import {
 import {
   makeRHSObjects,
   RHSObjects,
-  RHSObject,
+  SpyMessage,
+  SpyValue,
 } from './rhsObject';
 
 function handleEnter(state: State): State {
@@ -249,6 +250,8 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
   console.log('run result', status);
   const rhs = makeRHSObjects(status.result, `file://${state.currentFile}`);
 
+  const oldRHS = state.rhs;
+
   const {
     chunks,
     currentFile,
@@ -286,7 +289,11 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
     ...state,
     chunks: newChunks,
     running: false,
-    rhs,
+    rhs: {
+      ...oldRHS,
+      objects: rhs.objects,
+      outdated: rhs.outdated,
+    },
   });
 }
 
@@ -803,21 +810,40 @@ function handleSetMenuTabVisible(state: State, tab: false | number) {
   return { ...state, menuTabVisible: tab };
 }
 
-function handleSetRHS(state: State, value: RHSObjects | RHSObject) {
-  if (Object.prototype.hasOwnProperty.call(value, 'objects')) {
-    const v: RHSObjects = (value as any);
-    return { ...state, rhs: v };
-  }
+function handleSetRHS(
+  state: State,
+  value: 'make-outdated' | 'reset-spy-data' | SpyMessage | SpyValue,
+) {
+  console.log('handleSetRHS', value);
 
   const {
     rhs,
   } = state;
 
-  const v: RHSObject = (value as any);
-  const newObjects: RHSObject[] = [...rhs.objects, v];
+  if (value === 'reset-spy-data') {
+    return {
+      ...state,
+      rhs: {
+        ...rhs,
+        spyData: [],
+      },
+    };
+  }
+
+  if (value === 'make-outdated') {
+    return {
+      ...state,
+      rhs: {
+        ...rhs,
+        outdated: true,
+      },
+    };
+  }
+
+  const v: SpyMessage | SpyValue = (value as any);
   const newRHS: RHSObjects = {
     ...rhs,
-    objects: newObjects,
+    spyData: [...rhs.spyData, v],
   };
 
   return {
