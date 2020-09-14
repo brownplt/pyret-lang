@@ -1,10 +1,10 @@
 import { createStore } from 'redux';
 import ideApp from './reducer';
-import { EditorMode, CHUNKSEP, State } from './state';
+import { EditorMode, State } from './state';
 import {
   Chunk,
-  emptyChunk,
-  notLintedState,
+  makeChunksFromString,
+  CHUNKSEP,
 } from './chunk';
 import { Action } from './action';
 import { RunKind } from './backend';
@@ -46,19 +46,7 @@ function handleLoadFile(
       dispatch({ type: 'update', key: 'currentFileContents', value: contents });
       break;
     case EditorMode.Chunks: {
-      const chunkStrings = contents.split(CHUNKSEP);
-      let totalLines = 0;
-      const chunks = chunkStrings.map((chunkString) => {
-        const chunk: Chunk = emptyChunk({
-          text: chunkString,
-          startLine: totalLines,
-          errorState: notLintedState,
-        });
-
-        totalLines += chunkString.split('\n').length;
-
-        return chunk;
-      });
+      const chunks = makeChunksFromString(contents);
 
       dispatch({
         type: 'update',
@@ -491,6 +479,16 @@ store.subscribe(() => {
 });
 
 store.dispatch({ type: 'enqueueEffect', effect: 'setupWorkerMessageHandler' });
+
+const maybeEncodedProgram: null | string = new URLSearchParams(window.location.search).get('program');
+
+if (maybeEncodedProgram !== null) {
+  const decodedProgram = decodeURIComponent(maybeEncodedProgram);
+  const chunks: Chunk[] = makeChunksFromString(decodedProgram);
+  store.dispatch({ type: 'update', key: 'chunks', value: { chunks, modifiesText: true } });
+  store.dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
+}
+
 store.dispatch({ type: 'enqueueEffect', effect: 'loadFile' });
 
 export default store;

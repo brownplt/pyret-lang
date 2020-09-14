@@ -17,6 +17,7 @@ function convert(value: any) {
   }
 
   if (typeof value === 'number') {
+    console.log('convert', value);
     return value.toString();
   }
 

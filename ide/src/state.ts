@@ -111,5 +111,3 @@ export const initialState: State = {
   debugBorders: false,
   displayResultsInline: false,
 };
-
-export const CHUNKSEP = '#.CHUNK#\n';

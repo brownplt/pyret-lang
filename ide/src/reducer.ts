@@ -17,11 +17,11 @@ import {
   EditorMode,
   State,
   initialState,
-  CHUNKSEP,
 } from './state';
 
 import {
   Chunk,
+  CHUNKSEP,
   getStartLineForIndex,
   findChunkFromSrcloc,
   emptyChunk,

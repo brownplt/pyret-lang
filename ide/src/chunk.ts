@@ -1,6 +1,8 @@
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { v4 as uuidv4 } from 'uuid';
 
+export const CHUNKSEP = '#.CHUNK#\n';
+
 export type ErrorState =
   ({ status: 'failed', effect: 'lint' | 'compile', failures: string[], highlights: number[][] }
   | { status: 'succeeded', effect: 'lint' | 'compile' }
@@ -74,6 +76,23 @@ export function emptyChunk(options?: Partial<Chunk>): Chunk {
     selection: emptySelection,
     ...options,
   };
+}
+
+export function makeChunksFromString(s: string): Chunk[] {
+  const chunkStrings = s.split(CHUNKSEP);
+  let totalLines = 0;
+  const chunks = chunkStrings.map((chunkString) => {
+    const chunk: Chunk = emptyChunk({
+      text: chunkString,
+      startLine: totalLines,
+      errorState: notLintedState,
+    });
+
+    totalLines += chunkString.split('\n').length;
+
+    return chunk;
+  });
+  return chunks;
 }
 
 export function removeSelection(chunk: Chunk): Chunk {
