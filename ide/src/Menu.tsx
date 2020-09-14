@@ -168,7 +168,7 @@ function Menu({
                 <button
                   onClick={() => {
                     if (currentFileContents !== undefined) {
-                      setEncodedUrl(`${document.location.origin}?program=${encodeURIComponent(currentFileContents)}`);
+                      setEncodedUrl(`${document.location.origin}${document.location.pathname}?program=${encodeURIComponent(currentFileContents)}`);
                     }
                   }}
                   className="option"
