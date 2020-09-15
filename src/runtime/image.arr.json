@@ -3,6 +3,14 @@
     {
         "import-type": "builtin",
         "name": "primitive-types"
+    },
+    {
+        "import-type": "builtin",
+        "name": "either"
+    },
+    {
+        "import-type": "builtin",
+        "name": "lists"
     }
   ],
   "provides": {
@@ -10,7 +18,7 @@
       "Image": ["local", "Image"],
       "Color": ["local", "Color"],
       "lOfC": ["tyapp", { "tag": "name",
-                "origin": { "import-type": "uri", "uri": "builtin://list" },
+                "origin": { "import-type": "uri", "uri": "builtin://lists" },
                 "name": "List" }, [["local", "Color"]]]
     },
     "values": {
@@ -74,8 +82,8 @@
       "is-y-place": ["arrow", ["Any"], "Boolean"],
       "color-at-position": ["arrow", ["Image", "Number", "Number"], "Color"],
       "image-to-color-list": ["arrow", ["Image"], "lOfC"],
-      "color-list-to-image": ["arrow", ["Any", "Number", "Number", "Number", "Number"], "Image"],
-      "color-list-to-bitmap": ["arrow", ["Any", "Number", "Number"], "Image"],
+      "color-list-to-image": ["arrow", ["lOfC", "Number", "Number", "Number", "Number"], "Image"],
+      "color-list-to-bitmap": ["arrow", ["lOfC", "Number", "Number"], "Image"],
       "put-image": ["arrow", ["Image", "Number", "Number", "Image"], "Image"],
       "place-image": ["arrow", ["Image", "Number", "Number", "Image"], "Image"],
       "place-image-align": ["arrow", ["Image", "Number", "Number", "String", "String", "Image"], "Image"],
@@ -87,9 +95,7 @@
       "colorDb": "Any"
     },
     "aliases": {
-      "Image": { "tag": "name",
-                 "origin": { "import-type": "uri", "uri": "builtin://image" },
-                 "name": "Image" },
+      "Image": ["local", "Image"],
       "Color": ["local", "Color"]
     },
     "datatypes": {

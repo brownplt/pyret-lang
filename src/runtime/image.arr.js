@@ -1,6 +1,7 @@
 const jsnums = require("./js-numbers.js");
 const RUNTIME = require("./runtime.js");
 const Either = require("./either.arr.js");
+const LISTS = require("./lists.arr.js");
 
 var hasOwnProperty = {}.hasOwnProperty;
 
@@ -395,7 +396,7 @@ var heir = Object.create;
 
 var isAngle = /* @stopify flat */ function (x) {
   return jsnums.isReal(x) &&
-    jsnums.greaterThanOrEqual(x, 0, RUNTIME.NumberErrbacks) &&
+    jsnums.greaterThanOrEqual(x, 0, EQUALITY.NumberErrbacks) &&
     jsnums.lessThan(x, 360, RUNTIME.NumberErrbacks);
 };
 
@@ -1682,7 +1683,7 @@ var colorAtPosition = /* @stopify flat */ function (img, x, y) {
 };
 
 var imageToColorList = /* @stopify flat */ function (img) {
-  var width = img.getWidth(),
+  let width = img.getWidth(),
     height = img.getHeight(),
     canvas = makeCanvas(width, height),
     ctx = canvas.getContext("2d"),
@@ -1693,13 +1694,13 @@ var imageToColorList = /* @stopify flat */ function (img) {
   img.render(ctx, 0, 0);
   imageData = ctx.getImageData(0, 0, width, height);
   data = imageData.data;
-  var colors = [];
-  for (i = 0; i < data.length; i += 4) {
+  let colors = LISTS.empty;
+  for (let i = data.length - 1; i >= 0; i -= 4) {
     r = data[i];
     g = data[i + 1];
     b = data[i + 2];
     a = data[i + 3] / 255;
-    colors.push(makeColor(r, g, b, a));
+    colors = link(makeColor(r, g, b, a), colors);
   }
   return colors;
 };
@@ -1710,16 +1711,8 @@ var colorListToImage = /* @stopify flat */ function (listOfColors,
   pinholeX,
   pinholeY) {
   // make list of color names to list of colors
-  var lOfC = [];
-  if (typeof listOfColors[0] === "string") {
-    for (let i = 0; i < listOfColors.length; i++) {
-      lOfC.push(colorDb.get(String(listOfColors[i])));
-    }
-  } else if (isColor(listOfColors[0])) {
-    lOfC = listOfColors;
-  } else {
-    throw new Error("List is not made of Colors or name of colors");
-  }
+
+  const arrayOfColors = LISTS["to-raw-array"](listOfColors);
   var canvas = makeCanvas(jsnums.toFixnum(width),
     jsnums.toFixnum(height)),
     ctx = canvas.getContext("2d"),
@@ -1727,7 +1720,7 @@ var colorListToImage = /* @stopify flat */ function (listOfColors,
       jsnums.toFixnum(height)),
     aColor,
     data = imageData.data,
-    jsLOC = lOfC;
+    jsLOC = arrayOfColors;
   for (var i = 0; i < jsLOC.length * 4; i += 4) {
     aColor = jsLOC[i / 4];
     // NOTE(ben): Flooring colors here to make this a proper RGBA image
