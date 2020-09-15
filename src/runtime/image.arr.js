@@ -611,7 +611,7 @@ BaseImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
 
   // we care about the stroke because drawing to a canvas is *different* for
   // fill v. stroke! If it's outline, we can draw on the pixel boundaries and
-  // stroke within them. If it's stroke, we need to draw _inside_ those 
+  // stroke within them. If it's stroke, we need to draw _inside_ those
   // boundaries, adjusting by a half-pixel towards the center.
   var isSolid = this.style.toString().toLowerCase() !== "outline";
 
