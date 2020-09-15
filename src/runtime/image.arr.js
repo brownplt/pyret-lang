@@ -1682,7 +1682,15 @@ var colorAtPosition = /* @stopify flat */ function (img, x, y) {
   return makeColor(r, g, b, a);
 };
 
-var imageToColorList = /* @stopify flat */ function (img) {
+// NOTE(alex): The non-flat wrapper is necessary b/c "lists" functions may be stopified
+//   but may not be called from a "stopify-flat" function
+function imageToColorList(img) {
+    const colorRawArray = innerImageToColorList(img);
+    return LISTS["raw-array-to-list"](colorRawArray);
+}
+
+/* @stopify flat */
+function innerImageToColorList(img) {
   let width = img.getWidth(),
     height = img.getHeight(),
     canvas = makeCanvas(width, height),
@@ -1694,25 +1702,31 @@ var imageToColorList = /* @stopify flat */ function (img) {
   img.render(ctx, 0, 0);
   imageData = ctx.getImageData(0, 0, width, height);
   data = imageData.data;
-  let colors = LISTS.empty;
-  for (let i = data.length - 1; i >= 0; i -= 4) {
+  let colors = [];
+  for (let i = 0; i < data.length; i += 4) {
     r = data[i];
     g = data[i + 1];
     b = data[i + 2];
     a = data[i + 3] / 255;
-    colors = link(makeColor(r, g, b, a), colors);
+    colors.push(makeColor(r, g, b, a));
   }
   return colors;
 };
 
-var colorListToImage = /* @stopify flat */ function (listOfColors,
+// NOTE(alex): Same situation as imageToColorList
+function colorListToImage(listOfColors, width, height, pinholeX, pinholeY) {
+  const arrayOfColors = LISTS["to-raw-array"](listOfColors);
+  return innerColorListToImage(arrayOfColors, width, height, pinholeX, pinholeY);
+}
+
+/* @stopify flat */
+function innerColorListToImage(arrayOfColors,
   width,
   height,
   pinholeX,
   pinholeY) {
   // make list of color names to list of colors
 
-  const arrayOfColors = LISTS["to-raw-array"](listOfColors);
   var canvas = makeCanvas(jsnums.toFixnum(width),
     jsnums.toFixnum(height)),
     ctx = canvas.getContext("2d"),
