@@ -9,6 +9,7 @@ import either as E
 import equality as equality
 import raw-array as RA
 import number as N
+import list-perf as LP
 # import valueskeleton as VS
 # valueskeleton only used on one method (_output)
 
@@ -49,7 +50,6 @@ include from equality:
     equal-always3,
     identical3,
 end
-
 
 # TODO(alex):
 #   1) The 'list' constructor expression breaks function ordering
@@ -1126,6 +1126,9 @@ fun min(lst :: List<Number>) -> Number:
 
   helper(lst, min-v)
 end
+
+# NOTE: To avoid a cyclic dependency, need to explictly pass variant recognizers, constructors, etc.
+LP.setup(is-link, is-empty)
 
 member-always3 = member3
 member-always = member

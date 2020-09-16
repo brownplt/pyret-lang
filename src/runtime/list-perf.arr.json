@@ -1,0 +1,31 @@
+{
+  "requires": [
+  ],
+  "provides": {
+    "shorthands": {
+      "tva": ["tid", "a"],
+      "tvb": ["tid", "b"],
+      "lOfA": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://lists" },
+                "name": "List" }, [["tid", "a"]]],
+      "lOfB": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://lists" },
+                "name": "List" }, [["tid", "b"]]]
+    },
+    "values": {
+      "setup": ["arrow", ["tany", "tany"], "Nothing"],
+      "perf-filter": ["forall", ["a"],
+        ["arrow",
+          [["arrow", ["tva"], "Boolean"],"lOfA"],
+          "lOfA"
+        ]
+      ],
+      "perf-map": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], "lOfA"], "lOfB"]],
+      "perf-foldl": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "lOfA"], "tvb"]],
+      "perf-foldr": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "lOfA"], "tvb"]]
+    },
+    "aliases": { },
+    "datatypes": { }
+  }
+}
+
