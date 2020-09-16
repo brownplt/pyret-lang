@@ -1,4 +1,5 @@
 /* eslint-disable */
+import { SpyExpr, SpyObject } from "./common-runtime-types";
 
 const csv = require('csv-parse/lib/sync');
 const assert = require('assert');
@@ -17,6 +18,12 @@ const nodeModules = {
   fs: browserFS.fs,
   immutable,
 };
+
+export interface RunTimeConfig {
+  spy
+}
+
+export interface SpyMessageCallback = (x: any
 
 /**
   This wrapping is necessary because otherwise require, exports, and module

@@ -1,5 +1,11 @@
 import { callbackify } from "util";
 import { NumericErrorCallbacks } from "./equality";
+import { SpyExpr,
+  SpyObject,
+  CheckResult,
+  CheckExprEvalResult,
+  CheckTestResult,
+} from "./common-runtime-types";
 
 // TODO(alex): `import type` syntax is causing a parsing error
 // import type { NumericErrorCallbacks } from "equality";
@@ -21,18 +27,6 @@ const _PRIMITIVES = require("./primitives.js");
 
 var $spyMessageHandler = null;
 var $spyValueHandler = null;
-
-export interface SpyExpr {
-  key: string,
-  expr: () => any,
-  loc: string
-}
-
-export interface SpyObject {
-  message: () => string,
-  loc: string,
-  exprs: SpyExpr[],
-}
 
 export function $setSpyMessageHandler(handler) {
   $spyMessageHandler = handler;
@@ -70,26 +64,6 @@ function _spy(spyObject: SpyObject): void {
 }
 
 // *********Check Stuff*********
-interface CheckResult {
-  success: boolean,
-  path: string,
-  loc: string,
-  lhs: CheckExprEvalResult,
-  rhs: CheckExprEvalResult,
-  exception?: any,
-}
-
-interface CheckExprEvalResult {
-  value: any,
-  exception: boolean,
-  exception_val: any,
-}
-
-interface CheckTestResult {
-  success: boolean,
-  lhs: CheckExprEvalResult,
-  rhs: CheckExprEvalResult,
-}
 
 var _globalCheckContext: string[] = [];
 var _globalCheckResults: CheckResult[] = [];
