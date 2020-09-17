@@ -237,18 +237,32 @@ export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPa
 
 function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: RuntimeConfig) {
   // NOTE(alex): May need to find a better way to detect the runtime file eval
-  if (!currentPath.includes("builtins/runtime.js") || rtCfg === undefined) {
+  if (!currentPath.includes("builtin/runtime.js")) {
+    console.log(`RUNNER: not runtime: ${currentPath}`);
     return;
   }
 
+  if (rtCfg === undefined) {
+    console.log('RUNNER: config undefined');
+    return;
+  }
+
+  console.log(`RUNNER: FOUND RUNTIME ${currentPath}`);
+
   if (rtCfg.spyMessgeHandler) {
+    console.log("RUNNER: py message handler");
     // @ts-ignore
     evaldModule["$setSpyMessageHandler"](rtCfg.spyMessgeHandler);
+  } else {
+    console.log("RUNNER: No spy message handler");
   }
 
   if (rtCfg.spyExprHandler) {
+    console.log("RUNNER: spy expr handler");
     // @ts-ignore
     evaldModule["$setSpyValueHandler"](rtCfg.spyExprHandler);
+  } else {
+    console.log("RUNNER No spy expr handler");
   }
 
 }
