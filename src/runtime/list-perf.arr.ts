@@ -28,20 +28,16 @@ function arrayToList(array) {
 }
 
 function foldr(f, base, list) {
-  let acc = base;
-  let stack = [];
 
-  let current = list;
-  while (IS_LINK(current)) {
-    stack.push(current.first);
-    current = current.rest;
+  function helper(acc, current) {
+    if (IS_LINK(current)) {
+      return f(helper(acc, current.rest), current.first);
+    }
+
+    return acc;
   }
 
-  for (let i = stack.length - 1; i >= 0; i--) {
-    acc = f(acc, stack[i]);
-  }
-
-  return acc;
+  return helper(base, list);
 }
 
 function foldl(f, base, list) {
