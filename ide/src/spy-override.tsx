@@ -1,5 +1,3 @@
-const RUNTIME = require("./runtime.js");
-
 const IDE = (
   () => {
     // @ts-ignore
