@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { SpyExpr, SpyObject } from "./common-runtime-types";
+import { RuntimeConfig, SpyExprResult, SpyMessageResult } from "../runtime/common-runtime-types";
 
 const csv = require('csv-parse/lib/sync');
 const assert = require('assert');
@@ -19,12 +19,6 @@ const nodeModules = {
   immutable,
 };
 
-export interface RunTimeConfig {
-  spy
-}
-
-export interface SpyMessageCallback = (x: any
-
 /**
   This wrapping is necessary because otherwise require, exports, and module
   will be interpreted as *global* by stopify. However, these really need to
@@ -42,7 +36,7 @@ function wrapContent(content: string): string {
   return `(function(require, exports, module) { ${content} })(require, exports, module);`;
 }
 
-export const makeRequireAsync = (basePath: string): ((importPath: string) => Promise<any>
+export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => Promise<any>
   ) => {
   let currentRunner: any = null;
   const cache : {[key:string]: any} = {};
@@ -114,6 +108,7 @@ export const makeRequireAsync = (basePath: string): ((importPath: string) => Pro
           reject(result);
         } else {
           const toReturn = runner.g.module.exports;
+          handleRuntimeConfig(cachePath, toReturn, rtCfg);
           cache[cachePath] = toReturn;
           resolve(toReturn);
         }
@@ -177,6 +172,7 @@ export const makeRequireAsync = (basePath: string): ((importPath: string) => Pro
           currentRunner.g.module = lastModule;
           // Need to set 'exports' global to work with TS export desugaring
           currentRunner.g.exports = lastModule.exports;
+          handleRuntimeConfig(cachePath, toReturn, rtCfg);
           cache[cachePath] = toReturn;
           kontinue({ type: 'normal', value: toReturn });
         });
@@ -186,7 +182,7 @@ export const makeRequireAsync = (basePath: string): ((importPath: string) => Pro
   return requireAsyncMain;
 };
 
-export const makeRequire = (basePath: string): ((importPath: string) => any) => {
+export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => any) => {
   const cache : {[key:string]: any} = {};
   let cwd = basePath;
   /*
@@ -225,6 +221,7 @@ export const makeRequire = (basePath: string): ((importPath: string) => any) => 
     };
     const result = f(requireSync, module, module.exports);
     const toReturn = module.exports ? module.exports : result;
+    handleRuntimeConfig(nextPath, toReturn, rtCfg);
     cwd = oldWd;
     cache[nextPath] = toReturn;
     return toReturn;
@@ -232,3 +229,19 @@ export const makeRequire = (basePath: string): ((importPath: string) => any) => 
 
   return requireSync;
 };
+
+function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: RuntimeConfig) {
+  // NOTE(alex): May need to find a better way to detect the runtime file eval
+  if (!currentPath.includes("builtins/runtime.js") || rtCfg === undefined) {
+    return;
+  }
+
+  if (rtCfg.spyMessgeHandler) {
+    evaldModule["$setSpyMessageHandler"](rtCfg.spyMessgeHandler);
+  }
+
+  if (rtCfg.spyExprHandler) {
+    evaldModule["$setSpyValueHandler"](rtCfg.spyExprHandler);
+  }
+
+}

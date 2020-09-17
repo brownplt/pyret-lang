@@ -1,3 +1,8 @@
+export interface RuntimeConfig {
+  spyMessgeHandler?: (x: SpyMessageResult) => void,
+  spyExprHandler?: (x: SpyExprResult) => void,
+}
+
 export interface SpyObjectResult {
   messageResult: SpyMessageResult,
   exprResult: SpyExprResult,
