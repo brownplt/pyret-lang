@@ -38,4 +38,6 @@ module.exports = {
   'runtime': runtime,
 
   'raise': runtime["raise"],
+
+  'typecast': function(x) { return x; },
 };
