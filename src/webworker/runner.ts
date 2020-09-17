@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { RuntimeConfig, SpyExprResult, SpyMessageResult } from "../runtime/common-runtime-types";
+import { RuntimeConfig } from "../runtime/common-runtime-types";
 
 const csv = require('csv-parse/lib/sync');
 const assert = require('assert');
