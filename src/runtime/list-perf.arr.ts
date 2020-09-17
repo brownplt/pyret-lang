@@ -56,6 +56,23 @@ function foldl(f, base, list) {
   return acc;
 }
 
+function map(f, list) {
+
+  let resultHead = Object.assign({}, list);
+  let writeHead = resultHead;
+
+  let current = list;
+  while (IS_LINK(current)) {
+    writeHead.first = f(current.first);
+    writeHead.rest = Object.assign({}, current.rest);
+
+    writeHead = writeHead.rest;
+    current = current.rest;
+  }
+
+  return resultHead;
+}
+
 module.exports = {
   "setup": function(setupObject) {
     IS_LINK = setupObject["is-link"];
@@ -67,4 +84,5 @@ module.exports = {
   "perf-array-to-list": arrayToList,
   "perf-foldl": foldl,
   "perf-foldr": foldr,
+  "perf-map": map,
 };

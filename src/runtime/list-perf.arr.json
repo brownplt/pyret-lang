@@ -36,7 +36,16 @@
       ],
       "perf-map": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], "lOfA"], "lOfB"]],
       "perf-foldl": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "lOfA"], "tvb"]],
-      "perf-foldr": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "lOfA"], "tvb"]]
+      "perf-foldr": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "lOfA"], "tvb"]],
+      "perf-map": ["forall", ["a", "b"],
+          ["arrow",
+              [
+                  ["arrow", ["tva"], "tvb"],
+                  "lOfA"
+              ],
+              "lOfB"
+          ]
+      ]
     },
     "aliases": { },
     "datatypes": { }
