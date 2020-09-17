@@ -15,7 +15,8 @@ include from L:
   filter,
   raw-array-to-list,
   foldl,
-  foldr
+  foldr,
+  map,
 end
 
 include from N:
@@ -32,6 +33,10 @@ end
 
 fun concat(acc :: String, x :: Number) -> String:
    acc + num-to-string(x)
+end
+
+fun double(x :: Number) -> Number:
+  x * 2
 end
 
 check "filter":
@@ -59,4 +64,14 @@ check "foldr":
   list1 = [list: 1, 2, 3, 4, -5]
   foldr(sub, 0, list1) is -5
   foldr(concat, "", list1) is "-54321"
+end
+
+check "map":
+  list1 = [list: 2, 3, 4, 5, 6]
+  map(double, list1) is [list: 4, 6, 8, 10, 12]
+  list1 is [list: 2, 3, 4, 5, 6]
+
+  list2 = [list: ]
+  map(double, list2) is [list: ]
+  list2 is [list: ]
 end
