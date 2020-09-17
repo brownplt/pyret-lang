@@ -1,13 +1,17 @@
-export interface SpyExpr {
+export interface SpyObjectResult {
+  messageResult: SpyMessageResult,
+  exprResult: SpyExprResult,
+}
+
+export interface SpyMessageResult {
+  message: string,
+  loc: string,
+}
+
+export interface SpyExprResult {
   key: string,
   expr: () => any,
   loc: string
-}
-
-export interface SpyObject {
-  message: () => string,
-  loc: string,
-  exprs: SpyExpr[],
 }
 
 export interface CheckResult {
