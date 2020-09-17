@@ -430,12 +430,8 @@ end
 fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,
         starting with the initial value```
-  cases(List) lst:
-    | link(fst, rst) =>
-      fold(f, f(base, fst), rst)
-    | empty =>
-      base
-  end
+  # NOTE(alex): Need typecast calls b/c of cyclic dependency issue
+  LP.perf-foldl(f, base, typecast(lst))
 end
 
 fun reverse<a>(lst :: List<a>) -> List<a>:
@@ -908,11 +904,8 @@ end
 fun foldr<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the right,
         starting with the initial value```
-  if is-empty(lst):
-    base
-  else:
-    f(foldr(f, base, lst.tail()), lst.head())
-  end
+  # NOTE(alex): Need typecast calls b/c of cyclic dependency issue
+  LP.perf-foldr(f, base, typecast(lst))
 end
 
 fun fold2<a, b, c>(f :: (a, b, c -> a), base :: a, l1 :: List<b>, l2 :: List<c>) -> a:

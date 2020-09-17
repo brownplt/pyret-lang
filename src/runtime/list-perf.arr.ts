@@ -27,10 +27,33 @@ function arrayToList(array) {
   return head;
 }
 
-function perfFoldr(f, base, list) {
+function foldr(f, base, list) {
+  let acc = base;
+  let stack = [];
+
+  let current = list;
+  while (IS_LINK(current)) {
+    stack.push(current.first);
+    current = current.rest;
+  }
+
+  for (let i = stack.length - 1; i >= 0; i--) {
+    acc = f(acc, stack[i]);
+  }
+
+  return acc;
 }
 
-function perfFoldl(f, base, list) {
+function foldl(f, base, list) {
+  let acc = base;
+  let current = list;
+
+  while (IS_LINK(current)) {
+    acc = f(acc, current.first);
+    current = current.rest;
+  }
+
+  return acc;
 }
 
 module.exports = {
@@ -42,4 +65,6 @@ module.exports = {
   },
   "perf-filter": filter,
   "perf-array-to-list": arrayToList,
+  "perf-foldl": foldl,
+  "perf-foldr": foldr,
 };
