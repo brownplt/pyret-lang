@@ -780,13 +780,20 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   throw new Error('handleSetChunks: unreachable point reached');
 }
 
-function handleSetFocusedChunk(state: State, index: number): State {
-  const { effectQueue, isFileSaved, focusedChunk } = state;
-  const shouldStartEditTimer = !isFileSaved && focusedChunk !== index;
+function handleSetFocusedChunk(state: State, index: number | undefined): State {
+  if (index !== undefined) {
+    const { effectQueue, isFileSaved, focusedChunk } = state;
+    const shouldStartEditTimer = !isFileSaved && focusedChunk !== index;
+    return {
+      ...state,
+      focusedChunk: index,
+      effectQueue: shouldStartEditTimer ? [...effectQueue, 'startEditTimer'] : effectQueue,
+    };
+  }
+
   return {
     ...state,
-    focusedChunk: index,
-    effectQueue: shouldStartEditTimer ? [...effectQueue, 'startEditTimer'] : effectQueue,
+    focusedChunk: undefined,
   };
 }
 

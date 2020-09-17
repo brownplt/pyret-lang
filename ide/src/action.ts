@@ -67,7 +67,7 @@ export type Update =
   | { key: 'browsePath', value: string }
   | { key: 'currentFile', value: string }
   | { key: 'chunks', value: ChunksUpdate }
-  | { key: 'focusedChunk', value: number }
+  | { key: 'focusedChunk', value: number | undefined }
   | { key: 'fontSize', value: number }
   | { key: 'autoRun', value: boolean }
   | { key: 'runKind', value: control.backend.RunKind }
