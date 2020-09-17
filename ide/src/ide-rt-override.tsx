@@ -1,26 +1,24 @@
 const IDE = (
   () => {
-    // @ts-ignore
-    if (window) {
-      // @ts-ignore
+    try {
       return window.ide;
-    } else {
+    } catch (e1) {
       try {
         // @ts-ignore
         return ide;
-      } catch (e) {
+      } catch (e2) {
         throw new Error("Unable to find IDE object");
       }
     }
   }
 )();
 
-RUNTIME.$setSpyMessageHandler((data: { message: string, loc: string}) => {
+export function defaultSpyMessage(data: { message: string, loc: string}) {
 
   // @ts-ignore
   const value = (data.message) ? data.message : undefined;
   // @ts-ignore
-  IDE.dispatch({
+  return IDE.dispatch({
     type: 'update',
     key: 'rhs',
     value: {
@@ -31,11 +29,11 @@ RUNTIME.$setSpyMessageHandler((data: { message: string, loc: string}) => {
       loc: data.loc,
     },
   });
-});
+}
 
-RUNTIME.$setSpyValueHandler((data: { key: string, value: any, loc: string}) => {
+export function defaultSpyExpr(data: { key: string, value: any, loc: string}) {
   // @ts-ignore
-  IDE.dispatch({
+  return IDE.dispatch({
     type: 'update',
     key: 'rhs',
     value: {
@@ -48,4 +46,4 @@ RUNTIME.$setSpyValueHandler((data: { key: string, value: any, loc: string}) => {
       loc: data.loc,
     },
   });
-});
+}
