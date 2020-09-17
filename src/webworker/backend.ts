@@ -173,7 +173,7 @@ export const runProgram2 = (
   } if (runKind === RunKind.Async) {
     return new Promise<any>((resolve) => {
       const startRequire = window.performance.now();
-      runner.makeRequireAsync(baseDir)(program).then((asyncRunner: any) => {
+      runner.makeRequireAsync(baseDir, rtCfg)(program).then((asyncRunner: any) => {
         const endRequire = window.performance.now();
         console.log('require time', endRequire - startRequire);
         resolve({
