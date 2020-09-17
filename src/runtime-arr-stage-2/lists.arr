@@ -453,7 +453,7 @@ end
 fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b> block:
   doc: "Returns a list made up of f(elem) for each elem in lst"
   # NOTE(alex): Need typecast calls b/c of cyclic dependency issue
-  LP.perf-map(f, typecast(lst))
+  typecast(LP.perf-map(f, typecast(lst)))
 end
 
 fun slice<a>(lst :: List<a>, inclusive-lower :: Number, exclusive-upper :: Number) -> List<a> block:
