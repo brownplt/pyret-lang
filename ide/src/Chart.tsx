@@ -1,3 +1,8 @@
+/* A widget for displaying charts. Chart documentation:
+   https://www.pyret.org/docs/latest/chart.html.
+
+   Carts are created in RenderedValue.tsx. */
+
 import React from 'react';
 import Chart from 'react-google-charts';
 
