@@ -10,6 +10,7 @@ import { Action } from './action';
 import { RunKind } from './backend';
 import { Effect } from './effect';
 import * as control from './control';
+import * as ideRt from './ide-rt-override';
 
 type Dispatch = (action: Action) => void;
 
@@ -232,6 +233,10 @@ function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
       currentRunner = runner;
     },
     runKind,
+    {
+      spyMessgeHandler: ideRt.defaultSpyMessage,
+      spyExprHandler: ideRt.defaultSpyExpr,
+    },
   );
 }
 

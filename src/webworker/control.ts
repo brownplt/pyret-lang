@@ -3,6 +3,7 @@ import load from './runtime-loader';
 import * as runner from './runner';
 import * as backend from './backend';
 import * as path from './path';
+import { RuntimeConfig } from './runner';
 
 const runtimeFiles = require('./runtime-files.json');
 
@@ -123,12 +124,14 @@ export const run = (
   callback: (result: any) => void,
   runnerCallback: (runner: any) => void,
   runKind: backend.RunKind,
+  rtCfg?: RuntimeConfig,
 ): void => {
   backend.runProgram2(
     runner,
     baseDirectory,
     programFileName,
     runKind,
+    rtCfg,
   )
     .then((receivedRunner: any): void => {
       // the "runner" here is only a runner if RunKind is equal to Async

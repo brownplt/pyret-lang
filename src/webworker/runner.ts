@@ -1,5 +1,10 @@
 /* eslint-disable */
-import { RuntimeConfig } from "../runtime/common-runtime-types";
+export interface RuntimeConfig {
+  //spyMessgeHandler?: (x: SpyMessageResult) => void,
+  spyMessgeHandler?: (x: any) => void,
+  //spyExprHandler?: (x: SpyExprResult) => void,
+  spyExprHandler?: (x: any) => void,
+}
 
 const csv = require('csv-parse/lib/sync');
 const assert = require('assert');
@@ -237,10 +242,12 @@ function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: R
   }
 
   if (rtCfg.spyMessgeHandler) {
+    // @ts-ignore
     evaldModule["$setSpyMessageHandler"](rtCfg.spyMessgeHandler);
   }
 
   if (rtCfg.spyExprHandler) {
+    // @ts-ignore
     evaldModule["$setSpyValueHandler"](rtCfg.spyExprHandler);
   }
 

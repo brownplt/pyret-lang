@@ -1,3 +1,5 @@
+import { RuntimeConfig } from './runner';
+
 export interface LintOptions {
   program: string,
   programSource: string,
@@ -158,10 +160,11 @@ export const runProgram2 = (
   baseDir: string,
   program: string,
   runKind: RunKind,
+  rtCfg?: RuntimeConfig,
 ): Promise<any> => {
   if (runKind === RunKind.Sync) {
     const start = window.performance.now();
-    const result = runner.makeRequire(baseDir)(program);
+    const result = runner.makeRequire(baseDir, rtCfg)(program);
     const end = window.performance.now();
     return Promise.resolve({
       time: end - start,
