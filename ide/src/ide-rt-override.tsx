@@ -1,24 +1,22 @@
-const IDE = (
-  () => {
+function getIDE() {
+  try {
+    // @ts-ignore
+    return window.ide;
+  } catch (e1) {
     try {
       // @ts-ignore
-      return window.ide;
-    } catch (e1) {
-      try {
-        // @ts-ignore
-        return ide;
-      } catch (e2) {
-        throw new Error('Unable to find IDE object');
-      }
+      return ide;
+    } catch (e2) {
+      throw new Error('Unable to find IDE object');
     }
   }
-)();
+}
 
 export function defaultSpyMessage(data: { message: string, loc: string}) {
   // @ts-ignore
   const value = (data.message) ? data.message : undefined;
   // @ts-ignore
-  return IDE.dispatch({
+  return getIDE().dispatch({
     type: 'update',
     key: 'rhs',
     value: {
@@ -33,7 +31,7 @@ export function defaultSpyMessage(data: { message: string, loc: string}) {
 
 export function defaultSpyExpr(data: { key: string, value: any, loc: string}) {
   // @ts-ignore
-  return IDE.dispatch({
+  return getIDE().dispatch({
     type: 'update',
     key: 'rhs',
     value: {
