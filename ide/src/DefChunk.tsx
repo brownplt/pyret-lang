@@ -1,3 +1,17 @@
+/* The DefChunk component, one or more of which can be contained within the
+   DefChunks component.
+
+   Handles most of the chunk editor specific UI: selecting chunks; deleting
+   chunks; handling edit events; handling key events, like arrow up, arrow down,
+   enter, and backspace; lint/compile error message displays; inline mode value
+   displays.
+
+   Editing interactions are balanced between the underlying CodeMirror object
+   and this component. For instance, we do not yet handle an "undo" feature that
+   works across chunks, instead relying on a per-codemirror-instance undo. We
+   do, however, override some of CodeMirror's default functionality, like
+   highlighting (via click and drag). This is handled entirely by this
+   component and the Redux store. */
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
@@ -129,6 +143,19 @@ const connector = connect(mapStateToProps, mapDispatchToProps);
 type PropsFromRedux = ConnectedProps<typeof connector>;
 type DefChunkProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
+/* Determines which chunks to delete, as well as which chunk (if any) should be
+   focused after the deletion
+
+   Arguments:
+     chunks: the chunks to delete from
+     index: the currently focused chunk
+
+   Returns: {
+     chunks: a new array of chunks, like the input, but possibly with some deletions
+     shouldPreventDefault: true if the default backspace / delete event should be prevented
+     firstSelectedChunk: the chunk to focus after deletions
+   }
+ */
 function deleteSelectedChunks(chunks: Chunk[], index: number): {
   chunks: Chunk[],
   shouldPreventDefault: boolean,
@@ -189,6 +216,7 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
 }
 
 class DefChunk extends React.Component<DefChunkProps, any> {
+  /* Used to autofocus this component when necessary */
   private input: React.RefObject<any>;
 
   constructor(props: DefChunkProps) {
@@ -196,6 +224,14 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     this.input = React.createRef();
   }
 
+  /* A React component updates every time its props change. Since each chunk
+     receives, as props, all other chunks, this would cause a lot of redundant
+     re-rendering. This function attempts to determine when such prop updates
+     can be ignored. It will probably need to be changed when new props are
+     added or removed from this component.
+
+     Known issues: line numbers from CodeMirror objects do not always update
+     when chunks are re-ordered. */
   shouldComponentUpdate(newProps: DefChunkProps) {
     const n = newProps;
     const o = this.props;
@@ -223,6 +259,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     return true;
   }
 
+  /* Fires imperitive updates at the underlying CodeMirror object to highlight
+     selected text and mark errors. Also focuses this component if is focused in
+     the Redux store. */
   componentDidUpdate() {
     const {
       chunks,
@@ -300,6 +339,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
+  /* Called in response to an edit event, where `value` is the chunk's text
+     after the edit. Marks updated chunks as not linted so that the running
+     infastructure knows to lint them before compiling. */
   scheduleUpdate(value: string) {
     const {
       chunks,
@@ -339,6 +381,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
+  /* Called in response to an arrow up event. Checks if the cursor is on the top
+     line of a chunk and, if so, focuses the previous chunk. */
   handleArrowUp(editor: any, event: Event) {
     const {
       index,
@@ -353,6 +397,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
+  /* Called in response to an arrow down event. Checks if the cursor is on the
+     bottom line of a chunk and, if so, focuses the subsequent chunk. */
   handleArrowDown(editor: any, event: Event) {
     const {
       index,
@@ -368,6 +414,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
+  /* Called in response to an Enter key event. Uses the Pyret mode for
+     CodeMirror to determine if the cursor is at the end of a complete statement
+     and, if so, instructs the linting infastructure to create a new chunk upon
+     lint success. If shift+enter is pressed, no new chunk will be made. In
+     either case, a run is triggered by saving the file. */
   handleEnter(editor: any, event: Event) {
     const {
       enqueueEffect,
@@ -386,6 +437,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
+  /* Called in response to a Delete key event. Deletes chunks in different ways
+     depending on where the cursor is and which chunks (if any) are selected.
+
+     This is a whole lot like handleBackspace, but with slightly different
+     functionality to mimic the differences between deleting something with Delete
+     versus deleting something with Backspace */
   handleDelete(event: Event) {
     const {
       chunks,
@@ -396,6 +453,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       enqueueEffect,
     } = this.props;
     if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
+      /* Cursor is in the first chunk, the text of this chunk is empty, and
+         there is more than one chunk. Delete this chunk, move every chunk up by
+         one, and keep the focus where it is. */
       const newChunks = [...chunks.slice(1, chunks.length)];
       for (let i = 0; i < newChunks.length; i += 1) {
         newChunks[i] = {
@@ -410,6 +470,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setFocusedChunk(0);
       event.preventDefault();
     } else if (index > 0 && index < chunks.length - 1 && chunks[index].text.trim() === '') {
+      /* Cursor is not in the first chunk nor in the last chunk, and the text of
+         this chunk is empty. Delete this chunk, move every chunk below it up by
+         one, and keep the focus where it is. */
       const newChunks = [
         ...chunks.slice(0, index),
         ...chunks.slice(index + 1, chunks.length)];
@@ -425,6 +488,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       });
       event.preventDefault();
     } else {
+      /* Try deleting any selected chunks. */
       const result = deleteSelectedChunks(chunks, index);
       setChunks({
         chunks: result.chunks,
@@ -452,11 +516,20 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
+  /* Called in response to a Backspace key event. Deletes chunks in different ways
+     depending on where the cursor is and which chunks (if any) are selected.
+
+     This is a whole lot like handleDelete, but with slightly different
+     functionality to mimic the differences between deleting something with Delete
+     versus deleting something with Backspace */
   handleBackspace(event: Event) {
     const {
       chunks, index, setChunks, setFocusedChunk,
     } = this.props;
     if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
+      /* Cursor is in the first chunk, the text of this chunk is empty, and
+         there is more than one chunk. Delete this chunk, move every chunk up by
+         one, and keep the focus where it is. */
       const newChunks = [...chunks.slice(1, chunks.length)];
       for (let i = 0; i < newChunks.length; i += 1) {
         newChunks[i] = {
@@ -471,6 +544,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setFocusedChunk(0);
       event.preventDefault();
     } else if (index > 0 && chunks[index].text.trim() === '') {
+      /* Cursor is not in the first chunk and the text of this chunk is empty.
+         Delete this chunk, move every chunk below it up by one, and focus the
+         previous chunk. */
       const newChunks = [
         ...chunks.slice(0, index),
         ...chunks.slice(index + 1, chunks.length)];
@@ -487,6 +563,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setFocusedChunk(index - 1);
       event.preventDefault();
     } else {
+      /* Try deleting any selected chunks. */
       const result = deleteSelectedChunks(chunks, index);
       setChunks({
         chunks: result.chunks,
@@ -508,6 +585,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
+  /* Called in response to a mouse down key event. Sets this chunk as the
+     focused chunk and removes all chunk selections. */
   handleMouseDown(event: any) {
     const {
       index,
@@ -517,7 +596,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setFirstSelectedChunkIndex,
       setChunks,
     } = this.props;
+
+    /* Instruct Redux to not move the cursor into the next chunk upon lint
+       success. This only matters if a lint is happening at the time of clicking.
+       Without this, focus would first jump to this chunk (indented), but then jump
+       away to the chunk past the linted chunk (unintended). */
     setShouldAdvanceCursor(false);
+
     setFocusedChunk(index);
 
     if (event.buttons !== 1) {
@@ -532,6 +617,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     setFirstSelectedChunkIndex(index);
   }
 
+  /* Called in response to a mouse enter key event. Selects the correct chunks
+     if a drag is happening. */
   handleMouseEnter(e: any) {
     const {
       chunks,
@@ -541,6 +628,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setChunks,
     } = this.props;
 
+    /* Do not proceed if a click-and-drag (selection) is not happening */
     if (e.buttons !== 1) {
       return;
     }
@@ -578,6 +666,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
+  /* Called in response to the user selecting text inside of the underlying
+     CodeMirror object. We use this to intercept these selection events and
+     handle them ourselves in Redux instead of letting CodeMirror do it itself.
+     This is necessary to efficiently detect and properly update chunks (see
+     componentNeedsUpdate). */
   handleOnSelection({ ranges, origin }: { ranges: Selection[], origin?: string }) {
     const {
       chunks,
