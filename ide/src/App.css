@@ -1,3 +1,13 @@
+/*
+This file holds some of the css for the ide. When we first built the ide, all of
+the styling happened in this file. But it was difficult to reason about the look
+of the page when the styling was in a different place from the components it was
+modifying. For this reason, most of the styles on new components happen in their
+own files via style={{ key: value }} in JSX. The only reason we've found to use
+an external file now is for animations with @keyframes, since you can't do that
+with style={{ ... }}.
+ */
+
 html, body, #root {
     height: 100%;
     margin: 0;
