@@ -23,6 +23,7 @@ end
 include from G:
     raise,
     _lessthan,
+    typecast,
 end
 
 # NOTE(alex): "include from" syntax for values NEEDS the file origin to be correct
@@ -312,7 +313,8 @@ fun to-raw-array<a>(lst :: List<a>) -> RawArray<a>:
 end
 
 fun raw-array-to-list<a>(array :: RawArray<a>) -> List<a>:
-  RA.raw-array-foldr(lam(acc, current): link(current, acc) end, empty, array)
+  # NOTE(alex): Need typecast calls b/c of cyclic dependency issue
+  typecast(LP.perf-array-to-list(typecast(array)))
 end
 
 # TODO(alex): if performance is an issue, swap to raw JS
@@ -393,20 +395,12 @@ fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
   end
 end
 
-# TODO(alex): if performance is an issue, swap to raw JS
-#   Need to pass in variant constructors explicitly b/c of runtime method construction
 fun filter<a>(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
   doc: "Returns the subset of lst for which f(elem) is true"
-  lst.foldr(
-    lam(e, acc):
-      if f(e):
-        link(e, acc)
-      else:
-        acc
-      end
-    end,
-    empty
-  )
+  # NOTE(alex): Need typecast calls b/c of cyclic dependency issue
+  #   While compiling this module, the local "List" type definition is NOT
+  #   unified with the builtin module lists "List" type definition
+  typecast(LP.perf-filter(f, typecast(lst)))
 end
 
 fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> } block:
@@ -1128,7 +1122,12 @@ fun min(lst :: List<Number>) -> Number:
 end
 
 # NOTE: To avoid a cyclic dependency, need to explictly pass variant recognizers, constructors, etc.
-LP.setup(is-link, is-empty)
+LP.setup({
+  is-link: is-link,
+  is-empty: is-empty,
+  empty: empty,
+  link: link,
+})
 
 member-always3 = member3
 member-always = member
