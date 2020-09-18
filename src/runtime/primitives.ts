@@ -60,7 +60,7 @@ export function isFunction(obj: any): boolean {
 }
 
 export function isMethod(obj: any): boolean {
-    return hasBrand($PMethodBrand, obj);
+  return (typeof obj === "function") && ("$brand" in obj) && (obj["$brand"] === $PMethodBrand);
 }
 
 // TODO(alex): Will nothing always be value 'undefined'?
@@ -99,13 +99,16 @@ export function isPRef(val: any): boolean {
 
 export function makeMethodBinder(inner: any): any {
   return function binder(pyretSelf) {
-    inner["$brand"] = $PMethodBrand;
-    inner["$binder"] = binder;
 
-    return function() {
+    let myFunction = function() {
       const innerArgs = [pyretSelf].concat(Array.prototype.slice.call(arguments));
       return inner.apply(this, innerArgs);
-    }
+    };
+
+    myFunction["$brand"] = $PMethodBrand;
+    myFunction["$binder"] = binder;
+
+    return myFunction;
   };
 }
 
