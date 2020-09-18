@@ -23,6 +23,14 @@ include from N:
   num-to-string,
 end
 
+data Foo:
+  | bar(x :: Number)
+sharing:
+  method get(self):
+    self.x
+  end
+end
+
 fun is-positive(x :: Number) -> Boolean:
   x > 0
 end
@@ -74,4 +82,11 @@ check "map":
   list2 = [list: ]
   map(double, list2) is [list: ]
   list2 is [list: ]
+end
+
+check "method-binding":
+  list1 = [list: bar(1)]
+  list1-prime = list1.map(lam(my-foo): bar(my-foo.x + 1) end)
+  list1-prime.get(0).get() is 2
+  list1 is [list: bar(1)]
 end
