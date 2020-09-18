@@ -1,5 +1,7 @@
 import { PyretList } from "./common-runtime-types";
 
+const RUNTIME = require("./runtime.js");
+
 var IS_LINK, IS_EMPTY, EMPTY, LINK;
 
 function filter(f: (x: any) => boolean, list) {
@@ -54,13 +56,13 @@ function foldl(f, base, list) {
 
 function map(f, list) {
 
-  let resultHead = Object.assign({}, list);
+  let resultHead = RUNTIME["$shallowCopyObject"](list);
   let writeHead = resultHead;
 
   let current = list;
   while (IS_LINK(current)) {
     writeHead.first = f(current.first);
-    writeHead.rest = Object.assign({}, current.rest);
+    writeHead.rest = RUNTIME["$shallowCopyObject"](current.rest);
 
     writeHead = writeHead.rest;
     current = current.rest;
