@@ -269,6 +269,12 @@ function _rebind(toRebind: any): any {
   return toRebind;
 }
 
+// NOTE(alex): Handles method rebinding
+function shallowCopyObject(myObject: any): any {
+  let shallowCopy = Object.assign({}, myObject);
+  return _rebind(shallowCopy);
+}
+
 export function pauseStack(callback) {
   // @ts-ignore
   return $STOPIFY.pauseK(kontinue => {
@@ -343,7 +349,9 @@ module.exports["trace-value"] = traceValue;
 module.exports["$getTraces"] = getTraces;
 
 module.exports["$spy"] = _spy;
+
 module.exports["$rebind"] = _rebind;
+module.exports["$shallowCopyObject"] = shallowCopyObject;
 
 module.exports["$checkTest"] = eagerCheckTest;
 module.exports["$checkBlock"] = eagerCheckBlockRunner;
