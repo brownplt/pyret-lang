@@ -1,3 +1,6 @@
+/* Simple class that handles the dropdown next to the run button. This is used
+   in Run.tsx */
+
 // TODO (michael): improve accessibilty by enabling these rules
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-static-element-interactions */

@@ -1,3 +1,14 @@
+/* Handles most of the logic of the IDE.
+
+   The bottom of this file defines a root reducer. This is a function that is
+   called in response to any Redux dispatch. The root reducer delegates to other
+   reducers based off of what kind of action was passed in the dispatch.
+
+   Important: none of the functions here can perform side effects. This means
+   that they can't modify state directly---they have to return a modified copy.
+   It also means that side effects such as file saving should not be performed
+   here---those should be dealt with in store.ts. */
+
 import {
   EffectFailure,
   EffectSuccess,
@@ -36,6 +47,10 @@ import {
   SpyValue,
 } from './rhsObject';
 
+/* This is a chunk-mode only function. In chunk mode the Enter key is capable of
+   creating a new chunk under certain conditions. This function checks those
+   conditions and moves into the proper state. This should be used to wrap the
+   result of a reducer so that it can account for Enter presses. */
 function handleEnter(state: State): State {
   const {
     focusedChunk,
@@ -99,6 +114,8 @@ function handleEnter(state: State): State {
   return state;
 }
 
+/* Tracks the state of side effects. This should only be called as a response to the
+   dispatch in store.ts. */
 function handleEffectStarted(state: State, action: EffectStarted): State {
   const oldEffectQueue = state.effectQueue;
 

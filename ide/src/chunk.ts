@@ -1,8 +1,16 @@
+/* Exports types and functions for managing chunks. */
+
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { v4 as uuidv4 } from 'uuid';
 
 export const CHUNKSEP = '#.CHUNK#\n';
 
+/* Represents the current state of the chunk, whether it (1) has not yet been
+   linted; (2) was successfully linted, but not compiled (3) was successfully
+   compiled but not run; (4) was successfully run; (5...) failed at any of those
+   steps.
+
+   TODO(michael): this should probably just be called 'state' */
 export type ErrorState =
   ({ status: 'failed', effect: 'lint' | 'compile', failures: string[], highlights: number[][] }
   | { status: 'succeeded', effect: 'lint' | 'compile' }
@@ -27,12 +35,29 @@ export const emptySelection = {
 };
 
 export type Chunk = {
+  /* the line number of the first line of this chunk */
   startLine: number,
+
+  /* the text in the chunk, not including the chunk separator, #.CHUNK# */
   text: string,
+
+  /* a unique id */
   id: string,
+
+  /* the current state of this chunk */
   errorState: ErrorState,
+
+  /* the underlying CodeMirror instance. Can be false if the chunk has not yet
+     been rendered. */
   editor: false | CodeMirror.Editor;
+
+  /* Chunks used to jiggle when they had errors, but they don't anymore.
+     TODO(michael): remove this field. */
   needsJiggle: boolean,
+
+  /* The highlighted text in this chunk. We manage this ourselves (instead of
+     letting CodeMirror do it) because it helps us re-render chunks properly; see
+     shouldComponentUpdate() in DefChunk.tsx. */
   selection: Selection,
 };
 
@@ -46,6 +71,8 @@ export function newId() {
   return uuidv4();
 }
 
+/* Returns the chunk index of the chunk containing the specified source
+   location, or false if none could be found. */
 export function findChunkFromSrcloc(
   chunks: Chunk[],
   [file, l1] : [string, number],
@@ -65,6 +92,11 @@ export function findChunkFromSrcloc(
   return false;
 }
 
+/* The function for creating chunks.
+
+   Arguments:
+     options: A partial Chunk. Any keys not provide here will be
+              filled with defaults. */
 export function emptyChunk(options?: Partial<Chunk>): Chunk {
   return {
     startLine: 0,
@@ -78,6 +110,7 @@ export function emptyChunk(options?: Partial<Chunk>): Chunk {
   };
 }
 
+/* Parses a string containing chunk separators (#.CHUNK#) into a list of Chunks. */
 export function makeChunksFromString(s: string): Chunk[] {
   const chunkStrings = s.split(CHUNKSEP);
   let totalLines = 0;

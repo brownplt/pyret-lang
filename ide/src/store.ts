@@ -1,3 +1,5 @@
+/* Handles side effects. */
+
 import { createStore } from 'redux';
 import ideApp from './reducer';
 import { EditorMode, State } from './state';
@@ -14,6 +16,8 @@ import * as ideRt from './ide-rt-override';
 
 type Dispatch = (action: Action) => void;
 
+/* Tracks the current runner of a running program that was compiled with
+   Stopify. Used for stopping the program when the user hits the "stop" button. */
 let currentRunner: any;
 
 function handleStartEditTimer(dispatch: Dispatch, editTimer: NodeJS.Timer | false) {
@@ -274,6 +278,9 @@ function collapseEffectQueue(effectQueue: Effect[]): Effect[] {
   return collapsedEffectQueue;
 }
 
+/* Picks the first effect in the effect queue that can be applied. Returns an
+   object containing the selected index and a function that applies the side
+   effect. */
 function handleFirstActionableEffect(
   state: State,
   dispatch: Dispatch,
@@ -470,6 +477,24 @@ window.ide = {
   dispatch: store.dispatch,
 };
 
+/* This callback is triggered after a reducer is run. It looks though the effect
+   queue and applies the first effect it can apply.
+
+   This is somewhat of a hack to get around the fact that Redux doesn't have a
+   built-in way of handling side effects. The logic of how this works goes
+   something like this:
+   - An action (see action.ts) is dispatched of type enqueueEffect
+   - A reducer (see reducer.ts) adds the corresponding effect to state's effect queue
+     (see state.ts)
+   - This callback is triggered as a result of the reducer running
+   - This callback selects a side effect to apply from the state's effect queue
+   - This callback dispatches an action of type effectStarted
+   - A reducer marks that action as active, by setting either compiling, linting, etc.
+     to true. It also removes the effect from the effect queue.
+   - This callback calls a function that does the side effect.
+   - That function, when the side effect is finished, dispatches an effectEnded action.
+   - A reducer marks that action as inactive, by setting either compiling, linting, etc.
+     to false. */
 store.subscribe(() => {
   const state = store.getState();
 
@@ -494,6 +519,8 @@ store.subscribe(() => {
 });
 
 store.dispatch({ type: 'enqueueEffect', effect: 'setupWorkerMessageHandler' });
+
+/* Try to load a Chunk mode program from the URI component ?program=uri-encoded-program */
 
 const maybeEncodedProgram: null | string = new URLSearchParams(window.location.search).get('program');
 

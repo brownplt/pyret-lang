@@ -1,3 +1,8 @@
+/* A widget for displaying tables. Table documentation:
+   https://www.pyret.org/docs/latest/tables.html.
+
+   Tables are created in RenderedValue.tsx */
+
 import React from 'react';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';

@@ -1,3 +1,14 @@
+/* Manages the right hand side (RHS) of the editor. This is used for displaying
+   the results of a program that ran. This component will gray itself out when
+   the left hand side is updated.
+
+   In chunk mode hovering over one of the values on the RHS will focus its
+   corresponding chunk. The currently focused chunk draws a highlight around its
+   corresponding RHS value(s).
+
+   This class should not---by itself---render values to components, That should
+   instead be done by RenderedValue.tsx. */
+
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import RenderedValue from './RenderedValue';
@@ -180,6 +191,8 @@ function RHS({
       throw new Error(`RHS: malformed RHSObject, ${JSON.stringify(rhsObject)}`);
     }));
 
+  /* Known issue: when the RHS is scrollable (because there are a lot of
+     values), the gradient does not extend itself on scroll. */
   const outdatedBackground = 'repeating-linear-gradient(45deg, #c8c8c8, #c8c8c8 4em, #979797 4em, #979797 8em)';
 
   return (

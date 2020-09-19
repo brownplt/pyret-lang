@@ -1,3 +1,6 @@
+/* Exports all of the possible types of Redux actions that can be dispatched.
+   The `Action` type is our type of Redux actions. */
+
 import { Chunk } from './chunk';
 import { EditorMode } from './state';
 import { Effect } from './effect';

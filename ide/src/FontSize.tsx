@@ -1,3 +1,7 @@
+/* The font size viewer / changer options. Sets up three buttons: - n +, where -
+   lowers the font size, + raises the font size, and n (which displays the current
+   font size) resets it to default. */
+
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { State } from './state';

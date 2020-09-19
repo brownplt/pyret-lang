@@ -1,3 +1,6 @@
+/* The footer at the bottom of the page. Displays the current state of the
+   system (linting, compiling, or running). */
+
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { State } from './state';

@@ -1,3 +1,6 @@
+/* Handles the main logic of the file system browser. FSBrowser acts as a
+   container for FSItems (see FSItem.tsx) */
+
 // TODO (michael): improve accessibilty by enabling these rules
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
@@ -63,6 +66,9 @@ type FSBrowserState = {
 };
 
 class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
+  /* Compares FSItemPairs (the output of createFSItemPair). This is used as a
+     comparison function to sort FSItems, so that we always display FSItems in the
+     same order. */
   static compareFSItemPair(a: [string, FSItem], b: [string, FSItem]) {
     if (a[0] < b[0]) {
       return -1;
@@ -92,6 +98,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     return browsePath === browseRoot;
   }
 
+  /* Moves the current directory up the tree, like `cd ..` */
   traverseUp = (): void => {
     const { browsePath, setBrowsePath } = this.props;
 
@@ -104,6 +111,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     setBrowsePath(newPath);
   };
 
+  /* Moves the current directory down the tree, like `cd childDirectory` */
   traverseDown = (childDirectory: string): void => {
     const { browsePath, setBrowsePath } = this.props;
 
@@ -116,6 +124,8 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     setBrowsePath(newPath);
   };
 
+  /* Either opens a directory (if child is a directory), or opens a file (if
+     child is a file) in the LHS of the editor. */
   expandChild = (child: string): void => {
     const { onExpandChild } = this.props;
 
@@ -133,6 +143,8 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     }
   };
 
+  /* Creates a FSItem, returning a two-element array where the first is the
+     path, and the second is the item. See also: compareFSItemPair. */
   createFSItemPair = (filePath: string): [string, any] => {
     const { browsePath } = this.props;
     const { selected } = this.state;
@@ -148,6 +160,8 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     ];
   };
 
+  /* Toggles the new file creation dialog. This is called when the file plus
+     icon is clicked */
   toggleEditFile = (): void => {
     const { editType } = this.state;
 
@@ -162,6 +176,8 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     }
   };
 
+  /* Toggles the new directory creation dialog. This is called when the
+     directory plus icon is clicked */
   toggleEditDirectory = (): void => {
     const { editType } = this.state;
 
@@ -176,6 +192,9 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     }
   };
 
+  /* Either creates a file or directory, based on what kind of creation dialog
+     was open. Closes the dialog. This is called when you hit "enter" after
+     typing in a file or directory name. See also: toggleEdit{Directory,File} */
   handleSubmit = (value: React.SyntheticEvent): void => {
     const { editValue, editType } = this.state;
     const { browsePath } = this.props;
@@ -203,6 +222,9 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     });
   };
 
+  /* (unused), deletes the selected FSItem. When this was enabled it was too
+     easy to delete the current directory and all of its contents.
+     TODO(michael): add this back in a more sensible way. */
   deleteSelected = (): void => {
     const { selected } = this.state;
     const { browsePath } = this.props;
@@ -222,12 +244,16 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     }
   };
 
+  /* Selects the current directory. This is only matters when determining what
+     to delete (see deleteSelected) */
   selectCurrentDirectory = (): void => {
     this.setState({
       selected: undefined,
     });
   };
 
+  /* Opens a system-specific file uploading dialog, writing the result to the
+     file system. */
   uploadFile = (event: any): void => {
     const { browsePath } = this.props;
 

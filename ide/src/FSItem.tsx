@@ -1,3 +1,6 @@
+/* An item (a directory or a file entry) in the file system browser. FSItems are
+   created in FSBrowser.tsx. */
+
 import React from 'react';
 import {
   File,

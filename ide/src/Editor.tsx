@@ -1,3 +1,10 @@
+/* Wires the ide together. Most of the interesting functionality of the IDE (chunks,
+   run button, etc.) come from this class' imports instead of being implemented here.
+
+   That being said, this class does do some things. For instance, it:
+   - creates a copy (ctrl-c) event handler
+   - lays out imported components */
+
 import React from 'react';
 import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
@@ -66,10 +73,9 @@ const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
 
+/* TODO(michael): these two lines would probably fit better in store.ts */
 control.installFileSystem();
 control.loadBuiltins();
-
-// type EditorProps = {};
 
 type EditorProps = PropsFromRedux & DispatchProps & StateProps;
 
@@ -77,16 +83,6 @@ export class Editor extends React.Component<EditorProps, any> {
   componentDidMount() {
     document.body.addEventListener('copy', this.makeCopyHandler());
   }
-
-  makeHeaderButton = (text: string, enabled: boolean, onClick: () => void) => (
-    <button
-      className={(enabled ? 'run-option-enabled' : 'run-option-disabled')}
-      onClick={onClick}
-      type="button"
-    >
-      {text}
-    </button>
-  );
 
   makeDefinitions() {
     const {
@@ -115,6 +111,9 @@ export class Editor extends React.Component<EditorProps, any> {
     throw new Error('Unknown editor mode');
   }
 
+  /* Returns a function suitable as a callback to a copy (ctrl-c) event handler.
+     Ensures that highlighted text over multiple chunks is properly copied. Also
+     ensures that the "get shareable link" button copies its link when clicked. */
   makeCopyHandler() {
     const that = this;
 
@@ -131,8 +130,12 @@ export class Editor extends React.Component<EditorProps, any> {
 
       const shareableLink = document.getElementById('shareableLink');
       if (shareableLink) {
+        // Rely on browser's native copy for the shareable link box. It should be autofocused.
         return;
       }
+
+      /* If we're not in text mode, and the shareable link box isn't visible,
+         then try to copy all of the highlighted text out of the chunks. */
 
       let data = '';
 
@@ -182,6 +185,7 @@ export class Editor extends React.Component<EditorProps, any> {
             {interactionValues}
             <InteractionError fontSize={fontSize}>
               {(() => {
+                /* TODO(michael): this error message is outdated */
                 if (interactionErrors.length === 1
                         && interactionErrors[0] === 'Could not find module with uri: builtin://global') {
                   return ['The first line of your program should be `import global as G`'];

@@ -1,3 +1,8 @@
+/* A widget for displaying images. Image documentation:
+   https://www.pyret.org/docs/latest/image.html
+
+   Images are created in RenderedValue.tsx */
+
 import React from 'react';
 
 type ImageWidgetProps = {

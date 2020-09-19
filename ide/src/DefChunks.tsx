@@ -1,3 +1,7 @@
+/* The container that chunks live in. Handles setting up and reordering chunks.
+   Most of the interesting UI considerations about the chunk editor happens in
+   DefChunks.tsx, not here. */
+
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import {
@@ -41,6 +45,13 @@ function mapStateToProps(state: State): StateProps {
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
+    /* Reorders chunks, making sure that all of their line numbers are correctly
+       assigned. Also marks any reordered chunks as not linted.
+
+       Arguments:
+         result: DropResult obtained from react-beautiful-dnd drag context
+         chunks: the chunks to be reordered
+         oldFocusedId: the focused chunk */
     handleReorder(
       result: DropResult,
       chunks: Chunk[],
@@ -69,8 +80,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
           }
         }
       }
-
-      // const firstAffectedChunk = Math.min(result.source.index, result.destination.index);
 
       function getNewFocusedChunk() {
         for (let i = 0; i < newChunks.length; i += 1) {
@@ -144,6 +153,7 @@ function DefChunks({
   function setupChunk(chunk: Chunk, index: number) {
     const focused = focusedChunk === index;
 
+    /* Returns the color of the drag handle */
     function getBorderColor() {
       if (focused && chunk.errorState.status === 'failed') {
         return 'red';

@@ -1,3 +1,8 @@
+/* The left hand side of the page in text mode. Wraps a CodeMirror editor to
+   provide auto saving / running functionality.
+
+   Also will highlight compile / lint / runtime errors in red. */
+
 import React from 'react';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import 'codemirror/lib/codemirror.css';

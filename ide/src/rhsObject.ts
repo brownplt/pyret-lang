@@ -1,3 +1,12 @@
+/* Exports types for dealing with the module results of a pyret program as well
+   as spy statements.
+
+   The lifecycle of these values goes like this:
+   - Pyret program runs, producing a module result
+   - Module result is parsed into multiple `RHSObject`s
+   - RenderedValue.tsx is used to render RHSObjects into HTML
+   - HTML is dipslayed in the RHS.tsx component or inline in DefChunk.tsx */
+
 export type RHSCheckValue = {
   exception: boolean,
   value: any,

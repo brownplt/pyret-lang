@@ -1,3 +1,5 @@
+/* Renders Pyret values into HTML. */
+
 import React from 'react';
 
 import TableWidget from './Table';

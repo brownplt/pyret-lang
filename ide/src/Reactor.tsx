@@ -1,3 +1,22 @@
+/* A widget for displaying reactors. Reactor documentation:
+   https://www.pyret.org/docs/latest/reactors.html.
+
+   Reactors are created in RenderedValue.tsx
+
+   This component is quite hacky. The actual HTML and event listeners of a
+   running reactor are created in
+   pyret-lang/src/runtime/{reactors.arr.ts,world.js,world-lib.js}. This
+   component just wraps that value in a draggable dialog.
+
+   Known issues:
+   - it isn't clear that reactors are clickable.
+   - keyboard event listeners do not always keep focus correctly. This is a problem with
+     the draggable container we are using. focus-trap-react may be useful here.
+   - an open reactor does not close itself on re-run of the program
+   - reactors can not be fullscreened
+   - reactors can be dragged off the visible range of the page
+   - reactors do not have a maximum size */
+
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 

@@ -1,3 +1,14 @@
+/* Component that can open / close menus. It is located inside the header at the
+   top left of the screen with two buttons: "Files" and "Options" which open
+   their corresponding menus.
+
+   Were we not to be using Redux this component would be much harder to write;
+   its logical children (the open or closed menus) are not its actual children
+   in the DOM.
+
+   The names (files and options) are initialized in state.ts. There's no good
+   reason for this; it could be done here instead, and probably should be. */
+
 // TODO (michael): improve accessibilty by enabling these rules
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-static-element-interactions */

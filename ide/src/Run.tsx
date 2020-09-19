@@ -1,3 +1,10 @@
+/* Creates the run button at the top right of the header. Handles running the
+   program when the button is clicked. Also handles animations (graying out /
+   blueness) when the program is compiling.
+
+   The run dropdown is part of this component, but the code that creates it is
+   found in DropDown.tsx, though its contents /are/ created here. */
+
 import React from 'react';
 
 import {
