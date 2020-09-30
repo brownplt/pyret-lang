@@ -92,6 +92,8 @@
       "bitmap-url": ["arrow", ["String"], "Image"],
       "make-color": ["arrow", ["Number", "Number", "Number", "Number"], "Color"],
       "colors-equal": ["arrow", ["Color", "Color"], "Boolean"],
+      "image-pinhole-x": ["arrow", ["Image"], "Number"],
+      "image-pinhole-y": ["arrow", ["Image"], "Number"],
       "colorDb": "Any"
     },
     "aliases": {

@@ -2151,5 +2151,11 @@ module.exports = {
   "colors-equal": /* @stopify flat */ function (color1, color2) {
     return ColorsEqual(color1, color2);
   },
+  "image-pinhole-x": /* @stopify flat */ function (image) {
+    return image.pinholeX;
+  },
+  "image-pinhole-y": /* @stopify flat */ function (image) {
+    return image.pinholeY;
+  },
   colorDb: colorDb
 };
