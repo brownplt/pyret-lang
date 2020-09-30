@@ -1699,7 +1699,8 @@ function innerImageToColorList(img) {
     data,
     i,
     r, g, b, a;
-  img.render(ctx, 0, 0);
+  // TODO(alex): Why is this render call necessary?
+  // img.render(ctx, 0, 0);
   imageData = ctx.getImageData(0, 0, width, height);
   data = imageData.data;
   let colors = [];
