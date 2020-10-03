@@ -45,7 +45,10 @@
               ],
               "lOfB"
           ]
-      ]
+      ],
+
+      "perf-length": ["forall", ["a"], ["arrow", ["lOfA"], "Number"]],
+      "perf-same-length": ["forall", ["a"], ["arrow", ["lOfA", "lOfA"], "Boolean"]]
     },
     "aliases": { },
     "datatypes": { }

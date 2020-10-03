@@ -71,6 +71,29 @@ function map(f, list) {
   return resultHead;
 }
 
+function length(list) {
+  let current = list;
+  let count = 0;
+
+  while (IS_LINK(current)) {
+    count += 1;
+    current = current.rest;
+  }
+
+  return count;
+}
+
+function sameLength(list1, list2) {
+  let current = [list1, list2];
+
+  while (IS_LINK(current[0]) && IS_LINK(current[1])) {
+    current = [current[0].rest, current[1].rest];
+  }
+
+  return (IS_EMPTY(current[0]) && IS_EMPTY(current[1]));
+}
+
+
 module.exports = {
   "setup": function(setupObject) {
     IS_LINK = setupObject["is-link"];
@@ -83,4 +106,6 @@ module.exports = {
   "perf-foldl": foldl,
   "perf-foldr": foldr,
   "perf-map": map,
+  "perf-length": length,
+  "perf-same-length": length,
 };

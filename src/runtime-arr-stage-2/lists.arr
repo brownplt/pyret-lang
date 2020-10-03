@@ -567,29 +567,12 @@ rec list = {
 
 fun length<a>(lst :: List<a>) -> Number:
   doc: "Takes a list and returns the number of links in the list"
-  fun help(l :: List<a>, cur :: Number) -> Number:
-    cases (List) l:
-      | empty => cur
-      | link(_, r) => help(r, cur + 1)
-    end
-  end
-  help(lst, 0)
+  LP.perf-length(typecast(lst))
 end
 
 fun same-length<a, b>(lst1 :: List<a>, lst2 :: List<b>) -> Boolean:
   doc: "Returns true if and only if the two given lists have the same length.  Runs in time proportional to the shorter list."
-  cases(List) lst1:
-    | empty =>
-      cases(List) lst2:
-        | empty => true
-        | else => false
-      end
-    | link(_, rest1) =>
-      cases(List) lst2:
-        | empty => false
-        | link(_, rest2) => same-length(rest1, rest2)
-      end
-  end
+  LP.perf-same-length(typecast(lst1), typecast(lst2))
 where:
   same-length([list: 1, 2], [list: true, false]) is true
   same-length([list: 1, 2, 3], [list: true, false]) is false
