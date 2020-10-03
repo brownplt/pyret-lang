@@ -116,10 +116,7 @@ sharing:
 
   method length(self) -> Number:
     doc: "Takes no other arguments and returns the number of links in the list"
-    cases(List) self:
-      | empty => 0
-      | link(first, rest) => 1 + rest.length()
-    end
+    length(self)
   end,
 
   method member(self, elt :: a) -> Boolean:
@@ -133,19 +130,13 @@ sharing:
   method foldr<b>(self, f :: (a, b -> b), base :: b) -> b:
     doc: ```Takes a function and an initial value, and folds the function over this list from the right,
           starting with the initial value```
-    cases(List) self:
-      | empty => base
-      | link(first, rest) => f(first, rest.foldr(f, base))
-    end
+    foldr(lam(acc, e): f(e, acc) end, base, self)
   end,
 
   method foldl<b>(self, f :: (a, b -> b), base :: b) -> b:
     doc: ```Takes a function and an initial value, and folds the function over this list from the left,
           starting with the initial value```
-    cases(List) self:
-      | empty => base
-      | link(first, rest) => rest.foldl(f, f(first, base))
-    end
+    fold(lam(acc, e): f(e, acc) end, base, self)
   end,
 
   method all(self, f :: (a -> Boolean)) -> Boolean:
