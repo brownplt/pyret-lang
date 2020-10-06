@@ -107,5 +107,5 @@ module.exports = {
   "perf-foldr": foldr,
   "perf-map": map,
   "perf-length": length,
-  "perf-same-length": length,
+  "perf-same-length": sameLength,
 };
