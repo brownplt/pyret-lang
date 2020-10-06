@@ -1728,11 +1728,13 @@ function innerColorListToImage(arrayOfColors,
   pinholeY) {
   // make list of color names to list of colors
 
-  var canvas = makeCanvas(jsnums.toFixnum(width),
-    jsnums.toFixnum(height)),
+  let jWidth = jsnums.toFixnum(width);
+  let jHeight = jsnums.toFixnum(height)
+  var canvas = makeCanvas(jWidth,
+    jHeight),
     ctx = canvas.getContext("2d"),
-    imageData = ctx.createImageData(jsnums.toFixnum(width),
-      jsnums.toFixnum(height)),
+    imageData = ctx.createImageData(jWidth,
+      height),
     aColor,
     data = imageData.data,
     jsLOC = arrayOfColors;
