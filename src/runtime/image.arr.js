@@ -1671,8 +1671,8 @@ var colorAtPosition = /* @stopify flat */ function (img, x, y) {
 
   img.render(ctx, 0, 0);
   imageData = ctx.getImageData(0, 0, width, height);
-  data = imageData.data,
-    index = (y * width + x) * 4;
+  data = imageData.data;
+  index = (y * width + x) * 4;
 
   r = data[index]
   g = data[index + 1];
@@ -1734,13 +1734,16 @@ function innerColorListToImage(arrayOfColors,
     jHeight),
     ctx = canvas.getContext("2d"),
     imageData = ctx.createImageData(jWidth,
-      height),
+      jHeight),
     aColor,
     data = imageData.data,
     jsLOC = arrayOfColors;
   for (var i = 0; i < jsLOC.length * 4; i += 4) {
     aColor = jsLOC[i / 4];
     // NOTE(ben): Flooring colors here to make this a proper RGBA image
+    if (i === 100) {
+      console.log(`image: color100 = ${JSON.stringify(aColor)}`);
+    }
     data[i] = Math.floor(colorRed(aColor));
     data[i + 1] = Math.floor(colorGreen(aColor));
     data[i + 2] = Math.floor(colorBlue(aColor));
@@ -1763,6 +1766,7 @@ var ImageDataImage = /* @stopify flat */ function (imageData) {
 ImageDataImage.prototype = heir(BaseImage.prototype);
 
 ImageDataImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  console.log(`image: rendering ImageDataImage at (${x},${y})`);
   ctx.putImageData(this.imageData, x, y);
 };
 
@@ -1819,6 +1823,7 @@ var ImageUrlImage = function (url) {
       url = RUNTIME.getParam("imgUrlProxy")(url);
     }*/
     rawImage.onload = function () {
+      console.log("image: UrlImage loaded");
       restarter.resume(new FileImage(String(url), rawImage));
     };
     rawImage.onerror = function (e) {
@@ -1841,11 +1846,13 @@ var FileImage = /* @stopify flat */ function (src, rawImage) {
   this.animationHackImg = undefined;
 
   if (rawImage && rawImage.complete) {
+    console.log("image: creating a FileImage from a preloaded image");
     this.img = rawImage;
     this.isLoaded = true;
     self.width = self.img.width;
     self.height = self.img.height;
   } else {
+    console.log("image: attempting to load a FileImage");
     // fixme: we may want to do something blocking here for
     // onload, since we don't know at this time what the file size
     // should be, nor will drawImage do the right thing until the
@@ -1884,6 +1891,7 @@ FileImage.installBrokenImage = /* @stopify flat */ function (path) {
 
 FileImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
   this.installHackToSupportAnimatedGifs();
+  console.log("image: render FileImage");
   ctx.drawImage(this.animationHackImg, x, y);
 };
 
