@@ -76,7 +76,9 @@
 
           "within-rel-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "EqualityResult"]],
 
-          "within-abs-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "EqualityResult"]]
+          "within-abs-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "EqualityResult"]],
+
+          "num-clamp": ["arrow", ["Number", "Number", "Number"], "Number"]
         },
 
         "aliases": { }
