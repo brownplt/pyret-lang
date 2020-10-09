@@ -1699,11 +1699,19 @@ function innerImageToColorList(img) {
     data,
     i,
     r, g, b, a;
-  // TODO(alex): Why is this render call necessary?
-  // img.render(ctx, 0, 0);
+
+  // NOTE(alex): This render() call is necessary
+  //   Can only access ImageData after rendering to a canvas element
+  //     b/c it is tied to canvas' data buffer
+  //   If CORS permissions are not set properly, retrieving image data will
+  //     throw an exception
+  //   Keep an eye on the OffscreenCanvas API (unstable 10-9-2020)
+  // TODO(alex): cleanup or hide the canvas somehow
+  img.render(ctx, 0, 0);
   imageData = ctx.getImageData(0, 0, width, height);
   data = imageData.data;
   let colors = [];
+  console.log(`image: image-to-color-list data: ${data}`);
   for (let i = 0; i < data.length; i += 4) {
     r = data[i];
     g = data[i + 1];
