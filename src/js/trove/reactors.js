@@ -12,7 +12,7 @@
                  origin: { "import-type": "uri", uri: "builtin://reactor-events" },
                  name: "Event" },
       "Image": { tag: "name",
-                 origin: { "import-type": "uri", uri: "builtin://image" },
+                 origin: { "import-type": "uri", uri: "builtin://image-lib" },
                  name: "Image" },
       "ValueSkeleton": { tag: "name",
                          origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
