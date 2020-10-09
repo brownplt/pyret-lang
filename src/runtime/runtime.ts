@@ -316,6 +316,18 @@ function customThrow(exn) {
   throw new Error(exn);
 }
 
+let imageUrlProxyWrapper = function(url: string): string {
+  return url;
+}
+
+export function $setImgUrlProxyWrapper(wrapperFn: (url: string) => string) {
+  imageUrlProxyWrapper = wrapperFn;
+}
+
+export function $imgUrlProxy(url: string): string {
+  return imageUrlProxyWrapper(url);
+}
+
 module.exports["addModule"] = addModule;
 module.exports["getModuleValue"] = getModuleValue;
 

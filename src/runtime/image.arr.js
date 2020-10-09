@@ -1827,9 +1827,8 @@ var SceneLineImage = /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
 var ImageUrlImage = function (url) {
   return RUNTIME.pauseStack(function (restarter) {
     var rawImage = new Image();
-    /*if (RUNTIME.hasParam("imgUrlProxy")) {
-      url = RUNTIME.getParam("imgUrlProxy")(url);
-    }*/
+    url = RUNTIME["$imgUrlProxy"](url);
+    console.log(`image: attempting to load image from '${url}'`);
     rawImage.onload = function () {
       console.log("image: UrlImage loaded");
       restarter.resume(new FileImage(String(url), rawImage));
