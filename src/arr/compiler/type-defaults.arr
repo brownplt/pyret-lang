@@ -53,7 +53,7 @@ tvf = t-var(A.global-names.make-atom("F"))
 tvg = t-var(A.global-names.make-atom("G"))
 tvh = t-var(A.global-names.make-atom("H"))
 
-t-image = t-name(module-uri("builtin://image"), A.s-type-global("Image"))
+t-image = t-name(module-uri("builtin://image-lib"), A.s-type-global("Image"))
 t-option = t-name(module-uri("builtin://option"), A.s-type-global("Option"))
 t-reactor = t-name(module-uri("builtin://reactors"), A.s-type-global("Reactor"))
 t-equality-result = t-name(module-uri("builtin://equality"), A.s-type-global("EqualityResult"))
