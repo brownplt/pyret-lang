@@ -2,7 +2,7 @@ import { PyretList } from "./common-runtime-types";
 
 const RUNTIME = require("./runtime.js");
 
-var IS_LINK, IS_EMPTY, EMPTY, LINK;
+var IS_LINK, IS_EMPTY, EMPTY, LINK, IS_SOME;
 
 function filter(f: (x: any) => boolean, list) {
   let acc = [];
@@ -11,6 +11,23 @@ function filter(f: (x: any) => boolean, list) {
   while (IS_LINK(current)) {
     if (f(current.first)) {
       acc.push(current.first);
+    }
+
+    current = current.rest;
+  }
+
+  return arrayToList(acc);
+}
+
+// Returns a Pyret `Option`
+function filterMap(f: (x: any) => any, list) {
+  let acc = [];
+  let current = list;
+
+  while (IS_LINK(current)) {
+    let result = f(current.first);
+    if (IS_SOME(result)) {
+      acc.push(result.value);
     }
 
     current = current.rest;
@@ -102,6 +119,7 @@ module.exports = {
     LINK = setupObject["link"];
   },
   "perf-filter": filter,
+  "perf-filter-map": filterMap,
   "perf-array-to-list": arrayToList,
   "perf-foldl": foldl,
   "perf-foldr": foldr,

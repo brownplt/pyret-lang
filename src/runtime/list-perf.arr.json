@@ -13,7 +13,10 @@
                 "name": "List" }, [["tid", "a"]]],
       "lOfB": ["tyapp", { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://lists" },
-                "name": "List" }, [["tid", "b"]]]
+                "name": "List" }, [["tid", "b"]]],
+      "oOfB": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://option" },
+                "name": "Option"}, [["tid", "b"]]]
     },
     "values": {
       "setup": ["arrow", [["record", {
@@ -26,6 +29,12 @@
         ["arrow",
           [["arrow", ["tva"], "Boolean"],"lOfA"],
           "lOfA"
+        ]
+      ],
+      "perf-filter-map": ["forall", ["a", "b"],
+        ["arrow",
+          [["arrow", ["tva"], "oOfB"],"oOfB"],
+          "lOfB"
         ]
       ],
       "perf-array-to-list": ["forall", ["a"],

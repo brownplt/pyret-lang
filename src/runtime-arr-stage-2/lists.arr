@@ -982,14 +982,7 @@ fun shuffle<a>(lst :: List<a>) -> List<a>:
 end
 
 fun filter-map<a, b>(f :: (a -> Option<b>), lst :: List<a>) -> List<b>:
-  cases(List) lst:
-    | empty => empty
-    | link(first, rest) =>
-      cases(Option) f(first):
-        | none => filter-map(f, rest)
-        | some(v) => link(v, filter-map(f, rest))
-      end
-  end
+  typecast(LP.perf-filter-map(f, typecast(lst)))
 end
 
 fun filter-values<a>(lst :: List<Option<a>>) -> List<a>:
