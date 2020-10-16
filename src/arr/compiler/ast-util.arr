@@ -673,7 +673,7 @@ fun is-stateful-ann(ann :: A.Ann) -> Boolean:
     | a-blank => false
     | a-any(l) => false
     | a-name(_, _) => false
-    | a-type-var(_, _) => false 
+    | a-type-var(_, _) => false
     | a-arrow(_, args, ret, _) => false
     | a-arrow-argnames(_, args, ret, _) => false
     | a-method(_, args, ret, _) => false
@@ -935,7 +935,7 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
             | dependency(protocol, args) => A.s-special-import(p.l, protocol, args)
           end
           import-line = A.s-import(p.l, ast-dep, name-to-use)
-          include-line = 
+          include-line =
             A.s-include-from(p.l, [list: name-to-use],
               i.values.map(lam(v):
                 A.s-include-name(l, A.s-module-ref(l, [list: A.s-name(l, v)], none))
@@ -1050,7 +1050,7 @@ fun member-to-t-member(uri :: URI, compile-env :: CS.CompileEnvironment, m):
       shadow args = map(
         lam(arg-ann):
           ann-to-typ(uri, compile-env, arg-ann)
-        end, 
+        end,
         map(_.ann, args)
       )
       shadow ret = ann-to-typ(uri, compile-env, ann)
@@ -1168,7 +1168,7 @@ fun data-expr-to-datatype(uri :: URI, compile-env :: CS.CompileEnvironment, exp 
   end
 end
 
-fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env :: CS.CompileEnvironment) -> CS.Provides: 
+fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env :: CS.CompileEnvironment) -> CS.Provides:
   cases(A.Program) resolved.ast:
     | s-program(_, _, _, provide-blocks, _, _) =>
       cases(A.ProvideBlock) provide-blocks.first block:
@@ -1187,7 +1187,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
               | else => raise("All provides should be resolved to local or remote refs")
             end
           end
-          
+
           vp-specs = provide-specs.filter(A.is-s-provide-name)
           val-provides = for fold(vp from [SD.string-dict:], v from vp-specs):
             cases(A.NameSpec) v.name-spec:
@@ -1262,7 +1262,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                 tp.set(as-name.toname(), typ)
             end
           end
-          
+
           dp-specs = provide-specs.filter(A.is-s-provide-data)
           data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
             cases(A.NameSpec) d.name-spec:
@@ -1480,7 +1480,7 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
               | else => raise("All provides should be resolved to local or remote refs")
             end
           end
-          
+
           vp-specs = provide-specs.filter(A.is-s-provide-name)
           val-provides = for fold(vp from [SD.string-dict:], v from vp-specs):
             cases(A.NameSpec) v.name-spec:
@@ -1519,7 +1519,7 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
             end
 
           end
-          
+
           dp-specs = provide-specs.filter(A.is-s-provide-data)
           data-provides = for fold(dp from [SD.string-dict:], d from dp-specs):
             cases(A.NameSpec) d.name-spec:
@@ -1532,7 +1532,7 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
                 exp = resolved.env.datatypes.get-value-now(name.toname())
                 origin = CS.bind-origin(l, exp.l, true, uri, name)
                 dp.set(as-name.toname(), CS.d-type(origin, canonicalize-data-type(typed.info.data-types.get-value(exp.namet.key()), uri, transformer)))
-                
+
             end
           end
           provs = CS.provides(
