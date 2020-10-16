@@ -1711,7 +1711,7 @@ function innerImageToColorList(img) {
   imageData = ctx.getImageData(0, 0, width, height);
   data = imageData.data;
   let colors = [];
-  console.log(`image: image-to-color-list data: ${data}`);
+  // console.log(`image: image-to-color-list data: ${data}`);
   for (let i = 0; i < data.length; i += 4) {
     r = data[i];
     g = data[i + 1];
@@ -1749,9 +1749,9 @@ function innerColorListToImage(arrayOfColors,
   for (var i = 0; i < jsLOC.length * 4; i += 4) {
     aColor = jsLOC[i / 4];
     // NOTE(ben): Flooring colors here to make this a proper RGBA image
-    if (i === 100) {
-      console.log(`image: color100 = ${JSON.stringify(aColor)}`);
-    }
+    //if (i === 100) {
+    //  console.log(`image: color100 = ${JSON.stringify(aColor)}`);
+    //}
     data[i] = Math.floor(colorRed(aColor));
     data[i + 1] = Math.floor(colorGreen(aColor));
     data[i + 2] = Math.floor(colorBlue(aColor));
@@ -1774,7 +1774,7 @@ var ImageDataImage = /* @stopify flat */ function (imageData) {
 ImageDataImage.prototype = heir(BaseImage.prototype);
 
 ImageDataImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
-  console.log(`image: rendering ImageDataImage at (${x},${y})`);
+  // console.log(`image: rendering ImageDataImage at (${x},${y})`);
   ctx.putImageData(this.imageData, x, y);
 };
 
