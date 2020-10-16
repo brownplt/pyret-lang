@@ -51,3 +51,5 @@ export function defaultImageUrlProxy(url: string): string {
   //   This feels exploitable
   return `https://code.pyret.org/downloadImg?${url}`;
 }
+
+export function noCheckBlocks(): void { }

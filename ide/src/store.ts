@@ -241,6 +241,7 @@ function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
       spyMessgeHandler: ideRt.defaultSpyMessage,
       spyExprHandler: ideRt.defaultSpyExpr,
       imgUrlProxy: ideRt.defaultImageUrlProxy,
+      checkBlockRunner: ideRt.noCheckBlocks,
     },
   );
 }
