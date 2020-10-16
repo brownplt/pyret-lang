@@ -1285,7 +1285,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                 # dp.set(as-name.toname(), CS.d-alias(CS.bind-origin(l, SL.builtin(uri), false, uri, name), name.toname()))
               | s-local-ref(l, name, as-name) =>
                 exp = resolved.env.datatypes.get-value-now(name.toname())
-                dp.set(as-name.toname(), CS.d-type(CS.bind-origin(l, exp.l, true, uri, name), data-expr-to-datatype(exp)))
+                dp.set(as-name.toname(), CS.d-type(CS.bind-origin(l, exp.l, true, uri, name), data-expr-to-datatype(uri, compile-env, exp)))
             end
           end
           provs = CS.provides(
