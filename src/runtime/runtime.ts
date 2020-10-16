@@ -76,6 +76,18 @@ function _spy(spyObject: SpyObject): void {
 // *********Check Stuff*********
 var _globalCheckContext: string[] = [];
 var _globalCheckResults: CheckResult[] = [];
+// TODO: Pass in the URI to the check test executors
+//   so we can attempt to filter check blocks by module
+// TODO: Add check test override
+var $checkBlockExecutor = eagerCheckBlockRunner;
+
+export function $setCheckBlockExecutor(executor): void {
+  $checkBlockExecutor = executor;
+}
+
+function checkBlockHandler(name: string, checkBlock: () => void): void {
+  $checkBlockExecutor(name, checkBlock);
+}
 
 function getCheckResults(): CheckResult[] {
   return _globalCheckResults.slice();
@@ -369,7 +381,7 @@ module.exports["$rebind"] = _rebind;
 module.exports["$shallowCopyObject"] = shallowCopyObject;
 
 module.exports["$checkTest"] = eagerCheckTest;
-module.exports["$checkBlock"] = eagerCheckBlockRunner;
+module.exports["$checkBlock"] = checkBlockHandler;
 module.exports["$checkResults"] = checkResults;
 module.exports["$getCheckResults"] = getCheckResults;
 

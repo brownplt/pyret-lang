@@ -5,6 +5,7 @@ export interface RuntimeConfig {
   //spyExprHandler?: (x: SpyExprResult) => void,
   spyExprHandler?: (x: any) => void,
   imgUrlProxy?: (url: string) => string,
+  checkBlockRunner?: (block: any) => void,
 }
 
 const csv = require('csv-parse/lib/sync');
@@ -272,6 +273,14 @@ function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: R
     evaldModule["$setImgUrlProxyWrapper"](rtCfg.imgUrlProxy);
   } else {
     console.log("RUNNER: No overriding image URL proxy function");
+  }
+
+  if (rtCfg.checkBlockRunner) {
+    console.log("RUNNER: check block handler");
+    // @ts-ignore
+    evaldModule["$setCheckBlockExecutor"](rtCfg.checkBlockRunner);
+  } else {
+    console.log("RUNNER: No overriding check block handler");
   }
 
 }
