@@ -1,6 +1,7 @@
 const jsnums = require("./js-numbers.js");
 const RUNTIME = require("./runtime.js");
 const Either = require("./either.arr.js");
+const LISTS = require("./lists.arr.js");
 
 var hasOwnProperty = {}.hasOwnProperty;
 
@@ -395,7 +396,7 @@ var heir = Object.create;
 
 var isAngle = /* @stopify flat */ function (x) {
   return jsnums.isReal(x) &&
-    jsnums.greaterThanOrEqual(x, 0, RUNTIME.NumberErrbacks) &&
+    jsnums.greaterThanOrEqual(x, 0, EQUALITY.NumberErrbacks) &&
     jsnums.lessThan(x, 360, RUNTIME.NumberErrbacks);
 };
 
@@ -611,7 +612,7 @@ BaseImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
 
   // we care about the stroke because drawing to a canvas is *different* for
   // fill v. stroke! If it's outline, we can draw on the pixel boundaries and
-  // stroke within them. If it's stroke, we need to draw _inside_ those 
+  // stroke within them. If it's stroke, we need to draw _inside_ those
   // boundaries, adjusting by a half-pixel towards the center.
   var isSolid = this.style.toString().toLowerCase() !== "outline";
 
@@ -1670,8 +1671,8 @@ var colorAtPosition = /* @stopify flat */ function (img, x, y) {
 
   img.render(ctx, 0, 0);
   imageData = ctx.getImageData(0, 0, width, height);
-  data = imageData.data,
-    index = (y * width + x) * 4;
+  data = imageData.data;
+  index = (y * width + x) * 4;
 
   r = data[index]
   g = data[index + 1];
@@ -1681,8 +1682,16 @@ var colorAtPosition = /* @stopify flat */ function (img, x, y) {
   return makeColor(r, g, b, a);
 };
 
-var imageToColorList = /* @stopify flat */ function (img) {
-  var width = img.getWidth(),
+// NOTE(alex): The non-flat wrapper is necessary b/c "lists" functions may be stopified
+//   but may not be called from a "stopify-flat" function
+function imageToColorList(img) {
+    const colorRawArray = innerImageToColorList(img);
+    return LISTS["raw-array-to-list"](colorRawArray);
+}
+
+/* @stopify flat */
+function innerImageToColorList(img) {
+  let width = img.getWidth(),
     height = img.getHeight(),
     canvas = makeCanvas(width, height),
     ctx = canvas.getContext("2d"),
@@ -1690,11 +1699,20 @@ var imageToColorList = /* @stopify flat */ function (img) {
     data,
     i,
     r, g, b, a;
+
+  // NOTE(alex): This render() call is necessary
+  //   Can only access ImageData after rendering to a canvas element
+  //     b/c it is tied to canvas' data buffer
+  //   If CORS permissions are not set properly, retrieving image data will
+  //     throw an exception
+  //   Keep an eye on the OffscreenCanvas API (unstable 10-9-2020)
+  // TODO(alex): cleanup or hide the canvas somehow
   img.render(ctx, 0, 0);
   imageData = ctx.getImageData(0, 0, width, height);
   data = imageData.data;
-  var colors = [];
-  for (i = 0; i < data.length; i += 4) {
+  let colors = [];
+  console.log(`image: image-to-color-list data: ${data}`);
+  for (let i = 0; i < data.length; i += 4) {
     r = data[i];
     g = data[i + 1];
     b = data[i + 2];
@@ -1704,33 +1722,36 @@ var imageToColorList = /* @stopify flat */ function (img) {
   return colors;
 };
 
-var colorListToImage = /* @stopify flat */ function (listOfColors,
+// NOTE(alex): Same situation as imageToColorList
+function colorListToImage(listOfColors, width, height, pinholeX, pinholeY) {
+  const arrayOfColors = LISTS["to-raw-array"](listOfColors);
+  return innerColorListToImage(arrayOfColors, width, height, pinholeX, pinholeY);
+}
+
+/* @stopify flat */
+function innerColorListToImage(arrayOfColors,
   width,
   height,
   pinholeX,
   pinholeY) {
   // make list of color names to list of colors
-  var lOfC = [];
-  if (typeof listOfColors[0] === "string") {
-    for (let i = 0; i < listOfColors.length; i++) {
-      lOfC.push(colorDb.get(String(listOfColors[i])));
-    }
-  } else if (isColor(listOfColors[0])) {
-    lOfC = listOfColors;
-  } else {
-    throw new Error("List is not made of Colors or name of colors");
-  }
-  var canvas = makeCanvas(jsnums.toFixnum(width),
-    jsnums.toFixnum(height)),
+
+  let jWidth = jsnums.toFixnum(width);
+  let jHeight = jsnums.toFixnum(height)
+  var canvas = makeCanvas(jWidth,
+    jHeight),
     ctx = canvas.getContext("2d"),
-    imageData = ctx.createImageData(jsnums.toFixnum(width),
-      jsnums.toFixnum(height)),
+    imageData = ctx.createImageData(jWidth,
+      jHeight),
     aColor,
     data = imageData.data,
-    jsLOC = lOfC;
+    jsLOC = arrayOfColors;
   for (var i = 0; i < jsLOC.length * 4; i += 4) {
     aColor = jsLOC[i / 4];
     // NOTE(ben): Flooring colors here to make this a proper RGBA image
+    if (i === 100) {
+      console.log(`image: color100 = ${JSON.stringify(aColor)}`);
+    }
     data[i] = Math.floor(colorRed(aColor));
     data[i + 1] = Math.floor(colorGreen(aColor));
     data[i + 2] = Math.floor(colorBlue(aColor));
@@ -1753,6 +1774,7 @@ var ImageDataImage = /* @stopify flat */ function (imageData) {
 ImageDataImage.prototype = heir(BaseImage.prototype);
 
 ImageDataImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
+  console.log(`image: rendering ImageDataImage at (${x},${y})`);
   ctx.putImageData(this.imageData, x, y);
 };
 
@@ -1805,10 +1827,10 @@ var SceneLineImage = /* @stopify flat */ function (img, x1, y1, x2, y2, color) {
 var ImageUrlImage = function (url) {
   return RUNTIME.pauseStack(function (restarter) {
     var rawImage = new Image();
-    /*if (RUNTIME.hasParam("imgUrlProxy")) {
-      url = RUNTIME.getParam("imgUrlProxy")(url);
-    }*/
+    url = RUNTIME["$imgUrlProxy"](url);
+    console.log(`image: attempting to load image from '${url}'`);
     rawImage.onload = function () {
+      console.log("image: UrlImage loaded");
       restarter.resume(new FileImage(String(url), rawImage));
     };
     rawImage.onerror = function (e) {
@@ -1831,11 +1853,13 @@ var FileImage = /* @stopify flat */ function (src, rawImage) {
   this.animationHackImg = undefined;
 
   if (rawImage && rawImage.complete) {
+    console.log("image: creating a FileImage from a preloaded image");
     this.img = rawImage;
     this.isLoaded = true;
     self.width = self.img.width;
     self.height = self.img.height;
   } else {
+    console.log("image: attempting to load a FileImage");
     // fixme: we may want to do something blocking here for
     // onload, since we don't know at this time what the file size
     // should be, nor will drawImage do the right thing until the
@@ -1874,6 +1898,7 @@ FileImage.installBrokenImage = /* @stopify flat */ function (path) {
 
 FileImage.prototype.render = /* @stopify flat */ function (ctx, x, y) {
   this.installHackToSupportAnimatedGifs();
+  console.log("image: render FileImage");
   ctx.drawImage(this.animationHackImg, x, y);
 };
 
@@ -2142,6 +2167,12 @@ module.exports = {
   },
   "colors-equal": /* @stopify flat */ function (color1, color2) {
     return ColorsEqual(color1, color2);
+  },
+  "image-pinhole-x": /* @stopify flat */ function (image) {
+    return image.pinholeX;
+  },
+  "image-pinhole-y": /* @stopify flat */ function (image) {
+    return image.pinholeY;
   },
   colorDb: colorDb
 };

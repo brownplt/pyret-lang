@@ -9,6 +9,7 @@ import either as E
 import equality as equality
 import raw-array as RA
 import number as N
+import list-perf as LP
 # import valueskeleton as VS
 # valueskeleton only used on one method (_output)
 
@@ -22,6 +23,7 @@ end
 include from G:
     raise,
     _lessthan,
+    typecast,
 end
 
 # NOTE(alex): "include from" syntax for values NEEDS the file origin to be correct
@@ -49,7 +51,6 @@ include from equality:
     equal-always3,
     identical3,
 end
-
 
 # TODO(alex):
 #   1) The 'list' constructor expression breaks function ordering
@@ -115,10 +116,7 @@ sharing:
 
   method length(self) -> Number:
     doc: "Takes no other arguments and returns the number of links in the list"
-    cases(List) self:
-      | empty => 0
-      | link(first, rest) => 1 + rest.length()
-    end
+    length(self)
   end,
 
   method member(self, elt :: a) -> Boolean:
@@ -132,19 +130,13 @@ sharing:
   method foldr<b>(self, f :: (a, b -> b), base :: b) -> b:
     doc: ```Takes a function and an initial value, and folds the function over this list from the right,
           starting with the initial value```
-    cases(List) self:
-      | empty => base
-      | link(first, rest) => f(first, rest.foldr(f, base))
-    end
+    foldr(lam(acc, e): f(e, acc) end, base, self)
   end,
 
   method foldl<b>(self, f :: (a, b -> b), base :: b) -> b:
     doc: ```Takes a function and an initial value, and folds the function over this list from the left,
           starting with the initial value```
-    cases(List) self:
-      | empty => base
-      | link(first, rest) => rest.foldl(f, f(first, base))
-    end
+    fold(lam(acc, e): f(e, acc) end, base, self)
   end,
 
   method all(self, f :: (a -> Boolean)) -> Boolean:
@@ -312,7 +304,8 @@ fun to-raw-array<a>(lst :: List<a>) -> RawArray<a>:
 end
 
 fun raw-array-to-list<a>(array :: RawArray<a>) -> List<a>:
-  RA.raw-array-foldr(lam(acc, current): link(current, acc) end, empty, array)
+  # NOTE(alex): Need typecast calls b/c of cyclic dependency issue
+  typecast(LP.perf-array-to-list(typecast(array)))
 end
 
 # TODO(alex): if performance is an issue, swap to raw JS
@@ -393,20 +386,12 @@ fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
   end
 end
 
-# TODO(alex): if performance is an issue, swap to raw JS
-#   Need to pass in variant constructors explicitly b/c of runtime method construction
 fun filter<a>(f :: (a -> Boolean), lst :: List<a>) -> List<a>:
   doc: "Returns the subset of lst for which f(elem) is true"
-  lst.foldr(
-    lam(e, acc):
-      if f(e):
-        link(e, acc)
-      else:
-        acc
-      end
-    end,
-    empty
-  )
+  # NOTE(alex): Need typecast calls b/c of cyclic dependency issue
+  #   While compiling this module, the local "List" type definition is NOT
+  #   unified with the builtin module lists "List" type definition
+  typecast(LP.perf-filter(f, typecast(lst)))
 end
 
 fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> } block:
@@ -436,12 +421,8 @@ end
 fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the left,
         starting with the initial value```
-  cases(List) lst:
-    | link(fst, rst) =>
-      fold(f, f(base, fst), rst)
-    | empty =>
-      base
-  end
+  # NOTE(alex): Need typecast calls b/c of cyclic dependency issue
+  LP.perf-foldl(f, base, typecast(lst))
 end
 
 fun reverse<a>(lst :: List<a>) -> List<a>:
@@ -462,10 +443,8 @@ end
 #   Need to pass in variant constructors explicitly b/c of runtime method construction
 fun map<a, b>(f :: (a -> b), lst :: List<a>) -> List<b> block:
   doc: "Returns a list made up of f(elem) for each elem in lst"
-  cases(List) lst:
-    | link(fst, rst) => link(f(fst), map(f, rst))
-    | empty => empty
-  end
+  # NOTE(alex): Need typecast calls b/c of cyclic dependency issue
+  typecast(LP.perf-map(f, typecast(lst)))
 end
 
 fun slice<a>(lst :: List<a>, inclusive-lower :: Number, exclusive-upper :: Number) -> List<a> block:
@@ -579,29 +558,12 @@ rec list = {
 
 fun length<a>(lst :: List<a>) -> Number:
   doc: "Takes a list and returns the number of links in the list"
-  fun help(l :: List<a>, cur :: Number) -> Number:
-    cases (List) l:
-      | empty => cur
-      | link(_, r) => help(r, cur + 1)
-    end
-  end
-  help(lst, 0)
+  LP.perf-length(typecast(lst))
 end
 
 fun same-length<a, b>(lst1 :: List<a>, lst2 :: List<b>) -> Boolean:
   doc: "Returns true if and only if the two given lists have the same length.  Runs in time proportional to the shorter list."
-  cases(List) lst1:
-    | empty =>
-      cases(List) lst2:
-        | empty => true
-        | else => false
-      end
-    | link(_, rest1) =>
-      cases(List) lst2:
-        | empty => false
-        | link(_, rest2) => same-length(rest1, rest2)
-      end
-  end
+  LP.perf-same-length(typecast(lst1), typecast(lst2))
 where:
   same-length([list: 1, 2], [list: true, false]) is true
   same-length([list: 1, 2, 3], [list: true, false]) is false
@@ -914,11 +876,8 @@ end
 fun foldr<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the right,
         starting with the initial value```
-  if is-empty(lst):
-    base
-  else:
-    f(foldr(f, base, lst.tail()), lst.head())
-  end
+  # NOTE(alex): Need typecast calls b/c of cyclic dependency issue
+  LP.perf-foldr(f, base, typecast(lst))
 end
 
 fun fold2<a, b, c>(f :: (a, b, c -> a), base :: a, l1 :: List<b>, l2 :: List<c>) -> a:
@@ -1023,14 +982,7 @@ fun shuffle<a>(lst :: List<a>) -> List<a>:
 end
 
 fun filter-map<a, b>(f :: (a -> Option<b>), lst :: List<a>) -> List<b>:
-  cases(List) lst:
-    | empty => empty
-    | link(first, rest) =>
-      cases(Option) f(first):
-        | none => filter-map(f, rest)
-        | some(v) => link(v, filter-map(f, rest))
-      end
-  end
+  typecast(LP.perf-filter-map(f, typecast(lst)))
 end
 
 fun filter-values<a>(lst :: List<Option<a>>) -> List<a>:
@@ -1126,6 +1078,14 @@ fun min(lst :: List<Number>) -> Number:
 
   helper(lst, min-v)
 end
+
+# NOTE: To avoid a cyclic dependency, need to explictly pass variant recognizers, constructors, etc.
+LP.setup({
+  is-link: is-link,
+  is-empty: is-empty,
+  empty: empty,
+  link: link,
+})
 
 member-always3 = member3
 member-always = member

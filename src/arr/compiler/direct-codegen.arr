@@ -1002,11 +1002,11 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Get the object to extend
       { to-extend; obj-stmts } = compile-expr(context, obj)
 
-      # Perform a shallow copy of obj with JS(Object.assign)
-      shallow-copy-fn = j-bracket(j-id(OBJECT), j-str("assign"))
+      # Shallow copy the object to extend using the runtime's `$shallowCopyObject` function
+      #   which SHOULD already rebind the methods to the new object
+      shallow-copy-obj = rt-method("$shallowCopyObject", [clist: to-extend])
       shallow-copy-name = fresh-id(compiler-name("shallow-copy"))
-      shallow-copy-call = j-app(shallow-copy-fn, [clist: j-obj(cl-empty), to-extend])
-      shallow-copy = j-var(shallow-copy-name, shallow-copy-call)
+      shallow-copy = j-var(shallow-copy-name, shallow-copy-obj)
 
       prelude-stmts = cl-append(obj-stmts, cl-sing(shallow-copy))
       # Update the fields
@@ -1024,9 +1024,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         cl-append(cl-append(stmts, extend-stmts), cl-sing(j-expr(field-extend)))
       end
 
-      rebind-stmt = j-expr(rt-method("$rebind", [clist: j-id(shallow-copy-name)]))
-
-      { j-id(shallow-copy-name); cl-snoc(extend-stmts, rebind-stmt) }
+      { j-id(shallow-copy-name); extend-stmts }
 
     | s-for(l, iter, bindings, ann, body, blocky) =>
       compile-expr(context, DH.desugar-s-for(l, iter, bindings, ann, body))

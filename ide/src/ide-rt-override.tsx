@@ -45,3 +45,9 @@ export function defaultSpyExpr(data: { key: string, value: any, loc: string}) {
     },
   });
 }
+
+export function defaultImageUrlProxy(url: string): string {
+  // TODO(alex): Try doing something smarter in the future?
+  //   This feels exploitable
+  return `https://code.pyret.org/downloadImg?${url}`;
+}

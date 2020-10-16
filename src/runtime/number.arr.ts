@@ -107,4 +107,14 @@ module.exports = {
     'num-to-rational': function(num): number {
         return NUMBERS["toRational"](num);
     },
+
+    'num-clamp': function(num, minInclusive, maxInclusive): number {
+      if (EQUALITY["_lessthan"](num, minInclusive)) {
+        return num;
+      } else if (EQUALITY["_greaterthan"](num, maxInclusive)) {
+        return maxInclusive;
+      } else {
+        return num;
+      }
+    },
 };

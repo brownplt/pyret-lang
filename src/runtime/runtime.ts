@@ -20,8 +20,17 @@ const _PRIMITIVES = require("./primitives.js");
 
 // *********Spy Stuff*********
 
-var $spyMessageHandler = null;
-var $spyValueHandler = null;
+var $spyMessageHandler = function(data) {
+  if (data.message) {
+    console.log(`Spying "${data.message}" (at ${data.loc})`);
+  } else {
+    console.log(`Spying (at ${data.loc})`);
+  }
+};
+
+var $spyValueHandler = function(data) {
+  console.log(`    ${data.key}: ${data.value} (at ${data.loc})`);
+};
 
 export interface SpyExpr {
   key: string,
@@ -52,11 +61,6 @@ function _spy(spyObject: SpyObject): void {
   if ($spyMessageHandler) {
     $spyMessageHandler({ message: message, loc: spyLoc });
   }
-  if (message) {
-    console.log(`Spying "${message}" (at ${spyLoc})`);
-  } else {
-    console.log(`Spying (at ${spyLoc})`);
-  }
 
   const exprs = spyObject.exprs;
   for (let i = 0; i < exprs.length; i++) {
@@ -66,7 +70,6 @@ function _spy(spyObject: SpyObject): void {
     if ($spyValueHandler) {
       $spyValueHandler({ key: key, value: value, loc: loc });
     }
-    console.log(`    ${key}: ${value} (at ${loc})`);
   }
 }
 
@@ -269,6 +272,12 @@ function _rebind(toRebind: any): any {
   return toRebind;
 }
 
+// NOTE(alex): Handles method rebinding
+function shallowCopyObject(myObject: any): any {
+  let shallowCopy = Object.assign({}, myObject);
+  return _rebind(shallowCopy);
+}
+
 export function pauseStack(callback) {
   // @ts-ignore
   return $STOPIFY.pauseK(kontinue => {
@@ -310,6 +319,18 @@ function customThrow(exn) {
   throw new Error(exn);
 }
 
+let imageUrlProxyWrapper = function(url: string): string {
+  return url;
+}
+
+export function $setImgUrlProxyWrapper(wrapperFn: (url: string) => string) {
+  imageUrlProxyWrapper = wrapperFn;
+}
+
+export function $imgUrlProxy(url: string): string {
+  return imageUrlProxyWrapper(url);
+}
+
 module.exports["addModule"] = addModule;
 module.exports["getModuleValue"] = getModuleValue;
 
@@ -343,7 +364,9 @@ module.exports["trace-value"] = traceValue;
 module.exports["$getTraces"] = getTraces;
 
 module.exports["$spy"] = _spy;
+
 module.exports["$rebind"] = _rebind;
+module.exports["$shallowCopyObject"] = shallowCopyObject;
 
 module.exports["$checkTest"] = eagerCheckTest;
 module.exports["$checkBlock"] = eagerCheckBlockRunner;

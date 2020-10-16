@@ -4,6 +4,7 @@ export interface RuntimeConfig {
   spyMessgeHandler?: (x: any) => void,
   //spyExprHandler?: (x: SpyExprResult) => void,
   spyExprHandler?: (x: any) => void,
+  imgUrlProxy?: (url: string) => string,
 }
 
 const csv = require('csv-parse/lib/sync');
@@ -263,6 +264,14 @@ function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: R
     evaldModule["$setSpyValueHandler"](rtCfg.spyExprHandler);
   } else {
     console.log("RUNNER No spy expr handler");
+  }
+
+  if (rtCfg.imgUrlProxy) {
+    console.log("RUNNER: Overriding image URL proxy function");
+    // @ts-ignore
+    evaldModule["$setImgUrlProxyWrapper"](rtCfg.imgUrlProxy);
+  } else {
+    console.log("RUNNER: No overriding image URL proxy function");
   }
 
 }
