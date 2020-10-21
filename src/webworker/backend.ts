@@ -1,4 +1,4 @@
-import { RuntimeConfig } from './runner';
+import { RuntimeConfig, RunnerPerfResults } from './runner';
 
 export interface LintOptions {
   program: string,
@@ -19,10 +19,13 @@ export enum RunKind {
   Async = 'ASYNC',
 }
 
-export interface RunResult {
+export type RunResult = {
   time: number,
   result: any,
-}
+} | {
+  asyncPerfResult: RunnerPerfResults
+  result: any,
+};
 
 let compileStart = window.performance.now();
 
@@ -171,25 +174,19 @@ export const runProgram2 = (
       result,
     });
   } if (runKind === RunKind.Async) {
+    runner.resetTimings();
     return new Promise<any>((resolve) => {
-      const startRequire = window.performance.now();
       runner.makeRequireAsync(baseDir, rtCfg)(program).then((asyncRunner: any) => {
-        const endRequire = window.performance.now();
-        console.log('require time', endRequire - startRequire);
         resolve({
           run: (callback: (result: RunResult) => void): void => {
-            const startRun = window.performance.now();
             asyncRunner.run.then((result: any) => {
-              const endRun = window.performance.now();
-              console.log('run time', endRun - startRun);
               callback({
-                time: endRun - startRequire,
+                asyncPerfResult: runner.getTimingResults(),
                 result,
               });
             }).catch((result: any) => {
-              const endRun = window.performance.now();
               callback({
-                time: endRun - startRequire,
+                asyncPerfResult: runner.getTimingResults(),
                 result: { error: String(result.value), result },
               });
             });

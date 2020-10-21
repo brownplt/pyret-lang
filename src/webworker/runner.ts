@@ -8,6 +8,13 @@ export interface RuntimeConfig {
   checkBlockRunner?: (block: any) => void,
 }
 
+export interface RunnerPerfResults {
+  $makeRootRequires: number,
+  $dependencies: number,
+  $total: number,
+  [key: string]: number
+}
+
 const csv = require('csv-parse/lib/sync');
 const assert = require('assert');
 const immutable = require('immutable');
@@ -25,6 +32,35 @@ const nodeModules = {
   fs: browserFS.fs,
   immutable,
 };
+
+
+let timings: RunnerPerfResults = {
+  $makeRootRequires: 0,
+  $dependencies: 0,
+  $total: 0,
+};
+
+export function resetTimings() {
+  timings = {
+    $makeRootRequires: 0,
+    $dependencies: 0,
+    $total: 0,
+  }
+}
+
+export function getTimingResults(): RunnerPerfResults {
+  return Object.assign({}, timings);
+}
+
+function calculateDependencyTime(rootModule: string) {
+  let depTotal = 0;
+  for (let k in timings) {
+    if (!k.includes("$") && k !== rootModule) {
+      depTotal += timings[k];
+    }
+  }
+  timings.$dependencies = depTotal;
+}
 
 /**
   This wrapping is necessary because otherwise require, exports, and module
@@ -49,6 +85,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
   const cache : {[key:string]: any} = {};
 
   const requireAsyncMain = (importPath: string) => new Promise(((resolve, reject) => {
+    const startRootRequires = window.performance.now();
     if (importPath in nodeModules) {
       return (nodeModules as any)[importPath];
     }
@@ -110,16 +147,25 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
     currentRunner = runner;
 
     resolve({
-      run: new Promise((resolve, reject) => runner.run((result : any) => {
-        if (result.type !== 'normal') {
-          reject(result);
-        } else {
-          const toReturn = runner.g.module.exports;
-          handleRuntimeConfig(cachePath, toReturn, rtCfg);
-          cache[cachePath] = toReturn;
-          resolve(toReturn);
-        }
-      })),
+      run: new Promise((resolve, reject) => {
+        const endRootRequires = window.performance.now();
+        timings.$makeRootRequires = endRootRequires - startRootRequires;
+        const startRootExecution = endRootRequires;
+        runner.run((result : any) => {
+          if (result.type !== 'normal') {
+            reject(result);
+          } else {
+            const toReturn = runner.g.module.exports;
+            handleRuntimeConfig(cachePath, toReturn, rtCfg);
+            cache[cachePath] = toReturn;
+            const endRootExecution = window.performance.now();
+            timings[cachePath] = endRootExecution - startRootExecution;
+            timings.$total = endRootExecution - startRootRequires;
+            calculateDependencyTime(cachePath);
+            resolve(toReturn);
+          }
+        })
+      }),
       pause: (callback: (line: number) => void): void => {
         runner.pause(callback);
       },
@@ -131,6 +177,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
 
   const requireAsyncFromDir = (requiringWd : string) => {
     return (importPath: string) => {
+      const startRequire = window.performance.now();
       if (importPath in nodeModules) {
         return (nodeModules as any)[importPath];
       }
@@ -181,6 +228,8 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
           currentRunner.g.exports = lastModule.exports;
           handleRuntimeConfig(cachePath, toReturn, rtCfg);
           cache[cachePath] = toReturn;
+          const endRequire = window.performance.now();
+          timings[cachePath] = endRequire - startRequire;
           kontinue({ type: 'normal', value: toReturn });
         });
       });
@@ -204,6 +253,7 @@ export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPa
     could pause the stack while requiring and then resume.
   */
   const requireSync = (importPath: string) => {
+    const startRequire = window.performance.now();
     if (importPath in nodeModules) {
       return (nodeModules as any)[importPath];
     }
