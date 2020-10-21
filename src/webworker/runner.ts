@@ -9,6 +9,7 @@ export interface RuntimeConfig {
 }
 
 export interface RunnerPerfResults {
+  $rootOnly: number,
   $makeRootRequires: number,
   $dependencies: number,
   $total: number,
@@ -35,6 +36,7 @@ const nodeModules = {
 
 
 let timings: RunnerPerfResults = {
+  $rootOnly: 0,
   $makeRootRequires: 0,
   $dependencies: 0,
   $total: 0,
@@ -42,6 +44,7 @@ let timings: RunnerPerfResults = {
 
 export function resetTimings() {
   timings = {
+    $rootOnly: 0,
     $makeRootRequires: 0,
     $dependencies: 0,
     $total: 0,
@@ -162,6 +165,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
             timings[cachePath] = endRootExecution - startRootExecution;
             timings.$total = endRootExecution - startRootRequires;
             calculateDependencyTime(cachePath);
+            timings.$rootOnly = timings.$total - timings.$dependencies - timings.$makeRootRequires;
             resolve(toReturn);
           }
         })
@@ -297,6 +301,7 @@ export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPa
     if (nextPath === rootPath) {
       calculateDependencyTime(rootPath);
       timings.$total = timings.$dependencies + (endRequire - startRequire) + timings.$makeRootRequires;
+      timings.$rootOnly = timings.$total - timings.$dependencies - timings.$makeRootRequires;
     }
     return toReturn;
   };
