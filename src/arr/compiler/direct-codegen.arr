@@ -1107,7 +1107,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       #   i.e. the check blocks are NOT moved to the end of a block direct-codegen.arr
       #
       # Emits:
-      #   checkBlockTestRunner("TEST NAME", function() { compiled-body });
+      #   checkBlockTestRunner(uri, "TEST NAME", function() { compiled-body });
       #
 
       { check-block-val; check-block-stmts } = compile-expr(context, body)
@@ -1128,8 +1128,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
         | none => j-str(js-check-block-func-name.to-compiled())
       end
 
+      block-loc = j-str(choose-srcloc(l, context).format(true))
+
       # Pass function check-block and the name to the test runner
-      tester-call = j-expr(rt-method("$checkBlock", [clist: test-block-name, js-check-block-func]))
+      tester-call = j-expr(rt-method("$checkBlock", [clist: block-loc, test-block-name, js-check-block-func]))
 
       # NOTE(alex): Check blocks are emitted/executed at the END of the program
       #   However, their bindings are still as if they were emitted in place

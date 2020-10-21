@@ -85,7 +85,7 @@ export function $setCheckBlockExecutor(executor): void {
   $checkBlockExecutor = executor;
 }
 
-function checkBlockHandler(name: string, checkBlock: () => void): void {
+function checkBlockHandler(srcloc: string, name: string, checkBlock: () => void): void {
   $checkBlockExecutor(name, checkBlock);
 }
 
