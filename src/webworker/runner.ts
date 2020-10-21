@@ -241,6 +241,8 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
 export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => any) => {
   const cache : {[key:string]: any} = {};
   let cwd = basePath;
+  let isRoot = true;
+  let rootPath: string = "";
   /*
     Recursively eval (with this definition of require in scope) all of the
     described JavaScript.
@@ -251,15 +253,23 @@ export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPa
 
     Future use of stopify could enable the definition of requireAsync, which
     could pause the stack while requiring and then resume.
-  */
+   */
+  const startMakeRequire = window.performance.now();
   const requireSync = (importPath: string) => {
     const startRequire = window.performance.now();
+
     if (importPath in nodeModules) {
       return (nodeModules as any)[importPath];
     }
     const oldWd = cwd;
     const nextPath = path.join(cwd, importPath);
     if (nextPath in cache) { return cache[nextPath]; }
+
+    if (isRoot) {
+      isRoot = false;
+      rootPath = nextPath;
+    }
+
     cwd = path.parse(nextPath).dir;
     if (!fs.existsSync(nextPath)) {
       throw new Error(`Path did not exist in requireSync: ${nextPath}`);
@@ -281,9 +291,18 @@ export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPa
     handleRuntimeConfig(nextPath, toReturn, rtCfg);
     cwd = oldWd;
     cache[nextPath] = toReturn;
+
+    const endRequire = window.performance.now();
+    timings[nextPath] = endRequire - startRequire;
+    if (nextPath === rootPath) {
+      calculateDependencyTime(rootPath);
+      timings.$total = timings.$dependencies + (endRequire - startRequire) + timings.$makeRootRequires;
+    }
     return toReturn;
   };
 
+  const endMakeRequire = window.performance.now();
+  timings.$makeRootRequires = endMakeRequire - startMakeRequire;
   return requireSync;
 };
 

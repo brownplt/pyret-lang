@@ -20,10 +20,7 @@ export enum RunKind {
 }
 
 export type RunResult = {
-  time: number,
-  result: any,
-} | {
-  asyncPerfResult: RunnerPerfResults
+  perfResults: RunnerPerfResults
   result: any,
 };
 
@@ -165,28 +162,26 @@ export const runProgram2 = (
   runKind: RunKind,
   rtCfg?: RuntimeConfig,
 ): Promise<any> => {
+  runner.resetTimings();
   if (runKind === RunKind.Sync) {
-    const start = window.performance.now();
     const result = runner.makeRequire(baseDir, rtCfg)(program);
-    const end = window.performance.now();
     return Promise.resolve({
-      time: end - start,
+      perfResults: runner.getTimingResults(),
       result,
     });
   } if (runKind === RunKind.Async) {
-    runner.resetTimings();
     return new Promise<any>((resolve) => {
       runner.makeRequireAsync(baseDir, rtCfg)(program).then((asyncRunner: any) => {
         resolve({
           run: (callback: (result: RunResult) => void): void => {
             asyncRunner.run.then((result: any) => {
               callback({
-                asyncPerfResult: runner.getTimingResults(),
+                perfResults: runner.getTimingResults(),
                 result,
               });
             }).catch((result: any) => {
               callback({
-                asyncPerfResult: runner.getTimingResults(),
+                perfResults: runner.getTimingResults(),
                 result: { error: String(result.value), result },
               });
             });
@@ -210,13 +205,12 @@ export const runProgram = (
   program: string,
   runKind: RunKind,
 ): Promise<RunResult> => {
+  runner.resetTimings();
   if (runKind === RunKind.Sync) {
-    const start = window.performance.now();
     const result = runner.makeRequire(baseDir)(program);
-    const end = window.performance.now();
 
     return Promise.resolve({
-      time: end - start,
+      perfResults: runner.getTimingResults(),
       result,
     });
   } if (runKind === RunKind.Async) {
@@ -224,21 +218,12 @@ export const runProgram = (
     const resultP = entry(program);
 
     const wrapper = new Promise<RunResult>((resolve) => {
-      const startRequire = window.performance.now();
       resultP.then((asyncRunner: any) => {
         console.log('asyncRunner', asyncRunner);
-        const endRequire = window.performance.now();
 
-        const startRun = window.performance.now();
         asyncRunner.run((result: any) => {
-          const endRun = window.performance.now();
-
-          console.log('require time', endRequire - startRequire);
-          console.log('run time', endRun - startRun);
-          console.log('total time', endRun - startRequire);
-
           resolve({
-            time: endRun - startRequire,
+            perfResults: runner.getTimingResults(),
             result,
           });
         });
