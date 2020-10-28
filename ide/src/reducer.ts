@@ -47,6 +47,10 @@ import {
   SpyValue,
 } from './rhsObject';
 
+import {
+  cleanStopify,
+} from './ide-rt-helpers';
+
 /* This is a chunk-mode only function. In chunk mode the Enter key is capable of
    creating a new chunk under certain conditions. This function checks those
    conditions and moves into the proper state. This should be used to wrap the
@@ -274,6 +278,10 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
     currentFile,
   } = state;
 
+  // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
+  //   resulting in a severe memory leak of 50+MB PER RUN
+  cleanStopify();
+
   const newChunks = chunks.slice();
   const locations = status.result.result.$locations;
   const traces = status.result.result.$traces;
@@ -304,6 +312,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
 
   return handleEnter({
     ...state,
+    currentRunner: undefined,
     chunks: newChunks,
     running: false,
     rhs: {
@@ -592,8 +601,12 @@ function handleCompileFailure(
 
 function handleRunFailure(state: State, status: FailureForEffect<'run'>) {
   console.log('handleFailure', status);
+  // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
+  //   resulting in a severe memory leak of 50+MB PER RUN
+  cleanStopify();
   return handleEnter({
     ...state,
+    currentRunner: undefined,
     running: false,
     interactionErrors: [JSON.stringify(status.errors)],
   });
