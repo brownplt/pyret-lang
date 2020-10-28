@@ -27,10 +27,10 @@ import Footer from './Footer';
 import Header from './Header';
 import InteractionError from './InteractionError';
 import Run from './Run';
-import 'react-tabs/style/react-tabs.css';
 import * as control from './control';
-import 'react-splitter-layout/lib/index.css';
 import * as action from './action';
+import 'react-tabs/style/react-tabs.css';
+import 'react-splitter-layout/lib/index.css';
 
 type StateProps = {
   browseRoot: string,
@@ -193,7 +193,7 @@ export class Editor extends React.Component<EditorProps, any> {
           foo
         </TabPanel>
 
-        <TabPanel>
+        <TabPanel className="interaction-error">
           <InteractionError fontSize={fontSize}>
             {interactionErrors}
           </InteractionError>
