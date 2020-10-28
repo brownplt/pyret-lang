@@ -8,6 +8,12 @@
 import React from 'react';
 import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
+import {
+  Tab,
+  Tabs,
+  TabList,
+  TabPanel,
+} from 'react-tabs';
 import SplitterLayout from 'react-splitter-layout';
 import { Chunk } from './chunk';
 import * as State from './state';
@@ -21,6 +27,7 @@ import Footer from './Footer';
 import Header from './Header';
 import InteractionError from './InteractionError';
 import Run from './Run';
+import 'react-tabs/style/react-tabs.css';
 import * as control from './control';
 import 'react-splitter-layout/lib/index.css';
 import * as action from './action';
@@ -113,7 +120,7 @@ export class Editor extends React.Component<EditorProps, any> {
 
   /* Returns a function suitable as a callback to a copy (ctrl-c) event handler.
      Ensures that highlighted text over multiple chunks is properly copied. Also
-     ensures that the "get shareable link" button copies its link when clicked. */
+     ensures that the 'get shareable link' button copies its link when clicked. */
   makeCopyHandler() {
     const that = this;
 
@@ -175,24 +182,36 @@ export class Editor extends React.Component<EditorProps, any> {
       <RHS />
     );
 
+    const rhsMessages = (
+      <Tabs defaultIndex={interactionErrors.length > 0 ? 1 : 0}>
+        <TabList>
+          <Tab>Message</Tab>
+          <Tab>Errors</Tab>
+        </TabList>
+
+        <TabPanel>
+          foo
+        </TabPanel>
+
+        <TabPanel>
+          <InteractionError fontSize={fontSize}>
+            {interactionErrors}
+          </InteractionError>
+        </TabPanel>
+      </Tabs>
+    );
+
+    const hasMessages = interactionErrors.length > 0;
+
     const rightHandSide = (
       <div className="interactions-area-container">
-        {interactionErrors.length > 0 ? (
+        {hasMessages ? (
           <SplitterLayout
             vertical
             percentage
           >
             {interactionValues}
-            <InteractionError fontSize={fontSize}>
-              {(() => {
-                /* TODO(michael): this error message is outdated */
-                if (interactionErrors.length === 1
-                        && interactionErrors[0] === 'Could not find module with uri: builtin://global') {
-                  return ['The first line of your program should be `import global as G`'];
-                }
-                return interactionErrors;
-              })()}
-            </InteractionError>
+            {rhsMessages}
           </SplitterLayout>
         ) : interactionValues}
       </div>
