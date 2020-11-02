@@ -19,6 +19,7 @@ import { Chunk } from './chunk';
 import * as State from './state';
 import { EditorMode } from './state';
 import RHS from './RHS';
+import RTMessageDisplay from './RTMessageDisplay';
 import DefChunks from './DefChunks';
 import SingleCodeMirrorDefinitions from './SingleCodeMirrorDefinitions';
 import Menu from './Menu';
@@ -190,7 +191,7 @@ export class Editor extends React.Component<EditorProps, any> {
         </TabList>
 
         <TabPanel>
-          foo
+          <RTMessageDisplay />
         </TabPanel>
 
         <TabPanel className="interaction-error">

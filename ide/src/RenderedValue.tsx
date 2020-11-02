@@ -7,11 +7,12 @@ import ImageWidget from './Image';
 import ChartWidget from './Chart';
 import ReactorWidget from './Reactor';
 
+import { isRHSCheck } from './rhsObject';
+
 import {
   isSpyMessage,
   isSpyValue,
-  isRHSCheck,
-} from './rhsObject';
+} from './rtMessages';
 
 type RenderedValueProps = {
   value: any;

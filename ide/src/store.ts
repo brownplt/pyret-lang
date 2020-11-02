@@ -210,7 +210,7 @@ function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
   dispatch({
     type: 'update',
     key: 'rhs',
-    value: 'reset-spy-data',
+    value: 'reset-rt-messages',
   });
   control.run(
     control.path.runBase,

@@ -43,9 +43,14 @@ import {
 import {
   makeRHSObjects,
   RHSObjects,
-  SpyMessage,
-  SpyValue,
 } from './rhsObject';
+
+import {
+  SpyValue,
+  SpyBlock,
+  RawRTMessage,
+  makeRTMessage,
+} from './rtMessages';
 
 /* This is a chunk-mode only function. In chunk mode the Enter key is capable of
    creating a new chunk under certain conditions. This function checks those
@@ -836,7 +841,7 @@ function handleSetMenuTabVisible(state: State, tab: false | number) {
 
 function handleSetRHS(
   state: State,
-  value: 'make-outdated' | 'reset-spy-data' | SpyMessage | SpyValue,
+  value: 'make-outdated' | 'reset-rt-messages',
 ) {
   console.log('handleSetRHS', value);
 
@@ -844,12 +849,12 @@ function handleSetRHS(
     rhs,
   } = state;
 
-  if (value === 'reset-spy-data') {
+  if (value === 'reset-rt-messages') {
     return {
       ...state,
-      rhs: {
-        ...rhs,
-        spyData: [],
+      rtMessages: {
+        ...rtMessages,
+        messages: [],
       },
     };
   }
@@ -861,19 +866,12 @@ function handleSetRHS(
         ...rhs,
         outdated: true,
       },
+      rtMessages: {
+        ...rtMessages,
+        outdated: true,
+      },
     };
   }
-
-  const v: SpyMessage | SpyValue = (value as any);
-  const newRHS: RHSObjects = {
-    ...rhs,
-    spyData: [...rhs.spyData, v],
-  };
-
-  return {
-    ...state,
-    rhs: newRHS,
-  };
 }
 
 function handleUpdate(
@@ -911,6 +909,8 @@ function handleUpdate(
       return handleSetMenuTabVisible(state, action.value);
     case 'rhs':
       return handleSetRHS(state, action.value);
+    case 'rt-message':
+      return handleRTMessage(state, <RawRTMessage>action.value);
     case 'firstSelectedChunkIndex':
       return { ...state, firstSelectedChunkIndex: action.value };
     case 'debugBorders':
@@ -920,6 +920,23 @@ function handleUpdate(
     default:
       throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }
+}
+
+function handleRTMessage(state: State, message: RawRTMessage): State {
+
+  const {
+    rtMessages,
+  } = state;
+
+  const newRTMessages: RTMessages = {
+    ...rtMessages,
+    messages: [...rtMessages.messages, makeRTMessage(v)],
+  };
+
+  return {
+    ...state,
+    rtMessages: newRTMessages,
+  };
 }
 
 function rootReducer(state: State, action: Action): State {

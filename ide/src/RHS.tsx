@@ -16,8 +16,6 @@ import { State } from './state';
 import {
   RHSObject,
   RHSObjects,
-  isSpyValue,
-  isSpyMessage,
   isTrace,
   isLocation,
   isRHSCheck,
@@ -85,7 +83,7 @@ function RHS({
     return getRow(a) - getRow(b);
   }
 
-  const objects = [...rhs.objects, ...rhs.spyData].sort(compareRHSObjects);
+  const objects = rhs.objects.sort(compareRHSObjects);
 
   const elements = (
     objects.map((rhsObject) => {
@@ -106,36 +104,6 @@ function RHS({
         if (chunk !== false) {
           setFocusedChunk(chunk);
         }
-      }
-
-      if (isSpyMessage(rhsObject)) {
-        return (
-          <pre
-            key={rhsObject.key}
-            style={{
-              paddingLeft: '1em',
-              ...selectedStyle,
-            }}
-            onMouseEnter={selectThisChunk}
-          >
-            <RenderedValue value={rhsObject} />
-          </pre>
-        );
-      }
-
-      if (isSpyValue(rhsObject)) {
-        return (
-          <pre
-            key={rhsObject.key}
-            style={{
-              paddingLeft: '1em',
-              ...selectedStyle,
-            }}
-            onMouseEnter={selectThisChunk}
-          >
-            <RenderedValue value={rhsObject} />
-          </pre>
-        );
       }
 
       if (isTrace(rhsObject)) {

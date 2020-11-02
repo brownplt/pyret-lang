@@ -18,12 +18,11 @@ export function defaultSpyMessage(data: { message: string, loc: string}) {
   // @ts-ignore
   return getIDE().dispatch({
     type: 'update',
-    key: 'rhs',
+    key: 'rt-message',
     value: {
       tag: 'spy-message',
       message: true,
       value,
-      key: data.loc,
       loc: data.loc,
     },
   });
@@ -33,14 +32,13 @@ export function defaultSpyExpr(data: { key: string, value: any, loc: string}) {
   // @ts-ignore
   return getIDE().dispatch({
     type: 'update',
-    key: 'rhs',
+    key: 'rt-message',
     value: {
       tag: 'spy-value',
       value: {
         key: data.key,
         value: data.value,
       },
-      key: data.loc,
       loc: data.loc,
     },
   });

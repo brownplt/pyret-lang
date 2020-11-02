@@ -4,6 +4,7 @@ import { Chunk } from './chunk';
 import { Effect } from './effect';
 import { MenuItems } from './menu-types';
 import { RHSObjects } from './rhsObject';
+import { RTMessages } from './rtMessages';
 import * as control from './control';
 
 export type State = {
@@ -34,6 +35,9 @@ export type State = {
 
   /* The parsed module results of a Pyret program. */
   rhs: RHSObjects,
+
+  /* Parsed messages from an executed/executing Pyret program */
+  rtMessages: RTMessages,
 
   /* In text mode: the errors (if any). In chunk mode: the runtime errors (if
      any); lint and compile errors are tracked in the `chunks` array. */
@@ -158,7 +162,10 @@ export const initialState: State = {
   typeCheck: true,
   rhs: {
     objects: [],
-    spyData: [],
+    outdated: false,
+  },
+  rtMessage: {
+    messages: [],
     outdated: false,
   },
   interactionErrors: [],

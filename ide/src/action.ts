@@ -4,10 +4,7 @@
 import { Chunk } from './chunk';
 import { EditorMode } from './state';
 import { Effect } from './effect';
-import {
-  SpyMessage,
-  SpyValue,
-} from './rhsObject';
+import { RawRTMessage } from './rtMessages';
 import * as control from './control';
 
 export type EffectFailure =
@@ -81,7 +78,8 @@ export type Update =
   | { key: 'firstSelectedChunkIndex', value: false | number }
   | { key: 'debugBorders', value: boolean }
   | { key: 'displayResultsInline', value: boolean }
-  | { key: 'rhs', value: 'make-outdated' | 'reset-spy-data' | SpyMessage | SpyValue });
+  | { key: 'rhs', value: 'make-outdated' | 'reset-rt-messages' }
+  | { key: 'rt-message', value: RawRTMessage });
 
 export type UpdateKey = Update['key'];
 
