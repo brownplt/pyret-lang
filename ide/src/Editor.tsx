@@ -187,6 +187,8 @@ export class Editor extends React.Component<EditorProps, any> {
       <RHS />
     );
 
+    // TODO(alex): interaction errors DOM node not extending the entire plane
+    //   Caused by the tab panel implementation which shrinks to the size of the content
     const rhsMessages = (
       <Tabs defaultIndex={interactionErrors.length > 0 ? 1 : 0}>
         <TabList>
