@@ -4,7 +4,7 @@ import { connect, ConnectedProps } from 'react-redux';
 import { Action } from './action';
 import { State } from './state';
 
-import { Chunk } from './chunk';
+import { Chunk, findChunkFromSrcloc } from './chunk';
 import RenderedValue from './RenderedValue';
 
 import {
@@ -12,6 +12,8 @@ import {
   isSpyMessage,
   RTMessages,
 } from './rtMessages';
+
+import { getRow } from './rhsObject';
 
 type StateProps = {
   rtMessages: RTMessages,
@@ -58,19 +60,48 @@ type RTProps = StateProps & PropsFromRedux & DispatchProps;
 function RTMessageDisplay({
   rtMessages,
   fontSize,
+  chunks,
+  currentFile,
+  focusedChunk,
+  setFocusedChunk,
 }: RTProps) {
   const objects = rtMessages.messages;
 
-  // TODO: chunk focusing
+  // TODO(alex): Focusing on a RT message also focuses the interaction values associated
+  //   with the chunk. Is this desired?
   const elements = (
     objects.map((rtMessage) => {
+      const row = getRow(rtMessage.data);
+      const chunk = findChunkFromSrcloc(
+        chunks,
+        [`file://${currentFile}`, row],
+        currentFile,
+      );
+      const isSelected = !rtMessages.outdated
+        && focusedChunk !== undefined && chunk === focusedChunk;
+      // TODO(alex): unify/centralize styles
+      const selectedStyle = {
+        background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
+        borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
+        borderBottom: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
+      };
+
+      function selectThisChunk() {
+        if (chunk !== false) {
+          setFocusedChunk(chunk);
+        }
+      }
+
+      // TODO(alex): selected style not applying
       if (isSpyMessage(rtMessage.data)) {
         return (
           <pre
             key={rtMessage.key}
             style={{
               paddingLeft: '1em',
+              ...selectedStyle,
             }}
+            onMouseEnter={selectThisChunk}
           >
             <RenderedValue value={rtMessage} />
           </pre>
@@ -83,7 +114,9 @@ function RTMessageDisplay({
             key={rtMessage.key}
             style={{
               paddingLeft: '1em',
+              ...selectedStyle,
             }}
+            onMouseEnter={selectThisChunk}
           >
             <RenderedValue value={rtMessage} />
           </pre>
