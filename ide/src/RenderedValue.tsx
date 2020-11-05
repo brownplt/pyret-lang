@@ -12,6 +12,8 @@ import { isRHSCheck } from './rhsObject';
 import {
   isSpyMessage,
   isSpyValue,
+  isRTMessage,
+  RawRTMessage,
 } from './rtMessages';
 
 type RenderedValueProps = {
@@ -89,12 +91,15 @@ function convert(value: any): any {
       return JSON.stringify(value.slice(0, 100).concat([`... ${message}`]));
     }
 
-    if (isSpyValue(value)) {
-      return `${value.value.key} = ${convert(value.value.value)} (${value.loc})`;
-    }
+    if (isRTMessage(value)) {
+      const messageData: RawRTMessage = value.data;
+      if (isSpyValue(messageData)) {
+        return `${messageData.value.key} = ${convert(messageData.value.value)} (${messageData.loc})`;
+      }
 
-    if (isSpyMessage(value)) {
-      return value.value ? `Spying "${value.value}" at: ${value.loc}` : `Spying at ${value.loc}`;
+      if (isSpyMessage(value.data)) {
+        return messageData.value ? `Spying "${messageData.value}" at: ${messageData.loc}` : `Spying at ${messageData.loc}`;
+      }
     }
 
     if (isRHSCheck(value)) {

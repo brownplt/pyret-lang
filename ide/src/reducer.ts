@@ -42,14 +42,12 @@ import {
 
 import {
   makeRHSObjects,
-  RHSObjects,
 } from './rhsObject';
 
 import {
-  SpyValue,
-  SpyBlock,
   RawRTMessage,
   makeRTMessage,
+  RTMessages,
 } from './rtMessages';
 
 /* This is a chunk-mode only function. In chunk mode the Enter key is capable of
@@ -847,6 +845,7 @@ function handleSetRHS(
 
   const {
     rhs,
+    rtMessages,
   } = state;
 
   if (value === 'reset-rt-messages') {
@@ -872,6 +871,24 @@ function handleSetRHS(
       },
     };
   }
+
+  throw new Error('handleSetRHS: unreachable point reached');
+}
+
+function handleRTMessage(state: State, message: RawRTMessage): State {
+  const {
+    rtMessages,
+  } = state;
+
+  const newRTMessages: RTMessages = {
+    ...rtMessages,
+    messages: [...rtMessages.messages, makeRTMessage(message)],
+  };
+
+  return {
+    ...state,
+    rtMessages: newRTMessages,
+  };
 }
 
 function handleUpdate(
@@ -920,23 +937,6 @@ function handleUpdate(
     default:
       throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }
-}
-
-function handleRTMessage(state: State, message: RawRTMessage): State {
-
-  const {
-    rtMessages,
-  } = state;
-
-  const newRTMessages: RTMessages = {
-    ...rtMessages,
-    messages: [...rtMessages.messages, makeRTMessage(v)],
-  };
-
-  return {
-    ...state,
-    rtMessages: newRTMessages,
-  };
 }
 
 function rootReducer(state: State, action: Action): State {

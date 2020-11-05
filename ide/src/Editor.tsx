@@ -20,6 +20,7 @@ import * as State from './state';
 import { EditorMode } from './state';
 import RHS from './RHS';
 import RTMessageDisplay from './RTMessageDisplay';
+import { RTMessages } from './rtMessages';
 import DefChunks from './DefChunks';
 import SingleCodeMirrorDefinitions from './SingleCodeMirrorDefinitions';
 import Menu from './Menu';
@@ -39,6 +40,7 @@ type StateProps = {
   definitionsHighlights: number[][],
   fontSize: number,
   interactionErrors: any[],
+  rtMessages: RTMessages,
   editorMode: EditorMode,
   chunks: Chunk[],
   compiling: boolean | 'out-of-date',
@@ -56,6 +58,7 @@ function mapStateToProps(state: State.State): StateProps {
     chunks: state.chunks,
     compiling: state.compiling,
     linting: state.linting,
+    rtMessages: state.rtMessages,
   };
 }
 
@@ -177,6 +180,7 @@ export class Editor extends React.Component<EditorProps, any> {
     const {
       fontSize,
       interactionErrors,
+      rtMessages,
     } = this.props;
 
     const interactionValues = (
@@ -202,7 +206,7 @@ export class Editor extends React.Component<EditorProps, any> {
       </Tabs>
     );
 
-    const hasMessages = interactionErrors.length > 0;
+    const hasMessages = (interactionErrors.length > 0) || (rtMessages.messages.length > 0);
 
     const rightHandSide = (
       <div className="interactions-area-container">

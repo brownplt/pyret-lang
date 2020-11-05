@@ -20,6 +20,7 @@ export interface RTMessages {
 }
 
 export interface RTMessage {
+  tag: 'RTMessage',
   data: RawRTMessage,
   key: string,
 }
@@ -34,8 +35,17 @@ export function isSpyMessage(a: RawRTMessage): a is SpyMessage {
   return a.tag === 'spy-message';
 }
 
+export function isRTMessage(a: any): a is RTMessage {
+  return (typeof a === 'object') && ('tag' in a) && (a.tag === 'RTMessage');
+}
+
+export function hasMessage(m: RTMessages): boolean {
+  return m.messages.length > 0;
+}
+
 export function makeRTMessage(m: RawRTMessage): RTMessage {
   return {
+    tag: 'RTMessage',
     data: m,
     // TODO(alex): better key scheme?
     key: window.performance.now().toString(),
