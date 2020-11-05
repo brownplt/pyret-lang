@@ -164,7 +164,7 @@ export const initialState: State = {
     objects: [],
     outdated: false,
   },
-  rtMessage: {
+  rtMessages: {
     messages: [],
     outdated: false,
   },

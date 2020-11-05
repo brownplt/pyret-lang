@@ -34,10 +34,10 @@ export function isSpyMessage(a: RawRTMessage): a is SpyMessage {
   return a.tag === 'spy-message';
 }
 
-export function makeRTMessage(m: rawRTMessage): RTMessage {
+export function makeRTMessage(m: RawRTMessage): RTMessage {
   return {
     data: m,
     // TODO(alex): better key scheme?
-    key: window.performance().now().toString(),
+    key: window.performance.now().toString(),
   };
 }
