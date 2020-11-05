@@ -77,8 +77,9 @@ function RTMessageDisplay({
         [`file://${currentFile}`, row],
         currentFile,
       );
-      const isSelected = !rtMessages.outdated
-        && focusedChunk !== undefined && chunk === focusedChunk;
+      // TODO(alex): need to take into account rtMessages.outdated
+      // TODO(alex): probably want to extract into the overall property 'resultsOutdated'
+      const isSelected = focusedChunk !== undefined && chunk === focusedChunk;
       // TODO(alex): unify/centralize styles
       const selectedStyle = {
         background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
