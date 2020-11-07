@@ -119,6 +119,12 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
 
   function handleLintFailure(lintFailure: { name: string, errors: string[] }): void {
     dispatch({
+      type: 'update',
+      key: 'messageTabIndex',
+      value: MessageTabIndex.ErrorMessages,
+    });
+
+    dispatch({
       type: 'effectEnded',
       status: 'failed',
       effect: 'lint',
