@@ -138,7 +138,15 @@ export type State = {
   /* Chunk mode only. True if results of a program should also be displayed
      below each chunk, false otherwise. */
   displayResultsInline: boolean,
+
+  /* Current tab index of the messages tab panel */
+  messageTabIndex: MessageTabIndex,
 };
+
+export enum MessageTabIndex {
+  RuntimeMessages = 0,
+  ErrorMessages = 1,
+}
 
 export enum EditorMode {
   Chunks,
@@ -205,4 +213,5 @@ export const initialState: State = {
   firstSelectedChunkIndex: false,
   debugBorders: false,
   displayResultsInline: false,
+  messageTabIndex: MessageTabIndex.RuntimeMessages,
 };

@@ -2,7 +2,7 @@
    The `Action` type is our type of Redux actions. */
 
 import { Chunk } from './chunk';
-import { EditorMode } from './state';
+import { EditorMode, MessageTabIndex } from './state';
 import { Effect } from './effect';
 import { RawRTMessage } from './rtMessages';
 import * as control from './control';
@@ -79,7 +79,9 @@ export type Update =
   | { key: 'debugBorders', value: boolean }
   | { key: 'displayResultsInline', value: boolean }
   | { key: 'rhs', value: 'make-outdated' | 'reset-rt-messages' }
-  | { key: 'rt-message', value: RawRTMessage });
+  | { key: 'rt-message', value: RawRTMessage }
+  | { key: 'messageTabIndex', value: MessageTabIndex }
+  );
 
 export type UpdateKey = Update['key'];
 

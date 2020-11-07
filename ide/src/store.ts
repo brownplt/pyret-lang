@@ -2,7 +2,7 @@
 
 import { createStore } from 'redux';
 import ideApp from './reducer';
-import { EditorMode, State } from './state';
+import { EditorMode, MessageTabIndex, State } from './state';
 import {
   Chunk,
   makeChunksFromString,
@@ -89,6 +89,12 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
 
   function handleCompileFailure(errors: string[]): void {
     dispatch({
+      type: 'update',
+      key: 'messageTabIndex',
+      value: MessageTabIndex.ErrorMessages,
+    });
+
+    dispatch({
       type: 'effectEnded',
       status: 'failed',
       effect: 'compile',
@@ -97,6 +103,12 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
   }
 
   function handleRuntimeFailure(errors: string[]): void {
+    dispatch({
+      type: 'update',
+      key: 'messageTabIndex',
+      value: MessageTabIndex.ErrorMessages,
+    });
+
     dispatch({
       type: 'effectEnded',
       status: 'failed',
@@ -220,12 +232,24 @@ function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
       console.log('runResult', runResult);
       if (runResult.result.error === undefined) {
         dispatch({
+          type: 'update',
+          key: 'messageTabIndex',
+          value: MessageTabIndex.RuntimeMessages,
+        });
+
+        dispatch({
           type: 'effectEnded',
           status: 'succeeded',
           effect: 'run',
           result: runResult,
         });
       } else {
+        dispatch({
+          type: 'update',
+          key: 'messageTabIndex',
+          value: MessageTabIndex.ErrorMessages,
+        });
+
         dispatch({
           type: 'effectEnded',
           status: 'failed',

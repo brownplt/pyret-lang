@@ -25,6 +25,7 @@ import {
 } from './action';
 
 import {
+  MessageTabIndex,
   EditorMode,
   State,
   initialState,
@@ -891,6 +892,13 @@ function handleRTMessage(state: State, message: RawRTMessage): State {
   };
 }
 
+function handleMessageIndexUpdate(state: State, newIndex: MessageTabIndex) {
+  return {
+    ...state,
+    messageTabIndex: newIndex,
+  };
+}
+
 function handleUpdate(
   state: State,
   action: Update,
@@ -934,6 +942,8 @@ function handleUpdate(
       return { ...state, debugBorders: action.value };
     case 'displayResultsInline':
       return { ...state, displayResultsInline: action.value };
+    case 'messageTabIndex':
+      return handleMessageIndexUpdate(state, action.value);
     default:
       throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }

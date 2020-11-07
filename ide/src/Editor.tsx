@@ -17,7 +17,7 @@ import {
 import SplitterLayout from 'react-splitter-layout';
 import { Chunk } from './chunk';
 import * as State from './state';
-import { EditorMode } from './state';
+import { EditorMode, MessageTabIndex } from './state';
 import RHS from './RHS';
 import RTMessageDisplay from './RTMessageDisplay';
 import { RTMessages } from './rtMessages';
@@ -45,6 +45,7 @@ type StateProps = {
   chunks: Chunk[],
   compiling: boolean | 'out-of-date',
   linting: boolean,
+  messageTabIndex: MessageTabIndex,
 };
 
 function mapStateToProps(state: State.State): StateProps {
@@ -59,12 +60,14 @@ function mapStateToProps(state: State.State): StateProps {
     compiling: state.compiling,
     linting: state.linting,
     rtMessages: state.rtMessages,
+    messageTabIndex: state.messageTabIndex,
   };
 }
 
 type DispatchProps = {
   updateContents: (contents: string) => void,
   setEditorMode: (mode: EditorMode) => void,
+  setMessageTabIndex: (index: number) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchProps {
@@ -76,6 +79,23 @@ function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchP
     }),
     setEditorMode: (mode: EditorMode) => {
       dispatch({ type: 'update', key: 'editorMode', value: mode });
+    },
+    setMessageTabIndex: (index: number) => {
+      if (index === MessageTabIndex.ErrorMessages) {
+        dispatch({
+          type: 'update',
+          key: 'messageTabIndex',
+          value: MessageTabIndex.ErrorMessages,
+        });
+      } else if (index === MessageTabIndex.RuntimeMessages) {
+        dispatch({
+          type: 'update',
+          key: 'messageTabIndex',
+          value: MessageTabIndex.RuntimeMessages,
+        });
+      } else {
+        throw new Error(`Unknown message tab index: ${index}`);
+      }
     },
   };
 }
@@ -181,6 +201,8 @@ export class Editor extends React.Component<EditorProps, any> {
       fontSize,
       interactionErrors,
       rtMessages,
+      messageTabIndex,
+      setMessageTabIndex,
     } = this.props;
 
     const interactionValues = (
@@ -190,7 +212,10 @@ export class Editor extends React.Component<EditorProps, any> {
     // TODO(alex): interaction errors DOM node not extending the entire plane
     //   Caused by the tab panel implementation which shrinks to the size of the content
     const rhsMessages = (
-      <Tabs defaultIndex={interactionErrors.length > 0 ? 1 : 0}>
+      <Tabs
+        selectedIndex={messageTabIndex}
+        onSelect={(tabIndex) => setMessageTabIndex(tabIndex)}
+      >
         <TabList>
           <Tab>Message</Tab>
           <Tab>Errors</Tab>
