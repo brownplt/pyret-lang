@@ -8,11 +8,19 @@
 import React from 'react';
 import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
+import {
+  Tab,
+  Tabs,
+  TabList,
+  TabPanel,
+} from 'react-tabs';
 import SplitterLayout from 'react-splitter-layout';
 import { Chunk } from './chunk';
 import * as State from './state';
-import { EditorMode } from './state';
+import { EditorMode, MessageTabIndex } from './state';
 import RHS from './RHS';
+import RTMessageDisplay from './RTMessageDisplay';
+import { RTMessages } from './rtMessages';
 import DefChunks from './DefChunks';
 import SingleCodeMirrorDefinitions from './SingleCodeMirrorDefinitions';
 import Menu from './Menu';
@@ -22,8 +30,9 @@ import Header from './Header';
 import InteractionError from './InteractionError';
 import Run from './Run';
 import * as control from './control';
-import 'react-splitter-layout/lib/index.css';
 import * as action from './action';
+import 'react-tabs/style/react-tabs.css';
+import 'react-splitter-layout/lib/index.css';
 
 type StateProps = {
   browseRoot: string,
@@ -31,10 +40,12 @@ type StateProps = {
   definitionsHighlights: number[][],
   fontSize: number,
   interactionErrors: any[],
+  rtMessages: RTMessages,
   editorMode: EditorMode,
   chunks: Chunk[],
   compiling: boolean | 'out-of-date',
   linting: boolean,
+  messageTabIndex: MessageTabIndex,
 };
 
 function mapStateToProps(state: State.State): StateProps {
@@ -48,12 +59,15 @@ function mapStateToProps(state: State.State): StateProps {
     chunks: state.chunks,
     compiling: state.compiling,
     linting: state.linting,
+    rtMessages: state.rtMessages,
+    messageTabIndex: state.messageTabIndex,
   };
 }
 
 type DispatchProps = {
   updateContents: (contents: string) => void,
   setEditorMode: (mode: EditorMode) => void,
+  setMessageTabIndex: (index: number) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchProps {
@@ -65,6 +79,23 @@ function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchP
     }),
     setEditorMode: (mode: EditorMode) => {
       dispatch({ type: 'update', key: 'editorMode', value: mode });
+    },
+    setMessageTabIndex: (index: number) => {
+      if (index === MessageTabIndex.ErrorMessages) {
+        dispatch({
+          type: 'update',
+          key: 'messageTabIndex',
+          value: MessageTabIndex.ErrorMessages,
+        });
+      } else if (index === MessageTabIndex.RuntimeMessages) {
+        dispatch({
+          type: 'update',
+          key: 'messageTabIndex',
+          value: MessageTabIndex.RuntimeMessages,
+        });
+      } else {
+        throw new Error(`Unknown message tab index: ${index}`);
+      }
     },
   };
 }
@@ -113,7 +144,7 @@ export class Editor extends React.Component<EditorProps, any> {
 
   /* Returns a function suitable as a callback to a copy (ctrl-c) event handler.
      Ensures that highlighted text over multiple chunks is properly copied. Also
-     ensures that the "get shareable link" button copies its link when clicked. */
+     ensures that the 'get shareable link' button copies its link when clicked. */
   makeCopyHandler() {
     const that = this;
 
@@ -169,30 +200,50 @@ export class Editor extends React.Component<EditorProps, any> {
     const {
       fontSize,
       interactionErrors,
+      rtMessages,
+      messageTabIndex,
+      setMessageTabIndex,
     } = this.props;
 
     const interactionValues = (
       <RHS />
     );
 
+    // TODO(alex): interaction errors DOM node not extending the entire plane
+    //   Caused by the tab panel implementation which shrinks to the size of the content
+    const rhsMessages = (
+      <Tabs
+        selectedIndex={messageTabIndex}
+        onSelect={(tabIndex) => setMessageTabIndex(tabIndex)}
+      >
+        <TabList>
+          <Tab>Message</Tab>
+          <Tab>Errors</Tab>
+        </TabList>
+
+        <TabPanel>
+          <RTMessageDisplay />
+        </TabPanel>
+
+        <TabPanel className="interaction-error">
+          <InteractionError fontSize={fontSize}>
+            {interactionErrors}
+          </InteractionError>
+        </TabPanel>
+      </Tabs>
+    );
+
+    const hasMessages = (interactionErrors.length > 0) || (rtMessages.messages.length > 0);
+
     const rightHandSide = (
       <div className="interactions-area-container">
-        {interactionErrors.length > 0 ? (
+        {hasMessages ? (
           <SplitterLayout
             vertical
             percentage
           >
             {interactionValues}
-            <InteractionError fontSize={fontSize}>
-              {(() => {
-                /* TODO(michael): this error message is outdated */
-                if (interactionErrors.length === 1
-                        && interactionErrors[0] === 'Could not find module with uri: builtin://global') {
-                  return ['The first line of your program should be `import global as G`'];
-                }
-                return interactionErrors;
-              })()}
-            </InteractionError>
+            {rhsMessages}
           </SplitterLayout>
         ) : interactionValues}
       </div>

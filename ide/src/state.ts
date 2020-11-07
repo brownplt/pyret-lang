@@ -4,6 +4,7 @@ import { Chunk } from './chunk';
 import { Effect } from './effect';
 import { MenuItems } from './menu-types';
 import { RHSObjects } from './rhsObject';
+import { RTMessages } from './rtMessages';
 import * as control from './control';
 
 export type State = {
@@ -34,6 +35,9 @@ export type State = {
 
   /* The parsed module results of a Pyret program. */
   rhs: RHSObjects,
+
+  /* Parsed messages from an executed/executing Pyret program */
+  rtMessages: RTMessages,
 
   /* In text mode: the errors (if any). In chunk mode: the runtime errors (if
      any); lint and compile errors are tracked in the `chunks` array. */
@@ -134,7 +138,15 @@ export type State = {
   /* Chunk mode only. True if results of a program should also be displayed
      below each chunk, false otherwise. */
   displayResultsInline: boolean,
+
+  /* Current tab index of the messages tab panel */
+  messageTabIndex: MessageTabIndex,
 };
+
+export enum MessageTabIndex {
+  RuntimeMessages = 0,
+  ErrorMessages = 1,
+}
 
 export enum EditorMode {
   Chunks,
@@ -158,7 +170,10 @@ export const initialState: State = {
   typeCheck: true,
   rhs: {
     objects: [],
-    spyData: [],
+    outdated: false,
+  },
+  rtMessages: {
+    messages: [],
     outdated: false,
   },
   interactionErrors: [],
@@ -198,4 +213,5 @@ export const initialState: State = {
   firstSelectedChunkIndex: false,
   debugBorders: false,
   displayResultsInline: false,
+  messageTabIndex: MessageTabIndex.RuntimeMessages,
 };

@@ -2,7 +2,8 @@
 
 import { createStore } from 'redux';
 import ideApp from './reducer';
-import { EditorMode, State } from './state';
+import { IDE } from './ide';
+import { EditorMode, MessageTabIndex, State } from './state';
 import {
   Chunk,
   makeChunksFromString,
@@ -89,6 +90,12 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
 
   function handleCompileFailure(errors: string[]): void {
     dispatch({
+      type: 'update',
+      key: 'messageTabIndex',
+      value: MessageTabIndex.ErrorMessages,
+    });
+
+    dispatch({
       type: 'effectEnded',
       status: 'failed',
       effect: 'compile',
@@ -98,6 +105,12 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
 
   function handleRuntimeFailure(errors: string[]): void {
     dispatch({
+      type: 'update',
+      key: 'messageTabIndex',
+      value: MessageTabIndex.ErrorMessages,
+    });
+
+    dispatch({
       type: 'effectEnded',
       status: 'failed',
       effect: 'run',
@@ -106,6 +119,12 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
   }
 
   function handleLintFailure(lintFailure: { name: string, errors: string[] }): void {
+    dispatch({
+      type: 'update',
+      key: 'messageTabIndex',
+      value: MessageTabIndex.ErrorMessages,
+    });
+
     dispatch({
       type: 'effectEnded',
       status: 'failed',
@@ -207,10 +226,11 @@ function handleCompile(dispatch: Dispatch, path: string, typeCheck: boolean) {
 
 function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
   const { base } = control.bfsSetup.path.parse(currentFile);
+  // TODO(alex): Maybe clear messages when compilation starts
   dispatch({
     type: 'update',
     key: 'rhs',
-    value: 'reset-spy-data',
+    value: 'reset-rt-messages',
   });
   control.run(
     control.path.runBase,
@@ -219,12 +239,24 @@ function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
       console.log('runResult', runResult);
       if (runResult.result.error === undefined) {
         dispatch({
+          type: 'update',
+          key: 'messageTabIndex',
+          value: MessageTabIndex.RuntimeMessages,
+        });
+
+        dispatch({
           type: 'effectEnded',
           status: 'succeeded',
           effect: 'run',
           result: runResult,
         });
       } else {
+        dispatch({
+          type: 'update',
+          key: 'messageTabIndex',
+          value: MessageTabIndex.ErrorMessages,
+        });
+
         dispatch({
           type: 'effectEnded',
           status: 'failed',
@@ -474,10 +506,37 @@ const store = createStore(
   (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__(),
 );
 
-// @ts-ignore
-window.ide = {
-  dispatch: store.dispatch,
+const ide: IDE = {
+  dispatchSpyMessage: (loc: string, message: string | undefined) => {
+    store.dispatch({
+      type: 'update',
+      key: 'rt-message',
+      value: {
+        tag: 'spy-message',
+        message: true,
+        value: message,
+        loc,
+      },
+    });
+  },
+  dispatchSpyValue: (loc: string, key: string, value: any) => {
+    store.dispatch({
+      type: 'update',
+      key: 'rt-message',
+      value: {
+        tag: 'spy-value',
+        value: {
+          key,
+          value,
+        },
+        loc,
+      },
+    });
+  },
 };
+
+// @ts-ignore
+window.ide = ide;
 
 /* This callback is triggered after a reducer is run. It looks though the effect
    queue and applies the first effect it can apply.

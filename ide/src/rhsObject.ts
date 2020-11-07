@@ -31,24 +31,6 @@ export type RHSCheck = {
 type N = number;
 export type SrcLoc = [string, N, N, N, N, N, N];
 
-export type SpyMessage = {
-  tag: 'spy-message',
-  message: true,
-  key?: string,
-  value: any,
-  loc: string,
-};
-
-export type SpyValue = {
-  tag: 'spy-value',
-  key: string,
-  value: {
-    key: string,
-    value: any
-  },
-  loc: string,
-};
-
 export type Location = {
   tag: 'location',
   key?: string,
@@ -66,15 +48,7 @@ export type Trace = {
 
 type RawRHSObject<T> = Omit<T, 'tag'>;
 
-export type RHSObject = Trace | Location | RHSCheck | SpyMessage | SpyValue;
-
-export function isSpyValue(a: RHSObject): a is SpyValue {
-  return a.tag === 'spy-value';
-}
-
-export function isSpyMessage(a: RHSObject): a is SpyMessage {
-  return a.tag === 'spy-message';
-}
+export type RHSObject = Trace | Location | RHSCheck;
 
 export function isTrace(a: RHSObject): a is Trace {
   return a.tag === 'trace';
@@ -120,7 +94,6 @@ export function getRow(hasSrcLoc: HasSrcLoc): number {
 
 export type RHSObjects = {
   objects: RHSObject[],
-  spyData: (SpyMessage | SpyValue)[]
   outdated: boolean,
 };
 
@@ -173,10 +146,5 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObjects
   return {
     objects: withKeys,
     outdated: false,
-
-    // The spy messages (if any) are already present in the Redux store. A
-    // reducer will interleave them with this object so we don't have to!
-    // See also: 'handleRunSuccess' (reducer).
-    spyData: [],
   };
 }

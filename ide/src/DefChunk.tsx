@@ -75,7 +75,8 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
 
   const thisChunkRHSObjects: RHSObject[] = [];
 
-  [...rhs.objects, ...rhs.spyData].forEach((rhsObject) => {
+  // TODO(alex): Map runtime messages?
+  rhs.objects.forEach((rhsObject) => {
     const correspondingChunk = findChunkFromSrcloc(
       chunks,
       [
