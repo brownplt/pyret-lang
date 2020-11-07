@@ -207,6 +207,7 @@ function handleCompile(dispatch: Dispatch, path: string, typeCheck: boolean) {
 
 function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
   const { base } = control.bfsSetup.path.parse(currentFile);
+  // TODO(alex): Maybe clear messages when compilation starts
   dispatch({
     type: 'update',
     key: 'rhs',
