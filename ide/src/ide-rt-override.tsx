@@ -1,4 +1,6 @@
-function getIDE() {
+import { IDE } from './ide';
+
+function getIDE(): IDE {
   try {
     // @ts-ignore
     return window.ide;
@@ -13,35 +15,12 @@ function getIDE() {
 }
 
 export function defaultSpyMessage(data: { message: string, loc: string}) {
-  // @ts-ignore
   const value = (data.message) ? data.message : undefined;
-  // @ts-ignore
-  return getIDE().dispatch({
-    type: 'update',
-    key: 'rt-message',
-    value: {
-      tag: 'spy-message',
-      message: true,
-      value,
-      loc: data.loc,
-    },
-  });
+  getIDE().dispatchSpyMessage(data.loc, value);
 }
 
 export function defaultSpyExpr(data: { key: string, value: any, loc: string}) {
-  // @ts-ignore
-  return getIDE().dispatch({
-    type: 'update',
-    key: 'rt-message',
-    value: {
-      tag: 'spy-value',
-      value: {
-        key: data.key,
-        value: data.value,
-      },
-      loc: data.loc,
-    },
-  });
+  getIDE().dispatchSpyValue(data.loc, data.key, data.value);
 }
 
 export function defaultImageUrlProxy(url: string): string {

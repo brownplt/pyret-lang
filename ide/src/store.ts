@@ -2,6 +2,7 @@
 
 import { createStore } from 'redux';
 import ideApp from './reducer';
+import { IDE } from './ide';
 import { EditorMode, MessageTabIndex, State } from './state';
 import {
   Chunk,
@@ -505,10 +506,37 @@ const store = createStore(
   (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__(),
 );
 
-// @ts-ignore
-window.ide = {
-  dispatch: store.dispatch,
+const ide: IDE = {
+  dispatchSpyMessage: (loc: string, message: string | undefined) => {
+    store.dispatch({
+      type: 'update',
+      key: 'rt-message',
+      value: {
+        tag: 'spy-message',
+        message: true,
+        value: message,
+        loc,
+      },
+    });
+  },
+  dispatchSpyValue: (loc: string, key: string, value: any) => {
+    store.dispatch({
+      type: 'update',
+      key: 'rt-message',
+      value: {
+        tag: 'spy-value',
+        value: {
+          key,
+          value,
+        },
+        loc,
+      },
+    });
+  },
 };
+
+// @ts-ignore
+window.ide = ide;
 
 /* This callback is triggered after a reducer is run. It looks though the effect
    queue and applies the first effect it can apply.
