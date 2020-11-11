@@ -2,7 +2,11 @@
    The `Action` type is our type of Redux actions. */
 
 import { Chunk } from './chunk';
-import { EditorMode, MessageTabIndex } from './state';
+import {
+  EditorMode,
+  MessageTabIndex,
+  EditorResponseLoop,
+} from './state';
 import { Effect } from './effect';
 import { RawRTMessage } from './rtMessages';
 import * as control from './control';
@@ -66,6 +70,7 @@ export function isSingleChunkUpdate(update: ChunksUpdate): update is SingleChunk
   return (update as any).chunk !== undefined;
 }
 
+// TODO(alex): Split editor updates into a separate type
 export type Update =
   (| { key: 'editorMode', value: EditorMode }
   | { key: 'currentRunner', value: any }
@@ -75,7 +80,6 @@ export type Update =
   | { key: 'chunks', value: ChunksUpdate }
   | { key: 'focusedChunk', value: number | undefined }
   | { key: 'fontSize', value: number }
-  | { key: 'autoRun', value: boolean }
   | { key: 'runKind', value: control.backend.RunKind }
   | { key: 'typeCheck', value: boolean }
   | { key: 'shouldAdvanceCursor', value: boolean }
@@ -87,7 +91,8 @@ export type Update =
   | { key: 'rhs', value: 'make-outdated' | 'reset-rt-messages' }
   | { key: 'rt-message', value: RawRTMessage }
   | { key: 'messageTabIndex', value: MessageTabIndex }
-  );
+  | { key: 'editorResponseLoop', value: EditorResponseLoop }
+  | { key: 'editorLoopDropdownVisible', value: boolean });
 
 export type UpdateKey = Update['key'];
 

@@ -29,6 +29,7 @@ import {
   EditorMode,
   State,
   initialState,
+  EditorResponseLoop,
 } from './state';
 
 import {
@@ -252,7 +253,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
 }
 
 function handleCompileSuccess(state: State): State {
-  const { compiling, autoRun, effectQueue } = state;
+  const { compiling, effectQueue, editorResponseLoop } = state;
 
   if (compiling === 'out-of-date') {
     return {
@@ -261,6 +262,8 @@ function handleCompileSuccess(state: State): State {
       effectQueue: [...effectQueue, 'saveFile'],
     };
   }
+
+  const autoRun = editorResponseLoop === EditorResponseLoop.AutoCompileRun;
 
   return {
     ...state,
@@ -354,10 +357,10 @@ function handleSaveFileSuccess(state: State): State {
   console.log('saved a file successfully');
   const {
     effectQueue,
-    autoRun,
     compiling,
     running,
     chunks,
+    editorResponseLoop,
   } = state;
 
   let newEffectQueue = effectQueue;
@@ -371,6 +374,7 @@ function handleSaveFileSuccess(state: State): State {
     }
   }
 
+  const autoRun = editorResponseLoop === EditorResponseLoop.AutoCompileRun;
   if (autoRun && compiling !== true && !running) {
     if (needsLint) {
       newEffectQueue = [...effectQueue, 'lint'];
@@ -912,6 +916,7 @@ function handleMessageIndexUpdate(state: State, newIndex: MessageTabIndex) {
   };
 }
 
+// TODO(alex): split editor UI updates to a separate function/file
 function handleUpdate(
   state: State,
   action: Update,
@@ -933,8 +938,6 @@ function handleUpdate(
       return handleSetFocusedChunk(state, action.value);
     case 'fontSize':
       return handleSetFontSize(state, action.value);
-    case 'autoRun':
-      return { ...state, autoRun: action.value };
     case 'runKind':
       return { ...state, runKind: action.value };
     case 'typeCheck':
@@ -957,6 +960,10 @@ function handleUpdate(
       return { ...state, displayResultsInline: action.value };
     case 'messageTabIndex':
       return handleMessageIndexUpdate(state, action.value);
+    case 'editorResponseLoop':
+      return { ...state, editorResponseLoop: action.value };
+    case 'editorLoopDropdownVisible':
+      return { ...state, editorLoopDropdownVisible: action.value };
     default:
       throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }
