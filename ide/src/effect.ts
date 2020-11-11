@@ -5,11 +5,15 @@ export type Effect =
   (| 'createRepl'
    | 'startEditTimer'
    | 'editTimer'
-   | 'lint'
-   | 'compile'
-   | 'run'
    | 'setup'
    | 'stop'
    | 'loadFile'
    | 'saveFile'
-   | 'setupWorkerMessageHandler');
+   | 'setupWorkerMessageHandler'
+   | BackendEffect);
+
+export type BackendEffect =
+  (| 'lint'
+   | 'compile'
+   | 'run'
+   | 'stop');

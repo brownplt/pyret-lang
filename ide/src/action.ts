@@ -11,27 +11,33 @@ export type EffectFailure =
   (| { effect: 'createRepl' }
   | { effect: 'startEditTimer' }
   | { effect: 'editTimer' }
-  | { effect: 'lint', name: string, errors: string[] } // TODO: check errors type
-  | { effect: 'compile', errors: string[] }
-  | { effect: 'run', errors: any }
   | { effect: 'setup' }
   | { effect: 'stop' }
   | { effect: 'loadFile' }
   | { effect: 'saveFile' }
-  | { effect: 'setupWorkerMessageHandler' });
+  | { effect: 'setupWorkerMessageHandler' }
+  | BackendEffectFailure);
 
 export type EffectSuccess =
   (| { effect: 'createRepl' }
   | { effect: 'startEditTimer', timer: NodeJS.Timer }
   | { effect: 'editTimer' }
-  | { effect: 'lint', name: string }
-  | { effect: 'compile' }
-  | { effect: 'run', result: any }
   | { effect: 'setup' }
   | { effect: 'stop', line: number }
   | { effect: 'loadFile' }
   | { effect: 'saveFile' }
-  | { effect: 'setupWorkerMessageHandler' });
+  | { effect: 'setupWorkerMessageHandler' }
+  | BackendEffectSuccess);
+
+export type BackendEffectFailure =
+  (| { effect: 'lint', name: string, errors: string[] } // TODO: check errors type
+  | { effect: 'compile', errors: string[] }
+  | { effect: 'run', errors: any });
+
+export type BackendEffectSuccess =
+  (| { effect: 'lint', name: string }
+  | { effect: 'compile' }
+  | { effect: 'run', result: any });
 
 export type SuccessForEffect<E extends Effect> =
   Extract<EffectSuccess, { effect: E }>;
