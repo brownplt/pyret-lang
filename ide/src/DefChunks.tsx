@@ -109,10 +109,10 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
         if (chunks[newFocusedChunk].id !== oldFocusedId) {
           dispatch({ type: 'update', key: 'focusedChunk', value: newFocusedChunk });
         } else {
-          dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
+          dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile' } });
         }
       } else {
-        dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
+        dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile' } });
       }
     },
     setRHS() {

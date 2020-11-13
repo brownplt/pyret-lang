@@ -7,51 +7,51 @@ import {
   MessageTabIndex,
   EditorResponseLoop,
 } from './state';
-import { Effect } from './effect';
+import { Effect, EffectKey } from './effect';
 import { RawRTMessage } from './rtMessages';
 import * as control from './control';
 
 export type EffectFailure =
-  (| { effect: 'createRepl' }
-  | { effect: 'startEditTimer' }
-  | { effect: 'editTimer' }
-  | { effect: 'setup' }
-  | { effect: 'stop' }
-  | { effect: 'loadFile' }
-  | { effect: 'saveFile' }
-  | { effect: 'setupWorkerMessageHandler' }
+  (| { effectKey: 'createRepl' }
+  | { effectKey: 'startEditTimer' }
+  | { effectKey: 'editTimer' }
+  | { effectKey: 'setup' }
+  | { effectKey: 'stop' }
+  | { effectKey: 'loadFile' }
+  | { effectKey: 'saveFile' }
+  | { effectKey: 'setupWorkerMessageHandler' }
   | BackendEffectFailure);
 
 export type EffectSuccess =
-  (| { effect: 'createRepl' }
-  | { effect: 'startEditTimer', timer: NodeJS.Timer }
-  | { effect: 'editTimer' }
-  | { effect: 'setup' }
-  | { effect: 'stop', line: number }
-  | { effect: 'loadFile' }
-  | { effect: 'saveFile' }
-  | { effect: 'setupWorkerMessageHandler' }
+  (| { effectKey: 'createRepl' }
+  | { effectKey: 'startEditTimer', timer: NodeJS.Timer }
+  | { effectKey: 'editTimer' }
+  | { effectKey: 'setup' }
+  | { effectKey: 'stop', line: number }
+  | { effectKey: 'loadFile' }
+  | { effectKey: 'saveFile' }
+  | { effectKey: 'setupWorkerMessageHandler' }
   | BackendEffectSuccess);
 
 export type BackendEffectFailure =
-  (| { effect: 'lint', name: string, errors: string[] } // TODO: check errors type
-  | { effect: 'compile', errors: string[] }
-  | { effect: 'run', errors: any });
+  (| { effectKey: 'lint', name: string, errors: string[] } // TODO: check errors type
+  | { effectKey: 'compile', errors: string[] }
+  | { effectKey: 'run', errors: any });
 
 export type BackendEffectSuccess =
-  (| { effect: 'lint', name: string }
-  | { effect: 'compile' }
-  | { effect: 'run', result: any });
+  (| { effectKey: 'lint', name: string }
+  | { effectKey: 'compile' }
+  | { effectKey: 'run', result: any });
 
-export type SuccessForEffect<E extends Effect> =
-  Extract<EffectSuccess, { effect: E }>;
+export type SuccessForEffect<E extends EffectKey> =
+  Extract<EffectSuccess, { effectKey: E }>;
 
-export type FailureForEffect<E extends Effect> =
-  Extract<EffectFailure, { effect: E }>;
+export type FailureForEffect<E extends EffectKey> =
+  Extract<EffectFailure, { effectKey: E }>;
 
-export type EffectSucceeded = { status: 'succeeded' } & SuccessForEffect<Effect>;
+export type EffectSucceeded = { status: 'succeeded' } & SuccessForEffect<EffectKey>;
 
-export type EffectFailed = { status: 'failed' } & FailureForEffect<Effect>;
+export type EffectFailed = { status: 'failed' } & FailureForEffect<EffectKey>;
 
 export type EffectEnded = EffectSucceeded | EffectFailed;
 

@@ -138,7 +138,7 @@ function handleEffectStarted(state: State, action: EffectStarted): State {
     ...oldEffectQueue.slice(action.effect + 1, oldEffectQueue.length),
   ];
 
-  switch (oldEffectQueue[action.effect]) {
+  switch (oldEffectQueue[action.effect].effectKey) {
     case 'createRepl':
       return {
         ...state,
@@ -196,7 +196,7 @@ function handleEditTimerSuccess(state: State): State {
 
   return {
     ...state,
-    effectQueue: [...effectQueue, 'saveFile'],
+    effectQueue: [...effectQueue, { effectKey: 'saveFile' }],
   };
 }
 
@@ -210,7 +210,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
         ...state,
         linting: false,
         linted: true,
-        effectQueue: [...effectQueue, 'compile'],
+        effectQueue: [...effectQueue, { effectKey: 'compile' }],
       };
     }
     case EditorMode.Chunks: {
@@ -244,7 +244,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
         chunks: newChunks,
         linted: allLinted,
         linting: !allLinted,
-        effectQueue: shouldCompile ? [...effectQueue, 'compile'] : effectQueue,
+        effectQueue: shouldCompile ? [...effectQueue, { effectKey: 'compile' }] : effectQueue,
       });
     }
     default:
@@ -259,7 +259,7 @@ function handleCompileSuccess(state: State): State {
     return {
       ...state,
       compiling: false,
-      effectQueue: [...effectQueue, 'saveFile'],
+      effectQueue: [...effectQueue, { effectKey: 'saveFile' }],
     };
   }
 
@@ -270,7 +270,7 @@ function handleCompileSuccess(state: State): State {
     compiling: false,
     interactionErrors: [],
     definitionsHighlights: [],
-    effectQueue: autoRun ? [...effectQueue, 'run'] : effectQueue,
+    effectQueue: autoRun ? [...effectQueue, { effectKey: 'run' }] : effectQueue,
   };
 }
 
@@ -377,12 +377,12 @@ function handleSaveFileSuccess(state: State): State {
   const autoRun = editorResponseLoop === EditorResponseLoop.AutoCompileRun;
   if (autoRun && compiling !== true && !running) {
     if (needsLint) {
-      newEffectQueue = [...effectQueue, 'lint'];
+      newEffectQueue = [...effectQueue, { effectKey: 'lint' }];
     } else if (autoRun) {
       // Chunks are inserted after a lint success. In this case, we aren't
       // linting, but we still would like to possibly create a new chunk.
       shouldHandleEnter = true;
-      newEffectQueue = [...effectQueue, 'compile'];
+      newEffectQueue = [...effectQueue, { effectKey: 'compile' }];
     }
   }
 
@@ -420,7 +420,7 @@ function handleSetupWorkerMessageHandlerSuccess(state: State): State {
 }
 
 function handleEffectSucceeded(state: State, action: EffectSuccess): State {
-  switch (action.effect) {
+  switch (action.effectKey) {
     case 'createRepl':
       return handleCreateReplSuccess(state);
     case 'startEditTimer':
@@ -526,7 +526,7 @@ function handleCompileFailure(
     return {
       ...state,
       compiling: false,
-      effectQueue: [...effectQueue, 'saveFile'],
+      effectQueue: [...effectQueue, { effectKey: 'saveFile' }],
     };
   }
 
@@ -621,7 +621,7 @@ function handleRunFailure(state: State, status: FailureForEffect<'run'>) {
 }
 
 function handleEffectFailed(state: State, action: EffectFailure): State {
-  switch (action.effect) {
+  switch (action.effectKey) {
     case 'createRepl':
       return handleCreateReplFailure();
     case 'lint':
@@ -724,7 +724,7 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
   return {
     ...state,
     currentFileContents: contents,
-    effectQueue: [...effectQueue, 'startEditTimer'],
+    effectQueue: [...effectQueue, { effectKey: 'startEditTimer' }],
     isFileSaved: false,
     compiling: compiling ? 'out-of-date' : false,
   };
@@ -743,7 +743,7 @@ function handleSetCurrentFile(state: State, file: string): State {
   return {
     ...state,
     currentFile: file,
-    effectQueue: [...effectQueue, 'loadFile'],
+    effectQueue: [...effectQueue, { effectKey: 'loadFile' }],
   };
 }
 
@@ -825,7 +825,7 @@ function handleSetFocusedChunk(state: State, index: number | undefined): State {
     return {
       ...state,
       focusedChunk: index,
-      effectQueue: shouldStartEditTimer ? [...effectQueue, 'startEditTimer'] : effectQueue,
+      effectQueue: shouldStartEditTimer ? [...effectQueue, { effectKey: 'startEditTimer' }] : effectQueue,
     };
   }
 

@@ -429,11 +429,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const token = editor.getTokenAt(pos);
     if ((event as any).shiftKey) {
       setShouldAdvanceCursor(false);
-      enqueueEffect('saveFile');
+      enqueueEffect({ effectKey: 'saveFile' });
       event.preventDefault();
     } else if (token.state.lineState.tokens.length === 0) {
       setShouldAdvanceCursor(true);
-      enqueueEffect('saveFile');
+      enqueueEffect({ effectKey: 'saveFile' });
       event.preventDefault();
     }
   }
@@ -508,7 +508,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         if (newFocusedChunk !== focusedChunk) {
           setFocusedChunk(newFocusedChunk);
         } else {
-          enqueueEffect('saveFile');
+          enqueueEffect({ effectKey: 'saveFile' });
         }
       }
       if (shouldPreventDefault) {
