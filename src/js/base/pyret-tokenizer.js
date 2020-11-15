@@ -191,7 +191,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     new RegExp("```(?:" +
                "\\\\[01234567]{1,3}" +
                "|\\\\x[0-9a-fA-F]{1,2}" +
-               "|\\\\u[0-9a-fA-f]{1,4}" +
+               "|\\\\u[0-9a-fA-F]{1,4}" +
                "|\\\\[\\\\nrt\"\'`]" +
                "|`{1,2}(?!`)" +
                "|[^`\\\\])*```", "g"); // NOTE: Allow unescaped newlines
@@ -199,14 +199,14 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     new RegExp("\"(?:" +
                "\\\\[01234567]{1,3}" +
                "|\\\\x[0-9a-fA-F]{1,2}" +
-               "|\\\\u[0-9a-fA-f]{1,4}" +
+               "|\\\\u[0-9a-fA-F]{1,4}" +
                "|\\\\[\\\\nrt\"\']" +
                "|[^\\\\\"\n\r])*\"", "g");
   const squot_str =
     new RegExp("\'(?:" +
                "\\\\[01234567]{1,3}" +
                "|\\\\x[0-9a-fA-F]{1,2}" +
-               "|\\\\u[0-9a-fA-f]{1,4}" +
+               "|\\\\u[0-9a-fA-F]{1,4}" +
                "|\\\\[\\\\nrt\"\']" +
                "|[^\\\\\'\n\r])*\'", "g");
 
