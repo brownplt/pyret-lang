@@ -25,13 +25,18 @@ export type Effect =
     | { effectKey: 'setup' }
     | { effectKey: 'stop' }
     | { effectKey: 'loadFile' }
-    | { effectKey: 'saveFile' }
+    | { effectKey: 'saveFile', cmd: BackendCmd }
     | { effectKey: 'setupWorkerMessageHandler' }
     | BackendEffect);
 
 export type BackendEffect =
-  (| { effectKey: 'lint' }
-    | { effectKey: 'compile' }
-    | { effectKey: 'run' }
-    | { effectKey: 'stop' });
+  (| { effectKey: 'lint', cmd: BackendCmd }
+    | { effectKey: 'compile', cmd: BackendCmd }
+    | { effectKey: 'run', cmd: BackendCmd }
+    | { effectKey: 'stop', cmd: BackendCmd });
 
+export type BackendCmd =
+  (| 'none'
+    | 'lint'
+    | 'compile'
+    | 'run');

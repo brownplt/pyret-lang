@@ -10,16 +10,19 @@ import {
 import { Action } from './action';
 import {
   State,
+  EditorResponseLoop,
 } from './state';
 import { Chunk, getStartLineForIndex } from './chunk';
 import { RHSObjects } from './rhsObject';
 import DefChunk from './DefChunk';
+import { backendCmdFromState } from './editor_loop';
 
 type StateProps = {
   chunks: Chunk[],
   focusedChunk: number | undefined,
   rhs: RHSObjects,
   debugBorders: boolean,
+  editorResponseLoop: EditorResponseLoop,
 };
 
 type DispatchProps = {
@@ -33,6 +36,7 @@ function mapStateToProps(state: State): StateProps {
     focusedChunk,
     rhs,
     debugBorders,
+    editorResponseLoop,
   } = state;
 
   return {
@@ -40,6 +44,7 @@ function mapStateToProps(state: State): StateProps {
     focusedChunk,
     rhs,
     debugBorders,
+    editorResponseLoop,
   };
 }
 
@@ -56,6 +61,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
       result: DropResult,
       chunks: Chunk[],
       oldFocusedId: string | false,
+      editorResponseLoop: EditorResponseLoop,
     ) {
       // Great examples! https://codesandbox.io/s/k260nyxq9v
       const reorder = (innerChunks: Chunk[], start: number, end: number) => {
@@ -109,10 +115,10 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
         if (chunks[newFocusedChunk].id !== oldFocusedId) {
           dispatch({ type: 'update', key: 'focusedChunk', value: newFocusedChunk });
         } else {
-          dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile' } });
+          dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile', cmd: backendCmdFromState(editorResponseLoop) } });
         }
       } else {
-        dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile' } });
+        dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile', cmd: backendCmdFromState(editorResponseLoop) } });
       }
     },
     setRHS() {
@@ -132,12 +138,13 @@ function DefChunks({
   focusedChunk,
   setRHS,
   debugBorders,
+  editorResponseLoop,
 }: DefChunksProps) {
   const onDragEnd = (result: DropResult) => {
     if (result.destination !== null
         && result.source!.index !== result.destination!.index) {
       if (focusedChunk === undefined) {
-        handleReorder(result, chunks, false);
+        handleReorder(result, chunks, false, editorResponseLoop);
         setRHS();
       } else {
         const fc = chunks[focusedChunk];
