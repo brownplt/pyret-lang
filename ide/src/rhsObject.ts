@@ -138,10 +138,30 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObjects
 
   // Add unique keys to each object so that React can re-render them properly.
   // We assume that each trace / check / location came from a different row.
-  const withKeys = withChecks.map((rhsObject) => ({
-    key: getRow(rhsObject).toString(),
-    ...rhsObject,
-  }));
+  // NOTE(alex): this is not true for data definitions and 'is-data-variant' functions
+  //
+  //  data Foo:
+  //    | bar
+  //  end
+  //
+  //
+  //  foo: () -> ()
+  // and
+  //  is-foo: (Foo) -> bool
+  //
+  // will share the same location
+  //
+  const withKeys = withChecks.map((rhsObject) => {
+    let key = getRow(rhsObject).toString();
+    if (isLocation(rhsObject)) {
+      key += key + (<Location>rhsObject).name;
+    }
+
+    return {
+      key,
+      ...rhsObject,
+    };
+  });
 
   return {
     objects: withKeys,
