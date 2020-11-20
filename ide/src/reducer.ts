@@ -272,7 +272,7 @@ function handleCompileSuccess(state: State): State {
 }
 
 function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State {
-  console.log('run result', status);
+  console.log('run result', status.result.perfResults);
   const rhs = makeRHSObjects(status.result, `file://${state.currentFile}`);
 
   const oldRHS = state.rhs;
