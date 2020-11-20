@@ -236,7 +236,6 @@ function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
     control.path.runBase,
     `${base}.js`,
     (runResult: any) => {
-      console.log('runResult', runResult);
       if (runResult.result.error === undefined) {
         dispatch({
           type: 'update',
