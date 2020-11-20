@@ -150,7 +150,6 @@ function convert(value: any): any {
     }
 
     // TODO(michael) palceholder for better object display
-    console.log('idk: ', value);
     return `${value}`;
   }
   return 'error: data is not string-convertible';
