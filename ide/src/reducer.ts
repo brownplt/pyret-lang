@@ -286,8 +286,8 @@ function handleCompileSuccess(state: State): State {
   if (compiling === 'out-of-date') {
     return {
       ...state,
-      compiling: false,
       backendCmd: BackendCmd.None,
+      compiling: false,
       effectQueue: [...effectQueue, { effectKey: 'initCmd', cmd: backendCmd }],
     };
   }
@@ -296,6 +296,7 @@ function handleCompileSuccess(state: State): State {
 
   return {
     ...state,
+    backendCmd: autoRun ? backendCmd : BackendCmd.None,
     compiling: false,
     interactionErrors: [],
     definitionsHighlights: [],
