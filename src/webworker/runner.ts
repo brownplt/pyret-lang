@@ -213,8 +213,10 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
         currentRunner.path = nextPath;
         let stopifiedCode = '';
         if (fs.existsSync(stoppedPath) && (fs.statSync(stoppedPath).mtime > fs.statSync(nextPath).mtime)) {
+          console.log(`[RUNNER] Found pre-stopified code at: ${nextPath}`);
           stopifiedCode = String(fs.readFileSync(stoppedPath));
         } else {
+          console.log(`[RUNNER] Stopifying: ${nextPath}`);
           const contents = String(fs.readFileSync(nextPath));
           stopifiedCode = currentRunner.compile(wrapContent(contents));
           fs.writeFileSync(stoppedPath, stopifiedCode);

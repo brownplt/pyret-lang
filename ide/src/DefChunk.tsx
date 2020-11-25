@@ -15,9 +15,10 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
-import { State } from './state';
+import { BackendCmd, State, EditorResponseLoop } from './state';
 
 import RenderedValue from './RenderedValue';
+import backendCmdFromState from './editor_loop';
 
 import {
   Chunk,
@@ -57,6 +58,7 @@ type StateProps = {
   currentFile: string,
   thisChunkRHSObjects: RHSObject[],
   displayResultsInline: boolean,
+  editorResponseLoop: EditorResponseLoop,
 };
 
 function mapStateToProps(state: State, ownProps: any): StateProps {
@@ -67,6 +69,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     firstSelectedChunkIndex,
     currentFile,
     displayResultsInline,
+    editorResponseLoop,
   } = state;
 
   const {
@@ -99,6 +102,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     currentFile,
     thisChunkRHSObjects,
     displayResultsInline,
+    editorResponseLoop,
   };
 }
 
@@ -424,16 +428,17 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const {
       enqueueEffect,
       setShouldAdvanceCursor,
+      editorResponseLoop,
     } = this.props;
     const pos = (editor as any).getCursor();
     const token = editor.getTokenAt(pos);
     if ((event as any).shiftKey) {
       setShouldAdvanceCursor(false);
-      enqueueEffect('saveFile');
+      enqueueEffect({ effectKey: 'initCmd', cmd: backendCmdFromState(editorResponseLoop) });
       event.preventDefault();
     } else if (token.state.lineState.tokens.length === 0) {
       setShouldAdvanceCursor(true);
-      enqueueEffect('saveFile');
+      enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.None });
       event.preventDefault();
     }
   }
@@ -452,6 +457,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setFocusedChunk,
       focusedChunk,
       enqueueEffect,
+      editorResponseLoop,
     } = this.props;
     if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
       /* Cursor is in the first chunk, the text of this chunk is empty, and
@@ -508,7 +514,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         if (newFocusedChunk !== focusedChunk) {
           setFocusedChunk(newFocusedChunk);
         } else {
-          enqueueEffect('saveFile');
+          enqueueEffect({ effectKey: 'initCmd', cmd: backendCmdFromState(editorResponseLoop) });
         }
       }
       if (shouldPreventDefault) {

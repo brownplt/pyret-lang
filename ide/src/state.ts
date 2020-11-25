@@ -1,13 +1,17 @@
 /* Exports both the type of state in the Redux store as well as its default value. */
 
 import { Chunk } from './chunk';
-import { Effect } from './effect';
+import { BackendCmd, Effect } from './effect';
 import { MenuItems } from './menu-types';
 import { RHSObjects } from './rhsObject';
 import { RTMessages } from './rtMessages';
 import * as control from './control';
 
+export { BackendCmd } from './effect';
+
 export type State = {
+
+  backendCmd: BackendCmd,
 
   /* Since Redux doesn't handle side effects for us we need to keep a queue of
      them inside the state. It needs to be a queue because we sometimes need to
@@ -49,9 +53,6 @@ export type State = {
   /* `true` if the program should auto run upon edit in text mode. In chunk mode
      this must always be `true` for the program to properly run.
 
-     TODO(michael): fix chunk mode not running when this is false. */
-  autoRun: boolean,
-
   /* Text mode only. This timer is started when an edit is made to the text of a
      program. When the timer finishes and auto run is on, the program is run. If
      the user edits the program while the timer is running it is reset back to
@@ -59,8 +60,12 @@ export type State = {
      quite slow. */
   editTimer: NodeJS.Timer | false,
 
+  // TODO(alex): split out editor UI state into its own type
   /* True if the dropdown to the right of the run button is visible, false otherwise. */
   dropdownVisible: boolean,
+
+  /* True if the nested dropdown within the dropdown is visible */
+  editorLoopDropdownVisible: boolean,
 
   /* Determines whether the editor is in Chunk mode or Text mode. */
   editorMode: EditorMode,
@@ -141,7 +146,15 @@ export type State = {
 
   /* Current tab index of the messages tab panel */
   messageTabIndex: MessageTabIndex,
+
+  editorResponseLoop: EditorResponseLoop,
 };
+
+export enum EditorResponseLoop {
+  AutoCompile,
+  AutoCompileRun,
+  Manual,
+}
 
 export enum MessageTabIndex {
   RuntimeMessages = 0,
@@ -163,6 +176,7 @@ export type LintFailures = {
 };
 
 export const initialState: State = {
+  backendCmd: BackendCmd.None,
   browseRoot: '/',
   browsePath: '/projects',
   currentFile: '/projects/program.arr',
@@ -178,9 +192,9 @@ export const initialState: State = {
   },
   interactionErrors: [],
   runKind: control.backend.RunKind.Async,
-  autoRun: true,
   editTimer: false,
   dropdownVisible: false,
+  editorLoopDropdownVisible: false,
   editorMode: EditorMode.Chunks,
   fontSize: 12,
   definitionsHighlights: [],
@@ -214,4 +228,5 @@ export const initialState: State = {
   debugBorders: false,
   displayResultsInline: false,
   messageTabIndex: MessageTabIndex.RuntimeMessages,
+  editorResponseLoop: EditorResponseLoop.AutoCompileRun,
 };

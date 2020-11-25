@@ -95,6 +95,18 @@ button::-moz-focus-inner {
     background: gray;
 }
 
+.compile-ready {
+    height: 100%;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+    width: 12em;
+    float: right;
+    color: #fff;
+    border: none;
+    background: gray;
+    margin-right: 1em;
+}
+
 .run-queued {
     height: 100%;
     cursor: pointer;

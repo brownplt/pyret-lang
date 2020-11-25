@@ -13,6 +13,8 @@ import {
 } from 'react-redux';
 
 import {
+  BackendCmd,
+  EditorResponseLoop,
   State,
 } from './state';
 
@@ -32,35 +34,38 @@ import * as control from './control';
 type StateProps = {
   stopify: boolean,
   dropdownVisible: boolean,
-  autoRun: boolean,
+  editorLoopDropdownVisible: boolean,
   typeCheck: boolean,
   running: boolean,
   compiling: boolean | 'out-of-date',
   linting: boolean,
   chunks: Chunk[],
+  editorResponseLoop: EditorResponseLoop,
 };
 
 function mapStateToProps(state: State): StateProps {
   const {
     runKind,
     dropdownVisible,
-    autoRun,
+    editorLoopDropdownVisible,
     typeCheck,
     running,
     compiling,
     linting,
     chunks,
+    editorResponseLoop,
   } = state;
 
   return {
     stopify: runKind === control.backend.RunKind.Async,
     dropdownVisible,
-    autoRun,
+    editorLoopDropdownVisible,
     typeCheck,
     running,
     compiling,
     linting,
     chunks,
+    editorResponseLoop,
   };
 }
 
@@ -68,21 +73,21 @@ type PropsFromReact = {
 };
 
 type DispatchProps = {
+  compile: () => void,
   run: () => void,
   stop: () => void,
-  setAutoRun: (autoRun: boolean) => void,
   setStopify: (stopify: boolean) => void,
   setTypeCheck: (typeCheck: boolean) => void,
   setDropdownVisible: (dropdownVisible: boolean) => void,
+  setEditorLoopDropdownVisible: (visible: boolean) => void,
+  setEditorResponseLoop: (ed: EditorResponseLoop) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
   return {
-    run: () => dispatch({ type: 'enqueueEffect', effect: 'saveFile' }),
-    stop: () => dispatch({ type: 'enqueueEffect', effect: 'stop' }),
-    setAutoRun: (autoRun: boolean) => {
-      dispatch({ type: 'update', key: 'autoRun', value: autoRun });
-    },
+    compile: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Compile } }),
+    run: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Run } }),
+    stop: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'stop' } }),
     setStopify: (stopify: boolean) => {
       if (stopify) {
         dispatch({ type: 'update', key: 'runKind', value: control.backend.RunKind.Async });
@@ -99,6 +104,12 @@ function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
       }
       dispatch({ type: 'update', key: 'dropdownVisible', value: dropdownVisible });
     },
+    setEditorLoopDropdownVisible: (visible: boolean) => {
+      dispatch({ type: 'update', key: 'editorLoopDropdownVisible', value: visible });
+    },
+    setEditorResponseLoop: (ed: EditorResponseLoop) => {
+      dispatch({ type: 'update', key: 'editorResponseLoop', value: ed });
+    },
   };
 }
 
@@ -108,28 +119,59 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type Props = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
 function Run({
+  compile,
   run,
   stop,
-  setAutoRun,
   setStopify,
   setTypeCheck,
   setDropdownVisible,
+  setEditorLoopDropdownVisible,
+  setEditorResponseLoop,
   stopify,
   dropdownVisible,
-  autoRun,
+  editorLoopDropdownVisible,
   typeCheck,
   running,
   compiling,
   linting,
   chunks,
+  editorResponseLoop,
 }: Props) {
+  // TODO(alex): Better UI for selection
+  const editorLoopDropdown = editorLoopDropdownVisible && (
+    <Dropdown>
+      <DropdownOption
+        enabled={editorResponseLoop === EditorResponseLoop.Manual}
+        onClick={() => setEditorResponseLoop(EditorResponseLoop.Manual)}
+      >
+        Manual
+      </DropdownOption>
+
+      <DropdownOption
+        enabled={editorResponseLoop === EditorResponseLoop.AutoCompile}
+        onClick={() => setEditorResponseLoop(EditorResponseLoop.AutoCompile)}
+      >
+        AutoCompile
+      </DropdownOption>
+
+      <DropdownOption
+        enabled={editorResponseLoop === EditorResponseLoop.AutoCompileRun}
+        onClick={() => setEditorResponseLoop(EditorResponseLoop.AutoCompileRun)}
+      >
+        AutoCompileRun
+      </DropdownOption>
+
+    </Dropdown>
+  );
   const dropdown = dropdownVisible && (
     <Dropdown>
       <DropdownOption
-        enabled={autoRun}
-        onClick={() => setAutoRun(!autoRun)}
+        // eslint-disable-next-line react/jsx-boolean-value
+        enabled={editorLoopDropdownVisible}
+        onClick={() => setEditorLoopDropdownVisible(!editorLoopDropdownVisible)}
       >
-        Auto Run
+        Editor Response Loop
+        {editorLoopDropdown}
       </DropdownOption>
       <DropdownOption
         enabled={stopify}
@@ -212,6 +254,21 @@ function Run({
         className="run-container"
       >
         <button
+          className="compile-ready"
+          type="button"
+          onClick={compile}
+          style={{
+            background: buttonBackground,
+          }}
+        >
+          {
+            // TODO(alex): figure out button style/margins
+            // TODO(alex): compile button has a persisting black outline (unlike the run button)
+            // TODO(alex): figure out compilation/run-ready progress bar
+          }
+          Compile
+        </button>
+        <button
           className="run-ready"
           type="button"
           onClick={run}
@@ -225,7 +282,10 @@ function Run({
           type="button"
           className="run-options"
           onClick={() => setDropdownVisible(!dropdownVisible)}
-          onBlur={() => setDropdownVisible(false)}
+          onBlur={() => {
+            setDropdownVisible(false);
+            setEditorLoopDropdownVisible(false);
+          }}
           style={{
             background: dropdownBackground,
           }}

@@ -3,7 +3,12 @@
 import { createStore } from 'redux';
 import ideApp from './reducer';
 import { IDE } from './ide';
-import { EditorMode, MessageTabIndex, State } from './state';
+import {
+  BackendCmd,
+  EditorMode,
+  MessageTabIndex,
+  State,
+} from './state';
 import {
   Chunk,
   makeChunksFromString,
@@ -29,12 +34,12 @@ function handleStartEditTimer(dispatch: Dispatch, editTimer: NodeJS.Timer | fals
   dispatch({
     type: 'effectEnded',
     status: 'succeeded',
-    effect: 'startEditTimer',
+    effectKey: 'startEditTimer',
     timer: setTimeout(() => {
       dispatch({
         type: 'effectEnded',
         status: 'succeeded',
-        effect: 'editTimer',
+        effectKey: 'editTimer',
       });
     }, 200),
   });
@@ -71,7 +76,7 @@ function handleLoadFile(
   dispatch({
     type: 'effectEnded',
     status: 'succeeded',
-    effect: 'loadFile',
+    effectKey: 'loadFile',
   });
 }
 
@@ -84,7 +89,7 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
     dispatch({
       type: 'effectEnded',
       status: 'succeeded',
-      effect: 'setup',
+      effectKey: 'setup',
     });
   }
 
@@ -98,7 +103,7 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
     dispatch({
       type: 'effectEnded',
       status: 'failed',
-      effect: 'compile',
+      effectKey: 'compile',
       errors,
     });
   }
@@ -113,7 +118,7 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
     dispatch({
       type: 'effectEnded',
       status: 'failed',
-      effect: 'run',
+      effectKey: 'run',
       errors,
     });
   }
@@ -128,7 +133,7 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
     dispatch({
       type: 'effectEnded',
       status: 'failed',
-      effect: 'lint',
+      effectKey: 'lint',
       name: lintFailure.name,
       errors: lintFailure.errors,
     });
@@ -138,7 +143,7 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
     dispatch({
       type: 'effectEnded',
       status: 'succeeded',
-      effect: 'lint',
+      effectKey: 'lint',
       name: lintSuccess.name,
     });
   }
@@ -147,7 +152,7 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
     dispatch({
       type: 'effectEnded',
       status: 'succeeded',
-      effect: 'compile',
+      effectKey: 'compile',
     });
   }
 
@@ -155,7 +160,7 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
     dispatch({
       type: 'effectEnded',
       status: 'succeeded',
-      effect: 'createRepl',
+      effectKey: 'createRepl',
     });
   }
 
@@ -183,7 +188,7 @@ function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
   dispatch({
     type: 'effectEnded',
     status: 'succeeded',
-    effect: 'setupWorkerMessageHandler',
+    effectKey: 'setupWorkerMessageHandler',
   });
 }
 
@@ -215,7 +220,7 @@ function handleSaveFile(
   dispatch({
     type: 'effectEnded',
     status: 'succeeded',
-    effect: 'saveFile',
+    effectKey: 'saveFile',
   });
 }
 
@@ -246,7 +251,7 @@ function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
         dispatch({
           type: 'effectEnded',
           status: 'succeeded',
-          effect: 'run',
+          effectKey: 'run',
           result: runResult,
         });
       } else {
@@ -259,7 +264,7 @@ function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
         dispatch({
           type: 'effectEnded',
           status: 'failed',
-          effect: 'run',
+          effectKey: 'run',
           errors: runResult.result.result,
         });
       }
@@ -282,7 +287,7 @@ function handleStop(dispatch: Dispatch) {
     dispatch({
       type: 'effectEnded',
       status: 'succeeded',
-      effect: 'stop',
+      effectKey: 'stop',
       line,
     });
   });
@@ -323,7 +328,7 @@ function handleFirstActionableEffect(
   for (let i = 0; i < effectQueue.length; i += 1) {
     const effect = effectQueue[i];
 
-    switch (effect) {
+    switch (effect.effectKey) {
       case 'startEditTimer': {
         const { editTimer } = state;
         return {
@@ -386,6 +391,50 @@ function handleFirstActionableEffect(
           }
         }
         break;
+      case 'initCmd':
+      {
+        const currBackendCmd = state.backendCmd;
+        const initBackendCmd = effect.cmd;
+
+        console.log(`Init cmd: ${initBackendCmd}`);
+        console.log(`Curr cmd: ${currBackendCmd}`);
+
+        // Backend already busy
+        if (currBackendCmd !== BackendCmd.None) {
+          return {
+            effect: i,
+            applyEffect: () => {
+              dispatch({
+                type: 'effectEnded',
+                status: 'failed',
+                effectKey: 'initCmd',
+              });
+            },
+          };
+        }
+
+        return {
+          effect: i,
+          applyEffect: () => {
+            dispatch({
+              type: 'update',
+              key: 'backendCmd',
+              value: initBackendCmd,
+            });
+
+            dispatch({
+              type: 'enqueueEffect',
+              effect: { effectKey: 'saveFile' },
+            });
+
+            dispatch({
+              type: 'effectEnded',
+              status: 'succeeded',
+              effectKey: 'initCmd',
+            });
+          },
+        };
+      }
       case 'lint': {
         const {
           editorMode,
@@ -578,7 +627,7 @@ store.subscribe(() => {
   applyEffect();
 });
 
-store.dispatch({ type: 'enqueueEffect', effect: 'setupWorkerMessageHandler' });
+store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'setupWorkerMessageHandler' } });
 
 /* Try to load a Chunk mode program from the URI component ?program=uri-encoded-program */
 
@@ -588,9 +637,9 @@ if (maybeEncodedProgram !== null) {
   const decodedProgram = decodeURIComponent(maybeEncodedProgram);
   const chunks: Chunk[] = makeChunksFromString(decodedProgram);
   store.dispatch({ type: 'update', key: 'chunks', value: { chunks, modifiesText: true } });
-  store.dispatch({ type: 'enqueueEffect', effect: 'saveFile' });
+  store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile' } });
 }
 
-store.dispatch({ type: 'enqueueEffect', effect: 'loadFile' });
+store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
 
 export default store;

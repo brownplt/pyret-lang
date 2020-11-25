@@ -2,46 +2,61 @@
    The `Action` type is our type of Redux actions. */
 
 import { Chunk } from './chunk';
-import { EditorMode, MessageTabIndex } from './state';
-import { Effect } from './effect';
+import {
+  EditorMode,
+  MessageTabIndex,
+  EditorResponseLoop,
+  BackendCmd,
+} from './state';
+import { Effect, EffectKey } from './effect';
 import { RawRTMessage } from './rtMessages';
 import * as control from './control';
 
 export type EffectFailure =
-  (| { effect: 'createRepl' }
-  | { effect: 'startEditTimer' }
-  | { effect: 'editTimer' }
-  | { effect: 'lint', name: string, errors: string[] } // TODO: check errors type
-  | { effect: 'compile', errors: string[] }
-  | { effect: 'run', errors: any }
-  | { effect: 'setup' }
-  | { effect: 'stop' }
-  | { effect: 'loadFile' }
-  | { effect: 'saveFile' }
-  | { effect: 'setupWorkerMessageHandler' });
+  (| { effectKey: 'createRepl' }
+  | { effectKey: 'startEditTimer' }
+  | { effectKey: 'editTimer' }
+  | { effectKey: 'setup' }
+  | { effectKey: 'stop' }
+  | { effectKey: 'loadFile' }
+  | { effectKey: 'saveFile' }
+  | { effectKey: 'setupWorkerMessageHandler' }
+  | { effectKey: 'initCmd' }
+  | BackendEffectFailure);
 
 export type EffectSuccess =
-  (| { effect: 'createRepl' }
-  | { effect: 'startEditTimer', timer: NodeJS.Timer }
-  | { effect: 'editTimer' }
-  | { effect: 'lint', name: string }
-  | { effect: 'compile' }
-  | { effect: 'run', result: any }
-  | { effect: 'setup' }
-  | { effect: 'stop', line: number }
-  | { effect: 'loadFile' }
-  | { effect: 'saveFile' }
-  | { effect: 'setupWorkerMessageHandler' });
+  (| { effectKey: 'createRepl' }
+  | { effectKey: 'startEditTimer', timer: NodeJS.Timer }
+  | { effectKey: 'editTimer' }
+  | { effectKey: 'setup' }
+  | { effectKey: 'stop', line: number }
+  | { effectKey: 'loadFile' }
+  | { effectKey: 'saveFile' }
+  | { effectKey: 'setupWorkerMessageHandler' }
+  | { effectKey: 'initCmd' }
+  | BackendEffectSuccess);
 
-export type SuccessForEffect<E extends Effect> =
-  Extract<EffectSuccess, { effect: E }>;
+export type BackendEffectFailure =
+  (| { effectKey: 'initCmd', cmd: BackendCmd }
+  | { effectKey: 'lint', name: string, errors: string[] } // TODO: check errors type
+  | { effectKey: 'compile', errors: string[] }
+  | { effectKey: 'run', errors: any });
 
-export type FailureForEffect<E extends Effect> =
-  Extract<EffectFailure, { effect: E }>;
+export type BackendEffectSuccess =
+  (| { effectKey: 'initCmd', cmd: BackendCmd }
+  | { effectKey: 'lint', name: string }
+  | { effectKey: 'compile' }
+  | { effectKey: 'run', result: any });
 
-export type EffectSucceeded = { status: 'succeeded' } & SuccessForEffect<Effect>;
+export type SuccessForEffect<E extends EffectKey> =
+  Extract<EffectSuccess, { effectKey: E }>;
 
-export type EffectFailed = { status: 'failed' } & FailureForEffect<Effect>;
+export type FailureForEffect<E extends EffectKey> =
+  Extract<EffectFailure, { effectKey: E }>;
+
+export type EffectSucceeded = { status: 'succeeded' } & SuccessForEffect<EffectKey>;
+
+export type EffectFailed = { status: 'failed' } & FailureForEffect<EffectKey>;
 
 export type EffectEnded = EffectSucceeded | EffectFailed;
 
@@ -60,6 +75,7 @@ export function isSingleChunkUpdate(update: ChunksUpdate): update is SingleChunk
   return (update as any).chunk !== undefined;
 }
 
+// TODO(alex): Split editor updates into a separate type
 export type Update =
   (| { key: 'editorMode', value: EditorMode }
   | { key: 'currentRunner', value: any }
@@ -69,7 +85,6 @@ export type Update =
   | { key: 'chunks', value: ChunksUpdate }
   | { key: 'focusedChunk', value: number | undefined }
   | { key: 'fontSize', value: number }
-  | { key: 'autoRun', value: boolean }
   | { key: 'runKind', value: control.backend.RunKind }
   | { key: 'typeCheck', value: boolean }
   | { key: 'shouldAdvanceCursor', value: boolean }
@@ -81,7 +96,9 @@ export type Update =
   | { key: 'rhs', value: 'make-outdated' | 'reset-rt-messages' }
   | { key: 'rt-message', value: RawRTMessage }
   | { key: 'messageTabIndex', value: MessageTabIndex }
-  );
+  | { key: 'editorResponseLoop', value: EditorResponseLoop }
+  | { key: 'editorLoopDropdownVisible', value: boolean }
+  | { key: 'backendCmd', value: BackendCmd });
 
 export type UpdateKey = Update['key'];
 
