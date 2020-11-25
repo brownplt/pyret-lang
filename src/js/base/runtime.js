@@ -4171,7 +4171,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         cleanQuit = false;
       }
 
-      check_array_size(len);
+      check_array_size("raw-array-build-opt", len);
       while (cleanQuit && curIdx < len) {
         if (--thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;

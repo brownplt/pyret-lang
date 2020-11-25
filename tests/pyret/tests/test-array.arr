@@ -282,6 +282,12 @@ check:
   raw-array-build(lam(x): x end, 9007199254740992) raises "larger than"
   raw-array-build(lam(x): x end, 4294967296) raises "larger than"
 
+  raw-array-build-opt(lam(x): x end, 2.5) raises "NumInteger"
+  raw-array-build-opt(lam(x): x end, -2) raises "NumPositive"
+  # This constant is one larger than MAX_SAFE_INTEGER in JS
+  raw-array-build-opt(lam(x): x end, 9007199254740992) raises "larger than"
+  raw-array-build-opt(lam(x): x end, 4294967296) raises "larger than"
+
   raw-array-of("a", 2.5) raises "NumInteger"
   raw-array-of("a", -2) raises "NumPositive"
   raw-array-of("a", 9007199254740992) raises "larger than"
