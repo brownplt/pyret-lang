@@ -397,6 +397,9 @@ function handleFirstActionableEffect(
         const currBackendCmd = state.backendCmd;
         const initBackendCmd = effect.cmd;
 
+        console.log(`Init cmd: ${initBackendCmd}`);
+        console.log(`Curr cmd: ${currBackendCmd}`);
+
         // Backend already busy
         if (currBackendCmd !== BackendCmd.None) {
           return {
@@ -421,14 +424,14 @@ function handleFirstActionableEffect(
             });
 
             dispatch({
-              type: 'effectEnded',
-              status: 'succeeded',
-              effectKey: 'initCmd',
+              type: 'enqueueEffect',
+              effect: { effectKey: 'saveFile' },
             });
 
             dispatch({
-              type: 'enqueueEffect',
-              effect: { effectKey: 'saveFile' },
+              type: 'effectEnded',
+              status: 'succeeded',
+              effectKey: 'initCmd',
             });
           },
         };

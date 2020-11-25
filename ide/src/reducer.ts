@@ -32,6 +32,8 @@ import {
   BackendCmd,
 } from './state';
 
+import backendCmdFromState from './editor_loop';
+
 import {
   Chunk,
   CHUNKSEP,
@@ -191,12 +193,24 @@ function handleStartEditTimerSuccess(
 
 function handleEditTimerSuccess(state: State): State {
   const {
+    editorResponseLoop,
     effectQueue,
   } = state;
 
+  const cmd = backendCmdFromState(editorResponseLoop);
+
+  if (cmd === BackendCmd.None) {
+    console.log('[EDITOR LOOP]: None');
+    return {
+      ...state,
+      effectQueue: [...effectQueue, { effectKey: 'saveFile' }],
+    };
+  }
+
+  console.log(`[EDITOR LOOP]: ${cmd}`);
   return {
     ...state,
-    effectQueue: [...effectQueue, { effectKey: 'saveFile' }],
+    effectQueue: [...effectQueue, { effectKey: 'initCmd', cmd }],
   };
 }
 
@@ -273,7 +287,8 @@ function handleCompileSuccess(state: State): State {
     return {
       ...state,
       compiling: false,
-      effectQueue: [...effectQueue, { effectKey: 'saveFile' }],
+      backendCmd: BackendCmd.None,
+      effectQueue: [...effectQueue, { effectKey: 'initCmd', cmd: backendCmd }],
     };
   }
 
@@ -480,6 +495,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
     case EditorMode.Text:
       return {
         ...state,
+        backendCmd: BackendCmd.None,
         linted: true,
         linting: false,
         interactionErrors: action.errors,
@@ -543,13 +559,13 @@ function handleCompileFailure(
   status: FailureForEffect<'compile'>,
 ): State {
   const { compiling } = state;
-  // TODO(alex): On out-of-date compile failure, should we retry compilation?
   if (compiling === 'out-of-date') {
-    const { effectQueue } = state;
+    const { backendCmd, effectQueue } = state;
     return {
       ...state,
       compiling: false,
-      effectQueue: [...effectQueue, { effectKey: 'saveFile' }],
+      backendCmd: BackendCmd.None,
+      effectQueue: [...effectQueue, { effectKey: 'initCmd', cmd: backendCmd }],
     };
   }
 
@@ -588,6 +604,7 @@ function handleCompileFailure(
     case EditorMode.Text:
       return {
         ...state,
+        backendCmd: BackendCmd.None,
         compiling: false,
         interactionErrors: status.errors,
         definitionsHighlights: places,
@@ -621,8 +638,8 @@ function handleCompileFailure(
       }
       return handleEnter({
         ...state,
-        compiling: false,
         backendCmd: BackendCmd.None,
+        compiling: false,
         interactionErrors: status.errors,
         definitionsHighlights: places,
       });
@@ -639,9 +656,9 @@ function handleRunFailure(state: State, status: FailureForEffect<'run'>) {
   cleanStopify();
   return handleEnter({
     ...state,
+    backendCmd: BackendCmd.None,
     currentRunner: undefined,
     running: false,
-    backendCmd: BackendCmd.None,
     interactionErrors: [JSON.stringify(status.errors)],
   });
 }
