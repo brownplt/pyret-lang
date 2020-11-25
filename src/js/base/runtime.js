@@ -4096,6 +4096,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         $ans = thisRuntime.makeCont();
       }
 
+      checkNumInteger(len);
+      checkNumPositive(len);
+      // NOTE(joe):
+      // Per https://www.ecma-international.org/ecma-262/5.1/#sec-9.6, we
+      // couldn't create anything larger anyway atop JS, and 4 billion elements
+      // ought to be enough for anyone (cue laughter from 2050)
+      const MAX_ARRAY_SIZE = 4294967295;
+      if(jsnums.greaterThan(len, MAX_ARRAY_SIZE)) {
+        thisRuntime.throwMessageException("raw-array-build: cannot create array larger than " + MAX_ARRAY_SIZE);
+      }
+      len = jsnums.toFixnum(len);
+
       while (cleanQuit && (curIdx < len)) {
         if (--thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
