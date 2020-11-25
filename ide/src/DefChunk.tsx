@@ -15,10 +15,10 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
-import { State, EditorResponseLoop } from './state';
+import { BackendCmd, State, EditorResponseLoop } from './state';
 
 import RenderedValue from './RenderedValue';
-import { backendCmdFromState } from './editor_loop';
+import backendCmdFromState from './editor_loop';
 
 import {
   Chunk,
@@ -434,11 +434,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const token = editor.getTokenAt(pos);
     if ((event as any).shiftKey) {
       setShouldAdvanceCursor(false);
-      enqueueEffect({ effectKey: 'saveFile', cmd: backendCmdFromState(editorResponseLoop) });
+      enqueueEffect({ effectKey: 'initCmd', cmd: backendCmdFromState(editorResponseLoop) });
       event.preventDefault();
     } else if (token.state.lineState.tokens.length === 0) {
       setShouldAdvanceCursor(true);
-      enqueueEffect({ effectKey: 'saveFile', cmd: 'none' });
+      enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.None });
       event.preventDefault();
     }
   }
@@ -514,7 +514,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         if (newFocusedChunk !== focusedChunk) {
           setFocusedChunk(newFocusedChunk);
         } else {
-          enqueueEffect({ effectKey: 'saveFile', cmd: backendCmdFromState(editorResponseLoop) });
+          enqueueEffect({ effectKey: 'initCmd', cmd: backendCmdFromState(editorResponseLoop) });
         }
       }
       if (shouldPreventDefault) {

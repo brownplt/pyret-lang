@@ -29,7 +29,7 @@ import {
   EditorMode,
   State,
   initialState,
-  EditorResponseLoop,
+  BackendCmd,
 } from './state';
 
 import {
@@ -205,16 +205,29 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
 
   switch (editorMode) {
     case EditorMode.Text: {
-      const { effectQueue } = state;
+      const { effectQueue, backendCmd } = state;
+
+      if (backendCmd > BackendCmd.Lint) {
+        return {
+          ...state,
+          linting: false,
+          linted: true,
+          effectQueue: [...effectQueue, { effectKey: 'compile' }],
+        };
+      }
+
+      // Finished the Lint command
       return {
         ...state,
         linting: false,
         linted: true,
-        effectQueue: [...effectQueue, { effectKey: 'compile' }],
+        backendCmd: BackendCmd.None,
       };
     }
+
     case EditorMode.Chunks: {
       const {
+        backendCmd,
         chunks,
         effectQueue,
         compiling,
@@ -237,13 +250,14 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
         return chunk;
       });
 
-      const shouldCompile = allLinted && !compiling && !running;
+      const shouldCompile = allLinted && !compiling && !running && (backendCmd > BackendCmd.Lint);
 
       return handleEnter({
         ...state,
         chunks: newChunks,
         linted: allLinted,
         linting: !allLinted,
+        backendCmd: (backendCmd > BackendCmd.Lint) ? backendCmd : BackendCmd.None,
         effectQueue: shouldCompile ? [...effectQueue, { effectKey: 'compile' }] : effectQueue,
       });
     }
@@ -253,7 +267,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
 }
 
 function handleCompileSuccess(state: State): State {
-  const { compiling, effectQueue, editorResponseLoop } = state;
+  const { compiling, effectQueue, backendCmd } = state;
 
   if (compiling === 'out-of-date') {
     return {
@@ -263,7 +277,7 @@ function handleCompileSuccess(state: State): State {
     };
   }
 
-  const autoRun = editorResponseLoop === EditorResponseLoop.AutoCompileRun;
+  const autoRun = backendCmd === BackendCmd.Run;
 
   return {
     ...state,
@@ -319,6 +333,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
 
   return handleEnter({
     ...state,
+    backendCmd: BackendCmd.None,
     currentRunner: undefined,
     chunks: newChunks,
     running: false,
@@ -360,7 +375,7 @@ function handleSaveFileSuccess(state: State): State {
     compiling,
     running,
     chunks,
-    editorResponseLoop,
+    backendCmd,
   } = state;
 
   let newEffectQueue = effectQueue;
@@ -374,11 +389,10 @@ function handleSaveFileSuccess(state: State): State {
     }
   }
 
-  const autoRun = editorResponseLoop === EditorResponseLoop.AutoCompileRun;
-  if (autoRun && compiling !== true && !running) {
+  if (backendCmd > BackendCmd.None && compiling !== true && !running) {
     if (needsLint) {
       newEffectQueue = [...effectQueue, { effectKey: 'lint' }];
-    } else if (autoRun) {
+    } else if (backendCmd >= BackendCmd.Compile) {
       // Chunks are inserted after a lint success. In this case, we aren't
       // linting, but we still would like to possibly create a new chunk.
       shouldHandleEnter = true;
@@ -419,6 +433,11 @@ function handleSetupWorkerMessageHandlerSuccess(state: State): State {
   };
 }
 
+function handleInitCmdSuccess(state: State): State {
+  // TODO(alex): Do something here?
+  return state;
+}
+
 function handleEffectSucceeded(state: State, action: EffectSuccess): State {
   switch (action.effectKey) {
     case 'createRepl':
@@ -443,6 +462,8 @@ function handleEffectSucceeded(state: State, action: EffectSuccess): State {
       return handleSaveFileSuccess(state);
     case 'setupWorkerMessageHandler':
       return handleSetupWorkerMessageHandlerSuccess(state);
+    case 'initCmd':
+      return handleInitCmdSuccess(state);
     default:
       throw new Error(`handleEffectSucceeded: unknown process ${JSON.stringify(action)}`);
   }
@@ -505,6 +526,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
 
       return handleEnter({
         ...state,
+        backendCmd: BackendCmd.None,
         chunks: newChunks,
         linted: allLinted,
         linting: !allLinted,
@@ -521,6 +543,7 @@ function handleCompileFailure(
   status: FailureForEffect<'compile'>,
 ): State {
   const { compiling } = state;
+  // TODO(alex): On out-of-date compile failure, should we retry compilation?
   if (compiling === 'out-of-date') {
     const { effectQueue } = state;
     return {
@@ -591,6 +614,7 @@ function handleCompileFailure(
         }
         return handleEnter({
           ...state,
+          backendCmd: BackendCmd.None,
           compiling: false,
           chunks: newChunks,
         });
@@ -598,6 +622,7 @@ function handleCompileFailure(
       return handleEnter({
         ...state,
         compiling: false,
+        backendCmd: BackendCmd.None,
         interactionErrors: status.errors,
         definitionsHighlights: places,
       });
@@ -616,8 +641,15 @@ function handleRunFailure(state: State, status: FailureForEffect<'run'>) {
     ...state,
     currentRunner: undefined,
     running: false,
+    backendCmd: BackendCmd.None,
     interactionErrors: [JSON.stringify(status.errors)],
   });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function handleInitCmdFailure(state: State, action: FailureForEffect<'initCmd'>): State {
+  // TODO(alex): Do something here?
+  return state;
 }
 
 function handleEffectFailed(state: State, action: EffectFailure): State {
@@ -630,6 +662,8 @@ function handleEffectFailed(state: State, action: EffectFailure): State {
       return handleCompileFailure(state, action);
     case 'run':
       return handleRunFailure(state, action);
+    case 'initCmd':
+      return handleInitCmdFailure(state, action);
     default:
       throw new Error(`handleEffectFailed: unknown effect ${JSON.stringify(action)}`);
   }
@@ -964,6 +998,8 @@ function handleUpdate(
       return { ...state, editorResponseLoop: action.value };
     case 'editorLoopDropdownVisible':
       return { ...state, editorLoopDropdownVisible: action.value };
+    case 'backendCmd':
+      return { ...state, backendCmd: action.value };
     default:
       throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }

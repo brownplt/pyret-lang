@@ -1,38 +1,17 @@
-import { BackendCmd, BackendEffectKey } from './effect';
+import { BackendCmd, EditorResponseLoop } from './state';
 
-import { EditorResponseLoop } from './state';
-
-export function backendCmdFromState(loop: EditorResponseLoop): BackendCmd {
+export default function backendCmdFromState(loop: EditorResponseLoop): BackendCmd {
   switch (loop) {
     case EditorResponseLoop.AutoCompile:
-      return 'compile';
+      return BackendCmd.Compile;
 
     case EditorResponseLoop.AutoCompileRun:
-      return 'run';
+      return BackendCmd.Run;
 
     case EditorResponseLoop.Manual:
-      return 'none';
+      return BackendCmd.None;
 
     default:
       throw new Error(`Unknown editor response loop kind: ${loop}`);
-  }
-}
-
-export function backendContinue(k: BackendEffectKey | 'saveFile', cmd: BackendCmd): boolean {
-  switch (k) {
-    case 'saveFile':
-      return cmd !== 'none';
-
-    case 'lint':
-      return (cmd === 'compile') || (cmd === 'run');
-
-    case 'compile':
-      return cmd === 'run';
-
-    case 'run':
-      return false;
-
-    default:
-      throw new Error(`Unreachable state: ${k}`);
   }
 }

@@ -6,6 +6,7 @@ import {
   EditorMode,
   MessageTabIndex,
   EditorResponseLoop,
+  BackendCmd,
 } from './state';
 import { Effect, EffectKey } from './effect';
 import { RawRTMessage } from './rtMessages';
@@ -20,6 +21,7 @@ export type EffectFailure =
   | { effectKey: 'loadFile' }
   | { effectKey: 'saveFile' }
   | { effectKey: 'setupWorkerMessageHandler' }
+  | { effectKey: 'initCmd' }
   | BackendEffectFailure);
 
 export type EffectSuccess =
@@ -31,15 +33,18 @@ export type EffectSuccess =
   | { effectKey: 'loadFile' }
   | { effectKey: 'saveFile' }
   | { effectKey: 'setupWorkerMessageHandler' }
+  | { effectKey: 'initCmd' }
   | BackendEffectSuccess);
 
 export type BackendEffectFailure =
-  (| { effectKey: 'lint', name: string, errors: string[] } // TODO: check errors type
+  (| { effectKey: 'initCmd', cmd: BackendCmd }
+  | { effectKey: 'lint', name: string, errors: string[] } // TODO: check errors type
   | { effectKey: 'compile', errors: string[] }
   | { effectKey: 'run', errors: any });
 
 export type BackendEffectSuccess =
-  (| { effectKey: 'lint', name: string }
+  (| { effectKey: 'initCmd', cmd: BackendCmd }
+  | { effectKey: 'lint', name: string }
   | { effectKey: 'compile' }
   | { effectKey: 'run', result: any });
 
@@ -92,7 +97,8 @@ export type Update =
   | { key: 'rt-message', value: RawRTMessage }
   | { key: 'messageTabIndex', value: MessageTabIndex }
   | { key: 'editorResponseLoop', value: EditorResponseLoop }
-  | { key: 'editorLoopDropdownVisible', value: boolean });
+  | { key: 'editorLoopDropdownVisible', value: boolean }
+  | { key: 'backendCmd', value: BackendCmd });
 
 export type UpdateKey = Update['key'];
 

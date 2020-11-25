@@ -15,7 +15,7 @@ import {
 import { Chunk, getStartLineForIndex } from './chunk';
 import { RHSObjects } from './rhsObject';
 import DefChunk from './DefChunk';
-import { backendCmdFromState } from './editor_loop';
+import backendCmdFromState from './editor_loop';
 
 type StateProps = {
   chunks: Chunk[],
@@ -115,10 +115,10 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
         if (chunks[newFocusedChunk].id !== oldFocusedId) {
           dispatch({ type: 'update', key: 'focusedChunk', value: newFocusedChunk });
         } else {
-          dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile', cmd: backendCmdFromState(editorResponseLoop) } });
+          dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: backendCmdFromState(editorResponseLoop) } });
         }
       } else {
-        dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile', cmd: backendCmdFromState(editorResponseLoop) } });
+        dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: backendCmdFromState(editorResponseLoop) } });
       }
     },
     setRHS() {

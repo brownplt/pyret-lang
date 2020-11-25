@@ -1,13 +1,17 @@
 /* Exports both the type of state in the Redux store as well as its default value. */
 
 import { Chunk } from './chunk';
-import { Effect } from './effect';
+import { BackendCmd, Effect } from './effect';
 import { MenuItems } from './menu-types';
 import { RHSObjects } from './rhsObject';
 import { RTMessages } from './rtMessages';
 import * as control from './control';
 
+export { BackendCmd } from './effect';
+
 export type State = {
+
+  backendCmd: BackendCmd,
 
   /* Since Redux doesn't handle side effects for us we need to keep a queue of
      them inside the state. It needs to be a queue because we sometimes need to
@@ -172,6 +176,7 @@ export type LintFailures = {
 };
 
 export const initialState: State = {
+  backendCmd: BackendCmd.None,
   browseRoot: '/',
   browsePath: '/projects',
   currentFile: '/projects/program.arr',

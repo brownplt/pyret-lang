@@ -3,7 +3,12 @@
 import { createStore } from 'redux';
 import ideApp from './reducer';
 import { IDE } from './ide';
-import { EditorMode, MessageTabIndex, State } from './state';
+import {
+  BackendCmd,
+  EditorMode,
+  MessageTabIndex,
+  State,
+} from './state';
 import {
   Chunk,
   makeChunksFromString,
@@ -387,6 +392,47 @@ function handleFirstActionableEffect(
           }
         }
         break;
+      case 'initCmd':
+      {
+        const currBackendCmd = state.backendCmd;
+        const initBackendCmd = effect.cmd;
+
+        // Backend already busy
+        if (currBackendCmd !== BackendCmd.None) {
+          return {
+            effect: i,
+            applyEffect: () => {
+              dispatch({
+                type: 'effectEnded',
+                status: 'failed',
+                effectKey: 'initCmd',
+              });
+            },
+          };
+        }
+
+        return {
+          effect: i,
+          applyEffect: () => {
+            dispatch({
+              type: 'update',
+              key: 'backendCmd',
+              value: initBackendCmd,
+            });
+
+            dispatch({
+              type: 'effectEnded',
+              status: 'succeeded',
+              effectKey: 'initCmd',
+            });
+
+            dispatch({
+              type: 'enqueueEffect',
+              effect: { effectKey: 'saveFile' },
+            });
+          },
+        };
+      }
       case 'lint': {
         const {
           editorMode,

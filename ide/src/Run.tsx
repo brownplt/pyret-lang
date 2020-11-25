@@ -13,8 +13,9 @@ import {
 } from 'react-redux';
 
 import {
-  State,
+  BackendCmd,
   EditorResponseLoop,
+  State,
 } from './state';
 
 import {
@@ -83,7 +84,7 @@ type DispatchProps = {
 
 function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
   return {
-    run: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile' } }),
+    run: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Run } }),
     stop: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'stop' } }),
     setStopify: (stopify: boolean) => {
       if (stopify) {
