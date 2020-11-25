@@ -73,6 +73,7 @@ type PropsFromReact = {
 };
 
 type DispatchProps = {
+  compile: () => void,
   run: () => void,
   stop: () => void,
   setStopify: (stopify: boolean) => void,
@@ -84,6 +85,7 @@ type DispatchProps = {
 
 function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
   return {
+    compile: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Compile } }),
     run: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Run } }),
     stop: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'stop' } }),
     setStopify: (stopify: boolean) => {
@@ -117,6 +119,7 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type Props = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
 function Run({
+  compile,
   run,
   stop,
   setStopify,
@@ -250,6 +253,21 @@ function Run({
       <div
         className="run-container"
       >
+        <button
+          className="compile-ready"
+          type="button"
+          onClick={compile}
+          style={{
+            background: buttonBackground,
+          }}
+        >
+          {
+            // TODO(alex): figure out button style/margins
+            // TODO(alex): compile button has a persisting black outline (unlike the run button)
+            // TODO(alex): figure out compilation/run-ready progress bar
+          }
+          Compile
+        </button>
         <button
           className="run-ready"
           type="button"
