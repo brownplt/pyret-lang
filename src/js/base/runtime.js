@@ -4057,7 +4057,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     var check_array_size = function(name, size) {
       checkNumInteger(size);
-      checkNumPositive(size);
+      checkNumNonNegative(size);
       // NOTE(joe):
       // Per https://www.ecma-international.org/ecma-262/5.1/#sec-9.6, we
       // couldn't create anything larger anyway atop JS, and 4 billion elements
