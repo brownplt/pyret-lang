@@ -670,6 +670,12 @@ function handleInitCmdFailure(state: State, action: FailureForEffect<'initCmd'>)
   return state;
 }
 
+function handleSaveFileFailure(state: State, action: FailureForEffect<'saveFile'>): State {
+  // TODO(alex): Do something here?
+  console.error(`Failed to save file: ${action.error}`);
+  return state;
+}
+
 function handleEffectFailed(state: State, action: EffectFailure): State {
   switch (action.effectKey) {
     case 'createRepl':
@@ -682,6 +688,8 @@ function handleEffectFailed(state: State, action: EffectFailure): State {
       return handleRunFailure(state, action);
     case 'initCmd':
       return handleInitCmdFailure(state, action);
+    case 'saveFile':
+      return handleSaveFileFailure(state, action);
     default:
       throw new Error(`handleEffectFailed: unknown effect ${JSON.stringify(action)}`);
   }

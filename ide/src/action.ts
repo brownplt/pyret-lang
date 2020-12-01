@@ -19,7 +19,7 @@ export type EffectFailure =
   | { effectKey: 'setup' }
   | { effectKey: 'stop' }
   | { effectKey: 'loadFile' }
-  | { effectKey: 'saveFile' }
+  | { effectKey: 'saveFile', error: Error }
   | { effectKey: 'setupWorkerMessageHandler' }
   | { effectKey: 'initCmd' }
   | BackendEffectFailure);

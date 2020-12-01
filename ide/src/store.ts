@@ -203,25 +203,42 @@ function handleSaveFile(
   contents: string,
   chunks: Chunk[],
 ) {
+  const saveCallback = (error: Error) => {
+    if (error) {
+      dispatch({
+        type: 'effectEnded',
+        status: 'failed',
+        effectKey: 'saveFile',
+        error,
+      });
+    } else {
+      dispatch({
+        type: 'effectEnded',
+        status: 'succeeded',
+        effectKey: 'saveFile',
+      });
+    }
+  };
+
   switch (mode) {
     case EditorMode.Text:
-      control.fs.writeFileSync(path, contents);
+      control.fs.writeFile(path, contents, saveCallback);
       break;
     case EditorMode.Chunks:
-      control.fs.writeFileSync(
+      // TODO(alex): Chunk file saving works by concating chunks together into a single buffer
+      //   and writing it out.
+      // If performance becomes bottlenecked here, consider:
+      //   * Storing chunks in a single string buffer and performing edits on that buffer
+      //   * Using fs.WriteStream to stream the chunk contents into the file
+      control.fs.writeFile(
         path,
         chunks.map((chunk) => chunk.text).join(CHUNKSEP),
+        saveCallback,
       );
       break;
     default:
       throw new Error('handleSaveFile: unknown editor mode');
   }
-
-  dispatch({
-    type: 'effectEnded',
-    status: 'succeeded',
-    effectKey: 'saveFile',
-  });
 }
 
 function handleCompile(dispatch: Dispatch, path: string, typeCheck: boolean) {
