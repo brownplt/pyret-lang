@@ -405,12 +405,14 @@ function handleSaveFileSuccess(state: State): State {
     }
   }
 
-  if (backendCmd > BackendCmd.None && compiling !== true && !running) {
+  if (backendCmd > BackendCmd.None && !compiling && !running) {
     if (needsLint) {
+      console.log('Linting after save');
       newEffectQueue = [...effectQueue, { effectKey: 'lint' }];
     } else if (backendCmd >= BackendCmd.Compile) {
       // Chunks are inserted after a lint success. In this case, we aren't
       // linting, but we still would like to possibly create a new chunk.
+      console.log('Compiling after save');
       shouldHandleEnter = true;
       newEffectQueue = [...effectQueue, { effectKey: 'compile' }];
     }

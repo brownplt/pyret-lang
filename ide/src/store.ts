@@ -413,11 +413,9 @@ function handleFirstActionableEffect(
         const currBackendCmd = state.backendCmd;
         const initBackendCmd = effect.cmd;
 
-        console.log(`Init cmd: ${initBackendCmd}`);
-        console.log(`Curr cmd: ${currBackendCmd}`);
-
         // Backend already busy
         if (currBackendCmd !== BackendCmd.None) {
+          console.log(`Backend busy: failed to set current cmd ${currBackendCmd} to ${initBackendCmd}`);
           return {
             effect: i,
             applyEffect: () => {
@@ -430,6 +428,7 @@ function handleFirstActionableEffect(
           };
         }
 
+        console.log(`Changing current cmd from ${currBackendCmd} to ${initBackendCmd}`);
         return {
           effect: i,
           applyEffect: () => {
@@ -490,7 +489,7 @@ function handleFirstActionableEffect(
       }
       case 'compile':
         {
-          console.log('compile');
+          console.log('Attempting to compile');
           const {
             currentFile,
             typeCheck,
