@@ -298,7 +298,6 @@
         return { bind: typ.bind, origin: typ.origin, typ: expandType(typ.typ, shorthands) };
       }
       const fromPrim = { "import-type": "uri", uri: "builtin://primitive-types" };
-      var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
       var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
       function mkName(origin, name) {
         return { tag: "name", origin: origin, name: name };
