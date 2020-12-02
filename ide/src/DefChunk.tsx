@@ -428,13 +428,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const {
       enqueueEffect,
       setShouldAdvanceCursor,
-      editorResponseLoop,
     } = this.props;
     const pos = (editor as any).getCursor();
     const token = editor.getTokenAt(pos);
     if ((event as any).shiftKey) {
       setShouldAdvanceCursor(false);
-      enqueueEffect({ effectKey: 'initCmd', cmd: backendCmdFromState(editorResponseLoop) });
+      enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
       event.preventDefault();
     } else if (token.state.lineState.tokens.length === 0) {
       setShouldAdvanceCursor(true);
