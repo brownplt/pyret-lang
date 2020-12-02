@@ -971,9 +971,11 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-for(l, iterator, bindings, ann, body, blocky) =>
       _synthesis(DH.desugar-s-for(l, iterator, bindings, ann, body), top-level, context)
     | s-check(l, name, body, keyword-check) =>
-      result-type = new-existential(l, false)
-      shadow context = context.add-variable(result-type)
-      typing-result(e, result-type, context)
+      synthesis(body, false, context).bind(lam(_, _, _):
+        result-type = new-existential(l, false)
+        shadow context = context.add-variable(result-type)
+        typing-result(e, result-type, context)
+      end)
     | s-spy-block(l :: Loc, message :: Option<Expr>, contents :: List<A.SpyField>) =>
       # Spy block type will always be t-nothing
       # Based off of s-block type check synthesis code
