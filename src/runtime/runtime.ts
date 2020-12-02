@@ -184,7 +184,7 @@ function eagerCheckTest(lhs: () => any,  rhs: () => any,
 
 // TODO(alex): Common URI object that's not a string
 function eagerCheckBlockRunner(uri: string, name: string, checkBlock: () => void): void {
-  if (!$checkBlockFilter(uri, name)) {
+  if ($checkBlockFilter && !$checkBlockFilter(uri, name)) {
     return;
   }
 
