@@ -79,14 +79,20 @@ var _globalCheckResults: CheckResult[] = [];
 // TODO: Pass in the URI to the check test executors
 //   so we can attempt to filter check blocks by module
 // TODO: Add check test override
+// TODO: Need to expose an check runner test API to the IDE
 var $checkBlockExecutor = eagerCheckBlockRunner;
+var $checkBlockFilter: (srcloc: string, name: string) => boolean | null = null;
+
+export function $setCheckBlockFilter(filter: (srcloc: string, name: string) => boolean): void {
+  $checkBlockFilter = filter;
+}
 
 export function $setCheckBlockExecutor(executor): void {
   $checkBlockExecutor = executor;
 }
 
 function checkBlockHandler(srcloc: string, name: string, checkBlock: () => void): void {
-  $checkBlockExecutor(name, checkBlock);
+  $checkBlockExecutor(srcloc, name, checkBlock);
 }
 
 function getCheckResults(): CheckResult[] {
@@ -176,7 +182,12 @@ function eagerCheckTest(lhs: () => any,  rhs: () => any,
   }
 }
 
-function eagerCheckBlockRunner(name: string, checkBlock: () => void): void {
+// TODO(alex): Common URI object that's not a string
+function eagerCheckBlockRunner(uri: string, name: string, checkBlock: () => void): void {
+  if (!$checkBlockFilter(uri, name)) {
+    return;
+  }
+
   _globalCheckContext.push(name);
 
   try {

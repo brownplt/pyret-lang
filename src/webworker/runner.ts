@@ -6,6 +6,7 @@ export interface RuntimeConfig {
   spyExprHandler?: (x: any) => void,
   imgUrlProxy?: (url: string) => string,
   checkBlockRunner?: (block: any) => void,
+  checkBlockFilter?: (srcloc: string, name: string) => boolean,
 }
 
 export interface RunnerPerfResults {
@@ -359,4 +360,11 @@ function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: R
     console.log("RUNNER: No overriding check block handler");
   }
 
+  if (rtCfg.checkBlockFilter) {
+    console.log("RUNNER: check block filter");
+    // @ts-ignore
+    evaldModule["$setCheckBlockFilter"](rtCfg.checkBlockFilter);
+  } else {
+    console.log("RUNNER: Not overriding check block filter");
+  }
 }

@@ -29,4 +29,8 @@ export function defaultImageUrlProxy(url: string): string {
   return `https://code.pyret.org/downloadImg?${url}`;
 }
 
-export function noCheckBlocks(): void { }
+// Filter out builtin check block tests
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function checkBlockFilter(srcloc: string, name: string): boolean {
+  return !srcloc.includes('builtin');
+}
