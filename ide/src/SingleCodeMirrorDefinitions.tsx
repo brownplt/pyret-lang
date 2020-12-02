@@ -19,10 +19,20 @@ type Props = {
   onEdit: (s: string) => void,
   highlights: number[][],
   text: string
+  // TODO(alex): Do we need to do the connector business here too
+  //   or can we just pass from Editor.tsx?
+  run: () => void,
 };
 type State = {
   editor: CodeMirror.Editor | null
 };
+
+// TODO(alex): Unify short-cut handling between 'Text' and 'Chunk' modes somehow
+function setShortcuts(editor: CodeMirror.Editor, run: () => void) {
+  editor.setOption('extraKeys', {
+    'Shift-Enter': run,
+  });
+}
 
 export default class SingleCodeMirrorDefinitions extends React.Component<Props, State> {
   constructor(props : Props) {
@@ -58,8 +68,9 @@ export default class SingleCodeMirrorDefinitions extends React.Component<Props, 
   }
 
   onChange = (editor: CodeMirror.Editor, data: CodeMirror.EditorChange, value: string): void => {
-    const { onEdit } = this.props;
+    const { onEdit, run } = this.props;
 
+    setShortcuts(editor, run);
     this.setState({ editor });
 
     for (let i = 0; i < editor.getDoc().getAllMarks().length; i += 1) {
