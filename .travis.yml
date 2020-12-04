@@ -35,7 +35,7 @@ before_deploy:
 deploy:
   provider: s3
   acl: public_read
-  access_key_id: "AKIAUCA3RRQKLUSZTBS5"
+  access_key_id: "AKIAUCA3RRQKGN5DFKR7"
   bucket: pyret-anchor
   local-dir: build
   upload-dir: anchor
@@ -45,5 +45,5 @@ deploy:
     repo: brownplt/pyret-lang
     branch: anchor
   secret_access_key:
-    secure: treaayJygr/gh3flJ7kMSNNMkGkqqUefme19xMEXoR8UUJIYT+OT1YCH/YDJPm0sa+nHJL5gakxqmAFv2RWF1rHw9c7clAytJ1tu5Ed0arhFoPTC2lHKCXSYggQTEfRR2IigBy3hiVDLF2mPP5eZ0ByygN7toOuqg0WVDuKYJJs=
+    secure: "hnuXFasEpwlhOwtZb+xaoJR220e4wCbke8OyCETpuIxll9KjDBPAj2HFFznnbAlCebNsP/GExIf3FESURd3eyIYw81zSz3igdzy6fk/XAfRpA3dWs3uLTFYhiRiazh2Hm9JgqeuIPL4XKcXO1DeyjTn9uLuBM+ZIm8n9gYGQ2Sw="
 
