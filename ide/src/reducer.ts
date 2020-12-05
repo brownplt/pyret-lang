@@ -283,7 +283,9 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
 function handleCompileSuccess(state: State): State {
   const { compiling, effectQueue, backendCmd } = state;
 
+  console.log('Successful compile...');
   if (compiling === 'out-of-date') {
+    console.log('Out of date compile');
     return {
       ...state,
       backendCmd: BackendCmd.None,
@@ -561,8 +563,10 @@ function handleCompileFailure(
   state: State,
   status: FailureForEffect<'compile'>,
 ): State {
+  console.log('Compilation failure');
   const { compiling } = state;
   if (compiling === 'out-of-date') {
+    console.log('Compilation failure out of date');
     const { backendCmd, effectQueue } = state;
     return {
       ...state,
@@ -605,6 +609,7 @@ function handleCompileFailure(
 
   switch (editorMode) {
     case EditorMode.Text:
+      console.log('Compilation failure: text mode');
       return {
         ...state,
         backendCmd: BackendCmd.None,
@@ -613,6 +618,7 @@ function handleCompileFailure(
         definitionsHighlights: places,
       };
     case EditorMode.Chunks: {
+      console.log('Compilation failure: chunks');
       if (places.length > 0) {
         const { chunks } = state;
         const newChunks = [...chunks];

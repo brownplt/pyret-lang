@@ -460,6 +460,7 @@ function handleFirstActionableEffect(
           isFileSaved,
         } = state;
 
+        console.log('Linting...');
         if (isSetupFinished && isFileSaved) {
           if (currentFileContents !== undefined && editorMode === EditorMode.Text) {
             return {
@@ -489,7 +490,7 @@ function handleFirstActionableEffect(
       }
       case 'compile':
         {
-          console.log('Attempting to compile');
+          console.log('Compiling...');
           const {
             currentFile,
             typeCheck,
@@ -507,6 +508,7 @@ function handleFirstActionableEffect(
             for (let j = 0; j < chunks.length; j += 1) {
               if (chunks[j].errorState.status !== 'succeeded') {
                 allLinted = false;
+                console.log('Not all chunks linted');
                 break;
               }
             }
