@@ -34,6 +34,7 @@ check "range where: block":
   lists.range(0,0) is [list: ]
   lists.range(0,1) is [list: 0]
   lists.range(-5,5) is [list: -5, -4, -3, -2, -1, 0, 1, 2, 3, 4]
+  lists.range(0, 1/2) raises "Integer"
 end
 
 check "repeat where: block":

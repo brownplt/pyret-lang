@@ -15,6 +15,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
   var codePointAt = codePoint.codePointAt;
   var fromCodePoint = codePoint.fromCodePoint;
 
+  const MAX_ARRAY_SIZE = 4294967295;
+
   /**
      Creates a Pyret runtime
      @param {{stdout : function(string), initialGas : number}}
@@ -4053,6 +4055,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
     }
 
+    var check_array_size = function(name, size) {
+      checkNumInteger(size);
+      checkNumNonNegative(size);
+      // NOTE(joe):
+      // Per https://www.ecma-international.org/ecma-262/5.1/#sec-9.6, we
+      // couldn't create anything larger anyway atop JS, and 4 billion elements
+      // ought to be enough for anyone (cue laughter from 2050)
+      if(jsnums.greaterThan(size, MAX_ARRAY_SIZE)) {
+        thisRuntime.throwMessageException(name + ": cannot create array larger than " + MAX_ARRAY_SIZE);
+      }
+    }
+
     var raw_array_from_list = function(lst) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("RawArrays", "raw-array-from-list", lst, thisRuntime.List);
@@ -4063,6 +4077,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-of"], 2, $a, false); }
       thisRuntime.checkArgsInternal1("RawArrays", "raw-array-of",
         len, thisRuntime.Number);
+      check_array_size("raw-array-of", len);
       var arr = new Array(len);
       var i = 0;
       while(i < len) {
@@ -4095,6 +4110,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         cleanQuit = false;
         $ans = thisRuntime.makeCont();
       }
+
+      check_array_size("raw-array-build", len);
 
       while (cleanQuit && (curIdx < len)) {
         if (--thisRuntime.RUNGAS <= 0) {
@@ -4154,6 +4171,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         cleanQuit = false;
       }
 
+      check_array_size("raw-array-build-opt", len);
       while (cleanQuit && curIdx < len) {
         if (--thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;

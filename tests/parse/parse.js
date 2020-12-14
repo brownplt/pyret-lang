@@ -779,6 +779,16 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("spy \"five\": x end")).not.toBe(false);
       expect(parse("spy \"five\": x: 5 end")).not.toBe(false);
     });
+
+    it("should not parse escapes ending in G (bracket) through ` (backtick)", function() {
+      expect(parse("\"\\uG\"")).toBe(false);
+      expect(parse("'\\uG'")).toBe(false);
+      expect(parse("```\\uG```")).toBe(false);
+      expect(parse("\"\\u`\"")).toBe(false);
+      expect(parse("'\\u`'")).toBe(false);
+      expect(parse("```\\u````")).toBe(false);
+      expect(parse("\"\\u`\"")).toBe(false);
+    });
   });
 
   jazz.execute();

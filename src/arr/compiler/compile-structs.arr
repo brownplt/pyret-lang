@@ -3197,6 +3197,7 @@ standard-imports = extra-imports(
    [list:
       extra-import(builtin("global"), "$global", [list:], [list:]),
       extra-import(builtin("base"), "$base", [list:], [list:]),
+      extra-import(builtin("constants"), "$constants", [list: "PI"], [list:]),
       extra-import(builtin("arrays"), "arrays", [list:
           "array",
           "build-array",

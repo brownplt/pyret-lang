@@ -22,7 +22,7 @@ where you will do your assignments, for example.
 the README starting below is for you.
 
 The use of vocabulary from
-http://reservationsbvi.com/thisoldpirate/glossary.html is recommended when
+http://bvipirate.com/piratespeak/index.html is recommended when
 commenting and reporting issues.
 
 
