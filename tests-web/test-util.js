@@ -1,5 +1,4 @@
 // BROWSER = firefox | chrome
-// BROWSER_BINARY
 // BASE_URL
 // SHOW_BROWSER = true | false
 
@@ -20,22 +19,26 @@ const STATUS_OK = 1;
 
 // Used by Travis
 let BROWSER;
+let BROWSER_KIND;
 if (process.env.BROWSER) {
   BROWSER = process.env.BROWSER;
-  if (BROWSER !== kindFF && BROWSER !== kindChrome) {
-    throw `Unknown browser: ${BROWSER}. Set BROWSER to either \"${kindFF}\" or \"${kindChrome}\"`
+  if (BROWSER.includes("chrome")) {
+    BROWSER_KIND = kindChrome;
+  }
+
+  if (BROWSER.includes("firefox")) {
+    BROWSER_KIND = kindFF;
+  }
+
+  if (BROWSER_KIND === undefined) {
+    throw `Unknown browser kind: ${BROWSER}.`
   }
 } else {
   throw `Set BROWSER to either \"${kindFF}\" or \"${kindChrome}\"`
 }
 
 // Used by Travis
-let PATH_TO_BROWSER;
-if (process.env.BROWSER_BINARY) {
-  PATH_TO_BROWSER = process.env.BROWSER_BINARY;
-} else {
-  throw "Set BROWSER_BINARY to the path to your browser install";
-}
+PATH_TO_BROWSER = BROWSER;
 
 let BASE_URL;
 if (process.env.BASE_URL) {
@@ -84,12 +87,12 @@ const CLEAR_LOGS = "clearLogs";
 function setup() {
 
   let driver;
-  if (BROWSER === kindFF) {
+  if (BROWSER_KIND === kindFF) {
     driver = new webdriver.Builder()
       .forBrowser("firefox")
       .withCapabilities(ffCapabilities)
       .build();
-  } else if (BROWSER === kindChrome) {
+  } else if (BROWSER_KIND === kindChrome) {
     driver = new webdriver.Builder()
       .forBrowser("chrome")
       .setChromeOptions(chromeOptions)
@@ -160,7 +163,7 @@ async function searchForRunningOutput(driver, toSearch, timeout) {
     let result = await driver.wait(async () => {
       let innerHTML = await cl.getAttribute("innerHTML");
       let runningIndex = innerHTML.search(/Running/);
-      
+
       if (runningIndex !== -1) {
         let includes = innerHTML.substring(runningIndex).includes(toSearch);
         return includes;
@@ -179,7 +182,7 @@ async function areRuntimeErrors(driver) {
   let cl = await driver.findElement({ id: "consoleList" });
   let innerHTML = await cl.getAttribute("innerHTML");
   let runningIndex = innerHTML.search(/Running/);
-  
+
   if (runningIndex !== -1) {
     let includes = innerHTML.substring(runningIndex).includes("ERR");
     return includes;
