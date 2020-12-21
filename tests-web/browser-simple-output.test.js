@@ -42,7 +42,7 @@ describe("Testing browser simple-output programs", () => {
     }
   });
 
-  afterAll(() => { 
+  afterAll(() => {
     return driver.quit();
   });
 
@@ -97,16 +97,16 @@ describe("Testing browser simple-output programs", () => {
           const expectedOutput = firstLine.slice(firstLine.indexOf(" ")).trim();
 
           await tester.beginSetInputText(driver, contents)
-            .then(tester.compileRun(driver, { 
+            .then(tester.compileRun(driver, {
               'type-check': typeCheck,
               'stopify': false,
             }));
 
           // Does not work when in .then()
-          let foundOutput = 
+          let foundOutput =
             await tester.searchForRunningOutput(driver, expectedOutput, COMPILER_TIMEOUT);
 
-          let runtimeErrors = 
+          let runtimeErrors =
             await tester.areRuntimeErrors(driver);
 
           expect(foundOutput).toEqual(tester.OK);
@@ -125,22 +125,22 @@ describe("Testing browser simple-output programs", () => {
           });
 
           await tester.beginSetInputText(driver, contents)
-            .then(tester.compileRun(driver, { 
+            .then(tester.compileRun(driver, {
               'type-check': typeCheck,
               'stopify': false,
             }));
 
           for (let i = 0; i < expected.length; i++) {
             const expectedOutput = expected[i];
-            let foundOutput = 
-              await tester.searchForRunningOutput(driver, 
+            let foundOutput =
+              await tester.searchForRunningOutput(driver,
                 expectedOutput, COMPILER_TIMEOUT);
 
               expect({ expectedOutput, result: foundOutput })
                 .toEqual({ expectedOutput, result: tester.OK });
           }
- 
-          let runtimeErrors = 
+
+          let runtimeErrors =
               await tester.areRuntimeErrors(driver);
 
           expect(runtimeErrors).toBeFalsy();
