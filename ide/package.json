@@ -80,6 +80,7 @@
   },
   "scripts": {
     "start": "node scripts/start.js",
+    "hstart": "BROWSER=none node scripts/start.js",
     "build": "node scripts/build.js"
   },
   "eslintConfig": {

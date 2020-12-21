@@ -7,6 +7,11 @@ Next, proceed with either `npm start` or `npm run build`.
 
 ### `npm start`
 
+Environment variable customization:
+* PORT: port to open the server on
+* BROWSER: browser to auto-open on build
+  * BROWSER=none: does not automatically open a browser
+
 Runs the app in the development mode.<br>
 Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
