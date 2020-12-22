@@ -1,4 +1,4 @@
-.PHONY: all clean build parser web runtime fix-runtime offline-tests clean-tests ide-tests
+.PHONY: all clean build parser web runtime fix-runtime offline-tests clean-tests ide-tests ide
 
 all: build parser
 
@@ -34,6 +34,9 @@ simple-output-tests: build runtime
 
 check-block-tests: build runtime
 	jest --verbose "tests-new/check-blocks.test.js"
+
+ide: web
+	cd ide; npm run hstart
 
 WEBWORKER_BUILD_DIR := build/worker
 WEBWORKER_SRC_DIR := src/webworker

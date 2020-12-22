@@ -60,6 +60,7 @@
     "web": "make web",
     "runtime": "make runtime",
     "web-tests": "make web-tests",
+    "ide": "make ide",
     "stopify-web-tests": "make stopify-web-tests",
     "offline-tests": "make offline-tests",
     "simple-output-tests": "make simple-output-tests",
