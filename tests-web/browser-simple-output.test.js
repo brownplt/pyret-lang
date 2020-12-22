@@ -1,9 +1,6 @@
 const assert = require('assert');
 const glob = require('glob');
 const fs = require('fs');
-const path = require('path');
-const cp = require('child_process');
-const stream = require('stream');
 const tester = require("./test-util.js");
 
 const TEST_TIMEOUT = 20000;
