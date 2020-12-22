@@ -1,4 +1,4 @@
-.PHONY: all clean build parser web runtime fix-runtime offline-tests clean-tests
+.PHONY: all clean build parser web runtime fix-runtime offline-tests clean-tests ide-tests
 
 all: build parser
 
@@ -17,6 +17,9 @@ build: $(BUILD_DEPS)
 
 all-tests: build runtime web
 	jest --verbose
+
+ide-tests: web
+	jest --verbose "ide"
 
 web-tests: web
 	jest --verbose "browser"

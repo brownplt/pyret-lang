@@ -5,6 +5,7 @@ env:
   - BROWSER=/usr/bin/google-chrome
   - SHOW_BROWSER="false"
   - BASE_URL="http://localhost:8080"
+  - PORT=9000
 git:
   submodules: false
 language: node_js
@@ -13,9 +14,10 @@ node_js:
 install:
 - npm ci
 before_script:
-- npm run build
+- npm run web
 - node_modules/.bin/http-server build/worker -p 8080 &
-- sleep 5
+  cd ide; BROWSER=none npm start &
+- sleep 10
 script:
 - npm run all-tests
 notifications:
