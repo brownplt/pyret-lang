@@ -217,10 +217,12 @@ export const initialState: State = {
   menuItems: [
     {
       name: 'Files',
+      id: 'filesButton',
       icon: 'folderIcon.svg',
     },
     {
       name: 'Options',
+      id: 'optionsButton',
       icon: 'gearIcon.svg',
     },
   ],

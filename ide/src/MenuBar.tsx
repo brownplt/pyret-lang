@@ -55,9 +55,10 @@ function MenuBar({ menuItems, menuTabVisible, toggleTab }: MenuBarProps) {
       }}
     >
       {menuItems.map((item, index) => {
-        const { name } = item;
+        const { name, id } = item;
         return (
           <button
+            id={id}
             type="button"
             onClick={() => toggleTab(index)}
             style={{

@@ -102,6 +102,7 @@ function Menu({
               }}
             >
               <button
+                id="textModeButton"
                 onClick={() => setEditorMode(EditorMode.Text)}
                 className="option"
                 key="TextEditor"
@@ -113,6 +114,7 @@ function Menu({
                 Text
               </button>
               <button
+                id="chunkModeButton"
                 onClick={() => setEditorMode(EditorMode.Chunks)}
                 className="option"
                 key="ChunkEditor"
