@@ -233,6 +233,7 @@ function handleEditTimerSuccess(state: State): State {
 function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): State {
   const { editorMode } = state;
 
+  console.log('Lint success');
   switch (editorMode) {
     case EditorMode.Text: {
       const { effectQueue, backendCmd } = state;
@@ -281,6 +282,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
       });
 
       const shouldCompile = allLinted && !compiling && !running && (backendCmd > BackendCmd.Lint);
+      console.log(`All linted: ${allLinted}\nShould compile: ${shouldCompile}`);
 
       return handleEnter({
         ...state,
@@ -511,6 +513,7 @@ function handleCreateReplFailure(): State {
 function handleLintFailure(state: State, action: FailureForEffect<'lint'>): State {
   const { editorMode, focusedChunk, shouldAdvanceCursor } = state;
 
+  console.log('Lint failure');
   switch (editorMode) {
     case EditorMode.Text:
       return {
