@@ -89,7 +89,7 @@ describe("Testing simple IDE programs", () => {
     await done();
   });
 
-  test("Text Mode Manual Compile", async function(done) {
+  test("Text Mode Editor Reponse Loop", async function(done) {
 
     await Control.changeEditorLoop(driver, Control.EditorResponseLoop.Manual);
 
@@ -114,6 +114,16 @@ describe("Testing simple IDE programs", () => {
     expect(result1).toBeTruthy();
     expect(result2).toBeTruthy();
 
+    await Control.changeEditorLoop(driver, Control.EditorResponseLoop.AutoCompileRun);
+    await TextMode.appendInput(driver, "\n\"foobar\"");
+    await driver.sleep(3000);
+
+    result1 = await RHS.searchFor(driver, "1234", false);
+    result2 = await RHS.searchFor(driver, "abc", false);
+    let result3 = await RHS.searchFor(driver, "foobar", false);
+    expect(result1).toBeTruthy();
+    expect(result2).toBeTruthy();
+    expect(result3).toBeTruthy();
 
     await done();
   });
