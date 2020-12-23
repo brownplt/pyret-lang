@@ -2,6 +2,7 @@ import { strict as assert } from 'assert';
 import { setup } from './util/setup';
 import * as TextMode from './util/TextMode';
 import * as RHS from './util/RHS';
+import * as Control from './util/Control';
 // const glob = require('glob');
 // const tester = require("./test-util.js");
 
@@ -84,6 +85,35 @@ describe("Testing simple IDE programs", () => {
 
     expect(result1).toBeTruthy();
     expect(result2).toBeTruthy();
+
+    await done();
+  });
+
+  test("Text Mode Manual Compile", async function(done) {
+
+    await Control.changeEditorLoop(driver, Control.EditorResponseLoop.Manual);
+
+    await TextMode.toTextMode(driver);
+    await TextMode.appendInput(driver, "include primitive-types");
+    await TextMode.appendInput(driver, "\n\n\"abc\"");
+    await TextMode.appendInput(driver, "\n\n1234");
+
+    await driver.sleep(3000);
+
+    let result1 = await RHS.searchFor(driver, "1234", false);
+    let result2 = await RHS.searchFor(driver, "abc", false);
+
+    expect(result1).toBeFalsy();
+    expect(result2).toBeFalsy();
+
+    await Control.manualRun(driver);
+    await driver.sleep(3000);
+
+    result1 = await RHS.searchFor(driver, "1234", false);
+    result2 = await RHS.searchFor(driver, "abc", false);
+    expect(result1).toBeTruthy();
+    expect(result2).toBeTruthy();
+
 
     await done();
   });
