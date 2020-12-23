@@ -58,6 +58,17 @@ import {
   RTMessages,
 } from './rtMessages';
 
+// TODO(alex): Handling enter needs to be changed
+//   With the current setup, you will need to call `handleEnter` at the end of
+//   every "entry point" in the reducer (i.e. almost everywhere).
+//   This is especially problematic if we have to ever change the way the IDE flows,
+//   as seen with the editor-response-loop rewrite.
+//
+//  Hitting the 'Enter' key in Chunk Mode will set the `shouldAdvanceCursor` flag
+//   and assumes the rest of the reducer will handle it...
+//  Ideally, we would just dispatch an "Insert Chunk" message that alters
+//   the state...
+//
 /* This is a chunk-mode only function. In chunk mode the Enter key is capable of
    creating a new chunk under certain conditions. This function checks those
    conditions and moves into the proper state. This should be used to wrap the
@@ -67,7 +78,12 @@ function handleEnter(state: State): State {
     focusedChunk,
     shouldAdvanceCursor,
     chunks,
+    editorMode,
   } = state;
+
+  if (!(editorMode === EditorMode.Chunks)) {
+    return state;
+  }
 
   if (focusedChunk !== undefined
     && shouldAdvanceCursor
@@ -454,8 +470,7 @@ function handleSetupWorkerMessageHandlerSuccess(state: State): State {
 }
 
 function handleInitCmdSuccess(state: State): State {
-  // TODO(alex): Do something here?
-  return state;
+  return handleEnter(state);
 }
 
 function handleEffectSucceeded(state: State, action: EffectSuccess): State {
