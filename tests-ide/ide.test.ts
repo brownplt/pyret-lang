@@ -79,9 +79,11 @@ describe("Testing simple IDE programs", () => {
 
     await driver.sleep(3000);
 
-    let result = await RHS.searchFor(driver, "1234", false);
+    let result1 = await RHS.searchFor(driver, "1234", false);
+    let result2 = await RHS.searchFor(driver, "abc", false);
 
-    expect(result).toBeTruthy();
+    expect(result1).toBeTruthy();
+    expect(result2).toBeTruthy();
 
     await done();
   });
