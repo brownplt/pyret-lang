@@ -9,16 +9,25 @@
 import React from 'react';
 
 export type DropdownOptionProps = {
+  id?: string,
   enabled: boolean,
   onClick: () => void,
   children: React.ReactNode,
 };
 
-export default function DropdownOption({ enabled, onClick, children }: DropdownOptionProps) {
+export default function DropdownOption(props: DropdownOptionProps) {
+  const {
+    id,
+    enabled,
+    onClick,
+    children,
+  } = props;
+
   const internalName = `DropdownOption${new Date().getTime()}`;
 
   return (
     <div
+      id={id}
       className={enabled ? 'run-option-enabled' : 'run-option-disabled'}
       onClick={onClick}
     >

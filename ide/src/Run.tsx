@@ -141,6 +141,7 @@ function Run({
   const editorLoopDropdown = editorLoopDropdownVisible && (
     <Dropdown>
       <DropdownOption
+        id="OptionERLManual"
         enabled={editorResponseLoop === EditorResponseLoop.Manual}
         onClick={() => setEditorResponseLoop(EditorResponseLoop.Manual)}
       >
@@ -148,6 +149,7 @@ function Run({
       </DropdownOption>
 
       <DropdownOption
+        id="OptionERLAutoCompile"
         enabled={editorResponseLoop === EditorResponseLoop.AutoCompile}
         onClick={() => setEditorResponseLoop(EditorResponseLoop.AutoCompile)}
       >
@@ -155,6 +157,7 @@ function Run({
       </DropdownOption>
 
       <DropdownOption
+        id="OptionERLAutoCompileRun"
         enabled={editorResponseLoop === EditorResponseLoop.AutoCompileRun}
         onClick={() => setEditorResponseLoop(EditorResponseLoop.AutoCompileRun)}
       >
@@ -166,6 +169,7 @@ function Run({
   const dropdown = dropdownVisible && (
     <Dropdown>
       <DropdownOption
+        id="OptionEditorResponseLoop"
         // eslint-disable-next-line react/jsx-boolean-value
         enabled={editorLoopDropdownVisible}
         onClick={() => setEditorLoopDropdownVisible(!editorLoopDropdownVisible)}
@@ -174,12 +178,14 @@ function Run({
         {editorLoopDropdown}
       </DropdownOption>
       <DropdownOption
+        id="OptionStopifyButton"
         enabled={stopify}
         onClick={() => setStopify(!stopify)}
       >
         Stopify
       </DropdownOption>
       <DropdownOption
+        id="OptionTypeCheckButton"
         enabled={typeCheck}
         onClick={() => setTypeCheck(!typeCheck)}
       >
@@ -254,6 +260,7 @@ function Run({
         className="run-container"
       >
         <button
+          id="CompileButton"
           className="compile-ready"
           type="button"
           onClick={compile}
@@ -269,6 +276,7 @@ function Run({
           Compile
         </button>
         <button
+          id="RunButton"
           className="run-ready"
           type="button"
           onClick={run}
