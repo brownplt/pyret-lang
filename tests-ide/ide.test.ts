@@ -13,7 +13,7 @@ const STARTUP_TIMEOUT = 6000;
 //
 // NOTE(alex): All tests assume that the editor begins with an ***EMPTY*** file
 //
-describe("Testing browser simple-output programs", () => {
+describe("Testing simple IDE programs", () => {
 
   jest.setTimeout(TEST_TIMEOUT);
 
