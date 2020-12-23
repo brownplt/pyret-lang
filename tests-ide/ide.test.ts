@@ -55,7 +55,7 @@ describe("Testing simple IDE programs", () => {
     return driver.quit();
   });
 
-  test("Append Input 1", async function(done) {
+  test("Text Mode Append Input 1", async function(done) {
 
     await TextMode.toTextMode(driver);
     await TextMode.appendInput(driver, "include primitive-types\n");
@@ -70,7 +70,7 @@ describe("Testing simple IDE programs", () => {
     await done();
   });
 
-  test("Append Input 2", async function(done) {
+  test("Text Mode Append Input 2", async function(done) {
 
     await TextMode.toTextMode(driver);
     await TextMode.appendInput(driver, "include primitive-types");
