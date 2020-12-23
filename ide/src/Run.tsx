@@ -242,6 +242,7 @@ function Run({
     >
       {stopify && running ? (
         <button
+          id="StopButton"
           className="stop-available"
           onClick={stop}
           type="button"

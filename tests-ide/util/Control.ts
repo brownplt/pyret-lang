@@ -20,6 +20,11 @@ export async function manualRun(driver) {
   await runButton.click();
 }
 
+export async function stopExecution(driver) {
+  let stopButton = await driver.findElement(By.id("StopButton"));
+  await stopButton.click();
+}
+
 export async function changeEditorLoop(driver, erl: EditorResponseLoop) {
   let controlOptionsButton = await getRunOptionsButton(driver);
 
