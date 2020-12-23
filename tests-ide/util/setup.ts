@@ -47,7 +47,7 @@ const BASE_URL = IDE_URL + ":" + PORT;
 
 let refreshPagePerTest = true;
 if (process.env.BROWSER_TEST_REFRESH) {
-  refreshPagePerTest = process.env.BROWSER_TEST_REFRESH;
+  refreshPagePerTest = (process.env.BROWSER_TEST_REFRESH === "true");
 }
 
 let chromeOptions = new seleniumChrome
