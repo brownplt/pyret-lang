@@ -45,12 +45,9 @@ if (process.env.IDE_URL) {
 
 const BASE_URL = IDE_URL + ":" + PORT;
 
-let refreshPagePerTest;
+let refreshPagePerTest = true;
 if (process.env.BROWSER_TEST_REFRESH) {
   refreshPagePerTest = process.env.BROWSER_TEST_REFRESH;
-} else {
-  refreshPagePerTest = false;
-  console.log("Browser tests occur in the same page instance. To refresh the page between tests, set 'BROWSER_TEST_REFRESH' to 'true'");
 }
 
 let chromeOptions = new seleniumChrome
