@@ -1,6 +1,8 @@
-const selenium = require("selenium-webdriver");
-
-const By = selenium.By;
+import * as Selenium from 'selenium-webdriver';
+import {
+  WebElement,
+  By
+} from 'selenium-webdriver';
 
 const RHS_CLASS: string = "interactions-area-container";
 

@@ -1,9 +1,11 @@
-const selenium = require("selenium-webdriver");
+import * as Selenium from 'selenium-webdriver';
+import {
+  WebElement,
+  By
+} from 'selenium-webdriver';
 
 const OPTION_BUTTON_ID = 'optionsButton';
 const TEXT_MODE_BUTTON_ID = 'textModeButton';
-
-const By = selenium.By;
 
 /// Assumes already in Text Mode
 export async function appendInput(driver, input) {
