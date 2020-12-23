@@ -4,6 +4,7 @@ import * as TextMode from './util/TextMode';
 import * as RHS from './util/RHS';
 import * as Control from './util/Control';
 import { ChunkState } from './util/ChunkMode';
+import { KeyboardInput } from './util/Keyboard';
 import { Key } from 'selenium-webdriver';
 
 
@@ -20,6 +21,7 @@ describe("Testing simple IDE programs", () => {
   let ideURL;
   let refreshPagePerTest;
   let chunkState: ChunkState;
+  let keyboard: KeyboardInput;
 
   beforeEach(() => {
     let setupResult = setup();
@@ -27,6 +29,7 @@ describe("Testing simple IDE programs", () => {
     ideURL = setupResult.ideURL;
     refreshPagePerTest = setupResult.refreshPagePerTest;
     chunkState = new ChunkState(driver);
+    keyboard = new KeyboardInput(driver);
     return driver.get(ideURL);
   });
 
@@ -40,13 +43,13 @@ describe("Testing simple IDE programs", () => {
     await chunkState.appendToChunk(1, "BAZ");
     await chunkState.appendToChunk(0, "BEE");
 
-    await chunkState.arrowDown();
-    await chunkState.keySequence("QUX");
-    await chunkState.arrowUp();
-    await chunkState.arrowLeft(9);
-    await chunkState.keySequence("1337");
-    await chunkState.arrowRight(9 + 4);
-    await chunkState.enter();
+    await keyboard.arrowDown();
+    await keyboard.keySequence("QUX");
+    await keyboard.arrowUp();
+    await keyboard.arrowLeft(9);
+    await keyboard.keySequence("1337");
+    await keyboard.arrowRight(9 + 4);
+    await keyboard.enter();
 
     // await chunkState.insertChunkAfter(0, "BAR");
     // await chunkState.appendToChunk(0, "BAZ");
