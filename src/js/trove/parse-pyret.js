@@ -158,16 +158,20 @@
           var prelude = tr(node.kids[0]);
           var body = tr(node.kids[1]);
           return RUNTIME.getField(ast, 's-program')
-            .app(pos(node.pos), prelude.provides, prelude.provideTypes, prelude.allProvides, prelude.imports, body);
+            .app(pos(node.pos), prelude.use, prelude.provides, prelude.provideTypes, prelude.allProvides, prelude.imports, body);
         },
         'prelude': function(node) {
+          var use = RUNTIME.makeNone();
           var provides = undefined;
           var provideTypes = undefined;
           var allProvides = [];
           var imports = [];
 
-          node.kids.forEach(function(kid) {
-            if(provideTypes === undefined && kid.kids[0].name === 'provide-types-stmt') {
+          node.kids.forEach(function(kid, i) {
+            if(kid.kids[0].name === "use-stmt") {
+              use = RUNTIME.makeSome(tr(kid));
+            }
+            else if(provideTypes === undefined && kid.kids[0].name === 'provide-types-stmt') {
               provideTypes = tr(kid);
             }
             else if(provides === undefined && kid.kids[0].name === 'provide-vals-stmt') {
@@ -187,11 +191,15 @@
             provideTypes = RUNTIME.getField(ast, "s-provide-types-none").app(pos(node.pos));
           }
           return {
+            use: use,
             provides: provides,
             provideTypes: provideTypes,
             allProvides: makeListTr(allProvides),
             imports: makeListTr(imports)
           };
+        },
+        'use-stmt': function(node) {
+          return RUNTIME.getField(ast, "s-use").app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]));
         },
         'include-spec': function(node) {
           return tr(node.kids[0]);

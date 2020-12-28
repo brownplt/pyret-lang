@@ -237,7 +237,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
   end, context)
 
   cases(A.Program) program block:
-    | s-program(l, _provide, provided-types, provides, imports, body) =>
+    | s-program(l, _use, _provide, provided-types, provides, imports, body) =>
 
 
       # NOTE(joe) – we cannot use module-env/type-env/env here because they
@@ -302,7 +302,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
           folded-info = gather-provides(provides.first, context)
           cases(FoldResult<TCInfo>) folded-info:
             | fold-result(info, _) =>
-              C.ok(TCS.typed(A.s-program(l, _provide, provided-types, provides, imports, new-body), info))
+              C.ok(TCS.typed(A.s-program(l, _use, _provide, provided-types, provides, imports, new-body), info))
             | fold-errors(errs) =>
               C.err(errs)
           end
