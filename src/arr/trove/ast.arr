@@ -1912,6 +1912,10 @@ default-map-visitor = {
     s-program(l, self.option(_use), _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
   end,
 
+  method s-use(self, l, name, import-type):
+    s-use(l, name.visit(self), import-type.visit(self))
+  end,
+
   method s-include-from(self, l, mod, specs):
     s-include-from(l, mod.map(_.visit(self)), specs.map(_.visit(self)))
   end,
@@ -2522,6 +2526,10 @@ default-iter-visitor = {
     and body.visit(self)
   end,
 
+  method s-use(self, l, name, import-type):
+    name.visit(self) and import-type.visit(self)
+  end,
+
   method s-import(self, l, import-type, name):
     import-type.visit(self) and name.visit(self)
   end,
@@ -3115,6 +3123,10 @@ dummy-loc-visitor = {
 
   method s-program(self, l, _use, _provide, provided-types, provides, imports, body):
     s-program(dummy-loc, self.option(_use), _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
+  end,
+
+  method s-use(self, l, name, import-type):
+    s-use(dummy-loc, name.visit(self), import-type.visit(self))
   end,
 
   method s-const-import(self, l :: Loc, mod :: String):

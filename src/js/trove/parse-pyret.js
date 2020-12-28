@@ -168,7 +168,7 @@
           var imports = [];
 
           node.kids.forEach(function(kid, i) {
-            if(kid.kids[0].name === "use-stmt") {
+            if(kid.name === "use-stmt") {
               use = RUNTIME.makeSome(tr(kid));
             }
             else if(provideTypes === undefined && kid.kids[0].name === 'provide-types-stmt') {
@@ -199,7 +199,7 @@
           };
         },
         'use-stmt': function(node) {
-          return RUNTIME.getField(ast, "s-use").app(pos(node.pos), tr(node.kids[1]), tr(node.kids[2]));
+          return RUNTIME.getField(ast, "s-use").app(pos(node.pos), name(node.kids[1]), tr(node.kids[2]));
         },
         'include-spec': function(node) {
           return tr(node.kids[0]);
