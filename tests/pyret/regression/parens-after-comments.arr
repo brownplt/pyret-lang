@@ -2,7 +2,7 @@ import ast as A
 import file("../test-parse-helper.arr") as P
 
 fun program-block(contents):
-  A.s-program(A.dummy-loc, A.s-provide-none(A.dummy-loc), A.s-provide-types-none(A.dummy-loc),
+  A.s-program(A.dummy-loc, none, A.s-provide-none(A.dummy-loc), A.s-provide-types-none(A.dummy-loc),
     empty, empty, A.s-block(A.dummy-loc, contents))
 end
 
