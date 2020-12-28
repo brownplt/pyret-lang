@@ -40,7 +40,6 @@ fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "curr
 fun append-nothing-if-necessary(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
     | s-program(l1, _use, _provide, _provide-types, provides, imports, body) =>
-      spy: _use end
       cases(A.Expr) body:
         | s-block(l2, stmts) =>
           cases(List) stmts:
