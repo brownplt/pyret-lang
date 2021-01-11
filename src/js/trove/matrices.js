@@ -108,8 +108,7 @@
       var jsCheckMtrx = runtime.makeCheckType(internal_isMtrx,"Matrix")  ;
       var jsCheckVec = runtime.makeCheckType(internal_isVec,"Vector") ; 
       var vals = {
-
-      }
+        }
       var types = {
           Matrix: annMatrix,
           Vector : annVector 

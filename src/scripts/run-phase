@@ -7,7 +7,7 @@ set -o nounset
 NODE="node -max-old-space-size=8192"
 
 SYMLINK_NAME=`basename "$0"`
-SELF_NAME=`basename $(readlink -f $0)`
+SELF_NAME=`python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))'  $0`
 
 if [ "$SYMLINK_NAME" = "$SELF_NAME" ]
 then
