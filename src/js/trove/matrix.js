@@ -24,6 +24,7 @@
         "tvb": ["tid", "b"]
       },
       values: {
+        /*
         "row-map" : ["arrow", [["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
         "col-map" : ["arrow" ,[["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
         "map" : ["arrow" ,[["arrow" ["Number"] , "Number" ] , "Matrix"]  , "Matrix"  ],
@@ -45,7 +46,7 @@
         "stack" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] , 
         "vector-to-list"  : ["arrow", ["Vector"] ,  "List"] ,
         "vector-to-array" : ["arrow", ["Vector"] , "Array"] , 
-        "get" : ["arrow", ["Matrix" , "Number", "Number" ] , "Number"] ,
+        "get" : ["arrow", ["Matrix" , "Number", "Number" ] , "Number"] ,*/
       },
       aliases: {
           "Matrix" : {
@@ -61,16 +62,18 @@
       },
       datatypes: {
         "Matrix": ["data", "Matrix", [], [], {
+          /*
         "_equals": ["arrow", ["Matrix", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
         "_plus" : ["arrow" ,["Matrix"] , "Matrix"] ,
         "_minus" : ["arrow" , ["Matrix"] , "Matrix" ],
-        "_times" : ["arrow" , ["Matrix"] , "Matrix" ]
+        "_times" : ["arrow" , ["Matrix"] , "Matrix" ]*/
              }],
         "Vector": ["data", "Vector", [], [], {
+          /*
             "_equals": ["arrow", ["Vector", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
             "_plus" : ["arrow" ,["Vector"] , "Vector"] ,
         "_minus" : ["arrow" , ["Vector"] , "Vector" ],
-        "_times" : ["arrow" , ["Vector"] , "Vector" ]
+        "_times" : ["arrow" , ["Vector"] , "Vector" ]*/
         }],
       }
     },
@@ -110,7 +113,7 @@
       var vals = {
         }
       var types = {
-          Matrix: annMatrix,
+          Matrix : annMatrix,
           Vector : annVector 
       }
       var internal = {
