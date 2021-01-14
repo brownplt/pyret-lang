@@ -64,6 +64,7 @@
     },
     datatypes: {
       "Matrix": ["data", "Matrix", [], [], {
+        "_output":  ["arrow", [["arrow", ["Any"], "VS"]], "VS"]
         /*
       "_equals": ["arrow", ["Matrix", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
       "_plus" : ["arrow" ,["Matrix"] , "Matrix"] ,
@@ -110,9 +111,24 @@
     function internal_isVec(obj) { 
         return hasBrand(brandVector,obj) ; 
     }
-  
+    
+    var outputMatrix = runtime.makeMethod0(function(self) {
+      //if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a, true); }
+      var rows = [];
+      var matr = self.$underlyingMat;
+      var vsValue = get(VS, "vs-value");
+      for (var i = 0; i < matr.length; i++){
+        rows.push(vsValue.app(matr[i]));
+      }
+      return get(VS, "vs-collection").app(
+        runtime.makeString("mat"),
+        runtime.ffi.makeList(rows))
+    });
+
     function makeMatrix(h, w, underlyingMat){
-      var obj = O({});
+      var obj = O({
+        _output: outputMatrix
+      });
       // Applying a brand creates a new object, so we need to add the reflective field afterward
       obj = applyBrand(brandMatrix, obj);
       obj.$underlyingMat = underlyingMat;
