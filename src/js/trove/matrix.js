@@ -8,7 +8,7 @@
   nativeRequires: [],
   provides: {
     shorthands: {
-      //"matOfAny": ["tyapp", ["local", "Matrix"], []],
+      "Matrix": ["tyapp", ["local", "Matrix"], []],
       "Equality": { tag: "name",
                     origin: { "import-type": "uri", uri: "builtin://equality" },
                     name: "EqualityResult" },
@@ -20,12 +20,19 @@
       name: "List" },
       "Array" : { tag: "name",
       origin: { "import-type": "uri", uri: "builtin://array" },
-      name: "Array" },            
+      name: "Array" },     
+       
       "tva": ["tid", "a"],
       "tvb": ["tid", "b"]
     },
     values: {
-      "mat" : ["arrow" , ["Number", "Number"] ,  ["Maker", "Any", ["local", "Matrix"]]]
+      "mat" : ["arrow" , ["Number", "Number"] ,  ["Maker", "Any", ["local", "Matrix"]]],
+      "add-mat" : ["arrow", ["Matrix", "Matrix"] , "Matrix"] , 
+    /*  "sub-mat" : ["arrow", ["Matrix", "Matrix"] , "Matrix"] , 
+      "mult-mat" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] , 
+      "get-elem" : ["arrow", ["Matrix" , "Number", "Number" ] , "Number"],
+      "mat-dims" : ["arrow" ,[["Matrix"] , ["List", "Number"]], "tva"]  */
+
       /*
       "row-map" : ["arrow", [["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
       "col-map" : ["arrow" ,[["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
@@ -34,10 +41,6 @@
       "sub-matrix" : ["arrow", ["Number" , "Number" , "Number","Number"] , "Matrix"] ,
       "get-row" : ["arrow" ,["Matrix"] , "Vector"] , 
       "get-col" : ["arrow" ,["Matrix"] , "Vector"] , 
-      "dimensions" : ["arrow" ,["Matrix"] , ["List", "Number"] ] ,
-      "add" : ["arrow", ["Matrix", "Matrix"] , "Matrix"] , 
-      "subtract" : ["arrow", ["Matrix", "Matrix"] , "Matrix"] , 
-      "multiply" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] , 
       "determinant" : ["arrow", ["Matrix"] , "Number"] , 
       "frobenius-norm" : ["arrow", ["Matrix"] , "Number"] , 
       "norm" : ["arrow", ["Matrix" , "Number"] , "Number" ]   ,
@@ -48,7 +51,7 @@
       "stack" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] , 
       "vector-to-list"  : ["arrow", ["Vector"] ,  "List"] ,
       "vector-to-array" : ["arrow", ["Vector"] , "Array"] , 
-      "get" : ["arrow", ["Matrix" , "Number", "Number" ] , "Number"] ,*/
+      ,*/
     },
     aliases: {
         "Matrix" : {
@@ -64,12 +67,13 @@
     },
     datatypes: {
       "Matrix": ["data", "Matrix", [], [], {
-        "_output":  ["arrow", [["arrow", ["Any"], "VS"]], "VS"]
-        /*
+        "_output":  ["arrow", [["arrow", ["Any"], "VS"]], "VS"],
+        
       "_equals": ["arrow", ["Matrix", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
+      
       "_plus" : ["arrow" ,["Matrix"] , "Matrix"] ,
       "_minus" : ["arrow" , ["Matrix"] , "Matrix" ],
-      "_times" : ["arrow" , ["Matrix"] , "Matrix" ]*/
+      "_times" : ["arrow" , ["Matrix"] , "Matrix" ]
            }],
       "Vector": ["data", "Vector", [], [], {
         /*
@@ -111,7 +115,79 @@
     function internal_isVec(obj) { 
         return hasBrand(brandVector,obj) ; 
     }
-    
+    function sameDims(self,other){
+      (checkMtrx(self) && checkMtrx(other)) ; 
+      return (self.$h == other.$h) || (self.$w == other.$w)
+     }
+    function printDims(self) { 
+      checkMtrx(self) ; 
+      return "(" + self.$h + "," + self.$w + ")" ; 
+     }
+
+    function get1d(mtrx,h,w){
+      checkMtrx(mtrx) ; 
+     return mtrx.$underlyingMat[(h * mtrx.$w) + w ] ; 
+    }
+    function get1dpos(h,w,c) {
+      return (h * c) + w ;
+    }
+    function checkRange(mtrx,h,w) { 
+      if( (h < 0) || (w < 0) || (h >= mtrx.$h) || (w >= mtrx.$w) ){
+        runtime.ffi.throwMessageException("Given dimensions not valid") ; 
+      }
+      return true ; 
+    }
+    var funcaddMatrix = function(self,other){
+      runtime.ffi.checkArity(2,arguments,"add-mat",false) ; 
+      runtime.checkArgsInternal2("matrix","add-mat",self,annMatrix,other,annMatrix) ; 
+      if(!sameDims(self,other)){
+        return runtime.ffi.throwMessageException("Matrices have dimensions " + printDims(self) + " and " + printDims(other) + " . They cannot be added" ) ; 
+      } else{
+        new_arr = new Array(self.$l) ; 
+        for(var i  = 0 ; i < self.$l ; i++) {
+          new_arr[i] = self.$underlyingMat[i] + other.$underlyingMat[i] ;
+        }
+
+        return createMatrixFromArray(self.$h,self.$w,new_arr) ; 
+      }
+    };
+
+    var funcsubMatrix = runtime.makeFunction(function(self,other){
+      runtime.ffi.checkArity(2,arguments,"sub-mat",false) ; 
+      runtime.checkArgsInternal2("matrix","sub-mat",self,annMatrix,other,annMatrix) ; 
+      if(!sameDims(self,other)){
+        return runtime.ffi.throwMessageException("Matrices have dimensions " + printDims(self) + " and " + printDims(other) + " . They cannot be added" ) ; 
+      } else{
+        new_arr = new Array(self.$l) ; 
+        for(var i  = 0 ; i < self.$l ; i++) {
+          new_arr[i] = self.$underlyingMat[i] - other.$underlyingMat[i] ;
+        }
+
+        return createMatrixFromArray(self.$h,self.$w,new_arr) ; 
+      }
+    },"sub-mat") ; 
+
+    var funcmultMatrix = runtime.makeFunction(function(self,other){
+      runtime.ffi.checkArity(2,arguments,"mult-mat",false) ; 
+      runtime.checkArgsInternal2("Matrix" ,"mult-mat",self,annMatrix,other,annMatrix) ; 
+      if(self.$w != other.$h) { 
+        return runtime.ffi.throwMessageException("The width of the first matrix and the height of the second matrix need to be equal") ; 
+
+      } else{
+        new_arr = new Array((self.$h * other.$w)) ;
+        for (var i = 0 ; i < self.$h ; i++ ) { 
+          for (var  j = 0 ; j < other.$w ; j++) {
+            var elm  = 0 ; 
+            for (var k = 0 ; k < self.$w ; k++){
+              elm+=(get1d(self,i,k)*get1d(other,k,j)) ; 
+            } 
+            new_arr[get1dpos(i,j,other.$w)]  =  elm ; 
+          }
+        }
+        return createMatrixFromArray(self.$h,other.$w,new_arr) ; 
+      }
+    },"mult-mat") ; 
+
     var outputMatrix = runtime.makeMethod0(function(self) {
       //if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a, true); }
       var rows = [];
@@ -125,15 +201,109 @@
         runtime.ffi.makeList(rows))
     });
 
+    
+     var getMatrixDims = runtime.makeFunction(function(self) { 
+      runtime.ffi.checkArity(1,arguments,"mat-dims",false) ; 
+      runtime.checkArgsInternal1("Matrix","mat-dims",self,annMatrix) ;
+      return runtime.makeTuple([self.$h,self.$w]) ; 
+     } , "mat-dims") ; 
+
+    var getMatrixElms = runtime.makeFunction(function(self,h,c) { 
+      runtime.ffi.checkArity(3,arguments,"get-elem",false) ; 
+      runtime.checkArgsInternal3("Matrix","get-elem",self,annMatrix,h,runtime.Number,c,runtime.Number ) ;
+      if (checkRange(self,h,c)) {
+        return runtime.makeNumber(get1d(self,h,c)) ; 
+      }
+
+    },"get-elem") ;
+
+
+
     function makeMatrix(h, w, underlyingMat){
+      var equalMatrix =  runtime.makeMethod2(function(self,other,Eq){
+         runtime.ffi.checkArity(3, arguments, "_equals", true);
+        runtime.checkArgsInternal3("matrix", "_equals",self, annMatrix, other, annMatrix, Eq, runtime.Function);    
+       
+        if(!hasBrand(brandMatrix,other)){
+          return runtime.ffi.notEqual.app('',self,other) ;
+        } else if (!sameDims(self,other)) { 
+          return runtime.ffi.notEqual.app('',self,other) ;
+        } else { 
+          for( var i = 0 ; i < self.$l ; i++) { 
+              if (self.$underlyingMat[i] != other.$underlyingMat[i]){
+                return runtime.ffi.notEqual.app('',self,other) ;
+              }
+            } 
+            return runtime.ff.equal ; 
+        
+      }},"equals") ;  
+      var addMatrix = runtime.makeMethod1(function(self,other){
+        runtime.ffi.checkArity(2,arguments,"_plus",true) ; 
+        runtime.checkArgsInternal2("matrix","_plus",self,annMatrix,other,annMatrix) ; 
+        if(!sameDims(self,other)){
+          return runtime.ffi.throwMessageException("Matrices have dimensions " + printDims(self) + " and " + printDims(other) + " . They cannot be added" ) ; 
+        } else{
+          new_arr = new Array(self.$l) ; 
+          for(var i  = 0 ; i < self.$l ; i++) {
+            new_arr[i] = self.$underlyingMat[i] + other.$underlyingMat[i] ;
+          }
+  
+          return createMatrixFromArray(self.$h,self.$w,new_arr) ; 
+        }
+      },"plus") ; 
+      var minusMatrix = runtime.makeMethod1(function(self,other){
+        runtime.ffi.checkArity(2,arguments,"_minus",true) ; 
+        runtime.checkArgsInternal2("matrix","_minus",self,annMatrix,other,annMatrix) ; 
+        if(!sameDims(self,other)){
+          return runtime.ffi.throwMessageException("Matrices have dimensions " + printDims(self) + " and " + printDims(other) + " . They cannot be added" ) ; 
+        } else{
+          new_arr = new Array(self.$l) ; 
+          for(var i  = 0 ; i < self.$l ; i++) {
+            new_arr[i] = self.$underlyingMat[i] - other.$underlyingMat[i] ;
+          }
+  
+          return createMatrixFromArray(self.$h,self.$w,new_arr) ; 
+        } 
+      },"minus") ; 
+      var timesMatrix = runtime.makeMethod1(function(self,other) {
+        runtime.ffi.checkArity(2,arguments,"_times",true) ; 
+        runtime.checkArgsInternal2("Matrix" ,"_times",self,annMatrix,other,annMatrix) ; 
+        if(self.$w != other.$h) { 
+          return runtime.ffi.throwMessageException("The width of the first matrix and the height of the second matrix need to be equal") ; 
+  
+        } else{
+          new_arr = new Array((self.$h * other.$w)) ;
+          for (var i = 0 ; i < self.$h ; i++ ) { 
+            for (var  j = 0 ; j < other.$w ; j++) {
+              var elm  = 0 ; 
+              for (var k = 0 ; k < self.$w ; k++){
+                elm+=(get1d(self,i,k)*get1d(other,k,j)) ; 
+              } 
+              new_arr[get1dpos(i,j,other.$w)]  =  elm ; 
+            }
+          }
+          return createMatrixFromArray(self.$h,other.$w,new_arr) ; 
+        }
+      },"times") ; 
+      var get_height = runtime.makeMethod0(function(self){return self.$h},"get-height");
+      var get_width = runtime.makeMethod0(function(self){return self.$w},"get-width") ;
+      var get_shape = runtime.makeMethod0(function(self){return runtime.makeTuple([self.$h,self.$w])},"get-shape") ; 
       var obj = O({
-        _output: outputMatrix
-      });
+        _output: outputMatrix,
+        _plus : addMatrix,
+        _minus : minusMatrix ,
+        _equals : equalMatrix,
+        _times : timesMatrix ,
+        "get-height": get_height,
+        "get-width" : get_width ,
+        "get-shape" : get_shape 
+       });
       // Applying a brand creates a new object, so we need to add the reflective field afterward
       obj = applyBrand(brandMatrix, obj);
       obj.$underlyingMat = underlyingMat;
       obj.$h = h;
       obj.$w = w;
+      obj.$l = h * w ; 
 
       return obj;
     }
@@ -145,20 +315,12 @@
       if(h * w != len){
           runtime.ffi.throwMessageException("The number of provided elements does not match the given width and height.");
       }
-      for(var i = 0; i < h; i += 1){
-        var row = [];
-        for (var j = 0; j < w; j += 1){
-          console.log(array[(i * w) + j])
-          runtime.checkNumber(array[(i * w) + j]);
-          row.push(array[(i * w) + j]);
-        }
-        matr.push(row);
-      }
+      matr = [...array] ; 
       return makeMatrix(h, w, matr);
     }
     function matrixInit(h, w){
       if(!(Number.isInteger(h)) || !(Number.isInteger(w)) || h < 0 || w < 0){
-          runtime.ffi.throwMessageException("The provided width or height is invalid.");
+          runtime.ffi.throwMessageException("The provided width or height is invalid. Matrix dimensions need to be a positive non zero integer");
       }
       return O({
           make: F((arr)=>{return createMatrixFromArray(h, w, arr)}, "matrix:make"),
@@ -174,7 +336,12 @@
     var jsCheckMtrx = runtime.makeCheckType(internal_isMtrx,"Matrix")  ;
     var jsCheckVec = runtime.makeCheckType(internal_isVec,"Vector") ; 
     var vals = {
-      "mat" : F(matrixInit, "mat")
+      "mat" : F(matrixInit, "mat"),
+      "add-mat" : F(funcaddMatrix ,"add-mat"),
+    /*  "sub-mat": funcsubMatrix , 
+      "mult-mat" : funcmultMatrix ,
+      "get-elem" : getMatrixElms,
+      "mat-dims" : getMatrixDims */
       }
     var types = {
         Matrix : annMatrix,
