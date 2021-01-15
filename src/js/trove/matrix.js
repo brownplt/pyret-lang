@@ -1,3 +1,10 @@
+/*
+TODO: 
+Fix Equality function
+Figure out mat-dim type issue
+replace duplicate function,method for +,-,*
+
+*/
 ({
   requires:
     [
@@ -28,16 +35,17 @@
     values: {
       "mat" : ["arrow" , ["Number", "Number"] ,  ["Maker", "Any", ["local", "Matrix"]]],
       "add-mat" : ["arrow", ["Matrix", "Matrix"] , "Matrix"] , 
-    /*  "sub-mat" : ["arrow", ["Matrix", "Matrix"] , "Matrix"] , 
+     "sub-mat" : ["arrow", ["Matrix", "Matrix"] , "Matrix"] , 
       "mult-mat" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] , 
-      "get-elem" : ["arrow", ["Matrix" , "Number", "Number" ] , "Number"],
-      "mat-dims" : ["arrow" ,[["Matrix"] , ["List", "Number"]], "tva"]  */
+     "get-elem" : ["arrow", ["Matrix" , "Number", "Number" ] , "Number"],
+     "transpose" : ["arrow", ["Matrix"] , "Matrix"] , 
+     /* "mat-dims" : ["arrow" ,[["Matrix"] , ["List", "Number"]], "tva"]   */
 
       /*
       "row-map" : ["arrow", [["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
       "col-map" : ["arrow" ,[["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
       "map" : ["arrow" ,[["arrow" ["Number"] , "Number" ] , "Matrix"]  , "Matrix"  ],
-      "transpose" : ["arrow", ["Matrix"] , "Matrix"] , 
+      
       "sub-matrix" : ["arrow", ["Number" , "Number" , "Number","Number"] , "Matrix"] ,
       "get-row" : ["arrow" ,["Matrix"] , "Vector"] , 
       "get-col" : ["arrow" ,["Matrix"] , "Vector"] , 
@@ -137,6 +145,7 @@
       }
       return true ; 
     }
+    
     var funcaddMatrix = function(self,other){
       runtime.ffi.checkArity(2,arguments,"add-mat",false) ; 
       runtime.checkArgsInternal2("matrix","add-mat",self,annMatrix,other,annMatrix) ; 
@@ -218,6 +227,19 @@
     },"get-elem") ;
 
 
+    var transposeMatrix = runtime.makeFunction(function(self){
+      runtime.ffi.checkArity(1,arguments,"transpose",false) ; 
+      runtime.checkArgsInternal1("Matrix","transpose",self,annMatrix);
+      new_arr = new Array(self.$l) ; 
+      for(var i = 0 ; i < self.$h ; i++){
+        for(var j = 0 ; j < self.$w ; j++) {
+          new_arr[get1dpos(j,i,self.$h)] = get1d(self,i,j) ; 
+        }
+      }
+      console.log(self.$w + " " + self.$h + " " + "New array Length : " + new_arr.length) ; 
+      return createMatrixFromArray(self.$w,self.$h,new_arr) ;
+
+    },"transpose") ;
 
     function makeMatrix(h, w, underlyingMat){
       var equalMatrix =  runtime.makeMethod2(function(self,other,Eq){
@@ -338,10 +360,12 @@
     var vals = {
       "mat" : F(matrixInit, "mat"),
       "add-mat" : F(funcaddMatrix ,"add-mat"),
-    /*  "sub-mat": funcsubMatrix , 
+     "sub-mat": funcsubMatrix , 
       "mult-mat" : funcmultMatrix ,
       "get-elem" : getMatrixElms,
-      "mat-dims" : getMatrixDims */
+      "transpose" : transposeMatrix
+    
+   //  "mat-dims" : getMatrixDims 
       }
     var types = {
         Matrix : annMatrix,
