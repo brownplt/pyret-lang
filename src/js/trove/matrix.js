@@ -39,7 +39,8 @@ replace duplicate function,method for +,-,*
       "mult-mat" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] , 
      "get-elem" : ["arrow", ["Matrix" , "Number", "Number" ] , "Number"],
      "transpose" : ["arrow", ["Matrix"] , "Matrix"] , 
-     "stack-mat" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] 
+     "stack-mat" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] ,
+     "scale" : ["arrow" ,["Matrix" , "Number"] , "Number" ]   ,
      /* "mat-dims" : ["arrow" ,[["Matrix"] , ["List", "Number"]], "tva"]   */
 
       /*
@@ -56,7 +57,7 @@ replace duplicate function,method for +,-,*
       "inverse" : ["arrow", ["Matrix"] , "Matrix"] , 
       "exponent": ["arrow" ,["Matrix" , "Number"] , "Number" ]  ,
       "dot-product" : ["arrow", ["Vector" , "Vector" ] , "Number" ] ,
-      "scale" : ["arrow" ,["Matrix" , "Number"] , "Number" ]   ,
+
       
       "vector-to-list"  : ["arrow", ["Vector"] ,  "List"] ,
       "vector-to-array" : ["arrow", ["Vector"] , "Array"] , 
@@ -153,6 +154,13 @@ replace duplicate function,method for +,-,*
         arr[i + offset] = mtrx.$underlyingMat[start + i ] ; 
       }
       return arr; 
+    }
+
+    function duplicateMatrix(self){
+      new_arr = new Array(self.$l) ;
+      duplicateArray(self,0,self.$l,new_arr,0) ; 
+      return createMatrixFromArray(self.$h,self.$w,new_arr) ;
+
     }
     var funcaddMatrix = function(self,other){
       runtime.ffi.checkArity(2,arguments,"add-mat",false) ; 
@@ -261,6 +269,16 @@ replace duplicate function,method for +,-,*
         return createMatrixFromArray(self.$h + other.$h,self.$w,new_arr) ; 
       }
     },"stack-mat") ; 
+
+    var scaleMatrix = runtime.makeFunction(function(self,num){
+      runtime.ffi.checkArity(2,arguments,"scale",false) ; 
+      runtime.checkArgsInternal2("Matrix","scale",self,annMatrix,num,runtime.Number) ; 
+      new_mtrx = duplicateMatrix(self) ; 
+      for (var i = 0 ; i < new_mtrx.$l ; i++) {
+        new_mtrx.$underlyingMat[i] = new_mtrx.$underlyingMat[i] * num ; 
+      }
+      return new_mtrx ; 
+    },"scale") ; 
 
     function makeMatrix(h, w, underlyingMat){
       var equalMatrix =  runtime.makeMethod2(function(self,other,Eq){
@@ -385,7 +403,8 @@ replace duplicate function,method for +,-,*
       "mult-mat" : funcmultMatrix ,
       "get-elem" : getMatrixElms,
       "transpose" : transposeMatrix,
-      "stack-mat" : stackMatrix 
+      "stack-mat" : stackMatrix ,
+      "scale" : scaleMatrix 
     
    //  "mat-dims" : getMatrixDims 
       }
