@@ -39,6 +39,7 @@ replace duplicate function,method for +,-,*
       "mult-mat" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] , 
      "get-elem" : ["arrow", ["Matrix" , "Number", "Number" ] , "Number"],
      "transpose" : ["arrow", ["Matrix"] , "Matrix"] , 
+     "stack-mat" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] 
      /* "mat-dims" : ["arrow" ,[["Matrix"] , ["List", "Number"]], "tva"]   */
 
       /*
@@ -56,7 +57,7 @@ replace duplicate function,method for +,-,*
       "exponent": ["arrow" ,["Matrix" , "Number"] , "Number" ]  ,
       "dot-product" : ["arrow", ["Vector" , "Vector" ] , "Number" ] ,
       "scale" : ["arrow" ,["Matrix" , "Number"] , "Number" ]   ,
-      "stack" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] , 
+      
       "vector-to-list"  : ["arrow", ["Vector"] ,  "List"] ,
       "vector-to-array" : ["arrow", ["Vector"] , "Array"] , 
       ,*/
@@ -146,6 +147,13 @@ replace duplicate function,method for +,-,*
       return true ; 
     }
     
+    function duplicateArray(mtrx,start,end,arr,offset) { 
+      len = end - start  ; 
+      for (var i = 0 ; i < len ; i++) {
+        arr[i + offset] = mtrx.$underlyingMat[start + i ] ; 
+      }
+      return arr; 
+    }
     var funcaddMatrix = function(self,other){
       runtime.ffi.checkArity(2,arguments,"add-mat",false) ; 
       runtime.checkArgsInternal2("matrix","add-mat",self,annMatrix,other,annMatrix) ; 
@@ -206,7 +214,7 @@ replace duplicate function,method for +,-,*
         rows.push(vsValue.app(matr[i]));
       }
       return get(VS, "vs-collection").app(
-        runtime.makeString("mat"),
+        runtime.makeString("mat" + printDims(self)),
         runtime.ffi.makeList(rows))
     });
 
@@ -240,6 +248,19 @@ replace duplicate function,method for +,-,*
       return createMatrixFromArray(self.$w,self.$h,new_arr) ;
 
     },"transpose") ;
+
+    var stackMatrix = runtime.makeFunction(function(self,other){
+      runtime.ffi.checkArity(2,arguments,"stack-mat",false) ; 
+      runtime.checkArgsInternal2("Matrix","stack-mat",self,annMatrix,other,annMatrix) ; 
+      if(self.$w != other.$w) { 
+        runtime.ffi.throwMessageException("Matrices need to have same width to be stacked " )
+      } else{
+        new_arr = new Array(self.$l + other.$l ) ; 
+        duplicateArray(self,0,self.$l,new_arr,0) ; 
+        duplicateArray(other,0,other.$l,new_arr,self.$l) ; 
+        return createMatrixFromArray(self.$h + other.$h,self.$w,new_arr) ; 
+      }
+    },"stack-mat") ; 
 
     function makeMatrix(h, w, underlyingMat){
       var equalMatrix =  runtime.makeMethod2(function(self,other,Eq){
@@ -363,7 +384,8 @@ replace duplicate function,method for +,-,*
      "sub-mat": funcsubMatrix , 
       "mult-mat" : funcmultMatrix ,
       "get-elem" : getMatrixElms,
-      "transpose" : transposeMatrix
+      "transpose" : transposeMatrix,
+      "stack-mat" : stackMatrix 
     
    //  "mat-dims" : getMatrixDims 
       }
