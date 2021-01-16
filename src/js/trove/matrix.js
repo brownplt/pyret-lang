@@ -350,7 +350,7 @@ replace duplicate function,method for +,-,*
                 return runtime.ffi.notEqual.app('',self,other) ;
               }
             } 
-            return runtime.ff.equal ; 
+            return runtime.ffi.equal ; 
         
       }},"equals") ;  
       var addMatrix = runtime.makeMethod1(function(self,other){
