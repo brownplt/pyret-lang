@@ -45,13 +45,15 @@ Fix Vector
      "stack-mat" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] ,
      "scale" : ["arrow" ,["Matrix" , "Number"] , "Number" ]   ,
       "set-elem" : ["arrow",["Matrix","Number","Number","Number"],"Matrix"],
-      "reshape" : ["arrow",["Matrix","Number","Number"],"Matrix"]
+      "reshape" : ["arrow",["Matrix","Number","Number"],"Matrix"],
+      "matrix-map" : ["arrow" ,["Matrix",["arrow" ,["Number","Number","Number"],"Number" ]]  , "Matrix"  ],
+     // "row-map" : ["arrow", [["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
+      //"col-map" : ["arrow" ,[["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
      /* "mat-dims" : ["arrow" ,[["Matrix"] , ["List", "Number"]], "tva"]   */
 
       /*
-      "row-map" : ["arrow", [["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
-      "col-map" : ["arrow" ,[["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
-      "map" : ["arrow" ,[["arrow" ["Number"] , "Number" ] , "Matrix"]  , "Matrix"  ],
+
+
       
       "sub-matrix" : ["arrow", ["Number" , "Number" , "Number","Number"] , "Matrix"] ,
       "get-row" : ["arrow" ,["Matrix"] , "Vector"] , 
@@ -147,6 +149,7 @@ Fix Vector
     function get1dpos(h,w,c) {
       return (h * c) + w ;
     }
+
 
     function posInteger(h,w) {
       if ((h > 0) && (w > 0) && Number.isInteger(h) && Number.isInteger(w)){
@@ -290,7 +293,6 @@ Fix Vector
           new_arr[get1dpos(j,i,self.$h)] = get1d(self,i,j) ; 
         }
       }
-      console.log(self.$w + " " + self.$h + " " + "New array Length : " + new_arr.length) ; 
       return createMatrixFromArray(self.$w,self.$h,new_arr) ;
 
     },"transpose") ;
@@ -316,7 +318,20 @@ Fix Vector
         new_mtrx.$underlyingMat[i] = new_mtrx.$underlyingMat[i] * num ; 
       }
       return new_mtrx ; 
-    },"scale") ; 
+    },"scale") ;
+
+    var mapMatrix = function(self,f) {
+      arity(2,arguments,"matrix-map",false) ;
+      runtime.checkArgsInternalInline("Matrix","matrix-map",self,annMatrix,f,runtime.Function) ;
+      new_mtrx = duplicateMatrix(self) ;
+      for(var i = 0 ; i < new_mtrx.$l ; i++) {
+          var h = Math.floor(i/new_mtrx.$h) ;
+          var w = i%new_mtrx.$w ;
+           new_mtrx.$underlyingMat[i] = f.app(h,w,new_mtrx.$underlyingMat[i] );
+
+      }
+      return new_mtrx ;
+    }
 
     function makeMatrix(h, w, underlyingMat){
       var equalMatrix =  runtime.makeMethod2(function(self,other,Eq){
@@ -485,7 +500,8 @@ Fix Vector
       "stack-mat" : stackMatrix ,
       "scale" : scaleMatrix ,
       "set-elem" : F(setMatrixElms,"set-elem") ,
-      "reshape" : F(reshapeMatrix,"reshape")
+      "reshape" : F(reshapeMatrix,"reshape"),
+      "matrix-map" : F(mapMatrix,"matrix-map")
     
    //  "mat-dims" : getMatrixDims 
       }
