@@ -1,9 +1,11 @@
 /*
-TODO: 
+TODO:
+In order of priority
 Fix Equality function
+Fix Vector
 Figure out mat-dim type issue
 replace duplicate function,method for +,-,*
-Fix Vector
+
 
 
 */
