@@ -44,6 +44,8 @@ Fix Vector
      "transpose" : ["arrow", ["Matrix"] , "Matrix"] , 
      "stack-mat" : ["arrow" ,["Matrix", "Matrix"] , "Matrix"] ,
      "scale" : ["arrow" ,["Matrix" , "Number"] , "Number" ]   ,
+      "set-elem" : ["arrow",["Matrix","Number","Number","Number"],"Matrix"],
+      "reshape" : ["arrow",["Matrix","Number","Number"],"Matrix"]
      /* "mat-dims" : ["arrow" ,[["Matrix"] , ["List", "Number"]], "tva"]   */
 
       /*
@@ -145,9 +147,17 @@ Fix Vector
     function get1dpos(h,w,c) {
       return (h * c) + w ;
     }
+
+    function posInteger(h,w) {
+      if ((h > 0) && (w > 0) && Number.isInteger(h) && Number.isInteger(w)){
+        return true
+      } else{
+        runtime.ffi.throwMessageException("Dimensions need to be positive integers") ;
+      }
+    }
     function checkRange(mtrx,h,w) { 
-      if( (h < 0) || (w < 0) || (h >= mtrx.$h) || (w >= mtrx.$w) ){
-        runtime.ffi.throwMessageException("Given dimensions not valid") ; 
+      if( !posInteger(h,w) || (h >= mtrx.$h) || (w >= mtrx.$w) ){
+        runtime.ffi.throwMessageException("Given dimensions are not valid") ;
       }
       return true ; 
     }
@@ -246,7 +256,31 @@ Fix Vector
 
     },"get-elem") ;
 
+    var setMatrixElms = function(self,h,w,num){
+      arity(4,arguments,"set-elem",false) ;
+      runtime.checkArgsInternalInline("Matrix","set-elem",self,annMatrix,h,runtime.Number,w,runtime.Number,num,runtime.Number) ;
+      if(checkRange(self,h,w)){
+        new_mtrx = duplicateMatrix(self);
+        new_mtrx.$underlyingMat[get1dpos(h,w,self.$w)]  = num ;
+        return new_mtrx ;
+      }
 
+    }
+
+    var reshapeMatrix = function(self,h,w) {
+      arity(3,arguments,"reshape",false) ;
+      runtime.checkArgsInternalInline("Matrix","reshape",self,annMatrix,h,runtime.Number,w,runtime.Number) ;
+      posInteger(h,w) ;
+      if((h * w) != self.$l) {
+        runtime.ffi.throwMessageException("Given dimensions do not match the matrix") ;
+      } else {
+        mtrx = duplicateMatrix(self) ;
+        mtrx.$h = h ;
+        mtrx.$w = w ;
+        return mtrx ;
+      }
+
+    }
     var transposeMatrix = runtime.makeFunction(function(self){
       runtime.ffi.checkArity(1,arguments,"transpose",false) ; 
       runtime.checkArgsInternal1("Matrix","transpose",self,annMatrix);
@@ -449,7 +483,9 @@ Fix Vector
       "get-elem" : getMatrixElms,
       "transpose" : transposeMatrix,
       "stack-mat" : stackMatrix ,
-      "scale" : scaleMatrix 
+      "scale" : scaleMatrix ,
+      "set-elem" : F(setMatrixElms,"set-elem") ,
+      "reshape" : F(reshapeMatrix,"reshape")
     
    //  "mat-dims" : getMatrixDims 
       }
