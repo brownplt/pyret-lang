@@ -18,6 +18,7 @@ replace duplicate function,method for +,-,*
   provides: {
     shorthands: {
       "Matrix": ["tyapp", ["local", "Matrix"], []],
+      "Vector": ["tyapp", ["local", "Vector"], []],
       "Equality": { tag: "name",
                     origin: { "import-type": "uri", uri: "builtin://equality" },
                     name: "EqualityResult" },
@@ -48,29 +49,28 @@ replace duplicate function,method for +,-,*
       "reshape" : ["arrow",["Matrix","Number","Number"],"Matrix"],
       "matrix-map" : ["arrow" ,["Matrix",["arrow" ,["Number","Number","Number"],"Number" ]]  , "Matrix"  ],
       "mat-within" : ["arrow", ["Number" , "Number" , "Number","Number"] , "Matrix"] ,
-      "mat-of" : ["arrow",["Number","Number","Number"],"Matrix"]
-     // "row-map" : ["arrow", [["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
-      //"col-map" : ["arrow" ,[["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
+      "mat-of" : ["arrow",["Number","Number","Number"],"Matrix"],
+      "row-map" : ["arrow", [["arrow", ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
+      "col-map" : ["arrow" ,[["arrow", ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
      /* "mat-dims" : ["arrow" ,[["Matrix"] , ["Lis t", "Number"]], "tva"]   */
 
-      /*
+      
 
 
       
 
-      "get-row" : ["arrow" ,["Matrix"] , "Vector"] , 
-      "get-col" : ["arrow" ,["Matrix"] , "Vector"] , 
+      "get-row" : ["arrow" ,["Matrix", "Number"] , "Vector"] , 
+      "get-col" : ["arrow" ,["Matrix", "Number"] , "Vector"] , /*
       "determinant" : ["arrow", ["Matrix"] , "Number"] , 
       "frobenius-norm" : ["arrow", ["Matrix"] , "Number"] , 
       "norm" : ["arrow", ["Matrix" , "Number"] , "Number" ]   ,
       "inverse" : ["arrow", ["Matrix"] , "Matrix"] , 
-      "exponent": ["arrow" ,["Matrix" , "Number"] , "Number" ]  ,
+      "exponent": ["arrow" ,["Matrix" , "Number"] , "Number" ]  ,*/
       "dot-product" : ["arrow", ["Vector" , "Vector" ] , "Number" ] ,
-
       
       "vector-to-list"  : ["arrow", ["Vector"] ,  "List"] ,
       "vector-to-array" : ["arrow", ["Vector"] , "Array"] , 
-      ,*/
+      
     },
     aliases: {
         "Matrix" : {
@@ -96,11 +96,9 @@ replace duplicate function,method for +,-,*
            }],
       "Vector": ["data", "Vector", [], [], {
         "_output":  ["arrow", [["arrow", ["Any"], "VS"]], "VS"],
-        /*
-          "_equals": ["arrow", ["Vector", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
-          "_plus" : ["arrow" ,["Vector"] , "Vector"] ,
-      "_minus" : ["arrow" , ["Vector"] , "Vector" ],
-      "_times" : ["arrow" , ["Vector"] , "Vector" ]*/
+        "_equals": ["arrow", ["Vector", ["arrow", ["Any", "Any"], "Equality"]], "Equality"],
+        "_plus" : ["arrow" ,["Vector"] , "Vector"] ,
+        "_minus" : ["arrow" , ["Vector"] , "Vector" ],
       }],
     }
   },
@@ -135,6 +133,38 @@ replace duplicate function,method for +,-,*
     function internal_isVec(obj) { 
         return hasBrand(brandVector,obj) ; 
     }
+
+    function pyretNumConv(num){
+      if (Number.isInteger(num)){
+        return num;
+      } else{
+        return num["n"]/num["d"]; 
+      }
+    }
+    /*
+    function pyretAdd(num1, num2){
+      console.log(num1, num2, Number.isInteger(num1), Number.isInteger(num2));
+      if(Number.isInteger(num1) && Number.isInteger(num2)){
+        return (num1 + num2).toString();
+      } else if (Number.isInteger(num1)){
+        var numerator = num2["n"];
+        var denominator = num2["d"];
+        return ((num1 * parseInt(denominator)) + parseInt(numerator)).toString() + "/" + denominator;
+      } else if (Number.isInteger(num2)){
+        var numerator = num1["n"];
+        var denominator = num1["d"];
+        return ((num2 * parseInt(denominator)) + parseInt(numerator)).toString() + "/" + denominator;
+      } else{
+        var numerator1 = num1["n"];
+        var denominator1 = num1["d"];
+
+        var numerator2 = num2["n"];
+        var denominator2 = num2["d"];
+
+        return ((parseInt(numerator1) * parseInt(denominator2)) + (parseInt(numerator2) * parseInt(denominator1))).toString() + "/" + (parseInt(denominator1) * parseInt(denominator2)).toString();
+      }
+    }*/
+
     // Checks if same and other are matrices with the same dimensions
     function sameDims(self,other){
       (checkMtrx(self) && checkMtrx(other)) ; 
@@ -201,7 +231,7 @@ replace duplicate function,method for +,-,*
       } else{
         new_arr = new Array(self.$l) ; 
         for(var i  = 0 ; i < self.$l ; i++) {
-          new_arr[i] = self.$underlyingMat[i] + other.$underlyingMat[i] ;
+          new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) + pyretNumConv(other.$underlyingMat[i]));
         }
 
         return createMatrixFromArray(self.$h,self.$w,new_arr) ; 
@@ -216,7 +246,7 @@ replace duplicate function,method for +,-,*
       } else{
         new_arr = new Array(self.$l) ; 
         for(var i  = 0 ; i < self.$l ; i++) {
-          new_arr[i] = self.$underlyingMat[i] - other.$underlyingMat[i] ;
+          new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) - pyretNumConv(other.$underlyingMat[i]));
         }
 
         return createMatrixFromArray(self.$h,self.$w,new_arr) ; 
@@ -235,9 +265,9 @@ replace duplicate function,method for +,-,*
           for (var  j = 0 ; j < other.$w ; j++) {
             var elm  = 0 ; 
             for (var k = 0 ; k < self.$w ; k++){
-              elm+=(get1d(self,i,k)*get1d(other,k,j)) ; 
+              elm+=(pyretNumConv(get1d(self,i,k))*pyretNumConv(get1d(other,k,j))) ; 
             } 
-            new_arr[get1dpos(i,j,other.$w)]  =  elm ; 
+            new_arr[get1dpos(i,j,other.$w)]  =  runtime.makeNumber(elm) ; 
           }
         }
         return createMatrixFromArray(self.$h,other.$w,new_arr) ; 
@@ -400,7 +430,7 @@ replace duplicate function,method for +,-,*
           for(var i  = 0 ; i < self.$l ; i++) {
             new_arr[i] = self.$underlyingMat[i] + other.$underlyingMat[i] ;
           }
-  
+          console.log(new_arr);
           return createMatrixFromArray(self.$h,self.$w,new_arr) ; 
         }
       },"plus") ; 
@@ -461,6 +491,88 @@ replace duplicate function,method for +,-,*
       return obj;
     }
 
+    var vectorDotP = function(self, other) {
+      arity(2,arguments,"dot-product",false) ;
+      if(!(self.$l == other.$l)){
+        return runtime.ffi.throwMessageException("Vectors have dimensions " + self.$l + " and " + other.$l + " . They cannot be multiplied." ) ; 
+      } else{
+        new_arr = new Array(self.$l) ; 
+        for(var i  = 0 ; i < self.$l ; i++) {
+          new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) * pyretNumConv(other.$underlyingMat[i]));
+        }
+        return makeVector(new_arr); 
+      }
+    }
+    var getMatrixRow = function(matr, row){
+      arity(2,arguments,"get-row",false) ;
+      if (row < 0 || row >= matr.$h || !(Number.isInteger(row))){
+        return runtime.ffi.throwMessageException("Invalid row number.") ; 
+      } else{
+        var retRow = [];
+        for (var i = 0; i < matr.$h; i++){
+          if (i == row){
+            for (var j = 0; j < matr.$w; j++){
+              retRow.push(matr.$underlyingMat[(i * matr.$w) + j]);
+            }
+          }
+        }
+        return makeVector(runtime.makeArray(retRow));
+      }
+    }
+    var getMatrixCol = function(matr, col){
+      arity(2,arguments,"get-col",false) ;
+      if (col < 0 || col >= matr.$w || !(Number.isInteger(col))){
+        return runtime.ffi.throwMessageException("Invalid column number.") ; 
+      } else{
+        var retCol = [];
+        for (var i = 0; i < matr.$h; i++){
+          for (var j = 0; j < matr.$w; j++){
+            if (j == col){
+              retCol.push(matr.$underlyingMat[(i * matr.$w) + j]);
+            }
+          }
+        }
+        return makeVector(runtime.makeArray(retCol));
+      }
+    }
+    var rowMap = function(self,f) {
+      arity(2,arguments,"row-map",false) ;
+      runtime.checkArgsInternalInline("Matrix","row-map",self,annMatrix,f,runtime.Function) ;
+      new_mtrx = duplicateMatrix(self) ;
+      for (var i = 0; i < new_mtrx.$h; i++){
+        var oldRow = getMatrixRow(new_mtrx, i);
+        var newRow = f.app(oldRow);
+        for (var j = 0; j < new_mtrx.$w; j++){
+          new_mtrx.$underlyingMat[(i * new_mtrx.$w) + j] = newRow.$underlyingMat[j];
+        }
+      }
+      return new_mtrx;
+    }
+    var colMap = function(self,f) {
+      arity(2,arguments,"col-map",false) ;
+      runtime.checkArgsInternalInline("Matrix","col-map",self,annMatrix,f,runtime.Function) ;
+      new_mtrx = duplicateMatrix(self) ;
+      for (var j = 0; j < new_mtrx.$w; j++){
+        var oldCol = getMatrixCol(new_mtrx, j);
+        var newCol = f.app(oldCol);
+        for (var i = 0; i< new_mtrx.$h; i++){
+          new_mtrx.$underlyingMat[(i * new_mtrx.$w) + j] = newCol.$underlyingMat[i];
+        }
+      }
+      return new_mtrx;
+    }
+    var vectorToList = function(vect){
+      arity(1,arguments,"vector-to-list",false) ;
+      return runtime.ffi.makeList(vect.$underlyingMat.map(function(item) {
+        return runtime.makeNumber(item);
+      }));
+    }
+    var vectorToArray = function(vect){
+      arity(1,arguments,"vector-to-array",false) ;
+      return runtime.makeArray(vect.$underlyingMat.map(function(item) {
+        return runtime.makeNumber(item);
+      }));
+    }
     var outputVector = runtime.makeMethod0(function(self) {
       console.log("YEET YEET") ;
       arity(1,arguments,"_output",false) ;
@@ -476,8 +588,66 @@ replace duplicate function,method for +,-,*
           runtime.ffi.makeList(rows)) ;
     });
     function makeVector(underlyingArr){
+      var equalVector =  runtime.makeMethod2(function(self,other,Eq){
+        runtime.ffi.checkArity(3, arguments, "_equals", true); 
+       if(!hasBrand(brandVector,other)){
+         return runtime.ffi.notEqual.app('',self,other) ;
+       } else if (!(self.$l == other.$l)) { 
+         return runtime.ffi.notEqual.app('',self,other) ;
+       } else { 
+         for( var i = 0 ; i < self.$l ; i++) { 
+             if (self.$underlyingMat[i] != other.$underlyingMat[i]){
+               return runtime.ffi.notEqual.app('',self,other) ;
+             }
+           } 
+           return runtime.ffi.equal ; 
+       
+     }}) ;  
+     var addVector = runtime.makeMethod1(function(self,other){
+       runtime.ffi.checkArity(2,arguments,"_plus",true) ; 
+       if(!(self.$l == other.$l)){
+         return runtime.ffi.throwMessageException("Vectors have dimensions " + self.$l + " and " + other.$l + " . They cannot be added." ) ; 
+       } else{
+         new_arr = new Array(self.$l) ; 
+         for(var i  = 0 ; i < self.$l ; i++) {
+           new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) + pyretNumConv(other.$underlyingMat[i]));
+         }
+ 
+         return makeVector(new_arr); 
+       }
+     }) ; 
+     var minusVector = runtime.makeMethod1(function(self,other){
+       runtime.ffi.checkArity(2,arguments,"_minus",true) ; 
+       if(!(self.$l == other.$l)){
+         return runtime.ffi.throwMessageException("Vectors have dimensions " + self.$l + " and " + other.$l  + " . They cannot be subtracted." ) ; 
+       } else{
+         new_arr = new Array(self.$l) ; 
+         for(var i  = 0 ; i < self.$l ; i++) {
+           new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) - pyretNumConv(other.$underlyingMat[i]));
+         }
+ 
+         return makeVector(new_arr); 
+       } 
+     }); 
+     var multVector = runtime.makeMethod1(function(self,other){
+      runtime.ffi.checkArity(2,arguments,"_times",true) ; 
+      if(!(self.$l == other.$l)){
+        return runtime.ffi.throwMessageException("Vectors have dimensions " + self.$l + " and " + other.$l  + " . They cannot be multiplied." ) ; 
+      } else{
+        new_arr = new Array(self.$l) ; 
+        for(var i  = 0 ; i < self.$l ; i++) {
+          new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) * pyretNumConv(other.$underlyingMat[i]));
+        }
+
+        return makeVector(new_arr); 
+      } 
+    }); 
       var obj = O({
-        _output : outputVector
+        _output : outputVector,
+        _equals : equalVector,
+        _plus : addVector,
+        _minus : minusVector,
+        _times : multVector
       }) ;
       obj = applyBrand(brandVector,obj) ;
       obj.$underlyingMat = underlyingArr ;
@@ -525,7 +695,7 @@ replace duplicate function,method for +,-,*
         make: F((arr)=>{return createVectorFromArray(arr)},"vector:make"),
         make0: F(()=>{return createVectorFromArray( runtime.makeArray([]) )},"vector:make0"),
         make1: F((a)=>{return createVectorFromArray(runtime.makeArray([a]))},"vector:make1"),
-        make2: F((a, b)=>{return createVectorFromArray(runtime.makeArray([a],b))},"vector:make2"),
+        make2: F((a, b)=>{return createVectorFromArray(runtime.makeArray([a,b]))},"vector:make2"),
         make3: F((a, b, c)=>{return createVectorFromArray(runtime.makeArray([a,b,c]))},"vector:make3"),
         make4: F((a ,b, c, d)=>{return createVectorFromArray(runtime.makeArray([a,b,c,d]))},"vector:make4"),
         make5: F((a, b, c, d, e)=>{return createVectorFromArray(runtime.makeArray([a,b,c,d,e]))},"vector:make5"),
@@ -541,7 +711,14 @@ replace duplicate function,method for +,-,*
       "reshape" : F(reshapeMatrix,"reshape"),
       "matrix-map" : F(mapMatrix,"matrix-map"),
       "mat-within" : F(matrixWithin,"mat-within"),
-      "mat-of" : F(matOf,"mat-of")
+      "mat-of" : F(matOf,"mat-of"),
+      "dot-product" : F(vectorDotP,"dot-product"),
+      "row-map" : F(rowMap,"row-map"),
+      "col-map" : F(colMap,"col-map"),
+      "get-row" : F(getMatrixRow,"get-row"),
+      "get-col" : F(getMatrixCol,"get-col"),
+      "vector-to-list" : F(vectorToList,"vector-to-list"),
+      "vector-to-array" : F(vectorToArray,"vector-to-array"),
     
    //  "mat-dims" : getMatrixDims 
       }
