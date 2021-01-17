@@ -1,7 +1,6 @@
 /*
 TODO:
 In order of priority
-Fix Vector
 Figure out mat-dim type issue
 replace duplicate function,method for +,-,*
 
@@ -463,7 +462,9 @@ replace duplicate function,method for +,-,*
     }
 
     var outputVector = runtime.makeMethod0(function(self) {
+      console.log("YEET YEET") ;
       arity(1,arguments,"_output",false) ;
+      console.log("YEET YEET") ;
       var rows = [];
       var matr = self.$underlyingMat;
       var vsValue = get(VS, "vs-value");
@@ -472,7 +473,7 @@ replace duplicate function,method for +,-,*
       }
       return get(VS, "vs-collection").app(
           runtime.makeString("vector(" + self.$l + "):"),
-          runtime.ffi.makeList(rows))
+          runtime.ffi.makeList(rows)) ;
     });
     function makeVector(underlyingArr){
       var obj = O({
@@ -498,7 +499,7 @@ replace duplicate function,method for +,-,*
     function createVectorFromArray(arr){
       arity(1,arguments,"vector",false);
       runtime.checkArray(arr);
-      makeVector([...arr]) ;
+      return makeVector([...arr]) ;
 
     }
     function matrixInit(h, w){
@@ -515,8 +516,12 @@ replace duplicate function,method for +,-,*
           make5: F((a, b, c, d, e)=>{return createMatrixFromArray(h, w, runtime.makeArray([a, b, c, d, e]))}, "matrix:make5")
         });
     }
-    function vectorInit() {
-      return O({
+
+    var jsCheckMtrx = runtime.makeCheckType(internal_isMtrx,"Matrix")  ;
+    var jsCheckVec = runtime.makeCheckType(internal_isVec,"Vector") ; 
+    var vals = {
+      "mat" : F(matrixInit, "mat"),
+      "vector": O({
         make: F((arr)=>{return createVectorFromArray(arr)},"vector:make"),
         make0: F(()=>{return createVectorFromArray( runtime.makeArray([]) )},"vector:make0"),
         make1: F((a)=>{return createVectorFromArray(runtime.makeArray([a]))},"vector:make1"),
@@ -524,14 +529,7 @@ replace duplicate function,method for +,-,*
         make3: F((a, b, c)=>{return createVectorFromArray(runtime.makeArray([a,b,c]))},"vector:make3"),
         make4: F((a ,b, c, d)=>{return createVectorFromArray(runtime.makeArray([a,b,c,d]))},"vector:make4"),
         make5: F((a, b, c, d, e)=>{return createVectorFromArray(runtime.makeArray([a,b,c,d,e]))},"vector:make5"),
-      })
-    }
-
-    var jsCheckMtrx = runtime.makeCheckType(internal_isMtrx,"Matrix")  ;
-    var jsCheckVec = runtime.makeCheckType(internal_isVec,"Vector") ; 
-    var vals = {
-      "mat" : F(matrixInit, "mat"),
-      "vector": F(vectorInit,"vector") ,
+      }),
       "add-mat" : F(funcaddMatrix ,"add-mat"),
      "sub-mat": funcsubMatrix , 
       "mult-mat" : funcmultMatrix ,
