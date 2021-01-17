@@ -50,6 +50,7 @@ replace duplicate function,method for +,-,*
       "reshape" : ["arrow",["Matrix","Number","Number"],"Matrix"],
       "matrix-map" : ["arrow" ,["Matrix",["arrow" ,["Number","Number","Number"],"Number" ]]  , "Matrix"  ],
       "mat-within" : ["arrow", ["Number" , "Number" , "Number","Number"] , "Matrix"] ,
+      "mat-of" : ["arrow",["Number","Number","Number"],"Matrix"]
      // "row-map" : ["arrow", [["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
       //"col-map" : ["arrow" ,[["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
      /* "mat-dims" : ["arrow" ,[["Matrix"] , ["Lis t", "Number"]], "tva"]   */
@@ -368,6 +369,11 @@ replace duplicate function,method for +,-,*
         return runtime.ffi.throwMessageException("Invalid dimensions") ;
       }
     }
+    var matOf = function(h,w,n) {
+      arity(3,arguments,"mat-of",false) ;
+      runtime.checkArgsInternalInline("Matrix","mat-of",h,runtime.Number,w,runtime.Number,n,runtime.Number) ;
+      return createMatrixFromArray(h,w,new Array(h * w).fill(n)) ;
+    }
     function makeMatrix(h, w, underlyingMat){
       var equalMatrix =  runtime.makeMethod2(function(self,other,Eq){
          runtime.ffi.checkArity(3, arguments, "_equals", true);
@@ -537,7 +543,8 @@ replace duplicate function,method for +,-,*
       "set-elem" : F(setMatrixElms,"set-elem") ,
       "reshape" : F(reshapeMatrix,"reshape"),
       "matrix-map" : F(mapMatrix,"matrix-map"),
-      "mat-within" : F(matrixWithin,"mat-within")
+      "mat-within" : F(matrixWithin,"mat-within"),
+      "mat-of" : F(matOf,"mat-of")
     
    //  "mat-dims" : getMatrixDims 
       }
