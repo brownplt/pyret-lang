@@ -49,15 +49,16 @@ replace duplicate function,method for +,-,*
       "set-elem" : ["arrow",["Matrix","Number","Number","Number"],"Matrix"],
       "reshape" : ["arrow",["Matrix","Number","Number"],"Matrix"],
       "matrix-map" : ["arrow" ,["Matrix",["arrow" ,["Number","Number","Number"],"Number" ]]  , "Matrix"  ],
+      "mat-within" : ["arrow", ["Number" , "Number" , "Number","Number"] , "Matrix"] ,
      // "row-map" : ["arrow", [["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
       //"col-map" : ["arrow" ,[["arrow" ["Vector"] , "Vector" ] , "Matrix"]  , "Matrix"  ],
-     /* "mat-dims" : ["arrow" ,[["Matrix"] , ["List", "Number"]], "tva"]   */
+     /* "mat-dims" : ["arrow" ,[["Matrix"] , ["Lis t", "Number"]], "tva"]   */
 
       /*
 
 
       
-      "sub-matrix" : ["arrow", ["Number" , "Number" , "Number","Number"] , "Matrix"] ,
+
       "get-row" : ["arrow" ,["Matrix"] , "Vector"] , 
       "get-col" : ["arrow" ,["Matrix"] , "Vector"] , 
       "determinant" : ["arrow", ["Matrix"] , "Number"] , 
@@ -135,38 +136,49 @@ replace duplicate function,method for +,-,*
     function internal_isVec(obj) { 
         return hasBrand(brandVector,obj) ; 
     }
+    // Checks if same and other are matrices with the same dimensions
     function sameDims(self,other){
       (checkMtrx(self) && checkMtrx(other)) ; 
       return (self.$h == other.$h) || (self.$w == other.$w)
      }
+     //return dimensions of self formatted for printing
     function printDims(self) { 
       checkMtrx(self) ; 
       return "(" + self.$h + "," + self.$w + ")" ; 
      }
-
+     // given a matrix and a 2d position return the corresponding element in the matrix
     function get1d(mtrx,h,w){
       checkMtrx(mtrx) ; 
      return mtrx.$underlyingMat[(h * mtrx.$w) + w ] ; 
     }
+
+    // Given a 2d array position and the no of cols in a matrix return a 1D array index
     function get1dpos(h,w,c) {
       return (h * c) + w ;
     }
 
-
+    //Checks if h,w are valid matrix dimensions
     function posInteger(h,w) {
-      if ((h > 0) && (w > 0) && Number.isInteger(h) && Number.isInteger(w)){
+      if ((h >= 0) && (w >= 0) && Number.isInteger(h) && Number.isInteger(w)){
         return true
       } else{
         runtime.ffi.throwMessageException("Dimensions need to be positive integers") ;
       }
     }
+    // checks if h,w are in range of the matrix dimensions
     function checkRange(mtrx,h,w) { 
       if( !posInteger(h,w) || (h >= mtrx.$h) || (w >= mtrx.$w) ){
         runtime.ffi.throwMessageException("Given dimensions are not valid") ;
       }
       return true ; 
     }
-    
+    /* Duplicates a section of the matrix into the given array with offset
+    * mtrx : matrix to copy from
+    * start : start index in matrix (1D index)
+    * end : end index in* matrix (1D index)
+    * arr : Array to copy into
+    * offset : Offset to use while copying into arr
+    */
     function duplicateArray(mtrx,start,end,arr,offset) { 
       len = end - start  ; 
       for (var i = 0 ; i < len ; i++) {
@@ -174,13 +186,14 @@ replace duplicate function,method for +,-,*
       }
       return arr; 
     }
-
+    // Duplicates self
     function duplicateMatrix(self){
       new_arr = new Array(self.$l) ;
       duplicateArray(self,0,self.$l,new_arr,0) ; 
       return createMatrixFromArray(self.$h,self.$w,new_arr) ;
 
     }
+    // Adds self and other
     var funcaddMatrix = function(self,other){
       runtime.ffi.checkArity(2,arguments,"add-mat",false) ; 
       runtime.checkArgsInternal2("matrix","add-mat",self,annMatrix,other,annMatrix) ; 
@@ -335,6 +348,26 @@ replace duplicate function,method for +,-,*
       return new_mtrx ;
     }
 
+    var matrixWithin = function(self,n1,n2,n3,n4) {
+      arity(5,arguments,"mat-within",false);
+      runtime.checkArgsInternalInline("Matrix","mat-within",self,annMatrix,
+          n1,runtime.Number,n2,runtime.Number,n3,runtime.Number,n4,runtime.Number) ;
+      start_pos = get1dpos(n1,n2,self.$w)
+      end_pos = get1dpos(n3,n4,self.$w) ;
+      if(checkRange(self,n1,n2) && checkRange(self,n3,n4)) {
+        if ((end_pos - start_pos) % 2 != 0) {
+          return runtime.ffi.throwMessageException("Given dimensions encompass an uneven number of elements");
+        } else {
+
+          new_arr = new Array(end_pos - start_pos);
+          duplicateArray(self, start_pos, end_pos + 1, new_arr, 0);
+          console.log("Start and end pos " + start_pos + " " + end_pos);
+          console.log("New Array: " + new_arr);
+          return createMatrixFromArray((n3 - n1 + 1), (n4 - n2 + 1), new_arr);
+        }} else {
+        return runtime.ffi.throwMessageException("Invalid dimensions") ;
+      }
+    }
     function makeMatrix(h, w, underlyingMat){
       var equalMatrix =  runtime.makeMethod2(function(self,other,Eq){
          runtime.ffi.checkArity(3, arguments, "_equals", true);
@@ -503,7 +536,8 @@ replace duplicate function,method for +,-,*
       "scale" : scaleMatrix ,
       "set-elem" : F(setMatrixElms,"set-elem") ,
       "reshape" : F(reshapeMatrix,"reshape"),
-      "matrix-map" : F(mapMatrix,"matrix-map")
+      "matrix-map" : F(mapMatrix,"matrix-map"),
+      "mat-within" : F(matrixWithin,"mat-within")
     
    //  "mat-dims" : getMatrixDims 
       }
