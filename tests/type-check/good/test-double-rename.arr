@@ -15,9 +15,9 @@ include from SD:
 end
 
 check:
-  x :: StrDict = [SD.string-dict:]
-  y :: StringDict = x
-  z :: DR.StrDict = y
+  x :: StrDict<Any> = [SD.string-dict:]
+  y :: StringDict<Any> = x
+  z :: DR.StrDict<Any> = y
 
   string-dict is SD.string-dict
   string-dict is DR.string-dict
