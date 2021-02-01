@@ -1444,12 +1444,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       for (i = 0; i < s.length; i++) {
         var val = s.charCodeAt(i);
         switch(val) {
-        case 7: ret.push('\\a'); break;
-        case 8: ret.push('\\b'); break;
         case 9: ret.push('\\t'); break;
         case 10: ret.push('\\n'); break;
-        case 11: ret.push('\\v'); break;
-        case 12: ret.push('\\f'); break;
         case 13: ret.push('\\r'); break;
         case 34: ret.push('\\"'); break;
         case 92: ret.push('\\\\'); break;
