@@ -3,9 +3,6 @@ TODO:
 In order of priority
 Figure out mat-dim type issue
 replace duplicate function,method for +,-,*
-
-
-
 */
 ({
   requires:
@@ -471,6 +468,7 @@ replace duplicate function,method for +,-,*
       var get_height = runtime.makeMethod0(function(self){return self.$h},"get-height");
       var get_width = runtime.makeMethod0(function(self){return self.$w},"get-width") ;
       var get_shape = runtime.makeMethod0(function(self){return runtime.makeTuple([self.$h,self.$w])},"get-shape") ; 
+      var get_elem = runtime.makeMethod3(function(self,n1,n2){getMatrixElms(self,n1,n2) ; })
       var obj = O({
         _output: outputMatrix,
         _plus : addMatrix,
@@ -479,7 +477,8 @@ replace duplicate function,method for +,-,*
         _times : timesMatrix ,
         "get-height": get_height,
         "get-width" : get_width ,
-        "get-shape" : get_shape 
+        "get-shape" : get_shape ,
+        "get-elem" : get_elem
        });
       // Applying a brand creates a new object, so we need to add the reflective field afterward
       obj = applyBrand(brandMatrix, obj);
@@ -655,14 +654,20 @@ replace duplicate function,method for +,-,*
       return obj ;
     }
     function createMatrixFromArray(h, w, array){
-      arity(3, arguments, "matrix", false);
+      arity(3, arguments, "matrix", false) ;
       runtime.checkArray(array);
       var matr = [];
       var len = array.length;
       if(h * w != len){
           runtime.ffi.throwMessageException("The number of provided elements does not match the given width and height.");
       }
-      matr = [...array] ; 
+      matr = new Array(array.length)
+      for (var i = 0 ; i < matr.length ; i++) {
+        console.log("UEET") ;
+        runtime.checkNumber(array[i]) ;
+        matr[i] = array[i];
+        console.log("YEET")
+      }
       return makeMatrix(h, w, matr);
     }
 
