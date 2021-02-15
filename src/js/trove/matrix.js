@@ -11,7 +11,7 @@ replace duplicate function,method for +,-,*
       {"import-type" : "builtin" , name: "lists"} ,
       {"import-type": "builtin", name:"arrays"}
     ],
-  nativeRequires: [],
+  nativeRequires: ["pyret-base/js/js-numbers"],
   provides: {
     shorthands: {
       "Matrix": ["tyapp", ["local", "Matrix"], []],
@@ -99,7 +99,7 @@ replace duplicate function,method for +,-,*
       }],
     }
   },
-  theModule: function(runtime, namespace, uri, VSlib ,LSlib,ARRLib){
+  theModule: function(runtime, namespace, uri, VSlib ,LSlib,ARRLib,jsnum){
     var O = runtime.makeObject;
     var F = runtime.makeFunction;
     var arity = runtime.checkArity;
@@ -132,35 +132,12 @@ replace duplicate function,method for +,-,*
     }
 
     function pyretNumConv(num){
-      if (Number.isInteger(num)){
-        return num;
-      } else{
-        return num["n"]/num["d"]; 
+      if(jsnum.isRoughnum(num)){
+        return jsnum.toRoughnum(num) ;
+      } else {
+        return jsnum.fromFixnum(num,runtime.NumberErrbacks) ;
       }
     }
-    /*
-    function pyretAdd(num1, num2){
-      console.log(num1, num2, Number.isInteger(num1), Number.isInteger(num2));
-      if(Number.isInteger(num1) && Number.isInteger(num2)){
-        return (num1 + num2).toString();
-      } else if (Number.isInteger(num1)){
-        var numerator = num2["n"];
-        var denominator = num2["d"];
-        return ((num1 * parseInt(denominator)) + parseInt(numerator)).toString() + "/" + denominator;
-      } else if (Number.isInteger(num2)){
-        var numerator = num1["n"];
-        var denominator = num1["d"];
-        return ((num2 * parseInt(denominator)) + parseInt(numerator)).toString() + "/" + denominator;
-      } else{
-        var numerator1 = num1["n"];
-        var denominator1 = num1["d"];
-
-        var numerator2 = num2["n"];
-        var denominator2 = num2["d"];
-
-        return ((parseInt(numerator1) * parseInt(denominator2)) + (parseInt(numerator2) * parseInt(denominator1))).toString() + "/" + (parseInt(denominator1) * parseInt(denominator2)).toString();
-      }
-    }*/
 
     // Checks if same and other are matrices with the same dimensions
     function sameDims(self,other){
@@ -228,7 +205,7 @@ replace duplicate function,method for +,-,*
       } else{
         new_arr = new Array(self.$l) ; 
         for(var i  = 0 ; i < self.$l ; i++) {
-          new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) + pyretNumConv(other.$underlyingMat[i]));
+          new_arr[i] = runtime.plus(self.$underlyingMat[i] ,other.$underlyingMat[i]);
         }
 
         return createMatrixFromArray(self.$h,self.$w,new_arr) ; 
@@ -243,7 +220,7 @@ replace duplicate function,method for +,-,*
       } else{
         new_arr = new Array(self.$l) ; 
         for(var i  = 0 ; i < self.$l ; i++) {
-          new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) - pyretNumConv(other.$underlyingMat[i]));
+          new_arr[i] = runtime.minus(self.$underlyingMat[i],other.$underlyingMat[i]);
         }
 
         return createMatrixFromArray(self.$h,self.$w,new_arr) ; 
@@ -262,7 +239,7 @@ replace duplicate function,method for +,-,*
           for (var  j = 0 ; j < other.$w ; j++) {
             var elm  = 0 ; 
             for (var k = 0 ; k < self.$w ; k++){
-              elm+=(pyretNumConv(get1d(self,i,k))*pyretNumConv(get1d(other,k,j))) ; 
+              elm+=(runtime.times(get1d(self,i,k)),get1d(other,k,j)) ;
             } 
             new_arr[get1dpos(i,j,other.$w)]  =  runtime.makeNumber(elm) ; 
           }
@@ -356,7 +333,7 @@ replace duplicate function,method for +,-,*
       runtime.checkArgsInternal2("Matrix","scale",self,annMatrix,num,runtime.Number) ; 
       new_mtrx = duplicateMatrix(self) ; 
       for (var i = 0 ; i < new_mtrx.$l ; i++) {
-        new_mtrx.$underlyingMat[i] = new_mtrx.$underlyingMat[i] * num ; 
+        new_mtrx.$underlyingMat[i] = runtime.times(new_mtrx.$underlyingMat[i] , num) ;
       }
       return new_mtrx ; 
     },"scale") ;
@@ -387,8 +364,6 @@ replace duplicate function,method for +,-,*
 
           new_arr = new Array(end_pos - start_pos);
           duplicateArray(self, start_pos, end_pos + 1, new_arr, 0);
-          console.log("Start and end pos " + start_pos + " " + end_pos);
-          console.log("New Array: " + new_arr);
           return createMatrixFromArray((n3 - n1 + 1), (n4 - n2 + 1), new_arr);
         }} else {
         return runtime.ffi.throwMessageException("Invalid dimensions") ;
@@ -401,22 +376,25 @@ replace duplicate function,method for +,-,*
     }
     function makeMatrix(h, w, underlyingMat){
       var equalMatrix =  runtime.makeMethod2(function(self,other,Eq){
-         runtime.ffi.checkArity(3, arguments, "_equals", true);
-        runtime.checkArgsInternal3("matrix", "_equals",self, annMatrix, other, annMatrix, Eq, runtime.Function);    
-       
+        runtime.ffi.checkArity(3, arguments, "_equals", true);
+        runtime.checkArgsInternal3("matrix", "_equals",self, annMatrix, other, annMatrix, Eq, runtime.Function);
+
         if(!hasBrand(brandMatrix,other)){
           return runtime.ffi.notEqual.app('',self,other) ;
-        } else if (!sameDims(self,other)) { 
+        } else if (!sameDims(self,other)) {
           return runtime.ffi.notEqual.app('',self,other) ;
-        } else { 
-          for( var i = 0 ; i < self.$l ; i++) { 
-              if (self.$underlyingMat[i] != other.$underlyingMat[i]){
-                return runtime.ffi.notEqual.app('',self,other) ;
-              }
-            } 
-            return runtime.ffi.equal ; 
-        
-      }},"equals") ;  
+        } else {
+          for( var i = 0 ; i < self.$l ; i++) {
+            if(runtime.isRoughnum(self.$underlyingMat[i]) || runtime.isRoughnum(other.$underlyingMat[i])){
+              return runtime.ffi.throwMessageException("The matrix consists of rough nums and cannot be checked for equality") ;
+            }
+            if (self.$underlyingMat[i] != other.$underlyingMat[i]){
+              return runtime.ffi.notEqual.app('',self,other) ;
+            }
+          }
+          return runtime.ffi.equal ;
+
+        }},"equals") ;
       var addMatrix = runtime.makeMethod1(function(self,other){
         runtime.ffi.checkArity(2,arguments,"_plus",true) ; 
         runtime.checkArgsInternal2("matrix","_plus",self,annMatrix,other,annMatrix) ; 
@@ -425,9 +403,8 @@ replace duplicate function,method for +,-,*
         } else{
           new_arr = new Array(self.$l) ; 
           for(var i  = 0 ; i < self.$l ; i++) {
-            new_arr[i] = self.$underlyingMat[i] + other.$underlyingMat[i] ;
+            new_arr[i] = runtime.plus(self.$underlyingMat[i], other.$underlyingMat[i]) ;
           }
-          console.log(new_arr);
           return createMatrixFromArray(self.$h,self.$w,new_arr) ; 
         }
       },"plus") ; 
@@ -439,7 +416,7 @@ replace duplicate function,method for +,-,*
         } else{
           new_arr = new Array(self.$l) ; 
           for(var i  = 0 ; i < self.$l ; i++) {
-            new_arr[i] = self.$underlyingMat[i] - other.$underlyingMat[i] ;
+            new_arr[i] = runtime.minus(self.$underlyingMat[i],other.$underlyingMat[i]) ;
           }
   
           return createMatrixFromArray(self.$h,self.$w,new_arr) ; 
@@ -457,7 +434,7 @@ replace duplicate function,method for +,-,*
             for (var  j = 0 ; j < other.$w ; j++) {
               var elm  = 0 ; 
               for (var k = 0 ; k < self.$w ; k++){
-                elm+=(get1d(self,i,k)*get1d(other,k,j)) ; 
+                elm+=runtime.times(get1d(self,i,k),get1d(other,k,j)) ;
               } 
               new_arr[get1dpos(i,j,other.$w)]  =  elm ; 
             }
@@ -497,7 +474,7 @@ replace duplicate function,method for +,-,*
       } else{
         new_arr = new Array(self.$l) ; 
         for(var i  = 0 ; i < self.$l ; i++) {
-          new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) * pyretNumConv(other.$underlyingMat[i]));
+          new_arr[i] = runtime.times(self.$underlyingMat[i], other.$underlyingMat[i]);
         }
         return makeVector(new_arr); 
       }
@@ -573,9 +550,7 @@ replace duplicate function,method for +,-,*
       }));
     }
     var outputVector = runtime.makeMethod0(function(self) {
-      console.log("YEET YEET") ;
       arity(1,arguments,"_output",false) ;
-      console.log("YEET YEET") ;
       var rows = [];
       var matr = self.$underlyingMat;
       var vsValue = get(VS, "vs-value");
@@ -587,7 +562,7 @@ replace duplicate function,method for +,-,*
           runtime.ffi.makeList(rows)) ;
     });
     function makeVector(underlyingArr){
-      var equalVector =  runtime.makeMethod2(function(self,other,Eq){
+      var equalVector =  runtime.makeMethod2(function(self,other,recEq){
         runtime.ffi.checkArity(3, arguments, "_equals", true); 
        if(!hasBrand(brandVector,other)){
          return runtime.ffi.notEqual.app('',self,other) ;
@@ -609,7 +584,7 @@ replace duplicate function,method for +,-,*
        } else{
          new_arr = new Array(self.$l) ; 
          for(var i  = 0 ; i < self.$l ; i++) {
-           new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) + pyretNumConv(other.$underlyingMat[i]));
+           new_arr[i] = runtime.plus(self.$underlyingMat[i], other.$underlyingMat[i]);
          }
  
          return makeVector(new_arr); 
@@ -622,7 +597,7 @@ replace duplicate function,method for +,-,*
        } else{
          new_arr = new Array(self.$l) ; 
          for(var i  = 0 ; i < self.$l ; i++) {
-           new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) - pyretNumConv(other.$underlyingMat[i]));
+           new_arr[i] = runtime.minus(self.$underlyingMat[i] ,other.$underlyingMat[i]);
          }
  
          return makeVector(new_arr); 
@@ -635,7 +610,7 @@ replace duplicate function,method for +,-,*
       } else{
         new_arr = new Array(self.$l) ; 
         for(var i  = 0 ; i < self.$l ; i++) {
-          new_arr[i] = runtime.makeNumber(pyretNumConv(self.$underlyingMat[i]) * pyretNumConv(other.$underlyingMat[i]));
+          new_arr[i] = runtime.times(pyretNumConv(self.$underlyingMat[i]) , pyretNumConv(other.$underlyingMat[i]));
         }
 
         return makeVector(new_arr); 
@@ -663,10 +638,8 @@ replace duplicate function,method for +,-,*
       }
       matr = new Array(array.length)
       for (var i = 0 ; i < matr.length ; i++) {
-        console.log("UEET") ;
         runtime.checkNumber(array[i]) ;
-        matr[i] = array[i];
-        console.log("YEET")
+        matr[i] = pyretNumConv(array[i]);
       }
       return makeMatrix(h, w, matr);
     }
@@ -674,6 +647,11 @@ replace duplicate function,method for +,-,*
     function createVectorFromArray(arr){
       arity(1,arguments,"vector",false);
       runtime.checkArray(arr);
+      var copyArr = [...arr] ;
+      for(var i = 0 ; i < copyArr;i++) {
+        runtime.checkNumber(copyArr[i]) ;
+        copyArr[i] = runtime.makeNumber(copyArr[i]) ;
+      }
       return makeVector([...arr]) ;
 
     }
