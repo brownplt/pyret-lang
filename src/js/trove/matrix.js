@@ -1,9 +1,9 @@
 /*
-TODO:
-In order of priority
-Figure out mat-dim type issue
-replace duplicate function,method for +,-,*
-*/
+* Written by Anirudh Narsipur and William Sun
+* For any queries contact Anirudh Narsipur
+* A lightweight matrix library meant for linear algebra and matrix operations in general
+* Uses a 1D JS Array as the base representation
+* */
 ({
     requires:
         [
@@ -108,6 +108,7 @@ replace duplicate function,method for +,-,*
         }
     },
     theModule: function (runtime, namespace, uri, VSlib, LSlib, ARRLib, jsnum) {
+        //This section generally deals with Pyret internals : refer to Pyret module representation and pyret docs
         var O = runtime.makeObject;
         var F = runtime.makeFunction;
         var arity = runtime.checkArity;
@@ -117,12 +118,14 @@ replace duplicate function,method for +,-,*
         var LS = get(LSlib, "values");
         var ARR = get(ARRLib, "values");
 
+        //branders
         var brandMatrix = runtime.namedBrander("matrix", ["matrix: matrix brander"]);
         var brandVector = runtime.namedBrander("vector", ["vector: vector brander"]);
 
         var annMatrix = runtime.makeBranderAnn(brandMatrix, "Matrix");
         var annVector = runtime.makeBranderAnn(brandVector, "Vector");
 
+        //type check functions
         var checkMtrx = function (v) {
             runtime._checkAnn(['matrix'], annMatrix, v)
         };
@@ -172,7 +175,11 @@ replace duplicate function,method for +,-,*
             return mtrx.$underlyingMat[(h * mtrx.$w) + w];
         }
 
-        // Given a 2d array position and the no of cols in a matrix return a 1D array index
+        /*Given a 2d array position and the no of cols in a matrix return a 1D array index
+        * h : Integer , Row Wanted
+        * w : Integer , Col wanted
+        * c : Integer , No of cols in underlying matrix
+         */
         function get1dpos(h, w, c) {
             return (h * c) + w;
         }
@@ -232,7 +239,7 @@ replace duplicate function,method for +,-,*
                 return createMatrixFromArray(self.$h, self.$w, new_arr);
             }
         };
-
+        //subtract matrix
         var funcsubMatrix = runtime.makeFunction(function (self, other) {
             runtime.ffi.checkArity(2, arguments, "sub-mat", false);
             runtime.checkArgsInternal2("matrix", "sub-mat", self, annMatrix, other, annMatrix);
@@ -248,6 +255,7 @@ replace duplicate function,method for +,-,*
             }
         }, "sub-mat");
 
+        //multiply matrix
         var funcmultMatrix = runtime.makeFunction(function (self, other) {
             runtime.ffi.checkArity(2, arguments, "mult-mat", false);
             runtime.checkArgsInternal2("Matrix", "mult-mat", self, annMatrix, other, annMatrix);
@@ -260,7 +268,7 @@ replace duplicate function,method for +,-,*
                     for (var j = 0; j < other.$w; j++) {
                         var elm = 0;
                         for (var k = 0; k < self.$w; k++) {
-                            elm += (runtime.times(get1d(self, i, k)), get1d(other, k, j));
+                            elm += runtime.times(get1d(self, i, k), get1d(other, k, j));
                         }
                         new_arr[get1dpos(i, j, other.$w)] = runtime.makeNumber(elm);
                     }
@@ -293,7 +301,7 @@ replace duplicate function,method for +,-,*
             runtime.ffi.checkArity(3, arguments, "get-elem", false);
             runtime.checkArgsInternal3("Matrix", "get-elem", self, annMatrix, h, runtime.Number, c, runtime.Number);
             if (checkRange(self, h, c)) {
-                return runtime.makeNumber(get1d(self, h, c));
+                return get1d(self, h, c);
             }
 
         }, "get-elem");
@@ -363,11 +371,11 @@ replace duplicate function,method for +,-,*
             arity(2, arguments, "matrix-map", false);
             runtime.checkArgsInternalInline("Matrix", "matrix-map", self, annMatrix, f, runtime.Function);
             new_mtrx = duplicateMatrix(self);
-            for (var i = 0; i < new_mtrx.$l; i++) {
-                var h = Math.floor(i / new_mtrx.$h);
-                var w = i % new_mtrx.$w;
-                new_mtrx.$underlyingMat[i] = f.app(h, w, new_mtrx.$underlyingMat[i]);
-
+            var dpos = 0;
+            for (var i = 0; i < new_mtrx.$h; i++) {
+                for (var j = 0; j < new_mtrx.$w; j++, dpos++) {
+                    new_mtrx.$underlyingMat[dpos] = f.app(i, j, new_mtrx.$underlyingMat[dpos]);
+                }
             }
             return new_mtrx;
         }
@@ -504,11 +512,11 @@ replace duplicate function,method for +,-,*
             if (!(self.$l == other.$l)) {
                 return runtime.ffi.throwMessageException("Vectors have dimensions " + self.$l + " and " + other.$l + " . They cannot be multiplied.");
             } else {
-                new_arr = new Array(self.$l);
+                var sum = 0;
                 for (var i = 0; i < self.$l; i++) {
-                    new_arr[i] = runtime.times(self.$underlyingMat[i], other.$underlyingMat[i]);
+                    sum += runtime.times(self.$underlyingMat[i], other.$underlyingMat[i]);
                 }
-                return makeVector(new_arr);
+                return sum;
             }
         }
         var getMatrixRow = function (matr, row) {
@@ -590,11 +598,12 @@ replace duplicate function,method for +,-,*
                 rows.push(vsValue.app(matr[i]));
             }
             return get(VS, "vs-collection").app(
-                runtime.makeString("vector(" + self.$l + "):"),
+                runtime.makeString("vector(" + self.$l + ")"),
                 runtime.ffi.makeList(rows));
         });
 
         function makeVector(underlyingArr) {
+
             var equalVector = runtime.makeMethod2(function (self, other, recEq) {
                 runtime.ffi.checkArity(3, arguments, "_equals", true);
                 if (!hasBrand(brandVector, other)) {
@@ -668,36 +677,29 @@ replace duplicate function,method for +,-,*
 
         function createMatrixFromArray(h, w, array) {
             arity(3, arguments, "matrix", false);
-            runtime.checkArray(array);
             var len = array.length;
             if (h * w != len) {
                 runtime.ffi.throwMessageException("The number of provided elements does not match the given width and height.");
             }
-            var matr = new Array(array.length)
-            for (var i = 0; i < matr.length; i++) {
-                if (jsnum.isPyretNumber(array[i])) {
-                    matr[i] = array[i];
-                } else {
+            for (var i = 0; i < len; i++) {
+                if (!jsnum.isPyretNumber(array[i])) {
                     runtime.ffi.throwMessageException("A Matrix can only consist of numbers");
                 }
             }
-            return makeMatrix(h, w, matr);
+            return makeMatrix(h, w, array);
         }
 
-        function createVectorFromArray(arr) {
-            arity(1, arguments, "vector", false);
-            runtime.checkArray(arr);
-            var copyArr = new Array(arr.length());
-            for (var i = 0; i < copyArr; i++) {
-                if (jsnum.isPyretNumber(arr[i])) {
-                    copyArr[i] = arr[i];
-                } else {
+        function createVectorFromArray(dim, arr) {
+            arity(2, arguments, "vector", false);
+            for (var i = 0; i < arr.length; i++) {
+                if (!jsnum.isPyretNumber(arr[i])) {
                     runtime.ffi.throwMessageException("A Vector can only consist of numbers");
                 }
             }
-            return makeVector(copyArr);
+            return makeVector(arr);
 
         }
+
 
         function matrixInit(h, w) {
             if (!(Number.isInteger(h)) || !(Number.isInteger(w)) || h < 0 || w < 0) {
@@ -708,53 +710,57 @@ replace duplicate function,method for +,-,*
                     return createMatrixFromArray(h, w, arr)
                 }, "matrix:make"),
                 make0: F(() => {
-                    return createMatrixFromArray(h, w, runtime.makeArray([]))
+                    return createMatrixFromArray(h, w, [])
                 }, "matrix:make0"),
                 make1: F((a) => {
-                    return createMatrixFromArray(h, w, runtime.makeArray([a]))
+                    return createMatrixFromArray(h, w, [a])
                 }, "matrix:make1"),
                 make2: F((a, b) => {
-                    return createMatrixFromArray(h, w, runtime.makeArray([a, b]))
+                    return createMatrixFromArray(h, w, [a, b])
                 }, "matrix:make2"),
                 make3: F((a, b, c) => {
-                    return createMatrixFromArray(h, w, runtime.makeArray([a, b, c]))
+                    return createMatrixFromArray(h, w, [a, b, c])
                 }, "matrix:make3"),
                 make4: F((a, b, c, d) => {
-                    return createMatrixFromArray(h, w, runtime.makeArray([a, b, c, d]))
+                    return createMatrixFromArray(h, w, [a, b, c, d])
                 }, "matrix:make4"),
                 make5: F((a, b, c, d, e) => {
-                    return createMatrixFromArray(h, w, runtime.makeArray([a, b, c, d, e]))
+                    return createMatrixFromArray(h, w, [a, b, c, d, e])
                 }, "matrix:make5")
             });
+        }
+
+        function vectorInit(dim) {
+            return O({
+                make: F((arr) => {
+                    return createVectorFromArray(arr)
+                }, "vector:make"),
+                make0: F(() => {
+                    return createVectorFromArray(dim, [])
+                }, "vector:make0"),
+                make1: F((a) => {
+                    return createVectorFromArray(dim, [a])
+                }, "vector:make1"),
+                make2: F((a, b) => {
+                    return createVectorFromArray(dim, [a, b])
+                }, "vector:make2"),
+                make3: F((a, b, c) => {
+                    return createVectorFromArray(dim, [a, b, c])
+                }, "vector:make3"),
+                make4: F((a, b, c, d) => {
+                    return createVectorFromArray(dim, [a, b, c, d])
+                }, "vector:make4"),
+                make5: F((a, b, c, d, e) => {
+                    return createVectorFromArray(dim, [a, b, c, d, e])
+                }, "vector:make5"),
+            })
         }
 
         var jsCheckMtrx = runtime.makeCheckType(internal_isMtrx, "Matrix");
         var jsCheckVec = runtime.makeCheckType(internal_isVec, "Vector");
         var vals = {
             "mat": F(matrixInit, "mat"),
-            "vector": O({
-                make: F((arr) => {
-                    return createVectorFromArray(arr)
-                }, "vector:make"),
-                make0: F(() => {
-                    return createVectorFromArray(runtime.makeArray([]))
-                }, "vector:make0"),
-                make1: F((a) => {
-                    return createVectorFromArray(runtime.makeArray([a]))
-                }, "vector:make1"),
-                make2: F((a, b) => {
-                    return createVectorFromArray(runtime.makeArray([a, b]))
-                }, "vector:make2"),
-                make3: F((a, b, c) => {
-                    return createVectorFromArray(runtime.makeArray([a, b, c]))
-                }, "vector:make3"),
-                make4: F((a, b, c, d) => {
-                    return createVectorFromArray(runtime.makeArray([a, b, c, d]))
-                }, "vector:make4"),
-                make5: F((a, b, c, d, e) => {
-                    return createVectorFromArray(runtime.makeArray([a, b, c, d, e]))
-                }, "vector:make5"),
-            }),
+            "vector": F(vectorInit, "vector"),
             "add-mat": F(funcaddMatrix, "add-mat"),
             "sub-mat": funcsubMatrix,
             "mult-mat": funcmultMatrix,
