@@ -565,9 +565,12 @@ fun make-standalone(wl, compiled, options):
       end
     end)
 
+
+  check-str = if not(options.check-mode): "none" else: options.checks end
+
   runtime-options = J.j-obj(
     [C.clist:
-      J.j-field("checks", j-str(options.checks)),
+      J.j-field("checks", j-str(check-str)),
       J.j-field("disableAnnotationChecks",
         if options.runtime-annotations:
           j-false
