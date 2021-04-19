@@ -227,6 +227,17 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("```asd```asd```")).toBe(false);
     });
 
+    it('should not lex bogus escape sequences', function() {
+      expect(parse("'\\a'")).toBe(false);
+      expect(parse("'\\b'")).toBe(false);
+      expect(parse("'\\v'")).toBe(false);
+      expect(parse("'\\f'")).toBe(false);
+      expect(parse("'\\xWX")).toBe(false);
+      expect(parse("'\\xwx")).toBe(false);
+      expect(parse("'\\uWXYZ")).toBe(false);
+      expect(parse("'\\uwxyz")).toBe(false);
+    });
+
     it('should lex octal escape sequences', function() {
       const escapeSequences = ["'\\0'", "'\\77'", "'\\101'"];
       const expectedValues = ["'\0'", "'?'", "'A'"];
@@ -778,6 +789,16 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("spy: 5 end")).toBe(false);
       expect(parse("spy \"five\": x end")).not.toBe(false);
       expect(parse("spy \"five\": x: 5 end")).not.toBe(false);
+    });
+
+    it("should not parse escapes ending in G (bracket) through ` (backtick)", function() {
+      expect(parse("\"\\uG\"")).toBe(false);
+      expect(parse("'\\uG'")).toBe(false);
+      expect(parse("```\\uG```")).toBe(false);
+      expect(parse("\"\\u`\"")).toBe(false);
+      expect(parse("'\\u`'")).toBe(false);
+      expect(parse("```\\u````")).toBe(false);
+      expect(parse("\"\\u`\"")).toBe(false);
     });
   });
 

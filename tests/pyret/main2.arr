@@ -1,6 +1,7 @@
 import file("./tests/test-strings.arr") as _
 import file("./tests/test-format.arr") as _
 import file("./tests/test-numbers.arr") as _
+import file("./tests/test-rounding.arr") as _
 import file("./tests/test-errors.arr") as _
 import file("./tests/test-error-rendering.arr") as _
 import file("./tests/test-import.arr") as _
@@ -43,6 +44,8 @@ import file("./tests/test-parse-errors.arr") as _
 import file("./tests/test-flatness.arr") as _
 import file("./tests/test-module-syntax.arr") as _
 import file("./tests/test-import-variable.arr") as _
+import file("./tests/test-constants.arr") as _
+import file("./tests/test-constants-scope.arr") as _
 import file("./tests/test-modules.arr") as _
 import file("./tests/modules/include-shadow-same.arr") as _
 import file("./tests/modules/import-re-provided.arr") as _

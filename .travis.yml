@@ -1,17 +1,18 @@
 env:
-  secure: HuMEH1MDVt0br36tMjkcpC520OIA+nWV5fACPSxUeRfB86lc+n3WDbsC1qC386QOv5hKREcREGTIGF591GY04ApUmQlWNJymk2JjAkVKO2Dp3/jtBeFPXDbQ+sOAkfgcTgoC2yRWOfAAj1nJi1hKw0sZAwLP2n3KMjGSCYN8zGw=
+  secure: "DKjByY1SB6nMWJWn0z+xXsuABUXerLubdfQzpMAZpq2+TgUwdg2nNkp3s3ydKlKRGSpckBNSAN/0wlcXjduBsm+2PXz5YA5IaZY8r2orFQwMeHyarhIciGuG6zBiPVeWTtOTrR/esUbLULptqV0fwHVvdXbPB38CYVJEdmHgPyM="
 git:
   submodules: false
 language: node_js
 node_js:
-- 8.3.0
+- 12
 install:
+- npm update
 - make install
-- npm install -g heroku-cli
+- npm install -g heroku
 before_script:
 - make
 script:
-        #- if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang/; fi
+#- if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then heroku run:detached --size=performance-m --app pyret-pitometer node bench/run.js --commit $TRAVIS_COMMIT --repo https://github.com/brownplt/pyret-lang/; fi
 - make all-pyret-test
 notifications:
   slack:

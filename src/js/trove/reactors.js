@@ -12,7 +12,7 @@
                  origin: { "import-type": "uri", uri: "builtin://reactor-events" },
                  name: "Event" },
       "Image": { tag: "name",
-                 origin: { "import-type": "uri", uri: "builtin://image" },
+                 origin: { "import-type": "uri", uri: "builtin://image-lib" },
                  name: "Image" },
       "ValueSkeleton": { tag: "name",
                          origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
@@ -99,9 +99,11 @@
     var makeReactorRaw = function(init, handlers, tracing, trace) {
       var o = runtime.makeObject({
         "get-value": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "reactors", true);
           return init;
         }),
         "draw": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "reactors", true);
           if(!handlers.hasOwnProperty("to-draw")) {
             runtime.ffi.throwMessageException("Cannot draw() because no to-draw was specified on this reactor.");
           }
@@ -109,6 +111,7 @@
           return drawer.app(init);
         }),
         "interact-trace": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "reactors", true);
           return runtime.safeThen(function() {
             return gf(self, "start-trace").app();
           }).then(function(val) {
@@ -118,6 +121,7 @@
           }).start();
         }),
         "simulate-trace": runtime.makeMethod1(function(self, limit) {
+          checkArity(2, arguments, "reactors", true);
           function help(r, i) {
             return r.then(function(rval) {
               if(i <= 0) {
@@ -145,6 +149,7 @@
           return help(withTracing, limit).start();
         }),
         interact: runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "reactors", true);
           if(externalInteractionHandler === null) {
             runtime.ffi.throwMessageException("No interaction set up for this context (please report a bug if you are using code.pyret.org and see this message)");
           }
@@ -165,12 +170,15 @@
           }, "interact");
         }),
         "start-trace": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "reactors", true);
           return makeReactorRaw(init, handlers, true, [init]);
         }),
         "stop-trace": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "reactors", true);
           return makeReactorRaw(init, handlers, false, []);
         }),
         "get-trace": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "reactors", true);
           if(tracing) {
             return runtime.ffi.makeList(trace);
           }
@@ -179,6 +187,7 @@
           }
         }),
         "get-trace-as-table": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "reactors", true);
           if(tracing) {
             var i = 0;
             var rows = trace.map(function(state) {
@@ -193,6 +202,7 @@
           }
         }),
         react: runtime.makeMethod1(function(self, event) {
+          checkArity(2, arguments, "reactors", true);
           function callOrError(handlerName, args) {
             if(handlers.hasOwnProperty(handlerName)) {
               var funObj = handlers[handlerName].app;
@@ -239,6 +249,7 @@
             }, "react:stop-when");
         }),
         "is-stopped": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "reactors", true);
           if(handlers["stop-when"]) {
             return handlers["stop-when"].app(init);
           }
@@ -247,6 +258,7 @@
           }
         }),
         _output: runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "reactors", true);
           return runtime.getField(VS, "vs-constr").app(
             "reactor",
             runtime.ffi.makeList([ gf(VS, "vs-value").app(init) ]));

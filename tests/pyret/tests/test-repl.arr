@@ -390,3 +390,27 @@ check:
   print("Done running repl-tests: " + tostring(time-now()) + "\n")
 
 end
+
+check "Interactions has all definitions available and doesn't reflect renames from provides; thsi matches Racket's behavior":
+  restart(```
+provide: * hiding (j), x as y end
+x = 10
+j = 50
+```, false)
+
+  val(next-interaction("x")) is some(10)
+  val(next-interaction("j")) is some(50)
+
+  msgs(next-interaction("y")) is%(string-contains) "unbound"
+end
+
+check "Running definitions *does* report well-formed errors from provides":
+  result = restart(```
+provide: * hiding (nonsense), x as y end
+x = 10
+j = 50
+```, false)
+
+  msgs(result) is%(string-contains) "nonsense"
+
+end
