@@ -1,4 +1,4 @@
-{
+({
   nativeRequires: ["source-map"],
   requires: [],
   provides: {
@@ -75,4 +75,4 @@
       },
       {});
   }
-}
+})

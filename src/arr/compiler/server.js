@@ -1,4 +1,4 @@
-{
+({
   provides: {
     values: {
       "make-server": "tany"
@@ -144,4 +144,4 @@
       "make-server": runtime.makeFunction(makeServer, "make-server")
     }, {});
   }
-}
+})
