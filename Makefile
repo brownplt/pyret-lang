@@ -2,12 +2,21 @@
 
 all: build parser
 
-PYRET_JARR_DEPS := $(wildcard src/arr/compiler/*.arr)
+PYRET_JARR_DEPS := $(wildcard src/arr/compiler/*.arr) $(wildcard src/arr/compiler/*.js)
 
 PYRET_JARR := build/phaseA/pyret.jarr
 
 $(PYRET_JARR) : $(PYRET_JARR_DEPS)
 	pyret --checks none -c src/arr/compiler/pyret.arr -o $(PYRET_JARR)
+
+src/arr/compiler/%.js : src/arr/compiler/%.ts
+	`npm bin`/tsc --module "es2015" --moduleResolution "node" $<
+	# Thanks internet! https://unix.stackexchange.com/a/65691
+	# This solves the problem that tsc (rightfully) inserts a semicolon at the end
+	# of the expression-statement in JS, but that can't be interpreted correctly
+	# when the JS module's text is put in expression position in the standalone.
+	# So chop the trailing ;
+	perl -0777 -p -i -e 's/;(\n*)\Z/\1/m' $@
 
 BUILD_DEPS := \
 	src/arr/compiler/pyret-parser.js \

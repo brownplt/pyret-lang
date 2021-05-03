@@ -69,6 +69,7 @@ src/arr/compilerA/pyret.jarr
 tests/pyret/standalone/importer-require.js
 tests/pyret/standalone/importer.jarr
 
+src/arr/compiler/direct-codegen-helpers.js
 
 compiled/
 

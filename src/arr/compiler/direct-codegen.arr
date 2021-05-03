@@ -11,6 +11,7 @@ import file("concat-lists.arr") as CL
 import file("type-structs.arr") as T
 import file("provide-serialization.arr") as PSE
 import file("compile-structs.arr") as CS
+import js-file("direct-codegen-helpers") as DCH
 import either as EI
 import pathlib as P
 import sha as sha
@@ -181,9 +182,10 @@ fun js-id-of(id :: A.Name) -> A.Name:
   end
 end
 
-fun const-id(name :: String):
-  A.s-name(A.dummy-loc, name)
-end
+#fun const-id(name :: String):
+#  A.s-name(A.dummy-loc, name)
+#end
+const-id = DCH.const-id
 
 fun compiler-name(id):
   const-id(string-append("$",id))

@@ -5340,6 +5340,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function makeModuleReturn(values, types, internal) {
+      types = types || {};
       return thisRuntime.makeObject({
         "defined-values": values,
         "defined-types": types,
