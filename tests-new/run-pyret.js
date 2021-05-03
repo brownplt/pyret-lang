@@ -1,6 +1,8 @@
 const client = require('../src/server/client-lib.js');
 const path = require('path');
 
+const [filename, typecheck, pipeline] = process.argv.slice(2);
+
 client.start({
   client: {
     port: "tests-new/pyret-tests.sock",
@@ -13,9 +15,10 @@ client.start({
     norun: true
   },
   "pyret-options": {
-    'type-check': true,
+    'type-check': typecheck === "typecheck",
+    'pipeline': pipeline,
     'checks': 'none',
-    'program': process.argv[2],
+    'program': filename,
     'builtin-js-dir': 'build/runtime',
     'base-dir': path.resolve(path.join(__dirname, "/../"))
   }

@@ -2945,6 +2945,11 @@ data CompileError:
     end
 end
 
+data Pipeline:
+  | pipeline-anchor
+  | pipeline-ts-anchor
+end
+
 type CompileOptions = {
   check-mode :: Boolean,
   check-all :: Boolean,
@@ -2960,7 +2965,8 @@ type CompileOptions = {
   standalone-file :: String,
   log :: (String -> Nothing),
   on-compile :: Function, # NOTE: skipping types because the are in compile-lib
-  before-compile :: Function
+  before-compile :: Function,
+  pipeline :: Pipeline
 }
 
 default-compile-options = {
@@ -3005,6 +3011,7 @@ default-compile-options = {
   html-file: none,
   deps-file: "build/bundled-node-deps.js",
   standalone-file: "src/js/base/handalone.js",
+  pipeline: pipeline-anchor
 }
 
 fun make-default-compile-options(this-pyret-dir):

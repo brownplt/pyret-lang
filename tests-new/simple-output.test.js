@@ -20,18 +20,15 @@ describe("testing simple-output programs", () => {
       // Checks for any line beginning with prefix '###' and uses the trimmed content
       //   of the line after the prefix as expected search criteria in stdout
       var exact = f.match(/scan/) === null;
-
-      if (!typeCheck) {
-        compileProcess = cp.spawnSync(
-          "node",
-          ["tests-new/run-pyret-no-type-check.js", f],
-          {stdio: "pipe", timeout: COMPILER_TIMEOUT});
-      } else {
-        compileProcess = cp.spawnSync(
-          "node",
-          ["tests-new/run-pyret.js", f],
-          {stdio: "pipe", timeout: COMPILER_TIMEOUT});
-      }
+      var typecheck = "notypecheck";
+      var pipeline = "anchor";
+      if(typeCheck) { typecheck = "typecheck"; }
+      if(global._PYRET_PIPELINE === "ts-anchor") { pipeline = "ts-anchor"; }
+      console.log(global._PYRET_PIPELINE);
+      compileProcess = cp.spawnSync(
+        "node",
+        ["tests-new/run-pyret.js", f, typecheck, pipeline],
+        {stdio: "pipe", timeout: COMPILER_TIMEOUT});
 
       assert(compileProcess.status === 0, `${compileProcess.stdout}\n${compileProcess.stderr}`);
 

@@ -13,6 +13,7 @@ import file("file.arr") as F
 import file("flatness.arr") as FL
 import file("js-ast.arr") as J
 import file("direct-codegen.arr") as D
+import file("ts-direct-codegen.arr") as TD
 
 cl-empty = CL.concat-empty
 cl-cons = CL.concat-cons
@@ -112,7 +113,10 @@ end
 
 fun make-compiled-pyret(program-ast, uri, env, post-env, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter>} block:
 #  each(println, program-ast.tosource().pretty(80))
-  {provides; 
-    C.ok(ccp-dict(D.compile-program(program-ast, uri, env, post-env, provides, options)))}
+  compiled = cases(C.Pipeline) options.pipeline:
+    | pipeline-anchor => D.compile-program(program-ast, uri, env, post-env, provides, options)
+    | pipeline-ts-anchor => TD.compile-program(program-ast, uri, env, post-env, provides, options)
+  end
+  {provides; C.ok(ccp-dict(compiled))}
 end
 

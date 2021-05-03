@@ -63,7 +63,14 @@ fun populate-options(dictionary, this-pyret-dir) block:
   user-annotations = not(dictionary.has-key("no-user-annotations"))
   compiled-read-only = dictionary.get("compiled-read-only-dir").or-else(empty)
   recompile-builtins = dictionary.get("recompile-builtins").or-else(true)
-
+  fun to-pipeline(s):
+    ask:
+      | s == "anchor" then: CS.pipeline-anchor
+      | s == "ts-anchor" then: CS.pipeline-ts-anchor
+      | otherwise: raise("Unknown pipeline argument: " + s)
+    end 
+  end
+  pipeline = dictionary.get("pipeline").and-then(to-pipeline).or-else(CS.pipeline-anchor)
 
   # TODO(alex): builtin arr files no longer supported; precompile them
   when dictionary.has-key("builtin-arr-dir"):
@@ -107,6 +114,7 @@ fun populate-options(dictionary, this-pyret-dir) block:
     type-check : type-check,
     user-annotations: user-annotations,
     compile-mode: compile-mode,
+    pipeline: pipeline
   }
 end
 

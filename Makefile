@@ -207,6 +207,7 @@ clean:
 	rm -r -f build/phaseA build/worker
 	rm -f src/arr/compiler/pyret-parser.js
 	rm -r -f tests-new/.pyret
+	rm -r -f .pyret
 	rm -r -f build/runtime
 
 clean-tests:
