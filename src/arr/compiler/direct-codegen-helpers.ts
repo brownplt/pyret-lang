@@ -15,11 +15,7 @@ import * as E from "estree";
     const gf = runtime.getField;
     const sname = gf(gf(ast, "values"), "s-name");
     const dummyloc = gf(gf(ast, "values"), "dummy-loc");
-    function foo(e : E.ArrayExpression) {
-      console.log(e.elements);
-    }
     function toReturn(name : string) {
-      foo(null);
       return sname.app(dummyloc, name);
     }
 

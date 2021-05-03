@@ -209,7 +209,7 @@ NAMESPACE = j-id(const-id("NAMESPACE"))
 source-name = j-id(const-id("M"))
 OBJECT = const-id("Object")
 
-NUMBER_ERR_CALLBACKS = "_errCallbacks"
+NUMBER_ERR_CALLBACKS = "$errCallbacks"
 
 rt-name-map = [D.string-dict:
   "addModuleToNamespace", "aMTN",
