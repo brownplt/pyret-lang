@@ -17,6 +17,7 @@ import file("ast-util.arr") as AU
 import file("well-formed.arr") as W
 import file("js-ast.arr") as J
 import file("concat-lists.arr") as C
+import file("cmdline.arr") as CMD
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
 import file("file.arr") as F
@@ -298,7 +299,7 @@ fun time-or-0(p):
   end
 end
 
-fun set-loadable(options, locator, loadable) block:
+fun set-loadable(options, locator, loadable, max-dep-times) block:
   doc: "Returns the module path of the cached file"
   { project-base; project-dir; builtin-dir } = setup-compiled-dirs( options )
 
@@ -331,7 +332,9 @@ fun set-loadable(options, locator, loadable) block:
       save-static-path = save-path + static-ext
       save-code-path = save-path + code-ext
 
-      when (time-or-0(save-static-path) <= locator.get-modified-time())  or (time-or-0(save-code-path) <= locator.get-modified-time()) block:
+      effective-time = max-dep-times.get-value(locator.uri())
+
+      when (time-or-0(save-static-path) <= effective-time)  or (time-or-0(save-code-path) <= effective-time) block:
         when not( FS.exists( dep-path ) ):
           mkdirp( dep-path )
         end
@@ -559,8 +562,9 @@ fun build-program(path, options, stats) block:
   clear-and-print("Found " + to-repr(starter-modules.keys-now()) + " as starter modules in-memory")
   wl = CL.compile-worklist-known-modules(module-finder, base.locator, base.context, starter-modules)
   clear-and-print("Found worklist of length: " + to-repr(wl.length()))
-  max-dep-times = CL.dep-times-from-worklist(wl)
-  clear-and-print("Found max-dep-times: " + to-repr(max-dep-times))
+  compiler-edited-time = F.file-times(CMD.file-name).mtime
+  max-dep-times = CL.dep-times-from-worklist(wl, compiler-edited-time)
+  print-progress("Found max-dep-times: " + to-repr(max-dep-times) + "\n" + to-repr(compiler-edited-time))
   shadow wl = for map(located from wl):
     located.{ locator: get-cached-if-available-known-mtimes(options.compiled-cache, located.locator, max-dep-times) }
   end
@@ -569,7 +573,7 @@ fun build-program(path, options, stats) block:
 
   clear-and-print("Loading existing compiled modules...")
 
-  CL.modules-from-worklist-known-modules(wl, starter-modules, get-loadable(options.compiled-cache, options.compiled-read-only.map(P.resolve), _, _))
+  CL.modules-from-worklist-known-modules(wl, starter-modules, max-dep-times, get-loadable(options.compiled-cache, options.compiled-read-only.map(P.resolve), _, _))
   clear-and-print("Found " + to-repr(starter-modules.keys-now()) + " after looking at dep times")
 
   cached-modules = starter-modules.count-now() - length-before-wl
@@ -600,7 +604,7 @@ fun build-program(path, options, stats) block:
       when num-compiled == total-modules:
         print-progress("\nCleaning up and generating standalone...\n")
       end
-      {static-path; code-path} = set-loadable(self, locator, loadable)
+      {static-path; code-path} = set-loadable(self, locator, loadable, max-dep-times)
       if (num-compiled == total-modules) and options.collect-all:
         # Don't squash the final JS-AST if we're collecting all of them, so
         # it can be pretty-printed after all

@@ -281,12 +281,7 @@ fun compile-worklist-known-modules<a>(dfind :: (a, CS.Dependency -> Located<a>),
   ans
 end
 
-fun modules-from-worklist(wl, get-loadable) block:
-  modules = [SD.mutable-string-dict:]
-  modules-from-worklist-known-modules(wl, modules, get-loadable)
-end
-fun modules-from-worklist-known-modules(wl, modules, get-loadable) block:
-  max-dep-times = dep-times-from-worklist(wl)
+fun modules-from-worklist-known-modules(wl, modules, max-dep-times, get-loadable) block:
   maybe-modules = for map(t from wl):
     get-loadable(t, max-dep-times)
   end
@@ -300,9 +295,12 @@ fun modules-from-worklist-known-modules(wl, modules, get-loadable) block:
   modules
 end
 
-fun dep-times-from-worklist(wl):
+# NOTE(joe): base-time is usually the time the *compiler* was last edited.
+# Other clients might have another “min” time after which they want to
+# make sure all modules are recompiled.
+fun dep-times-from-worklist(wl, base-time):
   for fold(sd from [SD.string-dict:], shadow located from wl):
-    cur-mod-time = located.locator.get-modified-time()
+    cur-mod-time = num-max(located.locator.get-modified-time(), base-time)
     dm = located.dependency-map
     max-dep-time = for SD.fold-keys-now(mdt from cur-mod-time, dep-key from dm):
       dep-loc = dm.get-value-now(dep-key)

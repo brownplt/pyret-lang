@@ -113,7 +113,8 @@ fun make-fresh-module-testing-context():
   fun compile-mod(name, options):
     loc = name-to-locator(name)
     wlist = CL.compile-worklist(dfind, loc, CLI.default-test-context)
-    starter-modules = CL.modules-from-worklist(wlist, get-loadable)
+    max-dep-times = dep-times-from-worklist(wl, 0)
+    starter-modules = CL.modules-from-worklist-known-modules(wlist, [SD.mutable-string-dict:], max-dep-times, get-loadable)
     result = CL.compile-program-with(wlist, starter-modules, options.{
       on-compile: lam(locator, loadable, trace): set-loadable(locator, loadable) end
     })
