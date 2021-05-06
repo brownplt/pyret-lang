@@ -267,6 +267,22 @@ import type * as A from './ts-ast';
         case 's-dot':
           const [objV, objStmts] = compileExpr(context, expr.dict.obj);
           return [pyretLookup(expr.dict.l, objV, expr.dict.field), objStmts]
+        case 's-id':
+          // TODO(joe): freeBindings
+          return [Identifier(jsIdOf(expr.dict.id)), []];
+        case 's-let-expr':
+          const prelude = [];
+          listToArray(expr.dict.binds).forEach(v => {
+            const [ val, vStmts ] = compileExpr(context, v.dict.value);
+            switch(v.dict.b.$name) {
+              case "s-tuple-bind": throw new Error("found s-tuple-bind in codegen");
+              case "s-bind":
+                prelude.push(...vStmts);
+                prelude.push(Var(jsIdOf(v.dict.b.dict.id), val));
+            }
+          });
+          const [ bv, bodyStmts ] = compileExpr(context, expr.dict.body);
+          return [ bv, [...prelude, ...bodyStmts]];
         default:
           throw new Error("Unhandled expression type: " + expr.$name);
       }
