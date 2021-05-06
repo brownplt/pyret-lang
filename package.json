@@ -40,10 +40,12 @@
   },
   "devDependencies": {
     "@babel/types": "^7.14.0",
+    "@types/escodegen": "0.0.6",
     "@types/estree": "0.0.47",
     "@types/jest": "^26.0.19",
     "JSONStream": "^1.3.5",
     "chromedriver": "^86.0.0",
+    "escodegen": "^2.0.0",
     "geckodriver": "^1.19.1",
     "http-server": "^0.12.3",
     "jest": "^26.4.4",

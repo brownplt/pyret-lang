@@ -2,7 +2,7 @@
 
 all: build parser
 
-PYRET_JARR_DEPS := $(wildcard src/arr/compiler/*.arr) $(wildcard src/arr/compiler/*.js)
+PYRET_JARR_DEPS := $(wildcard src/arr/compiler/*.arr) $(patsubst src/arr/compiler/%.ts,src/arr/compiler/%.js,$(wildcard src/arr/compiler/*.ts))
 
 PYRET_JARR := build/phaseA/pyret.jarr
 
@@ -10,7 +10,7 @@ $(PYRET_JARR) : $(PYRET_JARR_DEPS)
 	pyret --checks none -c src/arr/compiler/pyret.arr -o $(PYRET_JARR)
 
 src/arr/compiler/%.js : src/arr/compiler/%.ts
-	`npm bin`/tsc --module "es2015" --moduleResolution "node" $<
+	`npm bin`/tsc --target "esnext" --module "es2015" --moduleResolution "node" $<
 	# Thanks internet! https://unix.stackexchange.com/a/65691
 	# This solves the problem that tsc (rightfully) inserts a semicolon at the end
 	# of the expression-statement in JS, but that can't be interpreted correctly
