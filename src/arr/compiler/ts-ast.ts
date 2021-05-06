@@ -1,9 +1,29 @@
-export type Loc = any;
 export type List<T> =
 | { $name: 'empty', dict : {} }
 | { $name: 'link', dict : { first: T, rest: List<T> }}
 type Option<T> = any;
 type NumInteger = any;
+
+export type Srcloc =
+    | { $name: 'builtin',
+        dict: {
+          'module-name': string
+        }
+      }
+    | { $name: 'srcloc',
+        dict: {
+          source : string,
+          'start-line': Number,
+          'start-column': Number,
+          'start-char': Number,
+          'end-line' : Number,
+          'end-column' : Number,
+          'end-char' : Number
+        }
+      }
+
+type Loc = Srcloc
+
 export type Name =
     | { $name: 's-underscore',
         dict: {

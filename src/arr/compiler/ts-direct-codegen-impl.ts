@@ -56,10 +56,10 @@ import type * as A from './ts-ast';
         value: a
       };
     }
-    function Identifier(s : string) : J.Identifier {
+    function Identifier(id : A.Name) : J.Identifier {
       return {
         type: "Identifier",
-        name: s
+        name: nameToSourceString(id)
       };
     }
     function ReturnStatement(e : J.Expression) : J.Statement {
@@ -68,11 +68,28 @@ import type * as A from './ts-ast';
         argument: e
       }
     }
-    function Var(id : string, expr : J.Expression) : J.Declaration {
+    function Var(id : A.Name, expr : J.Expression) : J.Declaration {
       return {
         type: "VariableDeclaration",
         kind: "var",
         declarations: [ { type: "VariableDeclarator", id: Identifier(id), init: expr }]
+      };
+    }
+    function ObjectExpression(properties : Array<J.Property>) : J.Expression {
+      return {
+        type: "ObjectExpression",
+        properties: properties
+      };
+    }
+    function Property(name : string, value : J.Expression) : J.Property {
+      return {
+        type: "Property",
+        kind: "init",
+        key: Literal(name),
+        value: value,
+        method: false,
+        shorthand: false,
+        computed: true
       };
     }
     function Program(body : Array<J.Statement>) : J.Program {
@@ -81,6 +98,101 @@ import type * as A from './ts-ast';
         type: "Program",
         body: body
       }
+    }
+
+    function MakeName(start : number) {
+      var count = start;
+      function atom(base : string) : A.Name {
+        count = count + 1;
+        return { $name: "s-atom", dict: { base: base, serial: count }};
+      }
+      return {
+        reset: () => count = start,
+        sUnderscore: (l : A.Srcloc) : A.Name => ({ $name: "s-underscore", dict: { l }}),
+        sName: (s : string, l : A.Srcloc) : A.Name => ({ $name: "s-name", dict: { s, l }}),
+        sGlobal: (s : string) : A.Name => ({ $name: "s-global", dict: { s }}),
+        sModuleGlobal: (s : string) : A.Name => ({ $name: "s-module-global", dict: { s }}),
+        sTypeGlobal: (s : string) : A.Name => ({ $name: "s-type-global", dict: { s }}),
+        makeAtom : atom,
+        isSUnderscore: v => v.$name === "s-underscore",
+        isSName: v => v.$name === "s-name",
+        isSGlobal: v => v.$name === "s-global",
+        isSModuleGlobal: v => v.$name === "s-module-global",
+        isSAtom: v => v.$name === "s-atom",
+      };
+    }
+
+    // NOTE(joe): Function version of to-sourcestring() method on Name in ast.arr
+    function nameToSourceString(name : A.Name) : string {
+      switch(name.$name) {
+        case "s-underscore": return "_";
+        case "s-name": return name.dict.s;
+        case "s-global": return name.dict.s;
+        case "s-module-global": return "$module$" + name.dict.s;
+        case "s-type-global": return "$type$" + name.dict.s;
+        case "s-atom": return name.dict.base + String(name.dict.serial);
+      }
+    }
+
+    // NOTE(joe): Function version of toname() method on Name in ast.arr
+    function nameToName(name : A.Name) : string {
+      switch(name.$name) {
+        case "s-underscore": return "_";
+        case "s-atom": return name.dict.base;
+        default: return name.dict.s;
+      }
+    }
+
+    function nameToKey(name : A.Name) : string {
+      switch(name.$name) {
+        case "s-underscore": return "underscore#";
+        case "s-name": return "name#" + name.dict.s;
+        case "s-global": return "global#" + name.dict.s;
+        case "s-module-global": return "mglobal#" + name.dict.s;
+        case "s-type-global": return "tglobal#" + name.dict.s;
+        case "s-atom": return "atom#" + name.dict.base + "#" + String(name.dict.serial);
+      }
+    }
+
+    const dummyLoc : A.Srcloc = {
+      $name: "builtin",
+      dict: { 'module-name': "dummy location" }
+    };
+
+    const jsnames = MakeName(0);
+    const jsIds = new Map<string, A.Name>();
+    const effectiveIds = new Map<string, boolean>();
+
+    function freshId(id : A.Name) : A.Name {
+      let n;
+      do {
+        const baseName = id.$name === "s-type-global" ? nameToSourceString(id) : nameToName(id);
+        const noHyphens = baseName.replace("-", "$");
+        n = jsnames.makeAtom(noHyphens);
+      } while(effectiveIds.has(nameToSourceString(n)));
+      effectiveIds.set(nameToSourceString(n), true);
+      return n;
+    }
+    function jsIdOf(id : A.Name) : A.Name {
+      const s = nameToKey(id);
+      if (jsIds.has(s)) { return jsIds.get(s); }
+      else {
+        const safeId = freshId(id);
+        jsIds.set(s, safeId);
+        return safeId;
+      }
+    }
+    function constId(name : string) : A.Name {
+      return {
+        $name: "s-name",
+        dict: {
+          l: dummyLoc,
+          s: name
+        }
+      }
+    }
+    function compilerName(id: string) : A.Name {
+      return constId("$" + id)
     }
 
     function compileList(context, exprs: A.List<A.Expr>) : [ Array<J.Expression>, Array<J.Statement> ] {
@@ -104,6 +216,37 @@ import type * as A from './ts-ast';
       }
     }
 
+    function listToArray<T>(l : A.List<T>) : Array<T> {
+      return runtime.ffi.toArray(l);
+    }
+
+    function compileObj(context, expr : A.Expr & { $name: 's-obj' }) : [J.Expression, Array<J.Statement>] {
+      const tmpBind = freshId(compilerName("temporary"));
+      const fieldsAsArray = listToArray(expr.dict.fields);
+
+      const fieldvs = [], stmts = [], binds = [];
+      fieldsAsArray.forEach(f => {
+        if(f.$name !== "s-data-field") { throw new Error("Not yet (or maybe ever) implemented: non-data fields"); }
+        const [val, compiledStmts] = compileExpr(context, f.dict.value);
+        switch(f.dict.value.$name) {
+          case 's-method':
+            throw new Error("s-method not yet implemented");
+          default:
+            fieldvs.push(Property(f.dict.name, val));
+            stmts.push(...compiledStmts);
+
+        }
+      });
+      const varObj = Var(tmpBind, ObjectExpression(fieldvs));
+      const initStmts = [...stmts, varObj];
+      const orderedStmts = [...initStmts, ...binds];
+      return [ Identifier(tmpBind), orderedStmts ];
+    }
+
+    function pyretLookup(l : A.Srcloc, obj : J.Expression, field : string) : J.Expression {
+      return DotExpression(obj, field);
+    }
+
     function compileExpr(context, expr : A.Expr) : [J.Expression, Array<J.Statement>] {
       switch(expr.$name) {
         case 's-module':
@@ -111,14 +254,19 @@ import type * as A from './ts-ast';
         case 's-block':
           return compileSeq(context, expr.dict.stmts);
         case 's-num':
-          const numAns = CallExpression(DotExpression(Identifier("console"), "log"), [Literal(expr.dict.n)])
+          const numAns = Literal(expr.dict.n);
           return [numAns, []];
         case 's-prim-app':
           const [argvs, argstmts] = compileList(context, expr.dict.args);
-          const primAns = CallExpression(DotExpression(Identifier("_runtime"), expr.dict._fun), argvs);
+          const primAns = CallExpression(DotExpression(Identifier(constId("_runtime")), expr.dict._fun), argvs);
           return [primAns, argstmts];
         case 's-srcloc':
           return [Literal("srcloc"), []];
+        case 's-obj':
+          return compileObj(context, expr);
+        case 's-dot':
+          const [objV, objStmts] = compileExpr(context, expr.dict.obj);
+          return [pyretLookup(expr.dict.l, objV, expr.dict.field), objStmts]
         default:
           throw new Error("Unhandled expression type: " + expr.$name);
       }
@@ -126,7 +274,7 @@ import type * as A from './ts-ast';
 
     function createPrelude(prog, provides, env, freeBindings, options, importFlags) : Array<J.Statement> {
       const runtimePath = "./../builtin/runtime.js";
-      const runtimeImport = Var("_runtime", CallExpression(Identifier("require"), [Literal(runtimePath)]));
+      const runtimeImport = Var(constId("_runtime"), CallExpression(Identifier(constId("require")), [Literal(runtimePath)]));
       return [runtimeImport];
     }
 
