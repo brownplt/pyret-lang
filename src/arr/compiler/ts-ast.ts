@@ -878,6 +878,13 @@ export type Expr =
             predicate: Expr,
         }
       }
+    | { $name: 's-table-extract',
+        dict: {
+            l: Loc,
+            column: Name,
+            table: Expr,
+        }
+      }
     | { $name: 's-table',
         dict: {
             column: Name,
