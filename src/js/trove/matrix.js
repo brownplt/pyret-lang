@@ -483,8 +483,10 @@
             var get_shape = runtime.makeMethod0(function (self) {
                 return runtime.makeTuple([self.$h, self.$w])
             }, "get-shape");
-            var get_elem = runtime.makeMethod3(function (self, n1, n2) {
-                getMatrixElms(self, n1, n2);
+            var get_elem = runtime.makeMethod3(function (self, h,c) {
+                if (checkRange(self, h, c)) {
+                    return get1d(self, h, c);
+                }
             })
             var obj = O({
                 _output: outputMatrix,
@@ -662,12 +664,22 @@
                     return makeVector(new_arr);
                 }
             });
+            var getElm = runtime.makeMethod1(function (self,num){
+                runtime.ffi.checkArity(2, arguments, "get", true);
+                runtime.checkArgsInternalInline("Vector", "get", self, annVector, num, runtime.Number);
+                if(num <  0 || num >= self.$l) { 
+                    return throwMessageException("Invalid index") ;
+                } else{
+                    return self.$underlyingMat[num] ; 
+                }
+            },"get")
             var obj = O({
                 _output: outputVector,
                 _equals: equalVector,
                 _plus: addVector,
                 _minus: minusVector,
-                _times: multVector
+                _times: multVector,
+                "get":getElm
             });
             obj = applyBrand(brandVector, obj);
             obj.$underlyingMat = underlyingArr;
