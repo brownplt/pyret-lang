@@ -154,7 +154,7 @@ check "pick on list sets doesn't repeat order":
   found-diff is true
 end
 
-check "sets pick visits all elemeents":
+check "sets pick visits all elements":
 
   fun pick-sum(s):
     cases(P.Pick) s.pick():
@@ -168,4 +168,122 @@ check "sets pick visits all elemeents":
   pick-sum([list-set:]) is 0
   pick-sum([tree-set:]) is 0
 
+end
+
+check "Set map function":
+
+  # Check empty sets:
+  sets.map(empty-list-set, lam(x): x + 1 end) is empty-list-set
+
+  sets.map(empty-tree-set, lam(x): x + 1 end) is empty-tree-set
+
+  # Other tests:
+  sets.map([list-set: 1, 2, 3, 4], lam(x): 1 end)
+    is [list-set: 1]
+
+  sets.map([tree-set: 1, 2, 3, 4], lam(x): 1 end)
+    is [tree-set: 1]
+
+  sets.map([list-set: 1, 2, 3, 4], lam(x): x + 1 end)
+    is [list-set: 5, 4, 3, 2]
+
+  sets.map([tree-set: 1, 2, 3, 4], lam(x): x + 1 end)
+    is [tree-set: 5, 4, 3, 2]
+
+
+  # Number -> String mapping test:
+  test-string = "abcd"
+
+  sets.map([list-set: 0, 1, 2, 3],
+    lam(x): 
+      string-substring(test-string, x, x + 1)
+    end).to-list().sort() is [list: "a", "b", "c", "d"]
+
+  sets.map([tree-set: 0, 1, 2, 3],
+    lam(x): 
+      string-substring(test-string, x, x + 1)
+    end).to-list().sort() is [list: "a", "b", "c", "d"]
+
+
+  # String -> Number mapping test:
+  sets.map([list-set: "Arr", ",", "Hello", "Pyret", "mateys!"], string-length)
+    is [list-set: 1, 3, 7, 5]
+
+  sets.map([tree-set: "Arr", ",", "Hello", "Pyret", "mateys!"],string-length)
+    is [tree-set: 1, 3, 7, 5]
+end
+
+check "Set map method":
+
+  # Check empty sets:
+  empty-list-set.map(lam(x): x + 1 end) is empty-list-set
+
+  empty-tree-set.map(lam(x): x + 1 end) is empty-tree-set
+
+  # Check map returns the same list type:
+  [list-set: 1, 2, 3, 4].map(lam(x): x end)
+    is [list-set: 1, 2, 3, 4]
+
+  [tree-set: 1, 2, 3, 4].map(lam(x): x end)
+    is [tree-set: 1, 2, 3, 4]
+
+  # Other tests:
+  [list-set: 1, 2, 3, 4].map(lam(x): 1 end)
+    is [list-set: 1]
+
+  [list-set: 1, 2, 3, 4].map(lam(x): x + 1 end)
+    is [list-set: 5, 4, 3, 2]
+
+  [tree-set: 1, 2, 3, 4].map(lam(x): x + 1 end)
+    is [tree-set: 5, 4, 3, 2]
+
+
+  # Number -> String mapping test:
+  test-string = "abcd"
+
+  [list-set: 0, 1, 2, 3].map(lam(x): 
+      string-substring(test-string, x, x + 1)
+    end).to-list().sort() is [list: "a", "b", "c", "d"]
+
+  [tree-set: 0, 1, 2, 3].map(lam(x): 
+      string-substring(test-string, x, x + 1)
+    end).to-list().sort() is [list: "a", "b", "c", "d"]
+
+  # String -> Number mapping test:
+  [list-set: "Arr", ",", "Hello", "Pyret", "mateys!"].map(string-length)
+    is [list-set: 1, 3, 7, 5]
+
+  [tree-set: "Arr", ",", "Hello", "Pyret", "mateys!"].map(string-length)
+    is [tree-set: 1, 3, 7, 5]
+end
+
+check "Set filter function":
+
+  sets.filter(lam(e): e > 5 end, [list-set: -1, 1]) is [list-set: ]
+  sets.filter(lam(e): e > 5 end, [tree-set: -1, 1]) is [tree-set: ]
+
+  sets.filter(lam(e): e > 0 end, [list-set: -1, 1]) is [list-set: 1]
+  sets.filter(lam(e): e > 0 end, [tree-set: -1, 1]) is [tree-set: 1]
+
+  sets.filter(lam(e): num-modulo(e, 2) == 0 end,
+    [list-set: 1, 2, 3, 4]) is [list-set: 2, 4]
+
+  sets.filter(lam(e): num-modulo(e, 2) == 0 end,
+    [tree-set: 1, 2, 3, 4]) is [tree-set: 2, 4]
+end
+
+
+check "Set filter method":
+
+  [list-set: -1, 1].filter(lam(e): e > 5 end) is [list-set: ]
+  [tree-set: -1, 1].filter(lam(e): e > 5 end) is [tree-set: ]
+
+  [list-set: -1, 1].filter(lam(e): e > 0 end) is [list-set: 1]
+  [tree-set: -1, 1].filter(lam(e): e > 0 end) is [tree-set: 1]
+
+  [list-set: 1, 2, 3, 4].filter(lam(e): num-modulo(e, 2) == 0 end)
+    is [list-set: 2, 4]
+
+  [tree-set: 1, 2, 3, 4].filter(lam(e): num-modulo(e, 2) == 0 end)
+    is [tree-set: 2, 4]
 end
