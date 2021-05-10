@@ -1,7 +1,6 @@
 import * as J from 'estree';
 import type * as Escodegen from 'escodegen';
 import type * as A from './ts-ast';
-import { assert } from 'console';
 
 ({ 
   requires: [],
@@ -338,7 +337,7 @@ import { assert } from 'console';
 
     function assertMapIsDoingItsJob(prog : A.Program) {
       const after = map<A.Program, A.Program>({}, prog);
-      assert(prog !== after);
+      if(prog === after) { throw new InternalCompilerError("AST map visitor returned an identical object"); }
       return after;
     }
 
