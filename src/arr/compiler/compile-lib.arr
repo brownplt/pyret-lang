@@ -376,7 +376,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
       var wf = W.check-well-formed(ast-ended)
       ast-ended := nothing
       add-phase("Checked well-formedness", wf)
-      checker = if options.check-mode and not(is-builtin-module(locator.uri())):
+      checker = if not(options.checks == "none") and not(is-builtin-module(locator.uri())):
         CH.desugar-check
       else:
         CH.desugar-no-checks
@@ -387,7 +387,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
           wf := nothing
           var checked = checker(wf-ast)
           wf-ast := nothing
-          add-phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end, checked)
+          add-phase(if not(options.checks == "none"): "Desugared (with checks)" else: "Desugared (skipping checks)" end, checked)
           var imported = AU.wrap-extra-imports(checked, libs)
           checked := nothing
           add-phase("Added imports", imported)
@@ -453,6 +453,9 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                             .visit(AU.inline-lams)
                             .visit(AU.set-recursive-visitor)
                             .visit(AU.set-tail-visitor)
+                when not(options.user-annotations):
+                  cleaned := cleaned.visit(AU.strip-annotations-visitor)
+                end
                 add-phase("Cleaned AST", cleaned)
                 when not(options.type-check) block:
                   provides := AU.get-named-provides(named-result, locator.uri(), env)
@@ -551,6 +554,9 @@ fun make-standalone(wl, compiled, options):
         | module-as-string(_, _, _, rp) =>
           cases(CS.CompileResult) rp block:
             | ok(code) =>
+              when code.pyret-to-js-runnable() == "":
+                spy: uri: w.locator.uri() end
+              end
               j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
             | err(problems) =>
               all-compile-problems := problems + all-compile-problems
@@ -558,6 +564,21 @@ fun make-standalone(wl, compiled, options):
           end
       end
     end)
+
+
+  check-str = if not(options.check-mode): "none" else: options.checks end
+
+  runtime-options = J.j-obj(
+    [C.clist:
+      J.j-field("checks", j-str(check-str)),
+      J.j-field("disableAnnotationChecks",
+        if options.runtime-annotations:
+          j-false
+        else:
+          j-true
+        end)
+    ])
+
   cases(List) all-compile-problems:
     | link(_, _) => left(all-compile-problems)
     | empty =>
@@ -583,7 +604,8 @@ fun make-standalone(wl, compiled, options):
           j-field("staticModules", static-modules),
           j-field("depMap", depmap),
           j-field("toLoad", to-load),
-          j-field("uris", uris)
+          j-field("uris", uris),
+          j-field("runtimeOptions", runtime-options)
         ])
 
       right({
