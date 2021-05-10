@@ -3,7 +3,6 @@ import type * as Escodegen from 'escodegen';
 import type * as Path from 'path';
 import type * as A from './ts-ast';
 import type * as CS from './ts-compile-structs';
-import { pathToFileURL } from 'url';
 
 ({ 
   requires: [],
@@ -110,7 +109,7 @@ import { pathToFileURL } from 'url';
         sourceType: "module",
         type: "Program",
         body: body
-      }
+      };
     }
 
     function MakeName(start : number) {
@@ -289,7 +288,12 @@ import { pathToFileURL } from 'url';
           const [objV, objStmts] = compileExpr(context, expr.dict.obj);
           return [pyretLookup(expr.dict.l, objV, expr.dict.field), objStmts]
         case 's-id':
-          // TODO(joe): freeBindings
+          const b = context.postEnv.dict.bindings;
+          const key = nameToKey(expr.dict.id);
+          if(runtime.getField(b, "has-key-now").app(key) && 
+             !(runtime.getField(b, "get-value-now").app(key).dict.origin.dict["new-definition"])) {
+            context.freeBindings.set(key, runtime.getField(b, "get-value-now").app(key))
+          }
           return [Identifier(jsIdOf(expr.dict.id)), []];
         case 's-let-expr':
           const prelude = [];
@@ -334,9 +338,8 @@ import { pathToFileURL } from 'url';
       }
     }
 
-    function createPrelude(prog : A.Program, provides, env, freeBindings, options, importFlags) : Array<J.Statement> {
+    function createPrelude(prog : A.Program, provides, env, freeBindings : Map<string, CS.ValueBind>, options, importFlags) : Array<J.Statement> {
 
-      /*
       function getBaseDir(source : string, buildDir : string) : [ string, string ] {
         let sourceHead = source.indexOf("://") + 3;
         const sourcePath = source.substring(sourceHead)
@@ -352,18 +355,20 @@ import { pathToFileURL } from 'url';
         baseDir = P.resolve(baseDir);
         source = P.resolve(source);
         let projectRelativePath = P.dirname(source.substring(baseDir.length + 1));
-        let parentPath = projectRelativePath.split("/").map(v => "..").join("/");
-        if(parentPath === "") { parentPath = "./"; }
+        if(projectRelativePath === ".") { return "./"; }
+        let parentPath = projectRelativePath.split("/").map(v => "../").join("");
         return parentPath;
       }
 
       const [ baseDir, absoluteSource ] = getBaseDir(provides.dict["from-uri"], options.dict["base-dir"]);
       const preAppendDir = getCompiledRelativePath(baseDir, absoluteSource);
-      //const relativePath = preAppendDir; // NOTE(joe): commented out in direct codegen: `preAppendDir + options.dict["runtime-path"]`
- */
+      const relativePath = preAppendDir; // NOTE(joe): commented out in direct codegen: `preAppendDir + options.dict["runtime-path"]`
 
-      const baseDir = options.dict["base-dir"];
-      const relativePath = P.relative(baseDir, P.dirname(uriToRealFsPath(provides.dict["from-uri"])));
+      // NOTE(joe/ben): we think we can simplify all the stuff above with the
+      // right composition of P.relative and P.dirname, but the stuff above
+      // works and this doesn't
+//      const baseDir = options.dict["base-dir"];
+//      const relativePath = P.relative(baseDir, P.dirname(uriToRealFsPath(provides.dict["from-uri"])));
 
       const imports = prog.dict.imports;
 
@@ -446,9 +451,10 @@ import { pathToFileURL } from 'url';
             uriToLocalJsName.set(uri, importStmt.dict.name);
             return uriToImport(uri, importStmt.dict.name);
           default:
-            throw new InternalCompilerError("Codegen requires s-import only " + JSON.stringify(importStmt));
+            return [];
+            //throw new InternalCompilerError("Codegen requires s-import only " + JSON.stringify(importStmt));
         }
-      }).reduce((l1, l2) => l1.concat(l2));
+      }).reduce((l1, l2) => l1.concat(l2), []);
 
       function envUriByValueNameValue(env, name) {
         // TODO(joe): this punched through "uri-by-value-name-value" because of flatness concerns
@@ -466,7 +472,7 @@ import { pathToFileURL } from 'url';
         if (!uriToLocalJsName.has(uri)) {
           const newName = freshId(compilerName("G"));
           uriToLocalJsName.set(uri, newName);
-          implicitImports.push(uriToImport(uri, newName));
+          implicitImports.push(...uriToImport(uri, newName));
         }
       });
 
@@ -480,8 +486,11 @@ import { pathToFileURL } from 'url';
       end
       */
 
-      // TODO(joe): populate freeBindings and use it here
-      const fromModules = []; ///.map()
+      const fromModules = [...freeBindings.values()].map(binding => {
+        const uri = binding.dict["origin"].dict["uri-of-definition"];
+        const name = nameToName(binding.dict["origin"].dict["original-name"]);
+        return Var(jsIdOf(binding.dict["atom"]), rtMethod("getModuleValue", [Literal(uri), Literal(name)]));
+      });
 
       return [...importStmts, ...fromModules];
     }
@@ -534,7 +543,7 @@ import { pathToFileURL } from 'url';
     function compileProgram(prog : A.Program, uri : string, env : any, postEnv : any, provides : any, options : any) : PyretObject {
       const translatedDatatypeMap = new Map();   // TODO(joe) process from stringdict
       const fromUri = provides.dict['from-uri']; // TODO(joe) handle phases builtin-stage*
-      const freeBindings = new Map();            // NOTE(joe) this starts empty in the mainline compiler
+      const freeBindings = new Map<string, CS.ValueBind>();            // NOTE(joe) this starts empty in the mainline compiler
 
       // TODO(joe): remove this when we are 100% confident that map doesn't fudge with the AST
       prog = assertMapIsDoingItsJob(prog);
