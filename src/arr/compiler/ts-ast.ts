@@ -1,7 +1,10 @@
 export type List<T> =
 | { $name: 'empty', dict : {} }
 | { $name: 'link', dict : { first: T, rest: List<T> }}
-type Option<T> = any;
+export type Option<T> =
+| { $name: 'none', dict : {} }
+| { $name: 'some', dict : { value: T }}
+
 type NumInteger = any;
 
 export type Srcloc =

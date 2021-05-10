@@ -1,6 +1,9 @@
 import * as J from 'estree';
 import type * as Escodegen from 'escodegen';
+import type * as Path from 'path';
 import type * as A from './ts-ast';
+import type * as CS from './ts-compile-structs';
+import { pathToFileURL } from 'url';
 
 ({ 
   requires: [],
@@ -12,9 +15,12 @@ import type * as A from './ts-ast';
   },
   theModule: function(runtime, _, ___) {
     const escodegen : typeof Escodegen = require('escodegen');
+    const P : typeof Path = require('path');
     // Pretty-print JS asts
     // Return a PyretObject
     // Type enough AST to get to s-num
+
+    type Variant<T, V> = T & { $name: V };
 
     class ExhaustiveSwitchError extends Error {
       constructor(v: never, message?: string) {
@@ -57,6 +63,7 @@ import type * as A from './ts-ast';
       }
     }
     function Literal(a : any) : J.Expression {
+      if(a === undefined) { throw new InternalCompilerError("undefined given to Literal"); }
       return {
         type: "Literal",
         value: a
@@ -201,6 +208,14 @@ import type * as A from './ts-ast';
       return constId("$" + id)
     }
 
+    const RUNTIME = constId("_runtime");
+
+    function compressRuntimeName(name : string) { return name; }
+
+    function rtMethod(name : string, args : Array<J.Expression>) {
+      return CallExpression(DotExpression(Identifier(RUNTIME), compressRuntimeName(name)), args);
+    }
+
     function compileList(context, exprs: A.List<A.Expr>) : [ Array<J.Expression>, Array<J.Statement> ] {
       if(exprs.$name === 'empty') { return [[], []]; }
       else {
@@ -226,7 +241,7 @@ import type * as A from './ts-ast';
       return runtime.ffi.toArray(l);
     }
 
-    function compileObj(context, expr : A.Expr & { $name: 's-obj' }) : [J.Expression, Array<J.Statement>] {
+    function compileObj(context, expr : Variant<A.Expr, 's-obj'>) : [J.Expression, Array<J.Statement>] {
       const tmpBind = freshId(compilerName("temporary"));
       const fieldsAsArray = listToArray(expr.dict.fields);
 
@@ -295,10 +310,180 @@ import type * as A from './ts-ast';
       }
     }
 
-    function createPrelude(prog, provides, env, freeBindings, options, importFlags) : Array<J.Statement> {
-      const runtimePath = "./../builtin/runtime.js";
-      const runtimeImport = Var(constId("_runtime"), CallExpression(Identifier(constId("require")), [Literal(runtimePath)]));
-      return [runtimeImport];
+    function getGlobals(prog : A.Program) : Set<string> {
+      const globalNames = new Set<string>();
+      visit<A.Name | A.Program>({
+        "s-global": (_, g : (Variant<A.Name, "s-global">)) => {
+          globalNames.add(g.dict.s);
+        }
+      }, prog);
+      return globalNames;
+    }
+
+    function importToDep(i : A.ImportType) : CS.Dependency {
+      switch(i.$name) {
+        case 's-const-import': return { $name: 'builtin', dict: { modname: i.dict.mod }}
+        case 's-special-import': return { $name: 'dependency', dict: {protocol: i.dict.kind, arguments: i.dict.args}}
+      }
+    }
+
+    function depToKey(d : CS.Dependency) : string {
+      switch(d.$name) {
+        case 'dependency': return `${d.dict.protocol}(${listToArray(d.dict.arguments).join(", ")})`
+        case 'builtin': return `builtin(${d.dict.modname})`;
+      }
+    }
+
+    function createPrelude(prog : A.Program, provides, env, freeBindings, options, importFlags) : Array<J.Statement> {
+
+      /*
+      function getBaseDir(source : string, buildDir : string) : [ string, string ] {
+        let sourceHead = source.indexOf("://") + 3;
+        const sourcePath = source.substring(sourceHead)
+        const shorter = Math.min(sourcePath.length, buildDir.length)
+        let cutoffIndex = 0;
+        for(let i = 0; i < shorter; i += 1) {
+          if(sourcePath[i] !== buildDir[i]) { cutoffIndex = i; break; }
+        }
+        return [ buildDir.substring(0, cutoffIndex), sourcePath ];
+      }
+
+      function getCompiledRelativePath(baseDir : string, source : string) {
+        baseDir = P.resolve(baseDir);
+        source = P.resolve(source);
+        let projectRelativePath = P.dirname(source.substring(baseDir.length + 1));
+        let parentPath = projectRelativePath.split("/").map(v => "..").join("/");
+        if(parentPath === "") { parentPath = "./"; }
+        return parentPath;
+      }
+
+      const [ baseDir, absoluteSource ] = getBaseDir(provides.dict["from-uri"], options.dict["base-dir"]);
+      const preAppendDir = getCompiledRelativePath(baseDir, absoluteSource);
+      //const relativePath = preAppendDir; // NOTE(joe): commented out in direct codegen: `preAppendDir + options.dict["runtime-path"]`
+ */
+
+      const baseDir = options.dict["base-dir"];
+      const relativePath = P.relative(baseDir, P.dirname(uriToRealFsPath(provides.dict["from-uri"])));
+
+      const imports = prog.dict.imports;
+
+      function uriToRealFsPath(uri : string) : string {
+        const index = uri.indexOf("://") + 3;
+        return uri.substring(index) + ".js";
+      }
+
+      const runtimeBuiltinRelativePath : A.Option<string> = options.dict["runtime-builtin-relative-path"];
+
+      function uriToImport(uri : string, name : A.Name) : Array<J.Statement> {
+        if(uri.startsWith("builtin://")) {
+          const builtinName = uriToRealFsPath(uri + ".arr");
+          let thePath;
+          switch(runtimeBuiltinRelativePath.$name) {
+            case 'some': 
+              thePath = runtimeBuiltinRelativePath.dict.value + builtinName;
+              break;
+            case 'none': 
+              thePath = relativePath + "../builtin/" + builtinName;
+              break;
+          }
+          return [
+            Var(jsIdOf(name), CallExpression(Identifier(constId("require")), [Literal(thePath)])),
+            ExpressionStatement(rtMethod("addModule", [Literal(uri), Identifier(jsIdOf(name))]))
+          ];
+        }
+        else if(uri.startsWith("jsfile://") || uri.startsWith("file://")) {
+          const targetPath = uriToRealFsPath(uri);
+          const thisPath = uriToRealFsPath(provides.dict["from-uri"]);
+          const jsRequirePath = P.relative(P.dirname(thisPath), targetPath);
+          return [
+            Var(jsIdOf(name), CallExpression(Identifier(constId("require")), [Literal("./" + jsRequirePath)])),
+            ExpressionStatement(rtMethod("addModule", [Literal(uri), Identifier(jsIdOf(name))]))
+          ];
+        }
+      }
+
+      const globalNames = getGlobals(prog);
+      const uriToLocalJsName = new Map<string, A.Name>();
+
+      function importBuiltin(bindName : A.Name, name : string) {
+        let thePath;
+        switch(runtimeBuiltinRelativePath.$name) {
+          case 'some': thePath = runtimeBuiltinRelativePath.dict.value + name; break;
+          case 'none': thePath = relativePath + "../builtin/" + name; break;
+        }
+        return Var(bindName, CallExpression(Identifier(constId("require")), [Literal(thePath)]));
+      }
+
+      const runtimeImport = importBuiltin(RUNTIME, "runtime.js");
+
+      const arrayImport =  importBuiltin(RUNTIME, "array.arr.js");
+      const tableImport =  importBuiltin(RUNTIME, "tables.arr.js");
+      const reactorImport =  importBuiltin(RUNTIME, "reactor.arr.js");
+
+      const manualImports = [runtimeImport];
+      if(importFlags["table-import"]) { manualImports.push(tableImport); }
+      if(importFlags["reactor-import"]) {
+        throw new TODOError("reactor.arr.js not implemented via flags");
+          //manualImports.push(reactorImport);
+      }
+      if(importFlags["array-import"]) {
+        throw new TODOError("array.arr.js not implemented via flags");
+          //manualImports.push(arrayImport);
+      }
+
+      const explicitImports = listToArray(imports).map(importStmt => {
+        switch(importStmt.$name) {
+          case 's-import':
+            const depKey = depToKey(importToDep(importStmt.dict.file));
+            // TODO(joe): this punched through "uri-by-dep-key" because of flatness concerns
+            // This should use a clean CompileEnv interface method
+            let uri = runtime.getField(env.dict["my-modules"], "get-value").app(depKey);
+            switch(options.dict["compile-mode"].$name) {
+              case 'cm-normal': break;
+              case 'cm-builtin-stage-1':
+              case 'cm-builtin-general': uri = "builtin://" + P.basename(uri, ".arr"); break;
+            }
+            uriToLocalJsName.set(uri, importStmt.dict.name);
+            return uriToImport(uri, importStmt.dict.name);
+          default:
+            throw new InternalCompilerError("Codegen requires s-import only " + JSON.stringify(importStmt));
+        }
+      }).reduce((l1, l2) => l1.concat(l2));
+
+      function envUriByValueNameValue(env, name) {
+        // TODO(joe): this punched through "uri-by-value-name-value" because of flatness concerns
+        // This should use a clean CompileEnv interface method
+        return runtime.getField(env.dict.globals.dict.values, "get-value").app(name).dict["uri-of-definition"];
+      }
+
+      const nonImportedGlobalNames = [...(globalNames.keys())].filter(g => {
+        return !(uriToLocalJsName.has(envUriByValueNameValue(env, g)));
+      });
+
+      const implicitImports = [];
+      nonImportedGlobalNames.forEach(g => {
+        const uri = envUriByValueNameValue(env, g);
+        if (!uriToLocalJsName.has(uri)) {
+          const newName = freshId(compilerName("G"));
+          uriToLocalJsName.set(uri, newName);
+          implicitImports.push(uriToImport(uri, newName));
+        }
+      });
+
+      const importStmts = [...manualImports, ...explicitImports, ...implicitImports];
+
+      /* NOTE(joe): this was no-op code that produces a list and doesn't use it
+      for CL.map_list(g from global-names.keys-list-now()):
+        uri = env.uri-by-value-name-value(g)
+        imported-as = uri-to-local-js-name.get-value-now(uri)
+        J.j-var(js-id-of(A.s-global(g)), J.j-dot(j-id(js-id-of(imported-as)), g))
+      end
+      */
+
+      // TODO(joe): populate freeBindings and use it here
+      const fromModules = []; ///.map()
+
+      return [...importStmts, ...fromModules];
     }
 
     function visit<T extends { $name: string, dict: {} }>(v : Partial<Record<T["$name"], any>>, d : T) {
@@ -341,16 +526,18 @@ import type * as A from './ts-ast';
       return after;
     }
 
+    let importFlags = {
+      'table-import': false,
+      'array-import': false,
+      'reactor-import': false
+    };
     function compileProgram(prog : A.Program, uri : string, env : any, postEnv : any, provides : any, options : any) : PyretObject {
-      const importFlags = {};                    // TODO(joe) set up import-flags
       const translatedDatatypeMap = new Map();   // TODO(joe) process from stringdict
       const fromUri = provides.dict['from-uri']; // TODO(joe) handle phases builtin-stage*
       const freeBindings = new Map();            // NOTE(joe) this starts empty in the mainline compiler
 
       // TODO(joe): remove this when we are 100% confident that map doesn't fudge with the AST
       prog = assertMapIsDoingItsJob(prog);
-
-      process.stdout.write(JSON.stringify(prog));
 
       const [ans, stmts] = compileExpr({
         uri: fromUri,
