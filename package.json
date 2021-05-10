@@ -51,7 +51,7 @@
     "jest": "^26.4.4",
     "jshint": "^2.9.5",
     "module-deps": "^6.2.1",
-    "pyret-npm": "^0.0.15",
+    "pyret-npm": "^0.0.21",
     "selenium-webdriver": "4.0.0-alpha.4",
     "ts-jest": "^26.4.4",
     "typescript": "^3.9.7"

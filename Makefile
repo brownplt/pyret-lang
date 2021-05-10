@@ -7,7 +7,7 @@ PYRET_JARR_DEPS := $(wildcard src/arr/compiler/*.arr) $(patsubst src/arr/compile
 PYRET_JARR := build/phaseA/pyret.jarr
 
 $(PYRET_JARR) : $(PYRET_JARR_DEPS)
-	pyret --checks none -c src/arr/compiler/pyret.arr -o $(PYRET_JARR)
+	npx pyret --checks none -c src/arr/compiler/pyret.arr -o $(PYRET_JARR)
 
 src/arr/compiler/%.js : src/arr/compiler/%.ts
 	`npm bin`/tsc --target "esnext" --module "es2015" --moduleResolution "node" $<
