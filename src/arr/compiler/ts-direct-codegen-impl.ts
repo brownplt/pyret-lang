@@ -1,6 +1,7 @@
 import * as J from 'estree';
 import type * as Escodegen from 'escodegen';
 import type * as A from './ts-ast';
+import { assert } from 'console';
 
 ({ 
   requires: [],
@@ -21,13 +22,19 @@ import type * as A from './ts-ast';
         super(`Switch is not exhaustive on \`${JSON.stringify(v)}\`: ${message}`);
       }
     }
+    class InternalCompilerError extends Error {
+      constructor(message: string) {
+        super(`Internal compile error (compiler bug/broken invariant): ${message}`);
+      }
+    }
+    class TODOError extends Error {
+      constructor(message: string) {
+        super(`Incomplete feature in compiler: ${message}`);
+      }
+    }
 
     type PyretObject = {
       dict: any
-    };
-
-    type Compiled = {
-
     };
 
     function ExpressionStatement(e : J.Expression) : J.Statement {
@@ -205,7 +212,7 @@ import type * as A from './ts-ast';
     }
 
     function compileSeq(context, exprs : A.List<A.Expr>) : [J.Expression, Array<J.Statement>] {
-      if(exprs.$name === 'empty') { throw new Error("Empty block reached codegen"); }
+      if(exprs.$name === 'empty') { throw new InternalCompilerError("Empty block reached codegen"); }
       else if(exprs.dict.rest.$name === 'link') {
         return compileExpr(context, exprs.dict.first);
       }
@@ -226,11 +233,11 @@ import type * as A from './ts-ast';
 
       const fieldvs = [], stmts = [], binds = [];
       fieldsAsArray.forEach(f => {
-        if(f.$name !== "s-data-field") { throw new Error("Not yet (or maybe ever) implemented: non-data fields"); }
+        if(f.$name !== "s-data-field") { throw new TODOError("Not yet (or maybe ever) implemented: non-data fields"); }
         const [val, compiledStmts] = compileExpr(context, f.dict.value);
         switch(f.dict.value.$name) {
           case 's-method':
-            throw new Error("s-method not yet implemented");
+            throw new TODOError("s-method not yet implemented");
           default:
             fieldvs.push(Property(f.dict.name, val));
             stmts.push(...compiledStmts);
@@ -275,7 +282,8 @@ import type * as A from './ts-ast';
           listToArray(expr.dict.binds).forEach(v => {
             const [ val, vStmts ] = compileExpr(context, v.dict.value);
             switch(v.dict.b.$name) {
-              case "s-tuple-bind": throw new Error("found s-tuple-bind in codegen");
+              case "s-tuple-bind":
+                throw new InternalCompilerError("Broken invariant: s-tuple-bind in codegen");
               case "s-bind":
                 prelude.push(...vStmts);
                 prelude.push(Var(jsIdOf(v.dict.b.dict.id), val));
@@ -284,7 +292,7 @@ import type * as A from './ts-ast';
           const [ bv, bodyStmts ] = compileExpr(context, expr.dict.body);
           return [ bv, [...prelude, ...bodyStmts]];
         default:
-          throw new Error("Unhandled expression type: " + expr.$name);
+          throw new TODOError("Unhandled expression type: " + expr.$name);
       }
     }
 
@@ -294,11 +302,56 @@ import type * as A from './ts-ast';
       return [runtimeImport];
     }
 
+    function visit<T extends { $name: string, dict: {} }>(v : Partial<Record<T["$name"], any>>, d : T) {
+      if(typeof d !== "object" || !("$name" in d)) { throw new Error("Visit failed: " + JSON.stringify(d)); }
+      if(d.$name in v) { v[d.$name](v, d); }
+      else {
+        for(const [k, subd] of Object.entries(d.dict)) {
+          if(typeof subd === 'object' && "$name" in subd) {
+            visit(v, subd as any);
+          }
+        }
+      }
+    }
+
+    function map<T extends { $name: string, dict: {} }, A extends T>(v : Partial<Record<T["$name"], any>>, d : A) : A {
+      if(typeof d !== "object" || !("$name" in d)) { throw new Error("Map failed: " + JSON.stringify(d)); }
+      if(d.$name in v) { return v[d.$name](v, d); }
+      else {
+        const newObj : typeof d = Object.create(Object.getPrototypeOf(d));
+        for(const [k, meta] of Object.entries(d)) {
+          if(k !== "dict") { newObj[k] = meta; }
+        }
+        newObj.dict = Object.create(Object.getPrototypeOf(d.dict));
+        for(const [k, subd] of Object.entries(d.dict)) {
+          if(typeof subd === 'object' && "$name" in subd) {
+            const result = map(v, subd as any);
+            newObj.dict[k] = result;
+          }
+          else {
+            newObj.dict[k] = subd;
+          }
+        }
+        return newObj;
+      }
+    }
+
+    function assertMapIsDoingItsJob(prog : A.Program) {
+      const after = map<A.Program, A.Program>({}, prog);
+      assert(prog !== after);
+      return after;
+    }
+
     function compileProgram(prog : A.Program, uri : string, env : any, postEnv : any, provides : any, options : any) : PyretObject {
       const importFlags = {};                    // TODO(joe) set up import-flags
       const translatedDatatypeMap = new Map();   // TODO(joe) process from stringdict
       const fromUri = provides.dict['from-uri']; // TODO(joe) handle phases builtin-stage*
       const freeBindings = new Map();            // NOTE(joe) this starts empty in the mainline compiler
+
+      // TODO(joe): remove this when we are 100% confident that map doesn't fudge with the AST
+      prog = assertMapIsDoingItsJob(prog);
+
+      process.stdout.write(JSON.stringify(prog));
 
       const [ans, stmts] = compileExpr({
         uri: fromUri,
