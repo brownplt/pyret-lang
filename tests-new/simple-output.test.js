@@ -24,7 +24,6 @@ describe("testing simple-output programs", () => {
       var pipeline = "anchor";
       if(typeCheck) { typecheck = "typecheck"; }
       if(global._PYRET_PIPELINE === "ts-anchor") { pipeline = "ts-anchor"; }
-      console.log(global._PYRET_PIPELINE);
       compileProcess = cp.spawnSync(
         "node",
         ["tests-new/run-pyret.js", f, typecheck, pipeline],

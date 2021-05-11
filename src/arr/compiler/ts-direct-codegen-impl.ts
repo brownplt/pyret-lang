@@ -6,15 +6,13 @@ import type * as CS from './ts-compile-structs';
 
 ({ 
   requires: [],
-  nativeRequires: [],
+  nativeRequires: ["escodegen", "path"],
   provides: {
     values: {
       "compile-program": "tany"
     }
   },
-  theModule: function(runtime, _, ___) {
-    const escodegen : typeof Escodegen = require('escodegen');
-    const P : typeof Path = require('path');
+  theModule: function(runtime, _, ___, escodegen : (typeof Escodegen), P : (typeof Path)) {
     // Pretty-print JS asts
     // Return a PyretObject
     // Type enough AST to get to s-num

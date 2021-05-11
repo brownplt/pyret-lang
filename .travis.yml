@@ -19,7 +19,8 @@ before_script:
   cd ide; BROWSER=none npm start &
 - sleep 10
 script:
-- npm run all-tests
+- npm run offline-tests
+- npm run web-tests
 notifications:
   slack:
     secure: kHQvp3HZL5GRY58XrGdRhZKtUvGrxgsAKMawYYNO4PA9NXlr5EYwbYBCrud1DNJs6kdEPK48ItSnsWXKoDZTS+g96b56t8vjHl2d98EN4WwvORj3g9NNiZ0SESL2LUwFa5vCxlnTbxfCQcfNpStGrwYZZ9DnIGTDuLO2EqZxvP0=

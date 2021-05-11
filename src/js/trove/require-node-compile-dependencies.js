@@ -20,6 +20,10 @@ define("source-map", [], function () { return sourcemap; });
 jssha256 = require("js-sha256");
 define("js-sha256", [], function () { return jssha256; });
 
+escodegen = require("escodegen");
+define("escodegen", [], function () { return escodegen; });
+
+
 // NOTE(alex): Configure is async. Placeholder object so fs module will be defined
 self.fsPlaceholder = {};
 
