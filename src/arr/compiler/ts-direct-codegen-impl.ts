@@ -314,8 +314,8 @@ import type * as CS from './ts-compile-structs';
 
     function getGlobals(prog : A.Program) : Set<string> {
       const globalNames = new Set<string>();
-      visit<A.Name | A.Program>({
-        "s-global": (_, g : (Variant<A.Name, "s-global">)) => {
+      visit<A.Name>({
+        "s-global": (_, g) => {
           globalNames.add(g.dict.s);
         }
       }, prog);
@@ -493,30 +493,59 @@ import type * as CS from './ts-compile-structs';
       return [...importStmts, ...fromModules];
     }
 
-    function visit<T extends { $name: string, dict: {} }>(v : Partial<Record<T["$name"], any>>, d : T) {
+    /** The union type of all Pyret values. */
+    // TODO: add the remaining types to this union!
+    type PyretValue = number | string | boolean | PyretDataValue
+    /** The supertype of all possible Pyret data values. */
+    // TODO: add the remaining reflective accessors to this definition
+    type PyretDataValue = {
+      $name: string,
+      dict: {
+        [property: string]: PyretValue
+      }
+    };
+    type Visitor<T extends PyretDataValue, Ret = any> = {
+      [method in T["$name"]]?: (self: Visitor<T, Ret>, val: Variant<T, method>) => Ret;
+    };
+
+    /**
+     * `visit<T>` will traverse an entire Pyret data value, looking for
+     * any nested values whose `$name` fields indicate they overlap with type `T`,
+     * and will call any matching visitor methods within the visitor object.
+     */
+    function visit<T extends PyretDataValue>(v : Visitor<T>, d : PyretDataValue) {
       if(typeof d !== "object" || !("$name" in d)) { throw new Error("Visit failed: " + JSON.stringify(d)); }
       if(d.$name in v) { v[d.$name](v, d); }
       else {
         for(const [k, subd] of Object.entries(d.dict)) {
           if(typeof subd === 'object' && "$name" in subd) {
-            visit(v, subd as any);
+            visit(v, subd);
           }
         }
       }
     }
 
-    function map<T extends { $name: string, dict: {} }, A extends T>(v : Partial<Record<T["$name"], any>>, d : A) : A {
+    /**
+     * `map<T, A, R>` will traverse an entire data value of type `A`, looking for
+     * any nested values whose `$name` fields indicate they overlap with type `T` from the visitor,
+     * and will call any matching visitor methods within the visitor.
+     * The return value of type `R` is by default the same as type `A`, but can be different if needed.
+     * Note that `R <: A` in order for any uniformly-transformed values to be type-correct:
+     * if the visitor doesn't modify the values directly, the result will be the same type of
+     * `PyretDataValue` as was given.
+     */
+    function map<T extends PyretDataValue, A extends PyretDataValue = T, Ret extends PyretDataValue = A>(v : Visitor<T, PyretValue>, d : A) : Ret {
       if(typeof d !== "object" || !("$name" in d)) { throw new Error("Map failed: " + JSON.stringify(d)); }
       if(d.$name in v) { return v[d.$name](v, d); }
       else {
-        const newObj : typeof d = Object.create(Object.getPrototypeOf(d));
+        const newObj : Ret = Object.create(Object.getPrototypeOf(d));
         for(const [k, meta] of Object.entries(d)) {
           if(k !== "dict") { newObj[k] = meta; }
         }
         newObj.dict = Object.create(Object.getPrototypeOf(d.dict));
         for(const [k, subd] of Object.entries(d.dict)) {
           if(typeof subd === 'object' && "$name" in subd) {
-            const result = map(v, subd as any);
+            const result = map(v, subd);
             newObj.dict[k] = result;
           }
           else {
@@ -528,7 +557,7 @@ import type * as CS from './ts-compile-structs';
     }
 
     function assertMapIsDoingItsJob(prog : A.Program) {
-      const after = map<A.Program, A.Program>({}, prog);
+      const after = map<A.Program>({}, prog);
       if(prog === after) { throw new InternalCompilerError("AST map visitor returned an identical object"); }
       return after;
     }
