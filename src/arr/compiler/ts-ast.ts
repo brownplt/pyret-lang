@@ -16,12 +16,12 @@ export type Srcloc =
     | { $name: 'srcloc',
         dict: {
           source : string,
-          'start-line': number,
-          'start-column': number,
-          'start-char': number,
-          'end-line' : number,
-          'end-column' : number,
-          'end-char' : number
+          'start-line': Number,
+          'start-column': Number,
+          'start-char': Number,
+          'end-line' : Number,
+          'end-column' : Number,
+          'end-char' : Number
         }
       }
 
@@ -57,22 +57,22 @@ export type Name =
     | { $name: 's-atom',
         dict: {
             base: string,
-            serial: number,
+            serial: Number,
         }
       }
 
 export type AppInfo =
     | { $name: 'app-info-c',
         dict: {
-            'is-recursive': boolean,
-            'is-tail': boolean,
+            'is-recursive': Boolean,
+            'is-tail': Boolean,
         }
       }
 
 export type PrimAppInfo =
     | { $name: 'prim-app-info-c',
         dict: {
-            'needs-step': boolean,
+            'needs-step': Boolean,
         }
       }
 
@@ -407,7 +407,7 @@ export type Expr =
             l: Loc,
             binds: List<TypeLetBind>,
             body: Expr,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-let-expr',
@@ -415,7 +415,7 @@ export type Expr =
             l: Loc,
             binds: List<LetBind>,
             body: Expr,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-letrec',
@@ -423,7 +423,7 @@ export type Expr =
             l: Loc,
             binds: List<LetrecBind>,
             body: Expr,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-hint-exp',
@@ -463,7 +463,7 @@ export type Expr =
             body: Expr,
             '_check-loc': Option<Loc>,
             _check: Option<Expr>,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-type',
@@ -500,7 +500,7 @@ export type Expr =
             l: Loc,
             name: Bind,
             value: Expr,
-            'keyword-val': boolean,
+            'keyword-val': Boolean,
         }
       }
     | { $name: 's-ref',
@@ -522,7 +522,7 @@ export type Expr =
             l: Loc,
             test: Expr,
             block: Expr,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-assign',
@@ -536,7 +536,7 @@ export type Expr =
         dict: {
             l: Loc,
             branches: List<IfPipeBranch>,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-if-pipe-else',
@@ -544,14 +544,14 @@ export type Expr =
             l: Loc,
             branches: List<IfPipeBranch>,
             _else: Expr,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-if',
         dict: {
             l: Loc,
             branches: List<IfBranch>,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-if-else',
@@ -559,7 +559,7 @@ export type Expr =
             l: Loc,
             branches: List<IfBranch>,
             _else: Expr,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-cases',
@@ -568,7 +568,7 @@ export type Expr =
             typ: Ann,
             val: Expr,
             branches: List<CasesBranch>,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-cases-else',
@@ -578,7 +578,7 @@ export type Expr =
             val: Expr,
             branches: List<CasesBranch>,
             _else: Expr,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-op',
@@ -624,7 +624,7 @@ export type Expr =
             body: Expr,
             '_check-loc': Option<Loc>,
             _check: Option<Expr>,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-method',
@@ -638,7 +638,7 @@ export type Expr =
             body: Expr,
             '_check-loc': Option<Loc>,
             _check: Option<Expr>,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
     | { $name: 's-extend',
@@ -665,7 +665,7 @@ export type Expr =
         dict: {
             l: Loc,
             tup: Expr,
-            index: number,
+            index: Number,
             'index-loc': Loc,
         }
       }
@@ -734,7 +734,7 @@ export type Expr =
         dict: {
             l: Loc,
             id: Name,
-            safe: boolean,
+            safe: Boolean,
         }
       }
     | { $name: 's-id-var-modref',
@@ -767,7 +767,7 @@ export type Expr =
     | { $name: 's-num',
         dict: {
             l: Loc,
-            n: number,
+            n: Number,
         }
       }
     | { $name: 's-frac',
@@ -787,7 +787,7 @@ export type Expr =
     | { $name: 's-bool',
         dict: {
             l: Loc,
-            b: boolean,
+            b: Boolean,
         }
       }
     | { $name: 's-str',
@@ -849,7 +849,7 @@ export type Expr =
             bindings: List<ForBind>,
             ann: Ann,
             body: Expr,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }  
     | { $name: 's-check',
@@ -857,7 +857,7 @@ export type Expr =
             l: Loc,
             name: Option<string>,
             body: Expr,
-            'keyword-check': boolean,
+            'keyword-check': Boolean,
         }
       }
     | { $name: 's-reactor',
@@ -944,7 +944,7 @@ export type SpyField =
             l: Loc,
             name: string,
             value: Expr,
-            'implicit-label': boolean,
+            'implicit-label': Boolean,
         }
       }
 
@@ -962,7 +962,7 @@ export type Bind =
     | { $name: 's-bind',
         dict: {
             l: Loc,
-            shadows: boolean,
+            shadows: Boolean,
             id: Name,
             ann: Ann,
         }
@@ -1002,7 +1002,7 @@ export type Member =
             body: Expr,
             '_check-loc': Option<Loc>,
             _check: Option<Expr>,
-            blocky: boolean,
+            blocky: Boolean,
         }
       }
 
@@ -1270,7 +1270,7 @@ export type Ann =
             l: Loc,
             args: List<Ann>,
             ret: Ann,
-            'use-parens': boolean,
+            'use-parens': Boolean,
         }
       }
     | { $name: 'a-arrow-argnames',
@@ -1278,7 +1278,7 @@ export type Ann =
             l: Loc,
             args: List<AField>,
             ret: Ann,
-            'use-parens': boolean,
+            'use-parens': Boolean,
         }
       }
     | { $name: 'a-method',
