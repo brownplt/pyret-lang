@@ -220,8 +220,13 @@ import type * as CS from './ts-compile-structs';
     }
 
     const RUNTIME = constId("_runtime");
+    const NUMBER_ERR_CALLBACKS = "$errCallbacks"
 
     function compressRuntimeName(name : string) { return name; }
+    
+    function rtField(name : string) {
+      return DotExpression(Identifier(RUNTIME), name);
+    }
 
     function rtMethod(name : string, args : Array<J.Expression>) {
       return CallExpression(DotExpression(Identifier(RUNTIME), compressRuntimeName(name)), args);
@@ -346,7 +351,13 @@ import type * as CS from './ts-compile-structs';
         case 's-block':
           return compileSeq(context, expr.dict.stmts);
         case 's-num':
-          const numAns = Literal(expr.dict.n);
+          let numAns;
+          if(typeof expr.dict.n === "number") {
+            numAns = Literal(expr.dict.n);
+          }
+          else {
+            numAns = rtMethod("_makeNumberFromString", [Literal(expr.dict.n.toString()), rtField(NUMBER_ERR_CALLBACKS)]);
+          }
           return [numAns, []];
         case 's-prim-app':
           const [argvs, argstmts] = compileList(context, expr.dict.args);

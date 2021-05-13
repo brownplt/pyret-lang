@@ -45,7 +45,7 @@ describe("testing simple-output programs", () => {
         const expect = firstLine.slice(firstLine.indexOf(" ")).trim();
 
         const basename = path.basename(f);
-        const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/${dir}/**${basename}.js`)[0];
+        const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/${dir}/**/${basename}.js`)[0];
 
         const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe', timeout: RUN_TIMEOUT});
         assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);
@@ -63,7 +63,7 @@ describe("testing simple-output programs", () => {
         });
 
         const basename = path.basename(f);
-        const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/${dir}/**${basename}.js`)[0];
+        const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/${dir}/**/${basename}.js`)[0];
 
         const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe', timeout: RUN_TIMEOUT});
         assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);
