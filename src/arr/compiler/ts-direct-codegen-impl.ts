@@ -50,7 +50,7 @@ import type * as CS from './ts-compile-structs';
         optional: false
       };
     }
-    function DotExpression(object : J.Expression, property : string) : J.Expression {
+    function DotExpression(object : J.Expression, property : string) : J.MemberExpression {
       return {
         type: "MemberExpression",
         object: object,
@@ -84,6 +84,20 @@ import type * as CS from './ts-compile-structs';
         kind: "var",
         declarations: [ { type: "VariableDeclarator", id: Identifier(id), init: expr }]
       };
+    }
+    function AssignmentExpression(lhs : J.MemberExpression | J.Identifier, rhs : J.Expression) : J.Expression {
+      return {
+        type: "AssignmentExpression",
+        operator: "=",
+        left: lhs,
+        right: rhs
+      }
+    }
+    function ArrayExpression(values : Array<J.Expression>) : J.Expression {
+      return {
+        type: "ArrayExpression",
+        elements: values
+      }
     }
     function ObjectExpression(properties : Array<J.Property>) : J.Expression {
       return {
@@ -265,10 +279,70 @@ import type * as CS from './ts-compile-structs';
       return DotExpression(obj, field);
     }
 
-    function compileExpr(context, expr : A.Expr) : [J.Expression, Array<J.Statement>] {
+    type CompileResult = [J.Expression, Array<J.Statement>];
+
+    function compileSrcloc(l : A.Srcloc, c : any) : J.Expression {
+      switch(l.$name) {
+        case "builtin": return ArrayExpression([Literal(l.dict['module-name'])]);
+        case "srcloc":
+          return ArrayExpression([
+            Literal(l.dict.source),
+            Literal(l.dict['start-line']),
+            Literal(l.dict['start-column']),
+            Literal(l.dict['start-char']),
+            Literal(l.dict['end-line']),
+            Literal(l.dict['end-column']),
+            Literal(l.dict['end-char']),
+          ]);
+      }
+    }
+
+    function compileModule(context, expr: Variant<A.Expr, "s-module">) : CompileResult {
+      const fields = [];
+      const stmts = [];
+      const locs = [];
+      listToArray(expr.dict['defined-values']).forEach(dv => {
+        switch(dv.$name) {
+          case 's-defined-value': {
+            const [ val, fieldStmts ] = compileExpr(context, dv.dict['value']);
+            const sloc = compileSrcloc(dv.dict.value.dict.l, context);
+            fields.push(Property(dv.dict.name, val));
+            stmts.push(...fieldStmts);
+            locs.push(ObjectExpression([Property("name", Literal(dv.dict.name)), Property("srcloc", sloc)]));
+            return;
+          }
+          case 's-defined-var': {
+            const sloc = compileSrcloc(dv.dict.loc, context);
+            fields.push(Property(dv.dict.name, Identifier(jsIdOf(dv.dict.id))));
+            locs.push(ObjectExpression([Property("name", Literal(dv.dict.name)), Property("srcloc", sloc)]));
+            return;
+          }
+        }
+      });
+
+      const [aExp, aStmts] = compileExpr(context, expr.dict.answer);
+      const checkResults = rtMethod("$checkResults", []);
+      const traces = rtMethod("$getTraces", []);
+
+      const answer1 = freshId(compilerName("answer"))
+      const answerVar = Var(answer1, aExp)
+
+      const ans = ObjectExpression([
+        ...fields,
+        Property("$answer", Identifier(answer1)),
+        Property("$checks", checkResults),
+        Property("$traces", traces),
+        Property("$locations", ArrayExpression(locs))
+      ]);
+
+      const assignAns = AssignmentExpression(DotExpression(Identifier(constId("module")), "exports"), ans);
+      return [assignAns, [...aStmts, ...context.checkBlockTestCalls, answerVar, ...stmts]];
+    }
+
+    function compileExpr(context, expr : A.Expr) : CompileResult {
       switch(expr.$name) {
         case 's-module':
-          return compileExpr(context, expr.dict.answer);
+          return compileModule(context, expr);
         case 's-block':
           return compileSeq(context, expr.dict.stmts);
         case 's-num':
@@ -293,6 +367,10 @@ import type * as CS from './ts-compile-structs';
             context.freeBindings.set(key, runtime.getField(b, "get-value-now").app(key))
           }
           return [Identifier(jsIdOf(expr.dict.id)), []];
+        case 's-id-modref': {
+          const [objv, objStmts] = compileExpr(context, { $name: "s-id", dict: { l: expr.dict.l, id: expr.dict.id }});
+          return [ DotExpression(objv, expr.dict.name), objStmts ];
+        }
         case 's-let-expr':
           const prelude = [];
           listToArray(expr.dict.binds).forEach(v => {
@@ -307,6 +385,12 @@ import type * as CS from './ts-compile-structs';
           });
           const [ bv, bodyStmts ] = compileExpr(context, expr.dict.body);
           return [ bv, [...prelude, ...bodyStmts]];
+        case 's-app-enriched': // TODO(joe): use info
+        case 's-app': {
+          const [fv, fstmts] = compileExpr(context, expr.dict._fun);
+          const [argvs, argstmts] = compileList(context, expr.dict.args);
+          return [ CallExpression(fv, argvs), [...fstmts, ...argstmts]];
+        }
         default:
           throw new TODOError("Unhandled expression type: " + expr.$name);
       }
@@ -553,7 +637,8 @@ import type * as CS from './ts-compile-structs';
         datatypes: translatedDatatypeMap,
         env: env,
         postEnv: postEnv,
-        freeBindings: freeBindings
+        freeBindings: freeBindings,
+        checkBlockTestCalls: []
       }, prog.dict.block);
 
       const prelude = createPrelude(prog, provides, env, freeBindings, options, importFlags);

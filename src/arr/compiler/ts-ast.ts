@@ -5,7 +5,7 @@ export type Option<T> =
 | { $name: 'none', dict : {} }
 | { $name: 'some', dict : { value: T }}
 
-type NumInteger = any;
+type NumInteger = number;
 
 export type Srcloc =
     | { $name: 'builtin',
@@ -375,6 +375,7 @@ export type DefinedValue =
         dict: {
             name: string,
             id: Name,
+            loc : Srcloc
         }
       }
 
@@ -910,6 +911,7 @@ export type Expr =
       }
     | { $name: 's-table',
         dict: {
+            l: Loc,
             column: Name,
             table  : Expr,
         }

@@ -9,7 +9,15 @@ const COMPILER_TIMEOUT = 10000; // ms, for each compiler run (including startup)
 const RUN_TIMEOUT = 5000; // ms, for each program execution
 
 describe("testing simple-output programs", () => {
-  const files = glob.sync("tests-new/simple-output/*.arr", {});
+  let files;
+  let dir;
+  if(global._PYRET_PIPELINE === "ts-anchor") {
+    dir = "ts-simple-output";
+  }
+  else {
+    dir = "simple-output";
+  }
+  files = glob.sync(`tests-new/${dir}/*.arr`, {});
   files.forEach(f => {
     test(`${f}`, () => {
       let compileProcess;
@@ -37,7 +45,7 @@ describe("testing simple-output programs", () => {
         const expect = firstLine.slice(firstLine.indexOf(" ")).trim();
 
         const basename = path.basename(f);
-        const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/simple-output/**${basename}.js`)[0];
+        const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/${dir}/**${basename}.js`)[0];
 
         const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe', timeout: RUN_TIMEOUT});
         assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);
@@ -55,7 +63,7 @@ describe("testing simple-output programs", () => {
         });
 
         const basename = path.basename(f);
-        const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/simple-output/**${basename}.js`)[0];
+        const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/${dir}/**${basename}.js`)[0];
 
         const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe', timeout: RUN_TIMEOUT});
         assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);

@@ -41,6 +41,9 @@ offline-tests: check-block-tests simple-output-tests
 simple-output-tests: build runtime
 	jest --verbose "tests-new/simple-output.test.js"
 
+ts-simple-output-tests: build runtime
+	npx jest --setupTestFrameworkScriptFile=./tests-new/ts-pipeline-testing.js --verbose "tests-new/simple-output.test.js"
+
 check-block-tests: build runtime
 	jest --verbose "tests-new/check-blocks.test.js"
 

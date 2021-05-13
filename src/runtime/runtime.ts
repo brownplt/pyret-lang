@@ -248,10 +248,10 @@ function customMinus(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
 }
 
 function customTimes(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any {
-    if ((typeof lhs === "object") && ("_times" in lhs)) {
-        return lhs._times(rhs);
-    } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
+    if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
         return _NUMBER.multiply(lhs, rhs, errbacks);
+    } else if ((typeof lhs === "object") && ("_times" in lhs)) {
+        return lhs._times(rhs);
     } else {
         // NOTE: may be a dynamic error
         try {
