@@ -24,6 +24,7 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Rnd } from 'react-rnd';
 import { X } from 'react-feather';
+import * as stopify from '@stopify/stopify';
 // import { interact } from './control';
 // import { State } from './state';
 // import { Action } from './action';
@@ -60,20 +61,46 @@ function Reactor({ reactor, convert }: Props) {
   const [node, setNode]: [any, (node: any) => void] = React.useState(false);
   const [title, setTitle]: [string, (title: string) => void] = React.useState('Reactor');
   const [open, setOpen]: [boolean, (open: boolean) => void] = React.useState(false as boolean);
+  const [value, setValue]: [any, (newValue: any) => void] = React.useState(undefined);
   const close = () => {
     reactor.$shutdown();
     setOpen(false);
   };
 
-  function getInitialValue() {
+  function runGetValue() {
+    const source = '(function(reactor, answer) { answer.value = reactor[\'draw\'](); })(reactor, answer)';
+    let runner = stopify.stopifyLocally(source, { newMethod: 'direct' });
+    const answer = { value: 'runGetValue: Value wasn\'t set!' };
+    return new Promise((resolve, reject) => {
+      if (runner.kind !== 'ok') { reject(runner); return; }
+      runner = runner as (stopify.AsyncRun & stopify.AsyncEval);
+      runner.g = { reactor, answer };
+      runner.run((result : any) => {
+        if (result.type !== 'normal') {
+          console.log('runGetValue reject', answer.value);
+          reject(answer.value);
+        } else {
+          console.log('runGetValue resolve', answer.value);
+          resolve(answer.value);
+        }
+      });
+    });
+  }
+
+  function setInitialValue() {
     try {
-      return convert(reactor.draw());
+      runGetValue().then((v) => {
+        console.log('setInitialValue: covert', convert(v));
+        setValue(convert(v));
+      });
     } catch (e) {
       console.log('failed draw with', e);
-      return convert(reactor['get-value']());
+      setValue(convert(reactor['get-value']()));
     }
   }
-  const value = getInitialValue();
+  if (typeof value === 'undefined') {
+    setInitialValue();
+  }
   return (
     <div>
       <div
@@ -94,7 +121,7 @@ function Reactor({ reactor, convert }: Props) {
           }
         }}
       >
-        {value}
+        {typeof value === 'undefined' ? 'Initializing...' : value}
       </div>
       {open && (
         <Rnd

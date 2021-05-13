@@ -33,12 +33,18 @@ function makeNone() {
   return option.none;
 }
 
+function makeReactor(init, fields) {
+  return realMakeReactor(init, fields);
+}
+
+runtime.makeSome = makeSome;
+runtime.makeNone = makeNone;
+runtime.makeReactor = makeReactor;
+
 module.exports = {
   makeSome,
   makeNone,
-  makeReactor: (init, fields) => {
-    return realMakeReactor(init, fields);
-  },
+  makeReactor,
   $setMakeReactor: (f) => {
     realMakeReactor = f;
   },
