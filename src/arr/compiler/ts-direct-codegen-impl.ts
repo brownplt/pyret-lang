@@ -124,6 +124,41 @@ import type * as CS from './ts-compile-structs';
       };
     }
 
+    function UnaryExpression(operator: J.UnaryOperator, argument : J.Expression) : J.Expression {
+      return {
+        type: "UnaryExpression",
+        operator,
+        argument,
+        prefix: true,
+      };
+    }
+
+    function LogicalExpression(operator : J.LogicalOperator, left: J.Expression, right: J.Expression) : J.Expression {
+      return {
+        type: "LogicalExpression",
+        left,
+        right,
+        operator,
+      };
+    }
+
+    function BlockStatement(stmts : J.Statement[]) : J.BlockStatement {
+      return {
+        type: 'BlockStatement',
+        body: stmts,
+      }
+    }
+
+    function IfStatement(test: J.Expression, thn: J.Statement, els: J.Statement): J.IfStatement {
+      return {
+        type: 'IfStatement',
+        test,
+        consequent: thn,
+        alternate: els,
+      };
+    }
+
+
     function MakeName(start : number) {
       var count = start;
       function atom(base : string) : A.Name {
@@ -347,24 +382,6 @@ import type * as CS from './ts-compile-structs';
       return [assignAns, [...aStmts, ...context.checkBlockTestCalls, answerVar, ...stmts]];
     }
 
-    function UnaryExpression(operator: J.UnaryOperator, argument : J.Expression) : J.Expression {
-      return {
-        type: "UnaryExpression",
-        operator,
-        argument,
-        prefix: true,
-      };
-    }
-
-    function LogicalExpression(operator : J.LogicalOperator, left: J.Expression, right: J.Expression) : J.Expression {
-      return {
-        type: "LogicalExpression",
-        left,
-        right,
-        operator,
-      };
-    }
-
     function compileOp(context, expr : Variant<A.Expr, "s-op">) : CompileResult {
       const [lv, lStmts] = compileExpr(context, expr.dict.left);
       const [rv, rStmts] = compileExpr(context, expr.dict.right);
@@ -389,6 +406,30 @@ import type * as CS from './ts-compile-structs';
       return [ans, [...lStmts, ...rStmts]];
     }
 
+    function compileIf(context, branches: (A.IfBranch | A.IfPipeBranch)[], compiledElse: CompileResult) : CompileResult {
+      const ans = Identifier(freshId(compilerName('ans')));
+      const [elseV, elseStmts] = compiledElse;
+      const elseBlock = BlockStatement([
+        ...elseStmts,
+        ExpressionStatement(AssignmentExpression(ans, elseV))
+      ]);
+      let block = elseBlock;
+      for (let i = branches.length - 1; i >= 0; i--) {
+        const branch = branches[i];
+        const [testV, testStmts] = compileExpr(context, branch.dict.test);
+        const [bodyV, bodyStmts] = compileExpr(context, branch.dict.body);
+        block = BlockStatement([
+          ...testStmts,
+          IfStatement(testV, BlockStatement([
+            ...bodyStmts,
+            ExpressionStatement(AssignmentExpression(ans, bodyV))
+          ]),
+          block)
+        ]);
+      }
+      return [ans, block.body];
+    }
+
     function compileExpr(context, expr : A.Expr) : CompileResult {
       switch(expr.$name) {
         case 's-module':
@@ -404,14 +445,40 @@ import type * as CS from './ts-compile-structs';
             numAns = rtMethod("_makeNumberFromString", [Literal(expr.dict.n.toString()), rtField(NUMBER_ERR_CALLBACKS)]);
           }
           return [numAns, []];
+        case 's-str':
+          return [Literal(expr.dict.s), []];
+        case 's-bool':
+          return [Literal(expr.dict.b), []];
         case 's-op':
           return compileOp(context, expr);
         case 's-prim-app':
           const [argvs, argstmts] = compileList(context, expr.dict.args);
-          const primAns = CallExpression(DotExpression(Identifier(constId("_runtime")), expr.dict._fun), argvs);
+          const primAns = CallExpression(rtField(expr.dict._fun), argvs);
           return [primAns, argstmts];
         case 's-srcloc':
           return [compileSrcloc(context, expr.dict.loc), []];
+        case 's-when': {
+          const nothing = compileExpr(context, { $name: 's-id', dict: { l: expr.dict.l, id: jsnames.sGlobal("nothing") }});
+          return compileIf(context, 
+            [{ $name: 's-if-branch', dict: { l: expr.dict.l, test: expr.dict.test, body: expr.dict.block }}],
+            nothing
+          );
+        }
+        case 's-if':
+        case 's-if-pipe': {
+          const srcloc = compileSrcloc(context, expr.dict.l);
+          const type = (expr.$name === 's-if' ? 'if' : 'ask');
+          const throwNoMatch = CallExpression(rtField("throwNoBranchesMatched"), [srcloc, Literal(type)]);
+          return compileIf(context,
+            listToArray<A.IfBranch | A.IfPipeBranch>(expr.dict.branches),
+            [throwNoMatch, []]);
+        }
+        case 's-if-else': 
+        case 's-if-pipe-else': {
+          return compileIf(context,
+            listToArray<A.IfBranch | A.IfPipeBranch>(expr.dict.branches),
+            compileExpr(context, expr.dict._else));
+        }
         case 's-obj':
           return compileObj(context, expr);
         case 's-dot':
