@@ -288,7 +288,7 @@ import type * as CS from './ts-compile-structs';
 
     type CompileResult = [J.Expression, Array<J.Statement>];
 
-    function compileSrcloc(l : A.Srcloc, c : any) : J.Expression {
+    function compileSrcloc(l : A.Srcloc, _context : any) : J.Expression {
       switch(l.$name) {
         case "builtin": return ArrayExpression([Literal(l.dict['module-name'])]);
         case "srcloc":
@@ -410,7 +410,7 @@ import type * as CS from './ts-compile-structs';
           const primAns = CallExpression(DotExpression(Identifier(constId("_runtime")), expr.dict._fun), argvs);
           return [primAns, argstmts];
         case 's-srcloc':
-          return [Literal("srcloc"), []];
+          return [compileSrcloc(expr.dict.loc, context), []];
         case 's-obj':
           return compileObj(context, expr);
         case 's-dot':
