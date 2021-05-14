@@ -25,21 +25,21 @@ BUILD_DEPS := \
 build: $(BUILD_DEPS)
 
 all-tests: build runtime web
-	jest --verbose
+	npx jest --verbose
 
 ide-tests: web
-	jest --verbose "ide"
+	npx jest --verbose "ide"
 
 web-tests: web
-	jest --verbose "browser"
+	npx jest --verbose "browser"
 
 stopify-web-tests: web
-	jest --verbose "stopify"
+	npx jest --verbose "stopify"
 
 offline-tests: check-block-tests simple-output-tests
 
 simple-output-tests: build runtime
-	jest --verbose "tests-new/simple-output.test.js"
+	npx jest --verbose "tests-new/simple-output.test.js"
 
 ts-simple-output-tests: build runtime
 	npx jest --setupTestFrameworkScriptFile=./tests-new/ts-pipeline-testing.js --verbose "tests-new/simple-output.test.js"
