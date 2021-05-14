@@ -289,7 +289,7 @@ import type * as CS from './ts-compile-structs';
 
     type CompileResult = [J.Expression, Array<J.Statement>];
 
-    function compileSrcloc(l : A.Srcloc, _context : any) : J.Expression {
+    function compileSrcloc(_context : any, l : A.Srcloc) : J.Expression {
       switch(l.$name) {
         case "builtin": return ArrayExpression([Literal(l.dict['module-name'])]);
         case "srcloc":
@@ -313,14 +313,14 @@ import type * as CS from './ts-compile-structs';
         switch(dv.$name) {
           case 's-defined-value': {
             const [ val, fieldStmts ] = compileExpr(context, dv.dict['value']);
-            const sloc = compileSrcloc(dv.dict.value.dict.l, context);
+            const sloc = compileSrcloc(context, dv.dict.value.dict.l);
             fields.push(Property(dv.dict.name, val));
             stmts.push(...fieldStmts);
             locs.push(ObjectExpression([Property("name", Literal(dv.dict.name)), Property("srcloc", sloc)]));
             return;
           }
           case 's-defined-var': {
-            const sloc = compileSrcloc(dv.dict.loc, context);
+            const sloc = compileSrcloc(context, dv.dict.loc);
             fields.push(Property(dv.dict.name, Identifier(jsIdOf(dv.dict.id))));
             locs.push(ObjectExpression([Property("name", Literal(dv.dict.name)), Property("srcloc", sloc)]));
             return;
@@ -411,7 +411,7 @@ import type * as CS from './ts-compile-structs';
           const primAns = CallExpression(DotExpression(Identifier(constId("_runtime")), expr.dict._fun), argvs);
           return [primAns, argstmts];
         case 's-srcloc':
-          return [compileSrcloc(expr.dict.loc, context), []];
+          return [compileSrcloc(context, expr.dict.loc), []];
         case 's-obj':
           return compileObj(context, expr);
         case 's-dot':
