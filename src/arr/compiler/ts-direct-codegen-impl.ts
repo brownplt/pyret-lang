@@ -245,14 +245,15 @@ import type * as CS from './ts-compile-structs';
 
     function compileSeq(context, exprs : A.List<A.Expr>) : [J.Expression, Array<J.Statement>] {
       if(exprs.$name === 'empty') { throw new InternalCompilerError("Empty block reached codegen"); }
-      else if(exprs.dict.rest.$name === 'link') {
-        return compileExpr(context, exprs.dict.first);
+      let ans, stmts = [];
+      let cur: A.List<A.Expr> = exprs;
+      while (cur.$name === 'link') {
+        const [first, firstStmts] = compileExpr(context, cur.dict.first);
+        ans = first;
+        stmts.push(...firstStmts);
+        cur = cur.dict.rest;
       }
-      else {
-        const [ firstAns, startStmts ] = compileExpr(context, exprs.dict.first);
-        const [ ans, restStmts ] = compileSeq(context, exprs.dict.rest);
-        return [ ans, [...startStmts, ExpressionStatement(firstAns), ...restStmts]];
-      }
+      return [ans, stmts]
     }
 
     function listToArray<T>(l : A.List<T>) : Array<T> {
