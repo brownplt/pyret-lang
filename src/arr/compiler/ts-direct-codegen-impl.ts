@@ -221,6 +221,8 @@ import type * as CS from './ts-compile-structs';
 
     const RUNTIME = constId("_runtime");
     const NUMBER_ERR_CALLBACKS = "$errCallbacks"
+    const EQUAL_ALWAYS = "equal-always"
+    const IDENTICAL = "identical"
 
     function compressRuntimeName(name : string) { return name; }
     
@@ -344,6 +346,48 @@ import type * as CS from './ts-compile-structs';
       return [assignAns, [...aStmts, ...context.checkBlockTestCalls, answerVar, ...stmts]];
     }
 
+    function UnaryExpression(operator: J.UnaryOperator, argument : J.Expression) : J.Expression {
+      return {
+        type: "UnaryExpression",
+        operator,
+        argument,
+        prefix: true,
+      };
+    }
+
+    function LogicalExpression(operator : J.LogicalOperator, left: J.Expression, right: J.Expression) : J.Expression {
+      return {
+        type: "LogicalExpression",
+        left,
+        right,
+        operator,
+      };
+    }
+
+    function compileOp(context, expr : Variant<A.Expr, "s-op">) : CompileResult {
+      const [lv, lStmts] = compileExpr(context, expr.dict.left);
+      const [rv, rStmts] = compileExpr(context, expr.dict.right);
+      let ans;
+      switch(expr.dict.op) {
+        case "op+": ans = rtMethod("_plus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op-": ans = rtMethod("_minus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op*": ans = rtMethod("_times", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op/": ans = rtMethod("_divids", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op<": ans = rtMethod("_lessthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op>": ans = rtMethod("_greaterthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op<=": ans = rtMethod("_lessequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op>=": ans = rtMethod("_greaterequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op==": ans = CallExpression(rtField(EQUAL_ALWAYS), [lv, rv]); break;
+        case "op<>": ans = UnaryExpression("!", CallExpression(rtField(EQUAL_ALWAYS), [lv, rv])); break;
+        case "op<=>>": ans = CallExpression(rtField(IDENTICAL), [lv, rv]); break;
+        case "opor": ans = LogicalExpression("||", lv, rv); break;
+        case "opand": ans = LogicalExpression("&&", lv, rv); break;
+        case "op^": ans = CallExpression(rv, [lv]); break;
+        default: throw new TODOError(`Not yet implements: ${expr.dict.op}`);        
+      }
+      return [ans, [...lStmts, ...rStmts]];
+    }
+
     function compileExpr(context, expr : A.Expr) : CompileResult {
       switch(expr.$name) {
         case 's-module':
@@ -359,6 +403,8 @@ import type * as CS from './ts-compile-structs';
             numAns = rtMethod("_makeNumberFromString", [Literal(expr.dict.n.toString()), rtField(NUMBER_ERR_CALLBACKS)]);
           }
           return [numAns, []];
+        case 's-op':
+          return compileOp(context, expr);
         case 's-prim-app':
           const [argvs, argstmts] = compileList(context, expr.dict.args);
           const primAns = CallExpression(DotExpression(Identifier(constId("_runtime")), expr.dict._fun), argvs);
