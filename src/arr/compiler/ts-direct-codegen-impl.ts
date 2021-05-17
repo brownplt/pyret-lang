@@ -85,6 +85,14 @@ import type * as CS from './ts-compile-structs';
         declarations: [ { type: "VariableDeclarator", id: Identifier(id), init: expr }]
       };
     }
+    function FunctionExpression(id : A.Name, args : Array<A.Name>, body : J.BlockStatement) : J.Expression {
+      return {
+        type: "FunctionExpression",
+        id: Identifier(id),
+        params: args.map(Identifier),
+        body
+      };
+    }
     function AssignmentExpression(lhs : J.MemberExpression | J.Identifier, rhs : J.Expression) : J.Expression {
       return {
         type: "AssignmentExpression",
@@ -92,6 +100,22 @@ import type * as CS from './ts-compile-structs';
         left: lhs,
         right: rhs
       }
+    }
+    function BinaryExpression(op : J.BinaryOperator, left : J.Expression, right : J.Expression) : J.Expression {
+      return {
+        type: "BinaryExpression",
+        operator: op,
+        left: left,
+        right: right
+      };
+    }
+    function ConditionalExpression(cond : J.Expression, thn : J.Expression, els : J.Expression) : J.Expression {
+      return {
+        type: "ConditionalExpression",
+        test: cond,
+        consequent: thn,
+        alternate: els
+      };
     }
     function ArrayExpression(values : Array<J.Expression>) : J.Expression {
       return {
@@ -492,13 +516,34 @@ import type * as CS from './ts-compile-structs';
             context.freeBindings.set(key, runtime.getField(b, "get-value-now").app(key))
           }
           return [Identifier(jsIdOf(expr.dict.id)), []];
+        case 's-id-letrec':
+          const isSafe = expr.dict.safe;
+          if(isSafe) {
+            return [Identifier(jsIdOf(expr.dict.id)), []];
+          }
+          else {
+            const id = Identifier(jsIdOf(expr.dict.id));
+            return [ConditionalExpression(
+              BinaryExpression("!==", id, Identifier(constId("undefined"))),
+              id,
+              rtMethod("$messageThrow", [compileSrcloc(context, expr.dict.l), Literal("Uninitialized letrec identifier")])
+            ), []];
+          }
         case 's-id-modref': {
           const [objv, objStmts] = compileExpr(context, { $name: "s-id", dict: { l: expr.dict.l, id: expr.dict.id }});
           return [ DotExpression(objv, expr.dict.name), objStmts ];
         }
+        case 's-lam': {
+          const [ bodyVal, bodyStmts ] = compileExpr(context, expr.dict.body);
+          const bindArgs = expr.dict.args as A.List<Variant<A.Bind, "s-bind">>;
+          const jsArgs = listToArray(bindArgs).map(a => jsIdOf(a.dict.id));
+          return [FunctionExpression(jsIdOf(constId(expr.dict.name)), jsArgs,
+            BlockStatement([...bodyStmts, ReturnStatement(bodyVal)])), []]
+        }
+        case 's-letrec':
         case 's-let-expr':
           const prelude = [];
-          listToArray(expr.dict.binds).forEach(v => {
+          listToArray<A.LetrecBind | A.LetBind>(expr.dict.binds).forEach(v => {
             const [ val, vStmts ] = compileExpr(context, v.dict.value);
             switch(v.dict.b.$name) {
               case "s-tuple-bind":

@@ -339,6 +339,7 @@ function torepr(v) {
 }
 
 function customThrow(exn) {
+  exn.toString = function() { return JSON.stringify(this); }
   throw new Error(exn);
 }
 
@@ -418,6 +419,15 @@ module.exports["$makeMethodBinder"] = _PRIMITIVES["makeMethodBinder"];
 
 module.exports["$torepr"] = torepr;
 module.exports["$nothing"] = _PRIMITIVES["$nothing"];
+
+module.exports["$customThrow"] = customThrow;
+
+module.exports["$messageThrow"] = function(srcloc, message) {
+  customThrow({
+    "message": message,
+    "$srcloc": srcloc
+  });
+}
 
 module.exports["throwUnfinishedTemplate"] = function(srcloc) {
   customThrow({
