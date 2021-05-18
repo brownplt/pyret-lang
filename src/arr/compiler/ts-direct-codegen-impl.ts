@@ -50,11 +50,28 @@ import type * as CS from './ts-compile-structs';
         optional: false
       };
     }
+    function MethodCallExpression(obj : J.Expression, field : string, args: Array<J.Expression>) : J.Expression {
+      return {
+        type: "CallExpression",
+        callee: DotExpression(obj, field),
+        arguments: args,
+        optional: false
+      };
+    }
     function DotExpression(object : J.Expression, property : string) : J.MemberExpression {
       return {
         type: "MemberExpression",
         object: object,
         property: Literal(property),
+        computed: true,
+        optional: false
+      }
+    }
+    function BracketExpression(object : J.Expression, property : J.Expression) : J.MemberExpression {
+      return {
+        type: "MemberExpression",
+        object: object,
+        property: property,
         computed: true,
         optional: false
       }
@@ -127,6 +144,17 @@ import type * as CS from './ts-compile-structs';
       return {
         type: "ObjectExpression",
         properties: properties
+      };
+    }
+    function Getter(name : string, value : J.Expression) : J.Property {
+      return {
+        type: "Property",
+        kind: "get",
+        key: Literal(name),
+        value: value,
+        method: false,
+        shorthand: false,
+        computed: true
       };
     }
     function Property(name : string, value : J.Expression) : J.Property {
@@ -319,21 +347,71 @@ import type * as CS from './ts-compile-structs';
       return runtime.ffi.toArray(l);
     }
 
+    function compileMethodDefinition(context, method : Variant<A.Member, "s-method-field">) {
+      const args = method.dict.args as Variant<A.List<Variant<A.Bind, "s-bind">>, "link">
+      const self = jsIdOf(args.dict.first.dict.id);
+      const lamProps = method.dict;
+      // This removes the `self` argument from the args list for use in the curried method
+      // From well-formed, we know methods have at least one argument
+      lamProps.args = args.dict.rest;
+      const [curriedFunction, _] = compileExpr(context, { $name: "s-lam", dict: lamProps });
+      const methodcache = DotExpression(Identifier(self), "methodcache");
+      const methodcacheAccess = BracketExpression(methodcache, Literal(method.dict.name));
+      const valueObject = ObjectExpression([Property("value", Identifier(constId("$curriedmethod")))]);
+      const body = [
+        Var(self, { type: "ThisExpression"}),
+        Var(constId("$methodgetter"),
+          MethodCallExpression(Identifier(constId("Object")), "getOwnPropertyDescriptor",
+                          [Identifier(self), Literal(method.dict.name)])),
+        Var(constId("$curriedmethod"), curriedFunction),
+        ExpressionStatement(AssignmentExpression(methodcache, ConditionalExpression(BinaryExpression("===", methodcache, Identifier(constId("undefined"))), ObjectExpression([]), methodcache))),
+        ExpressionStatement(AssignmentExpression(methodcacheAccess, Identifier(constId("$methodgetter")))),
+        ExpressionStatement(MethodCallExpression(Identifier(constId("Object")), "defineProperty",
+            [Identifier(self), Literal(method.dict.name), valueObject])),
+        ReturnStatement(Identifier(constId("$curriedmethod")))
+      ];
+      return Getter(method.dict.name, FunctionExpression(constId("get"), [], BlockStatement(body)));
+
+
+      /*
+rec $m = lam(self):
+  if self.$$m === undefined:
+    self.$$m = lam(): self.x end
+    self.$$m.frommethod = true
+    self.$$m.original = $m
+  end
+  self.m = self.$$m
+  self.m
+end
+
+get ${method.name}() {
+  var self = this;
+  var $m = Object.getOwnPropertyDescriptor(self, ${method.name}).get;
+  var $$m = function(${method.args.rest}) { ... ${method.bodystmts which uses self} ...}
+  self.methodcache[${method.name}] = { original: $m };
+  Object.defineProperty(self, ${method.name}, { value: $$m });
+  return $$m;
+}
+      */
+    }
+
     function compileObj(context, expr : Variant<A.Expr, 's-obj'>) : [J.Expression, Array<J.Statement>] {
       const tmpBind = freshId(compilerName("temporary"));
       const fieldsAsArray = listToArray(expr.dict.fields);
 
       const fieldvs = [], stmts = [], binds = [];
       fieldsAsArray.forEach(f => {
-        if(f.$name !== "s-data-field") { throw new TODOError("Not yet (or maybe ever) implemented: non-data fields"); }
-        const [val, compiledStmts] = compileExpr(context, f.dict.value);
-        switch(f.dict.value.$name) {
-          case 's-method':
-            throw new TODOError("s-method not yet implemented");
-          default:
+        switch(f.$name) {
+          case 's-method-field':
+            fieldvs.push(compileMethodDefinition(context, f))
+            return;
+          case 's-data-field':
+            const [val, compiledStmts] = compileExpr(context, f.dict.value);
             fieldvs.push(Property(f.dict.name, val));
             stmts.push(...compiledStmts);
-
+            return;
+          default:
+            throw new InternalCompilerError("Not yet implemented: " + f.$name);
         }
       });
       const varObj = Var(tmpBind, ObjectExpression(fieldvs));
