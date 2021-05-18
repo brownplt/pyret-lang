@@ -3,6 +3,7 @@ import type * as Escodegen from 'escodegen';
 import type * as Path from 'path';
 import type * as A from './ts-ast';
 import type * as CS from './ts-compile-structs';
+import { objectExpression } from '@babel/types';
 
 ({ 
   requires: [],
@@ -361,8 +362,8 @@ import type * as CS from './ts-compile-structs';
       const body = [
         Var(self, { type: "ThisExpression"}),
         Var(constId("$methodgetter"),
-          MethodCallExpression(Identifier(constId("Object")), "getOwnPropertyDescriptor",
-                          [Identifier(self), Literal(method.dict.name)])),
+          DotExpression(MethodCallExpression(Identifier(constId("Object")), "getOwnPropertyDescriptor",
+                          [Identifier(self), Literal(method.dict.name)]), "get")),
         Var(constId("$curriedmethod"), curriedFunction),
         ExpressionStatement(AssignmentExpression(methodcache, ConditionalExpression(BinaryExpression("===", methodcache, Identifier(constId("undefined"))), ObjectExpression([]), methodcache))),
         ExpressionStatement(AssignmentExpression(methodcacheAccess, Identifier(constId("$methodgetter")))),
@@ -370,7 +371,7 @@ import type * as CS from './ts-compile-structs';
             [Identifier(self), Literal(method.dict.name), valueObject])),
         ReturnStatement(Identifier(constId("$curriedmethod")))
       ];
-      return Getter(method.dict.name, FunctionExpression(constId("get"), [], BlockStatement(body)));
+      return FunctionExpression(constId("get"), [], BlockStatement(body));
 
 
       /*
@@ -396,14 +397,13 @@ get ${method.name}() {
     }
 
     function compileObj(context, expr : Variant<A.Expr, 's-obj'>) : [J.Expression, Array<J.Statement>] {
-      const tmpBind = freshId(compilerName("temporary"));
       const fieldsAsArray = listToArray(expr.dict.fields);
 
-      const fieldvs = [], stmts = [], binds = [];
+      const fieldvs : Array<J.Property> = [], stmts = [];
       fieldsAsArray.forEach(f => {
         switch(f.$name) {
           case 's-method-field':
-            fieldvs.push(compileMethodDefinition(context, f))
+            fieldvs.push(Getter(f.dict.name, compileMethodDefinition(context, f)));
             return;
           case 's-data-field':
             const [val, compiledStmts] = compileExpr(context, f.dict.value);
@@ -414,10 +414,7 @@ get ${method.name}() {
             throw new InternalCompilerError("Not yet implemented: " + f.$name);
         }
       });
-      const varObj = Var(tmpBind, ObjectExpression(fieldvs));
-      const initStmts = [...stmts, varObj];
-      const orderedStmts = [...initStmts, ...binds];
-      return [ Identifier(tmpBind), orderedStmts ];
+      return [  ObjectExpression(fieldvs), stmts ];
     }
 
     function pyretLookup(l : A.Srcloc, obj : J.Expression, field : string) : J.Expression {
@@ -583,9 +580,33 @@ get ${method.name}() {
         }
         case 's-obj':
           return compileObj(context, expr);
-        case 's-dot':
+        case 's-dot': {
           const [objV, objStmts] = compileExpr(context, expr.dict.obj);
           return [pyretLookup(expr.dict.l, objV, expr.dict.field), objStmts]
+        }
+        case 's-extend': {
+          const [objV, objStmts] = compileExpr(context, expr.dict.supe);
+          const fieldsAsArray = listToArray(expr.dict.fields);
+
+          const fieldvs = [], stmts = [];
+          fieldsAsArray.forEach(f => {
+            switch(f.$name) {
+              case 's-method-field':
+                fieldvs.push(Property(f.dict.name, ObjectExpression([
+                  Property("get", compileMethodDefinition(context, f))
+                ])));
+                return;
+              case 's-data-field':
+                const [val, compiledStmts] = compileExpr(context, f.dict.value);
+                fieldvs.push(Property(f.dict.name, ObjectExpression([ Property("value", val) ])));
+                stmts.push(...compiledStmts);
+                return;
+              default:
+                throw new InternalCompilerError("Not yet implemented: " + f.$name);
+            }
+          });
+          return [rtMethod("$extend", [objV, ObjectExpression(fieldvs)]), stmts];
+        }
         case 's-id':
           const b = context.postEnv.dict.bindings;
           const key = nameToKey(expr.dict.id);

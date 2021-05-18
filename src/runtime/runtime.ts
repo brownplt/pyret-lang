@@ -320,6 +320,16 @@ function getModuleValue(uri : string, k : string) {
   return allModules[uri].values[k];
 }
 
+function extend(obj, extension) {
+  const newObj = {};
+  Object.assign(newObj, obj);
+  Object.entries(obj.methodcache || {}).forEach((e : any) => {
+    Object.defineProperty(newObj, e[0], { configurable: true, get: e[1] });
+  });
+  Object.defineProperties(newObj, extension);
+  return newObj;
+}
+
 // TODO(alex): common Pyret error objects
 function raise(msg: object) {
   // NOTE(alex): Changing the representation needs to be reflected in raiseExtract()
@@ -391,6 +401,7 @@ module.exports["$spy"] = _spy;
 
 module.exports["$rebind"] = _rebind;
 module.exports["$shallowCopyObject"] = shallowCopyObject;
+module.exports["$extend"] = extend;
 
 module.exports["$checkTest"] = eagerCheckTest;
 module.exports["$checkBlock"] = checkBlockHandler;
