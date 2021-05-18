@@ -15,8 +15,7 @@ install:
 - npm ci
 before_script:
 - npm run web
-- node_modules/.bin/http-server build/worker -p 8080 &
-  cd ide; BROWSER=none npm start &
+- node_modules/.bin/http-server build/worker -p 8080
 - sleep 10
 script:
 - npm run offline-tests
