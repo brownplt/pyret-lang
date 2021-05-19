@@ -3,6 +3,7 @@
 import React from 'react';
 
 import TableWidget from './Table';
+import ListWidget from './List';
 import ImageWidget from './Image';
 import ChartWidget from './Chart';
 import ReactorWidget from './Reactor';
@@ -21,6 +22,15 @@ type RenderedValueProps = {
 };
 
 type RenderedValueState = {};
+
+function isList(value: any): boolean {
+  if (typeof value.$brand === 'undefined') {
+    return false;
+  }
+  return (typeof value.$brand.names !== 'undefined' && value.$brand.names[0] === 'first'
+    && value.$brand.names[1] === 'rest')
+    || (value.$brand.names === false && typeof value.partition !== 'undefined');
+}
 
 function convert(value: any): any {
   if (value === undefined) {
@@ -82,6 +92,15 @@ function convert(value: any): any {
       <div>
         an expression containing a template
       </div>
+    );
+  }
+
+  if (isList(value)) {
+    return (
+      <ListWidget
+        htmlify={convert}
+        value={value}
+      />
     );
   }
 

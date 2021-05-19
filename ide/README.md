@@ -31,3 +31,7 @@ See the section about [deployment](https://facebook.github.io/create-react-app/d
 ## Linting
 
 Both of the build commands will lint the project against the [Airbnb Javascript Style Guide](https://github.com/airbnb/javascript). Use `npx eslint src/<filename>` while inside the `ide` directory to lint a single file. ESLint will automatically fix some minor style issues when passed the `--fix` flag like so: `npx eslint --fix <src/filename>`.
+
+## Third party licenses
+
+[Iodide project - MPL 2.0](https://github.com/iodide-project/iodide)
