@@ -320,16 +320,6 @@ function getModuleValue(uri : string, k : string) {
   return allModules[uri].values[k];
 }
 
-function createVariant(shared, variant) {
-  Object.setPrototypeOf(variant, shared);
-  Object.setPrototypeOf(variant.$methods, shared.$methods);
-}
-
-function createDataValue(base, extension) {
-  Object.setPrototypeOf(extension, base);
-  return extension;
-}
-
 function extend(obj, extension) {
   for(let k in obj.$methods) {
     if(!(extension.hasOwnProperty(k))) {
@@ -338,6 +328,18 @@ function extend(obj, extension) {
   }
   Object.setPrototypeOf(extension, obj);
   Object.setPrototypeOf(extension.$methods, obj.$methods);
+  return extension;
+}
+
+function createVariant(sharedBase, extension, meta) {
+  const extended = extend(sharedBase, extension);
+  Object.assign(extended, meta);
+  return extended;
+}
+
+function makeDataValue(obj, extension) {
+  Object.setPrototypeOf(extension, obj);
+  extension.$methods = {};
   return extension;
 }
 
@@ -429,6 +431,8 @@ module.exports["$shallowCopyObject"] = shallowCopyObject;
 module.exports["$extend"] = extend;
 module.exports["$installMethod"] = installMethod;
 module.exports["$setupMethodGetters"] = setupMethodGetters;
+module.exports["$makeDataValue"] = makeDataValue;
+module.exports["$createVariant"] = createVariant;
 
 module.exports["$checkTest"] = eagerCheckTest;
 module.exports["$checkBlock"] = checkBlockHandler;

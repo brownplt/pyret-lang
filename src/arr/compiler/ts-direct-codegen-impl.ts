@@ -383,8 +383,65 @@ import { objectExpression } from '@babel/types';
         }
       });
       fieldvs.push(Property("$methods", ObjectExpression(methods.map(m => m[1]))));
-      const result = rtMethod("$setupMethodGetters", [ObjectExpression(fieldvs)]);
+      const obj = ObjectExpression(fieldvs);
+      const result = methods.length === 0 ? obj : rtMethod("$setupMethodGetters", [obj]);
       return [  result, stmts ];
+    }
+
+    function getVariantMemberId(m : A.VariantMember) : A.Name {
+      switch(m.$name) {
+        case 's-variant-member':
+          switch(m.dict['member-type'].$name) {
+            case 's-mutable': throw new TODOError(m.dict['member-type'].$name);
+            case 's-normal':
+              switch(m.dict.bind.$name) {
+                case 's-tuple-bind': throw new InternalCompilerError(m.dict.bind.$name);
+                case 's-bind':
+                  return m.dict.bind.dict.id;
+              }
+          }
+      }
+    }
+
+    function compileData(context, expr : Variant<A.Expr, 's-data-expr'>) : [J.Expression, Array<J.Statement>] {
+      const [sharedBaseObj, sharedBaseStmts] = compileObj(context, {$name: 's-obj', dict: { l: expr.dict.l, fields: expr.dict['shared-members'] } });
+      const sharedBaseName = freshId(constId(`sharedBase_${expr.dict.name}`));
+      const variants = listToArray(expr.dict.variants);
+      const variantBaseObjs : Array<[A.Name, J.Expression, Array<J.Statement>]> = variants.map((v, i) => {
+        const [extensionV, extensionStmts] = compileExpr(context, { $name: "s-obj", dict: { l: v.dict.l, fields: v.dict['with-members'] } });
+        const variantId = freshId(constId(`variantBase_${v.dict.name}`));
+        const extraField = Property("$variant", Identifier(variantId));
+        const dataField = Property("$data", Identifier(sharedBaseName));
+        const nameField = Property("$name", Literal(v.dict.name));
+        const meta = ObjectExpression([extraField, dataField, nameField]);
+        return [variantId, rtMethod("$createVariant", [Identifier(sharedBaseName), extensionV, meta]), extensionStmts];
+      });
+      const variantBaseStmts = variantBaseObjs.map(v => {
+        return [ ...v[2], Var(v[0], v[1]) ]
+      }).flat();
+      const sharedPrelude = [
+        ...sharedBaseStmts,
+        Var(sharedBaseName, sharedBaseObj),
+        ...variantBaseStmts
+      ];
+
+      const variantConstructors = variants.map((v, i) => {
+        const base = Identifier(variantBaseObjs[i][0]);
+        switch(v.$name) {
+          case 's-singleton-variant':
+            return Property(v.dict.name, base);
+          case 's-variant':
+            const argList = listToArray(v.dict.members).map(getVariantMemberId);
+            const fields = argList.map(a => Property(nameToName(a), Identifier(a)));
+            const extension = ObjectExpression(fields);
+            const body = BlockStatement([ReturnStatement(rtMethod("$makeDataValue", [base, extension]))]);
+            const constructor = FunctionExpression(constId(v.dict.name), argList, body);
+            return Property(v.dict.name, constructor);
+        }
+      });
+
+      const dataPackage = ObjectExpression([...variantConstructors]);
+      return [dataPackage, sharedPrelude];
     }
 
     function pyretLookup(l : A.Srcloc, obj : J.Expression, field : string) : J.Expression {
@@ -499,6 +556,8 @@ import { objectExpression } from '@babel/types';
       return [ans, block.body];
     }
 
+
+
     function compileExpr(context, expr : A.Expr) : CompileResult {
       switch(expr.$name) {
         case 's-module':
@@ -578,9 +637,10 @@ import { objectExpression } from '@babel/types';
           });
           const [ bv, bodyStmts ] = compileExpr(context, expr.dict.body);
           return [ bv, [...prelude, ...bodyStmts]];
-        case 's-type-let-expr': throw new TODOError(`Not yet implemented ${expr.$name}`);
-        case 's-data-expr': throw new TODOError(`Not yet implemented ${expr.$name}`);
-          
+        case 's-type-let-expr':
+          return compileExpr(context, expr.dict.body);
+        case 's-data-expr':
+          return compileData(context, expr);
         case 's-dot': {
           const [objV, objStmts] = compileExpr(context, expr.dict.obj);
           return [pyretLookup(expr.dict.l, objV, expr.dict.field), objStmts]
