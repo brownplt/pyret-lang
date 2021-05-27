@@ -1,6 +1,6 @@
 .PHONY: all clean build parser web runtime fix-runtime offline-tests clean-tests ide-tests ide
 
-all: build parser
+all: build parser runtime
 
 PYRET_JARR_DEPS := $(wildcard src/arr/compiler/*.arr) $(patsubst src/arr/compiler/%.ts,src/arr/compiler/%.js,$(wildcard src/arr/compiler/*.ts))
 
@@ -36,7 +36,7 @@ web-tests: web
 stopify-web-tests: web
 	npx jest --verbose "stopify"
 
-offline-tests: check-block-tests simple-output-tests
+offline-tests: check-block-tests simple-output-tests ts-simple-output-tests
 
 simple-output-tests: build runtime
 	npx jest --verbose "tests-new/simple-output.test.js"
@@ -45,7 +45,7 @@ ts-simple-output-tests: build runtime
 	npx jest --setupTestFrameworkScriptFile=./tests-new/ts-pipeline-testing.js --verbose "tests-new/simple-output.test.js"
 
 check-block-tests: build runtime
-	jest --verbose "tests-new/check-blocks.test.js"
+	npx jest --verbose "tests-new/check-blocks.test.js"
 
 ide: web
 	cd ide; npm run hstart

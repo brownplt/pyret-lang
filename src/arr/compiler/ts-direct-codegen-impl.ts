@@ -355,55 +355,23 @@ import { objectExpression } from '@babel/types';
       // This removes the `self` argument from the args list for use in the curried method
       // From well-formed, we know methods have at least one argument
       lamProps.args = args.dict.rest;
-      const [curriedFunction, _] = compileExpr(context, { $name: "s-lam", dict: lamProps });
-      const methodcache = DotExpression(Identifier(self), "methodcache");
-      const methodcacheAccess = BracketExpression(methodcache, Literal(method.dict.name));
-      const valueObject = ObjectExpression([Property("value", Identifier(constId("$curriedmethod")))]);
+      const [methodBody, _] = compileExpr(context, { $name: "s-lam", dict: lamProps });
+      const install = rtMethod("$installMethod", [Identifier(self), Literal(method.dict.name), methodBody])
       const body = [
         Var(self, { type: "ThisExpression"}),
-        Var(constId("$methodgetter"),
-          DotExpression(MethodCallExpression(Identifier(constId("Object")), "getOwnPropertyDescriptor",
-                          [Identifier(self), Literal(method.dict.name)]), "get")),
-        Var(constId("$curriedmethod"), curriedFunction),
-        ExpressionStatement(AssignmentExpression(methodcache, ConditionalExpression(BinaryExpression("===", methodcache, Identifier(constId("undefined"))), ObjectExpression([]), methodcache))),
-        ExpressionStatement(AssignmentExpression(methodcacheAccess, Identifier(constId("$methodgetter")))),
-        ExpressionStatement(MethodCallExpression(Identifier(constId("Object")), "defineProperty",
-            [Identifier(self), Literal(method.dict.name), valueObject])),
-        ReturnStatement(Identifier(constId("$curriedmethod")))
+        ReturnStatement(install)
       ];
-      return FunctionExpression(constId("get"), [], BlockStatement(body));
-
-
-      /*
-rec $m = lam(self):
-  if self.$$m === undefined:
-    self.$$m = lam(): self.x end
-    self.$$m.frommethod = true
-    self.$$m.original = $m
-  end
-  self.m = self.$$m
-  self.m
-end
-
-get ${method.name}() {
-  var self = this;
-  var $m = Object.getOwnPropertyDescriptor(self, ${method.name}).get;
-  var $$m = function(${method.args.rest}) { ... ${method.bodystmts which uses self} ...}
-  self.methodcache[${method.name}] = { original: $m };
-  Object.defineProperty(self, ${method.name}, { value: $$m });
-  return $$m;
-}
-      */
+      return FunctionExpression(constId(`getWrapper_${method.dict.name}`), [], BlockStatement(body));
     }
 
     function compileObj(context, expr : Variant<A.Expr, 's-obj'>) : [J.Expression, Array<J.Statement>] {
       const fieldsAsArray = listToArray(expr.dict.fields);
-
-      const fieldvs : Array<J.Property> = [], stmts = [];
+      const fieldvs : Array<J.Property> = [], stmts = [], methods : Array<[string, J.Property]> = [];
       fieldsAsArray.forEach(f => {
         switch(f.$name) {
           case 's-method-field':
-            fieldvs.push(Getter(f.dict.name, compileMethodDefinition(context, f)));
+            const method = compileMethodDefinition(context, f);
+            methods.push([f.dict.name, Property(f.dict.name, method)]);
             return;
           case 's-data-field':
             const [val, compiledStmts] = compileExpr(context, f.dict.value);
@@ -414,7 +382,9 @@ get ${method.name}() {
             throw new InternalCompilerError("Not yet implemented: " + f.$name);
         }
       });
-      return [  ObjectExpression(fieldvs), stmts ];
+      fieldvs.push(Property("$methods", ObjectExpression(methods.map(m => m[1]))));
+      const result = rtMethod("$setupMethodGetters", [ObjectExpression(fieldvs)]);
+      return [  result, stmts ];
     }
 
     function pyretLookup(l : A.Srcloc, obj : J.Expression, field : string) : J.Expression {
@@ -544,69 +514,8 @@ get ${method.name}() {
             numAns = rtMethod("_makeNumberFromString", [Literal(expr.dict.n.toString()), rtField(NUMBER_ERR_CALLBACKS)]);
           }
           return [numAns, []];
-        case 's-str':
-          return [Literal(expr.dict.s), []];
-        case 's-bool':
-          return [Literal(expr.dict.b), []];
-        case 's-op':
-          return compileOp(context, expr);
-        case 's-prim-app':
-          const [argvs, argstmts] = compileList(context, expr.dict.args);
-          const primAns = CallExpression(rtField(expr.dict._fun), argvs);
-          return [primAns, argstmts];
-        case 's-srcloc':
-          return [compileSrcloc(context, expr.dict.loc), []];
-        case 's-when': {
-          const nothing = compileExpr(context, { $name: 's-id', dict: { l: expr.dict.l, id: jsnames.sGlobal("nothing") }});
-          return compileIf(context, 
-            [{ $name: 's-if-branch', dict: { l: expr.dict.l, test: expr.dict.test, body: expr.dict.block }}],
-            nothing
-          );
-        }
-        case 's-if':
-        case 's-if-pipe': {
-          const srcloc = compileSrcloc(context, expr.dict.l);
-          const type = (expr.$name === 's-if' ? 'if' : 'ask');
-          const throwNoMatch = CallExpression(rtField("throwNoBranchesMatched"), [srcloc, Literal(type)]);
-          return compileIf(context,
-            listToArray<A.IfBranch | A.IfPipeBranch>(expr.dict.branches),
-            [throwNoMatch, []]);
-        }
-        case 's-if-else': 
-        case 's-if-pipe-else': {
-          return compileIf(context,
-            listToArray<A.IfBranch | A.IfPipeBranch>(expr.dict.branches),
-            compileExpr(context, expr.dict._else));
-        }
-        case 's-obj':
-          return compileObj(context, expr);
-        case 's-dot': {
-          const [objV, objStmts] = compileExpr(context, expr.dict.obj);
-          return [pyretLookup(expr.dict.l, objV, expr.dict.field), objStmts]
-        }
-        case 's-extend': {
-          const [objV, objStmts] = compileExpr(context, expr.dict.supe);
-          const fieldsAsArray = listToArray(expr.dict.fields);
-
-          const fieldvs = [], stmts = [];
-          fieldsAsArray.forEach(f => {
-            switch(f.$name) {
-              case 's-method-field':
-                fieldvs.push(Property(f.dict.name, ObjectExpression([
-                  Property("get", compileMethodDefinition(context, f))
-                ])));
-                return;
-              case 's-data-field':
-                const [val, compiledStmts] = compileExpr(context, f.dict.value);
-                fieldvs.push(Property(f.dict.name, ObjectExpression([ Property("value", val) ])));
-                stmts.push(...compiledStmts);
-                return;
-              default:
-                throw new InternalCompilerError("Not yet implemented: " + f.$name);
-            }
-          });
-          return [rtMethod("$extend", [objV, ObjectExpression(fieldvs)]), stmts];
-        }
+        case 's-frac': throw new TODOError(expr.$name);
+        case 's-rfrac': throw new TODOError(expr.$name);
         case 's-id':
           const b = context.postEnv.dict.bindings;
           const key = nameToKey(expr.dict.id);
@@ -632,6 +541,21 @@ get ${method.name}() {
           const [objv, objStmts] = compileExpr(context, { $name: "s-id", dict: { l: expr.dict.l, id: expr.dict.id }});
           return [ DotExpression(objv, expr.dict.name), objStmts ];
         }
+        case 's-id-var': throw new TODOError(expr.$name);
+        case 's-prim-app':
+          const [argvs, argstmts] = compileList(context, expr.dict.args);
+          const primAns = CallExpression(rtField(expr.dict._fun), argvs);
+          return [primAns, argstmts];
+        case 's-app-enriched': // TODO(joe): use info
+        case 's-app': {
+          const [fv, fstmts] = compileExpr(context, expr.dict._fun);
+          const [argvs, argstmts] = compileList(context, expr.dict.args);
+          return [ CallExpression(fv, argvs), [...fstmts, ...argstmts]];
+        }
+        case 's-srcloc':
+          return [compileSrcloc(context, expr.dict.loc), []];
+        case 's-op':
+          return compileOp(context, expr);
         case 's-lam': {
           const [ bodyVal, bodyStmts ] = compileExpr(context, expr.dict.body);
           const bindArgs = expr.dict.args as A.List<Variant<A.Bind, "s-bind">>;
@@ -654,14 +578,91 @@ get ${method.name}() {
           });
           const [ bv, bodyStmts ] = compileExpr(context, expr.dict.body);
           return [ bv, [...prelude, ...bodyStmts]];
-        case 's-app-enriched': // TODO(joe): use info
-        case 's-app': {
-          const [fv, fstmts] = compileExpr(context, expr.dict._fun);
-          const [argvs, argstmts] = compileList(context, expr.dict.args);
-          return [ CallExpression(fv, argvs), [...fstmts, ...argstmts]];
+        case 's-type-let-expr': throw new TODOError(`Not yet implemented ${expr.$name}`);
+        case 's-data-expr': throw new TODOError(`Not yet implemented ${expr.$name}`);
+          
+        case 's-dot': {
+          const [objV, objStmts] = compileExpr(context, expr.dict.obj);
+          return [pyretLookup(expr.dict.l, objV, expr.dict.field), objStmts]
         }
+        case 's-cases-else': throw new TODOError(expr.$name);
+        case 's-cases': throw new TODOError(expr.$name);
+        case 's-obj':
+          return compileObj(context, expr);
+        case 's-array': throw new TODOError(expr.$name);
+        case 's-construct': throw new TODOError(expr.$name);
+        case 's-instantiate': throw new TODOError(expr.$name);
+        case 's-user-block': throw new TODOError(expr.$name);
+        case 's-template': throw new TODOError(expr.$name);
+        case 's-method': throw new TODOError(expr.$name);
+        case 's-type': throw new TODOError(expr.$name);
+        case 's-newtype': throw new TODOError(expr.$name);
+        case 's-when': {
+          const nothing = compileExpr(context, { $name: 's-id', dict: { l: expr.dict.l, id: jsnames.sGlobal("nothing") }});
+          return compileIf(context, 
+            [{ $name: 's-if-branch', dict: { l: expr.dict.l, test: expr.dict.test, body: expr.dict.block }}],
+            nothing
+          );
+        }
+        case 's-if':
+        case 's-if-pipe': {
+          const srcloc = compileSrcloc(context, expr.dict.l);
+          const type = (expr.$name === 's-if' ? 'if' : 'ask');
+          const throwNoMatch = CallExpression(rtField("throwNoBranchesMatched"), [srcloc, Literal(type)]);
+          return compileIf(context,
+            listToArray<A.IfBranch | A.IfPipeBranch>(expr.dict.branches),
+            [throwNoMatch, []]);
+        }
+        case 's-if-else': 
+        case 's-if-pipe-else': {
+          return compileIf(context,
+            listToArray<A.IfBranch | A.IfPipeBranch>(expr.dict.branches),
+            compileExpr(context, expr.dict._else));
+        }
+        case 's-assign': throw new TODOError(expr.$name);
+        case 's-bracket': throw new TODOError(expr.$name);
+        case 's-get-bang': throw new TODOError(expr.$name);
+        case 's-update': throw new TODOError(expr.$name);
+        case 's-extend': {
+          const [objV, objStmts] = compileExpr(context, expr.dict.supe);
+          const [extensionV, extensionStmts] = compileExpr(context, { $name: "s-obj", dict: expr.dict});
+          return [rtMethod("$extend", [objV, extensionV]), [...objStmts, ...extensionStmts]];
+        }
+        case 's-for': throw new TODOError(expr.$name);
+        case 's-str':
+          return [Literal(expr.dict.s), []];
+        case 's-bool':
+          return [Literal(expr.dict.b), []];
+        case 's-tuple': throw new TODOError(expr.$name);
+        case 's-tuple-get': throw new TODOError(expr.$name);
+        case 's-ref': throw new TODOError(expr.$name);
+        case 's-reactor': throw new TODOError(expr.$name);
+        case 's-table': throw new TODOError(expr.$name);
+        case 's-paren': throw new TODOError(expr.$name);
+        case 's-let': throw new TODOError(expr.$name);
+        case 's-var': throw new TODOError(expr.$name);
+        case 's-check-expr': throw new TODOError(expr.$name);
+        case 's-check': throw new TODOError(expr.$name);
+        case 's-check-test': throw new TODOError(expr.$name);
+        case 's-load-table': throw new TODOError(expr.$name);
+        case 's-table-extend': throw new TODOError(expr.$name);
+        case 's-table-update': throw new TODOError(expr.$name);
+        case 's-table-filter': throw new TODOError(expr.$name);
+        case 's-table-select': throw new TODOError(expr.$name);
+        case 's-table-order': throw new TODOError(expr.$name);
+        case 's-table-extract': throw new TODOError(expr.$name);
+        case 's-spy-block': throw new TODOError(expr.$name);
+        case 's-hint-exp': throw new TODOError(expr.$name);
+        case 's-fun': throw new TODOError(expr.$name);
+        case 's-rec': throw new TODOError(expr.$name);
+        case 's-contract': throw new TODOError(expr.$name);
+        case 's-prim-val': throw new TODOError(expr.$name);
+        case 's-id-var-modref': throw new TODOError(expr.$name);
+        case 's-undefined': throw new TODOError(expr.$name);
+        case 's-data': throw new TODOError(expr.$name);
+
         default:
-          throw new TODOError("Unhandled expression type: " + expr.$name);
+          throw new ExhaustiveSwitchError(expr, "Reached exhaustiveness check");
       }
     }
 

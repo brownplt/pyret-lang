@@ -320,15 +320,40 @@ function getModuleValue(uri : string, k : string) {
   return allModules[uri].values[k];
 }
 
-function extend(obj, extension) {
-  const newObj = {};
-  Object.assign(newObj, obj);
-  Object.entries(obj.methodcache || {}).forEach((e : any) => {
-    Object.defineProperty(newObj, e[0], { configurable: true, get: e[1] });
-  });
-  Object.defineProperties(newObj, extension);
-  return newObj;
+function createVariant(shared, variant) {
+  Object.setPrototypeOf(variant, shared);
+  Object.setPrototypeOf(variant.$methods, shared.$methods);
 }
+
+function createDataValue(base, extension) {
+  Object.setPrototypeOf(extension, base);
+  return extension;
+}
+
+function extend(obj, extension) {
+  for(let k in obj.$methods) {
+    if(!(extension.hasOwnProperty(k))) {
+      Object.defineProperty(extension, k, { configurable: true, get: obj.$methods[k] });
+    }
+  }
+  Object.setPrototypeOf(extension, obj);
+  Object.setPrototypeOf(extension.$methods, obj.$methods);
+  return extension;
+}
+
+function installMethod(obj, name, method) {
+  Object.defineProperty(obj, name, {value: method, writable: false});
+  return method;
+}
+function setupMethodGetters(obj) {
+  const extension = {};
+  for (let k in obj.$methods) {
+    extension[k] = { get: obj.$methods[k], configurable: true };
+  }
+  Object.defineProperties(obj, extension);
+  return obj;
+}
+
 
 // TODO(alex): common Pyret error objects
 function raise(msg: object) {
@@ -402,6 +427,8 @@ module.exports["$spy"] = _spy;
 module.exports["$rebind"] = _rebind;
 module.exports["$shallowCopyObject"] = shallowCopyObject;
 module.exports["$extend"] = extend;
+module.exports["$installMethod"] = installMethod;
+module.exports["$setupMethodGetters"] = setupMethodGetters;
 
 module.exports["$checkTest"] = eagerCheckTest;
 module.exports["$checkBlock"] = checkBlockHandler;
