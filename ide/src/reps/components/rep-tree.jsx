@@ -73,7 +73,7 @@ export default class ExpandableRep extends React.PureComponent {
     pathToEntity: PathToEntityPropTypes.isRequired,
     valueSummary: ValueSummaryPropTypes,
     getChildSummaries: PropTypes.func.isRequired,
-
+    renderChild: PropTypes.func.isRequired,
     pathLabel: PathLabelPropTypes
   };
 

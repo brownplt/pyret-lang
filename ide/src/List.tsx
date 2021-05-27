@@ -13,7 +13,7 @@ import { makeValueRendererWithRepRequest } from './reps/components/rep-info-requ
 import { repInfoRequestResponse } from './reps/serialization/rep-info-request-response';
 import { serializeForValueSummary } from './reps/serialization/value-summary-serializer';
 import ExpandableRep from './reps/components/rep-tree';
-import { getChildSummary } from './reps/serialization/get-child-summaries';
+import { getChildSummary, getObjAtPath } from './reps/serialization/get-child-summaries';
 import ValueSummary from './reps/components/value-summary';
 
 type ListWidgetProps = {
@@ -23,9 +23,13 @@ type ListWidgetProps = {
 
 type List<T> = { $tag: 0 } | { $tag: 1, first: T, rest: List<T> };
 
-function toJSArray<T>(list: List<T>): Array<T> {
-  const res = [];
-  let rest = list;
+function toJSArray<T>(inList: List<T>): Array<T> {
+  // This is a hack to rename the "summary" in the serializer
+  class list extends Array {
+    constructor() { super() }
+  }
+  const res: any = new list();
+  let rest = inList;
   while (rest.$tag !== 0) {
     res.push(rest.first);
     rest = rest.rest;
@@ -34,42 +38,77 @@ function toJSArray<T>(list: List<T>): Array<T> {
 }
 
 declare global {
-  interface Window { theKey: any; }
+  interface window { theKey: any; }
 }
 
 export default function ListWidget({ htmlify, value }: ListWidgetProps) {
- window.theKey['theKey2'] = value;
- const serializedValueSummary = serializeForValueSummary(
-   window.theKey['theKey2']
- );
- return (
-   <ExpandableRep
-     pathToEntity={['theKey2']}
-     valueSummary={serializedValueSummary}
-     getChildSummaries={((path: any) => getChildSummary("window", path))}
-     rootObjName="theKey"
-   />
- );
- const mockUserRenderManager = {
-   getUserRepIfAvailable: htmlify,
- };
-//
- function repInfoRequestResponseWithMockUserReps(payload: any) {
-   return repInfoRequestResponse(payload, {
-     userRepManager: mockUserRenderManager,
-   });
- }
-//
- const ValueRenderer = makeValueRendererWithRepRequest(
-   ValueRendererUnconnected,
-   repInfoRequestResponseWithMockUserReps,
-   'window',
- );
-//
- //const asArray = toJSArray(value);
- /* eslint-disable */
- //window['theKey'] = asArray;
- //return <ValueRenderer valueKey="theKey" />;
+  const asArray = toJSArray(value);
+  if (typeof (window as any).theKey === 'undefined') {
+  (window as any).theKey = {};
+  }
+  let actualKey = (value as any)['$id'];
+  if (typeof actualKey === 'undefined') {
+    const newKey = Math.random().toString();
+    (value as any)['$id'] = newKey;
+    actualKey = newKey;
+  }
+  (window as any).theKey[actualKey] = asArray;
+  const serializedValueSummary = serializeForValueSummary(
+    (window as any).theKey[actualKey]
+  );
+  return (
+    <ExpandableRep
+      pathToEntity={[actualKey]}
+      valueSummary={serializedValueSummary}
+      getChildSummaries={(path: any) => getChildSummary("theKey", path)}
+      renderChild={htmlify}
+      rootObjName="theKey"
+    />
+  ); 
+
+//  const mockUserRenderManager = {
+//    getUserRepIfAvailable: htmlify,
+//  };
+// //
+//  function repInfoRequestResponseWithMockUserReps(payload: any) {
+//    console.log(payload);
+//    return repInfoRequestResponse(payload, {
+//      userRepManager: mockUserRenderManager,
+//    });
+//  }
+// //
+//  const ValueRenderer = makeValueRendererWithRepRequest(
+//    ValueRendererUnconnected,
+//    repInfoRequestResponseWithMockUserReps,
+//    'window',
+//  );
+// //
+//  const asArray = toJSArray(value);
+//  /* eslint-disable */
+//  (window as any)['theKey'] = asArray;
+//  return <ValueRenderer valockUserRenderManager = {
+//    getUserRepIfAvailable: htmlify,
+//  };
+// //
+//  function repInfoRequestResponseWithMockUserReps(payload: any) {
+//    console.log(payload);
+//    return repInfoRequestResponse(payload, {
+//      userRepManager: mockUserRenderManager,
+//    });
+//  }
+// //
+//  const ValueRenderer = makeValueRendererWithRepRequest(
+//    ValueRendererUnconnected,
+//    repInfoRequestResponseWithMockUserReps,
+//    'window',
+//  );
+// //
+//  const asArray = toJSArray(value);
+//  /* eslint-disable */
+//  (window as any)['theKey'] = asArray;
+//  return <ValueueKey="theKey">{asArray}</ValueRenderer>;
+
+
 //  const asArray = toJSArray(value);
 //   const serialized = serializeForValueSummary(asArray);
 //   /* eslint-disable */

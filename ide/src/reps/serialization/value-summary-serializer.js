@@ -11,6 +11,8 @@ import {
 export function getClass(obj) {
   if (obj === null) return "Null";
   if (obj === undefined) return "Undefined";
+  // obviously this is a horrible horrible hack
+  //if (obj instanceof Array) return "list";
   try {
     return Object.getPrototypeOf(obj).constructor.name;
   } catch (error) {

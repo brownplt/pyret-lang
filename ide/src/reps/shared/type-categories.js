@@ -1,4 +1,5 @@
 export const numericIndexTypes = [
+  "list",
   "Array",
   "Int8Array",
   "Int16Array",
