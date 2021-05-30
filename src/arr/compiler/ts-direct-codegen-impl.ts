@@ -3,7 +3,6 @@ import type * as Escodegen from 'escodegen';
 import type * as Path from 'path';
 import type * as A from './ts-ast';
 import type * as CS from './ts-compile-structs';
-import { objectExpression } from '@babel/types';
 
 ({ 
   requires: [],
@@ -339,6 +338,7 @@ import { objectExpression } from '@babel/types';
         const [first, firstStmts] = compileExpr(context, cur.dict.first);
         ans = first;
         stmts.push(...firstStmts);
+        stmts.push(ExpressionStatement(first));
         cur = cur.dict.rest;
       }
       return [ans, stmts]
@@ -407,13 +407,12 @@ import { objectExpression } from '@babel/types';
       const [sharedBaseObj, sharedBaseStmts] = compileObj(context, {$name: 's-obj', dict: { l: expr.dict.l, fields: expr.dict['shared-members'] } });
       const sharedBaseName = freshId(constId(`sharedBase_${expr.dict.name}`));
       const variants = listToArray(expr.dict.variants);
-      const variantBaseObjs : Array<[A.Name, J.Expression, Array<J.Statement>]> = variants.map((v, i) => {
+      const variantBaseObjs : Array<[A.Name, J.Expression, Array<J.Statement>]> = variants.map(v => {
         const [extensionV, extensionStmts] = compileExpr(context, { $name: "s-obj", dict: { l: v.dict.l, fields: v.dict['with-members'] } });
         const variantId = freshId(constId(`variantBase_${v.dict.name}`));
-        const extraField = Property("$variant", Identifier(variantId));
         const dataField = Property("$data", Identifier(sharedBaseName));
         const nameField = Property("$name", Literal(v.dict.name));
-        const meta = ObjectExpression([extraField, dataField, nameField]);
+        const meta = ObjectExpression([dataField, nameField]);
         return [variantId, rtMethod("$createVariant", [Identifier(sharedBaseName), extensionV, meta]), extensionStmts];
       });
       const variantBaseStmts = variantBaseObjs.map(v => {
@@ -440,7 +439,19 @@ import { objectExpression } from '@babel/types';
         }
       });
 
-      const dataPackage = ObjectExpression([...variantConstructors]);
+      const variantRecognizers = variants.map((v, i) => {
+        const base = Identifier(variantBaseObjs[i][0]);
+        const isname = `is-${v.dict.name}`;
+        const arg = constId("val");
+        const argIsObject = BinaryExpression("===", UnaryExpression("typeof", Identifier(arg)), Literal("object"));
+        const argIsNotNull = BinaryExpression("!==", Identifier(arg), Literal(null));
+        const argIsVariant = BinaryExpression("===", DotExpression(Identifier(arg), "$variant"), base);
+        const check = LogicalExpression("&&", LogicalExpression("&&", argIsObject, argIsNotNull), argIsVariant);
+        const checker = FunctionExpression(jsIdOf(constId(isname)), [arg], BlockStatement([ ReturnStatement(check) ]));
+        return Property(isname, checker);
+      });
+
+      const dataPackage = ObjectExpression([...variantConstructors, ...variantRecognizers]);
       return [dataPackage, sharedPrelude];
     }
 

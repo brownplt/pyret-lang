@@ -334,6 +334,7 @@ function extend(obj, extension) {
 function createVariant(sharedBase, extension, meta) {
   const extended = extend(sharedBase, extension);
   Object.assign(extended, meta);
+  extended.$variant = extended;
   return extended;
 }
 
