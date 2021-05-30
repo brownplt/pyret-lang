@@ -334,16 +334,26 @@ fun set-loadable(options, locator, loadable, max-dep-times) block:
 
       effective-time = max-dep-times.get-value(locator.uri())
 
-      when (time-or-0(save-static-path) <= effective-time)  or (time-or-0(save-code-path) <= effective-time) block:
+      file-was-updated = (time-or-0(save-static-path) <= effective-time)  or (time-or-0(save-code-path) <= effective-time)
+
+      when file-was-updated block:
         when not( FS.exists( dep-path ) ):
           mkdirp( dep-path )
         end
 
-        fs = F.output-file(save-static-path, false)
-        fr = F.output-file(save-code-path, false)
+        skip-saving-builtin =
+          FS.exists(save-static-path) and
+          FS.exists(save-code-path) and
+          not(options.recompile-builtins) and
+          (string-substring(uri, 0, 10) == "builtin://")
 
-        fs.display(ccp.pyret-to-js-static())
-        fr.display(ccp.pyret-to-js-runnable())
+        when not(skip-saving-builtin) block:
+          fs = F.output-file(save-static-path, false)
+          fr = F.output-file(save-code-path, false)
+
+          fs.display(ccp.pyret-to-js-static())
+          fr.display(ccp.pyret-to-js-runnable())
+        end
       end
 
       {save-static-path; save-code-path}

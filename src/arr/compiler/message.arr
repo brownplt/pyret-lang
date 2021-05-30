@@ -23,7 +23,8 @@ data Request:
       builtin-js-dir :: String,
       checks :: String,
       type-check :: Boolean,
-      recompile-builtins :: Boolean)
+      recompile-builtins :: Boolean,
+      pipeline :: String)
   | create-repl
   | compile-interaction(
       program :: String)
@@ -35,14 +36,15 @@ sharing:
           "program", program,
           "program-source", program-source]
       | compile-program(
-          program, base-dir, builtin-js-dir, checks, type-check, recompile-builtins) =>
+          program, base-dir, builtin-js-dir, checks, type-check, recompile-builtins, pipeline) =>
         [SD.string-dict:
           "program", program,
           "base-dir", base-dir,
           "builtin-js-dir", builtin-js-dir,
           "checks", checks,
           "type-check", type-check,
-          "recompile-builtins", recompile-builtins]
+          "recompile-builtins", recompile-builtins,
+          "pipeline", pipeline]
       | create-repl =>
         raise(".get-options not implemented for create-repl")
       | compile-interaction(_) =>
@@ -167,13 +169,18 @@ fun parse-compile-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-com
                       bind-option(
                         dict.get("recompile-builtins"),
                         lam(recompile-builtins):
-                          some(compile-program(
-                              program,
-                              base-dir,
-                              builtin-js-dir,
-                              checks,
-                              type-check,
-                              recompile-builtins))
+                          bind-option(
+                            dict.get("pipeline"),
+                            lam(pipeline):
+                            some(compile-program(
+                                program,
+                                base-dir,
+                                builtin-js-dir,
+                                checks,
+                                type-check,
+                                recompile-builtins,
+                                pipeline))
+                            end)
                         end)
                     end)
                 end)

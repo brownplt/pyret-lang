@@ -123,6 +123,7 @@ export const compileProgram = (
     checks: options.checks,
     'type-check': options.typeCheck,
     'recompile-builtins': options.recompileBuiltins,
+    pipeline: 'anchor',
   };
 
   compilerWorker.postMessage(message);

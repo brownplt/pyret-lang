@@ -61,7 +61,8 @@ compile-handler = lam(msg, send-message) block:
             builtin-js-dir,
             checks,
             type-check,
-            recompile-builtins) =>
+            recompile-builtins,
+            pipeline) =>
           opts = request.get-options()
           spy: opts end
           fun log(s, to-clear):
