@@ -704,8 +704,13 @@ import type * as CS from './ts-compile-structs';
           return [Literal(expr.dict.s), []];
         case 's-bool':
           return [Literal(expr.dict.b), []];
-        case 's-tuple': throw new TODOError(expr.$name);
-        case 's-tuple-get': throw new TODOError(expr.$name);
+        case 's-tuple':
+          const [vals, stmts] = compileList(context, expr.dict.fields);
+          const maker = rtMethod("PTuple", [ArrayExpression(vals)]);
+          return [maker, stmts];
+        case 's-tuple-get':
+          const [tup, tupstmts] = compileExpr(context, expr.dict.tup);
+          return [BracketExpression(tup, Literal(expr.dict.index)), tupstmts]
         case 's-ref': throw new TODOError(expr.$name);
         case 's-reactor': throw new TODOError(expr.$name);
         case 's-table': throw new TODOError(expr.$name);
