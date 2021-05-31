@@ -29,6 +29,11 @@ import type * as CS from './ts-compile-structs';
         super(`Internal compile error (compiler bug/broken invariant): ${message}`);
       }
     }
+    class ShouldHaveDesugared extends Error {
+      constructor(loc: A.Srcloc, variant: string) {
+        super(`Expression form should have been desugared (compiler bug/broken invariant): ${variant} at ${JSON.stringify(loc)}`);
+      }
+    }
     class TODOError extends Error {
       constructor(message: string) {
         super(`Incomplete feature in compiler: ${message}`);
@@ -660,8 +665,18 @@ import type * as CS from './ts-compile-structs';
         case 's-cases': throw new TODOError(expr.$name);
         case 's-obj':
           return compileObj(context, expr);
-        case 's-array': throw new TODOError(expr.$name);
-        case 's-construct': throw new TODOError(expr.$name);
+        case 's-array': {
+          const [ eltsVals, eltsStmts ] = compileList(context, expr.dict.values);
+          return [ ArrayExpression(eltsVals), eltsStmts ];
+        }
+        case 's-construct': {
+          const [ cval, cstmts ] = compileExpr(context, expr.dict.constructor);
+          const [ eltsVals, eltsStmts ] = compileList(context, expr.dict.values);
+          return [
+            CallExpression(DotExpression(cval, "make"), [ArrayExpression(eltsVals)]),
+            [...cstmts, ...eltsStmts]
+          ];
+        }
         case 's-instantiate': throw new TODOError(expr.$name);
         case 's-user-block': throw new TODOError(expr.$name);
         case 's-template': throw new TODOError(expr.$name);
@@ -711,12 +726,10 @@ import type * as CS from './ts-compile-structs';
         case 's-tuple-get':
           const [tup, tupstmts] = compileExpr(context, expr.dict.tup);
           return [BracketExpression(tup, Literal(expr.dict.index)), tupstmts]
+        case 's-paren': return compileExpr(context, expr.dict.expr);
+
         case 's-ref': throw new TODOError(expr.$name);
-        case 's-reactor': throw new TODOError(expr.$name);
         case 's-table': throw new TODOError(expr.$name);
-        case 's-paren': throw new TODOError(expr.$name);
-        case 's-let': throw new TODOError(expr.$name);
-        case 's-var': throw new TODOError(expr.$name);
         case 's-check-expr': throw new TODOError(expr.$name);
         case 's-check': throw new TODOError(expr.$name);
         case 's-check-test': throw new TODOError(expr.$name);
@@ -729,13 +742,18 @@ import type * as CS from './ts-compile-structs';
         case 's-table-extract': throw new TODOError(expr.$name);
         case 's-spy-block': throw new TODOError(expr.$name);
         case 's-hint-exp': throw new TODOError(expr.$name);
-        case 's-fun': throw new TODOError(expr.$name);
-        case 's-rec': throw new TODOError(expr.$name);
-        case 's-contract': throw new TODOError(expr.$name);
         case 's-prim-val': throw new TODOError(expr.$name);
         case 's-id-var-modref': throw new TODOError(expr.$name);
         case 's-undefined': throw new TODOError(expr.$name);
-        case 's-data': throw new TODOError(expr.$name);
+
+        case 's-contract':
+        case 's-rec':
+        case 's-reactor':
+        case 's-fun':
+        case 's-data':
+        case 's-let':
+        case 's-var':
+          throw new ShouldHaveDesugared(expr.dict.l, expr.$name);
 
         default:
           throw new ExhaustiveSwitchError(expr, "Reached exhaustiveness check");
