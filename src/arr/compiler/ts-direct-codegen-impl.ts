@@ -591,6 +591,10 @@ import type * as CS from './ts-compile-structs';
           return [numAns, []];
         case 's-frac': throw new TODOError(expr.$name);
         case 's-rfrac': throw new TODOError(expr.$name);
+        case 's-str':
+          return [Literal(expr.dict.s), []];
+        case 's-bool':
+          return [Literal(expr.dict.b), []];
         case 's-id':
           const b = context.postEnv.dict.bindings;
           const key = nameToKey(expr.dict.id);
@@ -715,10 +719,6 @@ import type * as CS from './ts-compile-structs';
           return [rtMethod("$extend", [objV, extensionV]), [...objStmts, ...extensionStmts]];
         }
         case 's-for': throw new TODOError(expr.$name);
-        case 's-str':
-          return [Literal(expr.dict.s), []];
-        case 's-bool':
-          return [Literal(expr.dict.b), []];
         case 's-tuple':
           const [vals, stmts] = compileList(context, expr.dict.fields);
           const maker = rtMethod("PTuple", [ArrayExpression(vals)]);
