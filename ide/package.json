@@ -5,7 +5,6 @@
   "dependencies": {
     "@babel/core": "7.5.5",
     "@babel/runtime": "^7.10.5",
-    "@emotion/styled": "10.0.27",
     "@stopify/stopify": "^0.7.2",
     "@svgr/webpack": "4.3.2",
     "@types/codemirror": "0.0.76",

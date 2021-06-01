@@ -11,7 +11,7 @@
 
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import RenderedValue from './RenderedValue';
+import RenderedValue from './reps/RenderedValue';
 import { State } from './state';
 import {
   RHSObject,

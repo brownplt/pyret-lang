@@ -5,7 +5,7 @@ import { Action } from './action';
 import { State } from './state';
 
 import { Chunk, findChunkFromSrcloc } from './chunk';
-import RenderedValue from './RenderedValue';
+import RenderedValue from './reps/RenderedValue';
 
 import {
   isSpyValue,

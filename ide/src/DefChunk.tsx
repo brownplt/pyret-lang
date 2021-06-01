@@ -17,7 +17,7 @@ import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { BackendCmd, State, EditorResponseLoop } from './state';
 
-import RenderedValue from './RenderedValue';
+import RenderedValue from './reps/RenderedValue';
 import backendCmdFromState from './editor_loop';
 
 import {

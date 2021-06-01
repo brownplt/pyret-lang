@@ -51,13 +51,13 @@ type PropsFromReact = {
     '$interactNoPauseResume': (insertNode: (node: any, title: string, setupClose: (close: () => void) => void) => void) => any,
     '$shutdown': () => void,
   },
-  convert: (value: any) => any,
+  RenderedValue: React.ReactType,
 };
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
 type Props = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
-function Reactor({ reactor, convert }: Props) {
+function Reactor({ reactor, RenderedValue }: Props) {
   const [node, setNode]: [any, (node: any) => void] = React.useState(false);
   const [title, setTitle]: [string, (title: string) => void] = React.useState('Reactor');
   const [open, setOpen]: [boolean, (open: boolean) => void] = React.useState(false as boolean);
@@ -90,12 +90,12 @@ function Reactor({ reactor, convert }: Props) {
   function setInitialValue() {
     try {
       runGetValue().then((v) => {
-        console.log('setInitialValue: covert', convert(v));
-        setValue(convert(v));
+        console.log('setInitialValue: covert', v);
+        setValue(v);
       });
     } catch (e) {
       console.log('failed draw with', e);
-      setValue(convert(reactor['get-value']()));
+      setValue(reactor['get-value']());
     }
   }
   if (typeof value === 'undefined') {
@@ -121,7 +121,7 @@ function Reactor({ reactor, convert }: Props) {
           }
         }}
       >
-        {typeof value === 'undefined' ? 'Initializing...' : value}
+        {typeof value === 'undefined' ? 'Initializing...' : <RenderedValue value={value} />}
       </div>
       {open && (
         <Rnd

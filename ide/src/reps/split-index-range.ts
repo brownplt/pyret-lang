@@ -1,16 +1,18 @@
-import { newRangeDescriptor } from "../shared/rep-serialization-core-types";
-import { MAX_SUMMARY_STRING_LEN } from "./value-summary-serializer";
+// Heavily adapted from Iodide, MPL 2.0
+// https://github.com/iodide-project/iodide/blob/master/src/reps/serialization/split-index-range.js
+
+import { ContainerRange } from './Range';
 
 export const RANGE_SPLIT_THRESHOLD = 50;
-const TARGET_LEAF_ELTS = 30;
+const TARGET_LEAF_ELTS = 75;
 
 const ln = Math.log;
 
 function targetNumSubRanges(
-  rangeSize,
-  targetNumSubRangesPerSplit,
-  targetLeafBinSize
-) {
+  rangeSize: number,
+  targetNumSubRangesPerSplit: number,
+  targetLeafBinSize: number,
+): number {
   // this function gets a target number of subranges for
   // the given
   // (1) the number of elements in the range
@@ -26,23 +28,22 @@ function targetNumSubRanges(
   return targetSubrangeDepth > 0 ? (N / y) ** (1 / targetSubrangeDepth) : N / y;
 }
 
-export function splitIndexRange(
-  rangeDescriptor,
-  minBinSize = 10,
-  rangeSplitThreshold = RANGE_SPLIT_THRESHOLD
-) {
-  const { min, max, type } = rangeDescriptor;
+export function splitIndexRange<T>(
+  rangeDescriptor: ContainerRange<T>,
+  minBinSize: number = 10,
+  rangeSplitThreshold: number = RANGE_SPLIT_THRESHOLD,
+): Array<ContainerRange<T>> {
+  const { min, max, source } = rangeDescriptor;
+  const s = source;
 
   const rangeSize = max - min;
 
   // no need to split bins smaller than a certain size
-  if (rangeSize <= rangeSplitThreshold || rangeSize <= minBinSize)
+  if (rangeSize <= rangeSplitThreshold || rangeSize <= minBinSize) {
     return [rangeDescriptor];
+  }
 
-  const targetNumRanges =
-    type !== "STRING_RANGE"
-      ? targetNumSubRanges(rangeSize, 20, TARGET_LEAF_ELTS)
-      : targetNumSubRanges(rangeSize, 20, MAX_SUMMARY_STRING_LEN);
+  const targetNumRanges = targetNumSubRanges(rangeSize, 20, TARGET_LEAF_ELTS);
 
   let binSize = Math.round(rangeSize / targetNumRanges);
   // these next couple lines are just a bit of footwork to give
@@ -53,24 +54,22 @@ export function splitIndexRange(
   // binSize should not be smaller than minBinSize
   binSize = Math.max(binSize, minBinSize);
 
-  // this is a bit of footwork to set the lower bound of each bin after the first to be a nice round number
+  // this is a bit of footwork to set the lower bound of each bin after the
+  // first to be a nice round number
   const secondBinMin = Math.ceil(min / binSize) * binSize;
-  const ranges =
-    min < secondBinMin ? [newRangeDescriptor(min, secondBinMin - 1, type)] : [];
+  const ranges = (
+    min < secondBinMin ? [new ContainerRange(s, min, secondBinMin - 1)] : []
+  );
 
-  // const ranges = [newRangeDescriptor(min, min + binSize - 1, type)];
   let binLowBound;
   for (
-    // binLowBound = min + binSize;
     binLowBound = secondBinMin;
     binLowBound + binSize < max;
     binLowBound += binSize
   ) {
-    ranges.push(
-      newRangeDescriptor(binLowBound, binLowBound + binSize - 1, type)
-    );
+    ranges.push(new ContainerRange(s, binLowBound, binLowBound + binSize - 1));
   }
-  ranges.push(newRangeDescriptor(binLowBound, max, type));
+  ranges.push(new ContainerRange(s, binLowBound, max));
 
   return ranges;
 }

@@ -7,19 +7,19 @@ import React from 'react';
 import ReactTable from 'react-table';
 import 'react-table/react-table.css';
 import CopyToClipboard from 'react-copy-to-clipboard';
+import SummaryValue from './SummaryValue';
 
 type TableWidgetProps = {
-  htmlify: (x: any) => any;
   headers: string[];
   rows: any[][];
 };
 
-export default function TableWidget({ htmlify, headers, rows }: TableWidgetProps) {
+export default function TableWidget({ headers, rows }: TableWidgetProps) {
   const columns = headers.map(
     (header: string, index: number) => ({
       id: header,
       Header: header,
-      accessor: (row: any) => htmlify(row[index]),
+      accessor: (row: any) => <SummaryValue value={row[index]} />,
     }),
   );
   const maxRowsPerPage = 5;

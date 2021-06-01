@@ -29,6 +29,5 @@
         "no-console": "off",
         "no-underscore-dangle": 0,
         "react/prop-types": [0]
-    },
-    "ignorePatterns": ["reps"]
+    }
 }
