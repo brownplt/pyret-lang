@@ -334,6 +334,9 @@ function extend(obj, extension) {
 function createVariant(sharedBase, extension, meta) {
   const extended = extend(sharedBase, extension);
   Object.assign(extended, meta);
+  // NOTE(joe): we cannot pass extended as an argument to this function, because
+  // sharedBased/extension/meta can't easily have a cycle between them due to
+  // codegen passing them in as object literals.
   extended.$variant = extended;
   return extended;
 }

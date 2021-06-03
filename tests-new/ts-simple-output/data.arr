@@ -11,8 +11,14 @@ sharing:
     0
   end
 end
+data D:
+  | dd 
+end
 l = lunk(5, lunk(9, mt(10)))
 console-log(l.len())
 console-log(is-lunk(l))
 console-log(is-mt(mt(777777)))
 console-log(is-lunk(mt(8)))
+console-log(is-L(mt(8)))
+console-log(is-L(lunk(5, mt(23))))
+console-log(is-L(dd))

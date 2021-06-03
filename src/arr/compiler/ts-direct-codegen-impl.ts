@@ -444,19 +444,25 @@ import type * as CS from './ts-compile-structs';
         }
       });
 
-      const variantRecognizers = variants.map((v, i) => {
-        const base = Identifier(variantBaseObjs[i][0]);
-        const isname = `is-${v.dict.name}`;
+      function recognizer(name, baseObj, field) {
+        const isname = `is-${name}`;
         const arg = constId("val");
         const argIsObject = BinaryExpression("===", UnaryExpression("typeof", Identifier(arg)), Literal("object"));
         const argIsNotNull = BinaryExpression("!==", Identifier(arg), Literal(null));
-        const argIsVariant = BinaryExpression("===", DotExpression(Identifier(arg), "$variant"), base);
+        const argIsVariant = BinaryExpression("===", DotExpression(Identifier(arg), field), baseObj);
         const check = LogicalExpression("&&", LogicalExpression("&&", argIsObject, argIsNotNull), argIsVariant);
         const checker = FunctionExpression(jsIdOf(constId(isname)), [arg], BlockStatement([ ReturnStatement(check) ]));
         return Property(isname, checker);
+      }
+
+      const variantRecognizers = variants.map((v, i) => {
+        const base = Identifier(variantBaseObjs[i][0]);
+        return recognizer(v.dict.name, base, "$variant");
       });
 
-      const dataPackage = ObjectExpression([...variantConstructors, ...variantRecognizers]);
+      const dataRecognizer = recognizer(expr.dict.name, Identifier(sharedBaseName), "$data");
+
+      const dataPackage = ObjectExpression([...variantConstructors, ...variantRecognizers, dataRecognizer]);
       return [dataPackage, sharedPrelude];
     }
 
