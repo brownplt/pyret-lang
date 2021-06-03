@@ -199,6 +199,31 @@ import type * as CS from './ts-compile-structs';
       };
     }
 
+    function SwitchStatement(value : J.Expression, cases : Array<J.SwitchCase>) : J.Statement {
+      return {
+        type: "SwitchStatement",
+        cases: cases,
+        discriminant: value
+      };
+    }
+
+    function Case(value : J.Expression, body : Array<J.Statement>) : J.SwitchCase {
+      return {
+        type: "SwitchCase",
+        test: value,
+        consequent: body
+      }
+    }
+
+    function Default(body : Array<J.Statement>) : J.SwitchCase {
+      return {
+        type: "SwitchCase",
+        test: null,
+        consequent: body
+      }
+    }
+
+    const BreakStatement : J.Statement = { type: 'BreakStatement' };
     function BlockStatement(stmts : J.Statement[]) : J.BlockStatement {
       return {
         type: 'BlockStatement',
@@ -247,6 +272,13 @@ import type * as CS from './ts-compile-structs';
         case "s-module-global": return "$module$" + name.dict.s;
         case "s-type-global": return "$type$" + name.dict.s;
         case "s-atom": return name.dict.base + String(name.dict.serial);
+      }
+    }
+
+    function bindToName(b : A.Bind) {
+      switch(b.$name) {
+        case 's-bind': return nameToName(b.dict.id);
+        case 's-tuple-bind': throw new ShouldHaveDesugared(b.dict.l, "Got an s-tuple-bind, which should have been desugared");
       }
     }
 
@@ -417,7 +449,16 @@ import type * as CS from './ts-compile-structs';
         const variantId = freshId(constId(`variantBase_${v.dict.name}`));
         const dataField = Property("$data", Identifier(sharedBaseName));
         const nameField = Property("$name", Literal(v.dict.name));
-        const meta = ObjectExpression([dataField, nameField]);
+        let fieldNamesField;
+        switch(v.$name) {
+          case 's-singleton-variant': fieldNamesField = Literal(null); break;
+          case 's-variant': {
+            const binds = listToArray(v.dict.members).map(m => m.dict.bind);
+            fieldNamesField = ArrayExpression(binds.map(bindToName).map(Literal));
+            break;
+          }
+        }
+        const meta = ObjectExpression([dataField, nameField, Property("$fieldNames", fieldNamesField)]);
         return [variantId, rtMethod("$createVariant", [Identifier(sharedBaseName), extensionV, meta]), extensionStmts];
       });
       const variantBaseStmts = variantBaseObjs.map(v => {
@@ -578,6 +619,33 @@ import type * as CS from './ts-compile-structs';
       return [ans, block.body];
     }
 
+    function compileCases(context, expr : Variant<A.Expr, "s-cases-else">) : CompileResult {
+      const ans = freshId(compilerName("ans"));
+      const [val, valStmts] = compileExpr(context, expr.dict.val);
+      const switchBlocks = listToArray(expr.dict.branches).map(b => {
+        const [bodyVal, bodyStmts] = compileExpr(context, b.dict.body);
+        switch(b.$name) {
+          case 's-cases-branch':
+            const argBinds = listToArray(b.dict.args).map((a, i) => {
+              const b = a.dict.bind as Variant<A.Bind, "s-bind">;
+              return Var(jsIdOf(b.dict.id), BracketExpression(val, BracketExpression(DotExpression(val, "$fieldNames"), Literal(i))))
+            });
+            const assignAnswer = ExpressionStatement(AssignmentExpression(Identifier(ans), bodyVal));
+            return Case(Literal(b.dict.name), [...argBinds, ...bodyStmts, assignAnswer, BreakStatement]);
+          case 's-singleton-cases-branch': {
+            const assignAnswer = ExpressionStatement(AssignmentExpression(Identifier(ans), bodyVal));
+            return Case(Literal(b.dict.name), [...bodyStmts, assignAnswer, BreakStatement]);
+          }
+        }
+      });
+      const [elseV, elseStmts] = compileExpr(context, expr.dict._else);
+      const elseCase = Default([...elseStmts, ExpressionStatement(AssignmentExpression(Identifier(ans), elseV))])
+      return [
+        Identifier(ans),
+        [...valStmts, Var(ans, undefined), SwitchStatement(DotExpression(val, "$name"), [...switchBlocks, elseCase])]
+      ];
+    }
+
 
 
     function compileExpr(context, expr : A.Expr) : CompileResult {
@@ -671,8 +739,10 @@ import type * as CS from './ts-compile-structs';
           const [objV, objStmts] = compileExpr(context, expr.dict.obj);
           return [pyretLookup(expr.dict.l, objV, expr.dict.field), objStmts]
         }
-        case 's-cases-else': throw new TODOError(expr.$name);
-        case 's-cases': throw new TODOError(expr.$name);
+        case 's-cases-else':
+          return compileCases(context, expr);
+        case 's-cases':
+          throw new ShouldHaveDesugared(expr.dict.l, 's-cases');
         case 's-obj':
           return compileObj(context, expr);
         case 's-array': {

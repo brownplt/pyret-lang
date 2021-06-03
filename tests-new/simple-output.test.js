@@ -27,7 +27,7 @@ describe("testing simple-output programs", () => {
       // Non-exact output check (scan):
       // Checks for any line beginning with prefix '###' and uses the trimmed content
       //   of the line after the prefix as expected search criteria in stdout
-      var exact = f.match(/scan/) === null;
+      var exact = false;
       var typecheck = "notypecheck";
       var pipeline = "anchor";
       if(typeCheck) { typecheck = "typecheck"; }
@@ -40,6 +40,7 @@ describe("testing simple-output programs", () => {
       assert(compileProcess.status === 0, `${compileProcess.stdout}\n${compileProcess.stderr}`);
 
       const contents = String(fs.readFileSync(f));
+
       if (exact) {
         const firstLine = contents.split("\n")[0];
         let expect = "";
@@ -79,6 +80,9 @@ describe("testing simple-output programs", () => {
             stderrExpected.push(formatted);
           }
         });
+        if(expected.length === 0 && stderrExpected.length === 0) {
+          throw new Error("Test file did not define any expected output");
+        }
 
         const basename = path.basename(f);
         const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/${dir}/**/${basename}.js`)[0];
