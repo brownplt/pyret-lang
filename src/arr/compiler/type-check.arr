@@ -1077,19 +1077,18 @@ context :: Context) -> FoldResult<List<A.LetrecBind>>:
       applied-brander-type = if is-empty(t-vars): brander-type else: t-app(brander-type, t-vars, l, false) end
 
       map-fold-result(collect-variant-constructor, variants, context).bind(lam(initial-variant-types, shadow context):
-        fun predicate-type(arg):
+       predicate-type =
           if is-empty(t-vars):
-            t-arrow([list: arg], t-boolean(l), l, false)
+            t-arrow([list: brander-type], t-boolean(l), l, false)
           else:
-            t-forall(t-vars, t-arrow([list: t-app(arg, t-vars, l, false)], t-boolean(l), l, false), l, false)
+            t-forall(t-vars, t-arrow([list: t-app(brander-type, t-vars, l, false)], t-boolean(l), l, false), l, false)
           end
-        end
         initial-data-fields = SD.make-string-dict()
-          .set("is-" + name, predicate-type(t-top(l, false)))
+          .set("is-" + name, predicate-type)
         data-fields = initial-variant-types.foldl(lam(variant-type, data-fields):
           data-fields
             .set(variant-type.name, mk-constructor-type(variant-type, brander-type, t-vars))
-            .set("is-" + variant-type.name, predicate-type(brander-type))
+            .set("is-" + variant-type.name, predicate-type)
         end, initial-data-fields)
         shadow context = context.add-binding(data-type-bind.b.id.key(), t-record(data-fields, l, false))
         map-fold-result(lam(binding, shadow context):

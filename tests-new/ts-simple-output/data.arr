@@ -1,4 +1,9 @@
 ### 2
+### true
+### true
+### false
+### true
+### true
 include global
 data L:
   | mt(f :: Number) with:
@@ -21,4 +26,3 @@ console-log(is-mt(mt(777777)))
 console-log(is-lunk(mt(8)))
 console-log(is-L(mt(8)))
 console-log(is-L(lunk(5, mt(23))))
-console-log(is-L(dd))

@@ -775,7 +775,7 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       end
 
       data-recognizer = j-field(name,
-        j-fun("0", js-id-of(const-id(name)).toname(), [clist: const-id("val")],
+        j-fun("0", js-id-of(const-id("is-" + name)).toname(), [clist: const-id("val")],
           j-block(
             data-recognizer-body
           )))
