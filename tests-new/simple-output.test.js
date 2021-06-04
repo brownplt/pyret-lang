@@ -24,10 +24,6 @@ describe("testing simple-output programs", () => {
 
       var typeCheck = f.match(/no-type-check/) === null;
 
-      // Non-exact output check (scan):
-      // Checks for any line beginning with prefix '###' and uses the trimmed content
-      //   of the line after the prefix as expected search criteria in stdout
-      var exact = false;
       var typecheck = "notypecheck";
       var pipeline = "anchor";
       if(typeCheck) { typecheck = "typecheck"; }
@@ -41,68 +37,46 @@ describe("testing simple-output programs", () => {
 
       const contents = String(fs.readFileSync(f));
 
-      if (exact) {
-        const firstLine = contents.split("\n")[0];
-        let expect = "";
-        let errorExpect = "";
-        if(firstLine.startsWith("###")) {
-          expect = firstLine.slice(firstLine.indexOf(" ")).trim();
-        }
-        else if (firstLine.startsWith("##!")) {
-          errorExpect = firstLine.slice(firstLine.indexOf(" ")).trim();
-        }
 
-        const basename = path.basename(f);
-        const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/${dir}/**/${basename}.js`)[0];
-
-        const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe', timeout: RUN_TIMEOUT});
-        if(expect !== "") {
-          assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);
-          assert(runProcess.stdout.indexOf(expect) !== -1, `${runProcess.stdout} should contain ${expect} and stderr was ${runProcess.stderr}`);
+      const lines = contents.split("\n");
+      let expected = [];
+      let stderrExpected = [];
+      lines.forEach((line) => {
+        if (line.startsWith("###")) {
+          const formatted = line.slice(line.indexOf(" ")).trim();
+          expected.push(formatted);
         }
-        else if (errorExpect !== "") {
-          assert(runProcess.status !== 0, `${runProcess.stdout}\n${runProcess.stderr}`);
-          assert(runProcess.stderr.indexOf(errorExpect) !== -1, `${runProcess.stderr} should contain ${errorExpect} and stdout was ${runProcess.stdout}`);
+        if (line.startsWith("##!")) {
+          const formatted = line.slice(line.indexOf(" ")).trim();
+          stderrExpected.push(formatted);
         }
-
-      } else {
-
-        const lines = contents.split("\n");
-        let expected = [];
-        let stderrExpected = [];
-        lines.forEach((line) => {
-          if (line.startsWith("###")) {
-            const formatted = line.slice(line.indexOf(" ")).trim();
-            expected.push(formatted);
-          }
-          if (line.startsWith("##!")) {
-            const formatted = line.slice(line.indexOf(" ")).trim();
-            stderrExpected.push(formatted);
-          }
-        });
-        if(expected.length === 0 && stderrExpected.length === 0) {
-          throw new Error("Test file did not define any expected output");
-        }
-
-        const basename = path.basename(f);
-        const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/${dir}/**/${basename}.js`)[0];
-
-        const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe', timeout: RUN_TIMEOUT});
-
-        if(stderrExpected.length === 0) {
-          assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);
-        }
-        else {
-          assert(runProcess.status !== 0, `${runProcess.stdout}\n${runProcess.stderr}`);
-        }
-        
-        expected.forEach((expect) => {
-          assert(runProcess.stdout.indexOf(expect) !== -1, `${runProcess.stdout} should contain ${expect} and stderr was ${runProcess.stderr}`);
-        });
-        stderrExpected.forEach((expect) => {
-          assert(runProcess.stderr.indexOf(expect) !== -1, `${runProcess.stderr} should contain ${expect} and stdout was ${runProcess.stdout}`);
-        });
+      });
+      if(expected.length === 0 && stderrExpected.length === 0) {
+        throw new Error("Test file did not define any expected output");
       }
+
+      const basename = path.basename(f);
+      const dest = glob.sync(`./tests-new/.pyret/compiled/project/tests-new/${dir}/**/${basename}.js`)[0];
+
+      const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe', timeout: RUN_TIMEOUT});
+
+      if(stderrExpected.length === 0) {
+        assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);
+      }
+      else {
+        assert(runProcess.status !== 0, `${runProcess.stdout}\n${runProcess.stderr}`);
+      }
+
+      let stdout = runProcess.stdout;
+      expected.forEach((expect) => {
+        assert(stdout.indexOf(expect) !== -1, `=====EXPECTED STDOUT TO CONTAIN THESE LINES IN ORDER=====\n${expected.join("\n")}\n=====ACTUAL STDOUT=====\n${runProcess.stdout} and stderr was\n${runProcess.stderr}`);
+        stdout = runProcess.stdout.slice(runProcess.stdout.indexOf(expect) + expect.length);
+      });
+      let stderr = runProcess.stderr;
+      stderrExpected.forEach((expect) => {
+        assert(stderr.indexOf(expect) !== -1, `=====EXPECTED STDERR TO CONTAIN THESE LINES IN ORDER=====\n${stderrExpected.join("\n")}\n=====ACTUAL STDERR=====\n${runProcess.stderr} and stdout was\n${runProcess.stdout}`);
+        stderr = runProcess.stdout.slice(runProcess.stdout.indexOf(expect) + expect.length);
+      });
     });
   });
 });

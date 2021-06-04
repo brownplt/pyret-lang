@@ -20,6 +20,7 @@ client.start({
     'checks': 'none',
     'program': filename,
     'builtin-js-dir': 'build/runtime',
-    'base-dir': path.resolve(path.join(__dirname, "/../"))
+    'base-dir': path.resolve(path.join(__dirname, "/../")),
+    'recompile-builtins': false
   }
 });
