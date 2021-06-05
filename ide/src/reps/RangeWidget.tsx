@@ -1,6 +1,7 @@
 /* Render a Range with more Ranges as pagination if necessary. */
 
 import React from 'react';
+import ExpandButton from './ExpandButton';
 import { ContainerRange } from './Range';
 import { splitIndexRange } from './split-index-range';
 
@@ -10,9 +11,9 @@ type RangeWidgetProps<T> = {
 };
 
 export function RangeWidget<T>({ value, RenderedValue }: RangeWidgetProps<T>) {
-  // eslint doesn't like me breaking this up any prettier way
-  const [expanded, setExpanded]:
-  [boolean, (to: boolean) => void] = React.useState(false as boolean);
+  const [expanded, setExpanded]: [boolean, (to: boolean) => void] = (
+    React.useState(false as boolean)
+  );
   let afterArrow;
   if (expanded) {
     afterArrow = <RangeBoxesWidget value={value} RenderedValue={RenderedValue} />;
@@ -29,10 +30,7 @@ export function RangeWidget<T>({ value, RenderedValue }: RangeWidgetProps<T>) {
   }
   return (
     <div className="list-container">
-      {/* down arrow, right arrow */}
-      <button type="button" onClick={() => setExpanded(!expanded)}>
-        {expanded ? '\u25BC' : '\u25B6'}
-      </button>
+      <ExpandButton expanded={expanded} setExpanded={setExpanded} />
       {afterArrow}
     </div>
   );

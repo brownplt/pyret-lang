@@ -13,6 +13,7 @@ import ChartWidget from './Chart';
 import ReactorWidget from './Reactor';
 import { RawRTMessage } from '../rtMessages';
 import { RangeWidget } from './RangeWidget';
+import ExactNumWidget from './ExactNum';
 
 declare global {
   interface window { theKey: any; }
@@ -32,17 +33,21 @@ export default class RenderedValue extends React.Component<RenderedValueProps, R
     switch (kind) {
       case 'undefined':
       case 'number':
-      case 'string':
       case 'boolean':
         return String(value);
+      case 'string':
+        return `"${value}"`;
       case 'function':
         // TODO(michael) can we display more info than just <function> ?
         return '<function>';
+      case 'exactnum':
+        return <ExactNumWidget num={value.n} den={value.d} />;
       case 'table':
         return (
           <TableWidget
             headers={value._headers}
             rows={value._rows}
+            RenderedValue={RenderedValue}
           />
         );
       case 'image':

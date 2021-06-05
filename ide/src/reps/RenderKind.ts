@@ -36,7 +36,14 @@ export class NeverError extends Error {
 export type RenderKind = 'undefined' | 'number' | 'string' | 'boolean' |
 'function' | 'table' | 'image' | 'chart' | 'reactor' | 'template' | 'list' |
 'object' | 'spy-value' | 'spy-message' | 'check' | 'array' | 'range' |
-'key-value';
+'key-value' | 'exactnum';
+
+// Why isn't there a PyretValue type?
+// The main reason is that object literals in Pyret are represented by JS
+// objects with arbitrary fields. Thus, the type would have to include a number
+// of primitives and *any object*. Such a type would only exclude BigInt,
+// Symbol, and null as opposed to the any type (all of which rarely occur
+// anyway)
 
 export function getRenderKind(value: any): RenderKind {
   if (value === undefined) {
@@ -93,6 +100,10 @@ export function getRenderKind(value: any): RenderKind {
     }
     if (value.renderKind === 'key-value') {
       return 'key-value';
+    }
+    if (typeof value.n !== 'undefined' && typeof value.d !== 'undefined'
+      && Object.keys(value).length === 2) {
+      return 'exactnum';
     }
     return 'object';
   }
