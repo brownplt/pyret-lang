@@ -83,6 +83,9 @@ import type * as CS from './ts-compile-structs';
     }
     function Literal(a : any) : J.Expression {
       if(a === undefined) { throw new InternalCompilerError("undefined given to Literal"); }
+      if (typeof a === 'number' && a < 0) {
+        return UnaryExpression('-', { type: 'Literal', value: 0 - a });
+      }
       return {
         type: "Literal",
         value: a
@@ -315,7 +318,7 @@ import type * as CS from './ts-compile-structs';
       let n;
       do {
         const baseName = id.$name === "s-type-global" ? nameToSourceString(id) : nameToName(id);
-        const noHyphens = baseName.replace("-", "$");
+        const noHyphens = (baseName as any).replaceAll("-", "$");
         n = jsnames.makeAtom(noHyphens);
       } while(effectiveIds.has(nameToSourceString(n)));
       effectiveIds.set(nameToSourceString(n), true);
@@ -385,6 +388,10 @@ import type * as CS from './ts-compile-structs';
       return runtime.ffi.toArray(l);
     }
 
+    function arrayToList<T>(arr : T[]) : A.List<T> {
+      return runtime.ffi.makeList(arr);
+    }
+
     function compileMethodDefinition(context, method : Variant<A.Member, "s-method-field">) {
       const args = method.dict.args as Variant<A.List<Variant<A.Bind, "s-bind">>, "link">
       const self = jsIdOf(args.dict.first.dict.id);
@@ -398,7 +405,7 @@ import type * as CS from './ts-compile-structs';
         Var(self, { type: "ThisExpression"}),
         ReturnStatement(install)
       ];
-      return FunctionExpression(constId(`getWrapper_${method.dict.name}`), [], BlockStatement(body));
+      return FunctionExpression(jsIdOf(constId(`getWrapper_${method.dict.name}`)), [], BlockStatement(body));
     }
 
     function compileObj(context, expr : Variant<A.Expr, 's-obj'>) : [J.Expression, Array<J.Statement>] {
@@ -477,10 +484,10 @@ import type * as CS from './ts-compile-structs';
             return Property(v.dict.name, base);
           case 's-variant':
             const argList = listToArray(v.dict.members).map(getVariantMemberId);
-            const fields = argList.map(a => Property(nameToName(a), Identifier(a)));
+            const fields = argList.map(a => Property(nameToName(a), Identifier(jsIdOf(a))));
             const extension = ObjectExpression(fields);
             const body = BlockStatement([ReturnStatement(rtMethod("$makeDataValue", [base, extension]))]);
-            const constructor = FunctionExpression(constId(v.dict.name), argList, body);
+            const constructor = FunctionExpression(jsIdOf(constId(v.dict.name)), argList.map(jsIdOf), body);
             return Property(v.dict.name, constructor);
         }
       });
@@ -579,7 +586,7 @@ import type * as CS from './ts-compile-structs';
         case "op+": ans = rtMethod("_plus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
         case "op-": ans = rtMethod("_minus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
         case "op*": ans = rtMethod("_times", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op/": ans = rtMethod("_divids", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op/": ans = rtMethod("_divide", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
         case "op<": ans = rtMethod("_lessthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
         case "op>": ans = rtMethod("_greaterthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
         case "op<=": ans = rtMethod("_lessequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
@@ -646,6 +653,38 @@ import type * as CS from './ts-compile-structs';
       ];
     }
 
+    function compileSFor(context, expr : Variant<A.Expr, "s-for">): CompileResult {
+      const binds: A.Bind[] = [];
+      const args: A.Expr[] = [];
+      listToArray(expr.dict.bindings).forEach((b) => {
+        binds.push(b.dict.bind);
+        args.push(b.dict.value);
+      });
+      const lam: Variant<A.Expr, 's-lam'> = {
+        $name: 's-lam',
+        dict: {
+          l: expr.dict.body.dict.l,
+          name: 'loop',
+          params: runtime.ffi.makeList([]),
+          args: arrayToList(binds),
+          ann: expr.dict.ann,
+          body: expr.dict.body,
+          doc: '',
+          _check: runtime.ffi.makeNone(),
+          "_check-loc": runtime.ffi.makeNone(),
+          blocky: true,
+        },
+      };
+      const call: Variant<A.Expr, 's-app'> = {
+        $name: 's-app',
+        dict: {
+          l: expr.dict.l,
+          _fun: expr.dict.iterator,
+          args: runtime.ffi.makeList([lam, ...args]),
+        },
+      };
+      return compileExpr(context, call);
+    }
 
 
     function compileExpr(context, expr : A.Expr) : CompileResult {
@@ -654,7 +693,7 @@ import type * as CS from './ts-compile-structs';
           return compileModule(context, expr);
         case 's-block':
           return compileSeq(context, expr.dict.stmts);
-        case 's-num':
+        case 's-num': {
           let numAns;
           if(typeof expr.dict.n === "number") {
             numAns = Literal(expr.dict.n);
@@ -663,13 +702,21 @@ import type * as CS from './ts-compile-structs';
             numAns = rtMethod("_makeNumberFromString", [Literal(expr.dict.n.toString()), rtField(NUMBER_ERR_CALLBACKS)]);
           }
           return [numAns, []];
+        }
         case 's-frac': throw new TODOError(expr.$name);
         case 's-rfrac': throw new TODOError(expr.$name);
         case 's-str':
           return [Literal(expr.dict.s), []];
         case 's-bool':
           return [Literal(expr.dict.b), []];
-        case 's-id':
+        case 's-prim-val': {
+          return [rtField(expr.dict.name), []];
+        }
+        case 's-undefined': {
+          return [undefined, []];
+        }
+          
+        case 's-id': {
           const b = context.postEnv.dict.bindings;
           const key = nameToKey(expr.dict.id);
           if(runtime.getField(b, "has-key-now").app(key) && 
@@ -677,7 +724,8 @@ import type * as CS from './ts-compile-structs';
             context.freeBindings.set(key, runtime.getField(b, "get-value-now").app(key))
           }
           return [Identifier(jsIdOf(expr.dict.id)), []];
-        case 's-id-letrec':
+        }
+        case 's-id-letrec': {
           const isSafe = expr.dict.safe;
           if(isSafe) {
             return [Identifier(jsIdOf(expr.dict.id)), []];
@@ -690,11 +738,17 @@ import type * as CS from './ts-compile-structs';
               rtMethod("$messageThrow", [compileSrcloc(context, expr.dict.l), Literal("Uninitialized letrec identifier")])
             ), []];
           }
+        }
         case 's-id-modref': {
           const [objv, objStmts] = compileExpr(context, { $name: "s-id", dict: { l: expr.dict.l, id: expr.dict.id }});
           return [ DotExpression(objv, expr.dict.name), objStmts ];
         }
-        case 's-id-var': throw new TODOError(expr.$name);
+        case 's-id-var': {
+          // TODO(Ben, Joe): This needs to change when we figure out how vars should be represented:
+          // Vars that are provided from a module must be boxed, so we need to use them consistently 
+          // as boxes rather than as mutable JS variables.
+          return [Identifier(jsIdOf(expr.dict.id)), []];
+        }
         case 's-prim-app':
           const [argvs, argstmts] = compileList(context, expr.dict.args);
           const primAns = CallExpression(rtField(expr.dict._fun), argvs);
@@ -713,11 +767,11 @@ import type * as CS from './ts-compile-structs';
           const [ bodyVal, bodyStmts ] = compileExpr(context, expr.dict.body);
           const bindArgs = expr.dict.args as A.List<Variant<A.Bind, "s-bind">>;
           const jsArgs = listToArray(bindArgs).map(a => jsIdOf(a.dict.id));
-          return [FunctionExpression(jsIdOf(constId(expr.dict.name)), jsArgs,
+          return [FunctionExpression(jsIdOf(constId(`lam_${expr.dict.name}`)), jsArgs,
             BlockStatement([...bodyStmts, ReturnStatement(bodyVal)])), []]
         }
         case 's-letrec':
-        case 's-let-expr':
+        case 's-let-expr': {
           const prelude = [];
           listToArray<A.LetrecBind | A.LetBind>(expr.dict.binds).forEach(v => {
             const [ val, vStmts ] = compileExpr(context, v.dict.value);
@@ -731,6 +785,7 @@ import type * as CS from './ts-compile-structs';
           });
           const [ bv, bodyStmts ] = compileExpr(context, expr.dict.body);
           return [ bv, [...prelude, ...bodyStmts]];
+        }
         case 's-type-let-expr':
           return compileExpr(context, expr.dict.body);
         case 's-data-expr':
@@ -757,11 +812,16 @@ import type * as CS from './ts-compile-structs';
             [...cstmts, ...eltsStmts]
           ];
         }
-        case 's-instantiate': throw new TODOError(expr.$name);
-        case 's-user-block': throw new TODOError(expr.$name);
-        case 's-template': throw new TODOError(expr.$name);
-        case 's-method': throw new TODOError(expr.$name);
-        case 's-type': throw new TODOError(expr.$name);
+        case 's-instantiate': 
+          return compileExpr(context, expr.dict.expr);
+        case 's-user-block': 
+          return compileExpr(context, expr.dict.body);
+        case 's-template': 
+          return [rtMethod("throwUnfinishedTemplate", [compileSrcloc(context, expr.dict.l)]), []];
+        case 's-method': 
+          throw new ShouldHaveDesugared(expr.dict.l, expr.$name);
+        case 's-type': 
+          throw new ShouldHaveDesugared(expr.dict.l, expr.$name);
         case 's-newtype': throw new TODOError(expr.$name);
         case 's-when': {
           const nothing = compileExpr(context, { $name: 's-id', dict: { l: expr.dict.l, id: jsnames.sGlobal("nothing") }});
@@ -785,30 +845,39 @@ import type * as CS from './ts-compile-structs';
             listToArray<A.IfBranch | A.IfPipeBranch>(expr.dict.branches),
             compileExpr(context, expr.dict._else));
         }
-        case 's-assign': throw new TODOError(expr.$name);
-        case 's-bracket': throw new TODOError(expr.$name);
-        case 's-get-bang': throw new TODOError(expr.$name);
-        case 's-update': throw new TODOError(expr.$name);
+        case 's-assign': {
+          const [rhs, rhsStmts] = compileExpr(context, expr.dict.value);
+          const assnStmt = AssignmentExpression(Identifier(jsIdOf(expr.dict.id)), rhs);
+          return [assnStmt, rhsStmts];
+        }
+        case 's-bracket': {
+          const [lhs, lhsStmts] = compileExpr(context, expr.dict.obj);
+          const [key, keyStmts] = compileExpr(context, expr.dict.key);
+          const bracketExpr = BracketExpression(lhs, key);
+          return [bracketExpr, [...lhsStmts, ...keyStmts]];
+        }
         case 's-extend': {
           const [objV, objStmts] = compileExpr(context, expr.dict.supe);
           const [extensionV, extensionStmts] = compileExpr(context, { $name: "s-obj", dict: expr.dict});
           return [rtMethod("$extend", [objV, extensionV]), [...objStmts, ...extensionStmts]];
         }
-        case 's-for': throw new TODOError(expr.$name);
-        case 's-tuple':
+        case 's-for': return compileSFor(context, expr);
+        case 's-tuple': {
           const [vals, stmts] = compileList(context, expr.dict.fields);
           const maker = rtMethod("PTuple", [ArrayExpression(vals)]);
           return [maker, stmts];
-        case 's-tuple-get':
+        }
+        case 's-tuple-get': {
           const [tup, tupstmts] = compileExpr(context, expr.dict.tup);
           return [BracketExpression(tup, Literal(expr.dict.index)), tupstmts]
+        }
         case 's-paren': return compileExpr(context, expr.dict.expr);
-
-        case 's-ref': throw new TODOError(expr.$name);
-        case 's-table': throw new TODOError(expr.$name);
+          
         case 's-check-expr': throw new TODOError(expr.$name);
         case 's-check': throw new TODOError(expr.$name);
         case 's-check-test': throw new TODOError(expr.$name);
+        
+        case 's-table': throw new TODOError(expr.$name);
         case 's-load-table': throw new TODOError(expr.$name);
         case 's-table-extend': throw new TODOError(expr.$name);
         case 's-table-update': throw new TODOError(expr.$name);
@@ -816,11 +885,18 @@ import type * as CS from './ts-compile-structs';
         case 's-table-select': throw new TODOError(expr.$name);
         case 's-table-order': throw new TODOError(expr.$name);
         case 's-table-extract': throw new TODOError(expr.$name);
+        
         case 's-spy-block': throw new TODOError(expr.$name);
-        case 's-hint-exp': throw new TODOError(expr.$name);
-        case 's-prim-val': throw new TODOError(expr.$name);
+
+        case 's-hint-exp': {
+          return compileExpr(context, expr.dict.exp);
+        }
+
+        case 's-get-bang': throw new TODOError(expr.$name);
+        case 's-update': throw new TODOError(expr.$name);
+        case 's-ref': throw new TODOError(expr.$name);
         case 's-id-var-modref': throw new TODOError(expr.$name);
-        case 's-undefined': throw new TODOError(expr.$name);
+        
 
         case 's-contract':
         case 's-rec':
