@@ -586,7 +586,7 @@ import type * as CS from './ts-compile-structs';
         case "op>=": ans = rtMethod("_greaterequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
         case "op==": ans = CallExpression(rtField(EQUAL_ALWAYS), [lv, rv]); break;
         case "op<>": ans = UnaryExpression("!", CallExpression(rtField(EQUAL_ALWAYS), [lv, rv])); break;
-        case "op<=>>": ans = CallExpression(rtField(IDENTICAL), [lv, rv]); break;
+        case "op<=>": ans = CallExpression(rtField(IDENTICAL), [lv, rv]); break;
         case "opor": ans = LogicalExpression("||", lv, rv); break;
         case "opand": ans = LogicalExpression("&&", lv, rv); break;
         case "op^": ans = CallExpression(rv, [lv]); break;
