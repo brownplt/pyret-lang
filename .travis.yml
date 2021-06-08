@@ -10,7 +10,7 @@ git:
   submodules: false
 language: node_js
 node_js:
-- 14.16.1
+- 16.3.0
 install:
 - npm ci
 before_script:
