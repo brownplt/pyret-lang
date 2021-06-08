@@ -72,20 +72,27 @@ function foldl(f, base, list) {
 }
 
 function map(f, list) {
+  if (IS_EMPTY(list)) { return EMPTY; }
 
-  let resultHead = RUNTIME["$shallowCopyObject"](list);
-  let writeHead = resultHead;
+  // Here, list is a link, so map the first item alone
+  const result = LINK(f(list.first), EMPTY);
 
+  let writeHead = result;
   let current = list;
-  while (IS_LINK(current)) {
-    writeHead.first = f(current.first);
-    writeHead.rest = RUNTIME["$shallowCopyObject"](current.rest);
-
+  
+  // since current is always a link, examine current.rest
+  while (IS_LINK(current.rest)) {
+    // if the rest of current is *also* a link,
+    // map it and advance by one link
+    writeHead.rest = LINK(f(current.rest.first), EMPTY);
+    
     writeHead = writeHead.rest;
     current = current.rest;
   }
 
-  return resultHead;
+  // current.rest is empty, and writeHead.rest was initialized to empty
+  // so we're done
+  return result;
 }
 
 function length(list) {
