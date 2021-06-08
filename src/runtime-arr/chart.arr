@@ -116,7 +116,7 @@ default-chart-window-object :: ChartWindowObject = {
   title: '',
   width: 800,
   height: 600,
-  render: method(self): G.raise('unimplemented') end,
+  method render(self): G.raise('unimplemented') end,
 }
 
 type BarChartWindowObject = {
@@ -159,10 +159,10 @@ end
 data ChartWindow:
   | bar-chart-window(obj :: BarChartWindowObject) with:
     constr: {(): bar-chart-window},
-    x-axis: method(self, x-axis :: String): self.constr()(self.obj.{x-axis: x-axis}) end,
-    y-axis: method(self, y-axis :: String): self.constr()(self.obj.{y-axis: y-axis}) end,
-    y-min: method(self, y-min :: Number): self.constr()(self.obj.{y-min: O.some(y-min)}) end,
-    y-max: method(self, y-max :: Number): self.constr()(self.obj.{y-max: O.some(y-max)}) end,
+    method x-axis(self, x-axis :: String): self.constr()(self.obj.{x-axis: x-axis}) end,
+    method y-axis(self, y-axis :: String): self.constr()(self.obj.{y-axis: y-axis}) end,
+    method y-min(self, y-min :: Number): self.constr()(self.obj.{y-min: O.some(y-min)}) end,
+    method y-max(self, y-max :: Number): self.constr()(self.obj.{y-max: O.some(y-max)}) end,
 sharing:
   method display(self):
     _ = check-chart-window(self.obj)
@@ -217,7 +217,7 @@ fun render-chart(s :: DataSeries) -> ChartWindow:
   cases (DataSeries) s:
     | bar-chart-series(obj) =>
       bar-chart-window(default-bar-chart-window-object.{
-        render: method(self):
+        method render(self):
           _ = cases (Option) self.y-min:
                 | some(y-min) =>
                   cases (Option) self.y-max:
