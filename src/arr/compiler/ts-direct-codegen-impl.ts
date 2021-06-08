@@ -880,7 +880,7 @@ import type * as CS from './ts-compile-structs';
         case 's-bracket': {
           const [lhs, lhsStmts] = compileExpr(context, expr.dict.obj);
           const [key, keyStmts] = compileExpr(context, expr.dict.key);
-          const bracketExpr = BracketExpression(lhs, key);
+          const bracketExpr = CallExpression(DotExpression(lhs, "get-value"), [key]);
           return [bracketExpr, [...lhsStmts, ...keyStmts]];
         }
         case 's-extend': {
@@ -900,9 +900,11 @@ import type * as CS from './ts-compile-structs';
         }
         case 's-paren': return compileExpr(context, expr.dict.expr);
           
-        case 's-check-expr': throw new TODOError(expr.$name);
-        case 's-check': throw new TODOError(expr.$name);
-        case 's-check-test': throw new TODOError(expr.$name);
+        case 's-check-expr': 
+        case 's-check': 
+        case 's-check-test': {
+          return [undefined, []]; // TODO: Finish this!
+        }
         
         case 's-table': return compileTable(context, expr);
         case 's-load-table': throw new TODOError(expr.$name);

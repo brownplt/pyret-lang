@@ -418,8 +418,8 @@ fun desugar-expr(expr :: A.Expr):
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-bracket(l, obj, key) =>
-      ds-curry-binop(l, desugar-expr(obj), desugar-expr(key), lam(e1, e2):
-          A.s-prim-app(l, "getBracket", [list: A.s-srcloc(l, l), e1, e2], A.prim-app-info-c(true))
+        ds-curry-binop(l, desugar-expr(obj), desugar-expr(key), lam(e1, e2):
+          A.s-bracket(l, e1, e2)
         end)
     | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
     | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
