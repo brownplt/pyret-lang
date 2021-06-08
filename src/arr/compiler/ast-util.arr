@@ -1234,8 +1234,8 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
                   vb.origin.uri-of-definition,
                   as-name)
                 provided-value = cases(CS.ValueBinder) vb.binder:
-                  | vb-var => CS.v-var(corrected-origin, ann-to-typ(vb.ann))
-                  | else => CS.v-just-type(corrected-origin, ann-to-typ(vb.ann))
+                  | vb-var => CS.v-var(corrected-origin, ann-to-typ(uri, compile-env, vb.ann))
+                  | else => CS.v-just-type(corrected-origin, ann-to-typ(uri, compile-env, vb.ann))
                 end
                 vp.set(as-name.toname(), provided-value)
             end
