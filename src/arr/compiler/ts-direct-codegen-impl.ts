@@ -347,6 +347,7 @@ import type * as CS from './ts-compile-structs';
     }
 
     const RUNTIME = constId("_runtime");
+    const TABLE = constId("_table")
     const NUMBER_ERR_CALLBACKS = "$errCallbacks"
     const EQUAL_ALWAYS = "equal-always"
     const IDENTICAL = "identical"
@@ -686,6 +687,32 @@ import type * as CS from './ts-compile-structs';
       return compileExpr(context, call);
     }
 
+    function compileTable(context, expr : Variant<A.Expr, 's-table'>): CompileResult {
+      importFlags['table-import'] = true;
+
+      const func = BracketExpression(Identifier(TABLE), Literal("_makeTable"));
+
+      const jsHeaders = listToArray(expr.dict.headers).map(h => Literal(h.dict.name));
+
+      const rows: J.Expression[] = [];
+      const rowsStmts: J.Statement[] = [];
+      listToArray(expr.dict.rows).forEach((r) => {
+        const rowElems = r.dict.elems;
+        const elemValues: J.Expression[] = [];
+        const elemStmts: J.Statement[] = [];
+        listToArray(rowElems).forEach((re) => {
+          const [v, vStmts] = compileExpr(context, re);
+          elemValues.push(v);
+          elemStmts.push(...vStmts);
+        });
+        const jsRow = ArrayExpression(elemValues);
+        rows.push(jsRow);
+        rowsStmts.push(...elemStmts);
+      });
+      const args = [ArrayExpression(jsHeaders), ArrayExpression(rows)];
+
+      return [CallExpression(func, args), rowsStmts];      
+    }
 
     function compileExpr(context, expr : A.Expr) : CompileResult {
       switch(expr.$name) {
@@ -877,7 +904,7 @@ import type * as CS from './ts-compile-structs';
         case 's-check': throw new TODOError(expr.$name);
         case 's-check-test': throw new TODOError(expr.$name);
         
-        case 's-table': throw new TODOError(expr.$name);
+        case 's-table': return compileTable(context, expr);
         case 's-load-table': throw new TODOError(expr.$name);
         case 's-table-extend': throw new TODOError(expr.$name);
         case 's-table-update': throw new TODOError(expr.$name);
@@ -1020,7 +1047,7 @@ import type * as CS from './ts-compile-structs';
       const runtimeImport = importBuiltin(RUNTIME, "runtime.js");
 
       const arrayImport =  importBuiltin(RUNTIME, "array.arr.js");
-      const tableImport =  importBuiltin(RUNTIME, "tables.arr.js");
+      const tableImport =  importBuiltin(TABLE, "tables.arr.js");
       const reactorImport =  importBuiltin(RUNTIME, "reactor.arr.js");
 
       const manualImports = [runtimeImport];
