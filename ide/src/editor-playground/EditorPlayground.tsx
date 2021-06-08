@@ -7,25 +7,45 @@ require('pyret-codemirror-mode/mode/pyret');
 
 export default function EditorPlayground() {
   const [value, setValue] = React.useState<string>('');
-  const [chunks, setChunks] = React.useState<Set<number>>(new Set([0]));
+  const [chunks, setChunks] = React.useState<number[]>([0]);
   function onBeforeChange(editor: any, data: any, text: string) {
-    if (data.text.length === 2) {
-      // Remove old prompts
-      text = text.replace(/ ⏎ Press Enter to run/g, '');
+    setValue(text);
+  }
+  function clearNonsense(editor: any) {
+    console.log("clearNonsense");
+    const text = editor.getValue();
+    const noPrompts = text.replace(/ ?⏎ Press Enter to run/g, '');
+    console.log(noPrompts);
+    setValue(noPrompts);
+  }
+  function onKeyDown(editor: any, event: any) {
+    clearNonsense(editor);
+    if (event.key === 'Enter') {
       const pos = (editor as any).getCursor();
       const token = editor.getTokenAt(pos);
-      const line = editor.getLine(pos.line);
+      const line = editor.getLine(pos.line - 1);
+      const newChunks: number[] = (
+        chunks.map(line => (
+          line >= pos.line ?  line + 1 : line
+        ))
+      );
+      // Remove old prompts
+      // As an alternative to finagling a useRef
       if (line.replace(/ /g, '') === '') {
         // Double enter
-        console.log('RUNNING THE CHUNKS (theoretically)');
-        // add chunk marker
-        // In Uncontrolled (apparently), onKeyDown fires after onBeforeChange,
-        // but on Controlled it fires before onBeforeChange. There are probably
-        // cleaner ways to handle this, but what else would Enter do? Let's just
-        // add 1 to the line number
-        // Does changing chunks before simply re-setting it violate react state
-        // invariants? There's no functional union on Set...
-        chunks.add(pos.line + 1);
+        if (!chunks.includes(pos.line - 1)) {
+          console.log('RUNNING THE CHUNKS (theoretically)');
+          // add chunk marker
+          // In Uncontrolled (apparently), onKeyDown fires after onBeforeChange,
+          // but on Controlled it fires before onBeforeChange. There are probably
+          // cleaner ways to handle this, but what else would Enter do? Let's just
+          // add 1 to the line number
+          // Does changing chunks before simply re-setting it violate react state
+          // invariants? There's no functional union on Set...
+          newChunks.push(pos.line + 1);
+          setChunks(chunks);
+          editor.replaceSelection('---------------------\n');
+        }
       // from DefChunk.tsx: handleEnter
       } else if (token.state.lineState.tokens.length === 0) {
         console.log('THE FINAL COUNTDOWN');
@@ -38,10 +58,6 @@ export default function EditorPlayground() {
         //editor.replaceSelection(' ⏎ Press Enter to show errors in unclosed block');
       }
     }
-    setValue(text);
-    setChunks(chunks);
-  }
-  function onKeyDown(editor: any, event: any) {
   }
   console.log(chunks);
   return (
@@ -53,6 +69,7 @@ export default function EditorPlayground() {
       }}
       onBeforeChange={onBeforeChange}
       onKeyUp={onKeyDown}
+      onMouseDown={clearNonsense}
     />
   );
 }
