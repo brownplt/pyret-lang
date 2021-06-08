@@ -619,7 +619,7 @@ function eqHelp(pyretSelf, other, selfKeys, recEq) {
         }
     }
 
-    return EQUALITY.Equal();
+    return EQUALITY.Equal;
 }
 
 

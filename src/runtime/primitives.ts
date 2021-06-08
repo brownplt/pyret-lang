@@ -47,6 +47,33 @@ export interface PRef {
   ref: Object,
 }
 
+export function extend(obj, extension) {
+  for(let k in obj.$methods) {
+    if(!(extension.hasOwnProperty(k))) {
+      Object.defineProperty(extension, k, { configurable: true, get: obj.$methods[k] });
+    }
+  }
+  Object.setPrototypeOf(extension, obj);
+  Object.setPrototypeOf(extension.$methods, obj.$methods);
+  return extension;
+}
+
+export function createVariant(sharedBase, extension, meta) {
+  const extended = extend(sharedBase, extension);
+  Object.assign(extended, meta);
+  // NOTE(joe): we cannot pass extended as an argument to this function, because
+  // sharedBased/extension/meta can't easily have a cycle between them due to
+  // codegen passing them in as object literals.
+  extended.$variant = extended;
+  return extended;
+}
+
+export function makeDataValue(obj, extension) {
+  Object.setPrototypeOf(extension, obj);
+  extension.$methods = {};
+  return extension;
+}
+
 export function isRow(val: any): boolean {
     return hasBrand($PRowBrand, val);
 }
@@ -78,11 +105,11 @@ export function isString(val: any): boolean {
 }
 
 export function isDataVariant(val: any): boolean {
-  return (typeof val === "object") && ("$brand" in val) && !(isPTuple(val)) && !(isTable(val)) && !(isRow(val));
+  return (typeof val === "object") && ("$variant" in val);
 }
 
 export function isRawObject(val: any): boolean {
-  return (typeof val === "object") && !("$brand" in val);
+  return (typeof val === "object") && !("$variant" in val) && !(isPTuple(val)) && !(isTable(val)) && !(isRow(val));
 }
 
 export function isPTuple(val: any): boolean {
