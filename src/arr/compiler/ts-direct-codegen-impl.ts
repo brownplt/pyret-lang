@@ -278,9 +278,9 @@ import type * as CS from './ts-compile-structs';
       }
     }
 
-    function bindToName(b : A.Bind) {
+    function bindToName(b : A.Bind): A.Name {
       switch(b.$name) {
-        case 's-bind': return nameToName(b.dict.id);
+        case 's-bind': return b.dict.id;
         case 's-tuple-bind': throw new ShouldHaveDesugared(b.dict.l, "Got an s-tuple-bind, which should have been desugared");
       }
     }
@@ -464,7 +464,7 @@ import type * as CS from './ts-compile-structs';
           case 's-singleton-variant': fieldNamesField = Literal(null); break;
           case 's-variant': {
             const binds = listToArray(v.dict.members).map(m => m.dict.bind);
-            fieldNamesField = ArrayExpression(binds.map(bindToName).map(Literal));
+            fieldNamesField = ArrayExpression(binds.map((b) => Literal(nameToName(bindToName(b)))));
             break;
           }
         }
@@ -773,6 +773,240 @@ import type * as CS from './ts-compile-structs';
       }
     }
 
+    function compileTableExtend(context, expr: Variant<A.Expr, 's-table-extend'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      // This case handles `extend` syntax. The starred lines in the following
+      // Pyret code,
+      //
+      //        | my-table = table: a, b, c
+      //        |   row: 1, 2, 3
+      //        |   row: 4, 5, 6
+      //        |   row: 7, 8, 9
+      //        | end
+      //        |
+      // *      | my-extended-table = extend my-table using a, b
+      // *(Map) |   d: a / 2,           # a "Mapping" extension
+      // *(Red) |   e: running-sum of b # a "Reducer"
+      // *      | end
+      //
+      // compile into JavaScript code that resembles the following:
+      //
+      // *      | var myExtendedTable = _tableReduce(
+      // *      |   myTable,
+      // *      |   [
+      // *(Map) |     { "type": "map",
+      // *(Map) |       "reduce": (rowNumber) => {
+      // *(Map) |         var columnNumberB = _tableGetColumnIndex(myTable, "b");
+      // *(Map) |         var b = myTable["_rows"][rowNumber][columnNumberB];
+      // *(Map) |         var columnNumberA = _tableGetColumnIndex(myTable, "a");
+      // *(Map) |         var a = myTable["_rows"][rowNumber][columnNumberA];
+      // *(Map) |         return a / 2; },
+      // *(Map) |       "extending": "d" },
+      // *(Red) |     { "type": "reduce",
+      // *(Red) |       "one": runningSum["one"],
+      // *(Red) |       "reduce": runningSum["reduce"],
+      // *(Red) |       "using": "b",
+      // *(Red) |       "extending": "e" }
+      // *      |   ]);
+      //
+      // The actual "extending" work is done by _tableReduce at runtime.
+
+      const columnBindsL = expr.dict['column-binds'].dict.l;
+      const columnBindsBinds = listToArray(expr.dict['column-binds'].dict.binds);
+      const columnBindsTable = expr.dict['column-binds'].dict.table;
+      const [tableExpr, tableStmts] = compileExpr(context, columnBindsTable);
+
+      const reducersExprs: J.Expression[] = [];
+      const reducersStmts: J.Statement[] = [];
+      listToArray(expr.dict.extensions).forEach((extension) => {
+        switch(extension.$name) {
+          case 's-table-extend-reducer': {
+            // Handles Reducer forms, like `e: runningSum of b`.
+
+            const [reducerExpr, reducerStmts] = compileExpr(context, extension.dict.reducer);
+
+            const typeFieldName = "type";
+            const typeFieldValue = Literal("reduce");
+            const typeField = Property(typeFieldName, typeFieldValue);
+
+            const oneFieldName = "one";
+            const oneFieldValueObj = reducerExpr;
+            const oneFieldValueField = Literal("one");
+            const oneFieldValue =
+              BracketExpression(oneFieldValueObj, oneFieldValueField);
+            const oneField = Property(oneFieldName, oneFieldValue);
+
+            const reduceFieldName = "reduce";
+            const reduceFieldValueObj = reducerExpr;
+            const reduceFieldValueField = Literal("reduce");
+            const reduceFieldValue =
+              BracketExpression(reduceFieldValueObj, reduceFieldValueField);
+            const reduceField = Property(reduceFieldName, reduceFieldValue)
+
+            const usingFieldName = "using";
+            const usingFieldValue = Literal(nameToName(extension.dict.col));
+            const usingField = Property(usingFieldName, usingFieldValue);
+
+            const extendingFieldName = "extending";
+            const extendingFieldValue = Literal(extension.dict.name);
+            const extendingField = Property(extendingFieldName, extendingFieldValue);
+
+            const reducerObjectFields = [
+              typeField,
+              oneField,
+              reduceField,
+              usingField,
+              extendingField,
+            ];
+            const reducerObject = ObjectExpression(reducerObjectFields);
+
+            reducersExprs.push(reducerObject);
+            reducersStmts.push(...reducerStmts);
+            break;
+          }
+          case 's-table-extend-field': {
+            // Handles Mapping forms, like `d: a / 2`.
+
+            const typeFieldName = "type";
+            const typeFieldValue = Literal("map");
+            const typeField = Property(typeFieldName, typeFieldValue);
+
+            const reduceFieldName = "reduce";
+
+            const funName = freshId(compilerName("s-table-extendfield"));
+            const rowNumberName = freshId(compilerName("rowNumber"));
+            const funArgs = [rowNumberName];
+            const indexingStmts: J.Statement[] = [];
+            listToArray(expr.dict['column-binds'].dict.binds).forEach((bind) => {
+
+              const bindId = bindToName(bind);
+              
+              const getIndexName = freshId(compilerName("columnNumber"));
+              const getColumnIndex = BracketExpression(Identifier(TABLE), Literal("_tableGetColumnIndex"));
+              const columnIndexArgs = [tableExpr, Literal(nameToName(bindId))];
+              const getIndexRhs = CallExpression(getColumnIndex, columnIndexArgs);
+              const getIndexStmt = Var(getIndexName, getIndexRhs);
+              
+              const indexName = bindId
+              const tableRows = BracketExpression(tableExpr, Literal("_rows"));
+              const currentRow = BracketExpression(tableRows, Identifier(rowNumberName));
+              const indexRhs = BracketExpression(currentRow, Identifier(getIndexName));
+              const assignIndexStmt = Var(jsIdOf(indexName), indexRhs)
+              
+              indexingStmts.push(getIndexStmt, assignIndexStmt);
+            });
+
+            const [returnExpr, returnCompiledStmts] = compileExpr(context, extension.dict.value);
+            const returnStmt = ReturnStatement(returnExpr);
+
+            const bodyStmts = [...indexingStmts, returnStmt];
+            const funBody = BlockStatement(bodyStmts);
+
+            const reduceFieldValue = FunctionExpression(funName, funArgs, funBody);
+            const reduceField = Property(reduceFieldName, reduceFieldValue);
+
+            const extendingFieldName = "extending";
+            const extendingFieldValue = Literal(extension.dict.name);
+            const extendingField = Property(extendingFieldName, extendingFieldValue);
+
+            const mappingObjectFields = [
+              typeField,
+              reduceField,
+              extendingField,
+            ];
+            const mappingObject = ObjectExpression(mappingObjectFields);
+
+            // NOTE(Ben): this is different than the code in direct-codegen:
+            // it put the returnCompiledStmts in accExprs, I think by mistake
+            reducersExprs.push(mappingObject);
+            reducersStmts.push(...returnCompiledStmts);
+            break;
+          }
+        }
+      });
+
+      const exprFuncObj = Identifier(TABLE);
+      const exprFuncField = Literal("_tableReduce");
+      const applyExprFunc = BracketExpression(exprFuncObj, exprFuncField);
+      const applyExprArgs = [tableExpr,  ArrayExpression(reducersExprs)];
+      const applyExpr = CallExpression(applyExprFunc, applyExprArgs);
+
+      const applyStmts = [...tableStmts, ...reducersStmts];
+
+      return [applyExpr, applyStmts]
+    }
+
+    function compileTableUpdate(context, expr : Variant<A.Expr, 's-table-update'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      // This case handles `transform` syntax. The starred lines in the following
+      // Pyret code,
+      //
+      //   | my-table = table: name, age, favorite-color
+      //   |   row: "Bob", 12, "blue"
+      //   |   row: "Alice", 17, "green"
+      //   |   row: "Eve", 14, "red"
+      //   | end
+      //   |
+      // * | age-fixed = transform my-table using age:
+      // * |   age: age + 1
+      // * | end
+      //
+      // compile into JavaScript code that resembles the following:
+      //
+      // * | var ageFixed = _tableTransform(
+      // * |   myTable,
+      // * |   ["age"],
+      // * |   []
+      // * | );
+      //
+      // The actual "transforming" work is done by _tableTransform at runtime.
+
+      const [tableExpr, tableStmts] = compileExpr(context, expr.dict['column-binds'].dict.table);
+
+      // makes a list of strings (column names)
+      const updates = listToArray(expr.dict.updates)
+      const listColnames = updates.map((u) => Literal(u.dict.name));
+
+      const columnUpdateZip: Array<[A.Bind, A.Expr]> = listToArray(expr.dict['column-binds'].dict.binds)
+        .map((cb, i) => {
+          const update = updates[i];
+          switch(update.$name) {
+            case 's-data-field': return [ cb, update.dict.value];
+            default: 
+              throw new InternalCompilerError(`Invalid update type ${updates[i].$name} at index ${i}`);
+          }
+        });
+
+      // makes a list of functions
+      const funName = freshId(compilerName("sTableTransform"));
+      const listUpdates = columnUpdateZip.map((cu) => {
+        const [bind, updateExpr] = cu;
+
+        // Use the Bind in ColumnBind as the parameter in the generated function
+        const funArgs = [jsIdOf(bindToName(bind))];
+
+	      const [uValueExpr, uValueStmts] = compileExpr(context, updateExpr);
+        const blockReturnStmt = ReturnStatement(uValueExpr);
+        const blockStmts = [...tableStmts, blockReturnStmt];
+        const funBody = BlockStatement(blockStmts);
+        const uFun = FunctionExpression(funName, funArgs, funBody);
+        return uFun;
+      });
+
+      const appFunc = BracketExpression(Identifier(TABLE), Literal("_tableTransform"));
+      const appArgs = [tableExpr, ArrayExpression(listColnames), ArrayExpression(listUpdates)];
+
+      const returnExpr = CallExpression(appFunc, appArgs);
+      const returnStmts = tableStmts;
+
+      // tableTansform(table, colnames, updates)
+      return [returnExpr, returnStmts];
+    }
+
     // mimics the Srcloc#format method from ast.arr
     function formatSrcloc(loc: A.Srcloc, showFile: boolean): string {
       switch(loc.$name) {
@@ -1058,8 +1292,8 @@ import type * as CS from './ts-compile-structs';
         
         case 's-table': return compileTable(context, expr);
         case 's-load-table': return compileLoadTable(context, expr);
-        case 's-table-extend': throw new TODOError(expr.$name);
-        case 's-table-update': throw new TODOError(expr.$name);
+        case 's-table-extend': return compileTableExtend(context, expr);
+        case 's-table-update': return compileTableUpdate(context, expr);
         case 's-table-filter': throw new TODOError(expr.$name);
         case 's-table-select': throw new TODOError(expr.$name);
         case 's-table-order': throw new TODOError(expr.$name);
