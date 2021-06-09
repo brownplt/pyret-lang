@@ -379,7 +379,9 @@ import type * as CS from './ts-compile-structs';
         const [first, firstStmts] = compileExpr(context, cur.dict.first);
         ans = first;
         stmts.push(...firstStmts);
-        stmts.push(ExpressionStatement(first));
+        if (first !== undefined) {
+          stmts.push(ExpressionStatement(first));
+        }
         cur = cur.dict.rest;
       }
       return [ans, stmts]
