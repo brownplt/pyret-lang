@@ -1103,6 +1103,64 @@ import type * as CS from './ts-compile-structs';
       return [returnExpr, returnStmts];
     }
 
+    function compileTableOrder(context, expr: Variant<A.Expr, 's-table-order'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      // This case handles `order` syntax. The starred lines in the following
+      // Pyret code,
+      //
+      //   | my-table = table: name, age, favorite-color
+      //   |   row: "Bob", 12, "blue"
+      //   |   row: "Alice", 12, "green"
+      //   |   row: "Eve", 13, "red"
+      //   | end
+      //   |
+      // * | name-ordered = order my-table:
+      // * |   age descending,
+      // * |   name ascending
+      // * | end
+      //
+      // compile into JavaScript code that resembles the following:
+      //
+      // * | var nameOrdered = _tableOrder(
+      // * |   myTable,
+      // * |   [{"column": "age", "direction": "descending"},
+      // * |    {"column": "name", "direction": "ascending"}]);
+      //
+      // The actual "ordering" work is done by _tableOrder at runtime.
+
+      const [tableExpr, tableStmts] = compileExpr(context, expr.dict.table);
+
+      const orderingListElements = listToArray(expr.dict.ordering).map((theOrder) => {
+        const theOrderColumn = theOrder.dict.column;
+        const theOrderDirection = theOrder.dict.direction;
+        
+        const orderColumnField = Property("column", Literal(nameToName(theOrderColumn)));
+        const orderDirectionField = Property(
+          "direction",
+          Literal(theOrderDirection.$name.toLowerCase())
+        );
+        
+        const orderFields = [orderColumnField, orderDirectionField];
+        const orderObj = ObjectExpression(orderFields);
+        
+        return orderObj;
+      });
+
+      const orderingListExpr = ArrayExpression(orderingListElements);
+
+      const appFunc = BracketExpression(Identifier(TABLE), Literal("_tableOrder"));
+      const appArgs = [tableExpr, orderingListExpr];
+      const apply = CallExpression(appFunc, appArgs);
+
+      const returnExpr = apply;
+      const returnStmts = tableStmts;
+
+      return [returnExpr, returnStmts];
+
+    }
+
 
     function compileSpy(context, expr : Variant<A.Expr, 's-spy-block'>): CompileResult {
       // Model each spy block as a spy block object
@@ -1379,7 +1437,7 @@ import type * as CS from './ts-compile-structs';
         case 's-table-update': return compileTableUpdate(context, expr);
         case 's-table-filter': return compileTableFilter(context, expr);
         case 's-table-select': return compileTableSelect(context, expr);
-        case 's-table-order': throw new TODOError(expr.$name);
+        case 's-table-order': return compileTableOrder(context, expr);
         case 's-table-extract': throw new TODOError(expr.$name);
         
         case 's-spy-block': return compileSpy(context, expr);
