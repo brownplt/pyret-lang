@@ -31,16 +31,20 @@ const variantBase_Unknown = PRIMITIVES.createVariant(sharedBase_EqualityResult, 
     ]
 });
 
+/* @stopify flat */
 export function isEqualityResult(val) {
   return typeof val === 'object' && val !== null && val['$data'] === sharedBase_EqualityResult;
 }
+/* @stopify flat */
 export function isEqual(val) {
   return typeof val === 'object' && val !== null && val['$variant'] === Equal;
 }
 export const Equal = variantBase_Equal;
+/* @stopify flat */
 export function isNotEqual(val) {
   return typeof val === 'object' && val !== null && val['$variant'] === variantBase_NotEqual;
 }
+/* @stopify flat */
 export function NotEqual(reason5, value16, value27) {
   return PRIMITIVES.makeDataValue(variantBase_NotEqual, {
       ['reason']: reason5,
@@ -48,9 +52,11 @@ export function NotEqual(reason5, value16, value27) {
       ['value2']: value27
   });
 }
+/* @stopify flat */
 export function isUnknown(val) {
   return typeof val === 'object' && val !== null && val['$variant'] === variantBase_Unknown;
 }
+/* @stopify flat */
 export function Unknown(reason9, value110, value211) {
   return PRIMITIVES.makeDataValue(variantBase_Unknown, {
       ['reason']: reason9,
