@@ -1038,6 +1038,71 @@ import type * as CS from './ts-compile-structs';
       return [CallExpression(func, args), jsTableStmts];
     }
 
+    function compileTableFilter(context, expr: Variant<A.Expr, 's-table-filter'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      // This case handles `sieve` syntax. The starred lines in the following
+      // Pyret code,
+      //
+      //   | my-table = table: a, b, c
+      //   |   row: 1, 2, 3
+      //   |   row: 4, 5, 6
+      //   |   row: 7, 8, 9
+      //   | end
+      //   |
+      // * | my-filtered-table = sieve my-table using b:
+      // * |   (b / 4) == 2
+      // * | end
+      //
+      // compile into JavaScript code that resembles the following:
+      //
+      // * | var myFilteredTable = _tableFilter(myTable, function sTableFilter(row) {
+      // * |     var index = _tableGetColumnIndex(myTable, "b");
+      // * |     var b = row[index];
+      // * |     return (b / 4) == 2;
+      // * | }
+      //
+      // The actual "sieving" work is done by _tableFilter at runtime.
+
+      const [tableExpr, tableStmts] = compileExpr(context, expr.dict['column-binds'].dict.table);
+
+      const rowName = freshId(compilerName("row"));
+
+      const blockRowElementStmts = listToArray(expr.dict['column-binds'].dict.binds).flatMap((bind) => {
+
+        // generate the `var index = _tableGetColumnIndex(myTable, "b");` lines.
+        const appFunc = BracketExpression(Identifier(TABLE), Literal("_tableGetColumnIndex"));
+        const appArgs = [tableExpr, Literal(nameToName(bindToName(bind)))];
+        
+        // generate the `var b = row[index];` lines.
+        const columnIndexExpr = CallExpression(appFunc, appArgs);
+        const columnIndexId = freshId(compilerName("index"));
+        const columnIndexStmt = Var(columnIndexId, columnIndexExpr);
+        const varStmt = Var(jsIdOf(bindToName(bind)), BracketExpression(Identifier(rowName), Identifier(columnIndexId)));
+        
+        return [columnIndexStmt, varStmt];
+      });
+
+      const funName = freshId(compilerName("s-table-filter"))
+      const funArgs = [rowName];
+
+      const [predicateExpr, predicateStmts] = compileExpr(context, expr.dict.predicate);
+      const blockReturnStmt = ReturnStatement(predicateExpr);
+      const blockStmts = [...blockRowElementStmts, blockReturnStmt];
+      const funBody = BlockStatement(blockStmts);
+      const filterFun = FunctionExpression(funName, funArgs, funBody);
+
+      const appFunc = BracketExpression(Identifier(TABLE), Literal("_tableFilter"));
+      const appArgs = [tableExpr, filterFun];
+      const apply = CallExpression(appFunc, appArgs);
+
+      const returnExpr = apply;
+      const returnStmts = [...predicateStmts, ...tableStmts];
+
+      return [returnExpr, returnStmts];
+    }
+
 
     function compileSpy(context, expr : Variant<A.Expr, 's-spy-block'>): CompileResult {
       // Model each spy block as a spy block object
@@ -1312,7 +1377,7 @@ import type * as CS from './ts-compile-structs';
         case 's-load-table': return compileLoadTable(context, expr);
         case 's-table-extend': return compileTableExtend(context, expr);
         case 's-table-update': return compileTableUpdate(context, expr);
-        case 's-table-filter': throw new TODOError(expr.$name);
+        case 's-table-filter': return compileTableFilter(context, expr);
         case 's-table-select': return compileTableSelect(context, expr);
         case 's-table-order': throw new TODOError(expr.$name);
         case 's-table-extract': throw new TODOError(expr.$name);
