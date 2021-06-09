@@ -4,13 +4,6 @@ import * as PRIMITIVES from './primitives';
 
 const _NUMBER = require("./js-numbers.js");
 
-const $EqualBrand = {"names":false};
-const $NotEqualBrand = {"names":["reason","value1","value2"]};
-const $UnknownBrand = {"names":["reason","value1","value2"]};
-const $EqualTag = 0;
-const $NotEqualTag = 1;
-const $UnknownTag = 2;
-
 // ********* EqualityResult Representations *********
 
 const sharedBase_EqualityResult = { ['$methods']: {} };
