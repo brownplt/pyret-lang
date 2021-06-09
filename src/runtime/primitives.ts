@@ -26,9 +26,8 @@ export {
 }
 
 // ********* Runtime Type Representations (Non-Primitives) *********
-export interface PTuple {
+export type PTuple = any[] & {
   $brand: string,
-  [key: string]: any,
 }
 
 export function PTuple(values: any[]): PTuple {
