@@ -47,7 +47,32 @@ export interface PRef {
   ref: Object,
 }
 
-export function extend(obj, extension) {
+// From https://stackoverflow.com/a/57683652/783424, which
+// helps make the types more readable
+type ExpandRecursively<T> = T extends object
+  ? T extends infer O ? { [K in keyof O]: ExpandRecursively<O[K]> } : never
+  : T;
+
+export type DataSharedBase = {
+  $methods: Record<string, () => any>,
+};
+
+export type DataVariantBase = {
+  $methods?: Record<string, () => any>
+} & Record<string, any>;
+
+export type DataMetaBase = {
+  $data: DataSharedBase,
+  $name: string,
+  $variant?: DataVariantBase,
+  $fieldNames?: string[],
+  $methods?: Record<string, () => any>,
+};
+
+export function extend(
+  obj : DataSharedBase,
+  extension : DataVariantBase
+) : ExpandRecursively<DataSharedBase & DataVariantBase> {
   for(let k in obj.$methods) {
     if(!(extension.hasOwnProperty(k))) {
       Object.defineProperty(extension, k, { configurable: true, get: obj.$methods[k] });
@@ -55,23 +80,30 @@ export function extend(obj, extension) {
   }
   Object.setPrototypeOf(extension, obj);
   Object.setPrototypeOf(extension.$methods, obj.$methods);
-  return extension;
+  return (extension as DataSharedBase & DataVariantBase);
 }
 
-export function createVariant(sharedBase, extension, meta) {
+export function createVariant(
+  sharedBase : DataSharedBase, 
+  extension : DataVariantBase, 
+  meta : DataMetaBase
+) : ExpandRecursively<DataSharedBase & DataVariantBase & Required<DataMetaBase>> {
   const extended = extend(sharedBase, extension);
-  Object.assign(extended, meta);
+  const metaExtended = Object.assign(extended, meta);
   // NOTE(joe): we cannot pass extended as an argument to this function, because
   // sharedBased/extension/meta can't easily have a cycle between them due to
   // codegen passing them in as object literals.
-  extended.$variant = extended;
-  return extended;
+  metaExtended.$variant = metaExtended;
+  return (metaExtended as DataSharedBase & DataVariantBase & Required<DataMetaBase>);
 }
 
-export function makeDataValue(obj, extension) {
+export function makeDataValue<
+  O extends {},
+  E extends DataVariantBase,
+>(obj : O, extension : E) : O & E {
   Object.setPrototypeOf(extension, obj);
   extension.$methods = {};
-  return extension;
+  return (extension as O & E);
 }
 
 export function isRow(val: any): boolean {
