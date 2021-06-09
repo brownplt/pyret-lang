@@ -1287,8 +1287,10 @@ import type * as CS from './ts-compile-structs';
           }
           return [numAns, []];
         }
-        case 's-frac': throw new TODOError(expr.$name);
-        case 's-rfrac': throw new TODOError(expr.$name);
+        case 's-frac': 
+          return [rtMethod('$makeRational', [Literal(expr.dict.num), Literal(expr.dict.den)]), []];
+        case 's-rfrac':
+          return [rtMethod('$makeRoughnum', [Literal(expr.dict.num / expr.dict.den)]), []];
         case 's-str':
           return [Literal(expr.dict.s), []];
         case 's-bool':
