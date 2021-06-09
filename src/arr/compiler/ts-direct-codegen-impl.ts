@@ -716,6 +716,101 @@ import type * as CS from './ts-compile-structs';
       return [CallExpression(func, args), rowsStmts];      
     }
 
+    function compileLoadTable(context, expr : Variant<A.Expr, 's-load-table'>): CompileResult {
+      throw new TODOError('s-load-table');
+    }
+
+    // mimics the Srcloc#format method from ast.arr
+    function formatSrcloc(loc: A.Srcloc, showFile: boolean): string {
+      switch(loc.$name) {
+        case 'builtin': return `<builtin ${loc.dict['module-name']}>`;
+        case 'srcloc': 
+          if (showFile) {
+            const start = `${loc.dict.source}:${loc.dict['start-line']}:${loc.dict['start-column']}`;
+            const end = `${loc.dict.source}:${loc.dict['end-line']}:${loc.dict['end-column']}`;
+            return `${start}-${end}`;
+          } else {
+            return `line ${loc.dict['start-line']}, column ${loc.dict['start-column']}`;
+          }
+      }
+    }
+    function compileSpy(context, expr : Variant<A.Expr, 's-spy-block'>): CompileResult {
+      // Model each spy block as a spy block object
+      // SpyBlockObject {
+      //   message: () -> String,
+      //   loc: String,
+      //   exprs: List<{ key: String, expr: () -> JSValue, loc: String }>
+      // }
+      //
+      // Translate spy blocks into:
+      //   builtinSpyFunction(SpyBlockObject)
+      //
+      // Push responsibility of runtime spy-enabling to the builtinSpyFunction
+      if (context.options.dict['enable-spies']) {
+        // Generate spy code
+
+        // Generate message code
+        let jsMessageValue: J.Expression;
+        let jsMessageStmts: J.Statement[] = [];
+        switch(expr.dict.message.$name) {
+          case 'some': {
+            [jsMessageValue, jsMessageStmts] = compileExpr(context, expr.dict.message.dict.value);
+            break;
+          }
+          case 'none':
+            // Use 'null' to signal the builtinSpyFunction that there was no spy block message
+            jsMessageValue = Literal(null);
+            break;
+        }
+
+        // Create the message generation function
+        const jsMessageFuncName = freshId(compilerName("spy-message"));
+        const jsMessageReturn = ReturnStatement(jsMessageValue);
+        const jsMessageFuncBlock = BlockStatement([...jsMessageStmts, jsMessageReturn]);
+        const jsMessageFunc = FunctionExpression(jsMessageFuncName, [], jsMessageFuncBlock);
+
+        // Compile each spy expression into the expression list
+        const jsSpyFields: J.Expression[] = [];
+        listToArray(expr.dict.contents).forEach((pyretSpyField) => {
+
+          const [jsSpyValue, jsSpyStmts] = compileExpr(context, pyretSpyField.dict.value);
+          
+          const jsSpyExprFuncName = freshId(compilerName("spyExpr"));
+          
+          const jsSpyReturn = ReturnStatement(jsSpyValue);
+          const jsSpyExprFuncBlock = BlockStatement([...jsSpyStmts, jsSpyReturn]);
+          const jsSpyExprFun = FunctionExpression(jsSpyExprFuncName, [], jsSpyExprFuncBlock);
+          
+          // Create the spy expression object
+          const jsSpyKey = Property("key", Literal(pyretSpyField.dict.name));
+          const jsSpyExpr = Property("expr", jsSpyExprFun);
+          const jsSpyLoc = Property("loc", Literal(formatSrcloc(pyretSpyField.dict.l, true)));
+          const jsSpyExprObj = ObjectExpression([jsSpyKey, jsSpyExpr, jsSpyLoc]);
+          
+          jsSpyFields.push(jsSpyExprObj);
+        });
+
+        const jsSpyLoc = Literal(formatSrcloc(expr.dict.l, true));
+
+        // Create the SpyBlockObject
+        const jsSpyFieldsList = ArrayExpression(jsSpyFields);
+        const spyBlockObj = ObjectExpression([
+          Property("message", jsMessageFunc),
+          Property("loc", jsSpyLoc),
+          Property("exprs", jsSpyFieldsList)
+        ]);
+
+        // Builtin spy function call
+        // Runtime is responsible for output
+        const spyCall = ExpressionStatement(rtMethod("$spy", [spyBlockObj]));
+
+        return [undefined, [spyCall]];
+      } else {
+        // Do NOT generate spy code
+        return [undefined, []]
+      }
+    }
+
     function compileExpr(context, expr : A.Expr) : CompileResult {
       switch(expr.$name) {
         case 's-module':
@@ -909,7 +1004,7 @@ import type * as CS from './ts-compile-structs';
         }
         
         case 's-table': return compileTable(context, expr);
-        case 's-load-table': throw new TODOError(expr.$name);
+        case 's-load-table': return compileLoadTable(context, expr);
         case 's-table-extend': throw new TODOError(expr.$name);
         case 's-table-update': throw new TODOError(expr.$name);
         case 's-table-filter': throw new TODOError(expr.$name);
@@ -917,7 +1012,7 @@ import type * as CS from './ts-compile-structs';
         case 's-table-order': throw new TODOError(expr.$name);
         case 's-table-extract': throw new TODOError(expr.$name);
         
-        case 's-spy-block': throw new TODOError(expr.$name);
+        case 's-spy-block': return compileSpy(context, expr);
 
         case 's-hint-exp': {
           return compileExpr(context, expr.dict.exp);
@@ -1176,6 +1271,8 @@ import type * as CS from './ts-compile-structs';
 
       // TODO(joe): remove this when we are 100% confident that map doesn't fudge with the AST
       prog = assertMapIsDoingItsJob(prog);
+
+      console.log("HERE!");
 
       const [ans, stmts] = compileExpr({
         uri: fromUri,
