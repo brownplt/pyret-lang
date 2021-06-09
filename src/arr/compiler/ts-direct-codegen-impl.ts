@@ -1021,6 +1021,24 @@ import type * as CS from './ts-compile-structs';
           }
       }
     }
+
+    function compileTableSelect(context, expr : Variant<A.Expr, 's-table-select'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      const func = BracketExpression(Identifier(TABLE), Literal("_selectColumns"));
+
+      const jsColumns = listToArray(expr.dict.columns).map((c) => Literal(nameToName(c)));
+
+      const [jsTable, jsTableStmts] = compileExpr(context, expr.dict.table);
+
+      const args = [jsTable, ArrayExpression(jsColumns)];
+
+      // selectColumns(table, colnames)
+      return [CallExpression(func, args), jsTableStmts];
+    }
+
+
     function compileSpy(context, expr : Variant<A.Expr, 's-spy-block'>): CompileResult {
       // Model each spy block as a spy block object
       // SpyBlockObject {
@@ -1295,7 +1313,7 @@ import type * as CS from './ts-compile-structs';
         case 's-table-extend': return compileTableExtend(context, expr);
         case 's-table-update': return compileTableUpdate(context, expr);
         case 's-table-filter': throw new TODOError(expr.$name);
-        case 's-table-select': throw new TODOError(expr.$name);
+        case 's-table-select': return compileTableSelect(context, expr);
         case 's-table-order': throw new TODOError(expr.$name);
         case 's-table-extract': throw new TODOError(expr.$name);
         
