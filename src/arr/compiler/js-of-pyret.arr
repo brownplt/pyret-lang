@@ -114,7 +114,7 @@ end
 fun make-compiled-pyret(program-ast, uri, env, post-env, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter>} block:
 #  each(println, program-ast.tosource().pretty(80))
   compiled = cases(C.Pipeline) options.pipeline:
-    | pipeline-anchor => D.compile-program(program-ast, uri, env, post-env, provides, options)
+    | pipeline-anchor => TD.compile-program(program-ast, uri, env, post-env, provides, options)
     | pipeline-ts-anchor => TD.compile-program(program-ast, uri, env, post-env, provides, options)
   end
   {provides; C.ok(ccp-dict(compiled))}

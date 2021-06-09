@@ -717,7 +717,60 @@ import type * as CS from './ts-compile-structs';
     }
 
     function compileLoadTable(context, expr : Variant<A.Expr, 's-load-table'>): CompileResult {
-      throw new TODOError('s-load-table');
+      // This case handles `loadTable` syntax. The lines in the following Pyret
+      // code,
+      //
+      // | myTable = loadTable: a, b, c
+      // |   source: csvOpen('myTable.csv')
+      // | end
+      //
+      // compile into JavaScript code that resembles the following:
+      //
+      // | var myTable = _makeTableFromTableSkeleton(
+      // |                 _tableSkeletonChangeHeaders(
+      // |                   csvOpen('csv.txt'),
+      // |                   ["a", "b", "
+
+      // NOTE(michael):
+      //  sLoadTable is currently implemented for a single LoadTableSpec of type
+      //  sTableSrc, meaning that using one or more `sanitize` forms will result in
+      //  a notYetImplemented error.
+
+      const spec = listToArray(expr.dict.spec);
+      if (spec.length !== 1) {
+        throw new TODOError("sLoadTable with != 1 spec");
+      } else {
+        switch(spec[0].$name) {
+          case 's-sanitize':
+            throw new TODOError("sLoadTable with a sanitize spec");
+          case 's-table-src': {
+            // Set the tableImport flag
+            importFlags['table-import'] = true;
+
+            const tableId = Identifier(TABLE);
+            const makeTableFunc =
+              BracketExpression(tableId, Literal("_makeTableFromTableSkeleton"));
+            const changeHeadersFunc =
+              BracketExpression(tableId, Literal("_tableSkeletonChangeHeaders"));
+
+            const [headersExprArgs, headersExprStmts] = compileExpr(context, spec[0].dict.src);
+
+            const headerStringsList: J.Expression[] = [];
+            listToArray(expr.dict.headers).forEach((fieldName) => {
+              headerStringsList.push(Literal(fieldName.dict.name));
+            });
+
+            const headerStrings = ArrayExpression(headerStringsList);
+
+            const changeHeadersExpr = CallExpression(changeHeadersFunc, [headersExprArgs, headerStrings]);
+
+            const exprArgs = [changeHeadersExpr];
+            const makeTableExpr = CallExpression(makeTableFunc, exprArgs);
+
+            return [makeTableExpr, headersExprStmts];
+          }
+        }
+      }
     }
 
     // mimics the Srcloc#format method from ast.arr
