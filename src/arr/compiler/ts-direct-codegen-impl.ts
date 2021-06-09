@@ -1161,6 +1161,38 @@ import type * as CS from './ts-compile-structs';
 
     }
 
+    function compileTableExtract(context, expr: Variant<A.Expr, 's-table-extract'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      // This case handles `extract` syntax. The starred line in the following
+      // Pyret code,
+      //
+      //   | my-table = table: a, b, c
+      //   |   row: 1, 2, 3
+      //   |   row: 4, 5, 6
+      //   |   row: 7, 8, 9
+      //   | end
+      //   |
+      // * | column-b = extract b from my-table end
+      //
+      // compiles into JavaScript code that resembles the following:
+      //
+      // * | var columnB = _tableExtractColumn(myTable, "b");
+      //
+      // The actual "extracting" work is done by _tableExtractColumn at runtime.
+
+      const [tableExpr, tableStmts] = compileExpr(context, expr.dict.table);
+
+      const appFunc = BracketExpression(Identifier(TABLE), Literal("_tableExtractColumn"));
+      const appArgs = [tableExpr, Literal(nameToName(expr.dict.column))];
+      const apply = CallExpression(appFunc, appArgs);
+
+      const returnExpr = apply;
+      const returnStmts = tableStmts;
+
+      return [returnExpr, returnStmts];
+    }
 
     function compileSpy(context, expr : Variant<A.Expr, 's-spy-block'>): CompileResult {
       // Model each spy block as a spy block object
@@ -1438,7 +1470,7 @@ import type * as CS from './ts-compile-structs';
         case 's-table-filter': return compileTableFilter(context, expr);
         case 's-table-select': return compileTableSelect(context, expr);
         case 's-table-order': return compileTableOrder(context, expr);
-        case 's-table-extract': throw new TODOError(expr.$name);
+        case 's-table-extract': return compileTableExtract(context, expr);
         
         case 's-spy-block': return compileSpy(context, expr);
 
