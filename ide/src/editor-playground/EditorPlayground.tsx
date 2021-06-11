@@ -19,11 +19,35 @@ interface LineWidget extends CM.LineWidget {
 
 export default function EditorPlayground() {
   const [tooltipPos, setTooltipPos] = React.useState<Pos | null>(null);
+  const [_staleLineWidgets, setStaleLineWidgets] = React.useState<CM.LineWidget[]>([]);
+  const lineWidgetsRef = React.useRef(_staleLineWidgets);
+  const [_resultsCache, setResultsCache] = React.useState<string[]>([]);
+  const resultsCacheRef = React.useRef(_resultsCache);
   function empty(s: string): boolean {
     return s.replace(/ /g, '') === '';
   }
   function clearTooltip() {
     setTooltipPos(null);
+  }
+  function onChange(editor: CM.Editor & CM.Doc) {
+    // lineWidget does not understand expansion / inclusiveRight like ranges
+    // do, so we use them *only* for rendering, remove them every time we
+    // might have expanded or contracted a range (any change at all!) and
+    // redraw every single one
+    lineWidgetsRef.current.forEach((lw) => editor.removeLineWidget(lw));
+    const marks = editor.getAllMarks();
+    // Is this necessary? It's not documented what order i get them in, so probably
+    marks.sort((a, b) => a.find()?.from.line - b.find()?.from.line);
+    const newLineWidgets: CM.LineWidget[] = [];
+    marks.forEach((mark, i) => {
+      const { to } = mark.find();
+      const widget = document.createElement('div');
+      const resultCache = i === resultsCacheRef.current.length ? '' : resultsCacheRef.current[i];
+      widget.append(resultCache, document.createElement('hr'));
+      newLineWidgets.push(editor.addLineWidget(to.line, widget));
+    });
+    lineWidgetsRef.current = newLineWidgets;
+    setStaleLineWidgets(newLineWidgets);
   }
   // "Methods prefixed with doc. can, unless otherwise specified, be called both
   // on CodeMirror (editor) instances and CodeMirror.Doc instances."
@@ -65,7 +89,6 @@ export default function EditorPlayground() {
         // Lots of edge cases to handle here
         console.log('RUNNING THE CHUNKS (theoretically)');
         // add chunk marker
-        const rule = document.createElement('hr');
         console.assert(pos.ch === 0);
         // We get rid of the extraneous newline, because visually it is occupied
         // by the chunk boundary. This is debatable. Lerner would say not only
@@ -73,32 +96,37 @@ export default function EditorPlayground() {
         const previousLine = { line: pos.line - 1, ch: 0 };
         const newLine = { line: pos.line, ch: pos.ch };
         editor.replaceRange('', previousLine, newLine);
-        // We will add a line widget, but it will be rendered after we rearrange
-        // all the marks and such. lineWidget does not understand expansion /
-        // inclusiveRight like ranges do, so we use them *only* for rendering,
-        // remove them every time we might have expanded a range (any Enter at
-        // all!) and redraw every single one for convenience (there's no
-        // getLineWidget either)
-        editor.addLineWidget(pos.line - 2, rule);
         // Update the previous mark that will keep expanding forever if we don't change it
         const oldMarks = editor.findMarksAt(previousLine);
-        console.assert(oldMarks.length === 1);
-        const oldMark = oldMarks[0];
-        const oldMarkRange = oldMark.find();
+        const previousMarks = oldMarks.filter((mark) => mark.find().to.line === previousLine.line);
         const endOfPrevious = { line: previousLine.line - 1, ch: 9999 };
-        editor.markText(oldMarkRange.from, endOfPrevious, oldMark as TextMarkerOptions);
-        // Don't clear before making the new mark or bad things happen!
-        oldMark.clear();
+        if (previousMarks.length === 1) {
+          const oldMark = previousMarks[0];
+          const oldMarkRange = oldMark.find();
+          // Make replacement mark. As a workaround, to get all the options
+          // back, just pass the old mark in as the options. i assume extraneous
+          // fields are ignored, since i haven't seen any errors or bugs from
+          // this. (TS claims there's a getOptions method but there isn't one
+          // documented in any version or in reality in this version)
+          editor.markText(oldMarkRange.from, endOfPrevious, oldMark as TextMarkerOptions);
+          // Don't clear before making the replacement mark or bad things happen!
+          oldMark.clear();
+        } else {
+          // The inside of a chunk. What do we actually want to do here? And how
+          // do we achieve it with the marks around?
+          console.assert(previousMarks.length === 0);
+        }
         // Now add our new mark
         const rainbow = ['#fcc', '#fca', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
-        const marks = editor.getAllMarks();
+        const numMarks = editor.getAllMarks().length;
         editor.markText(endOfPrevious, previousLine, {
-          css: `background-color: ${rainbow[marks.length % rainbow.length]};`,
+          css: `background-color: ${rainbow[numMarks % rainbow.length]};`,
           // Above chunk owns the left side of this newline
           inclusiveLeft: false,
           // We own the newline itself and the right side
           inclusiveRight: true,
         });
+        const marks = editor.getAllMarks();
         // Is this necessary? It's not documented what order i get them in, so probably
         marks.sort((a, b) => a.find()?.from.line - b.find()?.from.line);
         const textChunks = marks.map((mark) => {
@@ -106,7 +134,12 @@ export default function EditorPlayground() {
           return editor.getRange(from, to);
         });
         const results = run(textChunks);
-        console.log(results);
+        resultsCacheRef.current = results;
+        setResultsCache(results);
+        console.log('Actual total length: ', editor.getValue().length);
+        // Adding the actual lineWidget is done functionally on change, but
+        // onChange happens before this, so go ahead and do that as well
+        onChange(editor);
       } else {
         console.log('Empty line with no open context. Presenting tooltip.');
         // "What? This looks weird! Why are you doing pixel stuff!"
@@ -136,6 +169,7 @@ export default function EditorPlayground() {
         }}
         // Bad types given by react-codemirror, too bad
         onKeyUp={onKeyDown as (x: CM.Editor, y: Event) => void}
+        onChange={onChange as (x: CM.Editor) => void}
         onMouseDown={clearTooltip}
       />
       {tooltipPos === null ? null : <Tooltip left={tooltipPos.left} top={tooltipPos.top} />}
