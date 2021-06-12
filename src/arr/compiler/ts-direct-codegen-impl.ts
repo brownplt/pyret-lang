@@ -4,17 +4,17 @@ import type * as Path from 'path';
 import type * as A from './ts-ast';
 import type * as CS from './ts-compile-structs';
 import type * as TJ from './ts-codegen-helpers';
-import { Variant, PyretObject } from './ts-codegen-helpers';
+import type { Variant, PyretObject } from './ts-codegen-helpers';
 
 ({ 
-  requires: [],
-  nativeRequires: ["escodegen", "path", './ts-codegen-helpers'],
+  requires: [{ 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']} ],
+  nativeRequires: ["escodegen", "path"],
   provides: {
     values: {
       "compile-program": "tany"
     }
   },
-  theModule: function(runtime, _, ___, escodegen : (typeof Escodegen), P : (typeof Path), tj : (typeof TJ)) {
+  theModule: function(runtime, _, ___, tj : TJ.Exports, escodegen : (typeof Escodegen), P : (typeof Path)) {
     // Pretty-print JS asts
     // Return a PyretObject
     // Type enough AST to get to s-num
@@ -1465,8 +1465,6 @@ import { Variant, PyretObject } from './ts-codegen-helpers';
 
       // TODO(joe): remove this when we are 100% confident that map doesn't fudge with the AST
       prog = assertMapIsDoingItsJob(prog);
-
-      console.log("HERE!");
 
       const [ans, stmts] = compileExpr({
         uri: fromUri,

@@ -16,7 +16,12 @@ src/arr/compiler/%.js : src/arr/compiler/%.ts
 	# of the expression-statement in JS, but that can't be interpreted correctly
 	# when the JS module's text is put in expression position in the standalone.
 	# So chop the trailing ;
-	perl -0777 -p -i -e 's/;(\n*)\Z/\1/m' $@
+	# UNFORTUNATELY, we can't do this while compiling individual .ts files,
+	# because tsc might overwrite some of the post-processed files.  So do this as a second step
+	`npm bin`/tsc --target "esnext" --module "es2015" --listFilesOnly $< \
+		| sed s/.ts$$/.js/ | xargs -n1 -I{} realpath --relative-to="src" '{}' | grep -v "\.\." \
+		| xargs -n1 -I{} realpath --relative-to="." 'src/{}' \
+		| xargs -n1 -I{} perl -0777 -p -i -e 's/;(\n*)\Z/\1/m' '{}'
 
 BUILD_DEPS := \
 	src/arr/compiler/pyret-parser.js \

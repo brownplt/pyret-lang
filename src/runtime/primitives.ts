@@ -1,4 +1,13 @@
 // Separate file is necessary to avoid cyclic imports
+import type {
+  DataMetaBase,
+  DataSharedBase,
+  DataValueType,
+  DataVariantBase,
+  ExpandRecursively,
+  PTuple,
+  VariantType,
+} from './types/primitive-types';
 
 const _NUMBER = require("./js-numbers.js");
 
@@ -26,47 +35,12 @@ export {
 }
 
 // ********* Runtime Type Representations (Non-Primitives) *********
-export type PTuple = any[] & {
-  $brand: string,
-}
 
 export function PTuple(values: any[]): PTuple {
   values["$brand"] = $PTupleBrand;
 
   return <PTuple><any>values;
 }
-
-export interface DataValue {
-  $brand: any,
-  [key: string]: any
-}
-
-export interface PRef {
-  $brand: string,
-  ref: Object,
-}
-
-// From https://stackoverflow.com/a/57683652/783424, which
-// helps make the types more readable
-type ExpandRecursively<T> = T extends object
-  ? T extends infer O ? { [K in keyof O]: ExpandRecursively<O[K]> } : never
-  : T;
-
-export type DataSharedBase = {
-  $methods: Record<string, () => any>,
-};
-
-export type DataVariantBase = {
-  $methods?: Record<string, () => any>
-} & Record<string, any>;
-
-export type DataMetaBase = {
-  $data: DataSharedBase,
-  $name: string,
-  $variant?: DataVariantBase,
-  $fieldNames?: string[],
-  $methods?: Record<string, () => any>,
-};
 
 export function extend(
   obj : DataSharedBase,
@@ -82,27 +56,27 @@ export function extend(
   return (extension as DataSharedBase & DataVariantBase);
 }
 
-export function createVariant(
+export function createVariant<T extends string>(
   sharedBase : DataSharedBase, 
   extension : DataVariantBase, 
-  meta : DataMetaBase
-) : ExpandRecursively<DataSharedBase & DataVariantBase & Required<DataMetaBase>> {
+  meta : DataMetaBase<T>
+) : VariantType<T> {
   const extended = extend(sharedBase, extension);
   const metaExtended = Object.assign(extended, meta);
   // NOTE(joe): we cannot pass extended as an argument to this function, because
   // sharedBased/extension/meta can't easily have a cycle between them due to
   // codegen passing them in as object literals.
   metaExtended.$variant = metaExtended;
-  return (metaExtended as DataSharedBase & DataVariantBase & Required<DataMetaBase>);
+  return (metaExtended as VariantType<T>);
 }
 
 export function makeDataValue<
   O extends {},
   E extends DataVariantBase,
->(obj : O, extension : E) : O & E {
+>(obj : O, extension : E) : DataValueType<O,E> {
   Object.setPrototypeOf(extension, obj);
   extension.$methods = {};
-  return (extension as O & E);
+  return (extension as O & Required<E>);
 }
 
 export function isRow(val: any): boolean {
@@ -124,8 +98,9 @@ export function isMethod(obj: any): boolean {
 // TODO(alex): Will nothing always be value 'undefined'?
 export function isNothing(obj: any): boolean { return obj === undefined };
 
-export const isNumber: (val: any) => boolean = _NUMBER["isPyretNumber"];
-export const isRoughNumber: (val: any) => boolean = _NUMBER["isRoughnum"];
+const isNumber: (val: any) => boolean = _NUMBER["isPyretNumber"];
+const isRoughNumber: (val: any) => boolean = _NUMBER["isRoughnum"];
+export { isNumber, isRoughNumber };
 
 export function isBoolean(val: any): boolean {
   return typeof val === "boolean";

@@ -4,18 +4,18 @@ import type * as CS from './ts-compile-structs';
 import type * as T from './type-structs';
 import * as Path from 'path';
 import type * as CodegenHelpers from './ts-codegen-helpers';
-import { Variant } from './ts-codegen-helpers';
+import type { Variant } from './ts-codegen-helpers';
 
 ({
-  requires: [],
-  nativeRequires: ['path', './ts-codegen-helpers'],
+  requires: [{ 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']} ],
+  nativeRequires: ['path'],
   provides: {
     values: {
       compileProvides: 'tany',
       compileProvidesOverrideUri: 'tany',
     }
   },
-  theModule: function(runtime, _, __, P : (typeof Path), TCH : (typeof CodegenHelpers)) {
+  theModule: function(runtime, _, __, TCH : CodegenHelpers.Exports, P : (typeof Path)) {
     const {
       ExhaustiveSwitchError,
       Literal,

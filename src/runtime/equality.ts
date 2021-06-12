@@ -1,8 +1,10 @@
 // TODO(alex): roughly-equals and co (not documented but found in js/base/runtime.js)
 
-import * as PRIMITIVES from './primitives';
+import type * as PRIMITIVES_TYPES from './primitives';
+import type * as EQ from './types/equality-types';
 
 const _NUMBER = require("./js-numbers.js");
+const PRIMITIVES = require('./primitives') as typeof PRIMITIVES_TYPES;
 
 // ********* EqualityResult Representations *********
 
@@ -39,17 +41,18 @@ export function isEqualityResult(val) {
 export function isEqual(val) {
   return typeof val === 'object' && val !== null && val['$variant'] === Equal;
 }
-export const Equal = variantBase_Equal;
+const Equal : EQ.Equal = variantBase_Equal;
+export { Equal };
 /* @stopify flat */
 export function isNotEqual(val) {
   return typeof val === 'object' && val !== null && val['$variant'] === variantBase_NotEqual;
 }
 /* @stopify flat */
-export function NotEqual(reason5, value16, value27) {
+export function NotEqual(reason: string, value1: any, value2: any): EQ.NotEqual {
   return PRIMITIVES.makeDataValue(variantBase_NotEqual, {
-      ['reason']: reason5,
-      ['value1']: value16,
-      ['value2']: value27
+      ['reason']: reason,
+      ['value1']: value1,
+      ['value2']: value2
   });
 }
 /* @stopify flat */
@@ -57,22 +60,13 @@ export function isUnknown(val) {
   return typeof val === 'object' && val !== null && val['$variant'] === variantBase_Unknown;
 }
 /* @stopify flat */
-export function Unknown(reason9, value110, value211) {
+export function Unknown(reason: string, value1: any, value2: any): EQ.Unknown {
   return PRIMITIVES.makeDataValue(variantBase_Unknown, {
-      ['reason']: reason9,
-      ['value1']: value110,
-      ['value2']: value211
+      ['reason']: reason,
+      ['value1']: value1,
+      ['value2']: value2
   });
 }
-
-export type Equal = typeof Equal;
-
-export type NotEqual = ReturnType<typeof NotEqual>;
-
-export type Unknown = ReturnType<typeof Unknown>;
-
-export type EqualityResult = Equal | NotEqual | Unknown;
-
 
 const TOL_IS_REL = true;
 const TOL_IS_ABS = false;
@@ -84,13 +78,13 @@ const numericEquals: (v1: any, v2: any, callbacks: NumericErrorCallbacks) => boo
 
 
 // ********* Helpers *********
-function equalityResultToBool(ans: EqualityResult): boolean {
+function equalityResultToBool(ans: EQ.EqualityResult): boolean {
   if (isEqual(ans)) {
     return true;
   } else if (isNotEqual(ans)) {
     return false;
   } else if (isUnknown(ans)) {
-    let unknownVariant = ans as Unknown;
+    let unknownVariant = ans as EQ.Unknown;
     throw {
       reason: unknownVariant.reason,
       value1: unknownVariant.value1,
@@ -130,7 +124,7 @@ export {
 }
 
 // ********* Equality Functions *********
-export function identical3(v1: any, v2: any): EqualityResult {
+export function identical3(v1: any, v2: any): EQ.EqualityResult {
   if (PRIMITIVES.isFunction(v1) && PRIMITIVES.isFunction(v2)) {
     return Unknown("Function", v1, v2);
   } else if (PRIMITIVES.isMethod(v1) && PRIMITIVES.isMethod(v2)) {
@@ -145,16 +139,16 @@ export function identical3(v1: any, v2: any): EqualityResult {
 }
 
 export function identical(v1: any, v2: any): boolean {
-  let ans: EqualityResult = identical3(v1, v2);
+  let ans: EQ.EqualityResult = identical3(v1, v2);
   return equalityResultToBool(ans);
 }
 
 export function equalNow(v1: any, v2: any): boolean {
-  let ans: EqualityResult = equalNow3(v1, v2);
+  let ans: EQ.EqualityResult = equalNow3(v1, v2);
   return equalityResultToBool(ans);
 }
 
-export function equalNow3(v1: any, v2: any): EqualityResult {
+export function equalNow3(v1: any, v2: any): EQ.EqualityResult {
   return equalCore3(v1, v2, EQUAL_NOW, 0, TOL_IS_ABS, false);
 }
 
@@ -165,7 +159,7 @@ export function equalNow3(v1: any, v2: any): EqualityResult {
  * Data variants and raw (unbranded) objects are NEVER equal.
  *
  */
-export function equalAlways3(v1: any, v2: any): EqualityResult {
+export function equalAlways3(v1: any, v2: any): EQ.EqualityResult {
   return equalCore3(v1, v2, EQUAL_ALWAYS, 0, TOL_IS_ABS, false);
 }
 
@@ -182,7 +176,7 @@ export function equalAlways(v1: any, v2: any): boolean {
 //    | otherwise: er2 # Equal or Equal/Equal or Unknown
 //  end
 //end
-export function equal_and(er1: EqualityResult, er2: EqualityResult): EqualityResult {
+export function equal_and(er1: EQ.EqualityResult, er2: EQ.EqualityResult): EQ.EqualityResult {
     if (isNotEqual(er1)) {
         return er1;
     } else if (isNotEqual(er2)) {
@@ -203,7 +197,7 @@ export function equal_and(er1: EqualityResult, er2: EqualityResult): EqualityRes
 //    | otherwise: er2 # NotEqual or NotEqual/NotEqual or Unknown
 //  end
 //end
-export function equal_or(er1: EqualityResult, er2: EqualityResult): EqualityResult {
+export function equal_or(er1: EQ.EqualityResult, er2: EQ.EqualityResult): EQ.EqualityResult {
     if (isEqual(er1)) {
         return er1;
     } else if (isEqual(er2)) {
@@ -223,7 +217,7 @@ export function equal_or(er1: EqualityResult, er2: EqualityResult): EqualityResu
 //    | NotEqual(_,_,_) => false
 //  end
 //end
-export function to_boolean(er: EqualityResult): boolean {
+export function to_boolean(er: EQ.EqualityResult): boolean {
     if (isUnknown(er)) {
         // TODO(alex): Fill this in with the generic `raise` function
         //   CANNOT IMPORT "global.arr.js" OR "runtime.ts" directly b/c the circular depenency
@@ -351,7 +345,7 @@ export function _greaterequal(lhs: any, rhs: any): boolean {
 }
 
 // tol and rel are PyretNumber's
-function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel: boolean, fromWithin: boolean): EqualityResult {
+function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel: boolean, fromWithin: boolean): EQ.EqualityResult {
 
   if(tol === undefined) { // means that we aren't doing any kind of within
     const isIdentical = identical3(left, right);
@@ -372,12 +366,12 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
     return worklist.pop();
   }
 
-  function equalRec(l: any, r: any): EqualityResult {
+  function equalRec(l: any, r: any): EQ.EqualityResult {
     return equalHelp(l, r);
   }
 
   // Actual equality implementation on individual items
-  function equalHelp(v1: any, v2: any): EqualityResult {
+  function equalHelp(v1: any, v2: any): EQ.EqualityResult {
 
     if (isEqual(identical3(v1, v2))) {
       // Identical so must always be equal

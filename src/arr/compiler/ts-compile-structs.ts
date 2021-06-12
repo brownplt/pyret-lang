@@ -1,8 +1,8 @@
 import type * as A from './ts-ast';
 import type * as T from './type-structs';
-import type * as SD from '../../runtime/string-dict.arr'
+import type * as SD from '../../runtime/types/string-dict-types'
 import type * as ED from '../trove/error-display'
-import { Variant } from './ts-codegen-helpers';
+import type { Variant } from './ts-codegen-helpers';
 
 type URI = string;
 
