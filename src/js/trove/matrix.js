@@ -7,9 +7,9 @@
 ({
     requires:
         [
-            {"import-type": "builtin", name: "valueskeleton"},
-            {"import-type": "builtin", name: "lists"},
-            {"import-type": "builtin", name: "arrays"}
+            { "import-type": "builtin", name: "valueskeleton" },
+            { "import-type": "builtin", name: "lists" },
+            { "import-type": "builtin", name: "arrays" }
         ],
     nativeRequires: ["pyret-base/js/js-numbers"],
     provides: {
@@ -18,23 +18,28 @@
             "Vector": ["tyapp", ["local", "Vector"], []],
             "Equality": {
                 tag: "name",
-                origin: {"import-type": "uri", uri: "builtin://equality"},
+                origin: { "import-type": "uri", uri: "builtin://equality" },
                 name: "EqualityResult"
             },
             "VS": {
                 tag: "name",
-                origin: {"import-type": "uri", uri: "builtin://valueskeleton"},
+                origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
                 name: "ValueSkeleton"
             },
             "List": {
                 tag: "name",
-                origin: {"import-type": "uri", uri: "builtin://list"},
+                origin: { "import-type": "uri", uri: "builtin://list" },
                 name: "List"
             },
             "Array": {
                 tag: "name",
-                origin: {"import-type": "uri", uri: "builtin://array"},
+                origin: { "import-type": "uri", uri: "builtin://array" },
                 name: "Array"
+            },
+            "Tuple": {
+                tag: "name",
+                origin: { "import-type": "uri", uri: "builtin://tuple" },
+                name: "Tuple"
             },
 
             "tva": ["tid", "a"],
@@ -43,9 +48,20 @@
         values: {
             "mat": ["arrow", ["Number", "Number"], ["Maker", "Any", ["local", "Matrix"]]],
             "vector": ["arrow", [], ["Maker", "Any", ["local", "Vector"]]],
+            "is-mat": ["arrow", ["Any"], "Boolean"],
+            "is-vector": ["arrow", ["Any"], "Boolean"],
+            "is-row-mat": ["arrow", ["Matrix"], "Boolean"],
+            "is-col-mat": ["arrow", ["Matrix"], "Boolean"],
+            "is-square-mat": ["arrow", ["Matrix"], "Boolean"],
+            "identity-mat": ["arrow", ["Number"], "Matrix"],
+
             "add-mat": ["arrow", ["Matrix", "Matrix"], "Matrix"],
             "sub-mat": ["arrow", ["Matrix", "Matrix"], "Matrix"],
             "mult-mat": ["arrow", ["Matrix", "Matrix"], "Matrix"],
+            "trace-mat": ["arrow", ["Matrix"], "Number"],
+            "rref-mat": ["arrow", ["Matrix"], "Matrix"],
+            "augment-mat": ["arrow", ["Matrix", "Matrix"], "Matrix"],
+            "chopcol-mat": ["arrow", ["Matrix", "Number"], "Matrix"],
             "get-elem": ["arrow", ["Matrix", "Number", "Number"], "Number"],
             "transpose": ["arrow", ["Matrix"], "Matrix"],
             "stack-mat": ["arrow", ["Matrix", "Matrix"], "Matrix"],
@@ -57,21 +73,18 @@
             "mat-of": ["arrow", ["Number", "Number", "Number"], "Matrix"],
             "row-map": ["arrow", [["arrow", ["Vector"], "Vector"], "Matrix"], "Matrix"],
             "col-map": ["arrow", [["arrow", ["Vector"], "Vector"], "Matrix"], "Matrix"],
-            /* "mat-dims" : ["arrow" ,[["Matrix"] , ["Lis t", "Number"]], "tva"]   */
-
-
-
-
-
-
             "get-row": ["arrow", ["Matrix", "Number"], "Vector"],
-            "get-col": ["arrow", ["Matrix", "Number"], "Vector"], /*
-      "determinant" : ["arrow", ["Matrix"] , "Number"] , 
+            "get-col": ["arrow", ["Matrix", "Number"], "Vector"],
+            "lup-mat": ["arrow", ["Matrix"], "Tuple"],
+            "determinant": ["arrow", ["Matrix"], "Number"], /*
       "frobenius-norm" : ["arrow", ["Matrix"] , "Number"] , 
       "norm" : ["arrow", ["Matrix" , "Number"] , "Number" ]   ,
       "inverse" : ["arrow", ["Matrix"] , "Matrix"] , 
       "exponent": ["arrow" ,["Matrix" , "Number"] , "Number" ]  ,*/
-            "dot-product": ["arrow", ["Vector", "Vector"], "Number"],
+            "dotp": ["arrow", ["Vector", "Vector"], "Number"],
+            "magnitude": ["arrow", ["Vector"], "Number"],
+            "vec-scale": ["arrow", ["Vector", "Number"], "Vector"],
+            "normalize": ["arrow", ["Vector"], "Vector"],
 
             "vector-to-list": ["arrow", ["Vector"], "List"],
             "vector-to-array": ["arrow", ["Vector"], "Array"],
@@ -80,12 +93,12 @@
         aliases: {
             "Matrix": {
                 tag: "name",
-                origin: {"import-type": "$ELF"},
+                origin: { "import-type": "$ELF" },
                 name: "Matrix"
             },
             "Vector": {
                 tag: "name",
-                origin: {"import-type": "$ELF"},
+                origin: { "import-type": "$ELF" },
                 name: "Vector"
             }
         },
@@ -169,21 +182,30 @@
             return "(" + self.$h + "," + self.$w + ")";
         }
 
-        // given a matrix and a 2d position return the corresponding element in the matrix
-        function get1d(mtrx, h, w) {
+        /**
+         * @param(Matrix) mtrx : Matrix
+         * @param(Number) h : row index
+         * @param(Number) w : col index
+         * given a matrix and a 2d position return the corresponding element in the matrix
+         * 
+         */
+        function get1dElem(mtrx, h, w) {
             checkMtrx(mtrx);
             return mtrx.$underlyingMat[(h * mtrx.$w) + w];
         }
 
-        /*Given a 2d array position and the no of cols in a matrix return a 1D array index
-        * h : Integer , Row Wanted
-        * w : Integer , Col wanted
-        * c : Integer , No of cols in underlying matrix
+        /**
+         * Given a 2d array position and the no of cols in a matrix return a 1D array index
+        * @param(Number) h : Integer , Row Wanted
+        * @param(Number) w : Integer , Col wanted
+        * @param(Number) c : Integer , No of cols in underlying matrix
          */
         function get1dpos(h, w, c) {
             return (h * c) + w;
         }
-
+        function set1dElem(self, i, j, v) {
+            self.$underlyingMat[(i * self.$w) + j] = v;
+        }
         //Checks if h,w are valid matrix dimensions
         function posInteger(h, w) {
             if ((h >= 0) && (w >= 0) && Number.isInteger(h) && Number.isInteger(w)) {
@@ -218,10 +240,24 @@
 
         // Duplicates self
         function duplicateMatrix(self) {
-            new_arr = new Array(self.$l);
-            duplicateArray(self, 0, self.$l, new_arr, 0);
-            return createMatrixFromArray(self.$h, self.$w, new_arr);
+            new_arr = [...self.$underlyingMat];
+            var ans = createMatrixFromArray(self.$h, self.$w, new_arr);
+            return ans;
 
+        }
+        //Applies a function to the given row 
+        function internalRowMap(self, row, f) {
+            const startpos = get1dElem(self, row, 0);
+            for (var i = startpos; i < startpos + self.$w; i++) {
+                toret.$underlyingMat[startpos] = f(toret.$underlyingMat[startpos]);
+            }
+        }
+        //Applies a function to the given col
+        function internalColMap(self, col, f) {
+            const startpos = get1dElem(self, 0, col);
+            for (var i = 0; i < self.$h; i++) {
+                toret.$underlyingMat[get1dElem(self, i, col)] = f(toret.$underlyingMat[get1dElem(self, i, col)]);
+            }
         }
 
         // Adds self and other
@@ -240,7 +276,7 @@
             }
         };
         //subtract matrix
-        var funcsubMatrix = runtime.makeFunction(function (self, other) {
+        var funcsubMatrix = function (self, other) {
             runtime.ffi.checkArity(2, arguments, "sub-mat", false);
             runtime.checkArgsInternal2("matrix", "sub-mat", self, annMatrix, other, annMatrix);
             if (!sameDims(self, other)) {
@@ -253,10 +289,10 @@
 
                 return createMatrixFromArray(self.$h, self.$w, new_arr);
             }
-        }, "sub-mat");
+        }
 
         //multiply matrix
-        var funcmultMatrix = runtime.makeFunction(function (self, other) {
+        var funcmultMatrix = function (self, other) {
             runtime.ffi.checkArity(2, arguments, "mult-mat", false);
             runtime.checkArgsInternal2("Matrix", "mult-mat", self, annMatrix, other, annMatrix);
             if (self.$w != other.$h) {
@@ -266,19 +302,20 @@
                 new_arr = new Array((self.$h * other.$w));
                 for (var i = 0; i < self.$h; i++) {
                     for (var j = 0; j < other.$w; j++) {
-                        var elm = 0;
+                        var elm = runtime.makeNumber(0);
                         for (var k = 0; k < self.$w; k++) {
-                            elm += runtime.times(get1d(self, i, k), get1d(other, k, j));
+                            elm = runtime.plus(elm, runtime.times(get1dElem(self, i, k), get1dElem(other, k, j)));
                         }
                         new_arr[get1dpos(i, j, other.$w)] = runtime.makeNumber(elm);
                     }
                 }
                 return createMatrixFromArray(self.$h, other.$w, new_arr);
             }
-        }, "mult-mat");
+        }
 
         var outputMatrix = runtime.makeMethod0(function (self) {
-            //if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a, true); }
+            arity(1, arguments, "_output", false);
+            runtime.checkArgsInternalInline("Matrix", "_output", self, annMatrix);
             var rows = [];
             var matr = self.$underlyingMat;
             var vsValue = get(VS, "vs-value");
@@ -301,7 +338,7 @@
             runtime.ffi.checkArity(3, arguments, "get-elem", false);
             runtime.checkArgsInternal3("Matrix", "get-elem", self, annMatrix, h, runtime.Number, c, runtime.Number);
             if (checkRange(self, h, c)) {
-                return get1d(self, h, c);
+                return get1dElem(self, h, c);
             }
 
         }, "get-elem");
@@ -337,7 +374,7 @@
             new_arr = new Array(self.$l);
             for (var i = 0; i < self.$h; i++) {
                 for (var j = 0; j < self.$w; j++) {
-                    new_arr[get1dpos(j, i, self.$h)] = get1d(self, i, j);
+                    new_arr[get1dpos(j, i, self.$h)] = get1dElem(self, i, j);
                 }
             }
             return createMatrixFromArray(self.$w, self.$h, new_arr);
@@ -404,11 +441,376 @@
             runtime.checkArgsInternalInline("Matrix", "mat-of", h, runtime.Number, w, runtime.Number, n, runtime.Number);
             return createMatrixFromArray(h, w, new Array(h * w).fill(n));
         }
+        /**
+         * 
+         * @param {Number} n 
+         * @returns Identity Matrix of dimensions nxn
+         */
+        var IdentityMatrix = function (n) {
+            arity(1, arguments, "identity-mat", false);
+            runtime.checkArgsInternalInline("Matrix", "identity-mat", n, runtime.Number);
+            if (n < 0) {
+                runtime.ffi.throwMessageException("Negative Dimension");
+            } else {
+                var req_mat = matOf(n, n, 0);
+                for (var i = 0; i < n; i++) {
+                    req_mat.$underlyingMat[get1dpos(i, i, n)] = 1;
+                }
+                return req_mat;
+            }
+        }
+        var isRowMat = function (self) {
+            arity(1, arguments, "is-row-mat", false);
+            runtime.checkArgsInternalInline("Matrix", "is-row-mat", self, annMatrix);
+            if (self.$w == 1) {
+                return runtime.makeBoolean(true);
+            } else {
+                return runtime.makeBoolean(false);
+            }
+        }
+        var isColMat = function (self) {
+            arity(1, arguments, "is-col-mat", false);
+            runtime.checkArgsInternalInline("Matrix", "is-col-mat", self, annMatrix);
+            if (self.$h == 1) {
+                return runtime.makeBoolean(true);
+            } else {
+                return runtime.makeBoolean(false);
+            }
+        }
+        var isSquareMat = function (self) {
+            arity(1, arguments, "is-square-mat", false);
+            runtime.checkArgsInternalInline("Matrix", "is-square-mat", self, annMatrix);
+            if (self.$w == self.$h) {
+                return runtime.makeBoolean(true);
+            } else {
+                return runtime.makeBoolean(false);
+            }
+        }
+        var traceMatrix = function (self) {
+            arity(1, arguments, "trace-mat", false);
+            runtime.checkArgsInternalInline("Matrix", "trace-mat", self, annMatrix);
+            var res = 0;
+            if (!isSquareMat(self)) {
+                return runtime.ffi.throwMessageException("Matrix must be square");
+            }
+            for (var i = 0; i < self.$h; i++) {
+                res += self.$underlyingMat[get1dpos(i, i, self.$w)];
+            }
+            return runtime.makeNumber(res);
+        }
+        //"Returns the Reduced Row Echelon Form of the Matrix"
+        var MatRref = function (self) {
+            arity(1, arguments, "rref-mat", false);
+            runtime.checkArgsInternalInline("Matrix", "rref-mat", self, annMatrix);
+            //Copy matrix into new one to avoid game of temporary
+            //    matrix hot potato between helper functions
+            toret = duplicateMatrix(self);
+            var lead = 0;
+            for (var r = 0; r < toret.$h; r++) {
+                if (toret.$w <= lead) {
+                    return;
+                }
+                var i = r;
+                while (get1dElem(toret, i, lead) == 0) {
+                    i++;
+                    if (toret.$h == i) {
+                        i = r;
+                        lead++;
+                        if (toret.$w == lead) {
+                            return;
+                        }
+                    }
+                }
+                for (var k = 0; k < toret.$w; k++) {
+                    var tmp = get1dElem(toret, i, k);
+                    toret.$underlyingMat[get1dpos(i, k, toret.$w)] = get1dElem(toret, r, k);
+                    toret.$underlyingMat[get1dpos(r, k, toret.$w)] = tmp;
+                }
+
+                var val = get1dElem(toret, r, lead);
+                for (var j = 0; j < toret.$w; j++) {
+                    console.log("val ", val)
+                    toret.$underlyingMat[get1dpos(r, j, toret.$w)] /= val;
+                    console.log("mat now ", toret.$underlyingMat);
+                }
+
+                for (var i = 0; i < toret.$h; i++) {
+                    if (i == r) continue;
+                    val = get1dElem(toret, i, lead);
+                    console.log("val in this loop", val);
+                    for (var j = 0; j < toret.$w; j++) {
+                        toret.$underlyingMat[get1dpos(i, j, toret.$w)] -= val * get1dElem(toret, r, j);
+                    }
+                    console.log("mat l now", toret.$underlyingMat);
+                }
+                lead++;
+            }
+
+            return toret;
+
+        }
+        /**
+         * 
+         * @param {Matrix} self 
+         * @param {Matrix} other 
+         * @returns Pyret Matrix with other augmented onto self
+         */
+        var AugmentMat = function (self, other) {
+            arity(2, arguments, "augment-mat", false);
+            runtime.checkArgsInternalInline("Matrix", "augment-mat", self, annMatrix, other, annMatrix);
+            if (self.$h != other.$h) {
+                return runtime.ffi.throwMessageException("Both matrices need to have same number of rows");
+
+            }
+            var new_arr = new Array(self.$h * (self.$w + other.$w));
+            var c = self.$w + other.$w;
+            for (var i = 0; i < self.$h; i++) {
+                for (var j = 0; j < self.$w; j++) {
+                    new_arr[get1dpos(i, j, c)] = self.$underlyingMat[get1dpos(i, j, self.$w)];
+                }
+                for (var k = self.$w, b = 0; k < c; k++, b++) {
+                    new_arr[get1dpos(i, k, c)] = other.$underlyingMat[get1dpos(i, b, other.$w)]
+
+                }
+            }
+            return makeMatrix(self.$h, c, new_arr);
+        }
+        /**
+         * 
+         * @param {Matrix} self 
+         * @param {Matrix} c 
+         * @returns Matrix neglecting all columns before c
+         */
+        var ChopcolMat = function (self, c) {
+            arity(2, arguments, "chopcol-mat", false);
+            runtime.checkArgsInternalInline("Matrix", "chopcol-mat", self, annMatrix, c, runtime.Number);
+            if (c < 0 || c > self.$w) {
+                return runtime.ffi.throwMessageException("Invalid column number");
+
+            } else if (c == 0) {
+                return duplicateMatrix(self);
+            } else {
+                const nc = (self.$w - c);
+                var new_arr = new Array(self.$h * nc);
+                for (var i = 0; i < self.$h; i++) {
+                    for (var j = c, b = 0; j < self.$w; j++, b++) {
+                        new_arr[get1dpos(i, b, nc)] = get1dElem(self, i, j);
+                    }
+                }
+                return makeMatrix(self.$h, nc, new_arr);
+            }
+
+        }
+        /**
+         * LU Decomposition with partial pivoting 
+         * Given input matrix A PA = LU 
+         * @param {Matrix} self 
+         * @returns  returns L,U,P matrices and number of row swaps for P
+         */
+        // var LUPMat = function (self) {
+        //     arity(1, arguments, "lup-mat", false);
+        //     runtime.checkArgsInternalInline("Matrix", "lup-mat", self, annMatrix);
+        //     if (!isSquareMat(self)) {
+        //         return runtime.ffi.throwMessageException("LU decomposition with partial pivoting requires square matrix");
+        //     }
+        //     N = self.$h;
+        //     P = IdentityMatrix(N);
+        //     A = duplicateMatrix(self);
+        //     exchanges = runtime.makeNumber(0); //count the number of row swaps
+        //     for (i = 0; i < N; i++) {
+        //         //start pivot section
+        //         Umax = runtime.makeNumber(0);
+        //         for (r = i; r < N; r++) {
+        //             Uii = get1dElem(A, r, i);
+        //             q = 0;
+        //             while (q < i) {
+        //                 Uii = runtime.minus(Uii, runtime.times(get1dElem(A, r, q), get1dElem(A, q, r)));
+        //                 q++;
+        //             }
+        //             if (runtime.num_min(runtime.num_abs(Uii), Umax) == Umax) {
+        //                 Umax = runtime.num_abs(Uii);
+        //                 row = r;
+        //             }
+        //         }
+        //         if (i != row) {//swap rows
+        //             exchanges = runtime.plus(exchanges, 1);
+        //             for (q = 0; q < N; q++) {
+        //                 tmp = get1dElem(P, i, q);
+        //                 P.$underlyingMat[get1dpos(i, q, N)] = get1dElem(P, row, q);
+        //                 P.$underlyingMat[get1dpos(row, q, N)] = tmp;
+        //                 tmp = get1dElem(A, i, q);
+        //                 A.$underlyingMat[get1dpos(i, q, N)] = get1dElem(A, row, q);
+        //                 A.$underlyingMat[get1dpos(row, q)] = tmp;
+        //             }
+        //         }
+        //         //end pivot section
+        //         j = i;
+        //         while (j < N) { //Determine U across row i
+        //             q = 0;
+        //             while (q < i) {
+        //                 A.$underlyingMat[get1dpos(i, j, N)] = runtime.minus(A.$underlyingMat[get1dpos(i, j, N)], runtime.times(get1dElem(A, i, q), get1dElem(A, q, j)));
+        //                 q++;
+        //             }
+        //             j++;
+        //         }
+        //         j = i + 1;
+        //         while (j < N) { //Determine L down column i
+        //             q = 0;
+        //             while (q < i) {
+        //                 A.$underlyingMat[get1dpos(j, i)] = runtime.minus(A.$underlyingMat[get1dpos(j, i)], runtime.times(get1dElem(A, j, q), get1dElem(A, q, i)));
+        //                 q++;
+        //             }
+        //             A.$underlyingMat[get1dpos(j, i, N)] = runtime.divide(get1dElem(A, j, i), get1dElem(A, i, i));
+        //             j++;
+        //         }
+        //     }
+        //     return runtime.makeTuple([A, P, exchanges]);
+
+        // }
+        var swapRows = function (self, m, n) {
+            arity(3, arguments, "lup-mat", false);
+            for (i = 0; i < self.$w; i++) {
+                temp = get1dElem(self, m, i);
+                self.$underlyingMat[get1dpos(m, i, self.$w)] = get1dElem(self, n, i);
+                self.$underlyingMat[get1dpos(n, i, self.$w)] = temp;
+            }
+        }
+        var LUPMat = function (self) {
+            arity(1, arguments, "lup-mat", false);
+            runtime.checkArgsInternalInline("Matrix", "lup-mat", self, annMatrix);
+            if (!isSquareMat(self)) {
+                return runtime.ffi.throwMessageException("LU decomposition with partial pivoting requires square matrix");
+            }
+            N = self.$h;
+            P = IdentityMatrix(N);
+            A = duplicateMatrix(self);
+            L = IdentityMatrix(N);
+            U = duplicateMatrix(self);
+            exchanges = runtime.makeNumber(0)  ;
+
+            let getMaxEntry = function (cIdex) {
+
+                let maxIdex = cIdex 
+                max = runtime.num_abs(get1dElem(A, cIdex, cIdex));
+                let dim = A.$h;
+                console.log("YEET 1 ")
+                
+                for (i = cIdex + 1; i < dim ; i++) {
+                    console.log(i , dim) ; 
+                    console.log("YEET 1.5 ")
+                    let next = runtime.num_abs(get1dElem(A, i, cIdex));
+                    console.log("YEET 2 ")
+                    if (next > max) {
+                        max = next;
+                        maxIdex = i;
+                    }
+                    console.log("YEET 3 ")
+                }
+                console.log("YEET 4 ")
+                console.log("Returning ,",maxIdex) ;
+                return maxIdex;
+            };
+
+            let pivot = function (p, n) {
+                console.log("p and n are ",p , n) ;
+                let dim = A.$h;
+                let temp, i;
+                // U
+                swapRows(U,p,n) ; 
+
+                // L
+                swapRows(L,p,n) ;
+                swapRows(P, p, n);
+                exchanges = runtime.plus(exchanges,1) ; 
+            };
+
+            let eliminate = function (p) {
+                let dim = A.$h;
+                let i, j;
+                console.log("p is ",p ) ;
+                for (i = p + 1; i < dim; i++) {
+                    console.log("Dividing ",get1dElem(U, i, p), " by " ,get1dElem(U, p, p))
+                    let l = runtime.divide(get1dElem(U, i, p), get1dElem(U, p, p));
+                    L.$underlyingMat[get1dpos(i, p, dim)] = l;
+                    for (j = p; j < dim; j++) {
+                        U.$underlyingMat[get1dpos(i, j, dim)] = runtime.minus(get1dElem(U, i, j), runtime.times(l, get1dElem(U, p, j)));
+                    }
+                }
+
+            };
+
+            // let setA = function (A) {
+            //     // A is a square matrix
+            //     let dim = A.length;
+
+            //     self.A = A;
+            //     self.U = MatrixUtil.Clone(A);
+            //     self.L = MatrixUtil.Identity(dim);
+            //     self.P = MatrixUtil.Identity(dim);
+
+            //     return self;
+            // };
+
+            let PLU = function () {
+
+                let dim = A.$h;
+                let i, j, k;
+                for (i = 0; i < dim - 1; i++) {
+                    // Find the max entry
+                    let maxIdex = getMaxEntry(i);
+
+                    // Pivoting
+                    if (i != maxIdex) {
+                        pivot(i, maxIdex);
+                    }
+
+                    // Eliminate
+                    eliminate(i);
+                }
+            };
+            // console.log("Max entry , " ,getMaxEntry(0)) ; 
+            //  pivot(0,1);
+            PLU();
+            return runtime.makeTuple([P, L, U,exchanges]);
+        };
+
+
+        /**
+         * 
+         * @param {Matrix} self 
+         * @returns Determinant of matrix if it exists
+         */
+        var Determinant = function (self) {
+            arity(1, arguments, "determinant", false);
+            runtime.checkArgsInternalInline("Matrix", "determinant", self, annMatrix);
+            if (!isSquareMat(self)) {
+                return runtime.ffi.throwMessageException("Matrix must be square");
+            } else {
+                d = runtime.makeNumber(1);
+                LUP = LUPMat(self);
+                U = LUP.vals[2] ; 
+                for (var i = 0; i < self.$h; i++) {
+                    d = runtime.times(d, get1dElem(U, i, i));
+                }
+                if (LUP.vals[3] % 2 == 1) {
+                    d = runtime.times(d, -1);
+                }
+                
+                return d;
+            }
+        }
+        /**
+         * 
+         * @param {Number} h 
+         * @param {Number} w 
+         * @param {Array} underlyingMat 
+         * @returns Pyret Matrix
+         */
 
         function makeMatrix(h, w, underlyingMat) {
             var equalMatrix = runtime.makeMethod2(function (self, other, Eq) {
                 runtime.ffi.checkArity(3, arguments, "_equals", true);
-                runtime.checkArgsInternal3("matrix", "_equals", self, annMatrix, other, annMatrix, Eq, runtime.Function);
+                runtime.checkArgsInternal3("Matrix", "_equals", self, annMatrix, other, annMatrix, Eq, runtime.Function);
 
                 if (!hasBrand(brandMatrix, other)) {
                     return runtime.ffi.notEqual.app('', self, other);
@@ -427,53 +829,6 @@
 
                 }
             }, "equals");
-            var addMatrix = runtime.makeMethod1(function (self, other) {
-                runtime.ffi.checkArity(2, arguments, "_plus", true);
-                runtime.checkArgsInternal2("matrix", "_plus", self, annMatrix, other, annMatrix);
-                if (!sameDims(self, other)) {
-                    return runtime.ffi.throwMessageException("Matrices have dimensions " + printDims(self) + " and " + printDims(other) + " . They cannot be added");
-                } else {
-                    new_arr = new Array(self.$l);
-                    for (var i = 0; i < self.$l; i++) {
-                        new_arr[i] = runtime.plus(self.$underlyingMat[i], other.$underlyingMat[i]);
-                    }
-                    return createMatrixFromArray(self.$h, self.$w, new_arr);
-                }
-            }, "plus");
-            var minusMatrix = runtime.makeMethod1(function (self, other) {
-                runtime.ffi.checkArity(2, arguments, "_minus", true);
-                runtime.checkArgsInternal2("matrix", "_minus", self, annMatrix, other, annMatrix);
-                if (!sameDims(self, other)) {
-                    return runtime.ffi.throwMessageException("Matrices have dimensions " + printDims(self) + " and " + printDims(other) + " . They cannot be added");
-                } else {
-                    new_arr = new Array(self.$l);
-                    for (var i = 0; i < self.$l; i++) {
-                        new_arr[i] = runtime.minus(self.$underlyingMat[i], other.$underlyingMat[i]);
-                    }
-
-                    return createMatrixFromArray(self.$h, self.$w, new_arr);
-                }
-            }, "minus");
-            var timesMatrix = runtime.makeMethod1(function (self, other) {
-                runtime.ffi.checkArity(2, arguments, "_times", true);
-                runtime.checkArgsInternal2("Matrix", "_times", self, annMatrix, other, annMatrix);
-                if (self.$w != other.$h) {
-                    return runtime.ffi.throwMessageException("The width of the first matrix and the height of the second matrix need to be equal");
-
-                } else {
-                    new_arr = new Array((self.$h * other.$w));
-                    for (var i = 0; i < self.$h; i++) {
-                        for (var j = 0; j < other.$w; j++) {
-                            var elm = 0;
-                            for (var k = 0; k < self.$w; k++) {
-                                elm += runtime.times(get1d(self, i, k), get1d(other, k, j));
-                            }
-                            new_arr[get1dpos(i, j, other.$w)] = elm;
-                        }
-                    }
-                    return createMatrixFromArray(self.$h, other.$w, new_arr);
-                }
-            }, "times");
             var get_height = runtime.makeMethod0(function (self) {
                 return self.$h
             }, "get-height");
@@ -483,17 +838,17 @@
             var get_shape = runtime.makeMethod0(function (self) {
                 return runtime.makeTuple([self.$h, self.$w])
             }, "get-shape");
-            var get_elem = runtime.makeMethod3(function (self, h,c) {
+            var get_elem = runtime.makeMethod3(function (self, h, c) {
                 if (checkRange(self, h, c)) {
-                    return get1d(self, h, c);
+                    return get1dElem(self, h, c);
                 }
             })
             var obj = O({
                 _output: outputMatrix,
-                _plus: addMatrix,
-                _minus: minusMatrix,
+                _plus: runtime.makeMethod1(funcaddMatrix, "plus"),
+                _minus: runtime.makeMethod1(funcsubMatrix, "minus"),
                 _equals: equalMatrix,
-                _times: timesMatrix,
+                _times: runtime.makeMethod1(funcmultMatrix, "times"),
                 "get-height": get_height,
                 "get-width": get_width,
                 "get-shape": get_shape,
@@ -509,18 +864,7 @@
             return obj;
         }
 
-        var vectorDotP = function (self, other) {
-            arity(2, arguments, "dot-product", false);
-            if (!(self.$l == other.$l)) {
-                return runtime.ffi.throwMessageException("Vectors have dimensions " + self.$l + " and " + other.$l + " . They cannot be multiplied.");
-            } else {
-                var sum = 0;
-                for (var i = 0; i < self.$l; i++) {
-                    sum += runtime.times(self.$underlyingMat[i], other.$underlyingMat[i]);
-                }
-                return sum;
-            }
-        }
+
         var getMatrixRow = function (matr, row) {
             arity(2, arguments, "get-row", false);
             if (row < 0 || row >= matr.$h || !(Number.isInteger(row))) {
@@ -578,6 +922,40 @@
                 }
             }
             return new_mtrx;
+        }
+        var vectorDotP = function (self, other) {
+            arity(2, arguments, "dot-product", false);
+            if (!(self.$l == other.$l)) {
+                return runtime.ffi.throwMessageException("Vectors have dimensions " + self.$l + " and " + other.$l + " . They cannot be multiplied.");
+            } else {
+                var sum = runtime.makeNumber(0);
+                for (var i = 0; i < self.$l; i++) {
+                    sum = runtime.plus(sum, runtime.times(self.$underlyingMat[i], other.$underlyingMat[i]));
+                }
+                return sum;
+            }
+        }
+        var Magnitude = function (self) {
+            arity(1, arguments, "magnitude", false);
+            if (self.$l == 0) {
+                console.log("yreet");
+                return runtime.ffi.throwMessageException("Empty vector has no magnitude");
+            } else {
+                var ans = runtime.num_sqrt(self.$underlyingMat.reduce((a, n) => a + (n * n)));
+                return ans;
+            }
+        }
+        var Normalize = function (self) {
+            arity(1, arguments, "normalize", false);
+            var mag = Magnitude(self);
+            var new_arr = self.$underlyingMat.map((n) => { return runtime.divide(n, mag) });
+            return makeVector(new_arr);
+        }
+        var VectorScale = function (self, num) {
+            arity(2, arguments, "vec-scale", false);
+            var new_arr = self.$underlyingMat.map((n) => { return runtime.times(n, num) });
+            return makeVector(new_arr);
+
         }
         var vectorToList = function (vect) {
             arity(1, arguments, "vector-to-list", false);
@@ -664,22 +1042,22 @@
                     return makeVector(new_arr);
                 }
             });
-            var getElm = runtime.makeMethod1(function (self,num){
+            var getElm = runtime.makeMethod1(function (self, num) {
                 runtime.ffi.checkArity(2, arguments, "get", true);
                 runtime.checkArgsInternalInline("Vector", "get", self, annVector, num, runtime.Number);
-                if(num <  0 || num >= self.$l) { 
-                    return throwMessageException("Invalid index") ;
-                } else{
-                    return self.$underlyingMat[num] ; 
+                if (num < 0 || num >= self.$l) {
+                    return runtime.ffi.throwMessageException("Invalid index");
+                } else {
+                    return self.$underlyingMat[num];
                 }
-            },"get")
+            }, "get")
             var obj = O({
                 _output: outputVector,
                 _equals: equalVector,
                 _plus: addVector,
                 _minus: minusVector,
                 _times: multVector,
-                "get":getElm
+                "get": getElm
             });
             obj = applyBrand(brandVector, obj);
             obj.$underlyingMat = underlyingArr;
@@ -767,17 +1145,36 @@
                 }, "vector:make5"),
             })
         }
-
+        function isMatrix(obj) {
+            arity(1, arguments, "is-matrix", false);
+            return runtime.makeBoolean(internal_isMtrx(obj));
+        }
+        function isVector(obj) {
+            arity(1, arguments, "is-vector", false);
+            return runtime.makeBoolean(internal_isVec(obj));
+        }
         var jsCheckMtrx = runtime.makeCheckType(internal_isMtrx, "Matrix");
         var jsCheckVec = runtime.makeCheckType(internal_isVec, "Vector");
         var vals = {
             "mat": F(matrixInit, "mat"),
+            "is-mat": F(isMatrix, "is-mat"),
             "vector": F(vectorInit, "vector"),
+            "is-vector": F(isVector, "is-vector"),
+            "is-row-mat": F(isRowMat, "is-row-mat"),
+            "is-col-mat": F(isColMat, "is-col-mat"),
+            "is-square-mat": F(isSquareMat, "is-square-mat"),
+            "trace-mat": F(traceMatrix, "trace-mat"),
+            "rref-mat": F(MatRref, "rref-mat"),
+            "augment-mat": F(AugmentMat, "augment-mat"),
+            "chopcol-mat": F(ChopcolMat, "chopcol-mat"),
             "add-mat": F(funcaddMatrix, "add-mat"),
-            "sub-mat": funcsubMatrix,
-            "mult-mat": funcmultMatrix,
+            "sub-mat": F(funcsubMatrix, "sub-mat"),
+            "mult-mat": F(funcmultMatrix, "mult-mat"),
             "get-elem": getMatrixElms,
             "transpose": transposeMatrix,
+            "lup-mat": F(LUPMat, "lup-mat"),
+            "determinant": F(Determinant, "determinant"),
+            "identity-mat": F(IdentityMatrix, "identity-mat"),
             "stack-mat": stackMatrix,
             "scale": scaleMatrix,
             "set-elem": F(setMatrixElms, "set-elem"),
@@ -785,13 +1182,17 @@
             "matrix-map": F(mapMatrix, "matrix-map"),
             "mat-within": F(matrixWithin, "mat-within"),
             "mat-of": F(matOf, "mat-of"),
-            "dot-product": F(vectorDotP, "dot-product"),
+            "dotp": F(vectorDotP, "dotp"),
+            "magnitude": F(Magnitude, "magnitude"),
+            "vec-scale": F(VectorScale, "vec-scale"),
+            "normalize": F(Normalize, "normalize"),
             "row-map": F(rowMap, "row-map"),
             "col-map": F(colMap, "col-map"),
             "get-row": F(getMatrixRow, "get-row"),
             "get-col": F(getMatrixCol, "get-col"),
             "vector-to-list": F(vectorToList, "vector-to-list"),
             "vector-to-array": F(vectorToArray, "vector-to-array"),
+
 
             //  "mat-dims" : getMatrixDims
         }
