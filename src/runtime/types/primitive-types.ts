@@ -1,4 +1,4 @@
-export type PTuple = any[] & {
+export type PTuple<T extends any[]> = T & {
   $brand: string,
 }
 

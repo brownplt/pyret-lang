@@ -36,10 +36,10 @@ export {
 
 // ********* Runtime Type Representations (Non-Primitives) *********
 
-export function PTuple(values: any[]): PTuple {
+export function PTuple<T extends any[]>(values: T): PTuple<T> {
   values["$brand"] = $PTupleBrand;
 
-  return <PTuple><any>values;
+  return <PTuple<T>>values;
 }
 
 export function extend(

@@ -9,7 +9,7 @@ import file("js-ast.arr") as J
 import file("gensym.arr") as G
 import file("concat-lists.arr") as CL
 import file("type-structs.arr") as T
-import file("provide-serialization.arr") as PSE
+import js-file("provide-serialization") as PSE
 import file("compile-structs.arr") as CS
 import either as EI
 import pathlib as P

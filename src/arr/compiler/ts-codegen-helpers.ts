@@ -257,7 +257,7 @@ export interface Exports {
         value: value,
         method: false,
         shorthand: false,
-        computed: true
+        computed: false
       };
     }
     function Program(body : Array<J.Statement>) : J.Program {

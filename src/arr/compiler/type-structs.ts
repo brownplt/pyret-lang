@@ -16,7 +16,7 @@ export type ModuleType =
       }
   }
 
-export type FieldType = PTuple & { 0: string, 1: Type }
+export type FieldType = PTuple<[string, Type]>
 
 export type TypeVariant = 
   | {

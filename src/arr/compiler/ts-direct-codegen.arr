@@ -1,7 +1,7 @@
 import file("ast.arr") as A
 import file("js-ast.arr") as J
 import js-file("ts-direct-codegen-impl") as TDC
-import file("provide-serialization.arr") as PSE
+import js-file("provide-serialization") as PSE
 import file("concat-lists.arr") as CL
 import file("compile-structs.arr") as CS
 import string-dict as D
@@ -102,7 +102,7 @@ fun compile-program(prog :: A.Program, uri, env, post-env, provides, options) bl
 
   [D.string-dict:
     "requires", j-list(true, serialize-requires(env, options)), # TODO: ->TS
-    "provides", serialized-provides,                            # TODO: ->TS
+    "provides", J.j-raw-code(serialized-provides),
     "nativeRequires", j-list(true, [clist:]),
     "theModule", J.j-raw-code(result.theModule),
     "theMap", J.j-str(result.theMap)

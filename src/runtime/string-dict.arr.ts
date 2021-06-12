@@ -1,5 +1,6 @@
+import type * as PRIM_TYPES from './primitives';
 const RUNTIME = require("./runtime.js");
-const PRIMITIVES = require("./primitives.js");
+const PRIMITIVES = require("./primitives.js") as typeof PRIM_TYPES;
 const EQUALITY = require("./equality.js");
 
 const OPTION = require("./option.arr.js");

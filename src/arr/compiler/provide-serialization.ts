@@ -1,4 +1,5 @@
 import * as J from 'estree';
+import type * as Escodegen from 'escodegen';
 import type * as A from './ts-ast';
 import type * as CS from './ts-compile-structs';
 import type * as T from './type-structs';
@@ -8,14 +9,14 @@ import type { Variant } from './ts-codegen-helpers';
 
 ({
   requires: [{ 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']} ],
-  nativeRequires: ['path'],
+  nativeRequires: ['escodegen', 'path'],
   provides: {
     values: {
-      compileProvides: 'tany',
-      compileProvidesOverrideUri: 'tany',
+      'compile-provides': 'tany',
+      'compile-provides-override-uri': 'tany',
     }
   },
-  theModule: function(runtime, _, __, TCH : CodegenHelpers.Exports, P : (typeof Path)) {
+  theModule: function(runtime, _, __, TCH : CodegenHelpers.Exports, escodegen : (typeof Escodegen), P : (typeof Path)) {
     const {
       ExhaustiveSwitchError,
       Literal,
@@ -68,7 +69,7 @@ import type { Variant } from './ts-codegen-helpers';
       switch(variant.$name) {
         case 't-variant': {
           const compiledMembers = ArrayExpression(listToArray(variant.dict.fields).map((field) => {
-            const [memName, typ] = field;
+            const [memName, typ] = (field as unknown as { vals: T.FieldType }).vals; // TEMPORARY!
             switch(typ.$name) {
               case 't-ref':
                 return ArrayExpression([Literal("ref"), Literal(memName), compileProvidedType(typ.dict.typ)]);
@@ -77,13 +78,13 @@ import type { Variant } from './ts-codegen-helpers';
             }
           }));
           const compiledWithMembers = ObjectExpression(variant.dict['with-fields'].$underlyingMap.keys().map((memName) => {
-            return compileTypeMember(memName, variant.dict['with-fields']['get-value'](memName));
+            return compileTypeMember(memName, variant.dict['with-fields'].$underlyingMap.get(memName, null));
           }));
           return ArrayExpression([Literal(variant.dict.name), compiledMembers, compiledWithMembers])
         }
         case 't-singleton-variant': {
           const compiledWithMembers = ObjectExpression(variant.dict['with-fields'].$underlyingMap.keys().map((memName) => {
-            return compileTypeMember(memName, variant.dict['with-fields']['get-value'](memName));
+            return compileTypeMember(memName, variant.dict['with-fields'].$underlyingMap.get(memName, null));
           }));
           return ArrayExpression([Literal(variant.dict.name), compiledWithMembers]);
         }
@@ -111,14 +112,16 @@ import type { Variant } from './ts-codegen-helpers';
                 Literal(typ.dict.name),
                 ArrayExpression(listToArray(typ.dict.params).map((p) => {
                   switch(p.$name) {
-                    case 't-name': return Literal(nameToKey(p.dict.id));
+                    case 't-name': 
+                    case 't-var':
+                    case 't-existential': return Literal(nameToKey(p.dict.id));
                     default:
                       throw new InternalCompilerError(`Expected type to have an id field, but was a ${p.$name}`);
                   }
                 })),
                 ArrayExpression(listToArray(typ.dict.variants).map(compileTypeVariant)),
                 ObjectExpression(typ.dict.fields.$underlyingMap.keys().map((memName) => {
-                  return compileTypeMember(memName, typ.dict.fields['get-value'](memName));
+                  return compileTypeMember(memName, typ.dict.fields.$underlyingMap.get(memName, null));
                 })),
               ]);
             }
@@ -135,7 +138,7 @@ import type { Variant } from './ts-codegen-helpers';
     //   Needed to override origin URIs in order for "include from" syntax to function with values
     //   Used to compile builtin arr modules without messing with URIs before codegen which
     //     MAY or MAY NOT break the compilation pipeline
-    function compileProvidesOverrideUri(provides : CS.Provides, override : boolean): J.ObjectExpression {
+    function compileProvidesOverrideUri(provides : CS.Provides, override : boolean): string {
       const curOverride = ORIGIN_URI_OVERRIDE;
       ORIGIN_URI_OVERRIDE = override;
       const result = compileProvides(provides)
@@ -181,7 +184,7 @@ import type { Variant } from './ts-codegen-helpers';
         case 't-record': {
           return ArrayExpression(
             [Literal("record"), ObjectExpression(typ.dict.fields.$underlyingMap.keys().map((key) => {
-              return compileTypeMember(key, typ.dict.fields['get-value'](key));
+              return compileTypeMember(key, typ.dict.fields.$underlyingMap.get(key, null));
             }))]);
         }
         case 't-tuple': {
@@ -193,7 +196,9 @@ import type { Variant } from './ts-codegen-helpers';
             [Literal("forall"),
               ArrayExpression(listToArray(typ.dict.introduces).map((p) => {
                 switch(p.$name) {
-                  case 't-name': return Literal(nameToKey(p.dict.id));
+                  case 't-name':
+                  case 't-var': 
+                  case 't-existential': return Literal(nameToKey(p.dict.id));
                   default:
                     throw new InternalCompilerError(`Expected type to have an id field, but was a ${p.$name}`);
                 }
@@ -210,14 +215,14 @@ import type { Variant } from './ts-codegen-helpers';
       }
     }
 
-    function compileProvides(provides: CS.Provides): J.ObjectExpression {
+    function compileProvides(provides: CS.Provides): string {
       switch(provides.$name) {
         case 'provides': {
           const moduleFields = provides.dict.modules.$underlyingMap.keys().map((m) => {
-            return Property(m, ObjectExpression([Property("uri", Literal(provides.dict.modules['get-value'](m)))]));
+            return Property(m, ObjectExpression([Property("uri", Literal(provides.dict.modules.$underlyingMap.get(m, null)))]));
           });
           const valueFields = provides.dict.values.$underlyingMap.keys().map((v) => {
-            const val = provides.dict.values['get-value'](v);
+            const val = provides.dict.values.$underlyingMap.get(v, null);
             switch(val.$name) {
               case 'v-alias':
                 return Property(v, ObjectExpression([
@@ -257,24 +262,29 @@ import type { Variant } from './ts-codegen-helpers';
             }
           });
           const dataFields = provides.dict['data-definitions'].$underlyingMap.keys().map((d) => {
-            return Property(d, compileProvidedData(provides.dict['data-definitions']['get-value'](d)));
+            return Property(d, compileProvidedData(provides.dict['data-definitions'].$underlyingMap.get(d, null)));
           });
           const aliasFields = provides.dict.aliases.$underlyingMap.keys().map((a) => {
-            return Property(a, compileProvidedType(provides.dict.aliases['get-value'](a)))
+            return Property(a, compileProvidedType(provides.dict.aliases.$underlyingMap.get(a, null)))
           });
-          return ObjectExpression([
+          const ans = ObjectExpression([
             Property("modules", ObjectExpression(moduleFields)),
             Property("values", ObjectExpression(valueFields)),
             Property("datatypes", ObjectExpression(dataFields)),
             Property("aliases", ObjectExpression(aliasFields)),
           ]);
+          return escodegen.generate(ans, {
+            format: {
+              json: true
+            }
+          });
         }
       }
     }
 
-    return runtime.makeJSModuleReturn({
-      compileProvides,
-      compileProvidesOverrideUri,
-    });
+    return runtime.makeModuleReturn({
+      'compile-provides': runtime.makeFunction(compileProvides, 'compile-provides'),
+      'compile-provides-override-uri': runtime.makeFunction(compileProvidesOverrideUri, 'compile-provides-override-uri'),
+    }, {});
   }
 })
