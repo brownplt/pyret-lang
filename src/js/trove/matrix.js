@@ -838,34 +838,14 @@
             arity(3, arguments, "build-mat", false);
             runtime.checkArgsInternalInline("Matrix", "build-mat", h, runtime.Number, w, runtime.Number, f, runtime.Function);
             posInteger(h, w);
-            // ans = runtime.raw_array_build(F(function (idx) {
-            //     res =  f.app((idx - (idx % w) / w, idx % w));
-            //     if(!jsnum.isPyretNumber(res)){
-            //         return runtime.ffi.throwMessageException("Function must return a number"); 
-            //     }
-            // }), h * w);
-            // return makeMatrix(h, w, ans);
-            var new_arr = new Array(h * w);
-            size = h * w;
-            function helper(i, j) {
-                return runtime.safeCall(
-                    function () { return f.app(i, j); },
-                    function (result) {
-                        new_arr[get1dpos(i, j, w)] = result;
-                        if ((i + 1) * (j + 1) == size) {
-                            return new_arr;
-                        } else {
-                            nj = (j + 1) % w;
-                            ni = i;
-                            if (nj == 0) { ni++; }
-                        };
-                        return helper(ni, nj);
-                    }, "build-mat"
-                );
-            }
-            return makeMatrix(h, w, helper(0, 0));
-
-
+            ans = runtime.raw_array_build(F(function (idx) {
+                res =  f.app((idx - (idx % w)) / w, idx % w);
+                if(!jsnum.isPyretNumber(res)){
+                    return runtime.ffi.throwMessageException("Function must return a number"); 
+                }
+                return res;
+            }), h * w);
+            return makeMatrix(h, w, ans);
         }
         //Calculates forbenius Matrix
         var frobMatrix = function (self) {
