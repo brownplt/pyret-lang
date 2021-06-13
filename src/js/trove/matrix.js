@@ -69,8 +69,7 @@
             "map-mat": ["arrow", ["Matrix", ["arrow", ["Number", "Number", "Number"], "Number"]], "Matrix"],
             "submatrix": ["arrow", ["Number", "Number", "Number", "Number"], "Matrix"],
             "fill-mat": ["arrow", ["Number", "Number", "Number"], "Matrix"],
-            "row-map": ["arrow", [["arrow", ["Vector"], "Number"], "Matrix"], "Vector"],
-            "col-map": ["arrow", [["arrow", ["Vector"], "Number"], "Matrix"], "Vector"],
+
             "get-row": ["arrow", ["Matrix", "Number"], "Vector"],
             "get-col": ["arrow", ["Matrix", "Number"], "Vector"],
             "lup-mat": ["arrow", ["Matrix"], "Tuple"],
@@ -443,12 +442,13 @@
             arity(2, arguments, "map-mat", false);
             runtime.checkArgsInternalInline("Matrix", "map-mat", self, annMatrix, f, runtime.Function);
             new_mtrx = duplicateMatrix(self);
+    
             function helper(i,j) {
                 return runtime.safeCall(
                      function() { return f.app(runtime.makeNumber(i),runtime.makeNumber(j),get1dElem(self,i,j)) ;} ,
                      function(result) { 
                         new_mtrx.$underlyingMat[get1dpos(i, j, self.$w)] = result ;
-                        if((i+1)*(j+1) ==  size) { 
+                        if((i+1)*(j+1) ==  self.$l) { 
                             return new_mtrx ; 
                         } else {  
 
@@ -511,7 +511,7 @@
         var isRowMatrix = function (self) {
             arity(1, arguments, "is-row-mat", false);
             runtime.checkArgsInternalInline("Matrix", "is-row-mat", self, annMatrix);
-            if (self.$w == 1) {
+            if (self.$h == 1) {
                 return runtime.makeBoolean(true);
             } else {
                 return runtime.makeBoolean(false);
@@ -521,7 +521,7 @@
         var isColMatrix = function (self) {
             arity(1, arguments, "is-col-mat", false);
             runtime.checkArgsInternalInline("Matrix", "is-col-mat", self, annMatrix);
-            if (self.$h == 1) {
+            if (self.$w == 1) {
                 return runtime.makeBoolean(true);
             } else {
                 return runtime.makeBoolean(false);
@@ -865,6 +865,7 @@
                 return runtime.safeCall(
                      function() { return f.app(i,j) ;} ,
                      function(result) { 
+                         console.log(" i = ",i,"j = ",j) ; 
                         new_arr[get1dpos(i, j, w)] = result ;
                         if((i+1)*(j+1) ==  size) { 
                             return new_arr ; 
@@ -906,24 +907,30 @@
         */
 
         function makeMatrix(h, w, underlyingMat) {
-            var equalMatrix = runtime.makeMethod2(function (self, other, Eq) {
+            var equalMatrix = runtime.makeMethod2(function (self, other, recEq) {
                 runtime.ffi.checkArity(3, arguments, "_equals", true);
-                runtime.checkArgsInternal3("Matrix", "_equals", self, annMatrix, other, annMatrix, Eq, runtime.Function);
+                runtime.checkArgsInternal3("Matrix", "_equals", self, annMatrix, other, annMatrix, recEq, runtime.Function);
 
                 if (!hasBrand(brandMatrix, other)) {
                     return runtime.ffi.notEqual.app('', self, other);
                 } else if (!sameDims(self, other)) {
                     return runtime.ffi.notEqual.app('', self, other);
                 } else {
-                    for (var i = 0; i < self.$l; i++) {
-                        if (jsnum.isRoughnum(self.$underlyingMat[i]) || jsnum.isRoughnum(other.$underlyingMat[i])) {
-                            return runtime.ffi.throwMessageException("The matrix consists of rough nums and cannot be checked for equality");
-                        }
-                        if (!jsnum.equals(self.$underlyingMat[i], other.$underlyingMat[i], runtime.NumberErrbacks)) {
-                            return runtime.ffi.notEqual.app('', self, other);
-                        }
-                    }
-                    return runtime.ffi.equal;
+                    function equalsHelp(i) { 
+                        return runtime.safeCall(
+                            function(){return recEq.app(self.$underlyingMat[i],other.$underlyingMat[i])},
+                            function(result){
+                                if (runtime.ffi.isNotEqual(result)) {
+                                    return result;
+                                  }else if ((i+1) == self.$l){
+                                      return result ; 
+                                  } else  {
+                                    return equalsHelp(i + 1);
+                                  }
+                            }
+                        )
+                    };
+                    return equalsHelp(0) ; 
 
                 }
             }, "equals");
@@ -995,45 +1002,7 @@
                 return makeVector(runtime.makeArray(retCol));
             }
         }
-        //Reduces each row and returns vector
-        var rowMap = function (self, f) {
-            arity(2, arguments, "row-map", false);
-            runtime.checkArgsInternalInline("Matrix", "row-map", self, annMatrix, f, runtime.Function);
-            var new_arr = new Array(self.$h);
-            function helper(i) {
-                return runtime.safeCall(
-                     function() { return f.app(getMatrixRow(self,i)) ;} ,
-                     function(result) { 
-                        new_arr[i] = result ;
-                        if(i+1 == self.$h) { 
-                            return new_arr ; 
-                        } else {  
-                       return helper(i+1) ; 
-                     }},"row-map"
-                ) ; 
-            }
-            return makeVector(helper(0));
-        }
-        //Reduces each column and returns vector
-        var colMap = function (self, f) {
-            arity(2, arguments, "col-map", false);
-            runtime.checkArgsInternalInline("Matrix", "col-map", self, annMatrix, f, runtime.Function);
-            new_arr = newArray(self.$w);
-            var new_arr = new Array(self.$h);
-            function helper(i) {
-                return runtime.safeCall(
-                     function() { return f.app(getMatrixCol(self,i)) ;} ,
-                     function(result) { 
-                        new_arr[i] = result ;
-                        if(i+1 == self.$w) { 
-                            return new_arr ; 
-                        } else {  
-                       return helper(i+1) ; 
-                     }},"col-map"
-                ) ; 
-            }
-            return makeVector(helper(0));
-        }
+       
         //dot product of self ,other
         var dotVector = function (self, other) {
             arity(2, arguments, "vdot", false);
@@ -1052,12 +1021,10 @@
         var magnitudeVector = function (self) {
             arity(1, arguments, "magnitude", false);
             runtime.checkArgsInternalInline("Matrix", "magnitude", self, annVector);
-
             if (self.$l == 0) {
-
                 return runtime.ffi.throwMessageException("Empty vector has no magnitude");
             } else {
-                var ans = runtime.num_sqrt(self.$underlyingMat.reduce((a, n) => runtime.plus(a, runtime.times(n, n))), 0);
+                var ans = runtime.num_sqrt(self.$underlyingMat.reduce((a, n) => runtime.plus(a, runtime.times(n, n)), 0));
                 return ans;
             }
         }
@@ -1317,8 +1284,6 @@
             "magnitude": F(magnitudeVector, "magnitude"),
             "vscale": F(scaleVector, "vscale"),
             "normalize": F(normalizeVector, "normalize"),
-            "row-map": F(rowMap, "row-map"),
-            "col-map": F(colMap, "col-map"),
             "get-row": F(getMatrixRow, "get-row"),
             "get-col": F(getMatrixCol, "get-col"),
             "vector-to-list": F(vectorToList, "vector-to-list"),
