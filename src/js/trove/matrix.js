@@ -328,16 +328,22 @@
 
             } else {
                 new_arr = new Array((self.$h * other.$w));
-                for (var i = 0; i < self.$h; i++) {
-                    for (var j = 0; j < other.$w; j++) {
-                        var elm = runtime.makeNumber(0);
-                        for (var k = 0; k < self.$w; k++) {
-                            elm = runtime.plus(elm, runtime.times(get1dElem(self, i, k), get1dElem(other, k, j)));
-                        }
-                        new_arr[get1dpos(i, j, other.$w)] = elm;
+                return runtime.safeCall(
+                    function () {
+                        return runtime.raw_array_build(
+                            F(function (idx) {
+                                i = (idx - (idx % other.$w)) / other.$w;
+                                j = idx % other.$w;
+                                var elm = runtime.makeNumber(0);
+                                for (var k = 0; k < self.$w; k++) {
+                                    elm = runtime.plus(elm, runtime.times(get1dElem(self, i, k), get1dElem(other, k, j)));
+                                }
+                                return elm;
+                            }), self.$h * other.$w)
+                    }, function (result) {
+                        return makeMatrix(self.$h, other.$w, result);
                     }
-                }
-                return createMatrixFromArray(self.$h, other.$w, new_arr);
+                );
             }
         }
         //Output given matrix
@@ -413,7 +419,7 @@
 
         }
         //stacks matrices vertically
-        var stackMatrix =function (self, other) {
+        var stackMatrix = function (self, other) {
             runtime.ffi.checkArity(2, arguments, "stack-mat", false);
             runtime.checkArgsInternal2("Matrix", "stack-mat", self, annMatrix, other, annMatrix);
             if (self.$w != other.$w) {
@@ -431,7 +437,7 @@
             runtime.ffi.checkArity(2, arguments, "scale-mat", false);
             runtime.checkArgsInternal2("Matrix", "scale-mat", self, annMatrix, num, runtime.Number);
             new_mtrx = duplicateMatrix(self);
-            new_mtrx.$underlyingMat = new_mtrx.$underlyingMat.map(v => runtime.times(v,num)) ; 
+            new_mtrx.$underlyingMat = new_mtrx.$underlyingMat.map(v => runtime.times(v, num));
             return new_mtrx;
         }
 
@@ -470,7 +476,6 @@
                 end_pos = get1dpos(right, bottom, self.$w);
                 new_arr = new Array(end_pos - start_pos + 1);
                 duplicateArray(self, start_pos, end_pos + 1, new_arr, 0);
-                console.log("new arr ", new_arr, "length ", new_arr.length, " en -s", end_pos - start_pos);
                 return createMatrixFromArray(end_pos - start_pos + 1, 1, new_arr);
 
             } else {
@@ -610,13 +615,11 @@
 
         //Internal function : Swaps rows m,n in place
         var swapRows = function (self, m, n) {
-            console.log("Before swapping ", m, " and ", n, " mat : ", self.$underlyingMat)
             for (i = 0; i < self.$w; i++) {
                 temp = get1dElem(self, m, i);
                 self.$underlyingMat[get1dpos(m, i, self.$w)] = get1dElem(self, n, i);
                 self.$underlyingMat[get1dpos(n, i, self.$w)] = temp;
             }
-            console.log("After swapping ", self.$underlyingMat);
         }
         /* Calculates LUP decomposition PA = LU where:
          P is permutation matrix
@@ -659,17 +662,17 @@
 
                 // U
                 for (i = p; i < dim; i++) {
-                    temp =  get1dElem(U,p,i) ; 
-                    U.$underlyingMat[get1dpos(p,i,dim)]  = get1dElem(U,n,i) ; 
-                    U.$underlyingMat[get1dpos(n,i,dim)] = temp ; 
-            
+                    temp = get1dElem(U, p, i);
+                    U.$underlyingMat[get1dpos(p, i, dim)] = get1dElem(U, n, i);
+                    U.$underlyingMat[get1dpos(n, i, dim)] = temp;
+
                 }
 
                 // L
                 for (i = 0; i < p; i++) {
-                    temp =  get1dElem(L,p,i) ; 
-                    L.$underlyingMat[get1dpos(p,i,dim)]  = get1dElem(L,n,i) ; 
-                    L.$underlyingMat[get1dpos(n,i,dim)] = temp ; 
+                    temp = get1dElem(L, p, i);
+                    L.$underlyingMat[get1dpos(p, i, dim)] = get1dElem(L, n, i);
+                    L.$underlyingMat[get1dpos(n, i, dim)] = temp;
                 }
                 swapRows(P, p, n);
                 exchanges = runtime.plus(exchanges, 1);
@@ -1253,13 +1256,13 @@
             "add-mat": F(addMatrix, "add-mat"),
             "sub-mat": F(subMatrix, "sub-mat"),
             "mult-mat": F(multMatrix, "mult-mat"),
-            "get-elem": F(getMatrixElms,"get-elem"),
+            "get-elem": F(getMatrixElms, "get-elem"),
             "transpose": F(transposeMatrix, "transpose"),
             "lup-mat": F(LUPMat, "lup-mat"),
             "determinant": F(Determinant, "determinant"),
             "identity-mat": F(IdentityMatrix, "identity-mat"),
-            "stack-mat": F(stackMatrix,"stack-mat"),
-            "scale-mat": F(scaleMatrix,"scale-mat"),
+            "stack-mat": F(stackMatrix, "stack-mat"),
+            "scale-mat": F(scaleMatrix, "scale-mat"),
             "set-elem": F(setMatrixElms, "set-elem"),
             "reshape": F(reshapeMatrix, "reshape"),
             "map-mat": F(mapMatrix, "map-mat"),
@@ -1279,7 +1282,7 @@
             "frob-norm": F(frobMatrix, "frob-norm"),
             "dims-mat": F(getMatrixDims, "dims-mat"),
             "build-mat": F(buildMatrix, "build-mat"),
-            "norm-mat" : F(normMatrix,"norm-mat"),
+            "norm-mat": F(normMatrix, "norm-mat"),
 
         }
         var types = {
