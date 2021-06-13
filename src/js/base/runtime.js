@@ -6128,6 +6128,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'string_indexOf': string_indexOf,
 
       'raw_array_of': raw_array_of,
+      'raw_array_build': raw_array_build , 
       'raw_array_get': raw_array_get,
       'raw_array_obj_destructure': raw_array_obj_destructure,
       'raw_array_set': raw_array_set,
