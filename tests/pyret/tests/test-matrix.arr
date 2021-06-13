@@ -30,6 +30,7 @@ check "matrix equals":
   equal-now(xr,yr) raises ""
   equal-now([mat(1,1):~12],[mat(1,1):~12]) raises  ""
   equal-now([mat(2,2):1,~2,4,5],[mat(2,2):1,2,4,6]) is false
+  [mat(2, 2): 1, 2, ~3, 4] == [mat(2, 2): 1, 2, ~5, 4] raises "" 
 end
 
 check "fill-mat":
