@@ -19,6 +19,7 @@ check "Matrix intialized with specified dimensions":
   y.get-shape() is {13;45}
 end
 
+
 check "matrix equals":
   x = [mat(2,2):1,2,3,4]
   y = [mat(2,2):1,3,2,4]
@@ -157,12 +158,20 @@ end
 check "trace-mat":
   a = [mat(3,3):4,5,4,9,0,324,1,6,-7/23]
   trace-mat(a) is 85/23
+  trace-mat(identity-mat(45)) is 45
 end
 
 check "gram-schmidt and qr" :
   a = [mat(3,3): 12,-51,4,6,167,-68,-4,24,-41]
   ans = [mat(3,3): 6/7, -69/175, -58/175, 3/7, 158/175, 6/175, -2/7, 6/35, -33/35]
   qr-mat(a)  is {ans;[mat(3,3): 14, 21, -14, 0, 175, -70, 0, 0, 35]}
+end
+check "vector intilization":
+  [vector(3): 1,3,"ds"] raises " "
+  [vector(1.3):1.3] raises ""
+  [vector(~2):2,3] raises "" 
+  [vector(true): 1] raises " "
+  [vector("vs"):1] raises "" 
 end
 
 check "vector equality":
@@ -185,8 +194,8 @@ check "vector operations":
   v2 = [vector(3): -2,-2,8/5]
   v3 = [vector(3): -2418/13,-1/26,~0]
   (v1 - v2) is [vector(3): 3, 5, 3.4]
-  #(v2 + v3) is [vector(3): -188, -53/26, ~1.6]
-  #(v1 * v3) is [vector(3): -186, -3/26, ~0]
+  (v2 + v3) is-roughly [vector(3): -188, -53/26, ~1.6]
+  (v1 * v3) is-roughly [vector(3): -186, -3/26, ~0]
 end
 
 check "determinant":
@@ -198,6 +207,11 @@ check "determinant":
   determinant(fill-mat(21,22,1)) raises "" 
   determinant(fill-mat(5,5,0)) raises "" 
 end
+check "is-invertible":
+  is-invertible(identity-mat(34)) is true
+  is-invertible([mat(2,2):1,4,5,2]) is true
+  is-invertible([mat(2,2):1,5,8,40]) is false
+end
 
 check "inverse":
   inverse(fill-mat(21,24,1)) raises "" 
@@ -208,6 +222,7 @@ check "inverse":
   inverse(b) is a 
   inverse(a) * a is identity-mat(2)
 end
+
 
 check "least-squares and solve":
   a = [mat(2,2):89,-21,34.56,124]
@@ -228,3 +243,64 @@ check "rref-mat":
   rref-mat(b) is [mat(2,3): 1, 0, 451035/12523, 0, 1, 45000/12523]
 end
 
+
+check "submatrix":
+  a = build-mat(4,3,lam(i,j): i + j end)
+  submatrix(a,1,1,2,2) is [mat(5,1): 2, 3, 2, 3, 4]
+  submatrix([mat(2,2):1,~4,5/7,-9],0,0,1,1) is-roughly [mat(4,1):1,~4,5/7,-9]
+end
+
+check "lup-mat": 
+  a = [mat(3,3): 3,4,5.5,7,0,-1,~3,43/7,32]
+  b = lup-mat(a)
+  l = b.{1}
+  u = b.{2}
+  p = b.{0}
+  l is-roughly [mat(3,3): 1, 0, 0, 3/7, 1, 0, ~0.42857142857142855, 43/28, 1]
+  u is-roughly [mat(3,3): 7, 0, -1, 0, 4, 83/14, ~0, 0, ~23.32397959183674]
+  p is [mat(3,3): 0, 1, 0, 1, 0, 0, 0, 0, 1]
+  (l * u) is-roughly (p * a) 
+end
+
+check "augment-mat stack-mat":
+  a = [mat(2,2): 1,2,5,6]
+  b = [mat(2,2):3,4,7,8]
+  c = [mat(2,4):1,2,3,4,5,6,7,8]
+  d = [mat(1,2): 5.5,6]
+  augment-mat(a,b) is c
+  augment-mat(a,d) raises " " 
+  stack-mat(a,d) is [mat(3,2):1,2,5,6,5.5,6]
+
+end
+
+check "exp-mat":
+  a = [mat(2,2):1,~4,-5,6.53]
+  exp-mat(a,3) is-roughly [mat(2,2): ~-169.6, ~120.68360000000001, ~-150.8545, ~-2.7549229999999625]
+  exp-mat(a,~2) raises "" 
+  exp-mat(a,-2) raises "" 
+  exp-mat(a,2/3) raises ""    
+end
+
+check "norms":
+  a = [mat(3,3):1,5,~7/8,-9.42,0,0,89,100,17]
+  frob-norm(a) is-roughly ~135.37171796575532
+  norm-mat(a,1) is-roughly ~203.45499999999998
+  norm-mat(a,2) is-roughly ~135.3717179657553
+end
+
+check "transpose":
+  transpose(fill-mat(3,4,1)) is fill-mat(4,3,1)
+  transpose(identity-mat(5)) is identity-mat(5)
+  transpose([mat(2,2):1,5,5,9]) is [mat(2,2):1,5,5,9]
+  transpose([mat(2,2):~5,7/8,8,91]) is-roughly [mat(2,2):~5,8,7/8,91]
+end
+
+check "scale-mat":
+  scale-mat(fill-mat(3,3,5.6),3) is fill-mat(3,3,5.6 * 3)
+  scale-mat([mat(2,2):1,2,3,4],5) is [mat(2,2):5,10,15,20]
+end
+
+check "dims-mat":
+  dims-mat(emp) is {0;0}
+  dims-mat([mat(3,2):1,42,3,53,2,5]) is {3;2}
+end
