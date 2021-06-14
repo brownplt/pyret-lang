@@ -3,6 +3,7 @@ import { UnControlled as CodeMirror } from 'react-codemirror2';
 import CM, { TextMarkerOptions } from 'codemirror';
 import Tooltip from './Tooltip';
 import run from './mock-run';
+import MockRenderedValue from './MockRenderedValue';
 
 require('pyret-codemirror-mode/mode/pyret');
 
@@ -18,43 +19,36 @@ interface LineWidget extends CM.LineWidget {
 }
 
 export default function EditorPlayground() {
-  const [tooltipPos, setTooltipPos] = React.useState<Pos | null>(null);
-  const [_staleLineWidgets, setStaleLineWidgets] = React.useState<CM.LineWidget[]>([]);
-  const lineWidgetsRef = React.useRef(_staleLineWidgets);
-  const [_resultsCache, setResultsCache] = React.useState<string[]>([]);
+  const [_tooltipPos, setTooltipPos] = React.useState<Pos | null>(null);
+  const tooltipPosRef = React.useRef(_tooltipPos);
+  // const [_staleLineWidgets, setStaleLineWidgets] = React.useState<CM.LineWidget[]>([]);
+  // const lineWidgetsRef = React.useRef(_staleLineWidgets);
+  const [_resultsCache, setResultsCache] = (
+    React.useState<{chunkLength: number, programLength: number}[]>([])
+  );
+  const [stateEditor, setEditor] = React.useState<(CM.Editor & CM.Doc) | null>(null);
+  const [_needsFirstMark, setNeedsFirstMark] = React.useState<boolean>(true);
+  const needsFirstMarkRef = React.useRef(_needsFirstMark);
   const resultsCacheRef = React.useRef(_resultsCache);
+  function editorDidMount(editor: CM.Editor & CM.Doc) {
+    setEditor(editor);
+  }
   function empty(s: string): boolean {
     return s.replace(/ /g, '') === '';
   }
   function clearTooltip() {
-    setTooltipPos(null);
-  }
-  function onChange(editor: CM.Editor & CM.Doc) {
-    // lineWidget does not understand expansion / inclusiveRight like ranges
-    // do, so we use them *only* for rendering, remove them every time we
-    // might have expanded or contracted a range (any change at all!) and
-    // redraw every single one
-    lineWidgetsRef.current.forEach((lw) => editor.removeLineWidget(lw));
-    const marks = editor.getAllMarks();
-    // Is this necessary? It's not documented what order i get them in, so probably
-    marks.sort((a, b) => a.find()?.from.line - b.find()?.from.line);
-    const newLineWidgets: CM.LineWidget[] = [];
-    marks.forEach((mark, i) => {
-      const { to } = mark.find();
-      const widget = document.createElement('div');
-      const resultCache = i === resultsCacheRef.current.length ? '' : resultsCacheRef.current[i];
-      widget.append(resultCache, document.createElement('hr'));
-      newLineWidgets.push(editor.addLineWidget(to.line, widget));
-    });
-    lineWidgetsRef.current = newLineWidgets;
-    setStaleLineWidgets(newLineWidgets);
+    if (tooltipPosRef.current !== null) {
+      setTooltipPos(null);
+      tooltipPosRef.current = null;
+    }
   }
   // "Methods prefixed with doc. can, unless otherwise specified, be called both
   // on CodeMirror (editor) instances and CodeMirror.Doc instances."
   // This means CM.Editor & CM.Doc should be equal to CM.Editor, but the types
   // given don't fit right
   function onKeyDown(editor: CM.Editor & CM.Doc, event: KeyboardEvent) {
-    if (editor.getAllMarks().length === 0) {
+    if (needsFirstMarkRef.current) {
+      console.log('doing frist mark markText');
       editor.markText({ line: 0, ch: 0 }, { line: 9999, ch: 9999 }, {
         css: 'background-color: #ccc',
         // NOTE(luna): This should be the only inclusiveLeft mark. Why:
@@ -69,6 +63,8 @@ export default function EditorPlayground() {
         inclusiveLeft: true,
         inclusiveRight: true,
       });
+      setNeedsFirstMark(false as boolean);
+      needsFirstMarkRef.current = false;
     }
     clearTooltip();
     if (event.key === 'Enter') {
@@ -157,7 +153,6 @@ export default function EditorPlayground() {
         console.log('Actual total length: ', editor.getValue().length);
         // Adding the actual lineWidget is done functionally on change, but
         // onChange happens before this, so go ahead and do that as well
-        onChange(editor);
       } else {
         console.log('Empty line with no open context. Presenting tooltip.');
         // "What? This looks weird! Why are you doing pixel stuff!"
@@ -178,6 +173,24 @@ export default function EditorPlayground() {
       }
     }
   }
+  const mockRVs = stateEditor?.operation(() => {
+    const marks = stateEditor?.getAllMarks() ?? [];
+    return resultsCacheRef.current.map(({ chunkLength, programLength }, i) => {
+      const mark = marks[i];
+      const { to } = mark.find();
+      const lineHandle = (stateEditor as CM.Doc).getLineHandle(to.line);
+      return (
+        <MockRenderedValue
+          chunkLength={chunkLength}
+          programLength={programLength}
+          editor={stateEditor as (CM.Editor & CM.Doc)}
+          line={lineHandle}
+          /* eslint-disable-next-line */
+          key={i * 13 + to.line}
+        />
+      );
+    });
+  });
   return (
     <>
       <CodeMirror
@@ -187,10 +200,14 @@ export default function EditorPlayground() {
         }}
         // Bad types given by react-codemirror, too bad
         onKeyUp={onKeyDown as (x: CM.Editor, y: Event) => void}
-        onChange={onChange as (x: CM.Editor) => void}
+        // onChange={onChange as (x: CM.Editor) => void}
         onMouseDown={clearTooltip}
+        editorDidMount={editorDidMount as (x: CM.Editor) => void}
       />
-      {tooltipPos === null ? null : <Tooltip left={tooltipPos.left} top={tooltipPos.top} />}
+      {tooltipPosRef.current === null
+        ? null
+        : <Tooltip left={tooltipPosRef.current.left} top={tooltipPosRef.current.top} />}
+      {mockRVs}
     </>
   );
 }

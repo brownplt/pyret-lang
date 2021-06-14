@@ -1,7 +1,7 @@
 // Each result corresponds to the index of the chunks
-export default function run(chunks: string[]): string[] {
+export default function run(chunks: string[]): {chunkLength: number, programLength: number}[] {
   const total = chunks.join('\n');
   return chunks.map((chunk) => (
-    `Chunk length: ${chunk.length} (Total length: ${total.length})`
+    { chunkLength: chunk.length, programLength: total.length }
   ));
 }
