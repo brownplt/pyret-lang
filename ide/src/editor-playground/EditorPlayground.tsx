@@ -100,32 +100,50 @@ export default function EditorPlayground() {
         const oldMarks = editor.findMarksAt(previousLine);
         const previousMarks = oldMarks.filter((mark) => mark.find().to.line === previousLine.line);
         const endOfPrevious = { line: previousLine.line - 1, ch: 9999 };
-        if (previousMarks.length === 1) {
-          const oldMark = previousMarks[0];
+        const adjustMark = (oldMark: CM.TextMarker, newEnd: CM.Position) => {
           const oldMarkRange = oldMark.find();
           // Make replacement mark. As a workaround, to get all the options
           // back, just pass the old mark in as the options. i assume extraneous
           // fields are ignored, since i haven't seen any errors or bugs from
           // this. (TS claims there's a getOptions method but there isn't one
           // documented in any version or in reality in this version)
-          editor.markText(oldMarkRange.from, endOfPrevious, oldMark as TextMarkerOptions);
+          editor.markText(oldMarkRange.from, newEnd, oldMark as TextMarkerOptions);
           // Don't clear before making the replacement mark or bad things happen!
           oldMark.clear();
+        };
+        const makeMark = (left: CM.Position, right: CM.Position) => {
+          // Mostly for debugging, it's nice (and fun) to have all our marks
+          // have different colors!
+          const rainbow = ['#fcc', '#fca', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
+          const numMarks = editor.getAllMarks().length;
+          editor.markText(left, right, {
+            css: `background-color: ${rainbow[numMarks % rainbow.length]};`,
+            // Above chunk owns the left side of this newline
+            inclusiveLeft: false,
+            // We own the newline itself and the right side
+            inclusiveRight: true,
+          });
+        };
+        if (previousMarks.length === 1) {
+          const oldMark = previousMarks[0];
+          adjustMark(oldMark, endOfPrevious);
+          makeMark(endOfPrevious, previousLine);
         } else {
           // The inside of a chunk. What do we actually want to do here? And how
           // do we achieve it with the marks around?
+          // For now: we'll split into two chunks, "before-cursor" and
+          // "after-cursor" with the cursor at the beginning of "after-cursor"
+          // (and "after-cursor" should own the newline like the others
+          // presumably?")
           console.assert(previousMarks.length === 0);
+          console.assert(oldMarks.length === 1);
+          const oldMark = oldMarks[0];
+          const oldEnd = oldMark.find().to;
+          adjustMark(oldMark, endOfPrevious);
+          // But now our new mark will be all the way to oldMarkRange.to this time
+          makeMark(endOfPrevious, oldEnd);
         }
-        // Now add our new mark
-        const rainbow = ['#fcc', '#fca', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
-        const numMarks = editor.getAllMarks().length;
-        editor.markText(endOfPrevious, previousLine, {
-          css: `background-color: ${rainbow[numMarks % rainbow.length]};`,
-          // Above chunk owns the left side of this newline
-          inclusiveLeft: false,
-          // We own the newline itself and the right side
-          inclusiveRight: true,
-        });
+        // Run chunks!!
         const marks = editor.getAllMarks();
         // Is this necessary? It's not documented what order i get them in, so probably
         marks.sort((a, b) => a.find()?.from.line - b.find()?.from.line);
