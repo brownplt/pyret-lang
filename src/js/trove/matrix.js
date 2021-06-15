@@ -450,11 +450,16 @@
                 function () {
                     return runtime.raw_array_mapi(
                         F(function (val, idx) {
-                            res = f.app((idx - (idx % self.$w)) / self.$w, idx % self.$w, val);
-                            if (!jsnum.isPyretNumber(res)) {
-                                return runtime.ffi.throwMessageException("function needs to return a number");
-                            }
-                            return res;
+                            return runtime.safeCall(
+                                function () {
+                                    return f.app((idx - (idx % self.$w)) / self.$w, idx % self.$w, val);
+                                }, function (res) {
+                                    if (!jsnum.isPyretNumber(res)) {
+                                        return runtime.ffi.throwMessageException("function needs to return a number");
+                                    }
+                                    return res;
+                                }
+                            );
                         }), new_mtrx.$underlyingMat);
                 }, function (result) {
                     new_mtrx.$underlyingMat = result;
