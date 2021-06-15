@@ -44,7 +44,7 @@ fun make-jsfile-locator(path):
       CM.standard-globals
     end,
 
-    method uri(_): "jsfile://" + string-replace(F.real-path(path + ".arr"), P.path-sep, "/") end,
+    method uri(_): "jsfile://" + string-replace(P.resolve(path + ".arr"), P.path-sep, "/") end,
     method name(_): P.basename(path, "") end,
 
     method set-compiled(_, _, _): nothing end,
@@ -56,7 +56,7 @@ fun make-jsfile-locator(path):
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
-      CL.arr-js-file(provs, F.real-path(path + ".arr.json"), F.real-path(path + ".arr.js"))
+      CL.arr-js-file(provs, P.resolve(path + ".arr.json"), P.resolve(path + ".arr.js"))
     end,
 
     method _equals(self, other, req-eq):

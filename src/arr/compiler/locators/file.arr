@@ -63,7 +63,7 @@ fun mockable-file-locator(file-ops):
         CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options))
       end,
       method uri(self) block:
-        when real-path == nothing: real-path := file-ops.real-path(self.path) end
+        when real-path == nothing: real-path := P.resolve(self.path) end
         "file://" + string-replace(real-path, P.path-sep, "/") end,
       method name(self): P.basename(self.path, "") end,
       method _equals(self, other, eq): eq(self.uri(), other.uri()) end

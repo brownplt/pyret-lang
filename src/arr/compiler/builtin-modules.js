@@ -1,6 +1,7 @@
 ({
   nativeRequires: [
     "fs",
+    "path",
     "pyret-base/js/secure-loader",
   ],
   requires: [
@@ -12,7 +13,7 @@
       "builtin-raw-locator-from-str": "tany"
     }
   },
-  theModule: function(RUNTIME, ns, uri, t, fs, loader) {
+  theModule: function(RUNTIME, ns, uri, t, fs, pathlib, loader) {
     var F = RUNTIME.makeFunction;
 
     function builtinLocatorFromString(codeContent, headerContent) {
@@ -143,18 +144,15 @@
           console.trace();
           return restarter.error("Got undefined name in builtin locator");
         }
-        fs.realpath(path + ".arr.js", function(err1, arrjs) {
-          fs.realpath(path + ".arr.json", function(err2, arrjson) {
-            fs.readFile(arrjs, function(err3, arrjsbuf) {
-              fs.readFile(arrjson, function(err3, arrjsonbuf) {
-                var codeContent = String(arrjsbuf);
-                var headerContent = String(arrjsonbuf);
-                return restarter.resume(builtinLocatorFromString(codeContent, headerContent));
-              });
-            });
+        const arrjs = pathlib.resolve(path + ".arr.js");
+        const arrjson = pathlib.resolve(path + ".arr.json");
+        fs.readFile(arrjs, function(err3, arrjsbuf) {
+          fs.readFile(arrjson, function(err3, arrjsonbuf) {
+            var codeContent = String(arrjsbuf);
+            var headerContent = String(arrjsonbuf);
+            return restarter.resume(builtinLocatorFromString(codeContent, headerContent));
           });
         });
-
       });
     }
     var O = RUNTIME.makeObject;
