@@ -2,6 +2,7 @@ import * as J from 'estree';
 import type * as Escodegen from 'escodegen';
 import type * as Path from 'path';
 import type * as A from './ts-ast';
+import type * as T from './ts-impl-types';
 import type * as CS from './ts-compile-structs';
 import type * as TJ from './ts-codegen-helpers';
 import type { Variant, PyretObject } from './ts-codegen-helpers';
@@ -110,6 +111,22 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
 
     function rtMethod(name : string, args : Array<J.Expression>) {
       return CallExpression(DotExpression(Identifier(RUNTIME), compressRuntimeName(name)), args);
+    }
+    
+    function chooseSrcloc(l : A.Srcloc, context) {
+      switch(l.$name) {
+        case "builtin": return l;
+        case "srcloc":
+          const override : A.Srcloc = {
+            $name: 'srcloc', dict: { ...l.dict, source: context.uri }
+          };
+          switch(context.options.dict['compile-mode']) {
+            case 'cm-normal': return l;
+            case 'cm-builtin-stage-1': return override;
+            case 'cm-builtin-general': return override;
+          }
+      }
+
     }
 
     function compileList(context, exprs: A.List<A.Expr>) : [ Array<J.Expression>, Array<J.Statement> ] {
@@ -419,6 +436,118 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
         },
       };
       return compileExpr(context, call);
+    }
+
+    function compileCheckBlock(context, expr : Variant<A.Expr, "s-check">) : CompileResult {
+      const [ checkBlockVal, checkBlockStmts ] = compileExpr(context, expr.dict.body);
+      let jsCheckBlockFuncName;
+      let testBlockName;
+      const name = expr.dict.name;
+      switch(name.$name) {
+        case 'none':
+          jsCheckBlockFuncName = freshId(compilerName("check-block"));
+          testBlockName = Literal(nameToSourceString(jsCheckBlockFuncName));
+          break;
+        case 'some':
+          jsCheckBlockFuncName = freshId(compilerName("check-block" + name.dict.value));
+          testBlockName = Literal(name.dict.value);
+          break;
+      }
+      const jsCheckBlockFuncBlock = BlockStatement([...checkBlockStmts, ExpressionStatement(checkBlockVal)]);
+      const jsCheckBlockFunc = FunctionExpression(jsCheckBlockFuncName, [], jsCheckBlockFuncBlock);
+      const blockLoc = Literal(formatSrcloc(chooseSrcloc(expr.dict.l, context), true));
+      const testerCall = ExpressionStatement(rtMethod("$checkBlock", [blockLoc, testBlockName, jsCheckBlockFunc]));
+      context.checkBlockTestCalls.push(testerCall);
+      return [undefined, []];
+    }
+
+    /**
+     * 
+      Emits:
+        _checkTest(lh-func: () -> any, rh-func: () -> any,
+                   test-func: (check-expr-result, check-expr-result) -> check-op-result,
+                   loc: String) -> void
+      
+        _checkTest(function lh-func() {},
+                   function rh-func() {},
+                   function test-func(lhs, rhs) {}, loc);
+      
+        _checkTest: (test-thunk: () -> check-op-result, loc: string) -> void
+        
+        check-expr-result = {
+          value: any,
+          exception: bool
+          exception_val: object;
+        }
+        
+        check-op-result = {
+          success: boolean,
+          lhs: check-expr-result,
+          rhs: check-expr-result,
+          exception: object | undefined,
+        }
+        
+        Individual tests are wrapped in functions to allow individual tests to fail
+        but still possible to run other tests
+     */
+    function compileCheckTest(context, expr : Variant<A.Expr, "s-check-test">) : CompileResult {
+      type CheckOpDesugar =
+        | { $name: "binop-result", op: any }
+        | { $name: "expect-raises" }
+        | { $name: "refinement-result", refinement: any, negate: boolean }
+        | { $name: "predicate-result", predicate: any };
+      const {l, op, refinement, left, right, cause} = expr.dict;
+      function makeCheckOpResult(success : J.Expr, lhs : J.Expr, rhs: J.Expr) {
+        return ObjectExpression([
+          Property("success", success), Property("lhs", lhs), Property("rhs", rhs)
+        ]);
+      }
+
+      function makeCheckExprResult(value : T.Either<J.Expr, J.Expr>) {
+        switch(value.$name) {
+          case "left": return ObjectExpression([
+              Property("value", undefined),
+              Property("exception", Literal(true)),
+              Property("exception_value", value.dict.v)
+            ]);
+          case "right": return ObjectExpression([
+              Property("value", value.dict.v),
+              Property("exception", Literal(false)),
+              Property("exception_value", undefined)
+            ]);
+        }
+      }
+
+      function thunkIt(name : string, val : J.Expr, stmts : J.Stmt[]) {
+        const body = BlockStatement([...stmts, ReturnStatement(val)]);
+        return FunctionExpression(compilerName(name), [], body);
+      }
+      function exceptionCheck(exceptionFlag : J.Expr, lhs : J.Expr, rhs : J.Expr) {
+        const checkBody = BlockStatement([
+          ReturnStatement(makeCheckOpResult(Literal(false), lhs, rhs))
+        ]);
+        return IfStatement(exceptionFlag, checkBody, undefined);
+      }
+
+      const testLoc = Literal(formatSrcloc(chooseSrcloc(l, context), true));
+
+      let checkOp, checkOpStmts;
+      switch(op.$name) {
+        case "s-op-is":
+          switch(refinement.$name) {
+            case "some":
+              const [ refinementExpr, refinementStmts ] = compileExpr(context, refinement.dict.value);
+              checkOp = { $name: 'refinement-result', refinement: refinementExpr, negate: false };
+              checkOpStmts = refinementStmts;
+              break;
+            case "none":
+              [checkOp, checkOpStmts] = [ {$name: 'binop-result', op: "op=="}, []];
+              break;
+          }
+          break;
+      }
+
+
     }
 
     function compileTable(context, expr : Variant<A.Expr, 's-table'>): CompileResult {
@@ -1191,8 +1320,8 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
         }
         case 's-paren': return compileExpr(context, expr.dict.expr);
           
-        case 's-check-expr': 
-        case 's-check': 
+        case 's-check-expr': return compileExpr(context, expr.dict.expr);
+        case 's-check': return compileCheckBlock(context, expr);
         case 's-check-test': {
           return [undefined, []]; // TODO: Finish this!
         }

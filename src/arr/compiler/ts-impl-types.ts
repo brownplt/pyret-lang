@@ -22,12 +22,15 @@ export interface ImmutableMap<T> {
 }
 
 
-type List<T> =
+export type List<T> =
   | { $name: 'empty', dict: {} }
   | { $name: 'link', dict: { first: T, rest: List<T> } }
-type Option<T> =
+export type Option<T> =
   | { $name: 'none', dict: {} }
   | { $name: 'some', dict: { value: T } }
+export type Either<a, b> = 
+  | { $name: "left", dict: { 'v': a } }
+  | { $name: "right", dict: { 'v': b } }
 
 export type PFunction<T extends Function> = { app: T }
 
