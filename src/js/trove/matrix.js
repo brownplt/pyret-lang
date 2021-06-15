@@ -851,11 +851,17 @@
             return runtime.safeCall(
                 function () {
                     return runtime.raw_array_build(F(function (idx) {
-                        res = f.app((idx - (idx % w)) / w, idx % w);
-                        if (!jsnum.isPyretNumber(res)) {
-                            return runtime.ffi.throwMessageException("Function must return a number");
-                        }
-                        return res;
+                        return runtime.safeCall(
+                            function () {
+                                return f.app((idx - (idx % w)) / w, idx % w);
+                            }, function (result) {
+                                if (!jsnum.isPyretNumber(result)) {
+                                    return runtime.ffi.throwMessageException("Function must return a number");
+                                }
+                                return result;
+                            }
+                        );
+
                     }), h * w);
                 }, function (result) {
                     return makeMatrix(h, w, result);
@@ -874,11 +880,25 @@
             arity(2, arguments, "exp-mat", false);
             runtime.checkArgsInternalInline("Matrix", "exp-mat", self, annMatrix, n, runtime.Number);
             posInteger(n)
-            res = duplicateMatrix(self);
-            for (i = 1; i < n; i++) {
-                res = multMatrix(res, self);
-            }
-            return res;
+            sq = multMatrix(self, self);
+            even = (runtime.num_modulo(n, 2) == runtime.makeNumber(0));
+            len = (even) ? (n / 2) : (n - 1) / 2;
+            bogus = new Array(len);
+            return runtime.safeCall(
+                function () {
+                    return runtime.raw_array_fold(
+                        F(function (acc, dummy, dummy2) {
+                            return multMatrix(sq, sq);
+                        })
+                        , sq, bogus, 1);
+                },
+                function (result) {
+                    if (even) { return result; }
+                    else { return multMatrix(result, self); }
+                }
+            );
+
+
         }
         /**
         * 

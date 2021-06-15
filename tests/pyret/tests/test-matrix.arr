@@ -304,3 +304,9 @@ check "dims-mat":
   dims-mat(emp) is {0;0}
   dims-mat([mat(3,2):1,42,3,53,2,5]) is {3;2}
 end
+
+check "build-mat":
+  build-mat(4,5,lam(i,j): i * j end) is [mat(4,5): 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 2, 4, 6, 8, 0, 3, 6, 9, 12]
+  build-mat(3,2,lam(i,j): "hello" end) raises "" 
+  build-mat(2,2,lam(i,j): ~3 end) is-roughly [mat(2,2):~3,~3,~3,~3]
+end
