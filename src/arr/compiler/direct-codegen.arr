@@ -883,8 +883,10 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       tmp-bind = fresh-id(compiler-name("temporary"))
 
       {fieldvs; stmts; binds} = for fold({fieldvs; stmts; binds} from {cl-empty; cl-empty; cl-empty}, f from fields) block:
-        when not(A.is-s-data-field(f)):
-          raise("Can only provide data fields")
+        shadow f = if A.is-s-method-field(f):
+          A.s-data-field(f.l, f.name, A.s-method(f.l, f.name, f.params, f.args, f.ann, f.doc, f.body, f._check-loc, f._check, f.blocky))
+        else:
+          f
         end
 
         {val; compiled-stmts} = compile-expr(context, f.value)
@@ -1012,6 +1014,12 @@ fun compile-expr(context, expr) -> { J.JExpr; CList<J.JStmt>}:
       # Update the fields
       extend-stmts = for fold(stmts from prelude-stmts, field from fields) block:
         # TODO(alex): Assuming A.Member.s-data-field
+        shadow field = if A.is-s-method-field(field):
+          f = field
+          A.s-data-field(f.l, f.name, A.s-method(f.l, f.name, f.params, f.args, f.ann, f.doc, f.body, f._check-loc, f._check, f.blocky))
+        else:
+          field
+        end
         { extend-ans; extend-stmts } = compile-expr(context, field.value)
         field-expr = if (A.is-s-method(field.value)):
           j-app(extend-ans, [clist: j-id(shallow-copy-name)])
