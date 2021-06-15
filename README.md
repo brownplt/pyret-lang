@@ -29,7 +29,7 @@ commenting and reporting issues.
 Installing
 ----------
 
-First, make sure you've installed [Node >= 6](http://nodejs.org).  Then run:
+First, make sure you've installed [Node >= 16](http://nodejs.org), and `brew install coreutils` if on OSX.  Then run:
 
     $ npm install
     $ make

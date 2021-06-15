@@ -69,7 +69,7 @@ import type { Variant } from './ts-codegen-helpers';
       switch(variant.$name) {
         case 't-variant': {
           const compiledMembers = ArrayExpression(listToArray(variant.dict.fields).map((field) => {
-            const [memName, typ] = (field as unknown as { vals: T.FieldType }).vals; // TEMPORARY!
+            const [memName, typ] = field.vals;
             switch(typ.$name) {
               case 't-ref':
                 return ArrayExpression([Literal("ref"), Literal(memName), compileProvidedType(typ.dict.typ)]);

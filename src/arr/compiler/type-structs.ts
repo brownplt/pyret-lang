@@ -1,5 +1,4 @@
-import type { PTuple } from '../../runtime/types/primitive-types';
-import type { StringDict } from '../../runtime/types/string-dict-types'
+import type { PTuple, StringDict } from './ts-impl-types';
 import type * as A from './ts-ast';
 
 export type TypeMembers = StringDict<Type>
