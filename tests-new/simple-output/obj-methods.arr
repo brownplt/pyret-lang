@@ -3,10 +3,10 @@ import global as G
 
 my-obj = {
   a: "foo",
-  get-a: method(self):
+  method get-a(self):
     self.a
   end,
-  get-d: method(self):
+  method get-d(self):
     self.d
   end,
   d: "bar"
