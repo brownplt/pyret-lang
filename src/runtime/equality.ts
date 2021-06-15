@@ -523,6 +523,12 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
         return NotEqual("Variant Brands", v1, v2);
       }
     } else if (PRIMITIVES.isRawObject(v1) && PRIMITIVES.isRawObject(v2)) {
+      if ("_equals" in v1) {
+        //   NOTE(alex): CURRENTLY FAILS WITH CYCLIC STRUCTURES
+        var ans = v1["_equals"](v2, equalRec);
+
+        return ans;
+      }
       let keys1 = Object.keys(v1);
       let keys2 = Object.keys(v2);
 
