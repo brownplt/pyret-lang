@@ -9,7 +9,6 @@ export const install = (): void => {
 };
 
 export const configure = (worker: Worker /* , projectsDirectory: string */): void => {
-  debugger;
   BrowserFS.configure({
     fs: 'MountableFileSystem',
     options: {
