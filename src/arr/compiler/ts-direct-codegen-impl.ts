@@ -102,6 +102,8 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
     const NUMBER_ERR_CALLBACKS = "$errCallbacks"
     const EQUAL_ALWAYS = "equal-always"
     const IDENTICAL = "identical"
+    const TOREPR = "$torepr"
+    const UNDEFINED = Identifier(constId("undefined"));
 
     function compressRuntimeName(name : string) { return name; }
     
@@ -116,15 +118,20 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
     function chooseSrcloc(l : A.Srcloc, context) {
       switch(l.$name) {
         case "builtin": return l;
-        case "srcloc":
+        case "srcloc": {
           const override : A.Srcloc = {
             $name: 'srcloc', dict: { ...l.dict, source: context.uri }
           };
-          switch(context.options.dict['compile-mode']) {
+          const mode = (context.options.dict['compile-mode'] as CS.CompileMode);
+          switch(mode.$name) {
             case 'cm-normal': return l;
             case 'cm-builtin-stage-1': return override;
             case 'cm-builtin-general': return override;
+            default:
+              throw new ExhaustiveSwitchError(mode);
           }
+        }
+        default: throw new ExhaustiveSwitchError(l);
       }
 
     }
@@ -146,7 +153,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
         const [first, firstStmts] = compileExpr(context, cur.dict.first);
         ans = first;
         stmts.push(...firstStmts);
-        if (first !== undefined) {
+        if (first !== undefined && !(first.type === 'Identifier' && first.name === 'undefined')) {
           stmts.push(ExpressionStatement(first));
         }
         cur = cur.dict.rest;
@@ -330,28 +337,30 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       return [assignAns, [...aStmts, ...context.checkBlockTestCalls, answerVar, ...stmts]];
     }
 
+    function compileSOp(context, op: string, lv: J.Expression, rv: J.Expression): J.Expression {
+      switch(op) {
+        case "op+": return rtMethod("_plus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op-": return rtMethod("_minus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op*": return rtMethod("_times", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op/": return rtMethod("_divide", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op<": return rtMethod("_lessthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op>": return rtMethod("_greaterthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op<=": return rtMethod("_lessequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op>=": return rtMethod("_greaterequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op==": return CallExpression(rtField(EQUAL_ALWAYS), [lv, rv]); break;
+        case "op<>": return UnaryExpression("!", CallExpression(rtField(EQUAL_ALWAYS), [lv, rv])); break;
+        case "op<=>": return CallExpression(rtField(IDENTICAL), [lv, rv]); break;
+        case "opor": return LogicalExpression("||", lv, rv); break;
+        case "opand": return LogicalExpression("&&", lv, rv); break;
+        case "op^": return CallExpression(rv, [lv]); break;
+        default: throw new TODOError(`Not yet implemented: ${op}`);        
+      }
+    }
+
     function compileOp(context, expr : Variant<A.Expr, "s-op">) : CompileResult {
       const [lv, lStmts] = compileExpr(context, expr.dict.left);
       const [rv, rStmts] = compileExpr(context, expr.dict.right);
-      let ans;
-      switch(expr.dict.op) {
-        case "op+": ans = rtMethod("_plus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op-": ans = rtMethod("_minus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op*": ans = rtMethod("_times", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op/": ans = rtMethod("_divide", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op<": ans = rtMethod("_lessthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op>": ans = rtMethod("_greaterthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op<=": ans = rtMethod("_lessequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op>=": ans = rtMethod("_greaterequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op==": ans = CallExpression(rtField(EQUAL_ALWAYS), [lv, rv]); break;
-        case "op<>": ans = UnaryExpression("!", CallExpression(rtField(EQUAL_ALWAYS), [lv, rv])); break;
-        case "op<=>": ans = CallExpression(rtField(IDENTICAL), [lv, rv]); break;
-        case "opor": ans = LogicalExpression("||", lv, rv); break;
-        case "opand": ans = LogicalExpression("&&", lv, rv); break;
-        case "op^": ans = CallExpression(rv, [lv]); break;
-        default: throw new TODOError(`Not yet implements: ${expr.dict.op}`);        
-      }
-      return [ans, [...lStmts, ...rStmts]];
+      return [compileSOp(context, expr.dict.op, lv, rv), [...lStmts, ...rStmts]];
     }
 
     function compileIf(context, branches: (A.IfBranch | A.IfPipeBranch)[], compiledElse: CompileResult) : CompileResult {
@@ -458,7 +467,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       const blockLoc = Literal(formatSrcloc(chooseSrcloc(expr.dict.l, context), true));
       const testerCall = ExpressionStatement(rtMethod("$checkBlock", [blockLoc, testBlockName, jsCheckBlockFunc]));
       context.checkBlockTestCalls.push(testerCall);
-      return [undefined, []];
+      return [UNDEFINED, []];
     }
 
     /**
@@ -492,48 +501,48 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
      */
     function compileCheckTest(context, expr : Variant<A.Expr, "s-check-test">) : CompileResult {
       type CheckOpDesugar =
-        | { $name: "binop-result", op: any }
+        | { $name: "binop-result", op: string }
         | { $name: "expect-raises" }
-        | { $name: "refinement-result", refinement: any, negate: boolean }
+        | { $name: "refinement-result", refinement: J.Expression, negate: boolean }
         | { $name: "predicate-result", predicate: any };
       const {l, op, refinement, left, right, cause} = expr.dict;
-      function makeCheckOpResult(success : J.Expr, lhs : J.Expr, rhs: J.Expr) {
+      function makeCheckOpResult(success : J.Expression, lhs : J.Expression, rhs: J.Expression) {
         return ObjectExpression([
           Property("success", success), Property("lhs", lhs), Property("rhs", rhs)
         ]);
       }
 
-      function makeCheckExprResult(value : T.Either<J.Expr, J.Expr>) {
+      function makeCheckExprResult(value : T.Either<J.Expression, J.Expression>) {
         switch(value.$name) {
           case "left": return ObjectExpression([
-              Property("value", undefined),
+              Property("value", UNDEFINED),
               Property("exception", Literal(true)),
               Property("exception_value", value.dict.v)
             ]);
           case "right": return ObjectExpression([
               Property("value", value.dict.v),
               Property("exception", Literal(false)),
-              Property("exception_value", undefined)
+              Property("exception_value", UNDEFINED)
             ]);
         }
       }
 
-      function thunkIt(name : string, val : J.Expr, stmts : J.Stmt[]) {
+      function thunkIt(name : string, val : J.Expression, stmts : J.Statement[]) {
         const body = BlockStatement([...stmts, ReturnStatement(val)]);
         return FunctionExpression(compilerName(name), [], body);
       }
-      function exceptionCheck(exceptionFlag : J.Expr, lhs : J.Expr, rhs : J.Expr) {
+      function exceptionCheck(exceptionFlag : J.Expression, lhs : J.Expression, rhs : J.Expression) {
         const checkBody = BlockStatement([
           ReturnStatement(makeCheckOpResult(Literal(false), lhs, rhs))
         ]);
-        return IfStatement(exceptionFlag, checkBody, undefined);
+        return IfStatement(exceptionFlag, checkBody, null);
       }
 
       const testLoc = Literal(formatSrcloc(chooseSrcloc(l, context), true));
 
-      let checkOp, checkOpStmts;
+      let checkOp: CheckOpDesugar, checkOpStmts: J.Statement[];
       switch(op.$name) {
-        case "s-op-is":
+        case "s-op-is": {
           switch(refinement.$name) {
             case "some":
               const [ refinementExpr, refinementStmts ] = compileExpr(context, refinement.dict.value);
@@ -545,9 +554,165 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
               break;
           }
           break;
+        }
+        case "s-op-is-not": {
+          switch(refinement.$name) {
+            case "some":
+              const [ refinementExpr, refinementStmts ] = compileExpr(context, refinement.dict.value);
+              checkOp = { $name: 'refinement-result', refinement: refinementExpr, negate: true };
+              checkOpStmts = refinementStmts;
+              break;
+            case "none":
+              [checkOp, checkOpStmts] = [ {$name: 'binop-result', op: "op<>"}, []];
+              break;
+          }
+          break;
+        }
+        case 's-op-is-roughly': {
+          [checkOp, checkOpStmts] = [
+            {$name: 'refinement-result', refinement: rtMethod("within", [Literal(0.000001)]), negate: false},
+            []
+          ]
+          break;
+        }
+        case 's-op-raises': {
+          [checkOp, checkOpStmts] = [ {$name: 'expect-raises'}, []];
+          break;
+        }
+        default: throw new InternalCompilerError("Not yet implemented: " + op.$name);
       }
 
+      function defineBinTest(rightExpr: A.Expr, binOp: (lhs: J.Expression, rhs: J.Expression) => J.Expression): CompileResult {
+        // Thunk the lhs
+        const [ lhs, lhsStmts ] = compileExpr(context, left);
+        const lhFunc = thunkIt("LHS", lhs, lhsStmts);
 
+        // Thunk the rhs
+        const [ rhs, rhsStmts ] = compileExpr(context, rightExpr);
+        const rhFunc = thunkIt("RHS", rhs, rhsStmts);
+
+        // Thunk the binCheckOp
+        const lhsParamName = freshId(compilerName("lhs"));
+        const rhsParamName = freshId(compilerName("rhs"));
+
+        const lhsValue = DotExpression(Identifier(lhsParamName), "value");
+        // LHS exception check
+        const lhsException = DotExpression(Identifier(lhsParamName), "exception");
+        const lhsExceptionCheck = exceptionCheck(lhsException, Identifier(lhsParamName), Identifier(rhsParamName));
+
+        const rhsValue = DotExpression(Identifier(rhsParamName), "value");
+        // RHS exception check
+        const rhsException = DotExpression(Identifier(rhsParamName), "exception");
+        const rhsExceptionCheck = exceptionCheck(rhsException, Identifier(lhsParamName), Identifier(rhsParamName));
+
+        const jTestVal = binOp(lhsValue, rhsValue);
+
+        const successResult = makeCheckOpResult(jTestVal, Identifier(lhsParamName), Identifier(rhsParamName));
+
+        const testBodyStmts = [lhsExceptionCheck, rhsExceptionCheck, ...checkOpStmts, ReturnStatement(successResult)];
+
+        const testBody = BlockStatement(testBodyStmts);
+        const testFunc = FunctionExpression(compilerName("TEST"), [lhsParamName, rhsParamName], testBody);
+
+        const testerCallArgs = [lhFunc, rhFunc, testFunc, testLoc];
+        const testerCall = ExpressionStatement(rtMethod("$checkTest", testerCallArgs));
+
+        return [UNDEFINED, [testerCall]];
+      }
+
+      switch(checkOp.$name) {
+        case 'binop-result': {
+          const binOp = checkOp.op;
+          switch(right.$name) {
+            case 'some': return defineBinTest(right.dict.value, (left, right) => {
+              return compileSOp(context, binOp, left, right);
+            });
+            case 'none': throw new InternalCompilerError('Attempting to use a binary check op without the RHS');
+            default:
+              throw new ExhaustiveSwitchError(right);
+          }
+        }
+        case 'expect-raises': {
+          // Transforms the following Pyret test expression:
+          //   `lhs raises rhs`
+          // into
+          // ```
+          //   LHS = thunk(lhs)
+          //   RHS = thunk(rhs)
+          //   test = function(lhs, rhs) {
+          //     let success = RUNTIME.exception && (RUNTIME.$torepr(RUNTIME.$raiseExtract(lhs.exception_val).index(rhs.value))
+          //     );
+          //     return testResult(success, lhs, asException(rhs));
+          //   };
+          //   RUNTIME.$checkTest(LHS, RHS, test)
+          //
+          // ```
+          // where testResult() and asException() are conversions emitted in place
+          //
+          // The `raises` operator checks that the rhs is contained within the
+          //   string representation of the lhs.
+          //
+
+          const [ lhs, lhsStmts ] = compileExpr(context, left);
+          const lhFunc = thunkIt("LHS", lhs, lhsStmts);
+
+          // Thunk the RHS
+          let rhs: J.Expression, rhsStmts: J.Statement[];
+          switch(right.$name) {
+            case 'some': {
+              [rhs, rhsStmts] = compileExpr(context, right.dict.value);
+              break;
+            }
+            case 'none': throw new InternalCompilerError("`raises` checkop did not have a RHS, should be a parsing error");
+            default: throw new ExhaustiveSwitchError(right);
+          }
+          const rhFunc = thunkIt("RHS", rhs, rhsStmts);
+
+          // Thunk the binCheckOp
+          const lhsParamName = freshId(compilerName("lhs"));
+          const rhsParamName = freshId(compilerName("rhs"));
+
+          const rhsValue = DotExpression(Identifier(rhsParamName), "value");
+          const expectedRhs = makeCheckExprResult({ $name: 'left', dict: { v: rhsValue }});
+
+          const lhsExceptionVal = DotExpression(Identifier(lhsParamName), "exception_val");
+          const lhsExceptionExtract = rtMethod(TOREPR, [rtMethod("$raiseExtract", [lhsExceptionVal])]);
+          // NOTE(Ben): I don't like this.
+          const extractionResult = CallExpression(DotExpression(lhsExceptionExtract, "includes"), [rhsValue]);
+          const lhsIsExceptionVal = DotExpression(Identifier(lhsParamName), "exception");
+          const testResult = LogicalExpression("&&", lhsIsExceptionVal, extractionResult);
+
+          const successResult = makeCheckOpResult(testResult, Identifier(lhsParamName), expectedRhs);
+
+          const testBodyStmts = [...checkOpStmts, ReturnStatement(successResult)];
+          const testBody = BlockStatement(testBodyStmts);
+          const testFunc = FunctionExpression(compilerName("TEST"), [lhsParamName, rhsParamName], testBody);
+
+          const testerCallArgs = [lhFunc, rhFunc, testFunc, testLoc];
+          const testerCall = ExpressionStatement(rtMethod("$checkTest", testerCallArgs));
+          
+          return [UNDEFINED, [testerCall]];
+        }
+        case 'refinement-result': {
+          const { negate, refinement } = checkOp;
+          switch(right.$name) {
+            case 'some': {
+              return defineBinTest(right.dict.value, (left, right) => {
+                if (negate) {
+                  return UnaryExpression("!", CallExpression(refinement, [left, right]));
+                } else {
+                  return CallExpression(refinement, [left, right]);
+                }
+              })
+            }
+            case 'none': throw new InternalCompilerError('Attempting to use a predicate check without the RHS');
+            default: throw new ExhaustiveSwitchError(right);
+          }
+        }
+        // case 'predicate-result': {
+
+        // }
+      }
     }
 
     function compileTable(context, expr : Variant<A.Expr, 's-table'>): CompileResult {
@@ -648,8 +813,8 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       //        | end
       //        |
       // *      | my-extended-table = extend my-table using a, b
-      // *(Map) |   d: a / 2,           # a "Mapping" extension
-      // *(Red) |   e: running-sum of b # a "Reducer"
+      // *(Map) |   d: a / 2,           // a "Mapping" extension
+      // *(Red) |   e: running-sum of b // a "Reducer"
       // *      | end
       //
       // compile into JavaScript code that resembles the following:
@@ -868,7 +1033,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       return [returnExpr, returnStmts];
     }
 
-    // mimics the Srcloc#format method from ast.arr
+    // mimics the Srcloc//format method from ast.arr
     function formatSrcloc(loc: A.Srcloc, showFile: boolean): string {
       switch(loc.$name) {
         case 'builtin': return `<builtin ${loc.dict['module-name']}>`;
@@ -1125,10 +1290,10 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
         // Runtime is responsible for output
         const spyCall = ExpressionStatement(rtMethod("$spy", [spyBlockObj]));
 
-        return [undefined, [spyCall]];
+        return [UNDEFINED, [spyCall]];
       } else {
         // Do NOT generate spy code
-        return [undefined, []]
+        return [UNDEFINED, []]
       }
     }
 
@@ -1160,7 +1325,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
           return [rtField(expr.dict.name), []];
         }
         case 's-undefined': {
-          return [undefined, []];
+          return [UNDEFINED, []];
         }
           
         case 's-id': {
@@ -1180,7 +1345,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
           else {
             const id = Identifier(jsIdOf(expr.dict.id));
             return [ConditionalExpression(
-              BinaryExpression("!==", id, Identifier(constId("undefined"))),
+              BinaryExpression("!==", id, UNDEFINED),
               id,
               rtMethod("$messageThrow", [compileSrcloc(context, expr.dict.l), Literal("Uninitialized letrec identifier")])
             ), []];
@@ -1322,9 +1487,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
           
         case 's-check-expr': return compileExpr(context, expr.dict.expr);
         case 's-check': return compileCheckBlock(context, expr);
-        case 's-check-test': {
-          return [undefined, []]; // TODO: Finish this!
-        }
+        case 's-check-test': return compileCheckTest(context, expr);
         
         case 's-table': return compileTable(context, expr);
         case 's-load-table': return compileLoadTable(context, expr);
