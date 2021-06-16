@@ -1,68 +1,71 @@
 // TODO(alex): roughly-equals and co (not documented but found in js/base/runtime.js)
 
-const _NUMBER = require("./js-numbers.js");
-const PRIMTIVES = require("./primitives.js");
+import type * as PRIMITIVES_TYPES from './primitives';
+import type * as EQ from './types/equality-types';
 
-const $EqualBrand = {"names":false};
-const $NotEqualBrand = {"names":["reason","value1","value2"]};
-const $UnknownBrand = {"names":["reason","value1","value2"]};
-const $EqualTag = 0;
-const $NotEqualTag = 1;
-const $UnknownTag = 2;
+const _NUMBER = require("./js-numbers.js");
+const PRIMITIVES = require('./primitives') as typeof PRIMITIVES_TYPES;
 
 // ********* EqualityResult Representations *********
-export interface Equal {
-  $brand: any,
-  $tag: number,
-}
 
-export interface NotEqual {
-  $brand: any,
-  $tag: number,
-  reason: string,
-  value1: any,
-  value2: any,
-}
+const sharedBase_EqualityResult = { ['$methods']: {} };
+const variantBase_Equal = PRIMITIVES.createVariant(sharedBase_EqualityResult, { ['$methods']: {} }, {
+    ['$data']: sharedBase_EqualityResult,
+    ['$name']: 'Equal',
+    ['$fieldNames']: null
+});
+const variantBase_NotEqual = PRIMITIVES.createVariant(sharedBase_EqualityResult, { ['$methods']: {} }, {
+    ['$data']: sharedBase_EqualityResult,
+    ['$name']: 'NotEqual',
+    ['$fieldNames']: [
+        'reason',
+        'value1',
+        'value2'
+    ]
+});
+const variantBase_Unknown = PRIMITIVES.createVariant(sharedBase_EqualityResult, { ['$methods']: {} }, {
+    ['$data']: sharedBase_EqualityResult,
+    ['$name']: 'Unknown',
+    ['$fieldNames']: [
+        'reason',
+        'value1',
+        'value2'
+    ]
+});
 
-export interface Unknown {
-  $brand: any,
-  $tag: number,
-  reason: string,
-  value1: any,
-  value2: any,
-}
-
-export type EqualityResult = Equal | NotEqual | Unknown;
-
-// This function is used by flat functions in image.arr.js, so it must also be flat.
 /* @stopify flat */
-export function Equal(): Equal {
-  return {
-    "$brand": $EqualBrand,
-    "$tag": $EqualTag,
-  };
+export function isEqualityResult(val) {
+  return typeof val === 'object' && val !== null && val['$data'] === sharedBase_EqualityResult;
 }
-
-// This function is used by flat functions in image.arr.js, so it must also be flat.
 /* @stopify flat */
-export function NotEqual(reason: string, value1: any, value2: any): NotEqual {
-  return {
-    "$brand": $NotEqualBrand,
-    "$tag": $NotEqualTag,
-    "reason": reason,
-    "value1": value1,
-    "value2": value2,
-  };
+export function isEqual(val) {
+  return typeof val === 'object' && val !== null && val['$variant'] === Equal;
 }
-
-export function Unknown(reason: string, value1: any, value2: any): Unknown {
-  return {
-    "$brand": $UnknownBrand,
-    "$tag": $UnknownTag,
-    "reason": reason,
-    "value1": value1,
-    "value2": value2,
-  };
+const Equal : EQ.Equal = variantBase_Equal;
+export { Equal };
+/* @stopify flat */
+export function isNotEqual(val) {
+  return typeof val === 'object' && val !== null && val['$variant'] === variantBase_NotEqual;
+}
+/* @stopify flat */
+export function NotEqual(reason: string, value1: any, value2: any): EQ.NotEqual {
+  return PRIMITIVES.makeDataValue(variantBase_NotEqual, {
+      ['reason']: reason,
+      ['value1']: value1,
+      ['value2']: value2
+  });
+}
+/* @stopify flat */
+export function isUnknown(val) {
+  return typeof val === 'object' && val !== null && val['$variant'] === variantBase_Unknown;
+}
+/* @stopify flat */
+export function Unknown(reason: string, value1: any, value2: any): EQ.Unknown {
+  return PRIMITIVES.makeDataValue(variantBase_Unknown, {
+      ['reason']: reason,
+      ['value1']: value1,
+      ['value2']: value2
+  });
 }
 
 const TOL_IS_REL = true;
@@ -73,27 +76,15 @@ const FROM_WITHIN = true;
 
 const numericEquals: (v1: any, v2: any, callbacks: NumericErrorCallbacks) => boolean = _NUMBER["equals"];
 
-export function isEqual(val: any): boolean{
-  return val.$brand === $EqualBrand;
-}
-
-export function isNotEqual(val: any): boolean {
-  return val.$brand === $NotEqualBrand;
-}
-
-export function isUnknown(val: any): boolean {
-  return val.$brand === $UnknownBrand;
-}
-
 
 // ********* Helpers *********
-function equalityResultToBool(ans: EqualityResult): boolean {
+function equalityResultToBool(ans: EQ.EqualityResult): boolean {
   if (isEqual(ans)) {
     return true;
   } else if (isNotEqual(ans)) {
     return false;
   } else if (isUnknown(ans)) {
-    let unknownVariant = ans as Unknown;
+    let unknownVariant = ans as EQ.Unknown;
     throw {
       reason: unknownVariant.reason,
       value1: unknownVariant.value1,
@@ -133,31 +124,31 @@ export {
 }
 
 // ********* Equality Functions *********
-export function identical3(v1: any, v2: any): EqualityResult {
-  if (PRIMTIVES.isFunction(v1) && PRIMTIVES.isFunction(v2)) {
+export function identical3(v1: any, v2: any): EQ.EqualityResult {
+  if (PRIMITIVES.isFunction(v1) && PRIMITIVES.isFunction(v2)) {
     return Unknown("Function", v1, v2);
-  } else if (PRIMTIVES.isMethod(v1) && PRIMTIVES.isMethod(v2)) {
+  } else if (PRIMITIVES.isMethod(v1) && PRIMITIVES.isMethod(v2)) {
     return Unknown("Method", v1, v2);
-  } else if (PRIMTIVES.isRoughNumber(v1) && PRIMTIVES.isRoughNumber(v2)) {
+  } else if (PRIMITIVES.isRoughNumber(v1) && PRIMITIVES.isRoughNumber(v2)) {
     return Unknown('Roughnums', v1,  v2);
   } else if (v1 === v2) {
-    return Equal();
+    return Equal;
   } else {
     return NotEqual("", v1, v2);
   }
 }
 
 export function identical(v1: any, v2: any): boolean {
-  let ans: EqualityResult = identical3(v1, v2);
+  let ans: EQ.EqualityResult = identical3(v1, v2);
   return equalityResultToBool(ans);
 }
 
 export function equalNow(v1: any, v2: any): boolean {
-  let ans: EqualityResult = equalNow3(v1, v2);
+  let ans: EQ.EqualityResult = equalNow3(v1, v2);
   return equalityResultToBool(ans);
 }
 
-export function equalNow3(v1: any, v2: any): EqualityResult {
+export function equalNow3(v1: any, v2: any): EQ.EqualityResult {
   return equalCore3(v1, v2, EQUAL_NOW, 0, TOL_IS_ABS, false);
 }
 
@@ -168,7 +159,7 @@ export function equalNow3(v1: any, v2: any): EqualityResult {
  * Data variants and raw (unbranded) objects are NEVER equal.
  *
  */
-export function equalAlways3(v1: any, v2: any): EqualityResult {
+export function equalAlways3(v1: any, v2: any): EQ.EqualityResult {
   return equalCore3(v1, v2, EQUAL_ALWAYS, 0, TOL_IS_ABS, false);
 }
 
@@ -185,7 +176,7 @@ export function equalAlways(v1: any, v2: any): boolean {
 //    | otherwise: er2 # Equal or Equal/Equal or Unknown
 //  end
 //end
-export function equal_and(er1: EqualityResult, er2: EqualityResult): EqualityResult {
+export function equal_and(er1: EQ.EqualityResult, er2: EQ.EqualityResult): EQ.EqualityResult {
     if (isNotEqual(er1)) {
         return er1;
     } else if (isNotEqual(er2)) {
@@ -206,7 +197,7 @@ export function equal_and(er1: EqualityResult, er2: EqualityResult): EqualityRes
 //    | otherwise: er2 # NotEqual or NotEqual/NotEqual or Unknown
 //  end
 //end
-export function equal_or(er1: EqualityResult, er2: EqualityResult): EqualityResult {
+export function equal_or(er1: EQ.EqualityResult, er2: EQ.EqualityResult): EQ.EqualityResult {
     if (isEqual(er1)) {
         return er1;
     } else if (isEqual(er2)) {
@@ -226,7 +217,7 @@ export function equal_or(er1: EqualityResult, er2: EqualityResult): EqualityResu
 //    | NotEqual(_,_,_) => false
 //  end
 //end
-export function to_boolean(er: EqualityResult): boolean {
+export function to_boolean(er: EQ.EqualityResult): boolean {
     if (isUnknown(er)) {
         // TODO(alex): Fill this in with the generic `raise` function
         //   CANNOT IMPORT "global.arr.js" OR "runtime.ts" directly b/c the circular depenency
@@ -311,7 +302,7 @@ export function _lessthan(lhs: any, rhs: any): boolean {
     // Check if object has a '<' custom implementation
     if ((typeof lhs === "object") && ("_lessthan" in lhs)) {
         return lhs._lessthan(rhs);
-    } else if (PRIMTIVES.isString(lhs) && PRIMTIVES.isString(rhs)) {
+    } else if (PRIMITIVES.isString(lhs) && PRIMITIVES.isString(rhs)) {
         // NOTE: JS uses lexicographical order
         return lhs < rhs;
     } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
@@ -330,7 +321,7 @@ export function _greaterthan(lhs: any, rhs: any): boolean {
     // Check if object has a '>' custom implementation
     if ((typeof lhs === "object") && ("_greaterthan" in lhs)) {
         return lhs._greaterthan(rhs);
-    } else if (PRIMTIVES.isString(lhs) && PRIMTIVES.isString(rhs)) {
+    } else if (PRIMITIVES.isString(lhs) && PRIMITIVES.isString(rhs)) {
         // NOTE: JS uses lexicographical order
         return lhs > rhs;
     } else if (_NUMBER.isPyretNumber(lhs) && _NUMBER.isPyretNumber(rhs)) {
@@ -354,7 +345,7 @@ export function _greaterequal(lhs: any, rhs: any): boolean {
 }
 
 // tol and rel are PyretNumber's
-function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel: boolean, fromWithin: boolean): EqualityResult {
+function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel: boolean, fromWithin: boolean): EQ.EqualityResult {
 
   if(tol === undefined) { // means that we aren't doing any kind of within
     const isIdentical = identical3(left, right);
@@ -375,54 +366,54 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
     return worklist.pop();
   }
 
-  function equalRec(l: any, r: any): EqualityResult {
+  function equalRec(l: any, r: any): EQ.EqualityResult {
     return equalHelp(l, r);
   }
 
   // Actual equality implementation on individual items
-  function equalHelp(v1: any, v2: any): EqualityResult {
+  function equalHelp(v1: any, v2: any): EQ.EqualityResult {
 
     if (isEqual(identical3(v1, v2))) {
       // Identical so must always be equal
-      return Equal();
+      return Equal;
     }
 
-    if (PRIMTIVES.isNumber(v1) && PRIMTIVES.isNumber(v2)) {
+    if (PRIMITIVES.isNumber(v1) && PRIMITIVES.isNumber(v2)) {
 
       if (tol) {
         if (rel) {
           if (_NUMBER["roughlyEqualsRel"](v1, v2, tol, NumberErrbacks)) {
-            return Equal();
+            return Equal;
           } else {
             return NotEqual("", v1, v2);
           }
         } else if (_NUMBER["roughlyEquals"](v1, v2, tol, NumberErrbacks)) {
-          return Equal();
+          return Equal;
         } else {
           return NotEqual("", v1, v2);
         }
-      } else if (PRIMTIVES.isRoughNumber(v1) || PRIMTIVES.isRoughNumber(v2)) {
+      } else if (PRIMITIVES.isRoughNumber(v1) || PRIMITIVES.isRoughNumber(v2)) {
         return Unknown("Rough Number equal-always", v1, v2);
       } else if (numericEquals(v1, v2, NumberErrbacks)) {
-        return Equal();
+        return Equal;
       } else {
         return NotEqual("Numbers", v1, v2);
       }
 
-    } else if (PRIMTIVES.isBoolean(v1) && PRIMTIVES.isBoolean(v2)) {
+    } else if (PRIMITIVES.isBoolean(v1) && PRIMITIVES.isBoolean(v2)) {
       if (v1 !== v2) { return NotEqual("Booleans", v1, v2); }
-      return Equal();
+      return Equal;
 
-    } else if (PRIMTIVES.isString(v1) && PRIMTIVES.isString(v2)) {
+    } else if (PRIMITIVES.isString(v1) && PRIMITIVES.isString(v2)) {
       if (v1 !== v2) { return NotEqual("Strings", v1, v2); }
-      return Equal();
+      return Equal;
 
-    } else if (PRIMTIVES.isFunction(v1) && PRIMTIVES.isFunction(v2)) {
+    } else if (PRIMITIVES.isFunction(v1) && PRIMITIVES.isFunction(v2)) {
       // Cannot compare functions for equality
       return Unknown("Functions", v1, v2);
-    } else if (PRIMTIVES.isMethod(v1) && PRIMTIVES.isMethod(v2)) {
+    } else if (PRIMITIVES.isMethod(v1) && PRIMITIVES.isMethod(v2)) {
       return Unknown("Methods", v1, v2);
-    } else if (PRIMTIVES.isPTuple(v1) && PRIMTIVES.isPTuple(v2)) {
+    } else if (PRIMITIVES.isPTuple(v1) && PRIMITIVES.isPTuple(v2)) {
       if (v1.length !== v2.length) {
         return NotEqual("PTuple Length", v1, v2);
       }
@@ -430,9 +421,9 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
       for (var i = 0; i < v1.length; i++) {
         worklistPush(v1[i], v2[i]);
       }
-      return Equal();
+      return Equal;
 
-    } else if (PRIMTIVES.isArray(v1) && PRIMTIVES.isArray(v2)) {
+    } else if (PRIMITIVES.isArray(v1) && PRIMITIVES.isArray(v2)) {
       if (alwaysFlag || v1.length !== v2.length) {
         return NotEqual("Array Length", v1, v2);
       }
@@ -440,23 +431,23 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
       for (var i = 0; i < v1.length; i++) {
         worklistPush(v1[i], v2[i]);
       }
-      return Equal();
+      return Equal;
 
-    } else if (PRIMTIVES.isNothing(v1) && PRIMTIVES.isNothing(v2)) {
+    } else if (PRIMITIVES.isNothing(v1) && PRIMITIVES.isNothing(v2)) {
       // Equality is defined for 'nothing'
       // 'nothing' is always equal to 'nothing'
-      return Equal();
+      return Equal;
 
-    } else if (PRIMTIVES.isPRef(v1) && PRIMTIVES.isPRef(v2)) {
+    } else if (PRIMITIVES.isPRef(v1) && PRIMITIVES.isPRef(v2)) {
       // In equal-always, non-identical refs are not equal
       // TODO: handle alwaysFlag
       if (v1.ref !== v2.ref) {
         return NotEqual("PRef'd Objects", v1, v2);
       }
 
-      return Equal();
+      return Equal;
 
-    } else if (PRIMTIVES.isTable(v1) && PRIMTIVES.isTable(v2)) {
+    } else if (PRIMITIVES.isTable(v1) && PRIMITIVES.isTable(v2)) {
         let v1_headers = v1._headers;
         let v2_headers = v2._headers;
 
@@ -485,8 +476,8 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
             }
         }
 
-        return Equal();
-    } else if (PRIMTIVES.isRow(v1) && PRIMTIVES.isRow(v2)) {
+        return Equal;
+    } else if (PRIMITIVES.isRow(v1) && PRIMITIVES.isRow(v2)) {
 
         let v1_headers = v1._headers;
         let v2_headers = v2._headers;
@@ -509,10 +500,10 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
             worklistPush(v1[i], v2[i]);
         }
 
-        return Equal();
+        return Equal;
 
-    } else if (PRIMTIVES.isDataVariant(v1) && PRIMTIVES.isDataVariant(v2)) {
-      if(v1.$brand && v1.$brand === v2.$brand) {
+    } else if (PRIMITIVES.isDataVariant(v1) && PRIMITIVES.isDataVariant(v2)) {
+      if(v1.$variant && v1.$variant === v2.$variant) {
         if ("_equals" in v1) {
           //   NOTE(alex): CURRENTLY FAILS WITH CYCLIC STRUCTURES
           var ans = v1["_equals"](v2, equalRec);
@@ -520,26 +511,24 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
           return ans;
         }
 
-        var fields1 = v1.$brand.names;
-        var fields2 = v2.$brand.names;
+        var fields1 = v1.$fieldNames;
+        var fields2 = v2.$fieldNames;
 
-        if(fields1.length !== fields2.length) {
-          // Not the same brand
-          return NotEqual("Object Brands", v1, v2);
-        }
         for(var i = 0; i < fields1.length; i += 1) {
-          if(fields1[i] != fields2[i]) {
-            // Not the same brand
-            return NotEqual("Field Brands", fields1[i], fields2[i]);
-          }
           worklistPush(v1[fields1[i]], v2[fields2[i]]);
         }
-        return Equal();
+        return Equal;
 
       } else {
         return NotEqual("Variant Brands", v1, v2);
       }
-    } else if (PRIMTIVES.isRawObject(v1) && PRIMTIVES.isRawObject(v2)) {
+    } else if (PRIMITIVES.isRawObject(v1) && PRIMITIVES.isRawObject(v2)) {
+      if ("_equals" in v1) {
+        //   NOTE(alex): CURRENTLY FAILS WITH CYCLIC STRUCTURES
+        var ans = v1["_equals"](v2, equalRec);
+
+        return ans;
+      }
       let keys1 = Object.keys(v1);
       let keys2 = Object.keys(v2);
 
@@ -559,7 +548,7 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
         }
       }
 
-      return Equal();
+      return Equal;
     } else {
       return NotEqual("", left, right);
     }
@@ -574,5 +563,5 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
     }
   }
 
-  return Equal();
+  return Equal;
 }

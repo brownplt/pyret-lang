@@ -10,7 +10,7 @@ import file("concat-lists.arr") as CL
 import file("flatness.arr") as FL
 import file("js-dag-utils.arr") as DAG
 import file("ast-util.arr") as AU
-import file("provide-serialization.arr") as PSE
+import js-file("provide-serialization") as PSE
 import file("type-structs.arr") as T
 import string-dict as D
 import srcloc as SL

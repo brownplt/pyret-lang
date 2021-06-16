@@ -1,0 +1,25 @@
+### true
+
+# no-type-check-table-load-table.arr
+# load-table syntax test.
+
+import global as G
+import equality as E
+import tables as T
+
+my-table = load-table: first, second, third
+  source: T._makeTableSkeletonFromCSVString(```a,b,c
+1,TRUE,a
+4,FALSE,b
+7,TRUE,c ```)
+end
+
+expected-table = table: first, second, third
+  row: 1, true, "a"
+  row: 4, false, "b"
+  row: 7, true, "c"
+end
+
+passes-when-true = E.equal-always(expected-table, my-table)
+
+G.console-log(passes-when-true)

@@ -2,313 +2,64 @@ import * as J from 'estree';
 import type * as Escodegen from 'escodegen';
 import type * as Path from 'path';
 import type * as A from './ts-ast';
+import type * as T from './ts-impl-types';
 import type * as CS from './ts-compile-structs';
+import type * as TJ from './ts-codegen-helpers';
+import type { Variant, PyretObject } from './ts-codegen-helpers';
 
 ({ 
-  requires: [],
+  requires: [{ 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']} ],
   nativeRequires: ["escodegen", "path"],
   provides: {
     values: {
       "compile-program": "tany"
     }
   },
-  theModule: function(runtime, _, ___, escodegen : (typeof Escodegen), P : (typeof Path)) {
+  theModule: function(runtime, _, ___, tj : TJ.Exports, escodegen : (typeof Escodegen), P : (typeof Path)) {
     // Pretty-print JS asts
     // Return a PyretObject
     // Type enough AST to get to s-num
 
-    type Variant<T, V> = T & { $name: V };
-
-    class ExhaustiveSwitchError extends Error {
-      constructor(v: never, message?: string) {
-        super(`Switch is not exhaustive on \`${JSON.stringify(v)}\`: ${message}`);
-      }
-    }
-    class InternalCompilerError extends Error {
-      constructor(message: string) {
-        super(`Internal compile error (compiler bug/broken invariant): ${message}`);
-      }
-    }
-    class ShouldHaveDesugared extends Error {
-      constructor(loc: A.Srcloc, variant: string) {
-        super(`Expression form should have been desugared (compiler bug/broken invariant): ${variant} at ${JSON.stringify(loc)}`);
-      }
-    }
-    class TODOError extends Error {
-      constructor(message: string) {
-        super(`Incomplete feature in compiler: ${message}`);
-      }
-    }
-
-    type PyretObject = {
-      dict: any
-    };
-
-    function ExpressionStatement(e : J.Expression) : J.Statement {
-      return { type: "ExpressionStatement", expression: e };
-    }
-    function CallExpression(callee : J.Expression, args: Array<J.Expression>) : J.Expression {
-      return {
-        type: "CallExpression",
-        callee: callee,
-        arguments: args,
-        optional: false
-      };
-    }
-    function MethodCallExpression(obj : J.Expression, field : string, args: Array<J.Expression>) : J.Expression {
-      return {
-        type: "CallExpression",
-        callee: DotExpression(obj, field),
-        arguments: args,
-        optional: false
-      };
-    }
-    function DotExpression(object : J.Expression, property : string) : J.MemberExpression {
-      return {
-        type: "MemberExpression",
-        object: object,
-        property: Literal(property),
-        computed: true,
-        optional: false
-      }
-    }
-    function BracketExpression(object : J.Expression, property : J.Expression) : J.MemberExpression {
-      return {
-        type: "MemberExpression",
-        object: object,
-        property: property,
-        computed: true,
-        optional: false
-      }
-    }
-    function Literal(a : any) : J.Expression {
-      if(a === undefined) { throw new InternalCompilerError("undefined given to Literal"); }
-      if (typeof a === 'number' && a < 0) {
-        return UnaryExpression('-', { type: 'Literal', value: 0 - a });
-      }
-      return {
-        type: "Literal",
-        value: a
-      };
-    }
-    function Identifier(id : A.Name) : J.Identifier {
-      return {
-        type: "Identifier",
-        name: nameToSourceString(id)
-      };
-    }
-    function ReturnStatement(e : J.Expression) : J.Statement {
-      return {
-        type: "ReturnStatement",
-        argument: e
-      }
-    }
-    function Var(id : A.Name, expr : J.Expression) : J.Declaration {
-      return {
-        type: "VariableDeclaration",
-        kind: "var",
-        declarations: [ { type: "VariableDeclarator", id: Identifier(id), init: expr }]
-      };
-    }
-    function FunctionExpression(id : A.Name, args : Array<A.Name>, body : J.BlockStatement) : J.Expression {
-      return {
-        type: "FunctionExpression",
-        id: Identifier(id),
-        params: args.map(Identifier),
-        body
-      };
-    }
-    function AssignmentExpression(lhs : J.MemberExpression | J.Identifier, rhs : J.Expression) : J.Expression {
-      return {
-        type: "AssignmentExpression",
-        operator: "=",
-        left: lhs,
-        right: rhs
-      }
-    }
-    function BinaryExpression(op : J.BinaryOperator, left : J.Expression, right : J.Expression) : J.Expression {
-      return {
-        type: "BinaryExpression",
-        operator: op,
-        left: left,
-        right: right
-      };
-    }
-    function ConditionalExpression(cond : J.Expression, thn : J.Expression, els : J.Expression) : J.Expression {
-      return {
-        type: "ConditionalExpression",
-        test: cond,
-        consequent: thn,
-        alternate: els
-      };
-    }
-    function ArrayExpression(values : Array<J.Expression>) : J.Expression {
-      return {
-        type: "ArrayExpression",
-        elements: values
-      }
-    }
-    function ObjectExpression(properties : Array<J.Property>) : J.Expression {
-      return {
-        type: "ObjectExpression",
-        properties: properties
-      };
-    }
-    function Getter(name : string, value : J.Expression) : J.Property {
-      return {
-        type: "Property",
-        kind: "get",
-        key: Literal(name),
-        value: value,
-        method: false,
-        shorthand: false,
-        computed: true
-      };
-    }
-    function Property(name : string, value : J.Expression) : J.Property {
-      return {
-        type: "Property",
-        kind: "init",
-        key: Literal(name),
-        value: value,
-        method: false,
-        shorthand: false,
-        computed: true
-      };
-    }
-    function Program(body : Array<J.Statement>) : J.Program {
-      return {
-        sourceType: "module",
-        type: "Program",
-        body: body
-      };
-    }
-
-    function UnaryExpression(operator: J.UnaryOperator, argument : J.Expression) : J.Expression {
-      return {
-        type: "UnaryExpression",
-        operator,
-        argument,
-        prefix: true,
-      };
-    }
-
-    function LogicalExpression(operator : J.LogicalOperator, left: J.Expression, right: J.Expression) : J.Expression {
-      return {
-        type: "LogicalExpression",
-        left,
-        right,
-        operator,
-      };
-    }
-
-    function SwitchStatement(value : J.Expression, cases : Array<J.SwitchCase>) : J.Statement {
-      return {
-        type: "SwitchStatement",
-        cases: cases,
-        discriminant: value
-      };
-    }
-
-    function Case(value : J.Expression, body : Array<J.Statement>) : J.SwitchCase {
-      return {
-        type: "SwitchCase",
-        test: value,
-        consequent: body
-      }
-    }
-
-    function Default(body : Array<J.Statement>) : J.SwitchCase {
-      return {
-        type: "SwitchCase",
-        test: null,
-        consequent: body
-      }
-    }
-
-    const BreakStatement : J.Statement = { type: 'BreakStatement' };
-    function BlockStatement(stmts : J.Statement[]) : J.BlockStatement {
-      return {
-        type: 'BlockStatement',
-        body: stmts,
-      }
-    }
-
-    function IfStatement(test: J.Expression, thn: J.Statement, els: J.Statement): J.IfStatement {
-      return {
-        type: 'IfStatement',
-        test,
-        consequent: thn,
-        alternate: els,
-      };
-    }
-
-
-    function MakeName(start : number) {
-      var count = start;
-      function atom(base : string) : A.Name {
-        count = count + 1;
-        return { $name: "s-atom", dict: { base: base, serial: count }};
-      }
-      return {
-        reset: () => count = start,
-        sUnderscore: (l : A.Srcloc) : A.Name => ({ $name: "s-underscore", dict: { l }}),
-        sName: (s : string, l : A.Srcloc) : A.Name => ({ $name: "s-name", dict: { s, l }}),
-        sGlobal: (s : string) : A.Name => ({ $name: "s-global", dict: { s }}),
-        sModuleGlobal: (s : string) : A.Name => ({ $name: "s-module-global", dict: { s }}),
-        sTypeGlobal: (s : string) : A.Name => ({ $name: "s-type-global", dict: { s }}),
-        makeAtom : atom,
-        isSUnderscore: v => v.$name === "s-underscore",
-        isSName: v => v.$name === "s-name",
-        isSGlobal: v => v.$name === "s-global",
-        isSModuleGlobal: v => v.$name === "s-module-global",
-        isSAtom: v => v.$name === "s-atom",
-      };
-    }
-
-    // NOTE(joe): Function version of to-sourcestring() method on Name in ast.arr
-    function nameToSourceString(name : A.Name) : string {
-      switch(name.$name) {
-        case "s-underscore": return "_";
-        case "s-name": return name.dict.s;
-        case "s-global": return name.dict.s;
-        case "s-module-global": return "$module$" + name.dict.s;
-        case "s-type-global": return "$type$" + name.dict.s;
-        case "s-atom": return name.dict.base + String(name.dict.serial);
-      }
-    }
-
-    function bindToName(b : A.Bind) {
-      switch(b.$name) {
-        case 's-bind': return nameToName(b.dict.id);
-        case 's-tuple-bind': throw new ShouldHaveDesugared(b.dict.l, "Got an s-tuple-bind, which should have been desugared");
-      }
-    }
-
-    // NOTE(joe): Function version of toname() method on Name in ast.arr
-    function nameToName(name : A.Name) : string {
-      switch(name.$name) {
-        case "s-underscore": return "_";
-        case "s-atom": return name.dict.base;
-        default: return name.dict.s;
-      }
-    }
-
-    function nameToKey(name : A.Name) : string {
-      switch(name.$name) {
-        case "s-underscore": return "underscore#";
-        case "s-name": return "name#" + name.dict.s;
-        case "s-global": return "global#" + name.dict.s;
-        case "s-module-global": return "mglobal#" + name.dict.s;
-        case "s-type-global": return "tglobal#" + name.dict.s;
-        case "s-atom": return "atom#" + name.dict.base + "#" + String(name.dict.serial);
-      }
-    }
-
-    const dummyLoc : A.Srcloc = {
-      $name: "builtin",
-      dict: { 'module-name': "dummy location" }
-    };
+    const {
+      ArrayExpression,
+      AssignmentExpression,
+      BinaryExpression,
+      BlockStatement,
+      BracketExpression,
+      BreakStatement,
+      CallExpression,
+      Case,
+      ConditionalExpression,
+      Default,
+      DotExpression,
+      ExhaustiveSwitchError,
+      ExpressionStatement,
+      FunctionExpression,
+      Getter,
+      Identifier,
+      IfStatement,
+      InternalCompilerError,
+      Literal,
+      LogicalExpression,
+      MakeName,
+      MethodCallExpression,
+      ObjectExpression,
+      Program,
+      Property,
+      ReturnStatement,
+      ShouldHaveDesugared,
+      SwitchStatement,
+      TODOError,
+      UnaryExpression,
+      Var,
+      bindToName,
+      compileSrcloc,
+      dummyLoc,
+      listToArray,
+      nameToKey,
+      nameToName,
+      nameToSourceString,
+    } = tj;
 
     const jsnames = MakeName(0);
     const jsIds = new Map<string, A.Name>();
@@ -351,6 +102,8 @@ import type * as CS from './ts-compile-structs';
     const NUMBER_ERR_CALLBACKS = "$errCallbacks"
     const EQUAL_ALWAYS = "equal-always"
     const IDENTICAL = "identical"
+    const TOREPR = "$torepr"
+    const UNDEFINED = Identifier(constId("undefined"));
 
     function compressRuntimeName(name : string) { return name; }
     
@@ -360,6 +113,27 @@ import type * as CS from './ts-compile-structs';
 
     function rtMethod(name : string, args : Array<J.Expression>) {
       return CallExpression(DotExpression(Identifier(RUNTIME), compressRuntimeName(name)), args);
+    }
+    
+    function chooseSrcloc(l : A.Srcloc, context) {
+      switch(l.$name) {
+        case "builtin": return l;
+        case "srcloc": {
+          const override : A.Srcloc = {
+            $name: 'srcloc', dict: { ...l.dict, source: context.uri }
+          };
+          const mode = (context.options.dict['compile-mode'] as CS.CompileMode);
+          switch(mode.$name) {
+            case 'cm-normal': return l;
+            case 'cm-builtin-stage-1': return override;
+            case 'cm-builtin-general': return override;
+            default:
+              throw new ExhaustiveSwitchError(mode);
+          }
+        }
+        default: throw new ExhaustiveSwitchError(l);
+      }
+
     }
 
     function compileList(context, exprs: A.List<A.Expr>) : [ Array<J.Expression>, Array<J.Statement> ] {
@@ -379,14 +153,12 @@ import type * as CS from './ts-compile-structs';
         const [first, firstStmts] = compileExpr(context, cur.dict.first);
         ans = first;
         stmts.push(...firstStmts);
-        stmts.push(ExpressionStatement(first));
+        if (first !== undefined && !(first.type === 'Identifier' && first.name === 'undefined')) {
+          stmts.push(ExpressionStatement(first));
+        }
         cur = cur.dict.rest;
       }
       return [ans, stmts]
-    }
-
-    function listToArray<T>(l : A.List<T>) : Array<T> {
-      return runtime.ffi.toArray(l);
     }
 
     function arrayToList<T>(arr : T[]) : A.List<T> {
@@ -462,7 +234,7 @@ import type * as CS from './ts-compile-structs';
           case 's-singleton-variant': fieldNamesField = Literal(null); break;
           case 's-variant': {
             const binds = listToArray(v.dict.members).map(m => m.dict.bind);
-            fieldNamesField = ArrayExpression(binds.map(bindToName).map(Literal));
+            fieldNamesField = ArrayExpression(binds.map((b) => Literal(nameToName(bindToName(b)))));
             break;
           }
         }
@@ -521,21 +293,7 @@ import type * as CS from './ts-compile-structs';
 
     type CompileResult = [J.Expression, Array<J.Statement>];
 
-    function compileSrcloc(_context : any, l : A.Srcloc) : J.Expression {
-      switch(l.$name) {
-        case "builtin": return ArrayExpression([Literal(l.dict['module-name'])]);
-        case "srcloc":
-          return ArrayExpression([
-            Literal(l.dict.source),
-            Literal(l.dict['start-line']),
-            Literal(l.dict['start-column']),
-            Literal(l.dict['start-char']),
-            Literal(l.dict['end-line']),
-            Literal(l.dict['end-column']),
-            Literal(l.dict['end-char']),
-          ]);
-      }
-    }
+    
 
     function compileModule(context, expr: Variant<A.Expr, "s-module">) : CompileResult {
       const fields = [];
@@ -579,28 +337,30 @@ import type * as CS from './ts-compile-structs';
       return [assignAns, [...aStmts, ...context.checkBlockTestCalls, answerVar, ...stmts]];
     }
 
+    function compileSOp(context, op: string, lv: J.Expression, rv: J.Expression): J.Expression {
+      switch(op) {
+        case "op+": return rtMethod("_plus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op-": return rtMethod("_minus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op*": return rtMethod("_times", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op/": return rtMethod("_divide", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op<": return rtMethod("_lessthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op>": return rtMethod("_greaterthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op<=": return rtMethod("_lessequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op>=": return rtMethod("_greaterequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
+        case "op==": return CallExpression(rtField(EQUAL_ALWAYS), [lv, rv]); break;
+        case "op<>": return UnaryExpression("!", CallExpression(rtField(EQUAL_ALWAYS), [lv, rv])); break;
+        case "op<=>": return CallExpression(rtField(IDENTICAL), [lv, rv]); break;
+        case "opor": return LogicalExpression("||", lv, rv); break;
+        case "opand": return LogicalExpression("&&", lv, rv); break;
+        case "op^": return CallExpression(rv, [lv]); break;
+        default: throw new TODOError(`Not yet implemented: ${op}`);        
+      }
+    }
+
     function compileOp(context, expr : Variant<A.Expr, "s-op">) : CompileResult {
       const [lv, lStmts] = compileExpr(context, expr.dict.left);
       const [rv, rStmts] = compileExpr(context, expr.dict.right);
-      let ans;
-      switch(expr.dict.op) {
-        case "op+": ans = rtMethod("_plus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op-": ans = rtMethod("_minus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op*": ans = rtMethod("_times", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op/": ans = rtMethod("_divide", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op<": ans = rtMethod("_lessthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op>": ans = rtMethod("_greaterthan", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op<=": ans = rtMethod("_lessequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op>=": ans = rtMethod("_greaterequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
-        case "op==": ans = CallExpression(rtField(EQUAL_ALWAYS), [lv, rv]); break;
-        case "op<>": ans = UnaryExpression("!", CallExpression(rtField(EQUAL_ALWAYS), [lv, rv])); break;
-        case "op<=>": ans = CallExpression(rtField(IDENTICAL), [lv, rv]); break;
-        case "opor": ans = LogicalExpression("||", lv, rv); break;
-        case "opand": ans = LogicalExpression("&&", lv, rv); break;
-        case "op^": ans = CallExpression(rv, [lv]); break;
-        default: throw new TODOError(`Not yet implements: ${expr.dict.op}`);        
-      }
-      return [ans, [...lStmts, ...rStmts]];
+      return [compileSOp(context, expr.dict.op, lv, rv), [...lStmts, ...rStmts]];
     }
 
     function compileIf(context, branches: (A.IfBranch | A.IfPipeBranch)[], compiledElse: CompileResult) : CompileResult {
@@ -687,6 +447,274 @@ import type * as CS from './ts-compile-structs';
       return compileExpr(context, call);
     }
 
+    function compileCheckBlock(context, expr : Variant<A.Expr, "s-check">) : CompileResult {
+      const [ checkBlockVal, checkBlockStmts ] = compileExpr(context, expr.dict.body);
+      let jsCheckBlockFuncName;
+      let testBlockName;
+      const name = expr.dict.name;
+      switch(name.$name) {
+        case 'none':
+          jsCheckBlockFuncName = freshId(compilerName("check-block"));
+          testBlockName = Literal(nameToSourceString(jsCheckBlockFuncName));
+          break;
+        case 'some':
+          jsCheckBlockFuncName = freshId(compilerName("check-block" + name.dict.value));
+          testBlockName = Literal(name.dict.value);
+          break;
+      }
+      const jsCheckBlockFuncBlock = BlockStatement([...checkBlockStmts, ExpressionStatement(checkBlockVal)]);
+      const jsCheckBlockFunc = FunctionExpression(jsCheckBlockFuncName, [], jsCheckBlockFuncBlock);
+      const blockLoc = Literal(formatSrcloc(chooseSrcloc(expr.dict.l, context), true));
+      const testerCall = ExpressionStatement(rtMethod("$checkBlock", [blockLoc, testBlockName, jsCheckBlockFunc]));
+      context.checkBlockTestCalls.push(testerCall);
+      return [UNDEFINED, []];
+    }
+
+    /**
+     * 
+      Emits:
+        _checkTest(lh-func: () -> any, rh-func: () -> any,
+                   test-func: (check-expr-result, check-expr-result) -> check-op-result,
+                   loc: String) -> void
+      
+        _checkTest(function lh-func() {},
+                   function rh-func() {},
+                   function test-func(lhs, rhs) {}, loc);
+      
+        _checkTest: (test-thunk: () -> check-op-result, loc: string) -> void
+        
+        check-expr-result = {
+          value: any,
+          exception: bool
+          exception_val: object;
+        }
+        
+        check-op-result = {
+          success: boolean,
+          lhs: check-expr-result,
+          rhs: check-expr-result,
+          exception: object | undefined,
+        }
+        
+        Individual tests are wrapped in functions to allow individual tests to fail
+        but still possible to run other tests
+     */
+    function compileCheckTest(context, expr : Variant<A.Expr, "s-check-test">) : CompileResult {
+      type CheckOpDesugar =
+        | { $name: "binop-result", op: string }
+        | { $name: "expect-raises" }
+        | { $name: "refinement-result", refinement: J.Expression, negate: boolean }
+        | { $name: "predicate-result", predicate: any };
+      const {l, op, refinement, left, right, cause} = expr.dict;
+      function makeCheckOpResult(success : J.Expression, lhs : J.Expression, rhs: J.Expression) {
+        return ObjectExpression([
+          Property("success", success), Property("lhs", lhs), Property("rhs", rhs)
+        ]);
+      }
+
+      function makeCheckExprResult(value : T.Either<J.Expression, J.Expression>) {
+        switch(value.$name) {
+          case "left": return ObjectExpression([
+              Property("value", UNDEFINED),
+              Property("exception", Literal(true)),
+              Property("exception_value", value.dict.v)
+            ]);
+          case "right": return ObjectExpression([
+              Property("value", value.dict.v),
+              Property("exception", Literal(false)),
+              Property("exception_value", UNDEFINED)
+            ]);
+        }
+      }
+
+      function thunkIt(name : string, val : J.Expression, stmts : J.Statement[]) {
+        const body = BlockStatement([...stmts, ReturnStatement(val)]);
+        return FunctionExpression(compilerName(name), [], body);
+      }
+      function exceptionCheck(exceptionFlag : J.Expression, lhs : J.Expression, rhs : J.Expression) {
+        const checkBody = BlockStatement([
+          ReturnStatement(makeCheckOpResult(Literal(false), lhs, rhs))
+        ]);
+        return IfStatement(exceptionFlag, checkBody, null);
+      }
+
+      const testLoc = Literal(formatSrcloc(chooseSrcloc(l, context), true));
+
+      let checkOp: CheckOpDesugar, checkOpStmts: J.Statement[];
+      switch(op.$name) {
+        case "s-op-is": {
+          switch(refinement.$name) {
+            case "some":
+              const [ refinementExpr, refinementStmts ] = compileExpr(context, refinement.dict.value);
+              checkOp = { $name: 'refinement-result', refinement: refinementExpr, negate: false };
+              checkOpStmts = refinementStmts;
+              break;
+            case "none":
+              [checkOp, checkOpStmts] = [ {$name: 'binop-result', op: "op=="}, []];
+              break;
+          }
+          break;
+        }
+        case "s-op-is-not": {
+          switch(refinement.$name) {
+            case "some":
+              const [ refinementExpr, refinementStmts ] = compileExpr(context, refinement.dict.value);
+              checkOp = { $name: 'refinement-result', refinement: refinementExpr, negate: true };
+              checkOpStmts = refinementStmts;
+              break;
+            case "none":
+              [checkOp, checkOpStmts] = [ {$name: 'binop-result', op: "op<>"}, []];
+              break;
+          }
+          break;
+        }
+        case 's-op-is-roughly': {
+          [checkOp, checkOpStmts] = [
+            {$name: 'refinement-result', refinement: rtMethod("within", [Literal(0.000001)]), negate: false},
+            []
+          ]
+          break;
+        }
+        case 's-op-raises': {
+          [checkOp, checkOpStmts] = [ {$name: 'expect-raises'}, []];
+          break;
+        }
+        default: throw new InternalCompilerError("Not yet implemented: " + op.$name);
+      }
+
+      function defineBinTest(rightExpr: A.Expr, binOp: (lhs: J.Expression, rhs: J.Expression) => J.Expression): CompileResult {
+        // Thunk the lhs
+        const [ lhs, lhsStmts ] = compileExpr(context, left);
+        const lhFunc = thunkIt("LHS", lhs, lhsStmts);
+
+        // Thunk the rhs
+        const [ rhs, rhsStmts ] = compileExpr(context, rightExpr);
+        const rhFunc = thunkIt("RHS", rhs, rhsStmts);
+
+        // Thunk the binCheckOp
+        const lhsParamName = freshId(compilerName("lhs"));
+        const rhsParamName = freshId(compilerName("rhs"));
+
+        const lhsValue = DotExpression(Identifier(lhsParamName), "value");
+        // LHS exception check
+        const lhsException = DotExpression(Identifier(lhsParamName), "exception");
+        const lhsExceptionCheck = exceptionCheck(lhsException, Identifier(lhsParamName), Identifier(rhsParamName));
+
+        const rhsValue = DotExpression(Identifier(rhsParamName), "value");
+        // RHS exception check
+        const rhsException = DotExpression(Identifier(rhsParamName), "exception");
+        const rhsExceptionCheck = exceptionCheck(rhsException, Identifier(lhsParamName), Identifier(rhsParamName));
+
+        const jTestVal = binOp(lhsValue, rhsValue);
+
+        const successResult = makeCheckOpResult(jTestVal, Identifier(lhsParamName), Identifier(rhsParamName));
+
+        const testBodyStmts = [lhsExceptionCheck, rhsExceptionCheck, ...checkOpStmts, ReturnStatement(successResult)];
+
+        const testBody = BlockStatement(testBodyStmts);
+        const testFunc = FunctionExpression(compilerName("TEST"), [lhsParamName, rhsParamName], testBody);
+
+        const testerCallArgs = [lhFunc, rhFunc, testFunc, testLoc];
+        const testerCall = ExpressionStatement(rtMethod("$checkTest", testerCallArgs));
+
+        return [UNDEFINED, [testerCall]];
+      }
+
+      switch(checkOp.$name) {
+        case 'binop-result': {
+          const binOp = checkOp.op;
+          switch(right.$name) {
+            case 'some': return defineBinTest(right.dict.value, (left, right) => {
+              return compileSOp(context, binOp, left, right);
+            });
+            case 'none': throw new InternalCompilerError('Attempting to use a binary check op without the RHS');
+            default:
+              throw new ExhaustiveSwitchError(right);
+          }
+        }
+        case 'expect-raises': {
+          // Transforms the following Pyret test expression:
+          //   `lhs raises rhs`
+          // into
+          // ```
+          //   LHS = thunk(lhs)
+          //   RHS = thunk(rhs)
+          //   test = function(lhs, rhs) {
+          //     let success = RUNTIME.exception && (RUNTIME.$torepr(RUNTIME.$raiseExtract(lhs.exception_val).index(rhs.value))
+          //     );
+          //     return testResult(success, lhs, asException(rhs));
+          //   };
+          //   RUNTIME.$checkTest(LHS, RHS, test)
+          //
+          // ```
+          // where testResult() and asException() are conversions emitted in place
+          //
+          // The `raises` operator checks that the rhs is contained within the
+          //   string representation of the lhs.
+          //
+
+          const [ lhs, lhsStmts ] = compileExpr(context, left);
+          const lhFunc = thunkIt("LHS", lhs, lhsStmts);
+
+          // Thunk the RHS
+          let rhs: J.Expression, rhsStmts: J.Statement[];
+          switch(right.$name) {
+            case 'some': {
+              [rhs, rhsStmts] = compileExpr(context, right.dict.value);
+              break;
+            }
+            case 'none': throw new InternalCompilerError("`raises` checkop did not have a RHS, should be a parsing error");
+            default: throw new ExhaustiveSwitchError(right);
+          }
+          const rhFunc = thunkIt("RHS", rhs, rhsStmts);
+
+          // Thunk the binCheckOp
+          const lhsParamName = freshId(compilerName("lhs"));
+          const rhsParamName = freshId(compilerName("rhs"));
+
+          const rhsValue = DotExpression(Identifier(rhsParamName), "value");
+          const expectedRhs = makeCheckExprResult({ $name: 'left', dict: { v: rhsValue }});
+
+          const lhsExceptionVal = DotExpression(Identifier(lhsParamName), "exception_val");
+          const lhsExceptionExtract = rtMethod(TOREPR, [rtMethod("$raiseExtract", [lhsExceptionVal])]);
+          // NOTE(Ben): I don't like this.
+          const extractionResult = CallExpression(DotExpression(lhsExceptionExtract, "includes"), [rhsValue]);
+          const lhsIsExceptionVal = DotExpression(Identifier(lhsParamName), "exception");
+          const testResult = LogicalExpression("&&", lhsIsExceptionVal, extractionResult);
+
+          const successResult = makeCheckOpResult(testResult, Identifier(lhsParamName), expectedRhs);
+
+          const testBodyStmts = [...checkOpStmts, ReturnStatement(successResult)];
+          const testBody = BlockStatement(testBodyStmts);
+          const testFunc = FunctionExpression(compilerName("TEST"), [lhsParamName, rhsParamName], testBody);
+
+          const testerCallArgs = [lhFunc, rhFunc, testFunc, testLoc];
+          const testerCall = ExpressionStatement(rtMethod("$checkTest", testerCallArgs));
+          
+          return [UNDEFINED, [testerCall]];
+        }
+        case 'refinement-result': {
+          const { negate, refinement } = checkOp;
+          switch(right.$name) {
+            case 'some': {
+              return defineBinTest(right.dict.value, (left, right) => {
+                if (negate) {
+                  return UnaryExpression("!", CallExpression(refinement, [left, right]));
+                } else {
+                  return CallExpression(refinement, [left, right]);
+                }
+              })
+            }
+            case 'none': throw new InternalCompilerError('Attempting to use a predicate check without the RHS');
+            default: throw new ExhaustiveSwitchError(right);
+          }
+        }
+        // case 'predicate-result': {
+
+        // }
+      }
+    }
+
     function compileTable(context, expr : Variant<A.Expr, 's-table'>): CompileResult {
       importFlags['table-import'] = true;
 
@@ -714,6 +742,561 @@ import type * as CS from './ts-compile-structs';
       return [CallExpression(func, args), rowsStmts];      
     }
 
+    function compileLoadTable(context, expr : Variant<A.Expr, 's-load-table'>): CompileResult {
+      // This case handles `loadTable` syntax. The lines in the following Pyret
+      // code,
+      //
+      // | myTable = loadTable: a, b, c
+      // |   source: csvOpen('myTable.csv')
+      // | end
+      //
+      // compile into JavaScript code that resembles the following:
+      //
+      // | var myTable = _makeTableFromTableSkeleton(
+      // |                 _tableSkeletonChangeHeaders(
+      // |                   csvOpen('csv.txt'),
+      // |                   ["a", "b", "
+
+      // NOTE(michael):
+      //  sLoadTable is currently implemented for a single LoadTableSpec of type
+      //  sTableSrc, meaning that using one or more `sanitize` forms will result in
+      //  a notYetImplemented error.
+
+      const spec = listToArray(expr.dict.spec);
+      if (spec.length !== 1) {
+        throw new TODOError("sLoadTable with != 1 spec");
+      } else {
+        switch(spec[0].$name) {
+          case 's-sanitize':
+            throw new TODOError("sLoadTable with a sanitize spec");
+          case 's-table-src': {
+            // Set the tableImport flag
+            importFlags['table-import'] = true;
+
+            const tableId = Identifier(TABLE);
+            const makeTableFunc =
+              BracketExpression(tableId, Literal("_makeTableFromTableSkeleton"));
+            const changeHeadersFunc =
+              BracketExpression(tableId, Literal("_tableSkeletonChangeHeaders"));
+
+            const [headersExprArgs, headersExprStmts] = compileExpr(context, spec[0].dict.src);
+
+            const headerStringsList: J.Expression[] = [];
+            listToArray(expr.dict.headers).forEach((fieldName) => {
+              headerStringsList.push(Literal(fieldName.dict.name));
+            });
+
+            const headerStrings = ArrayExpression(headerStringsList);
+
+            const changeHeadersExpr = CallExpression(changeHeadersFunc, [headersExprArgs, headerStrings]);
+
+            const exprArgs = [changeHeadersExpr];
+            const makeTableExpr = CallExpression(makeTableFunc, exprArgs);
+
+            return [makeTableExpr, headersExprStmts];
+          }
+        }
+      }
+    }
+
+    function compileTableExtend(context, expr: Variant<A.Expr, 's-table-extend'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      // This case handles `extend` syntax. The starred lines in the following
+      // Pyret code,
+      //
+      //        | my-table = table: a, b, c
+      //        |   row: 1, 2, 3
+      //        |   row: 4, 5, 6
+      //        |   row: 7, 8, 9
+      //        | end
+      //        |
+      // *      | my-extended-table = extend my-table using a, b
+      // *(Map) |   d: a / 2,           // a "Mapping" extension
+      // *(Red) |   e: running-sum of b // a "Reducer"
+      // *      | end
+      //
+      // compile into JavaScript code that resembles the following:
+      //
+      // *      | var myExtendedTable = _tableReduce(
+      // *      |   myTable,
+      // *      |   [
+      // *(Map) |     { "type": "map",
+      // *(Map) |       "reduce": (rowNumber) => {
+      // *(Map) |         var columnNumberB = _tableGetColumnIndex(myTable, "b");
+      // *(Map) |         var b = myTable["_rows"][rowNumber][columnNumberB];
+      // *(Map) |         var columnNumberA = _tableGetColumnIndex(myTable, "a");
+      // *(Map) |         var a = myTable["_rows"][rowNumber][columnNumberA];
+      // *(Map) |         return a / 2; },
+      // *(Map) |       "extending": "d" },
+      // *(Red) |     { "type": "reduce",
+      // *(Red) |       "one": runningSum["one"],
+      // *(Red) |       "reduce": runningSum["reduce"],
+      // *(Red) |       "using": "b",
+      // *(Red) |       "extending": "e" }
+      // *      |   ]);
+      //
+      // The actual "extending" work is done by _tableReduce at runtime.
+
+      const columnBindsL = expr.dict['column-binds'].dict.l;
+      const columnBindsBinds = listToArray(expr.dict['column-binds'].dict.binds);
+      const columnBindsTable = expr.dict['column-binds'].dict.table;
+      const [tableExpr, tableStmts] = compileExpr(context, columnBindsTable);
+
+      const reducersExprs: J.Expression[] = [];
+      const reducersStmts: J.Statement[] = [];
+      listToArray(expr.dict.extensions).forEach((extension) => {
+        switch(extension.$name) {
+          case 's-table-extend-reducer': {
+            // Handles Reducer forms, like `e: runningSum of b`.
+
+            const [reducerExpr, reducerStmts] = compileExpr(context, extension.dict.reducer);
+
+            const typeFieldName = "type";
+            const typeFieldValue = Literal("reduce");
+            const typeField = Property(typeFieldName, typeFieldValue);
+
+            const oneFieldName = "one";
+            const oneFieldValueObj = reducerExpr;
+            const oneFieldValueField = Literal("one");
+            const oneFieldValue =
+              BracketExpression(oneFieldValueObj, oneFieldValueField);
+            const oneField = Property(oneFieldName, oneFieldValue);
+
+            const reduceFieldName = "reduce";
+            const reduceFieldValueObj = reducerExpr;
+            const reduceFieldValueField = Literal("reduce");
+            const reduceFieldValue =
+              BracketExpression(reduceFieldValueObj, reduceFieldValueField);
+            const reduceField = Property(reduceFieldName, reduceFieldValue)
+
+            const usingFieldName = "using";
+            const usingFieldValue = Literal(nameToName(extension.dict.col));
+            const usingField = Property(usingFieldName, usingFieldValue);
+
+            const extendingFieldName = "extending";
+            const extendingFieldValue = Literal(extension.dict.name);
+            const extendingField = Property(extendingFieldName, extendingFieldValue);
+
+            const reducerObjectFields = [
+              typeField,
+              oneField,
+              reduceField,
+              usingField,
+              extendingField,
+            ];
+            const reducerObject = ObjectExpression(reducerObjectFields);
+
+            reducersExprs.push(reducerObject);
+            reducersStmts.push(...reducerStmts);
+            break;
+          }
+          case 's-table-extend-field': {
+            // Handles Mapping forms, like `d: a / 2`.
+
+            const typeFieldName = "type";
+            const typeFieldValue = Literal("map");
+            const typeField = Property(typeFieldName, typeFieldValue);
+
+            const reduceFieldName = "reduce";
+
+            const funName = freshId(compilerName("s-table-extendfield"));
+            const rowNumberName = freshId(compilerName("rowNumber"));
+            const funArgs = [rowNumberName];
+            const indexingStmts: J.Statement[] = [];
+            listToArray(expr.dict['column-binds'].dict.binds).forEach((bind) => {
+
+              const bindId = bindToName(bind);
+              
+              const getIndexName = freshId(compilerName("columnNumber"));
+              const getColumnIndex = BracketExpression(Identifier(TABLE), Literal("_tableGetColumnIndex"));
+              const columnIndexArgs = [tableExpr, Literal(nameToName(bindId))];
+              const getIndexRhs = CallExpression(getColumnIndex, columnIndexArgs);
+              const getIndexStmt = Var(getIndexName, getIndexRhs);
+              
+              const indexName = bindId
+              const tableRows = BracketExpression(tableExpr, Literal("_rows"));
+              const currentRow = BracketExpression(tableRows, Identifier(rowNumberName));
+              const indexRhs = BracketExpression(currentRow, Identifier(getIndexName));
+              const assignIndexStmt = Var(jsIdOf(indexName), indexRhs)
+              
+              indexingStmts.push(getIndexStmt, assignIndexStmt);
+            });
+
+            const [returnExpr, returnCompiledStmts] = compileExpr(context, extension.dict.value);
+            const returnStmt = ReturnStatement(returnExpr);
+
+            const bodyStmts = [...indexingStmts, returnStmt];
+            const funBody = BlockStatement(bodyStmts);
+
+            const reduceFieldValue = FunctionExpression(funName, funArgs, funBody);
+            const reduceField = Property(reduceFieldName, reduceFieldValue);
+
+            const extendingFieldName = "extending";
+            const extendingFieldValue = Literal(extension.dict.name);
+            const extendingField = Property(extendingFieldName, extendingFieldValue);
+
+            const mappingObjectFields = [
+              typeField,
+              reduceField,
+              extendingField,
+            ];
+            const mappingObject = ObjectExpression(mappingObjectFields);
+
+            // NOTE(Ben): this is different than the code in direct-codegen:
+            // it put the returnCompiledStmts in accExprs, I think by mistake
+            reducersExprs.push(mappingObject);
+            reducersStmts.push(...returnCompiledStmts);
+            break;
+          }
+        }
+      });
+
+      const exprFuncObj = Identifier(TABLE);
+      const exprFuncField = Literal("_tableReduce");
+      const applyExprFunc = BracketExpression(exprFuncObj, exprFuncField);
+      const applyExprArgs = [tableExpr,  ArrayExpression(reducersExprs)];
+      const applyExpr = CallExpression(applyExprFunc, applyExprArgs);
+
+      const applyStmts = [...tableStmts, ...reducersStmts];
+
+      return [applyExpr, applyStmts]
+    }
+
+    function compileTableUpdate(context, expr : Variant<A.Expr, 's-table-update'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      // This case handles `transform` syntax. The starred lines in the following
+      // Pyret code,
+      //
+      //   | my-table = table: name, age, favorite-color
+      //   |   row: "Bob", 12, "blue"
+      //   |   row: "Alice", 17, "green"
+      //   |   row: "Eve", 14, "red"
+      //   | end
+      //   |
+      // * | age-fixed = transform my-table using age:
+      // * |   age: age + 1
+      // * | end
+      //
+      // compile into JavaScript code that resembles the following:
+      //
+      // * | var ageFixed = _tableTransform(
+      // * |   myTable,
+      // * |   ["age"],
+      // * |   []
+      // * | );
+      //
+      // The actual "transforming" work is done by _tableTransform at runtime.
+
+      const [tableExpr, tableStmts] = compileExpr(context, expr.dict['column-binds'].dict.table);
+
+      // makes a list of strings (column names)
+      const updates = listToArray(expr.dict.updates)
+      const listColnames = updates.map((u) => Literal(u.dict.name));
+
+      const columnUpdateZip: Array<[A.Bind, A.Expr]> = listToArray(expr.dict['column-binds'].dict.binds)
+        .map((cb, i) => {
+          const update = updates[i];
+          switch(update.$name) {
+            case 's-data-field': return [ cb, update.dict.value];
+            default: 
+              throw new InternalCompilerError(`Invalid update type ${updates[i].$name} at index ${i}`);
+          }
+        });
+
+      // makes a list of functions
+      const funName = freshId(compilerName("sTableTransform"));
+      const listUpdates = columnUpdateZip.map((cu) => {
+        const [bind, updateExpr] = cu;
+
+        // Use the Bind in ColumnBind as the parameter in the generated function
+        const funArgs = [jsIdOf(bindToName(bind))];
+
+	      const [uValueExpr, uValueStmts] = compileExpr(context, updateExpr);
+        const blockReturnStmt = ReturnStatement(uValueExpr);
+        const blockStmts = [...tableStmts, blockReturnStmt];
+        const funBody = BlockStatement(blockStmts);
+        const uFun = FunctionExpression(funName, funArgs, funBody);
+        return uFun;
+      });
+
+      const appFunc = BracketExpression(Identifier(TABLE), Literal("_tableTransform"));
+      const appArgs = [tableExpr, ArrayExpression(listColnames), ArrayExpression(listUpdates)];
+
+      const returnExpr = CallExpression(appFunc, appArgs);
+      const returnStmts = tableStmts;
+
+      // tableTansform(table, colnames, updates)
+      return [returnExpr, returnStmts];
+    }
+
+    // mimics the Srcloc//format method from ast.arr
+    function formatSrcloc(loc: A.Srcloc, showFile: boolean): string {
+      switch(loc.$name) {
+        case 'builtin': return `<builtin ${loc.dict['module-name']}>`;
+        case 'srcloc': 
+          if (showFile) {
+            const start = `${loc.dict.source}:${loc.dict['start-line']}:${loc.dict['start-column']}`;
+            const end = `${loc.dict.source}:${loc.dict['end-line']}:${loc.dict['end-column']}`;
+            return `${start}-${end}`;
+          } else {
+            return `line ${loc.dict['start-line']}, column ${loc.dict['start-column']}`;
+          }
+      }
+    }
+
+    function compileTableSelect(context, expr : Variant<A.Expr, 's-table-select'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      const func = BracketExpression(Identifier(TABLE), Literal("_selectColumns"));
+
+      const jsColumns = listToArray(expr.dict.columns).map((c) => Literal(nameToName(c)));
+
+      const [jsTable, jsTableStmts] = compileExpr(context, expr.dict.table);
+
+      const args = [jsTable, ArrayExpression(jsColumns)];
+
+      // selectColumns(table, colnames)
+      return [CallExpression(func, args), jsTableStmts];
+    }
+
+    function compileTableFilter(context, expr: Variant<A.Expr, 's-table-filter'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      // This case handles `sieve` syntax. The starred lines in the following
+      // Pyret code,
+      //
+      //   | my-table = table: a, b, c
+      //   |   row: 1, 2, 3
+      //   |   row: 4, 5, 6
+      //   |   row: 7, 8, 9
+      //   | end
+      //   |
+      // * | my-filtered-table = sieve my-table using b:
+      // * |   (b / 4) == 2
+      // * | end
+      //
+      // compile into JavaScript code that resembles the following:
+      //
+      // * | var myFilteredTable = _tableFilter(myTable, function sTableFilter(row) {
+      // * |     var index = _tableGetColumnIndex(myTable, "b");
+      // * |     var b = row[index];
+      // * |     return (b / 4) == 2;
+      // * | }
+      //
+      // The actual "sieving" work is done by _tableFilter at runtime.
+
+      const [tableExpr, tableStmts] = compileExpr(context, expr.dict['column-binds'].dict.table);
+
+      const rowName = freshId(compilerName("row"));
+
+      const blockRowElementStmts = listToArray(expr.dict['column-binds'].dict.binds).flatMap((bind) => {
+
+        // generate the `var index = _tableGetColumnIndex(myTable, "b");` lines.
+        const appFunc = BracketExpression(Identifier(TABLE), Literal("_tableGetColumnIndex"));
+        const appArgs = [tableExpr, Literal(nameToName(bindToName(bind)))];
+        
+        // generate the `var b = row[index];` lines.
+        const columnIndexExpr = CallExpression(appFunc, appArgs);
+        const columnIndexId = freshId(compilerName("index"));
+        const columnIndexStmt = Var(columnIndexId, columnIndexExpr);
+        const varStmt = Var(jsIdOf(bindToName(bind)), BracketExpression(Identifier(rowName), Identifier(columnIndexId)));
+        
+        return [columnIndexStmt, varStmt];
+      });
+
+      const funName = freshId(compilerName("s-table-filter"))
+      const funArgs = [rowName];
+
+      const [predicateExpr, predicateStmts] = compileExpr(context, expr.dict.predicate);
+      const blockReturnStmt = ReturnStatement(predicateExpr);
+      const blockStmts = [...blockRowElementStmts, blockReturnStmt];
+      const funBody = BlockStatement(blockStmts);
+      const filterFun = FunctionExpression(funName, funArgs, funBody);
+
+      const appFunc = BracketExpression(Identifier(TABLE), Literal("_tableFilter"));
+      const appArgs = [tableExpr, filterFun];
+      const apply = CallExpression(appFunc, appArgs);
+
+      const returnExpr = apply;
+      const returnStmts = [...predicateStmts, ...tableStmts];
+
+      return [returnExpr, returnStmts];
+    }
+
+    function compileTableOrder(context, expr: Variant<A.Expr, 's-table-order'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      // This case handles `order` syntax. The starred lines in the following
+      // Pyret code,
+      //
+      //   | my-table = table: name, age, favorite-color
+      //   |   row: "Bob", 12, "blue"
+      //   |   row: "Alice", 12, "green"
+      //   |   row: "Eve", 13, "red"
+      //   | end
+      //   |
+      // * | name-ordered = order my-table:
+      // * |   age descending,
+      // * |   name ascending
+      // * | end
+      //
+      // compile into JavaScript code that resembles the following:
+      //
+      // * | var nameOrdered = _tableOrder(
+      // * |   myTable,
+      // * |   [{"column": "age", "direction": "descending"},
+      // * |    {"column": "name", "direction": "ascending"}]);
+      //
+      // The actual "ordering" work is done by _tableOrder at runtime.
+
+      const [tableExpr, tableStmts] = compileExpr(context, expr.dict.table);
+
+      const orderingListElements = listToArray(expr.dict.ordering).map((theOrder) => {
+        const theOrderColumn = theOrder.dict.column;
+        const theOrderDirection = theOrder.dict.direction;
+        
+        const orderColumnField = Property("column", Literal(nameToName(theOrderColumn)));
+        const orderDirectionField = Property(
+          "direction",
+          Literal(theOrderDirection.$name.toLowerCase())
+        );
+        
+        const orderFields = [orderColumnField, orderDirectionField];
+        const orderObj = ObjectExpression(orderFields);
+        
+        return orderObj;
+      });
+
+      const orderingListExpr = ArrayExpression(orderingListElements);
+
+      const appFunc = BracketExpression(Identifier(TABLE), Literal("_tableOrder"));
+      const appArgs = [tableExpr, orderingListExpr];
+      const apply = CallExpression(appFunc, appArgs);
+
+      const returnExpr = apply;
+      const returnStmts = tableStmts;
+
+      return [returnExpr, returnStmts];
+
+    }
+
+    function compileTableExtract(context, expr: Variant<A.Expr, 's-table-extract'>): CompileResult {
+      // Set the table-import flag
+      importFlags['table-import'] = true;
+
+      // This case handles `extract` syntax. The starred line in the following
+      // Pyret code,
+      //
+      //   | my-table = table: a, b, c
+      //   |   row: 1, 2, 3
+      //   |   row: 4, 5, 6
+      //   |   row: 7, 8, 9
+      //   | end
+      //   |
+      // * | column-b = extract b from my-table end
+      //
+      // compiles into JavaScript code that resembles the following:
+      //
+      // * | var columnB = _tableExtractColumn(myTable, "b");
+      //
+      // The actual "extracting" work is done by _tableExtractColumn at runtime.
+
+      const [tableExpr, tableStmts] = compileExpr(context, expr.dict.table);
+
+      const appFunc = BracketExpression(Identifier(TABLE), Literal("_tableExtractColumn"));
+      const appArgs = [tableExpr, Literal(nameToName(expr.dict.column))];
+      const apply = CallExpression(appFunc, appArgs);
+
+      const returnExpr = apply;
+      const returnStmts = tableStmts;
+
+      return [returnExpr, returnStmts];
+    }
+
+    function compileSpy(context, expr : Variant<A.Expr, 's-spy-block'>): CompileResult {
+      // Model each spy block as a spy block object
+      // SpyBlockObject {
+      //   message: () -> String,
+      //   loc: String,
+      //   exprs: List<{ key: String, expr: () -> JSValue, loc: String }>
+      // }
+      //
+      // Translate spy blocks into:
+      //   builtinSpyFunction(SpyBlockObject)
+      //
+      // Push responsibility of runtime spy-enabling to the builtinSpyFunction
+      if (context.options.dict['enable-spies']) {
+        // Generate spy code
+
+        // Generate message code
+        let jsMessageValue: J.Expression;
+        let jsMessageStmts: J.Statement[] = [];
+        switch(expr.dict.message.$name) {
+          case 'some': {
+            [jsMessageValue, jsMessageStmts] = compileExpr(context, expr.dict.message.dict.value);
+            break;
+          }
+          case 'none':
+            // Use 'null' to signal the builtinSpyFunction that there was no spy block message
+            jsMessageValue = Literal(null);
+            break;
+        }
+
+        // Create the message generation function
+        const jsMessageFuncName = freshId(compilerName("spy-message"));
+        const jsMessageReturn = ReturnStatement(jsMessageValue);
+        const jsMessageFuncBlock = BlockStatement([...jsMessageStmts, jsMessageReturn]);
+        const jsMessageFunc = FunctionExpression(jsMessageFuncName, [], jsMessageFuncBlock);
+
+        // Compile each spy expression into the expression list
+        const jsSpyFields: J.Expression[] = [];
+        listToArray(expr.dict.contents).forEach((pyretSpyField) => {
+
+          const [jsSpyValue, jsSpyStmts] = compileExpr(context, pyretSpyField.dict.value);
+          
+          const jsSpyExprFuncName = freshId(compilerName("spyExpr"));
+          
+          const jsSpyReturn = ReturnStatement(jsSpyValue);
+          const jsSpyExprFuncBlock = BlockStatement([...jsSpyStmts, jsSpyReturn]);
+          const jsSpyExprFun = FunctionExpression(jsSpyExprFuncName, [], jsSpyExprFuncBlock);
+          
+          // Create the spy expression object
+          const jsSpyKey = Property("key", Literal(pyretSpyField.dict.name));
+          const jsSpyExpr = Property("expr", jsSpyExprFun);
+          const jsSpyLoc = Property("loc", Literal(formatSrcloc(pyretSpyField.dict.l, true)));
+          const jsSpyExprObj = ObjectExpression([jsSpyKey, jsSpyExpr, jsSpyLoc]);
+          
+          jsSpyFields.push(jsSpyExprObj);
+        });
+
+        const jsSpyLoc = Literal(formatSrcloc(expr.dict.l, true));
+
+        // Create the SpyBlockObject
+        const jsSpyFieldsList = ArrayExpression(jsSpyFields);
+        const spyBlockObj = ObjectExpression([
+          Property("message", jsMessageFunc),
+          Property("loc", jsSpyLoc),
+          Property("exprs", jsSpyFieldsList)
+        ]);
+
+        // Builtin spy function call
+        // Runtime is responsible for output
+        const spyCall = ExpressionStatement(rtMethod("$spy", [spyBlockObj]));
+
+        return [UNDEFINED, [spyCall]];
+      } else {
+        // Do NOT generate spy code
+        return [UNDEFINED, []]
+      }
+    }
+
     function compileExpr(context, expr : A.Expr) : CompileResult {
       switch(expr.$name) {
         case 's-module':
@@ -730,8 +1313,10 @@ import type * as CS from './ts-compile-structs';
           }
           return [numAns, []];
         }
-        case 's-frac': throw new TODOError(expr.$name);
-        case 's-rfrac': throw new TODOError(expr.$name);
+        case 's-frac': 
+          return [rtMethod('$makeRational', [Literal(expr.dict.num), Literal(expr.dict.den)]), []];
+        case 's-rfrac':
+          return [rtMethod('$makeRoughnum', [Literal(expr.dict.num / expr.dict.den)]), []];
         case 's-str':
           return [Literal(expr.dict.s), []];
         case 's-bool':
@@ -740,7 +1325,7 @@ import type * as CS from './ts-compile-structs';
           return [rtField(expr.dict.name), []];
         }
         case 's-undefined': {
-          return [undefined, []];
+          return [UNDEFINED, []];
         }
           
         case 's-id': {
@@ -760,7 +1345,7 @@ import type * as CS from './ts-compile-structs';
           else {
             const id = Identifier(jsIdOf(expr.dict.id));
             return [ConditionalExpression(
-              BinaryExpression("!==", id, Identifier(constId("undefined"))),
+              BinaryExpression("!==", id, UNDEFINED),
               id,
               rtMethod("$messageThrow", [compileSrcloc(context, expr.dict.l), Literal("Uninitialized letrec identifier")])
             ), []];
@@ -900,22 +1485,20 @@ import type * as CS from './ts-compile-structs';
         }
         case 's-paren': return compileExpr(context, expr.dict.expr);
           
-        case 's-check-expr': 
-        case 's-check': 
-        case 's-check-test': {
-          return [undefined, []]; // TODO: Finish this!
-        }
+        case 's-check-expr': return compileExpr(context, expr.dict.expr);
+        case 's-check': return compileCheckBlock(context, expr);
+        case 's-check-test': return compileCheckTest(context, expr);
         
         case 's-table': return compileTable(context, expr);
-        case 's-load-table': throw new TODOError(expr.$name);
-        case 's-table-extend': throw new TODOError(expr.$name);
-        case 's-table-update': throw new TODOError(expr.$name);
-        case 's-table-filter': throw new TODOError(expr.$name);
-        case 's-table-select': throw new TODOError(expr.$name);
-        case 's-table-order': throw new TODOError(expr.$name);
-        case 's-table-extract': throw new TODOError(expr.$name);
+        case 's-load-table': return compileLoadTable(context, expr);
+        case 's-table-extend': return compileTableExtend(context, expr);
+        case 's-table-update': return compileTableUpdate(context, expr);
+        case 's-table-filter': return compileTableFilter(context, expr);
+        case 's-table-select': return compileTableSelect(context, expr);
+        case 's-table-order': return compileTableOrder(context, expr);
+        case 's-table-extract': return compileTableExtract(context, expr);
         
-        case 's-spy-block': throw new TODOError(expr.$name);
+        case 's-spy-block': return compileSpy(context, expr);
 
         case 's-hint-exp': {
           return compileExpr(context, expr.dict.exp);

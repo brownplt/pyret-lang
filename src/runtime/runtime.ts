@@ -113,8 +113,9 @@ function checkResults(): CheckResult[] {
     console.log("Some tests failed.");
   }
   _globalCheckResults.forEach((result) => {
-    let result_lhs = JSON.stringify(result.lhs, null, "\t");
-    let result_rhs = JSON.stringify(result.rhs, null, "\t");
+    const hideVariant = (key, value) => (key === "$variant" ? "it$elf" : value);
+    let result_lhs = JSON.stringify(result.lhs, hideVariant, "\t");
+    let result_rhs = JSON.stringify(result.rhs, hideVariant, "\t");
     if (result.success) {
       console.log(`[PASS] ([${result.path}], at ${result.loc})`);
     } else {
@@ -277,30 +278,6 @@ function customDivide(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any 
     }
 }
 
-// MUTATES an object to rebind any methods to it
-function _rebind(toRebind: any): any {
-  if (typeof toRebind === "object") {
-    Object.keys(toRebind).forEach((key) => {
-      if (key === "$brand" || key === "$tag") {
-        return;
-      }
-
-      let value = toRebind[key];
-      if (_PRIMITIVES.isMethod(value)) {
-        toRebind[key] = value["$binder"](toRebind);
-      }
-    });
-  }
-
-  return toRebind;
-}
-
-// NOTE(alex): Handles method rebinding
-function shallowCopyObject(myObject: any): any {
-  let shallowCopy = Object.assign({}, myObject);
-  return _rebind(shallowCopy);
-}
-
 export function pauseStack(callback) {
   // @ts-ignore
   return $STOPIFY.pauseK(kontinue => {
@@ -318,33 +295,6 @@ function addModule(uri : string, vals : any) {
 }
 function getModuleValue(uri : string, k : string) {
   return allModules[uri].values[k];
-}
-
-function extend(obj, extension) {
-  for(let k in obj.$methods) {
-    if(!(extension.hasOwnProperty(k))) {
-      Object.defineProperty(extension, k, { configurable: true, get: obj.$methods[k] });
-    }
-  }
-  Object.setPrototypeOf(extension, obj);
-  Object.setPrototypeOf(extension.$methods, obj.$methods);
-  return extension;
-}
-
-function createVariant(sharedBase, extension, meta) {
-  const extended = extend(sharedBase, extension);
-  Object.assign(extended, meta);
-  // NOTE(joe): we cannot pass extended as an argument to this function, because
-  // sharedBased/extension/meta can't easily have a cycle between them due to
-  // codegen passing them in as object literals.
-  extended.$variant = extended;
-  return extended;
-}
-
-function makeDataValue(obj, extension) {
-  Object.setPrototypeOf(extension, obj);
-  extension.$methods = {};
-  return extension;
 }
 
 function installMethod(obj, name, method) {
@@ -376,7 +326,7 @@ function raiseExtract(exception: any): string {
 
 // NOTE(alex): stub implementation used by testing infrastructure
 function torepr(v) {
-  return JSON.stringify(v);
+  return JSON.stringify(v, (key, value) => (key === "$variant" ? "it$elf" : value));
 }
 
 function customThrow(exn) {
@@ -430,13 +380,11 @@ module.exports["$getTraces"] = getTraces;
 
 module.exports["$spy"] = _spy;
 
-module.exports["$rebind"] = _rebind;
-module.exports["$shallowCopyObject"] = shallowCopyObject;
-module.exports["$extend"] = extend;
+module.exports["$extend"] = _PRIMITIVES.extend;
 module.exports["$installMethod"] = installMethod;
 module.exports["$setupMethodGetters"] = setupMethodGetters;
-module.exports["$makeDataValue"] = makeDataValue;
-module.exports["$createVariant"] = createVariant;
+module.exports["$makeDataValue"] = _PRIMITIVES.makeDataValue;
+module.exports["$createVariant"] = _PRIMITIVES.createVariant;
 
 module.exports["$checkTest"] = eagerCheckTest;
 module.exports["$checkBlock"] = checkBlockHandler;

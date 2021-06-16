@@ -11,12 +11,17 @@ $(PYRET_JARR) : $(PYRET_JARR_DEPS)
 
 src/arr/compiler/%.js : src/arr/compiler/%.ts
 	`npm bin`/tsc --target "esnext" --module "es2015" --moduleResolution "node" $<
-	# Thanks internet! https://unix.stackexchange.com/a/65691
-	# This solves the problem that tsc (rightfully) inserts a semicolon at the end
-	# of the expression-statement in JS, but that can't be interpreted correctly
-	# when the JS module's text is put in expression position in the standalone.
-	# So chop the trailing ;
-	perl -0777 -p -i -e 's/;(\n*)\Z/\1/m' $@
+# Thanks internet! https://unix.stackexchange.com/a/65691
+# This solves the problem that tsc (rightfully) inserts a semicolon at the end
+# of the expression-statement in JS, but that can't be interpreted correctly
+# when the JS module's text is put in expression position in the standalone.
+# So chop the trailing ;
+# UNFORTUNATELY, we can't do this while compiling individual .ts files,
+# because tsc might overwrite some of the post-processed files.  So do this as a second step
+	`npm bin`/tsc --target "esnext" --module "es2015" --listFilesOnly $< \
+		| sed s/.ts$$/.js/ | xargs -n1 -I{} realpath --relative-to="src" '{}' | grep -v "\.\." \
+		| xargs -n1 -I{} realpath --relative-to="." 'src/{}' \
+		| xargs -n1 -I{} perl -0777 -p -i -e 's/;(\n*)\Z/\1/m' '{}'
 
 BUILD_DEPS := \
 	src/arr/compiler/pyret-parser.js \
@@ -212,6 +217,7 @@ clean:
 	rm -r -f tests-new/.pyret
 	rm -r -f .pyret
 	rm -r -f build/runtime
+	rm src/arr/compiler/ts-direct-codegen-impl.js src/arr/compiler/ts-compile-structs.js src/arr/compiler/ts-codegen-helpers.js src/arr/compiler/ts-ast.js src/arr/compiler/type-structs.js src/arr/compiler/provide-serialization.js
 
 clean-tests:
 	rm -r -f tests-new/.pyret

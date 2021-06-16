@@ -1,5 +1,6 @@
+import type * as PRIM_TYPES from './primitives';
 const RUNTIME = require("./runtime.js");
-const PRIMITIVES = require("./primitives.js");
+const PRIMITIVES = require("./primitives.js") as typeof PRIM_TYPES;
 const EQUALITY = require("./equality.js");
 
 const OPTION = require("./option.arr.js");
@@ -619,7 +620,7 @@ function eqHelp(pyretSelf, other, selfKeys, recEq) {
         }
     }
 
-    return EQUALITY.Equal();
+    return EQUALITY.Equal;
 }
 
 
@@ -785,6 +786,7 @@ function makeImmutableStringDict(underlyingMap) {
     obj['$underlyingMap'] = underlyingMap;
     return obj;
 }
+
 
 //////////////////////////////////////////////////
 const getMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, key) {
@@ -965,6 +967,8 @@ function makeMutableStringDict(underlyingDict, sealed) {
 
     return obj;
 }
+
+
 
 function internal_isMSD(obj) {
     return PRIMITIVES.hasBrand($PMutableStringDictBrand, obj);

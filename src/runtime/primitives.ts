@@ -1,4 +1,13 @@
 // Separate file is necessary to avoid cyclic imports
+import type {
+  DataMetaBase,
+  DataSharedBase,
+  DataValueType,
+  DataVariantBase,
+  ExpandRecursively,
+  PTuple,
+  VariantType,
+} from './types/primitive-types';
 
 const _NUMBER = require("./js-numbers.js");
 
@@ -26,25 +35,48 @@ export {
 }
 
 // ********* Runtime Type Representations (Non-Primitives) *********
-export interface PTuple {
-  $brand: string,
-  [key: string]: any,
-}
 
-export function PTuple(values: any[]): PTuple {
+export function PTuple<T extends any[]>(values: T): PTuple<T> {
   values["$brand"] = $PTupleBrand;
 
-  return <PTuple><any>values;
+  return <PTuple<T>>values;
 }
 
-export interface DataValue {
-  $brand: any,
-  [key: string]: any
+export function extend(
+  obj : DataSharedBase,
+  extension : DataVariantBase
+) : ExpandRecursively<DataSharedBase & DataVariantBase> {
+  for(let k in obj.$methods) {
+    if(!(extension.hasOwnProperty(k))) {
+      Object.defineProperty(extension, k, { configurable: true, get: obj.$methods[k] });
+    }
+  }
+  Object.setPrototypeOf(extension, obj);
+  Object.setPrototypeOf(extension.$methods, obj.$methods);
+  return (extension as DataSharedBase & DataVariantBase);
 }
 
-export interface PRef {
-  $brand: string,
-  ref: Object,
+export function createVariant<T extends string>(
+  sharedBase : DataSharedBase, 
+  extension : DataVariantBase, 
+  meta : DataMetaBase<T>
+) : VariantType<T> {
+  const extended = extend(sharedBase, extension);
+  const metaExtended = Object.assign(extended, meta);
+  // NOTE(joe): we cannot pass extended as an argument to this function, because
+  // sharedBased/extension/meta can't easily have a cycle between them due to
+  // codegen passing them in as object literals.
+  metaExtended.$variant = metaExtended;
+  return (metaExtended as VariantType<T>);
+}
+
+export function makeDataValue<
+  O extends {},
+  E extends DataVariantBase,
+>(obj : O, extension : E) : DataValueType<O,E> {
+  Object.setPrototypeOf(extension, obj);
+  extension.$methods = {};
+  return (extension as O & Required<E>);
 }
 
 export function isRow(val: any): boolean {
@@ -66,8 +98,9 @@ export function isMethod(obj: any): boolean {
 // TODO(alex): Will nothing always be value 'undefined'?
 export function isNothing(obj: any): boolean { return obj === undefined };
 
-export const isNumber: (val: any) => boolean = _NUMBER["isPyretNumber"];
-export const isRoughNumber: (val: any) => boolean = _NUMBER["isRoughnum"];
+const isNumber: (val: any) => boolean = _NUMBER["isPyretNumber"];
+const isRoughNumber: (val: any) => boolean = _NUMBER["isRoughnum"];
+export { isNumber, isRoughNumber };
 
 export function isBoolean(val: any): boolean {
   return typeof val === "boolean";
@@ -78,11 +111,11 @@ export function isString(val: any): boolean {
 }
 
 export function isDataVariant(val: any): boolean {
-  return (typeof val === "object") && ("$brand" in val) && !(isPTuple(val)) && !(isTable(val)) && !(isRow(val));
+  return (typeof val === "object") && ("$variant" in val);
 }
 
 export function isRawObject(val: any): boolean {
-  return (typeof val === "object") && !("$brand" in val);
+  return (typeof val === "object") && !("$variant" in val) && !(isPTuple(val)) && !(isTable(val)) && !(isRow(val));
 }
 
 export function isPTuple(val: any): boolean {
