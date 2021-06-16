@@ -67,7 +67,7 @@ export interface MutableStringDict<T> {
     'each-key-now': PFunction<<U>(f: (key: string) => U) => void>,
     'count-now': PFunction<() => number>,
     'has-key-now': PFunction<(key: string) => boolean>,
-      _equals: PFunction<(other: any) => EqualityResult>,
+    _equals: PFunction<(other: any) => EqualityResult>,
   },
-  '$underlyingMap': Record<string, T>,
+  '$underlyingDict': Record<string, T>,
 }

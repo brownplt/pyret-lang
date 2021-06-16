@@ -5,7 +5,6 @@ import string-dict as SD
 import pprint as PP
 
 import file("anf.arr") as N
-import file("anf-loop-compiler.arr") as AL
 import file("ast-util.arr") as AU
 import file("compile-structs.arr") as C
 import file("file.arr") as F
@@ -34,12 +33,12 @@ end
 data CompiledCodePrinter:
   | ccp-dict(dict :: CCPDict) with:
     method pyret-to-js-static(self) -> String:
-      "({"
-        + "provides: " + self.dict.provides + ",\n"
-        + "requires: " + self.dict.requires + ",\n"
-        + "nativeRequires: " + self.dict.nativeRequires + ",\n"
-        + "theMap: " + self.dict.theMap + ",\n"
-      + "})"
+      "{\n"
+        + "\"provides\": " + self.dict.provides + ",\n"
+        + "\"requires\": " + self.dict.requires + ",\n"
+        + "\"nativeRequires\": " + self.dict.nativeRequires + ",\n"
+        + "\"theMap\": " + self.dict.theMap + "\n"
+      + "}"
     end,
     method print-js-static(self, printer) block:
       printer(self.pyret-to-js-static())

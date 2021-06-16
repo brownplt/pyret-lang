@@ -1786,7 +1786,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       //    B will still show up in the requires of C
       //    and vice versa if the compiler visits dependency C first
       const result: J.Expression[] = [];
-      Object.keys(env.dict['all-modules'].$underlyingMap).forEach((uriKey : string) => {
+      Object.keys(env.dict['all-modules'].$underlyingDict).forEach((uriKey : string) => {
         const name = P.basename(uriKey, ".arr")
         // TODO(alex): would be nice if CompileEnvironment stored the dependencies as an actual
         //  compile-structs:Dependency so we didn't have to parse the all-modules keys
@@ -1848,12 +1848,15 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       }
 
       const moduleBody = Program([...prelude, ...stmts, ReturnStatement(ans)]);
+      const jsonOptions : Escodegen.GenerateOptions = {
+        format: { json: true },
+      };
       return runtime.makeObject({
-        requires: escodegen.generate(ArrayExpression(serializeRequires(env, options))),
+        requires: escodegen.generate(ArrayExpression(serializeRequires(env, options)), jsonOptions),
         provides: serializedProvides,
-        nativeRequires: "[]",
-        theModule: escodegen.generate(moduleBody),
-        theMap: "",
+        nativeRequires: escodegen.generate(ArrayExpression([]), jsonOptions),
+        theModule: escodegen.generate(moduleBody, jsonOptions),
+        theMap: escodegen.generate(Literal(""), jsonOptions),
       });
     }
 
