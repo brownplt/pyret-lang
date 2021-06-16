@@ -12,7 +12,6 @@ import file("concat-lists.arr") as CL
 import file("file.arr") as F
 import file("flatness.arr") as FL
 import file("js-ast.arr") as J
-import file("direct-codegen.arr") as D
 import file("ts-direct-codegen.arr") as TD
 
 cl-empty = CL.concat-empty
