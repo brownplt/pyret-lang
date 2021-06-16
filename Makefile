@@ -217,7 +217,7 @@ clean:
 	rm -r -f tests-new/.pyret
 	rm -r -f .pyret
 	rm -r -f build/runtime
-	rm src/arr/compiler/ts-direct-codegen-impl.js src/arr/compiler/ts-compile-structs.js src/arr/compiler/ts-codegen-helpers.js src/arr/compiler/ts-ast.js src/arr/compiler/type-structs.js src/arr/compiler/provide-serialization.js
+	rm src/arr/compiler/ts-direct-codegen.js src/arr/compiler/ts-compile-structs.js src/arr/compiler/ts-codegen-helpers.js src/arr/compiler/ts-ast.js src/arr/compiler/type-structs.js src/arr/compiler/provide-serialization.js
 
 clean-tests:
 	rm -r -f tests-new/.pyret

@@ -9,7 +9,7 @@ import file("anf-loop-compiler.arr") as AL
 import file("ast-util.arr") as AU
 import file("compile-structs.arr") as C
 import file("file.arr") as F
-import js-file("ts-direct-codegen-impl") as TD
+import js-file("ts-direct-codegen") as TD
 
 type CCPDict = {
   provides :: String,
