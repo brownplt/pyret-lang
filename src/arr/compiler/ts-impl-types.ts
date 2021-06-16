@@ -33,6 +33,10 @@ export type Either<a, b> =
   | { $name: "right", dict: { 'v': b } }
 
 export type PFunction<T extends Function> = { app: T }
+export type PMethod<Self, T extends (...args: any[]) => any> = { 
+  meth: (self: Self) => T,
+  full_meth: (self: Self, ...args: Parameters<T>) => ReturnType<T>
+}
 
 export interface StringDict<T> {
   dict: {

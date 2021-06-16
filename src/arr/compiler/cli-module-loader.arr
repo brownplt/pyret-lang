@@ -15,8 +15,6 @@ import system as SYS
 import js-file("./parse-pyret") as PP
 import file("ast-util.arr") as AU
 import file("well-formed.arr") as W
-import file("js-ast.arr") as J
-import file("concat-lists.arr") as C
 import file("cmdline.arr") as CMD
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
@@ -29,55 +27,6 @@ import js-file("dependency-tree") as DT
 import js-file("filelib") as FS
 
 var module-cache = [SD.mutable-string-dict:]
-
-j-fun = J.j-fun
-j-var = J.j-var
-j-id = J.j-id
-j-method = J.j-method
-j-block = J.j-block
-j-true = J.j-true
-j-false = J.j-false
-j-num = J.j-num
-j-str = J.j-str
-j-return = J.j-return
-j-assign = J.j-assign
-j-if = J.j-if
-j-if1 = J.j-if1
-j-new = J.j-new
-j-app = J.j-app
-j-list = J.j-list
-j-obj = J.j-obj
-j-dot = J.j-dot
-j-bracket = J.j-bracket
-j-field = J.j-field
-j-dot-assign = J.j-dot-assign
-j-bracket-assign = J.j-bracket-assign
-j-try-catch = J.j-try-catch
-j-throw = J.j-throw
-j-expr = J.j-expr
-j-binop = J.j-binop
-j-and = J.j-and
-j-lt = J.j-lt
-j-eq = J.j-eq
-j-neq = J.j-neq
-j-geq = J.j-geq
-j-unop = J.j-unop
-j-decr = J.j-decr
-j-incr = J.j-incr
-j-not = J.j-not
-j-instanceof = J.j-instanceof
-j-ternary = J.j-ternary
-j-null = J.j-null
-j-parens = J.j-parens
-j-switch = J.j-switch
-j-case = J.j-case
-j-default = J.j-default
-j-label = J.j-label
-j-break = J.j-break
-j-while = J.j-while
-j-for = J.j-for
-
-clist = C.clist
 
 type Loadable = CS.Loadable
 
@@ -635,25 +584,6 @@ end
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
   stats = SD.make-mutable-string-dict()
   build-program(path, options, stats)
-end
-
-fun build-require-standalone(path, options):
-  stats = SD.make-mutable-string-dict()
-  program = build-program(path, options, stats)
-
-  natives = j-list(true, for C.map_list(n from program.natives): n end)
-
-  define-name = j-id(A.s-name(A.dummy-loc, "define"))
-
-  prog = j-block([clist:
-      j-app(define-name, [clist: natives, j-fun(J.next-j-fun-id(), [clist:],
-        j-block([clist:
-          j-return(program.js-ast)
-        ]))
-      ])
-    ])
-
-  print(prog.to-ugly-source())
 end
 
 fun lint(program :: String, uri :: String):

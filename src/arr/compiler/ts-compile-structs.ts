@@ -1,10 +1,29 @@
 import type * as A from './ts-ast';
 import type * as T from './type-structs';
-import { StringDict, MutableStringDict } from './ts-impl-types';
+import { StringDict, MutableStringDict, PFunction, PMethod } from './ts-impl-types';
 import type * as ED from '../trove/error-display'
 import type { Variant } from './ts-codegen-helpers';
 
-type URI = string;
+export type URI = string;
+
+export type CompileOptions = {
+  'check-mode' : boolean,
+  'check-all' : boolean,
+  'type-check' : boolean,
+  'enable-spies' : boolean,
+  'allow-shadowed' : boolean,
+  'collect-all' : boolean,
+  'collect-times' : boolean,
+  'ignore-unbound' : boolean,
+  'proper-tail-calls' : boolean,
+  'compiled-cache' : string,
+  'display-progress' : boolean,
+  'standalone-file' : string,
+  log : PFunction<(string) => void>,
+  'on-compile' : Function, // NOTE: skipping types because the are in compile-lib
+  'before-compile' : Function,
+  pipeline : Pipeline
+}
 
 export type CompileMode = 
   | { $name: "cm-builtin-stage-1", dict: {} }
@@ -124,6 +143,12 @@ export type ExtraImport =
       }
   }
 
+export type CompiledCodePrinter = {
+  dict: {
+    'pyret-to-js-runnable': PMethod<CompiledCodePrinter, () => string>
+  }
+}
+
 export type Loadable = 
   | {
     $name: "module-as-string",
@@ -132,7 +157,7 @@ export type Loadable =
         'provides': Provides,
         'compile-env': CompileEnvironment,
         'post-compile-env': ComputedEnvironment,
-        'result-printer': CompileResult<any>
+        'result-printer': CompileResult<CompiledCodePrinter>
       }
   }
 

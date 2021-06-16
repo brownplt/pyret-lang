@@ -15,7 +15,6 @@ import file("compile-structs.arr") as CS
 import file("concat-lists.arr") as C
 import file("gensym.arr") as G
 import file("js-of-pyret.arr") as JSP
-import file("js-ast.arr") as J
 import file("ast-util.arr") as AU
 import file("well-formed.arr") as W
 import file("desugar.arr") as D
@@ -23,6 +22,7 @@ import file("desugar-post-tc.arr") as DP
 import file("type-check.arr") as T
 import file("desugar-check.arr") as CH
 import file("resolve-scope.arr") as RS
+import js-file("ts-compiler-lib-impl") as TCL
 
 data CompilationPhase:
   | start(time :: Number)
@@ -41,54 +41,6 @@ sharing:
     help(self, empty)
   end
 end
-
-j-fun = J.j-fun
-j-var = J.j-var
-j-id = J.j-id
-j-method = J.j-method
-j-block = J.j-block
-j-true = J.j-true
-j-false = J.j-false
-j-num = J.j-num
-j-str = J.j-str
-j-return = J.j-return
-j-assign = J.j-assign
-j-if = J.j-if
-j-if1 = J.j-if1
-j-new = J.j-new
-j-app = J.j-app
-j-list = J.j-list
-j-obj = J.j-obj
-j-dot = J.j-dot
-j-bracket = J.j-bracket
-j-field = J.j-field
-j-dot-assign = J.j-dot-assign
-j-bracket-assign = J.j-bracket-assign
-j-try-catch = J.j-try-catch
-j-throw = J.j-throw
-j-expr = J.j-expr
-j-binop = J.j-binop
-j-and = J.j-and
-j-lt = J.j-lt
-j-eq = J.j-eq
-j-neq = J.j-neq
-j-geq = J.j-geq
-j-unop = J.j-unop
-j-decr = J.j-decr
-j-incr = J.j-incr
-j-not = J.j-not
-j-instanceof = J.j-instanceof
-j-ternary = J.j-ternary
-j-null = J.j-null
-j-parens = J.j-parens
-j-switch = J.j-switch
-j-case = J.j-case
-j-default = J.j-default
-j-label = J.j-label
-j-break = J.j-break
-j-while = J.j-while
-j-for = J.j-for
-
 
 left = E.left
 right = E.right
@@ -571,71 +523,5 @@ end
 
 # NOTE(joe): I strongly suspect options will be used in the future
 fun make-standalone(wl, compiled, options):
-  natives = for fold(natives from empty, w from wl):
-    w.locator.get-native-modules().map(_.path) + natives
-  end
-
-  var all-compile-problems = empty
-  static-modules = j-obj(for C.map_list(w from wl):
-      loadable = compiled.modules.get-value-now(w.locator.uri())
-      cases(Loadable) loadable:
-        | module-as-string(_, _, _, rp) =>
-          cases(CS.CompileResult) rp block:
-            | ok(code) =>
-              when code.pyret-to-js-runnable() == "":
-                spy: uri: w.locator.uri() end
-              end
-              j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
-            | err(problems) =>
-              all-compile-problems := problems + all-compile-problems
-              j-field(w.locator.uri(), J.j-raw-code("\"error\""))
-          end
-      end
-    end)
-
-  runtime-options = J.j-obj(
-    [C.clist:
-      J.j-field("checks", j-str(options.checks)),
-      J.j-field("disableAnnotationChecks",
-        if options.runtime-annotations:
-          j-false
-        else:
-          j-true
-        end)
-    ])
-
-  cases(List) all-compile-problems:
-    | link(_, _) => left(all-compile-problems)
-    | empty =>
-      depmap = j-obj(for C.map_list(w from wl):
-        deps = w.dependency-map
-        j-field(w.locator.uri(),
-          j-obj(for C.map_list(k from deps.keys-now().to-list()):
-            j-field(k, j-str(deps.get-value-now(k)))
-          end))
-      end)
-
-      to-load = j-list(false, for C.map_list(w from wl):
-        j-str(w.locator.uri())
-      end)
-
-      uris = j-obj(for C.map_list(w from wl):
-        uri = w.locator.uri()
-        hashed = SHA.sha256(uri)
-        j-field(hashed, j-str(uri))
-      end)
-
-      program-as-js = j-obj([C.clist:
-          j-field("staticModules", static-modules),
-          j-field("depMap", depmap),
-          j-field("toLoad", to-load),
-          j-field("uris", uris),
-          j-field("runtimeOptions", runtime-options)
-        ])
-
-      right({
-        js-ast: program-as-js,
-        natives: natives
-      })
-  end
+  TCL.make-standalone(wl, compiled, options)
 end
