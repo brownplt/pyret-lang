@@ -7,7 +7,6 @@ import error as ERR
 import file("ast.arr") as A
 import srcloc as SL
 import string-dict as SD
-import file("desugar-helpers.arr") as DH
 import file("ast-util.arr") as AU
 import file("type-structs.arr") as TS
 import file("type-check-structs.arr") as TCS
@@ -116,6 +115,57 @@ var misc-test-inference-data :: Option<Name> = none
 
 
 #######################################################
+
+fun desugar-s-for(loc, iter :: A.Expr, bindings :: List<A.ForBind>, ann :: A.Ann, body :: A.Expr):
+  # Split binds and their values
+  { binds; args } = for fold({ bl; el } from { empty; empty }, fb from bindings):
+    cases(A.ForBind) fb:
+      | s-for-bind(l, shadow bind, arg) =>
+        { bl.push(bind); el.push(arg) }
+    end
+  end
+
+  shadow binds = binds.reverse()
+  shadow args = args.reverse()
+
+  # for loops are documented to desugar
+  #   for f1(v1 from s1..., vn from sn) block end
+  # into
+  #   f1(lam(v1...vn) block end, s1...sn)
+  lambda-for = A.s-lam(loc, "", empty, binds, ann, "", body, none, none, true)
+  A.s-app(loc,
+          iter,
+          link(lambda-for, args)
+         )
+end
+
+fun desugar-s-op(loc, op-l, op, l, r):
+  ask:
+    | op == "op==" then:
+      A.s-prim-app(
+                  loc,
+                  "equal-always",
+                  [list: l, r], flat-prim-app
+      )
+    | op == "op<>" then:
+      inner = A.s-prim-app(
+                  loc,
+                  "equal-always",
+                  [list: l, r], flat-prim-app
+      )
+      A.s-prim-app(
+                  loc,
+                  "not",
+                  [list: inner], flat-prim-app
+      )
+
+    | op == "op^" then:
+      # left ^ right -> right(left)
+      A.s-app(loc, r, [list: l])
+    | otherwise:
+      A.s-op(loc, op-l, op, l, r)
+    end
+end
 
 fun option-bind<X, Y>(f :: (X -> Option<Y>), maybe-thing :: Option<X>) -> Option<Y>:
   cases(Option<X>) maybe-thing:
@@ -809,7 +859,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-cases-else(l, typ, val, branches, _else, blocky) =>
       synthesis-cases(l, typ, val, branches, some(_else), context)
     | s-op(loc, op-l, op, l, r) =>
-      desugared = DH.desugar-s-op(loc, op-l, op, l, r)
+      desugared = desugar-s-op(loc, op-l, op, l, r)
       cases(Expr) desugared:
         | s-op(shadow loc, shadow op-l, shadow op, shadow l, shadow r) => synthesis-op(top-level, loc, op, op-l, l, r, context)
         | else => synthesis(desugared, top-level, context)
@@ -969,7 +1019,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
     | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
       raise("s-data-expr should have been handled by s-letrec")
     | s-for(l, iterator, bindings, ann, body, blocky) =>
-      _synthesis(DH.desugar-s-for(l, iterator, bindings, ann, body), top-level, context)
+      _synthesis(desugar-s-for(l, iterator, bindings, ann, body), top-level, context)
     | s-check(l, name, body, keyword-check) =>
       synthesis(body, false, context).bind(lam(_, _, _):
         result-type = new-existential(l, false)
