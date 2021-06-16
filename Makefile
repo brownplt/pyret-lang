@@ -181,12 +181,12 @@ $(WORKER_BUILD_DIR):
 	mkdir -p $(WORKER_BUILD_DIR)
 
 build/worker/pyret.jarr : build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js $(WORKER_BUILD_DIR) $(PYRET_JARR_DEPS)
-	pyret --checks none --standalone-file "$(shell pwd)/src/webworker/worker-standalone.js" --deps-file "$(shell pwd)/build/worker/bundled-node-compile-deps.js" -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
+	npx pyret --checks none --standalone-file "$(shell pwd)/src/webworker/worker-standalone.js" --deps-file "$(shell pwd)/build/worker/bundled-node-compile-deps.js" -c src/arr/compiler/webworker.arr -o build/worker/pyret.jarr
 
 web: build/worker/pyret.jarr build/worker/page.html build/worker/main.js
 
 build/worker/runtime-files.json: src/webworker/scripts/runtime-bundler.ts $(RUNTIME_DEPS)
-	tsc $(WEBWORKER_SRC_DIR)/scripts/runtime-bundler.ts --outDir $(WEBWORKER_BUILD_DIR)
+	`npm bin`/tsc $(WEBWORKER_SRC_DIR)/scripts/runtime-bundler.ts --outDir $(WEBWORKER_BUILD_DIR)
 	node $(WEBWORKER_BUILD_DIR)/runtime-bundler.js $(RUNTIME_BUILD_DIR) build/worker/runtime-files.json
 
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
@@ -206,7 +206,7 @@ build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js
 parser: src/arr/compiler/pyret-parser.js
 
 build/worker/main.js: src/webworker/*.ts build/worker/runtime-files.json
-	browserify $(WEBWORKER_SRC_DIR)/main.ts -p [ tsify ] -o $(WEBWORKER_BUILD_DIR)/main.js
+	`npm bin`/browserify $(WEBWORKER_SRC_DIR)/main.ts -p [ tsify ] -o $(WEBWORKER_BUILD_DIR)/main.js
 
 build/worker/page.html: src/webworker/page.html
 	cp $< $@
