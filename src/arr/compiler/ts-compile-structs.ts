@@ -1,6 +1,6 @@
 import type * as A from './ts-ast';
 import type * as T from './type-structs';
-import type * as SD from '../../runtime/types/string-dict-types'
+import { StringDict, MutableStringDict } from './ts-impl-types';
 import type * as ED from '../trove/error-display'
 import type { Variant } from './ts-codegen-helpers';
 
@@ -88,13 +88,13 @@ export type ComputedEnvironment =
     $name: "computed-env",
     dict: 
       {
-        'module-bindings': SD.MutableStringDict<ModuleBind>,
-        'bindings': SD.MutableStringDict<ValueBind>,
-        'type-bindings': SD.MutableStringDict<TypeBind>,
-        'datatypes': SD.MutableStringDict<A.Expr>,
-        'module-env': SD.StringDict<ModuleBind>,
-        'env': SD.StringDict<ValueBind>,
-        'type-env': SD.StringDict<TypeBind>
+        'module-bindings': MutableStringDict<ModuleBind>,
+        'bindings': MutableStringDict<ValueBind>,
+        'type-bindings': MutableStringDict<TypeBind>,
+        'datatypes': MutableStringDict<A.Expr>,
+        'module-env': StringDict<ModuleBind>,
+        'env': StringDict<ValueBind>,
+        'type-env': StringDict<TypeBind>
       }
   }
 
@@ -142,8 +142,8 @@ export type CompileEnvironment =
     dict: 
       {
         'globals': Globals,
-        'all-modules': SD.MutableStringDict<Loadable>,
-        'my-modules': SD.StringDict<URI>
+        'all-modules': MutableStringDict<Loadable>,
+        'my-modules': StringDict<URI>
       }
   }
 
@@ -152,9 +152,9 @@ export type Globals =
     $name: "globals",
     dict: 
       {
-        'modules': SD.StringDict<BindOrigin>,
-        'values': SD.StringDict<BindOrigin>,
-        'types': SD.StringDict<BindOrigin>
+        'modules': StringDict<BindOrigin>,
+        'values': StringDict<BindOrigin>,
+        'types': StringDict<BindOrigin>
       }
   }
 
@@ -186,10 +186,10 @@ export type Provides =
     dict: 
       {
         'from-uri': URI,
-        'modules': SD.StringDict<URI>,
-        'values': SD.StringDict<ValueExport>,
-        'aliases': SD.StringDict<T.Type>,
-        'data-definitions': SD.StringDict<DataExport>
+        'modules': StringDict<URI>,
+        'values': StringDict<ValueExport>,
+        'aliases': StringDict<T.Type>,
+        'data-definitions': StringDict<DataExport>
       }
   }
 
