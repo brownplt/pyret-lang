@@ -19,7 +19,6 @@ import file("../../src/arr/compiler/anf.arr") as N
 import file("../../src/arr/compiler/js-of-pyret.arr") as JS
 import file("../../src/arr/compiler/desugar-check.arr") as CH
 import file as F
-import file("../../src/arr/compiler/js-ast.arr") as J
 
 # this value is the limit of number of steps that could be inlined in case body
 DEFAULT-INLINE-CASE-LIMIT = 5
@@ -72,7 +71,6 @@ fun pretty-result(result):
   else if JS.is-CompiledCodePrinter(result): result.pyret-to-js-pretty()
   else if CS.is-NameResolution(result): result.ast.tosource()
   else if CS.is-ScopeResolution(result): result.ast.tosource()
-  else if J.is-JExpr(result) or J.is-JStmt(result) or J.is-JBlock(result): result.tosource()
   else if CS.is-CompileResult(result):
     cases(CS.CompileResult) result:
       | ok(c) => pretty-result(c)
