@@ -24,24 +24,24 @@ describe("Testing browser simple-output programs", () => {
     refreshPagePerTest = setup.refreshPagePerTest;
 
     if (refreshPagePerTest === false) {
-      driver.get(baseURL + "/page.html");
+      await driver.get(baseURL + "/page.html");
       await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
     }
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     if (refreshPagePerTest === true) {
-      driver.get(baseURL + "/page.html");
+      await driver.get(baseURL + "/page.html");
     }
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (refreshPagePerTest === false) {
-      tester.clearLogs(driver);
+      await tester.clearLogs(driver);
     }
   });
 
-  afterAll(() => {
+  afterAll(async () => {
     driver.quit();
   });
 
