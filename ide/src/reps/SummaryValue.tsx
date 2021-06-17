@@ -3,7 +3,8 @@
 
 import React from 'react';
 
-import { getRenderKind, NeverError } from './RenderKind';
+import { getRenderKind } from './RenderKind';
+import { NeverError } from '../utils';
 
 import ImageWidget from './Image';
 import ExactNumWidget from './ExactNum';

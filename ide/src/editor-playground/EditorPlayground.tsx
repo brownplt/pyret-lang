@@ -1,9 +1,13 @@
 import React from 'react';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
 import CM, { TextMarkerOptions } from 'codemirror';
+import { connect } from 'react-redux';
 import Tooltip from './Tooltip';
 import run from './mock-run';
 import MockRenderedValue from './MockRenderedValue';
+import { BackendCmd, State } from '../state';
+import { Action } from '../action';
+import { RHSObjects } from '../rhsObject';
 
 require('pyret-codemirror-mode/mode/pyret');
 
@@ -18,7 +22,46 @@ interface LineWidget extends CM.LineWidget {
   line: CM.LineHandle
 }
 
-export default function EditorPlayground() {
+interface DispatchProps {
+  run: () => void,
+  save: (x: string) => void,
+}
+
+interface StateProps {
+  rhs: RHSObjects,
+}
+
+type Props = StateProps & DispatchProps;
+
+function mapStateToProps(state: State): StateProps {
+  const {
+    rhs,
+  } = state;
+
+  return {
+    rhs,
+  };
+}
+
+function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
+  return {
+    run() {
+      console.log('mapDispatchToProps run');
+      return dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Run } });
+    },
+    save(contents: string) {
+      dispatch({
+        type: 'update',
+        key: 'currentFileContents',
+        value: contents,
+      });
+    },
+  };
+}
+
+const connector = connect(mapStateToProps, mapDispatchToProps);
+
+function Embeditor(props: Props) {
   const [_tooltipPos, setTooltipPos] = React.useState<Pos | null>(null);
   const tooltipPosRef = React.useRef(_tooltipPos);
   // const [_staleLineWidgets, setStaleLineWidgets] = React.useState<CM.LineWidget[]>([]);
@@ -147,6 +190,8 @@ export default function EditorPlayground() {
           const { from, to } = mark.find();
           return editor.getRange(from, to);
         });
+        props.save(editor.getValue());
+        props.run();
         const results = run(textChunks);
         resultsCacheRef.current = results;
         setResultsCache(results);
@@ -191,6 +236,8 @@ export default function EditorPlayground() {
       );
     });
   });
+  const { rhs } = props;
+  console.log(rhs);
   return (
     <>
       <CodeMirror
@@ -211,3 +258,5 @@ export default function EditorPlayground() {
     </>
   );
 }
+
+export default connector(Embeditor);

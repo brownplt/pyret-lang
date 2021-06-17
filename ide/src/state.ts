@@ -164,6 +164,7 @@ export enum MessageTabIndex {
 export enum EditorMode {
   Chunks,
   Text,
+  Embeditor,
 }
 
 export type LintFailure = {
@@ -195,7 +196,7 @@ export const initialState: State = {
   editTimer: false,
   dropdownVisible: false,
   editorLoopDropdownVisible: false,
-  editorMode: EditorMode.Chunks,
+  editorMode: EditorMode.Embeditor,
   fontSize: 12,
   definitionsHighlights: [],
   currentRunner: undefined,

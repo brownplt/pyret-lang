@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-import { getRenderKind, NeverError } from './RenderKind';
+import { getRenderKind } from './RenderKind';
 
 /* eslint-disable-next-line */
 import TableWidget from './Table';
@@ -14,6 +14,7 @@ import ReactorWidget from './Reactor';
 import { RawRTMessage } from '../rtMessages';
 import { RangeWidget } from './RangeWidget';
 import ExactNumWidget from './ExactNum';
+import { NeverError } from '../utils';
 
 declare global {
   interface window { theKey: any; }

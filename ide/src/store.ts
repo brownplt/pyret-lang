@@ -19,6 +19,7 @@ import { RunKind } from './backend';
 import { Effect } from './effect';
 import * as control from './control';
 import * as ideRt from './ide-rt-override';
+import { NeverError } from './utils';
 
 type Dispatch = (action: Action) => void;
 
@@ -221,6 +222,7 @@ function handleSaveFile(
   };
 
   switch (mode) {
+    case EditorMode.Embeditor:
     case EditorMode.Text:
       control.fs.writeFile(path, contents, saveCallback);
       break;
@@ -237,7 +239,7 @@ function handleSaveFile(
       );
       break;
     default:
-      throw new Error('handleSaveFile: unknown editor mode');
+      throw new NeverError(mode);
   }
 }
 

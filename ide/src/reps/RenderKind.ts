@@ -20,12 +20,6 @@ function isList(value: any): boolean {
     || (value.$brand.names === false && typeof value.partition !== 'undefined');
 }
 
-export class NeverError extends Error {
-  constructor(val: never) {
-    super(`${val} is never`);
-  }
-}
-
 // A number of Pyret types are not RenderKinds (for example members of sets such
 // as function and list)
 // Some RenderKinds are not Pyret types, such as:

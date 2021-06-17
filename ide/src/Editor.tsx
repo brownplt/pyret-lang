@@ -33,6 +33,8 @@ import * as control from './control';
 import * as action from './action';
 import 'react-tabs/style/react-tabs.css';
 import 'react-splitter-layout/lib/index.css';
+import EditorPlayground from './editor-playground/EditorPlayground';
+import { NeverError } from './utils';
 
 type StateProps = {
   browseRoot: string,
@@ -126,24 +128,27 @@ export class Editor extends React.Component<EditorProps, any> {
       run,
     } = this.props;
 
-    if (editorMode === EditorMode.Text) {
-      return (
-        <SingleCodeMirrorDefinitions
-          text={currentFileContents || ''}
-          onEdit={(contents: string) => updateContents(contents)}
-          highlights={definitionsHighlights}
-          run={run}
-        />
-      );
+    switch (editorMode) {
+      case EditorMode.Embeditor:
+        return (
+          <EditorPlayground />
+        );
+      case EditorMode.Text:
+        return (
+          <SingleCodeMirrorDefinitions
+            text={currentFileContents || ''}
+            onEdit={(contents: string) => updateContents(contents)}
+            highlights={definitionsHighlights}
+            run={run}
+          />
+        );
+      case EditorMode.Chunks:
+        return (
+          <DefChunks />
+        );
+      default:
+        throw new NeverError(editorMode);
     }
-
-    if (editorMode === EditorMode.Chunks) {
-      return (
-        <DefChunks />
-      );
-    }
-
-    throw new Error('Unknown editor mode');
   }
 
   /* Returns a function suitable as a callback to a copy (ctrl-c) event handler.

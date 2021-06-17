@@ -102,13 +102,25 @@ function Menu({
               }}
             >
               <button
+                id="embeditorModeButton"
+                onClick={() => setEditorMode(EditorMode.Embeditor)}
+                className="option"
+                key="Embeditor"
+                type="button"
+                style={{
+                  width: '33%',
+                }}
+              >
+                Embeditor
+              </button>
+              <button
                 id="textModeButton"
                 onClick={() => setEditorMode(EditorMode.Text)}
                 className="option"
                 key="TextEditor"
                 type="button"
                 style={{
-                  width: '50%',
+                  width: '33%',
                 }}
               >
                 Text
@@ -120,7 +132,7 @@ function Menu({
                 key="ChunkEditor"
                 type="button"
                 style={{
-                  width: '50%',
+                  width: '33%',
                 }}
               >
                 Chunks

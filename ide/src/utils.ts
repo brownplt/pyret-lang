@@ -10,3 +10,9 @@ export function isDataValue(x: any): x is DataValue {
 export function intersperse(array: Array<JSX.Element>, btwn: JSX.Element): Array<JSX.Element> {
   return array.slice(1).reduce((acc, comp) => acc.concat([btwn, comp]), [array[0]]);
 }
+
+export class NeverError extends Error {
+  constructor(val: never) {
+    super(`${val} is never`);
+  }
+}

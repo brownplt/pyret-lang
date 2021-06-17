@@ -34,12 +34,11 @@ export default class MockRV extends React.PureComponent<RVProps, RVState> {
 
   componentDidUpdate(oldProps: RVProps) {
     const { editor, line } = this.props;
-    const { portal, widget } = this.state;
     if (oldProps.line !== line) {
+      const { portal, widget } = this.state;
       editor.removeLineWidget(widget as CM.LineWidget);
       editor.addLineWidget(line, portal);
     }
-    // this.state.widget?.changed();
   }
 
   componentWillUnmount() {
@@ -52,7 +51,6 @@ export default class MockRV extends React.PureComponent<RVProps, RVState> {
   render() {
     const { chunkLength, programLength } = this.props;
     const { portal } = this.state;
-    // this.state.widget?.changed();
     return ReactDOM.createPortal(
       <span>
         Chunk length:

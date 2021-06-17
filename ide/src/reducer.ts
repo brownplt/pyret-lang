@@ -57,6 +57,7 @@ import {
   makeRTMessage,
   RTMessages,
 } from './rtMessages';
+import { NeverError } from './utils';
 
 // TODO(alex): Handling enter needs to be changed
 //   With the current setup, you will need to call `handleEnter` at the end of
@@ -626,6 +627,7 @@ function handleCompileFailure(
   }
 
   switch (editorMode) {
+    case EditorMode.Embeditor:
     case EditorMode.Text:
       console.log('Compilation failure: text mode');
       return {
@@ -672,7 +674,7 @@ function handleCompileFailure(
       });
     }
     default:
-      throw new Error('handleCompileFailure: unknown editor mode');
+      throw new NeverError(editorMode);
   }
 }
 
@@ -803,8 +805,8 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
     editorMode,
   } = state;
 
-  if (editorMode !== EditorMode.Text) {
-    throw new Error('handleSetCurrentFileContents: not in text mode');
+  if (editorMode === EditorMode.Chunks) {
+    throw new Error('handleSetCurrentFileContents: chunks mode should set chunks, not fileContents');
   }
 
   return {
