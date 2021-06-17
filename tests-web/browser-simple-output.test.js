@@ -1,6 +1,7 @@
 const assert = require('assert');
 const glob = require('glob');
 const fs = require('fs');
+const path = require('path');
 const tester = require("./test-util.js");
 
 const TEST_TIMEOUT = 20000;
@@ -16,35 +17,36 @@ describe("Testing browser simple-output programs", () => {
   let baseURL;
   let refreshPagePerTest;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     setup = tester.setup();
     driver = setup.driver;
     baseURL = setup.baseURL;
     refreshPagePerTest = setup.refreshPagePerTest;
 
     if (refreshPagePerTest === false) {
-      return driver.get(baseURL + "/page.html");
+      driver.get(baseURL + "/page.html");
+      await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
     }
   });
 
   beforeEach(() => {
     if (refreshPagePerTest === true) {
-      return driver.get(baseURL + "/page.html");
+      driver.get(baseURL + "/page.html");
     }
   });
 
   afterEach(() => {
     if (refreshPagePerTest === false) {
-      return tester.clearLogs(driver);
+      tester.clearLogs(driver);
     }
   });
 
   afterAll(() => {
-    return driver.quit();
+    driver.quit();
   });
 
   describe("Basic page loads", function() {
-    test("should load the webworker compiler", async function(done) {
+    test("should load the webworker compiler", async function() {
 
       let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
       expect(loaded).toBeTruthy();
@@ -58,7 +60,6 @@ describe("Testing browser simple-output programs", () => {
 
       expect(value).toEqual("FOO BAR");
 
-      await done();
     });
   });
 
@@ -73,7 +74,7 @@ describe("Testing browser simple-output programs", () => {
     //   and execute simple output tests.
     //   Maybe use test sequencers in the future?
     files.forEach(f => {
-      test(`${f}`, async function(done) {
+      test(`in-browser ${path.basename(f)} (${f})`, async function() {
 
         let typeCheck = f.match(/no-type-check/) === null;
 
@@ -83,7 +84,9 @@ describe("Testing browser simple-output programs", () => {
         let exact = f.match(/scan/) === null;
 
         if (refreshPagePerTest === true) {
+          console.log("about to load");
           let loaded = await tester.pyretCompilerLoaded(driver, STARTUP_TIMEOUT);
+          console.log("finished loading");
           expect(loaded).toBeTruthy();
         }
 
@@ -109,7 +112,6 @@ describe("Testing browser simple-output programs", () => {
           expect(foundOutput).toEqual(tester.OK);
           expect(runtimeErrors).toBeFalsy();
 
-          await done();
         } else {
 
           const lines = contents.split("\n");
@@ -142,7 +144,6 @@ describe("Testing browser simple-output programs", () => {
 
           expect(runtimeErrors).toBeFalsy();
 
-          await done();
         }
       });
     });
