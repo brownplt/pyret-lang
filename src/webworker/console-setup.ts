@@ -30,7 +30,7 @@ const genericLog = function(prefix, className, ...args: any[]) {
 
     var arg = logArgs[i];
     if (typeof arg === "object") {
-      outputLine += JSON.stringify(arg, null, 4) + separator;
+      outputLine += JSON.stringify(arg, (key, value) => (key === "$variant" ? "it$elf" : value), 4) + separator;
     } else {
       outputLine += arg + separator;
     }
