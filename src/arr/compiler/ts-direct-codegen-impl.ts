@@ -1558,6 +1558,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
         for(let i = 0; i < shorter; i += 1) {
           if(sourcePath[i] !== buildDir[i]) { cutoffIndex = i; break; }
         }
+        if(cutoffIndex === 0) { cutoffIndex = buildDir.length; }
         return [ buildDir.substring(0, cutoffIndex), sourcePath ];
       }
 

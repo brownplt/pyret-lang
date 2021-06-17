@@ -186,7 +186,13 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
       if (importPath in nodeModules) {
         return (nodeModules as any)[importPath];
       }
-      const nextPath = path.join(requiringWd, importPath);
+      let nextPath = path.join(requiringWd, importPath);
+      // NOTE(joe, June 2021):
+      // Required, because some TypeScript/es module workflows have you write the module without the .js
+      if(nextPath.slice(-3) !== ".js") {
+        nextPath = nextPath + ".js";
+      }
+    
       const cwd = path.parse(nextPath).dir;
       const stoppedPath = `${nextPath}.stopped`;
       // Get the absolute path to uniquely identify modules
@@ -194,7 +200,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
       const cachePath = path.resolve(stoppedPath);
       if (cachePath in cache) { return cache[cachePath]; }
       if (!fs.existsSync(nextPath)) {
-        throw new Error(`Path did not exist in requireSync: ${nextPath}`);
+        throw new Error(`Path did not exist in requireASync: ${nextPath}`);
       }
       currentRunner.pauseK((kontinue: (result: any) => void) => {
         const lastPath = currentRunner.path;
@@ -269,7 +275,12 @@ export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPa
       return (nodeModules as any)[importPath];
     }
     const oldWd = cwd;
-    const nextPath = path.join(cwd, importPath);
+    let nextPath = path.join(cwd, importPath);
+    // NOTE(joe, June 2021):
+    // Required, because some TypeScript/es module workflows have you write the module without the .js
+    if (nextPath.slice(-3) !== ".js") {
+      nextPath = nextPath + ".js";
+    }
     if (nextPath in cache) { return cache[nextPath]; }
 
     if (isRoot) {

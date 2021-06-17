@@ -5,7 +5,6 @@ import string-dict as SD
 import pprint as PP
 
 import file("anf.arr") as N
-import file("anf-loop-compiler.arr") as AL
 import file("ast-util.arr") as AU
 import file("compile-structs.arr") as C
 import file("concat-lists.arr") as CL

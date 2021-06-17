@@ -2,6 +2,7 @@ import { compiled, compiledBuiltin } from './path';
 
 export default function load(
   fs: any,
+  path: any,
   prewrittenDirectory: string,
   uncompiledDirectory: string,
   runtimeFiles: any,
@@ -29,10 +30,17 @@ export default function load(
       const statResult = fs.statSync(fullPathKey);
       const localTimestamp = statResult.mtime.getTime();
       if (localTimestamp < timestamp) {
+        if (!fs.existsSync(path.dirname(compiledPath))) {
+          fs.mkdirSync(path.dirname(compiledPath));
+        }
         fs.writeFileSync(fullPathKey, content);
         fs.writeFileSync(compiledPath, content);
       }
     } else {
+      if (!fs.existsSync(path.dirname(fullPathKey))) {
+        fs.mkdirSync(path.dirname(fullPathKey));
+        fs.mkdirSync(path.dirname(compiledPath));
+      }
       fs.writeFileSync(fullPathKey, content);
       fs.writeFileSync(compiledPath, content);
     }
