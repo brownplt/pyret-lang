@@ -1,10 +1,29 @@
 import type * as A from './ts-ast';
 import type * as T from './type-structs';
-import type * as SD from '../../runtime/types/string-dict-types'
+import { StringDict, MutableStringDict, PFunction, PMethod } from './ts-impl-types';
 import type * as ED from '../trove/error-display'
 import type { Variant } from './ts-codegen-helpers';
 
-type URI = string;
+export type URI = string;
+
+export type CompileOptions = {
+  'check-mode' : boolean,
+  'check-all' : boolean,
+  'type-check' : boolean,
+  'enable-spies' : boolean,
+  'allow-shadowed' : boolean,
+  'collect-all' : boolean,
+  'collect-times' : boolean,
+  'ignore-unbound' : boolean,
+  'proper-tail-calls' : boolean,
+  'compiled-cache' : string,
+  'display-progress' : boolean,
+  'standalone-file' : string,
+  log : PFunction<(string) => void>,
+  'on-compile' : Function, // NOTE: skipping types because the are in compile-lib
+  'before-compile' : Function,
+  pipeline : Pipeline
+}
 
 export type CompileMode = 
   | { $name: "cm-builtin-stage-1", dict: {} }
@@ -88,13 +107,13 @@ export type ComputedEnvironment =
     $name: "computed-env",
     dict: 
       {
-        'module-bindings': SD.MutableStringDict<ModuleBind>,
-        'bindings': SD.MutableStringDict<ValueBind>,
-        'type-bindings': SD.MutableStringDict<TypeBind>,
-        'datatypes': SD.MutableStringDict<A.Expr>,
-        'module-env': SD.StringDict<ModuleBind>,
-        'env': SD.StringDict<ValueBind>,
-        'type-env': SD.StringDict<TypeBind>
+        'module-bindings': MutableStringDict<ModuleBind>,
+        'bindings': MutableStringDict<ValueBind>,
+        'type-bindings': MutableStringDict<TypeBind>,
+        'datatypes': MutableStringDict<A.Expr>,
+        'module-env': StringDict<ModuleBind>,
+        'env': StringDict<ValueBind>,
+        'type-env': StringDict<TypeBind>
       }
   }
 
@@ -124,6 +143,12 @@ export type ExtraImport =
       }
   }
 
+export type CompiledCodePrinter = {
+  dict: {
+    'pyret-to-js-runnable': PMethod<CompiledCodePrinter, () => string>
+  }
+}
+
 export type Loadable = 
   | {
     $name: "module-as-string",
@@ -132,7 +157,7 @@ export type Loadable =
         'provides': Provides,
         'compile-env': CompileEnvironment,
         'post-compile-env': ComputedEnvironment,
-        'result-printer': CompileResult<any>
+        'result-printer': CompileResult<CompiledCodePrinter>
       }
   }
 
@@ -142,8 +167,8 @@ export type CompileEnvironment =
     dict: 
       {
         'globals': Globals,
-        'all-modules': SD.MutableStringDict<Loadable>,
-        'my-modules': SD.StringDict<URI>
+        'all-modules': MutableStringDict<Loadable>,
+        'my-modules': StringDict<URI>
       }
   }
 
@@ -152,9 +177,9 @@ export type Globals =
     $name: "globals",
     dict: 
       {
-        'modules': SD.StringDict<BindOrigin>,
-        'values': SD.StringDict<BindOrigin>,
-        'types': SD.StringDict<BindOrigin>
+        'modules': StringDict<BindOrigin>,
+        'values': StringDict<BindOrigin>,
+        'types': StringDict<BindOrigin>
       }
   }
 
@@ -186,10 +211,10 @@ export type Provides =
     dict: 
       {
         'from-uri': URI,
-        'modules': SD.StringDict<URI>,
-        'values': SD.StringDict<ValueExport>,
-        'aliases': SD.StringDict<T.Type>,
-        'data-definitions': SD.StringDict<DataExport>
+        'modules': StringDict<URI>,
+        'values': StringDict<ValueExport>,
+        'aliases': StringDict<T.Type>,
+        'data-definitions': StringDict<DataExport>
       }
   }
 

@@ -7,59 +7,59 @@ import pprint as PP
 import file("anf.arr") as N
 import file("ast-util.arr") as AU
 import file("compile-structs.arr") as C
-import file("concat-lists.arr") as CL
 import file("file.arr") as F
-import file("flatness.arr") as FL
-import file("js-ast.arr") as J
-import file("ts-direct-codegen.arr") as TD
+import js-file("ts-direct-codegen") as TD
 
-cl-empty = CL.concat-empty
-cl-cons = CL.concat-cons
+type CCPDict = {
+  provides :: String,
+  requires :: String,
+  nativeRequires :: String,
+  theModule :: String,
+  theMap :: String
+}
 
-fun cl-map-sd(f, sd):
-  for SD.fold-keys(acc from cl-empty, key from sd):
-    cl-cons(f(key), acc)
-  end
+INDENT = 2
+
+fun obj(fields):
+  PP.parens(PP.surround-separate(INDENT, 1, PP.str("{}"),
+    PP.lbrace, PP.commabreak, PP.rbrace, fields))
+end
+
+fun field(name, val):
+  PP.nest(INDENT, PP.dquote(PP.str(name)) + PP.str(": ") + val)
 end
 
 # TODO(joe): add methods for printing to module vs static information
 data CompiledCodePrinter:
-  | ccp-dict(dict :: SD.StringDict) with:
-    method to-j-expr(self, d):
-      J.j-obj(for cl-map-sd(k from d):
-          J.j-field(k, d.get-value(k))
-        end)
-    end,
+  | ccp-dict(dict :: CCPDict) with:
     method pyret-to-js-static(self) -> String:
-      self.to-j-expr(self.dict.remove("theModule")).to-ugly-source()
+      "{\n"
+        + "\"provides\": " + self.dict.provides + ",\n"
+        + "\"requires\": " + self.dict.requires + ",\n"
+        + "\"nativeRequires\": " + self.dict.nativeRequires + ",\n"
+        + "\"theMap\": " + self.dict.theMap + "\n"
+      + "}"
     end,
-    method print-js-static(self, printer):
-      self.to-j-expr(self.dict.remove("theModule")).print-ugly-source(printer)
+    method print-js-static(self, printer) block:
+      printer(self.pyret-to-js-static())
     end,
     method pyret-to-js-pretty(self) -> PP.PPrintDoc:
-      self.to-j-expr(self.dict).tosource()
+      obj([list: 
+        field("provides", PP.str(self.dict.provides)),
+        field("requires", PP.str(self.dict.requires)),
+        field("nativeRequires", PP.str(self.dict.nativeRequires)),
+        field("theModule", PP.str(self.dict.theModule)),
+        field("theMap", PP.str(self.dict.theMap))
+      ])
     end,
     method pyret-to-js-runnable(self) -> String:
-      self.dict.get-value("theModule").to-ugly-source()
+      self.dict.theModule
     end,
     method print-js-runnable(self, printer):
-      self.dict.get-value("theModule").print-ugly-source(printer)
+      printer(self.dict.theModule)
     end,
     method print-js-module(self, printer):
-      self.dict.get-value("theModule").print-ugly-source(printer)
-    end
-  | ccp(compiled :: J.JExpr) with:
-    method pyret-to-js-static(self) -> String:
-      self.compiled.to-ugly-source()
-    end,
-    method pyret-to-js-pretty(self) -> PP.PPrintDoc:
-      self.compiled.tosource()
-    end,
-    method pyret-to-js-runnable(self) -> String:
-      self.compiled.to-ugly-source()
-    end,
-    method print-js-runnable(self, printer):
-      self.compiled.print-ugly-source(printer)
+      printer(self.dict.theModule)
     end
   | ccp-string(compiled :: String) with:
     method pyret-to-js-pretty(self) -> PP.PPrintDoc:
@@ -111,10 +111,7 @@ end
 
 fun make-compiled-pyret(program-ast, uri, env, post-env, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter>} block:
 #  each(println, program-ast.tosource().pretty(80))
-  compiled = cases(C.Pipeline) options.pipeline:
-    | pipeline-anchor => TD.compile-program(program-ast, uri, env, post-env, provides, options)
-    | pipeline-ts-anchor => TD.compile-program(program-ast, uri, env, post-env, provides, options)
-  end
+  compiled = TD.compile-program(program-ast, uri, env, post-env, provides, options)
   {provides; C.ok(ccp-dict(compiled))}
 end
 

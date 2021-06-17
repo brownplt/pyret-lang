@@ -5,17 +5,21 @@ import type * as A from './ts-ast';
 import type * as T from './ts-impl-types';
 import type * as CS from './ts-compile-structs';
 import type * as TJ from './ts-codegen-helpers';
+import type * as PS from './provide-serialization';
 import type { Variant, PyretObject } from './ts-codegen-helpers';
 
 ({ 
-  requires: [{ 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']} ],
+  requires: [
+    { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']},
+    { 'import-type': 'dependency', protocol: 'js-file', args: ['provide-serialization']},
+   ],
   nativeRequires: ["escodegen", "path"],
   provides: {
     values: {
       "compile-program": "tany"
     }
   },
-  theModule: function(runtime, _, ___, tj : TJ.Exports, escodegen : (typeof Escodegen), P : (typeof Path)) {
+  theModule: function(runtime, _, ___, tj : TJ.Exports, ps : PS.Exports, escodegen : (typeof Escodegen), P : (typeof Path)) {
     // Pretty-print JS asts
     // Return a PyretObject
     // Type enough AST to get to s-num
@@ -60,6 +64,8 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       nameToName,
       nameToSourceString,
     } = tj;
+
+    const { compileProvides, compileProvidesOverrideUri } = ps;
 
     const jsnames = MakeName(0);
     const jsIds = new Map<string, A.Name>();
@@ -1746,6 +1752,60 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       return after;
     }
 
+
+    function serializeBuiltinRequires(name: string, options): J.Expression {
+      return ObjectExpression([
+        Property("import-type", Literal("builtin")),
+        Property("name", Literal(name)),
+      ]);
+    }
+
+    // NOTE(alex): In cm-builtin-stage-1 and cm-builtin-general, treat ALL
+    //  dependencies as builtin modules
+    function serializeFileRequires(name: string, uriKey: string, protocol: string, options): J.Expression {
+      const mode = (options.dict['compile-mode'] as CS.CompileMode);
+      switch(mode.$name) {
+        case 'cm-normal': return ObjectExpression([
+          Property("import-type", Literal("dependency")),
+          // NOTE(alex): protocol comes from cli-module-loader.arr
+          Property("protocol", Literal(protocol)),
+          Property("args", ArrayExpression([Literal(uriKey)])),
+        ]);
+        case 'cm-builtin-stage-1': return serializeBuiltinRequires(name, options);
+        case 'cm-builtin-general': return serializeBuiltinRequires(name, options);
+        default:
+          throw new ExhaustiveSwitchError(mode);
+      }
+    }
+
+    function serializeRequires(env: CS.CompileEnvironment, options): J.Expression[] {
+      // NOTE(alex): current implementation includes the entire dependency subgraph that
+      //   was present while compiling the current module, not just the dependency subgrpah
+      //   reachable from the current module
+      //
+      // For example: A depends on B, A depends on C
+      //    B will still show up in the requires of C
+      //    and vice versa if the compiler visits dependency C first
+      const result: J.Expression[] = [];
+      Object.keys(env.dict['all-modules'].$underlyingDict).forEach((uriKey : string) => {
+        const name = P.basename(uriKey, ".arr")
+        // TODO(alex): would be nice if CompileEnvironment stored the dependencies as an actual
+        //  compile-structs:Dependency so we didn't have to parse the all-modules keys
+        let req;
+        if (uriKey.startsWith("builtin://")) {
+          req = serializeBuiltinRequires(name, options);
+        } else if (uriKey.startsWith("jsfile://")) {
+          req = serializeFileRequires(name, uriKey, "js-file", options);
+        } else if (uriKey.startsWith("file://")) {
+          req = serializeFileRequires(name, uriKey, "file", options);
+        } else {
+          throw new InternalCompilerError(`Unknown uri kind: ${uriKey}`);
+        }
+        result.push(req);
+      });
+      return result;
+    }
+
     let importFlags = {
       'table-import': false,
       'array-import': false,
@@ -1772,14 +1832,32 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
 
       const prelude = createPrelude(prog, provides, env, freeBindings, options, importFlags);
 
+      let serializedProvides: string;
+      const mode = (options.dict['compile-mode'] as CS.CompileMode);
+      switch(mode.$name) {
+        case 'cm-normal': {
+          serializedProvides = compileProvides(provides);
+          break;
+        }
+        case 'cm-builtin-stage-1': 
+        case 'cm-builtin-general': {
+          serializedProvides = compileProvidesOverrideUri(provides, true);
+          break;
+        }
+        default:
+          throw new ExhaustiveSwitchError(mode);
+      }
+
       const moduleBody = Program([...prelude, ...stmts, ReturnStatement(ans)]);
-      const moduleAndMap = {
-        map: "",
-        code: escodegen.generate(moduleBody)
+      const jsonOptions : Escodegen.GenerateOptions = {
+        format: { json: true },
       };
       return runtime.makeObject({
-        theModule: moduleAndMap.code,
-        theMap: moduleAndMap.map
+        requires: escodegen.generate(ArrayExpression(serializeRequires(env, options)), jsonOptions),
+        provides: serializedProvides,
+        nativeRequires: escodegen.generate(ArrayExpression([]), jsonOptions),
+        theModule: escodegen.generate(moduleBody, jsonOptions),
+        theMap: escodegen.generate(Literal(""), jsonOptions),
       });
     }
 

@@ -191,20 +191,6 @@ fun main(args :: List<String>) -> Number block:
             else if r.has-key("build-standalone"):
               print-error("Use build-runnable instead of build-standalone\n")
               failure-code
-              #|
-              CLI.build-require-standalone(r.get-value("build-standalone"),
-                  CS.default-compile-options.{
-                    checks : checks,
-                    type-check : type-check,
-                    allow-shadowed : allow-shadowed,
-                    collect-all: false,
-                    collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
-                    ignore-unbound: false,
-                    proper-tail-calls: tail-calls,
-                    compiled-cache: compiled-dir,
-                    display-progress: display-progress
-                  })
-               |#
             else if r.has-key("run"):
               run-args =
                 if is-empty(rest):

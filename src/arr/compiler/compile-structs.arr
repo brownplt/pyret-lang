@@ -7,11 +7,7 @@ import srcloc as SL
 import error-display as ED
 import string-dict as SD
 import pathlib as P
-import file("concat-lists.arr") as CL
 import file("type-structs.arr") as T
-import file("js-ast.arr") as J
-
-clist = CL.clist
 
 t-nothing = T.t-nothing(A.dummy-loc)
 t-str = T.t-string(A.dummy-loc)
@@ -628,31 +624,6 @@ fun provides-from-raw-provides(uri, raw):
   provides(uri, mdict, vdict, adict, ddict)
 end
 
-
-
-
-fun provides-to-raw-provides-ast(provs, env):
-  cases(Provides) provs:
-      # MARK(joe/ben): modules
-    | provides(uri, _, values, aliases, data-defs) =>
-    #|
-      value-fields = for CL.map_list(v from values.keys().to-list()):
-        J.j-field(v, type-to-raw-ast(values.get-value(v), compile-env))
-      end
-      data-fields = for CL.map_list(d from data-defs.keys().to-list()):
-        J.j-field(d, type-to-raw-ast(data-defs.get-value(d), compile-env))
-      end
-      alias-fields = for CL.map_list(a from aliases.keys().to-list()):
-        J.j-field(a, type-to-raw-ast(aliases.get-value(a), compile-env))
-      end
-      |#
-      J.j-obj([clist:
-        #|J.j-field("values", J.j-obj(value-fields)),
-        J.j-field("datatypes", J.j-obj(data-fields)),
-        J.j-field("aliases", J.j-obj(alias-fields))|#
-      ])
-  end
-end
 
 
 data CompileResult<C>:

@@ -33,6 +33,10 @@ export type Either<a, b> =
   | { $name: "right", dict: { 'v': b } }
 
 export type PFunction<T extends Function> = { app: T }
+export type PMethod<Self, T extends (...args: any[]) => any> = { 
+  meth: (self: Self) => T,
+  full_meth: (self: Self, ...args: Parameters<T>) => ReturnType<T>
+}
 
 export interface StringDict<T> {
   dict: {
@@ -67,7 +71,7 @@ export interface MutableStringDict<T> {
     'each-key-now': PFunction<<U>(f: (key: string) => U) => void>,
     'count-now': PFunction<() => number>,
     'has-key-now': PFunction<(key: string) => boolean>,
-      _equals: PFunction<(other: any) => EqualityResult>,
+    _equals: PFunction<(other: any) => EqualityResult>,
   },
-  '$underlyingMap': Record<string, T>,
+  '$underlyingDict': Record<string, T>,
 }

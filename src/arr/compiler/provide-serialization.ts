@@ -282,9 +282,14 @@ import type { Variant } from './ts-codegen-helpers';
       }
     }
 
-    return runtime.makeModuleReturn({
-      'compile-provides': runtime.makeFunction(compileProvides, 'compile-provides'),
-      'compile-provides-override-uri': runtime.makeFunction(compileProvidesOverrideUri, 'compile-provides-override-uri'),
-    }, {});
+    return runtime.makeJSModuleReturn({
+      compileProvides,
+      compileProvidesOverrideUri,
+    });
   }
 })
+
+export interface Exports {
+  compileProvides: (provides: CS.Provides) => string,
+  compileProvidesOverrideUri: (provides: CS.Provides, override: boolean) => string,
+}
