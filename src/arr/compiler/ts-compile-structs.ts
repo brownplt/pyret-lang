@@ -1,6 +1,7 @@
 import type * as A from './ts-ast';
-import type * as T from './type-structs';
-import { StringDict, MutableStringDict, PFunction, PMethod } from './ts-impl-types';
+import type {Srcloc as Loc} from './ts-ast';
+import type * as T from './ts-type-structs';
+import { Option, List, StringDict, MutableStringDict, PFunction, PMethod } from './ts-impl-types';
 import type * as ED from '../trove/error-display'
 import type { Variant } from './ts-codegen-helpers';
 
@@ -33,7 +34,7 @@ export type CompileMode =
 export type Dependency = 
   | {
     $name: "dependency",
-    dict: { 'protocol': string, 'arguments': A.List<string> }
+    dict: { 'protocol': string, 'arguments': List<string> }
   }
   | { $name: "builtin", dict: { 'modname': string } }
 
@@ -98,7 +99,7 @@ export type ModuleBind =
 export type ScopeResolution = 
   | {
     $name: "resolved-scope",
-    dict: { 'ast': A.Program, 'errors': A.List<CompileError> }
+    dict: { 'ast': A.Program, 'errors': List<CompileError> }
   }
 
 export type ComputedEnvironment = 
@@ -123,13 +124,13 @@ export type NameResolution =
     dict: 
       {
         'ast': A.Program,
-        'errors': A.List<CompileError>,
+        'errors': List<CompileError>,
         'env': ComputedEnvironment
       }
   }
 
 export type ExtraImports = 
-  | { $name: "extra-imports", dict: { 'imports': A.List<ExtraImport> } }
+  | { $name: "extra-imports", dict: { 'imports': List<ExtraImport> } }
 
 export type ExtraImport = 
   | {
@@ -138,8 +139,8 @@ export type ExtraImport =
       {
         'dependency': Dependency,
         'as-name': string,
-        'values': A.List<String>,
-        'types': A.List<String>
+        'values': List<String>,
+        'types': List<String>
       }
   }
 
@@ -220,12 +221,12 @@ export type Provides =
 
 export type CompileResult<C> = 
   | { $name: "ok", dict: { 'code': C } }
-  | { $name: "err", dict: { 'problems': A.List<CompileError> } }
+  | { $name: "err", dict: { 'problems': List<CompileError> } }
 
 export type CompileError = 
-  | { $name: "wf-err", dict: { 'msg': A.List<ED.ErrorDisplay>, 'loc': A.Srcloc } }
+  | { $name: "wf-err", dict: { 'msg': List<ED.ErrorDisplay>, 'loc': A.Srcloc } }
   | { $name: "wf-empty-block", dict: { 'loc': A.Srcloc } }
-  | { $name: "wf-err-split", dict: { 'msg': string, 'loc': A.List<A.Srcloc> } }
+  | { $name: "wf-err-split", dict: { 'msg': string, 'loc': List<A.Srcloc> } }
   | { $name: "wf-bad-method-expression", dict: { 'method-expr-loc': A.Srcloc } }
   | { $name: "reserved-name", dict: { 'loc': A.Srcloc, 'id': string } }
   | {
@@ -310,7 +311,7 @@ export type CompileError =
   | { $name: "underscore-as-ann", dict: { 'l': A.Srcloc } }
   | {
     $name: "block-needed",
-    dict: { 'expr-loc': A.Srcloc, 'blocks': A.List<Variant<A.Expr, 's-block'>> }
+    dict: { 'expr-loc': A.Srcloc, 'blocks': List<Variant<A.Expr, 's-block'>> }
   }
   | {
     $name: "name-not-provided",
@@ -444,7 +445,7 @@ export type CompileError =
   }
   | {
     $name: "non-exhaustive-pattern",
-    dict: { 'missing': A.List<T.TypeVariant>, 'type-name': string, 'loc': A.Srcloc }
+    dict: { 'missing': List<T.TypeVariant>, 'type-name': string, 'loc': A.Srcloc }
   }
   | {
     $name: "cant-match-on",
@@ -486,7 +487,7 @@ export type CompileError =
   | {
     $name: "table-row-wrong-size",
     dict: 
-      { 'header-loc': A.Srcloc, 'header': A.List<A.FieldName>, 'row': A.TableRow }
+      { 'header-loc': A.Srcloc, 'header': List<A.FieldName>, 'row': A.TableRow }
   }
   | {
     $name: "table-duplicate-column-name",
@@ -519,3 +520,602 @@ export type Pipeline =
   | { $name: "pipeline-anchor", dict: {} }
   | { $name: "pipeline-ts-anchor", dict: {} }
 
+
+export interface Exports {
+dict: {values: {dict: {
+'cm-builtin-stage-1': Variant<CompileMode, 'cm-builtin-stage-1'>
+
+'cm-builtin-general': Variant<CompileMode, 'cm-builtin-general'>
+
+'cm-normal': Variant<CompileMode, 'cm-normal'>
+
+'dependency': 
+  PFunction<
+    (protocol: string, _arguments: List<String>) => Variant<Dependency, 'dependency'>
+  >
+
+'builtin': PFunction< (modname: string) => Variant<Dependency, 'builtin'> >
+
+'requirejs': PFunction< (path: string) => Variant<NativeModule, 'requirejs'> >
+
+'bind-origin': 
+  PFunction<
+    (
+        local_bind_site: Loc,
+        definition_bind_site: Loc,
+        new_definition: boolean,
+        uri_of_definition: URI,
+        original_name: A.Name
+      ) => Variant<BindOrigin, 'bind-origin'>
+  >
+
+'vb-letrec': Variant<ValueBinder, 'vb-letrec'>
+
+'vb-let': Variant<ValueBinder, 'vb-let'>
+
+'vb-var': Variant<ValueBinder, 'vb-var'>
+
+'value-bind': 
+  PFunction<
+    (origin: BindOrigin, binder: ValueBinder, atom: A.Name, ann: A.Ann) => Variant<ValueBind, 'value-bind'>
+  >
+
+'tb-type-let': Variant<TypeBinder, 'tb-type-let'>
+
+'tb-type-var': Variant<TypeBinder, 'tb-type-var'>
+
+'tb-typ': PFunction< (typ: T.Type) => Variant<TypeBindTyp, 'tb-typ'> >
+
+'tb-none': Variant<TypeBindTyp, 'tb-none'>
+
+'type-bind': 
+  PFunction<
+    (origin: BindOrigin, binder: TypeBinder, atom: A.Name, typ: TypeBindTyp) => Variant<TypeBind, 'type-bind'>
+  >
+
+'module-bind': 
+  PFunction<
+    (origin: BindOrigin, atom: A.Name, uri: URI) => Variant<ModuleBind, 'module-bind'>
+  >
+
+'resolved-scope': 
+  PFunction<
+    (ast: A.Program, errors: List<CompileError>) => Variant<ScopeResolution, 'resolved-scope'>
+  >
+
+'computed-none': Variant<ComputedEnvironment, 'computed-none'>
+
+'computed-env': 
+  PFunction<
+    (
+        module_bindings: MutableStringDict<ModuleBind>,
+        bindings: MutableStringDict<ValueBind>,
+        type_bindings: MutableStringDict<TypeBind>,
+        datatypes: MutableStringDict<A.Expr>,
+        module_env: StringDict<ModuleBind>,
+        env: StringDict<ValueBind>,
+        type_env: StringDict<TypeBind>
+      ) => Variant<ComputedEnvironment, 'computed-env'>
+  >
+
+'resolved-names': 
+  PFunction<
+    (ast: A.Program, errors: List<CompileError>, env: ComputedEnvironment) => Variant<NameResolution, 'resolved-names'>
+  >
+
+'extra-imports': 
+  PFunction<
+    (imports: List<ExtraImport>) => Variant<ExtraImports, 'extra-imports'>
+  >
+
+'extra-import': 
+  PFunction<
+    (
+        dependency: Dependency,
+        as_name: string,
+        values: List<String>,
+        types: List<String>
+      ) => Variant<ExtraImport, 'extra-import'>
+  >
+
+'module-as-string': 
+  PFunction<
+    (
+        provides: Provides,
+        compile_env: CompileEnvironment,
+        post_compile_env: ComputedEnvironment,
+        result_printer: CompileResult<any>
+      ) => Variant<Loadable, 'module-as-string'>
+  >
+
+'compile-env': 
+  PFunction<
+    (
+        globals: Globals,
+        all_modules: MutableStringDict<Loadable>,
+        my_modules: StringDict<URI>
+      ) => Variant<CompileEnvironment, 'compile-env'>
+  >
+
+'globals': 
+  PFunction<
+    (
+        modules: StringDict<BindOrigin>,
+        values: StringDict<BindOrigin>,
+        types: StringDict<BindOrigin>
+      ) => Variant<Globals, 'globals'>
+  >
+
+'v-alias': 
+  PFunction<
+    (origin: BindOrigin, original_name: string) => Variant<ValueExport, 'v-alias'>
+  >
+
+'v-just-type': 
+  PFunction<
+    (origin: BindOrigin, t: T.Type) => Variant<ValueExport, 'v-just-type'>
+  >
+
+'v-var': 
+  PFunction< (origin: BindOrigin, t: T.Type) => Variant<ValueExport, 'v-var'> >
+
+'v-fun': 
+  PFunction<
+    (origin: BindOrigin, t: T.Type, name: string, flatness: Option<Number>) => Variant<ValueExport, 'v-fun'>
+  >
+
+'d-alias': 
+  PFunction<
+    (origin: BindOrigin, name: string) => Variant<DataExport, 'd-alias'>
+  >
+
+'d-type': 
+  PFunction<
+    (origin: BindOrigin, typ: T.DataType) => Variant<DataExport, 'd-type'>
+  >
+
+'provides': 
+  PFunction<
+    (
+        from_uri: URI,
+        modules: StringDict<URI>,
+        values: StringDict<ValueExport>,
+        aliases: StringDict<T.Type>,
+        data_definitions: StringDict<DataExport>
+      ) => Variant<Provides, 'provides'>
+  >
+
+'ok': PFunction< <C>(code: C) => Variant<CompileResult<C>, 'ok'> >
+
+'err': 
+  PFunction< (problems: List<CompileError>) => Variant<CompileResult<any>, 'err'> >
+
+'wf-err': 
+  PFunction<
+    (msg: List<ED.ErrorDisplay>, loc: Loc) => Variant<CompileError, 'wf-err'>
+  >
+
+'wf-empty-block': 
+  PFunction< (loc: Loc) => Variant<CompileError, 'wf-empty-block'> >
+
+'wf-err-split': 
+  PFunction<
+    (msg: string, loc: List<Loc>) => Variant<CompileError, 'wf-err-split'>
+  >
+
+'wf-bad-method-expression': 
+  PFunction<
+    (method_expr_loc: Loc) => Variant<CompileError, 'wf-bad-method-expression'>
+  >
+
+'reserved-name': 
+  PFunction< (loc: Loc, id: string) => Variant<CompileError, 'reserved-name'> >
+
+'contract-on-import': 
+  PFunction<
+    (loc: Loc, name: string, import_loc: Loc, import_uri: string) => Variant<CompileError, 'contract-on-import'>
+  >
+
+'contract-redefined': 
+  PFunction<
+    (loc: Loc, name: string, defn_loc: Loc) => Variant<CompileError, 'contract-redefined'>
+  >
+
+'contract-non-function': 
+  PFunction<
+    (loc: Loc, name: string, defn_loc: Loc, defn_is_function: boolean) => Variant<CompileError, 'contract-non-function'>
+  >
+
+'contract-inconsistent-names': 
+  PFunction<
+    (loc: Loc, name: string, defn_loc: Loc) => Variant<CompileError, 'contract-inconsistent-names'>
+  >
+
+'contract-inconsistent-params': 
+  PFunction<
+    (loc: Loc, name: string, defn_loc: Loc) => Variant<CompileError, 'contract-inconsistent-params'>
+  >
+
+'contract-unused': 
+  PFunction<
+    (loc: Loc, name: string) => Variant<CompileError, 'contract-unused'>
+  >
+
+'contract-bad-loc': 
+  PFunction<
+    (loc: Loc, name: string, defn_loc: Loc) => Variant<CompileError, 'contract-bad-loc'>
+  >
+
+'zero-fraction': 
+  PFunction<
+    (loc: unknown, numerator: unknown) => Variant<CompileError, 'zero-fraction'>
+  >
+
+'mixed-binops': 
+  PFunction<
+    (
+        exp_loc: unknown,
+        op_a_name: unknown,
+        op_a_loc: unknown,
+        op_b_name: unknown,
+        op_b_loc: unknown
+      ) => Variant<CompileError, 'mixed-binops'>
+  >
+
+'block-ending': 
+  PFunction<
+    (l: Loc, block_loc: Loc, kind: unknown) => Variant<CompileError, 'block-ending'>
+  >
+
+'single-branch-if': 
+  PFunction< (expr: A.Expr) => Variant<CompileError, 'single-branch-if'> >
+
+'unwelcome-where': 
+  PFunction<
+    (kind: unknown, loc: unknown, block_loc: unknown) => Variant<CompileError, 'unwelcome-where'>
+  >
+
+'non-example': 
+  PFunction< (expr: A.Expr) => Variant<CompileError, 'non-example'> >
+
+'tuple-get-bad-index': 
+  PFunction<
+    (l: unknown, tup: unknown, index: unknown, index_loc: unknown) => Variant<CompileError, 'tuple-get-bad-index'>
+  >
+
+'import-arity-mismatch': 
+  PFunction<
+    (
+        l: unknown,
+        kind: unknown,
+        args: unknown,
+        expected_arity: unknown,
+        expected_args: unknown
+      ) => Variant<CompileError, 'import-arity-mismatch'>
+  >
+
+'no-arguments': 
+  PFunction< (expr: unknown) => Variant<CompileError, 'no-arguments'> >
+
+'non-toplevel': 
+  PFunction<
+    (kind: unknown, l: Loc, parent_loc: Loc) => Variant<CompileError, 'non-toplevel'>
+  >
+
+'unwelcome-test': 
+  PFunction< (loc: Loc) => Variant<CompileError, 'unwelcome-test'> >
+
+'unwelcome-test-refinement': 
+  PFunction<
+    (refinement: unknown, op: unknown) => Variant<CompileError, 'unwelcome-test-refinement'>
+  >
+
+'underscore-as': 
+  PFunction< (l: Loc, kind: unknown) => Variant<CompileError, 'underscore-as'> >
+
+'underscore-as-pattern': 
+  PFunction< (l: Loc) => Variant<CompileError, 'underscore-as-pattern'> >
+
+'underscore-as-expr': 
+  PFunction< (l: Loc) => Variant<CompileError, 'underscore-as-expr'> >
+
+'underscore-as-ann': 
+  PFunction< (l: Loc) => Variant<CompileError, 'underscore-as-ann'> >
+
+'block-needed': 
+  PFunction<
+    (expr_loc: Loc, blocks: List<Variant<A.Expr, "s-block">>) => Variant<CompileError, 'block-needed'>
+  >
+
+'name-not-provided': 
+  PFunction<
+    (name_loc: unknown, imp_loc: unknown, name: A.Name, typ: string) => Variant<CompileError, 'name-not-provided'>
+  >
+
+'unbound-id': PFunction< (id: A.Expr) => Variant<CompileError, 'unbound-id'> >
+
+'unbound-var': 
+  PFunction< (id: string, loc: Loc) => Variant<CompileError, 'unbound-var'> >
+
+'unbound-type-id': 
+  PFunction< (ann: A.Ann) => Variant<CompileError, 'unbound-type-id'> >
+
+'type-id-used-in-dot-lookup': 
+  PFunction<
+    (loc: Loc, name: A.Name) => Variant<CompileError, 'type-id-used-in-dot-lookup'>
+  >
+
+'type-id-used-as-value': 
+  PFunction<
+    (id: A.Name, origin: BindOrigin) => Variant<CompileError, 'type-id-used-as-value'>
+  >
+
+'unexpected-type-var': 
+  PFunction<
+    (loc: Loc, name: A.Name) => Variant<CompileError, 'unexpected-type-var'>
+  >
+
+'pointless-var': 
+  PFunction< (loc: Loc) => Variant<CompileError, 'pointless-var'> >
+
+'pointless-rec': 
+  PFunction< (loc: Loc) => Variant<CompileError, 'pointless-rec'> >
+
+'pointless-shadow': 
+  PFunction< (loc: Loc) => Variant<CompileError, 'pointless-shadow'> >
+
+'bad-assignment': 
+  PFunction<
+    (iuse: A.Expr, idef: Loc) => Variant<CompileError, 'bad-assignment'>
+  >
+
+'mixed-id-var': 
+  PFunction<
+    (id: string, var_loc: Loc, id_loc: Loc) => Variant<CompileError, 'mixed-id-var'>
+  >
+
+'shadow-id': 
+  PFunction<
+    (id: string, new_loc: Loc, old_loc: Loc, import_loc: Option<Loc>) => Variant<CompileError, 'shadow-id'>
+  >
+
+'duplicate-id': 
+  PFunction<
+    (id: string, new_loc: Loc, old_loc: Loc) => Variant<CompileError, 'duplicate-id'>
+  >
+
+'duplicate-field': 
+  PFunction<
+    (id: string, new_loc: Loc, old_loc: Loc) => Variant<CompileError, 'duplicate-field'>
+  >
+
+'same-line': 
+  PFunction<
+    (a: Loc, b: Loc, b_is_paren: boolean) => Variant<CompileError, 'same-line'>
+  >
+
+'template-same-line': 
+  PFunction< (a: Loc, b: Loc) => Variant<CompileError, 'template-same-line'> >
+
+'type-mismatch': 
+  PFunction<
+    (type_1: T.Type, type_2: T.Type) => Variant<CompileError, 'type-mismatch'>
+  >
+
+'incorrect-type': 
+  PFunction<
+    (
+        bad_name: string,
+        bad_loc: Loc,
+        expected_name: string,
+        expected_loc: Loc
+      ) => Variant<CompileError, 'incorrect-type'>
+  >
+
+'incorrect-type-expression': 
+  PFunction<
+    (
+        bad_name: string,
+        bad_loc: Loc,
+        expected_name: string,
+        expected_loc: Loc,
+        e: A.Expr
+      ) => Variant<CompileError, 'incorrect-type-expression'>
+  >
+
+'bad-type-instantiation': 
+  PFunction<
+    (app_type: Variant<T.Type, "t-app">, expected_length: any) => Variant<CompileError, 'bad-type-instantiation'>
+  >
+
+'incorrect-number-of-args': 
+  PFunction<
+    (app_expr: unknown, fun_typ: unknown) => Variant<CompileError, 'incorrect-number-of-args'>
+  >
+
+'method-missing-self': 
+  PFunction< (expr: A.Expr) => Variant<CompileError, 'method-missing-self'> >
+
+'apply-non-function': 
+  PFunction<
+    (app_expr: A.Expr, typ: unknown) => Variant<CompileError, 'apply-non-function'>
+  >
+
+'tuple-too-small': 
+  PFunction<
+    (
+        index: Number,
+        tup_length: Number,
+        tup: string,
+        tup_loc: Loc,
+        access_loc: Loc
+      ) => Variant<CompileError, 'tuple-too-small'>
+  >
+
+'object-missing-field': 
+  PFunction<
+    (field_name: string, obj: string, obj_loc: Loc, access_loc: Loc) => Variant<CompileError, 'object-missing-field'>
+  >
+
+'duplicate-variant': 
+  PFunction<
+    (id: string, found: Loc, previous: Loc) => Variant<CompileError, 'duplicate-variant'>
+  >
+
+'data-variant-duplicate-name': 
+  PFunction<
+    (id: string, found: Loc, data_loc: Loc) => Variant<CompileError, 'data-variant-duplicate-name'>
+  >
+
+'duplicate-is-variant': 
+  PFunction<
+    (id: string, is_found: Loc, base_found: Loc) => Variant<CompileError, 'duplicate-is-variant'>
+  >
+
+'duplicate-is-data': 
+  PFunction<
+    (id: string, is_found: Loc, base_found: Loc) => Variant<CompileError, 'duplicate-is-data'>
+  >
+
+'duplicate-is-data-variant': 
+  PFunction<
+    (id: string, is_found: Loc, base_found: Loc) => Variant<CompileError, 'duplicate-is-data-variant'>
+  >
+
+'duplicate-branch': 
+  PFunction<
+    (id: string, found: Loc, previous: Loc) => Variant<CompileError, 'duplicate-branch'>
+  >
+
+'unnecessary-branch': 
+  PFunction<
+    (branch: A.CasesBranch, data_type: T.DataType, cases_loc: Loc) => Variant<CompileError, 'unnecessary-branch'>
+  >
+
+'unnecessary-else-branch': 
+  PFunction<
+    (type_name: string, loc: Loc) => Variant<CompileError, 'unnecessary-else-branch'>
+  >
+
+'non-exhaustive-pattern': 
+  PFunction<
+    (missing: List<T.TypeVariant>, type_name: string, loc: Loc) => Variant<CompileError, 'non-exhaustive-pattern'>
+  >
+
+'cant-match-on': 
+  PFunction<
+    (ann: unknown, type_name: string, loc: Loc) => Variant<CompileError, 'cant-match-on'>
+  >
+
+'different-branch-types': 
+  PFunction<
+    (l: unknown, branch_types: unknown) => Variant<CompileError, 'different-branch-types'>
+  >
+
+'incorrect-number-of-bindings': 
+  PFunction<
+    (branch: A.CasesBranch, variant: T.TypeVariant) => Variant<CompileError, 'incorrect-number-of-bindings'>
+  >
+
+'cases-singleton-mismatch': 
+  PFunction<
+    (name: string, branch_loc: Loc, should_be_singleton: boolean) => Variant<CompileError, 'cases-singleton-mismatch'>
+  >
+
+'given-parameters': 
+  PFunction<
+    (data_type: string, loc: Loc) => Variant<CompileError, 'given-parameters'>
+  >
+
+'unable-to-instantiate': 
+  PFunction< (loc: Loc) => Variant<CompileError, 'unable-to-instantiate'> >
+
+'unable-to-infer': 
+  PFunction< (loc: Loc) => Variant<CompileError, 'unable-to-infer'> >
+
+'unann-failed-test-inference': 
+  PFunction<
+    (function_loc: Loc) => Variant<CompileError, 'unann-failed-test-inference'>
+  >
+
+'toplevel-unann': 
+  PFunction< (arg: A.Bind) => Variant<CompileError, 'toplevel-unann'> >
+
+'polymorphic-return-type-unann': 
+  PFunction<
+    (function_loc: Loc) => Variant<CompileError, 'polymorphic-return-type-unann'>
+  >
+
+'binop-type-error': 
+  PFunction<
+    (binop: A.Expr, tl: T.Type, tr: T.Type, etl: T.Type, etr: T.Type) => Variant<CompileError, 'binop-type-error'>
+  >
+
+'cant-typecheck': 
+  PFunction<
+    (reason: string, loc: Loc) => Variant<CompileError, 'cant-typecheck'>
+  >
+
+'unsupported': 
+  PFunction<
+    (message: string, blame_loc: Loc) => Variant<CompileError, 'unsupported'>
+  >
+
+'non-object-provide': 
+  PFunction< (loc: Loc) => Variant<CompileError, 'non-object-provide'> >
+
+'no-module': 
+  PFunction<
+    (loc: Loc, mod_name: string) => Variant<CompileError, 'no-module'>
+  >
+
+'table-empty-header': 
+  PFunction< (loc: Loc) => Variant<CompileError, 'table-empty-header'> >
+
+'table-empty-row': 
+  PFunction< (loc: Loc) => Variant<CompileError, 'table-empty-row'> >
+
+'table-row-wrong-size': 
+  PFunction<
+    (header_loc: Loc, header: List<A.FieldName>, row: A.TableRow) => Variant<CompileError, 'table-row-wrong-size'>
+  >
+
+'table-duplicate-column-name': 
+  PFunction<
+    (column1: A.FieldName, column2: A.FieldName) => Variant<CompileError, 'table-duplicate-column-name'>
+  >
+
+'table-reducer-bad-column': 
+  PFunction<
+    (extension: A.TableExtendField, col_defs: Loc) => Variant<CompileError, 'table-reducer-bad-column'>
+  >
+
+'table-sanitizer-bad-column': 
+  PFunction<
+    (sanitize_expr: A.LoadTableSpec, col_defs: Loc) => Variant<CompileError, 'table-sanitizer-bad-column'>
+  >
+
+'load-table-bad-number-srcs': 
+  PFunction<
+    (lte: A.Expr, num_found: Number) => Variant<CompileError, 'load-table-bad-number-srcs'>
+  >
+
+'load-table-duplicate-sanitizer': 
+  PFunction<
+    (
+        original: A.LoadTableSpec,
+        col_name: string,
+        duplicate_exp: A.LoadTableSpec
+      ) => Variant<CompileError, 'load-table-duplicate-sanitizer'>
+  >
+
+'load-table-no-body': 
+  PFunction<
+    (load_table_exp: A.Expr) => Variant<CompileError, 'load-table-no-body'>
+  >
+
+'pipeline-anchor': Variant<Pipeline, 'pipeline-anchor'>
+
+'pipeline-ts-anchor': Variant<Pipeline, 'pipeline-ts-anchor'>
+
+}}}}

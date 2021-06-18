@@ -11,6 +11,7 @@ import file("ast-util.arr") as AU
 import file("type-structs.arr") as TS
 import file("type-check-structs.arr") as TCS
 import file("compile-structs.arr") as C
+import js-file("ts-type-check-impl") as TSTC
 
 type StringDict = SD.StringDict
 type Type = TS.Type
@@ -213,8 +214,15 @@ fun value-export-sd-to-type-sd(sd :: SD.StringDict<C.ValueExport>) -> SD.StringD
   tdict
 end
 
+fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-compile-env :: C.ComputedEnvironment, modules, options):
+  cases(C.Pipeline) options.pipeline:
+    | pipeline-ts-anchor => TSTC.type-check(program, compile-env, post-compile-env, modules)
+    | pipeline-anchor => internal-type-check(program, compile-env, post-compile-env, modules)
+  end
+end
+
 # I believe modules is always of type SD.MutableStringDict<Loadable> -Matt
-fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-compile-env :: C.ComputedEnvironment, modules) -> C.CompileResult<A.Program>:
+fun internal-type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-compile-env :: C.ComputedEnvironment, modules) -> C.CompileResult<A.Program>:
   context = TCS.empty-context()
   globvs = compile-env.globals.values
   globts = compile-env.globals.types

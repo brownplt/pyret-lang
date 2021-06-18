@@ -142,7 +142,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
 
     }
 
-    function compileList(context, exprs: A.List<A.Expr>) : [ Array<J.Expression>, Array<J.Statement> ] {
+    function compileList(context, exprs: T.List<A.Expr>) : [ Array<J.Expression>, Array<J.Statement> ] {
       if(exprs.$name === 'empty') { return [[], []]; }
       else {
         const [ firstAns, startStmts ] = compileExpr(context, exprs.dict.first);
@@ -151,10 +151,10 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       }
     }
 
-    function compileSeq(context, exprs : A.List<A.Expr>) : [J.Expression, Array<J.Statement>] {
+    function compileSeq(context, exprs : T.List<A.Expr>) : [J.Expression, Array<J.Statement>] {
       if(exprs.$name === 'empty') { throw new InternalCompilerError("Empty block reached codegen"); }
       let ans, stmts = [];
-      let cur: A.List<A.Expr> = exprs;
+      let cur: T.List<A.Expr> = exprs;
       while (cur.$name === 'link') {
         const [first, firstStmts] = compileExpr(context, cur.dict.first);
         ans = first;
@@ -167,12 +167,12 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       return [ans, stmts]
     }
 
-    function arrayToList<T>(arr : T[]) : A.List<T> {
+    function arrayToList<T>(arr : T[]) : T.List<T> {
       return runtime.ffi.makeList(arr);
     }
 
     function compileMethodDefinition(context, method : Variant<A.Member, "s-method-field">) {
-      const args = method.dict.args as Variant<A.List<Variant<A.Bind, "s-bind">>, "link">
+      const args = method.dict.args as Variant<T.List<Variant<A.Bind, "s-bind">>, "link">
       const self = jsIdOf(args.dict.first.dict.id);
       const lamProps = method.dict;
       // This removes the `self` argument from the args list for use in the curried method
@@ -1383,7 +1383,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
           return compileOp(context, expr);
         case 's-lam': {
           const [ bodyVal, bodyStmts ] = compileExpr(context, expr.dict.body);
-          const bindArgs = expr.dict.args as A.List<Variant<A.Bind, "s-bind">>;
+          const bindArgs = expr.dict.args as T.List<Variant<A.Bind, "s-bind">>;
           const jsArgs = listToArray(bindArgs).map(a => jsIdOf(a.dict.id));
           return [FunctionExpression(jsIdOf(constId(`lam_${expr.dict.name}`)), jsArgs,
             BlockStatement([...bodyStmts, ReturnStatement(bodyVal)])), []]

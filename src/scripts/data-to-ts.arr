@@ -163,7 +163,7 @@ create-constrs = A.default-iter-visitor.{
             PP.str("export function " + varName) + constr-arglist
               + PP.str(": ") + PP.str("Variant<" + data-name + ", '" + name + "'>"))
 	  variant-export = field(name, PP.surround(INDENT, 1, PP.str("PFunction<"),
-			constr-arglist + PP.str("=> ") + PP.str("Variant<" + data-name + ", '" + varName + "'>"),
+			constr-arglist + PP.str(" => ") + PP.str("Variant<" + data-name + ", '" + name + "'>"),
 			PP.str(">")))
 	  exports := link(variant-export, exports)
           constr = PP.surround(INDENT, 1, constr-header + PP.str(" {"),
@@ -204,12 +204,13 @@ cases(C.ParsedArguments) parsed-options block:
           println("")
         end
         println("/////////////////////////// Exports //////////////////////////")
-	println("interface Exports {")
+	println("export interface Exports {")
+	println("dict: {values: {dict: {")
         for each(c from exports.reverse()) block:
           c.pretty(width).each(println)
           println("")
         end
-	println("}")
+	println("}}}}")
         println("///////////////////////////// NEW Types ///////////////////////////")
         for each(d from new-decls.reverse()) block:
           d.pretty(width).each(println)

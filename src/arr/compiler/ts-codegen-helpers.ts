@@ -1,4 +1,5 @@
 import * as J from 'estree';
+import type { List } from './ts-impl-types';
 import type * as A from './ts-ast';
 
 export type Variant<T, V> = T & { $name: V };
@@ -53,7 +54,7 @@ export interface Exports {
   UnaryExpression : (operator: J.UnaryOperator, argument : J.Expression) => J.UnaryExpression,
   Var : (id : A.Name, expr : J.Expression) => J.Declaration,
   bindToName: (b: A.Bind) => A.Name,
-  listToArray : <T>(list: A.List<T>) => T[],
+  listToArray : <T>(list: List<T>) => T[],
   nameToKey : (name: A.Name) => string,
   nameToName : (name: A.Name) => string,
   nameToSourceString: (name: A.Name) => string,
@@ -410,7 +411,7 @@ export interface Exports {
       }
     }
     
-    function listToArray<T>(list: A.List<T>): T[] {
+    function listToArray<T>(list: List<T>): T[] {
       const ret = [];
       let cur = list;
       while (cur.$name === 'link') {

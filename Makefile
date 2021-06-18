@@ -41,7 +41,7 @@ web-tests: web
 stopify-web-tests: web
 	npx jest --verbose "stopify"
 
-offline-tests: check-block-tests simple-output-tests ts-simple-output-tests
+offline-tests: check-block-tests simple-output-tests
 
 simple-output-tests: build runtime
 	npx jest --verbose "tests-new/simple-output.test.js"
