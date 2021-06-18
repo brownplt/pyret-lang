@@ -271,12 +271,12 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
         }
       });
 
-      function recognizer(name, baseObj, field) {
+      function recognizer(name, compareVal, field) {
         const isname = `is-${name}`;
         const arg = constId("val");
         const argIsObject = BinaryExpression("===", UnaryExpression("typeof", Identifier(arg)), Literal("object"));
         const argIsNotNull = BinaryExpression("!==", Identifier(arg), Literal(null));
-        const argIsVariant = BinaryExpression("===", DotExpression(Identifier(arg), field), baseObj);
+        const argIsVariant = BinaryExpression("===", DotExpression(Identifier(arg), field), compareVal);
         const check = LogicalExpression("&&", LogicalExpression("&&", argIsObject, argIsNotNull), argIsVariant);
         const checker = FunctionExpression(jsIdOf(constId(isname)), [arg], BlockStatement([ ReturnStatement(check) ]));
         return Property(isname, checker);
@@ -284,7 +284,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
 
       const variantRecognizers = variants.map((v, i) => {
         const base = Identifier(variantBaseObjs[i][0]);
-        return recognizer(v.dict.name, base, "$variant");
+        return recognizer(v.dict.name, DotExpression(base, "$variant"), "$variant");
       });
 
       const dataRecognizer = recognizer(expr.dict.name, Identifier(sharedBaseName), "$data");

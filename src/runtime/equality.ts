@@ -39,13 +39,13 @@ export function isEqualityResult(val) {
 }
 /* @stopify flat */
 export function isEqual(val) {
-  return typeof val === 'object' && val !== null && val['$variant'] === Equal;
+  return typeof val === 'object' && val !== null && val['$variant'] === Equal.$variant;
 }
 const Equal : EQ.Equal = variantBase_Equal;
 export { Equal };
 /* @stopify flat */
 export function isNotEqual(val) {
-  return typeof val === 'object' && val !== null && val['$variant'] === variantBase_NotEqual;
+  return typeof val === 'object' && val !== null && val['$variant'] === variantBase_NotEqual.$variant;
 }
 /* @stopify flat */
 export function NotEqual(reason: string, value1: any, value2: any): EQ.NotEqual {
@@ -57,7 +57,7 @@ export function NotEqual(reason: string, value1: any, value2: any): EQ.NotEqual 
 }
 /* @stopify flat */
 export function isUnknown(val) {
-  return typeof val === 'object' && val !== null && val['$variant'] === variantBase_Unknown;
+  return typeof val === 'object' && val !== null && val['$variant'] === variantBase_Unknown.$variant;
 }
 /* @stopify flat */
 export function Unknown(reason: string, value1: any, value2: any): EQ.Unknown {

@@ -56,6 +56,9 @@ export function extend(
   return (extension as DataSharedBase & DataVariantBase);
 }
 
+let variantCounter = 1;
+let variants : DataMetaBase<string>[] = [];
+
 export function createVariant<T extends string>(
   sharedBase : DataSharedBase, 
   extension : DataVariantBase, 
@@ -66,7 +69,8 @@ export function createVariant<T extends string>(
   // NOTE(joe): we cannot pass extended as an argument to this function, because
   // sharedBased/extension/meta can't easily have a cycle between them due to
   // codegen passing them in as object literals.
-  metaExtended.$variant = metaExtended;
+  metaExtended.$variant = variantCounter++;
+  variants.push(metaExtended);
   return (metaExtended as VariantType<T>);
 }
 

@@ -32,7 +32,7 @@ export type DataVariantBase = {
 export type DataMetaBase<N extends string> = {
   $data: DataSharedBase,
   $name: N,
-  $variant?: DataVariantBase,
+  $variant?: number,
   $fieldNames?: string[],
   $methods?: Record<string, () => any>,
 };
