@@ -2,7 +2,7 @@ import * as J from 'estree';
 import type * as Escodegen from 'escodegen';
 import type * as A from './ts-ast';
 import type * as CS from './ts-compile-structs';
-import type * as T from './type-structs';
+import type * as T from './ts-type-structs';
 import * as Path from 'path';
 import type * as CodegenHelpers from './ts-codegen-helpers';
 import type { Variant } from './ts-codegen-helpers';
