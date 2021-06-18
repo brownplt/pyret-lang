@@ -14,8 +14,6 @@ import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../src/arr/compiler/compile-lib.arr") as CL
 import file("../../src/arr/compiler/resolve-scope.arr") as R
 import file("../../src/arr/compiler/ast-util.arr") as U
-import file("../../src/arr/compiler/ast-anf.arr") as AN
-import file("../../src/arr/compiler/anf.arr") as N
 import file("../../src/arr/compiler/js-of-pyret.arr") as JS
 import file("../../src/arr/compiler/desugar-check.arr") as CH
 import file as F
@@ -67,7 +65,6 @@ end
 
 fun pretty-result(result):
   if A.is-Program(result): result.tosource()
-  else if AN.is-AProg(result): result.tosource()
   else if JS.is-CompiledCodePrinter(result): result.pyret-to-js-pretty()
   else if CS.is-NameResolution(result): result.ast.tosource()
   else if CS.is-ScopeResolution(result): result.ast.tosource()

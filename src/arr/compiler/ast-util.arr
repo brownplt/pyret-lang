@@ -4,9 +4,7 @@ provide *
 provide-types *
 import srcloc as SL
 import file("ast.arr") as A
-import js-file("parse-pyret") as PP
 import file("compile-structs.arr") as CS
-import file("ast-anf.arr") as N
 import file("type-structs.arr") as T
 import file("type-check-structs.arr") as TCS
 import string-dict as SD
