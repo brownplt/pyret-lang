@@ -20,7 +20,7 @@ export type TCInfo =
       {
         'types': StringDict<Type>,
         'aliases': StringDict<Type>,
-        'data-types': StringDict<Type>
+        'data-types': StringDict<DataType>
       }
   }
 
@@ -105,7 +105,7 @@ dict: {values: {dict: {
     (
         types: StringDict<Type>,
         aliases: StringDict<Type>,
-        data_types: StringDict<Type>
+        data_types: StringDict<DataType>
       ) => Variant<TCInfo, 'tc-info'>
   >
 
@@ -170,5 +170,7 @@ dict: {values: {dict: {
 'typed': PFunction< (ast: A.Program, info: TCInfo) => Variant<Typed, 'typed'> >
 
 'empty-info': PFunction< () => TCInfo>
+
+'empty-context': PFunction< () => Context>
 
 }}}}

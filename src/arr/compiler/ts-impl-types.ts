@@ -40,38 +40,40 @@ export type PMethod<Self, T extends (...args: any[]) => any> = {
 
 export interface StringDict<T> {
   dict: {
-    get: PFunction<(key: string) => Option<T>>,
-    'get-value': PFunction<(key: string) => T>,
-    set: PFunction<(key: string, value: T) => StringDict<T>>,
-    merge: PFunction<(other: StringDict<T>) => StringDict<T>>,
-    remove: PFunction<(key: string) => StringDict<T>>,
-    keys: PFunction<() => any>, // TODO: represent sets
-    'keys-list': PFunction<() => List<string>>,
-    'map-keys': PFunction<<U>(f: (key: string) => U) => List<U>>,
-    'fold-keys': PFunction<<U>(f: (key: string, acc: U) => U, init: U) => U>,
-    'each-key': PFunction<<U>(f: (key: string) => U) => void>,
-    count: PFunction<() => number>,
-    'has-key': PFunction<(key: string) => boolean>,
-    _equals: PFunction<(other: any) => EqualityResult>,
+    get: PMethod<StringDict<T>, (key: string) => Option<T>>,
+    'get-value': PMethod<StringDict<T>, (key: string) => T>,
+    set: PMethod<StringDict<T>, (key: string, value: T) => StringDict<T>>,
+    merge: PMethod<StringDict<T>, (other: StringDict<T>) => StringDict<T>>,
+    remove: PMethod<StringDict<T>, (key: string) => StringDict<T>>,
+    keys: PMethod<StringDict<T>, () => any>, // TODO: represent sets
+    'keys-list': PMethod<StringDict<T>, () => List<string>>,
+    'map-keys': PMethod<StringDict<T>, <U>(f: (key: string) => U) => List<U>>,
+    'fold-keys': PMethod<StringDict<T>, <U>(f: (key: string, acc: U) => U, init: U) => U>,
+    'each-key': PMethod<StringDict<T>, <U>(f: (key: string) => U) => void>,
+    count: PMethod<StringDict<T>, () => number>,
+    'has-key': PMethod<StringDict<T>, (key: string) => boolean>,
+    unfreeze: PMethod<StringDict<T>, () => MutableStringDict<T>>,
+    _equals: PMethod<StringDict<T>, (other: any) => EqualityResult>,
   },
   '$underlyingMap': ImmutableMap<T>,
 }
 
 export interface MutableStringDict<T> {
   dict: {
-    'get-now': PFunction<(key: string) => Option<T>>,
-    'get-value-now': PFunction<(key: string) => T>,
-    'set-now': PFunction<(key: string, value: T) => MutableStringDict<T>>,
-    'merge-now': PFunction<(other: MutableStringDict<T>) => MutableStringDict<T>>,
-    'remove-now': PFunction<(key: string) => MutableStringDict<T>>,
-    'keys-now': PFunction<() => any>, // TODO: represent sets
-    'keys-list-now': PFunction<() => List<string>>,
-    'map-keys-now': PFunction<<U>(f: (key: string) => U) => List<U>>,
-    'fold-keys-now': PFunction<<U>(f: (key: string, acc: U) => U, init: U) => U>,
-    'each-key-now': PFunction<<U>(f: (key: string) => U) => void>,
-    'count-now': PFunction<() => number>,
-    'has-key-now': PFunction<(key: string) => boolean>,
-    _equals: PFunction<(other: any) => EqualityResult>,
+    'get-now': PMethod<MutableStringDict<T>, (key: string) => Option<T>>,
+    'get-value-now': PMethod<MutableStringDict<T>, (key: string) => T>,
+    'set-now': PMethod<MutableStringDict<T>, (key: string, value: T) => MutableStringDict<T>>,
+    'merge-now': PMethod<MutableStringDict<T>, (other: MutableStringDict<T>) => MutableStringDict<T>>,
+    'remove-now': PMethod<MutableStringDict<T>, (key: string) => MutableStringDict<T>>,
+    'keys-now': PMethod<MutableStringDict<T>, () => any>, // TODO: represent sets
+    'keys-list-now': PMethod<MutableStringDict<T>, () => List<string>>,
+    'map-keys-now': PMethod<MutableStringDict<T>, <U>(f: (key: string) => U) => List<U>>,
+    'fold-keys-now': PMethod<MutableStringDict<T>, <U>(f: (key: string, acc: U) => U, init: U) => U>,
+    'each-key-now': PMethod<MutableStringDict<T>, <U>(f: (key: string) => U) => void>,
+    'count-now': PMethod<MutableStringDict<T>, () => number>,
+    'has-key-now': PMethod<MutableStringDict<T>, (key: string) => boolean>,
+    freeze: PMethod<MutableStringDict<T>, () => StringDict<T>>,
+    _equals: PMethod<MutableStringDict<T>, (other: any) => EqualityResult>,
   },
   '$underlyingDict': Record<string, T>,
 }
