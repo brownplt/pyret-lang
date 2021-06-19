@@ -117,11 +117,11 @@ create-constrs = A.default-iter-visitor.{
                     field("$name", PP.dquote(PP.str(name))),
                     field("$fieldNames", PP.str("null"))])]))
           constrs := link(variant, constrs)
-	  singleton-export = field(name, PP.str("Variant<" + baseName + ", '" + name + "'>"))
-	  exports := link(singleton-export, exports)
+      	  singleton-export = field(name, PP.str("Variant<" + baseName + ", '" + name + "'>"))
+	        exports := link(singleton-export, exports)
           pred = PP.str(
             "export function is" + varName + "(val: any): boolean {\n" +
-            "  return typeof val === 'object' && val !== null && val['$variant'] === " + sharedBaseName + ";\n" +
+            "  return typeof val === 'object' && val !== null && val['$variant'] === " + sharedBaseName + ".$variant;\n" +
             "}")
           constrs := link(pred, constrs)
         | s-variant(vl, constr-loc, name, members, with-members) =>
@@ -162,10 +162,10 @@ create-constrs = A.default-iter-visitor.{
           constr-header = PP.group(
             PP.str("export function " + varName) + constr-arglist
               + PP.str(": ") + PP.str("Variant<" + data-name + ", '" + name + "'>"))
-	  variant-export = field(name, PP.surround(INDENT, 1, PP.str("PFunction<"),
-			constr-arglist + PP.str(" => ") + PP.str("Variant<" + data-name + ", '" + name + "'>"),
-			PP.str(">")))
-	  exports := link(variant-export, exports)
+          variant-export = field(name, PP.surround(INDENT, 1, PP.str("PFunction<"),
+            constr-arglist + PP.str(" => ") + PP.str("Variant<" + data-name + ", '" + name + "'>"),
+            PP.str(">")))
+          exports := link(variant-export, exports)
           constr = PP.surround(INDENT, 1, constr-header + PP.str(" {"),
             PP.str("return ") + app("PRIMITIVES.makeDataValue", [list:
                 PP.str(varName),
@@ -180,7 +180,7 @@ create-constrs = A.default-iter-visitor.{
           constrs := link(constr, constrs)
           pred = PP.str(
             "export function is" + varName + "(val: any): boolean {\n" +
-            "  return typeof val === 'object' && val !== null && val['$variant'] === " + varBaseName + ";\n" +
+            "  return typeof val === 'object' && val !== null && val['$variant'] === " + varBaseName + ".$variant;\n" +
             "}")
           constrs := link(pred, constrs)
       end
