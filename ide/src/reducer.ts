@@ -743,52 +743,52 @@ function handleEnqueueEffect(state: State, action: EnqueueEffect): State {
 }
 
 function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
-  const { editorMode } = state;
+  switch (newEditorMode) {
+    case EditorMode.Embeditor:
+    case EditorMode.Text: {
+      // we already keep currentFileContents in sync with chunk contents while
+      // in chunk mode, since we need it to save the file contents.
+      return {
+        ...state,
+        editorMode: newEditorMode,
+      };
+    }
+    case EditorMode.Chunks: {
+      // in text mode currentFileContents can be more up-to-date than chunks, so we
+      // need to recreate the chunks.
 
-  if (newEditorMode === EditorMode.Text && editorMode === EditorMode.Chunks) {
-    // we already keep currentFileContents in sync with chunk contents while
-    // in chunk mode, since we need it to save the file contents.
-    return {
-      ...state,
-      editorMode: EditorMode.Text,
-    };
-  }
+      const { currentFileContents } = state;
 
-  if (newEditorMode === EditorMode.Chunks && editorMode === EditorMode.Text) {
-    // in text mode currentFileContents can be more up-to-date than chunks, so we
-    // need to recreate the chunks.
+      if (currentFileContents === undefined) {
+        return {
+          ...state,
+          editorMode: EditorMode.Chunks,
+          chunks: [],
+        };
+      }
 
-    const { currentFileContents } = state;
+      let totalLines = 0;
+      const chunks: Chunk[] = [];
 
-    if (currentFileContents === undefined) {
+      currentFileContents.split(CHUNKSEP).forEach((chunkString) => {
+        chunks.push(emptyChunk({
+          text: chunkString,
+          startLine: totalLines,
+          errorState: notLintedState,
+        }));
+
+        totalLines += chunkString.split('\n').length;
+      });
+
       return {
         ...state,
         editorMode: EditorMode.Chunks,
-        chunks: [],
+        chunks,
       };
     }
-
-    let totalLines = 0;
-    const chunks: Chunk[] = [];
-
-    currentFileContents.split(CHUNKSEP).forEach((chunkString) => {
-      chunks.push(emptyChunk({
-        text: chunkString,
-        startLine: totalLines,
-        errorState: notLintedState,
-      }));
-
-      totalLines += chunkString.split('\n').length;
-    });
-
-    return {
-      ...state,
-      editorMode: EditorMode.Chunks,
-      chunks,
-    };
+    default:
+      throw new NeverError(newEditorMode);
   }
-
-  return state;
 }
 
 function handleSetCurrentRunner(state: State, runner: any): State {

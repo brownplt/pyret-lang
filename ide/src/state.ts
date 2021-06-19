@@ -196,7 +196,7 @@ export const initialState: State = {
   editTimer: false,
   dropdownVisible: false,
   editorLoopDropdownVisible: false,
-  editorMode: EditorMode.Embeditor,
+  editorMode: EditorMode.Chunks,
   fontSize: 12,
   definitionsHighlights: [],
   currentRunner: undefined,
