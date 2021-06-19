@@ -113,9 +113,8 @@ function checkResults(): CheckResult[] {
     console.log("Some tests failed.");
   }
   _globalCheckResults.forEach((result) => {
-    const hideVariant = (key, value) => (key === "$variant" ? "it$elf" : value);
-    let result_lhs = JSON.stringify(result.lhs, hideVariant, "\t");
-    let result_rhs = JSON.stringify(result.rhs, hideVariant, "\t");
+    let result_lhs = JSON.stringify(result.lhs, null, "\t");
+    let result_rhs = JSON.stringify(result.rhs, null, "\t");
     if (result.success) {
       console.log(`[PASS] ([${result.path}], at ${result.loc})`);
     } else {
@@ -326,7 +325,7 @@ function raiseExtract(exception: any): string {
 
 // NOTE(alex): stub implementation used by testing infrastructure
 function torepr(v) {
-  return JSON.stringify(v, (key, value) => (key === "$variant" ? "it$elf" : value));
+  return JSON.stringify(v);
 }
 
 function customThrow(exn) {
