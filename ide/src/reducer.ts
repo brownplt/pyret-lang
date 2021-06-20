@@ -236,6 +236,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
 
   console.log('Lint success');
   switch (editorMode) {
+    case EditorMode.Embeditor:
     case EditorMode.Text: {
       const { effectQueue, backendCmd } = state;
 
@@ -295,7 +296,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
       });
     }
     default:
-      throw new Error('handleLintSuccess: unknown editor mode');
+      throw new NeverError(editorMode);
   }
 }
 
@@ -516,6 +517,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
 
   console.log('Lint failure');
   switch (editorMode) {
+    case EditorMode.Embeditor:
     case EditorMode.Text:
       return {
         ...state,
@@ -574,7 +576,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
       });
     }
     default:
-      throw new Error('handleLintFailure: unknown editor mode');
+      throw new NeverError(editorMode);
   }
 }
 

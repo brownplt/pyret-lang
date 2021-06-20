@@ -54,6 +54,7 @@ function handleLoadFile(
   const contents = control.openOrCreateFile(currentFile);
 
   switch (editorMode) {
+    case EditorMode.Embeditor:
     case EditorMode.Text:
       dispatch({ type: 'update', key: 'currentFileContents', value: contents });
       break;
@@ -72,6 +73,7 @@ function handleLoadFile(
       break;
     }
     default:
+      throw new NeverError(editorMode);
   }
 
   dispatch({
@@ -464,27 +466,34 @@ function handleFirstActionableEffect(
 
         console.log('Linting...');
         if (isSetupFinished && isFileSaved) {
-          if (currentFileContents !== undefined && editorMode === EditorMode.Text) {
-            return {
-              effect: i,
-              applyEffect: () => handleTextLint(currentFileContents),
-            };
-          }
+          switch (editorMode) {
+            case EditorMode.Embeditor:
+            case EditorMode.Text: {
+              if (currentFileContents === undefined) {
+                break;
+              }
+              return {
+                effect: i,
+                applyEffect: () => handleTextLint(currentFileContents),
+              };
+            }
+            case EditorMode.Chunks: {
+              const sendLintRequests = (): void => {
+                chunks.forEach(({ text, errorState, id }) => {
+                  if (errorState.status !== 'succeeded') {
+                    console.log(`linting chunk ${id}`);
+                    handleChunkLint(text, id);
+                  }
+                });
+              };
 
-          if (editorMode === EditorMode.Chunks) {
-            const sendLintRequests = (): void => {
-              chunks.forEach(({ text, errorState, id }) => {
-                if (errorState.status !== 'succeeded') {
-                  console.log(`linting chunk ${id}`);
-                  handleChunkLint(text, id);
-                }
-              });
-            };
-
-            return {
-              effect: i,
-              applyEffect: sendLintRequests,
-            };
+              return {
+                effect: i,
+                applyEffect: sendLintRequests,
+              };
+            }
+            default:
+              throw new NeverError(editorMode);
           }
         }
 

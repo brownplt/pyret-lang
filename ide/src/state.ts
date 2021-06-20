@@ -196,7 +196,7 @@ export const initialState: State = {
   editTimer: false,
   dropdownVisible: false,
   editorLoopDropdownVisible: false,
-  editorMode: EditorMode.Chunks,
+  editorMode: EditorMode.Embeditor,
   fontSize: 12,
   definitionsHighlights: [],
   currentRunner: undefined,
@@ -231,5 +231,5 @@ export const initialState: State = {
   debugBorders: false,
   displayResultsInline: false,
   messageTabIndex: MessageTabIndex.RuntimeMessages,
-  editorResponseLoop: EditorResponseLoop.AutoCompileRun,
+  editorResponseLoop: EditorResponseLoop.Manual,
 };
