@@ -4,10 +4,10 @@ import CM, { TextMarkerOptions } from 'codemirror';
 import { connect } from 'react-redux';
 import Tooltip from './Tooltip';
 import run from './mock-run';
-import MockRenderedValue from './MockRenderedValue';
+// import MockRenderedValue from './MockRenderedValue';
 import { BackendCmd, State } from '../state';
 import { Action } from '../action';
-import { RHSObjects } from '../rhsObject';
+import { /* getRow, */RHSObjects } from '../rhsObject';
 
 require('pyret-codemirror-mode/mode/pyret');
 
@@ -46,7 +46,6 @@ function mapStateToProps(state: State): StateProps {
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     run() {
-      console.log('mapDispatchToProps run');
       return dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Run } });
     },
     save(contents: string) {
@@ -74,6 +73,7 @@ function Embeditor(props: Props) {
   const needsFirstMarkRef = React.useRef(_needsFirstMark);
   const resultsCacheRef = React.useRef(_resultsCache);
   function editorDidMount(editor: CM.Editor & CM.Doc) {
+    console.log('editorDidMount');
     setEditor(editor);
   }
   function empty(s: string): boolean {
@@ -85,13 +85,36 @@ function Embeditor(props: Props) {
       tooltipPosRef.current = null;
     }
   }
+  function adjustMark(oldMark: CM.TextMarker, newEnd: CM.Position) {
+    const oldMarkRange = oldMark.find();
+    // Make replacement mark. As a workaround, to get all the options
+    // back, just pass the old mark in as the options. i assume extraneous
+    // fields are ignored, since i haven't seen any errors or bugs from
+    // this. (TS claims there's a getOptions method but there isn't one
+    // documented in any version or in reality in this version)
+    stateEditor?.markText(oldMarkRange.from, newEnd, oldMark as TextMarkerOptions);
+    // Don't clear before making the replacement mark or bad things happen!
+    oldMark.clear();
+  }
+  function makeMark(left: CM.Position, right: CM.Position) {
+    // Mostly for debugging, it's nice (and fun) to have all our marks
+    // have different colors!
+    const rainbow = ['#fcc', '#fca', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
+    const numMarks = stateEditor?.getAllMarks().length ?? 0;
+    stateEditor?.markText(left, right, {
+      css: `background-color: ${rainbow[numMarks % rainbow.length]};`,
+      // Above chunk owns the left side of this newline
+      inclusiveLeft: false,
+      // We own the newline itself and the right side
+      inclusiveRight: true,
+    });
+  }
   // "Methods prefixed with doc. can, unless otherwise specified, be called both
   // on CodeMirror (editor) instances and CodeMirror.Doc instances."
   // This means CM.Editor & CM.Doc should be equal to CM.Editor, but the types
   // given don't fit right
   function onKeyDown(editor: CM.Editor & CM.Doc, event: KeyboardEvent) {
     if (needsFirstMarkRef.current) {
-      console.log('doing frist mark markText');
       editor.markText({ line: 0, ch: 0 }, { line: 9999, ch: 9999 }, {
         css: 'background-color: #ccc',
         // NOTE(luna): This should be the only inclusiveLeft mark. Why:
@@ -119,14 +142,12 @@ function Embeditor(props: Props) {
         // Do nothing. This was not an end-of-line enter, so we don't wanna get in the way!
       // from DefChunk.tsx: handleEnter
       } else if (token.state.lineState.tokens.length !== 0) {
-        console.log('Open block. Doing nothing.');
         // My design instinct is to show nothing here: in the happy case, the
         // person is just writing a multiline expression and having a ball
       // Due to the above check, lastLine === '' as well in almost all cases
       } else if (empty(lastLine)) {
         // Double enter
         // Lots of edge cases to handle here
-        console.log('RUNNING THE CHUNKS (theoretically)');
         // add chunk marker
         console.assert(pos.ch === 0);
         // We get rid of the extraneous newline, because visually it is occupied
@@ -139,30 +160,6 @@ function Embeditor(props: Props) {
         const oldMarks = editor.findMarksAt(previousLine);
         const previousMarks = oldMarks.filter((mark) => mark.find().to.line === previousLine.line);
         const endOfPrevious = { line: previousLine.line - 1, ch: 9999 };
-        const adjustMark = (oldMark: CM.TextMarker, newEnd: CM.Position) => {
-          const oldMarkRange = oldMark.find();
-          // Make replacement mark. As a workaround, to get all the options
-          // back, just pass the old mark in as the options. i assume extraneous
-          // fields are ignored, since i haven't seen any errors or bugs from
-          // this. (TS claims there's a getOptions method but there isn't one
-          // documented in any version or in reality in this version)
-          editor.markText(oldMarkRange.from, newEnd, oldMark as TextMarkerOptions);
-          // Don't clear before making the replacement mark or bad things happen!
-          oldMark.clear();
-        };
-        const makeMark = (left: CM.Position, right: CM.Position) => {
-          // Mostly for debugging, it's nice (and fun) to have all our marks
-          // have different colors!
-          const rainbow = ['#fcc', '#fca', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
-          const numMarks = editor.getAllMarks().length;
-          editor.markText(left, right, {
-            css: `background-color: ${rainbow[numMarks % rainbow.length]};`,
-            // Above chunk owns the left side of this newline
-            inclusiveLeft: false,
-            // We own the newline itself and the right side
-            inclusiveRight: true,
-          });
-        };
         if (previousMarks.length === 1) {
           const oldMark = previousMarks[0];
           adjustMark(oldMark, endOfPrevious);
@@ -195,9 +192,6 @@ function Embeditor(props: Props) {
         const results = run(textChunks);
         resultsCacheRef.current = results;
         setResultsCache(results);
-        console.log('Actual total length: ', editor.getValue().length);
-        // Adding the actual lineWidget is done functionally on change, but
-        // onChange happens before this, so go ahead and do that as well
       } else {
         console.log('Empty line with no open context. Presenting tooltip.');
         // "What? This looks weird! Why are you doing pixel stuff!"
@@ -218,25 +212,28 @@ function Embeditor(props: Props) {
       }
     }
   }
-  const mockRVs = stateEditor?.operation(() => {
-    const marks = stateEditor?.getAllMarks() ?? [];
-    return resultsCacheRef.current.map(({ chunkLength, programLength }, i) => {
-      const mark = marks[i];
-      const { to } = mark.find();
-      const lineHandle = (stateEditor as CM.Doc).getLineHandle(to.line);
-      return (
-        <MockRenderedValue
-          chunkLength={chunkLength}
-          programLength={programLength}
-          editor={stateEditor as (CM.Editor & CM.Doc)}
-          line={lineHandle}
-          /* eslint-disable-next-line */
-          key={i * 13 + to.line}
-        />
-      );
-    });
-  });
+  const mockRVs: JSX.Element[] = [];
   const { rhs } = props;
+  stateEditor?.operation(() => {
+    const marks = stateEditor?.getAllMarks() ?? [];
+    marks.forEach(console.log);
+    // marks.forEach((marker) => {
+    //   const { from, to } = marker.find();
+    //   // is rhs.objects sorted?
+    //   const relevant = rhs.objects.filter((rhsObject) => {
+    //     const line = getRow(rhsObject);
+    //     return from.line <= line && to.line >= line;
+    //   });
+    //   if (relevant.length > 0) {
+    //     console.log(`chunk is relevant to rhs: ${relevant}`);
+    //     // Definitely not the best way to do this: adjustMarker should have an
+    //     // abstraction for changing options
+    //     const markerWithClass = marker;
+    //     (markerWithClass as CM.TextMarker & { className: string }).className = 'rhs-error';
+    //     adjustMark(marker, to);
+    //   }
+    // });
+  });
   console.log(rhs);
   return (
     <>
@@ -247,7 +244,6 @@ function Embeditor(props: Props) {
         }}
         // Bad types given by react-codemirror, too bad
         onKeyUp={onKeyDown as (x: CM.Editor, y: Event) => void}
-        // onChange={onChange as (x: CM.Editor) => void}
         onMouseDown={clearTooltip}
         editorDidMount={editorDidMount as (x: CM.Editor) => void}
       />

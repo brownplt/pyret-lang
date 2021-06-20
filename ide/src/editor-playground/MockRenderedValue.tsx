@@ -19,7 +19,6 @@ export default class MockRV extends React.PureComponent<RVProps, RVState> {
     // happen on every render? Is that bad?
     const portal = document.createElement('div');
     portal.append('sthoeunth long string');
-    console.log('constructor of MockRV. This shouldnt happen often', props.line);
     const { editor, line } = this.props;
     this.state = {
       portal,
@@ -45,7 +44,6 @@ export default class MockRV extends React.PureComponent<RVProps, RVState> {
     const { editor } = this.props;
     const { widget } = this.state;
     editor.removeLineWidget(widget as CM.LineWidget);
-    console.log('removing a line widget (componentWilLUnMount)');
   }
 
   render() {
