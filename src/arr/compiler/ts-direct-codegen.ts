@@ -12,6 +12,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
   requires: [
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']},
     { 'import-type': 'dependency', protocol: 'js-file', args: ['provide-serialization']},
+    { 'import-type': 'dependency', protocol: 'file', args: ['ast.arr']},
    ],
   nativeRequires: ["escodegen", "path"],
   provides: {
@@ -19,7 +20,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       "compile-program": "tany"
     }
   },
-  theModule: function(runtime, _, ___, tj : TJ.Exports, ps : PS.Exports, escodegen : (typeof Escodegen), P : (typeof Path)) {
+  theModule: function(runtime, _, ___, tj : TJ.Exports, ps : PS.Exports, A : (A.Exports), escodegen : (typeof Escodegen), P : (typeof Path)) {
     // Pretty-print JS asts
     // Return a PyretObject
     // Type enough AST to get to s-num
@@ -1746,9 +1747,36 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       }
     }
 
+    /**
+     * Temporary function that recursively runs every relevant `is-*` checker from
+     * ast.arr that it encounters in the given `val`.  (It dynamically extends 
+     * the visitor with additional handlers as it encounters each new data value,
+     * which is tantamount to having a `method-missing` proxy hook, essentially.)
+     * Since `deepCheck` is called after `map` is called with a no-op visitor,
+     * this is checking that the resulting object looks sufficiently like a Pyret
+     * value that it satisfies the `is-*` predicates and can continue to be used
+     * from Pyret code.  In theory we could enhance this with other Pyret checkers 
+     * (e.g. lists), but it's harder to know which module to find the checkers in.
+     */
+    function deepCheck<T extends { $name: string, dict: {} }>(visitor: Partial<Record<T["$name"], any>>, val: T) {
+      const checkerName = `is-${val.$name}`;
+      if (checkerName in A.dict.values.dict) {
+        if (!A.dict.values.dict[checkerName].app(val)) {
+          throw new InternalCompilerError(`Value didn't satisfy ${checkerName}: ${val}`);
+        } 
+      }
+      for (const [k, subd] of Object.entries(val.dict)) {
+        if (typeof subd === 'object' && "$name" in subd) {
+          visitor[subd['$name']] = deepCheck;
+          visit(visitor, subd as any);
+        }
+      }
+    }
+
     function assertMapIsDoingItsJob(prog : A.Program) {
       const after = map<A.Program, A.Program>({}, prog);
       if(prog === after) { throw new InternalCompilerError("AST map visitor returned an identical object"); }
+      deepCheck({}, after);
       return after;
     }
 

@@ -694,25 +694,51 @@ export type AField =
 
 export interface Exports {
 dict: {values: {dict: {
+'is-Name': PFunction< (val: any) => boolean >
+
+'is-s-underscore': PFunction< (val: any) => boolean >
+
 's-underscore': PFunction< (l: Loc) => TCH.Variant<Name, 's-underscore'> >
+
+'is-s-name': PFunction< (val: any) => boolean >
 
 's-name': PFunction< (l: Loc, s: string) => TCH.Variant<Name, 's-name'> >
 
+'is-s-global': PFunction< (val: any) => boolean >
+
 's-global': PFunction< (s: string) => TCH.Variant<Name, 's-global'> >
+
+'is-s-module-global': PFunction< (val: any) => boolean >
 
 's-module-global': PFunction< (s: string) => TCH.Variant<Name, 's-module-global'> >
 
+'is-s-type-global': PFunction< (val: any) => boolean >
+
 's-type-global': PFunction< (s: string) => TCH.Variant<Name, 's-type-global'> >
 
+'is-s-atom': PFunction< (val: any) => boolean >
+
 's-atom': PFunction< (base: string, serial: Number) => TCH.Variant<Name, 's-atom'> >
+
+'is-AppInfo': PFunction< (val: any) => boolean >
+
+'is-app-info-c': PFunction< (val: any) => boolean >
 
 'app-info-c': 
   PFunction<
     (is_recursive: boolean, is_tail: boolean) => TCH.Variant<AppInfo, 'app-info-c'>
   >
 
+'is-PrimAppInfo': PFunction< (val: any) => boolean >
+
+'is-prim-app-info-c': PFunction< (val: any) => boolean >
+
 'prim-app-info-c': 
   PFunction< (needs_step: boolean) => TCH.Variant<PrimAppInfo, 'prim-app-info-c'> >
+
+'is-Program': PFunction< (val: any) => boolean >
+
+'is-s-program': PFunction< (val: any) => boolean >
 
 's-program': 
   PFunction<
@@ -726,177 +752,299 @@ dict: {values: {dict: {
       ) => TCH.Variant<Program, 's-program'>
   >
 
+'is-Import': PFunction< (val: any) => boolean >
+
+'is-s-include': PFunction< (val: any) => boolean >
+
 's-include': 
   PFunction< (l: Loc, mod: ImportType) => TCH.Variant<Import, 's-include'> >
+
+'is-s-include-from': PFunction< (val: any) => boolean >
 
 's-include-from': 
   PFunction<
     (l: Loc, mod: List<Name>, specs: List<IncludeSpec>) => TCH.Variant<Import, 's-include-from'>
   >
 
+'is-s-import': PFunction< (val: any) => boolean >
+
 's-import': 
   PFunction<
     (l: Loc, file: ImportType, name: Name) => TCH.Variant<Import, 's-import'>
   >
+
+'is-s-import-types': PFunction< (val: any) => boolean >
 
 's-import-types': 
   PFunction<
     (l: Loc, file: ImportType, name: Name, types: Name) => TCH.Variant<Import, 's-import-types'>
   >
 
+'is-s-import-fields': PFunction< (val: any) => boolean >
+
 's-import-fields': 
   PFunction<
     (l: Loc, fields: List<Name>, file: ImportType) => TCH.Variant<Import, 's-import-fields'>
   >
+
+'is-IncludeSpec': PFunction< (val: any) => boolean >
+
+'is-s-include-name': PFunction< (val: any) => boolean >
 
 's-include-name': 
   PFunction<
     (l: Loc, name_spec: NameSpec) => TCH.Variant<IncludeSpec, 's-include-name'>
   >
 
+'is-s-include-data': PFunction< (val: any) => boolean >
+
 's-include-data': 
   PFunction<
     (l: Loc, name_spec: NameSpec, hidden: List<Name>) => TCH.Variant<IncludeSpec, 's-include-data'>
   >
+
+'is-s-include-type': PFunction< (val: any) => boolean >
 
 's-include-type': 
   PFunction<
     (l: Loc, name_spec: NameSpec) => TCH.Variant<IncludeSpec, 's-include-type'>
   >
 
+'is-s-include-module': PFunction< (val: any) => boolean >
+
 's-include-module': 
   PFunction<
     (l: Loc, name_spec: NameSpec) => TCH.Variant<IncludeSpec, 's-include-module'>
   >
+
+'is-ProvidedModule': PFunction< (val: any) => boolean >
+
+'is-p-module': PFunction< (val: any) => boolean >
 
 'p-module': 
   PFunction<
     (l: Loc, name: string, v: Name, uri: string) => TCH.Variant<ProvidedModule, 'p-module'>
   >
 
+'is-ProvidedValue': PFunction< (val: any) => boolean >
+
+'is-p-value': PFunction< (val: any) => boolean >
+
 'p-value': 
   PFunction< (l: Loc, v: Name, ann: Ann) => TCH.Variant<ProvidedValue, 'p-value'> >
+
+'is-ProvidedAlias': PFunction< (val: any) => boolean >
+
+'is-p-alias': PFunction< (val: any) => boolean >
 
 'p-alias': 
   PFunction<
     (l: Loc, in_name: Name, out_name: Name, mod: Option<ImportType>) => TCH.Variant<ProvidedAlias, 'p-alias'>
   >
 
+'is-ProvidedDatatype': PFunction< (val: any) => boolean >
+
+'is-p-data': PFunction< (val: any) => boolean >
+
 'p-data': 
   PFunction<
     (l: Loc, d: Name, mod: Option<ImportType>) => TCH.Variant<ProvidedDatatype, 'p-data'>
   >
 
+'is-Provide': PFunction< (val: any) => boolean >
+
+'is-s-provide': PFunction< (val: any) => boolean >
+
 's-provide': PFunction< (l: Loc, block: Expr) => TCH.Variant<Provide, 's-provide'> >
+
+'is-s-provide-all': PFunction< (val: any) => boolean >
 
 's-provide-all': PFunction< (l: Loc) => TCH.Variant<Provide, 's-provide-all'> >
 
+'is-s-provide-none': PFunction< (val: any) => boolean >
+
 's-provide-none': PFunction< (l: Loc) => TCH.Variant<Provide, 's-provide-none'> >
+
+'is-ProvideBlock': PFunction< (val: any) => boolean >
+
+'is-s-provide-block': PFunction< (val: any) => boolean >
 
 's-provide-block': 
   PFunction<
     (l: Loc, path: List<Name>, specs: List<ProvideSpec>) => TCH.Variant<ProvideBlock, 's-provide-block'>
   >
 
+'is-ProvideSpec': PFunction< (val: any) => boolean >
+
+'is-s-provide-name': PFunction< (val: any) => boolean >
+
 's-provide-name': 
   PFunction<
     (l: Loc, name_spec: NameSpec) => TCH.Variant<ProvideSpec, 's-provide-name'>
   >
+
+'is-s-provide-data': PFunction< (val: any) => boolean >
 
 's-provide-data': 
   PFunction<
     (l: Loc, name_spec: NameSpec, hidden: List<Name>) => TCH.Variant<ProvideSpec, 's-provide-data'>
   >
 
+'is-s-provide-type': PFunction< (val: any) => boolean >
+
 's-provide-type': 
   PFunction<
     (l: Loc, name_spec: NameSpec) => TCH.Variant<ProvideSpec, 's-provide-type'>
   >
+
+'is-s-provide-module': PFunction< (val: any) => boolean >
 
 's-provide-module': 
   PFunction<
     (l: Loc, name_spec: NameSpec) => TCH.Variant<ProvideSpec, 's-provide-module'>
   >
 
+'is-NameSpec': PFunction< (val: any) => boolean >
+
+'is-s-star': PFunction< (val: any) => boolean >
+
 's-star': 
   PFunction< (l: Loc, hidden: List<Name>) => TCH.Variant<NameSpec, 's-star'> >
+
+'is-s-module-ref': PFunction< (val: any) => boolean >
 
 's-module-ref': 
   PFunction<
     (l: Loc, path: List<Name>, as_name: Option<Name>) => TCH.Variant<NameSpec, 's-module-ref'>
   >
 
+'is-s-remote-ref': PFunction< (val: any) => boolean >
+
 's-remote-ref': 
   PFunction<
     (l: Loc, uri: string, name: Name, as_name: Name) => TCH.Variant<NameSpec, 's-remote-ref'>
   >
+
+'is-s-local-ref': PFunction< (val: any) => boolean >
 
 's-local-ref': 
   PFunction<
     (l: Loc, name: Name, as_name: Name) => TCH.Variant<NameSpec, 's-local-ref'>
   >
 
+'is-ProvideTypes': PFunction< (val: any) => boolean >
+
+'is-s-provide-types': PFunction< (val: any) => boolean >
+
 's-provide-types': 
   PFunction<
     (l: Loc, ann: List<AField>) => TCH.Variant<ProvideTypes, 's-provide-types'>
   >
 
+'is-s-provide-types-all': PFunction< (val: any) => boolean >
+
 's-provide-types-all': 
   PFunction< (l: Loc) => TCH.Variant<ProvideTypes, 's-provide-types-all'> >
+
+'is-s-provide-types-none': PFunction< (val: any) => boolean >
 
 's-provide-types-none': 
   PFunction< (l: Loc) => TCH.Variant<ProvideTypes, 's-provide-types-none'> >
 
+'is-ImportType': PFunction< (val: any) => boolean >
+
+'is-s-const-import': PFunction< (val: any) => boolean >
+
 's-const-import': 
   PFunction< (l: Loc, mod: string) => TCH.Variant<ImportType, 's-const-import'> >
+
+'is-s-special-import': PFunction< (val: any) => boolean >
 
 's-special-import': 
   PFunction<
     (l: Loc, kind: string, args: List<String>) => TCH.Variant<ImportType, 's-special-import'>
   >
 
+'is-Hint': PFunction< (val: any) => boolean >
+
+'is-h-use-loc': PFunction< (val: any) => boolean >
+
 'h-use-loc': PFunction< (l: Loc) => TCH.Variant<Hint, 'h-use-loc'> >
+
+'is-LetBind': PFunction< (val: any) => boolean >
+
+'is-s-let-bind': PFunction< (val: any) => boolean >
 
 's-let-bind': 
   PFunction< (l: Loc, b: Bind, value: Expr) => TCH.Variant<LetBind, 's-let-bind'> >
 
+'is-s-var-bind': PFunction< (val: any) => boolean >
+
 's-var-bind': 
   PFunction< (l: Loc, b: Bind, value: Expr) => TCH.Variant<LetBind, 's-var-bind'> >
+
+'is-LetrecBind': PFunction< (val: any) => boolean >
+
+'is-s-letrec-bind': PFunction< (val: any) => boolean >
 
 's-letrec-bind': 
   PFunction<
     (l: Loc, b: Bind, value: Expr) => TCH.Variant<LetrecBind, 's-letrec-bind'>
   >
 
+'is-TypeLetBind': PFunction< (val: any) => boolean >
+
+'is-s-type-bind': PFunction< (val: any) => boolean >
+
 's-type-bind': 
   PFunction<
     (l: Loc, name: Name, params: List<Name>, ann: Ann) => TCH.Variant<TypeLetBind, 's-type-bind'>
   >
+
+'is-s-newtype-bind': PFunction< (val: any) => boolean >
 
 's-newtype-bind': 
   PFunction<
     (l: Loc, name: Name, namet: Name) => TCH.Variant<TypeLetBind, 's-newtype-bind'>
   >
 
+'is-DefinedModule': PFunction< (val: any) => boolean >
+
+'is-s-defined-module': PFunction< (val: any) => boolean >
+
 's-defined-module': 
   PFunction<
     (name: string, value: Name, uri: string) => TCH.Variant<DefinedModule, 's-defined-module'>
   >
+
+'is-DefinedValue': PFunction< (val: any) => boolean >
+
+'is-s-defined-value': PFunction< (val: any) => boolean >
 
 's-defined-value': 
   PFunction<
     (name: string, value: Expr) => TCH.Variant<DefinedValue, 's-defined-value'>
   >
 
+'is-s-defined-var': PFunction< (val: any) => boolean >
+
 's-defined-var': 
   PFunction<
     (name: string, id: Name, loc: Loc) => TCH.Variant<DefinedValue, 's-defined-var'>
   >
 
+'is-DefinedType': PFunction< (val: any) => boolean >
+
+'is-s-defined-type': PFunction< (val: any) => boolean >
+
 's-defined-type': 
   PFunction<
     (name: string, typ: Ann) => TCH.Variant<DefinedType, 's-defined-type'>
   >
+
+'is-Expr': PFunction< (val: any) => boolean >
+
+'is-s-module': PFunction< (val: any) => boolean >
 
 's-module': 
   PFunction<
@@ -910,37 +1058,55 @@ dict: {values: {dict: {
       ) => TCH.Variant<Expr, 's-module'>
   >
 
+'is-s-template': PFunction< (val: any) => boolean >
+
 's-template': PFunction< (l: Loc) => TCH.Variant<Expr, 's-template'> >
+
+'is-s-type-let-expr': PFunction< (val: any) => boolean >
 
 's-type-let-expr': 
   PFunction<
     (l: Loc, binds: List<TypeLetBind>, body: Expr, blocky: boolean) => TCH.Variant<Expr, 's-type-let-expr'>
   >
 
+'is-s-let-expr': PFunction< (val: any) => boolean >
+
 's-let-expr': 
   PFunction<
     (l: Loc, binds: List<LetBind>, body: Expr, blocky: boolean) => TCH.Variant<Expr, 's-let-expr'>
   >
+
+'is-s-letrec': PFunction< (val: any) => boolean >
 
 's-letrec': 
   PFunction<
     (l: Loc, binds: List<LetrecBind>, body: Expr, blocky: boolean) => TCH.Variant<Expr, 's-letrec'>
   >
 
+'is-s-hint-exp': PFunction< (val: any) => boolean >
+
 's-hint-exp': 
   PFunction<
     (l: Loc, hints: List<Hint>, exp: Expr) => TCH.Variant<Expr, 's-hint-exp'>
   >
+
+'is-s-instantiate': PFunction< (val: any) => boolean >
 
 's-instantiate': 
   PFunction<
     (l: Loc, expr: Expr, params: List<Ann>) => TCH.Variant<Expr, 's-instantiate'>
   >
 
+'is-s-block': PFunction< (val: any) => boolean >
+
 's-block': PFunction< (l: Loc, stmts: List<Expr>) => TCH.Variant<Expr, 's-block'> >
+
+'is-s-user-block': PFunction< (val: any) => boolean >
 
 's-user-block': 
   PFunction< (l: Loc, body: Expr) => TCH.Variant<Expr, 's-user-block'> >
+
+'is-s-fun': PFunction< (val: any) => boolean >
 
 's-fun': 
   PFunction<
@@ -958,64 +1124,94 @@ dict: {values: {dict: {
       ) => TCH.Variant<Expr, 's-fun'>
   >
 
+'is-s-type': PFunction< (val: any) => boolean >
+
 's-type': 
   PFunction<
     (l: Loc, name: Name, params: List<Name>, ann: Ann) => TCH.Variant<Expr, 's-type'>
   >
 
+'is-s-newtype': PFunction< (val: any) => boolean >
+
 's-newtype': 
   PFunction< (l: Loc, name: Name, namet: Name) => TCH.Variant<Expr, 's-newtype'> >
+
+'is-s-var': PFunction< (val: any) => boolean >
 
 's-var': 
   PFunction< (l: Loc, name: Bind, value: Expr) => TCH.Variant<Expr, 's-var'> >
 
+'is-s-rec': PFunction< (val: any) => boolean >
+
 's-rec': 
   PFunction< (l: Loc, name: Bind, value: Expr) => TCH.Variant<Expr, 's-rec'> >
+
+'is-s-let': PFunction< (val: any) => boolean >
 
 's-let': 
   PFunction<
     (l: Loc, name: Bind, value: Expr, keyword_val: boolean) => TCH.Variant<Expr, 's-let'>
   >
 
+'is-s-ref': PFunction< (val: any) => boolean >
+
 's-ref': PFunction< (l: Loc, ann: Option<Ann>) => TCH.Variant<Expr, 's-ref'> >
+
+'is-s-contract': PFunction< (val: any) => boolean >
 
 's-contract': 
   PFunction<
     (l: Loc, name: Name, params: List<Name>, ann: Ann) => TCH.Variant<Expr, 's-contract'>
   >
 
+'is-s-when': PFunction< (val: any) => boolean >
+
 's-when': 
   PFunction<
     (l: Loc, test: Expr, block: Expr, blocky: boolean) => TCH.Variant<Expr, 's-when'>
   >
 
+'is-s-assign': PFunction< (val: any) => boolean >
+
 's-assign': 
   PFunction< (l: Loc, id: Name, value: Expr) => TCH.Variant<Expr, 's-assign'> >
+
+'is-s-if-pipe': PFunction< (val: any) => boolean >
 
 's-if-pipe': 
   PFunction<
     (l: Loc, branches: List<IfPipeBranch>, blocky: boolean) => TCH.Variant<Expr, 's-if-pipe'>
   >
 
+'is-s-if-pipe-else': PFunction< (val: any) => boolean >
+
 's-if-pipe-else': 
   PFunction<
     (l: Loc, branches: List<IfPipeBranch>, _else: Expr, blocky: boolean) => TCH.Variant<Expr, 's-if-pipe-else'>
   >
+
+'is-s-if': PFunction< (val: any) => boolean >
 
 's-if': 
   PFunction<
     (l: Loc, branches: List<IfBranch>, blocky: boolean) => TCH.Variant<Expr, 's-if'>
   >
 
+'is-s-if-else': PFunction< (val: any) => boolean >
+
 's-if-else': 
   PFunction<
     (l: Loc, branches: List<IfBranch>, _else: Expr, blocky: boolean) => TCH.Variant<Expr, 's-if-else'>
   >
 
+'is-s-cases': PFunction< (val: any) => boolean >
+
 's-cases': 
   PFunction<
     (l: Loc, typ: Ann, val: Expr, branches: List<CasesBranch>, blocky: boolean) => TCH.Variant<Expr, 's-cases'>
   >
+
+'is-s-cases-else': PFunction< (val: any) => boolean >
 
 's-cases-else': 
   PFunction<
@@ -1029,10 +1225,14 @@ dict: {values: {dict: {
       ) => TCH.Variant<Expr, 's-cases-else'>
   >
 
+'is-s-op': PFunction< (val: any) => boolean >
+
 's-op': 
   PFunction<
     (l: Loc, op_l: Loc, op: string, left: Expr, right: Expr) => TCH.Variant<Expr, 's-op'>
   >
+
+'is-s-check-test': PFunction< (val: any) => boolean >
 
 's-check-test': 
   PFunction<
@@ -1046,10 +1246,16 @@ dict: {values: {dict: {
       ) => TCH.Variant<Expr, 's-check-test'>
   >
 
+'is-s-check-expr': PFunction< (val: any) => boolean >
+
 's-check-expr': 
   PFunction< (l: Loc, expr: Expr, ann: Ann) => TCH.Variant<Expr, 's-check-expr'> >
 
+'is-s-paren': PFunction< (val: any) => boolean >
+
 's-paren': PFunction< (l: Loc, expr: Expr) => TCH.Variant<Expr, 's-paren'> >
+
+'is-s-lam': PFunction< (val: any) => boolean >
 
 's-lam': 
   PFunction<
@@ -1067,6 +1273,8 @@ dict: {values: {dict: {
       ) => TCH.Variant<Expr, 's-lam'>
   >
 
+'is-s-method': PFunction< (val: any) => boolean >
+
 's-method': 
   PFunction<
     (
@@ -1083,92 +1291,146 @@ dict: {values: {dict: {
       ) => TCH.Variant<Expr, 's-method'>
   >
 
+'is-s-extend': PFunction< (val: any) => boolean >
+
 's-extend': 
   PFunction<
     (l: Loc, supe: Expr, fields: List<Member>) => TCH.Variant<Expr, 's-extend'>
   >
+
+'is-s-update': PFunction< (val: any) => boolean >
 
 's-update': 
   PFunction<
     (l: Loc, supe: Expr, fields: List<Member>) => TCH.Variant<Expr, 's-update'>
   >
 
+'is-s-tuple': PFunction< (val: any) => boolean >
+
 's-tuple': PFunction< (l: Loc, fields: List<Expr>) => TCH.Variant<Expr, 's-tuple'> >
+
+'is-s-tuple-get': PFunction< (val: any) => boolean >
 
 's-tuple-get': 
   PFunction<
     (l: Loc, tup: Expr, index: Number, index_loc: Loc) => TCH.Variant<Expr, 's-tuple-get'>
   >
 
+'is-s-obj': PFunction< (val: any) => boolean >
+
 's-obj': PFunction< (l: Loc, fields: List<Member>) => TCH.Variant<Expr, 's-obj'> >
 
+'is-s-array': PFunction< (val: any) => boolean >
+
 's-array': PFunction< (l: Loc, values: List<Expr>) => TCH.Variant<Expr, 's-array'> >
+
+'is-s-construct': PFunction< (val: any) => boolean >
 
 's-construct': 
   PFunction<
     (l: Loc, modifier: ConstructModifier, constructor: Expr, values: List<Expr>) => TCH.Variant<Expr, 's-construct'>
   >
 
+'is-s-app': PFunction< (val: any) => boolean >
+
 's-app': 
   PFunction< (l: Loc, _fun: Expr, args: List<Expr>) => TCH.Variant<Expr, 's-app'> >
+
+'is-s-app-enriched': PFunction< (val: any) => boolean >
 
 's-app-enriched': 
   PFunction<
     (l: Loc, _fun: Expr, args: List<Expr>, app_info: AppInfo) => TCH.Variant<Expr, 's-app-enriched'>
   >
 
+'is-s-prim-app': PFunction< (val: any) => boolean >
+
 's-prim-app': 
   PFunction<
     (l: Loc, _fun: string, args: List<Expr>, app_info: PrimAppInfo) => TCH.Variant<Expr, 's-prim-app'>
   >
 
+'is-s-prim-val': PFunction< (val: any) => boolean >
+
 's-prim-val': PFunction< (l: Loc, name: string) => TCH.Variant<Expr, 's-prim-val'> >
+
+'is-s-id': PFunction< (val: any) => boolean >
 
 's-id': PFunction< (l: Loc, id: Name) => TCH.Variant<Expr, 's-id'> >
 
+'is-s-id-var': PFunction< (val: any) => boolean >
+
 's-id-var': PFunction< (l: Loc, id: Name) => TCH.Variant<Expr, 's-id-var'> >
+
+'is-s-id-letrec': PFunction< (val: any) => boolean >
 
 's-id-letrec': 
   PFunction< (l: Loc, id: Name, safe: boolean) => TCH.Variant<Expr, 's-id-letrec'> >
+
+'is-s-id-var-modref': PFunction< (val: any) => boolean >
 
 's-id-var-modref': 
   PFunction<
     (l: Loc, id: Name, uri: string, name: string) => TCH.Variant<Expr, 's-id-var-modref'>
   >
 
+'is-s-id-modref': PFunction< (val: any) => boolean >
+
 's-id-modref': 
   PFunction<
     (l: Loc, id: Name, uri: string, name: string) => TCH.Variant<Expr, 's-id-modref'>
   >
 
+'is-s-undefined': PFunction< (val: any) => boolean >
+
 's-undefined': PFunction< (l: Loc) => TCH.Variant<Expr, 's-undefined'> >
+
+'is-s-srcloc': PFunction< (val: any) => boolean >
 
 's-srcloc': PFunction< (l: Loc, loc: Loc) => TCH.Variant<Expr, 's-srcloc'> >
 
+'is-s-num': PFunction< (val: any) => boolean >
+
 's-num': PFunction< (l: Loc, n: Number) => TCH.Variant<Expr, 's-num'> >
+
+'is-s-frac': PFunction< (val: any) => boolean >
 
 's-frac': 
   PFunction<
     (l: Loc, num: NumInteger, den: NumInteger) => TCH.Variant<Expr, 's-frac'>
   >
 
+'is-s-rfrac': PFunction< (val: any) => boolean >
+
 's-rfrac': 
   PFunction<
     (l: Loc, num: NumInteger, den: NumInteger) => TCH.Variant<Expr, 's-rfrac'>
   >
 
+'is-s-bool': PFunction< (val: any) => boolean >
+
 's-bool': PFunction< (l: Loc, b: boolean) => TCH.Variant<Expr, 's-bool'> >
 
+'is-s-str': PFunction< (val: any) => boolean >
+
 's-str': PFunction< (l: Loc, s: string) => TCH.Variant<Expr, 's-str'> >
+
+'is-s-dot': PFunction< (val: any) => boolean >
 
 's-dot': 
   PFunction< (l: Loc, obj: Expr, field: string) => TCH.Variant<Expr, 's-dot'> >
 
+'is-s-get-bang': PFunction< (val: any) => boolean >
+
 's-get-bang': 
   PFunction< (l: Loc, obj: Expr, field: string) => TCH.Variant<Expr, 's-get-bang'> >
 
+'is-s-bracket': PFunction< (val: any) => boolean >
+
 's-bracket': 
   PFunction< (l: Loc, obj: Expr, key: Expr) => TCH.Variant<Expr, 's-bracket'> >
+
+'is-s-data': PFunction< (val: any) => boolean >
 
 's-data': 
   PFunction<
@@ -1183,6 +1445,8 @@ dict: {values: {dict: {
         _check: Option<Expr>
       ) => TCH.Variant<Expr, 's-data'>
   >
+
+'is-s-data-expr': PFunction< (val: any) => boolean >
 
 's-data-expr': 
   PFunction<
@@ -1199,6 +1463,8 @@ dict: {values: {dict: {
       ) => TCH.Variant<Expr, 's-data-expr'>
   >
 
+'is-s-for': PFunction< (val: any) => boolean >
+
 's-for': 
   PFunction<
     (
@@ -1211,90 +1477,140 @@ dict: {values: {dict: {
       ) => TCH.Variant<Expr, 's-for'>
   >
 
+'is-s-check': PFunction< (val: any) => boolean >
+
 's-check': 
   PFunction<
     (l: Loc, name: Option<String>, body: Expr, keyword_check: boolean) => TCH.Variant<Expr, 's-check'>
   >
 
+'is-s-reactor': PFunction< (val: any) => boolean >
+
 's-reactor': 
   PFunction< (l: Loc, fields: List<Member>) => TCH.Variant<Expr, 's-reactor'> >
+
+'is-s-table-extend': PFunction< (val: any) => boolean >
 
 's-table-extend': 
   PFunction<
     (l: Loc, column_binds: ColumnBinds, extensions: List<TableExtendField>) => TCH.Variant<Expr, 's-table-extend'>
   >
 
+'is-s-table-update': PFunction< (val: any) => boolean >
+
 's-table-update': 
   PFunction<
     (l: Loc, column_binds: ColumnBinds, updates: List<Member>) => TCH.Variant<Expr, 's-table-update'>
   >
+
+'is-s-table-select': PFunction< (val: any) => boolean >
 
 's-table-select': 
   PFunction<
     (l: Loc, columns: List<Name>, table: Expr) => TCH.Variant<Expr, 's-table-select'>
   >
 
+'is-s-table-order': PFunction< (val: any) => boolean >
+
 's-table-order': 
   PFunction<
     (l: Loc, table: Expr, ordering: List<ColumnSort>) => TCH.Variant<Expr, 's-table-order'>
   >
+
+'is-s-table-filter': PFunction< (val: any) => boolean >
 
 's-table-filter': 
   PFunction<
     (l: Loc, column_binds: ColumnBinds, predicate: Expr) => TCH.Variant<Expr, 's-table-filter'>
   >
 
+'is-s-table-extract': PFunction< (val: any) => boolean >
+
 's-table-extract': 
   PFunction<
     (l: Loc, column: Name, table: Expr) => TCH.Variant<Expr, 's-table-extract'>
   >
+
+'is-s-table': PFunction< (val: any) => boolean >
 
 's-table': 
   PFunction<
     (l: Loc, headers: List<FieldName>, rows: List<TableRow>) => TCH.Variant<Expr, 's-table'>
   >
 
+'is-s-load-table': PFunction< (val: any) => boolean >
+
 's-load-table': 
   PFunction<
     (l: Loc, headers: List<FieldName>, spec: List<LoadTableSpec>) => TCH.Variant<Expr, 's-load-table'>
   >
+
+'is-s-spy-block': PFunction< (val: any) => boolean >
 
 's-spy-block': 
   PFunction<
     (l: Loc, message: Option<Expr>, contents: List<SpyField>) => TCH.Variant<Expr, 's-spy-block'>
   >
 
+'is-TableRow': PFunction< (val: any) => boolean >
+
+'is-s-table-row': PFunction< (val: any) => boolean >
+
 's-table-row': 
   PFunction< (l: Loc, elems: List<Expr>) => TCH.Variant<TableRow, 's-table-row'> >
+
+'is-SpyField': PFunction< (val: any) => boolean >
+
+'is-s-spy-expr': PFunction< (val: any) => boolean >
 
 's-spy-expr': 
   PFunction<
     (l: Loc, name: string, value: Expr, implicit_label: boolean) => TCH.Variant<SpyField, 's-spy-expr'>
   >
 
+'is-ConstructModifier': PFunction< (val: any) => boolean >
+
+'is-s-construct-normal': PFunction< (val: any) => boolean >
+
 's-construct-normal': TCH.Variant<ConstructModifier, 's-construct-normal'>
 
+'is-s-construct-lazy': PFunction< (val: any) => boolean >
+
 's-construct-lazy': TCH.Variant<ConstructModifier, 's-construct-lazy'>
+
+'is-Bind': PFunction< (val: any) => boolean >
+
+'is-s-bind': PFunction< (val: any) => boolean >
 
 's-bind': 
   PFunction<
     (l: Loc, shadows: boolean, id: Name, ann: Ann) => TCH.Variant<Bind, 's-bind'>
   >
 
+'is-s-tuple-bind': PFunction< (val: any) => boolean >
+
 's-tuple-bind': 
   PFunction<
     (l: Loc, fields: List<Bind>, as_name: Option<Bind>) => TCH.Variant<Bind, 's-tuple-bind'>
   >
+
+'is-Member': PFunction< (val: any) => boolean >
+
+'is-s-data-field': PFunction< (val: any) => boolean >
 
 's-data-field': 
   PFunction<
     (l: Loc, name: string, value: Expr) => TCH.Variant<Member, 's-data-field'>
   >
 
+'is-s-mutable-field': PFunction< (val: any) => boolean >
+
 's-mutable-field': 
   PFunction<
     (l: Loc, name: string, ann: Ann, value: Expr) => TCH.Variant<Member, 's-mutable-field'>
   >
+
+'is-s-method-field': PFunction< (val: any) => boolean >
 
 's-method-field': 
   PFunction<
@@ -1312,56 +1628,104 @@ dict: {values: {dict: {
       ) => TCH.Variant<Member, 's-method-field'>
   >
 
+'is-FieldName': PFunction< (val: any) => boolean >
+
+'is-s-field-name': PFunction< (val: any) => boolean >
+
 's-field-name': 
   PFunction<
     (l: Loc, name: string, ann: Ann) => TCH.Variant<FieldName, 's-field-name'>
   >
+
+'is-ForBind': PFunction< (val: any) => boolean >
+
+'is-s-for-bind': PFunction< (val: any) => boolean >
 
 's-for-bind': 
   PFunction<
     (l: Loc, bind: Bind, value: Expr) => TCH.Variant<ForBind, 's-for-bind'>
   >
 
+'is-ColumnBinds': PFunction< (val: any) => boolean >
+
+'is-s-column-binds': PFunction< (val: any) => boolean >
+
 's-column-binds': 
   PFunction<
     (l: Loc, binds: List<Bind>, table: Expr) => TCH.Variant<ColumnBinds, 's-column-binds'>
   >
 
+'is-ColumnSortOrder': PFunction< (val: any) => boolean >
+
+'is-ASCENDING': PFunction< (val: any) => boolean >
+
 'ASCENDING': TCH.Variant<ColumnSortOrder, 'ASCENDING'>
 
+'is-DESCENDING': PFunction< (val: any) => boolean >
+
 'DESCENDING': TCH.Variant<ColumnSortOrder, 'DESCENDING'>
+
+'is-ColumnSort': PFunction< (val: any) => boolean >
+
+'is-s-column-sort': PFunction< (val: any) => boolean >
 
 's-column-sort': 
   PFunction<
     (l: Loc, column: Name, direction: ColumnSortOrder) => TCH.Variant<ColumnSort, 's-column-sort'>
   >
 
+'is-TableExtendField': PFunction< (val: any) => boolean >
+
+'is-s-table-extend-field': PFunction< (val: any) => boolean >
+
 's-table-extend-field': 
   PFunction<
     (l: Loc, name: string, value: Expr, ann: Ann) => TCH.Variant<TableExtendField, 's-table-extend-field'>
   >
+
+'is-s-table-extend-reducer': PFunction< (val: any) => boolean >
 
 's-table-extend-reducer': 
   PFunction<
     (l: Loc, name: string, reducer: Expr, col: Name, ann: Ann) => TCH.Variant<TableExtendField, 's-table-extend-reducer'>
   >
 
+'is-LoadTableSpec': PFunction< (val: any) => boolean >
+
+'is-s-sanitize': PFunction< (val: any) => boolean >
+
 's-sanitize': 
   PFunction<
     (l: Loc, name: Name, sanitizer: Expr) => TCH.Variant<LoadTableSpec, 's-sanitize'>
   >
 
+'is-s-table-src': PFunction< (val: any) => boolean >
+
 's-table-src': 
   PFunction< (l: Loc, src: Expr) => TCH.Variant<LoadTableSpec, 's-table-src'> >
 
+'is-VariantMemberType': PFunction< (val: any) => boolean >
+
+'is-s-normal': PFunction< (val: any) => boolean >
+
 's-normal': TCH.Variant<VariantMemberType, 's-normal'>
 
+'is-s-mutable': PFunction< (val: any) => boolean >
+
 's-mutable': TCH.Variant<VariantMemberType, 's-mutable'>
+
+'is-VariantMember': PFunction< (val: any) => boolean >
+
+'is-s-variant-member': PFunction< (val: any) => boolean >
 
 's-variant-member': 
   PFunction<
     (l: Loc, member_type: VariantMemberType, bind: Bind) => TCH.Variant<VariantMember, 's-variant-member'>
   >
+
+'is-Variant': PFunction< (val: any) => boolean >
+
+'is-s-variant': PFunction< (val: any) => boolean >
 
 's-variant': 
   PFunction<
@@ -1374,107 +1738,191 @@ dict: {values: {dict: {
       ) => TCH.Variant<Variant, 's-variant'>
   >
 
+'is-s-singleton-variant': PFunction< (val: any) => boolean >
+
 's-singleton-variant': 
   PFunction<
     (l: Loc, name: string, with_members: List<Member>) => TCH.Variant<Variant, 's-singleton-variant'>
   >
+
+'is-IfBranch': PFunction< (val: any) => boolean >
+
+'is-s-if-branch': PFunction< (val: any) => boolean >
 
 's-if-branch': 
   PFunction<
     (l: Loc, test: Expr, body: Expr) => TCH.Variant<IfBranch, 's-if-branch'>
   >
 
+'is-IfPipeBranch': PFunction< (val: any) => boolean >
+
+'is-s-if-pipe-branch': PFunction< (val: any) => boolean >
+
 's-if-pipe-branch': 
   PFunction<
     (l: Loc, test: Expr, body: Expr) => TCH.Variant<IfPipeBranch, 's-if-pipe-branch'>
   >
 
+'is-CasesBindType': PFunction< (val: any) => boolean >
+
+'is-s-cases-bind-ref': PFunction< (val: any) => boolean >
+
 's-cases-bind-ref': TCH.Variant<CasesBindType, 's-cases-bind-ref'>
 
+'is-s-cases-bind-normal': PFunction< (val: any) => boolean >
+
 's-cases-bind-normal': TCH.Variant<CasesBindType, 's-cases-bind-normal'>
+
+'is-CasesBind': PFunction< (val: any) => boolean >
+
+'is-s-cases-bind': PFunction< (val: any) => boolean >
 
 's-cases-bind': 
   PFunction<
     (l: Loc, field_type: CasesBindType, bind: Bind) => TCH.Variant<CasesBind, 's-cases-bind'>
   >
 
+'is-CasesBranch': PFunction< (val: any) => boolean >
+
+'is-s-cases-branch': PFunction< (val: any) => boolean >
+
 's-cases-branch': 
   PFunction<
     (l: Loc, pat_loc: Loc, name: string, args: List<CasesBind>, body: Expr) => TCH.Variant<CasesBranch, 's-cases-branch'>
   >
+
+'is-s-singleton-cases-branch': PFunction< (val: any) => boolean >
 
 's-singleton-cases-branch': 
   PFunction<
     (l: Loc, pat_loc: Loc, name: string, body: Expr) => TCH.Variant<CasesBranch, 's-singleton-cases-branch'>
   >
 
+'is-CheckOp': PFunction< (val: any) => boolean >
+
+'is-s-op-is': PFunction< (val: any) => boolean >
+
 's-op-is': PFunction< (l: Loc) => TCH.Variant<CheckOp, 's-op-is'> >
 
+'is-s-op-is-roughly': PFunction< (val: any) => boolean >
+
 's-op-is-roughly': PFunction< (l: Loc) => TCH.Variant<CheckOp, 's-op-is-roughly'> >
+
+'is-s-op-is-op': PFunction< (val: any) => boolean >
 
 's-op-is-op': 
   PFunction< (l: Loc, op: string) => TCH.Variant<CheckOp, 's-op-is-op'> >
 
+'is-s-op-is-not': PFunction< (val: any) => boolean >
+
 's-op-is-not': PFunction< (l: Loc) => TCH.Variant<CheckOp, 's-op-is-not'> >
+
+'is-s-op-is-not-op': PFunction< (val: any) => boolean >
 
 's-op-is-not-op': 
   PFunction< (l: Loc, op: string) => TCH.Variant<CheckOp, 's-op-is-not-op'> >
 
+'is-s-op-satisfies': PFunction< (val: any) => boolean >
+
 's-op-satisfies': PFunction< (l: Loc) => TCH.Variant<CheckOp, 's-op-satisfies'> >
+
+'is-s-op-satisfies-not': PFunction< (val: any) => boolean >
 
 's-op-satisfies-not': 
   PFunction< (l: Loc) => TCH.Variant<CheckOp, 's-op-satisfies-not'> >
 
+'is-s-op-raises': PFunction< (val: any) => boolean >
+
 's-op-raises': PFunction< (l: Loc) => TCH.Variant<CheckOp, 's-op-raises'> >
+
+'is-s-op-raises-other': PFunction< (val: any) => boolean >
 
 's-op-raises-other': 
   PFunction< (l: Loc) => TCH.Variant<CheckOp, 's-op-raises-other'> >
 
+'is-s-op-raises-not': PFunction< (val: any) => boolean >
+
 's-op-raises-not': PFunction< (l: Loc) => TCH.Variant<CheckOp, 's-op-raises-not'> >
+
+'is-s-op-raises-satisfies': PFunction< (val: any) => boolean >
 
 's-op-raises-satisfies': 
   PFunction< (l: Loc) => TCH.Variant<CheckOp, 's-op-raises-satisfies'> >
 
+'is-s-op-raises-violates': PFunction< (val: any) => boolean >
+
 's-op-raises-violates': 
   PFunction< (l: Loc) => TCH.Variant<CheckOp, 's-op-raises-violates'> >
 
+'is-Ann': PFunction< (val: any) => boolean >
+
+'is-a-blank': PFunction< (val: any) => boolean >
+
 'a-blank': TCH.Variant<Ann, 'a-blank'>
+
+'is-a-any': PFunction< (val: any) => boolean >
 
 'a-any': PFunction< (l: Loc) => TCH.Variant<Ann, 'a-any'> >
 
+'is-a-name': PFunction< (val: any) => boolean >
+
 'a-name': PFunction< (l: Loc, id: Name) => TCH.Variant<Ann, 'a-name'> >
 
+'is-a-type-var': PFunction< (val: any) => boolean >
+
 'a-type-var': PFunction< (l: Loc, id: Name) => TCH.Variant<Ann, 'a-type-var'> >
+
+'is-a-arrow': PFunction< (val: any) => boolean >
 
 'a-arrow': 
   PFunction<
     (l: Loc, args: List<Ann>, ret: Ann, use_parens: boolean) => TCH.Variant<Ann, 'a-arrow'>
   >
 
+'is-a-arrow-argnames': PFunction< (val: any) => boolean >
+
 'a-arrow-argnames': 
   PFunction<
     (l: Loc, args: List<AField>, ret: Ann, use_parens: boolean) => TCH.Variant<Ann, 'a-arrow-argnames'>
   >
 
+'is-a-method': PFunction< (val: any) => boolean >
+
 'a-method': 
   PFunction< (l: Loc, args: List<Ann>, ret: Ann) => TCH.Variant<Ann, 'a-method'> >
+
+'is-a-record': PFunction< (val: any) => boolean >
 
 'a-record': 
   PFunction< (l: Loc, fields: List<AField>) => TCH.Variant<Ann, 'a-record'> >
 
+'is-a-tuple': PFunction< (val: any) => boolean >
+
 'a-tuple': 
   PFunction< (l: Loc, fields: List<AField>) => TCH.Variant<Ann, 'a-tuple'> >
+
+'is-a-app': PFunction< (val: any) => boolean >
 
 'a-app': 
   PFunction< (l: Loc, ann: Ann, args: List<Ann>) => TCH.Variant<Ann, 'a-app'> >
 
+'is-a-pred': PFunction< (val: any) => boolean >
+
 'a-pred': PFunction< (l: Loc, ann: Ann, exp: Expr) => TCH.Variant<Ann, 'a-pred'> >
+
+'is-a-dot': PFunction< (val: any) => boolean >
 
 'a-dot': 
   PFunction< (l: Loc, obj: Name, field: string) => TCH.Variant<Ann, 'a-dot'> >
 
+'is-a-checked': PFunction< (val: any) => boolean >
+
 'a-checked': 
   PFunction< (checked: Ann, residual: Ann) => TCH.Variant<Ann, 'a-checked'> >
+
+'is-AField': PFunction< (val: any) => boolean >
+
+'is-a-field': PFunction< (val: any) => boolean >
 
 'a-field': 
   PFunction< (l: Loc, name: string, ann: Ann) => TCH.Variant<AField, 'a-field'> >

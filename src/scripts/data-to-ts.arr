@@ -92,6 +92,7 @@ fun app(name, args):
 end
 create-constrs = A.default-iter-visitor.{
   method s-data(self, l, data-name, params, mixins, variants, shared-members, _check-loc, _check) block:
+    exports := link(field("is-" + data-name, PP.str("PFunction<(val: any) => boolean>")), exports)
     typarams =
       if is-empty(params): PP.mt-doc
       else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
@@ -103,6 +104,7 @@ create-constrs = A.default-iter-visitor.{
     sharedBase = PP.infix(INDENT, 0, PP.str(" = "), PP.str("const " + sharedBaseName), emptyMethods)
     constrs := link(sharedBase, constrs)
     ppvars = for map(v from variants) block:
+      exports := link(field("is-" + v.name, PP.str("PFunction<(val: any) => boolean>")), exports)
       varName = string-replace(v.name, "-", "_")
       varBaseName = "variantBase_" + varName
       cases(A.Variant) v block:
