@@ -57,6 +57,7 @@
     "react-feather": "^2.0.8",
     "react-google-charts": "^3.0.15",
     "react-redux": "^7.2.1",
+    "react-resize-detector": "^6.7.0",
     "react-rnd": "^10.2.2",
     "react-splitter-layout": "^4.0.0",
     "react-svg": "^11.0.32",
