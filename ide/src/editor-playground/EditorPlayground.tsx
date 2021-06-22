@@ -7,6 +7,7 @@ import { BackendCmd, State } from '../state';
 import { Action } from '../action';
 import { getRow, RHSObjects } from '../rhsObject';
 import RVPortal from './RVPortal';
+import { CHUNKSEP } from '../chunk';
 
 require('pyret-codemirror-mode/mode/pyret');
 
@@ -58,6 +59,21 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
 }
 
 const connector = connect(mapStateToProps, mapDispatchToProps);
+
+function addChunksMagicToLines(program: string, lineNumbers: number[]): string {
+  const lineTexts = program.split(/\n/);
+  const chunkSep = CHUNKSEP.replace(/\n/, '');
+  lineNumbers.forEach((line) => {
+    lineTexts[line] += chunkSep;
+  });
+  return lineTexts.join('\n');
+}
+
+// marks should be sorted by mark.find().to.line!
+function serializeToChunks(program: string, marks: CM.TextMarker[]): string {
+  const lines = marks.map((mark) => mark.find().to.line);
+  return addChunksMagicToLines(program, lines);
+}
 
 function Embeditor(props: Props) {
   const [_tooltipPos, setTooltipPos] = React.useState<Pos | null>(null);
@@ -181,7 +197,9 @@ function Embeditor(props: Props) {
         const marks = editor.getAllMarks();
         // Is this necessary? It's not documented what order i get them in, so probably
         marks.sort((a, b) => a.find()?.from.line - b.find()?.from.line);
-        props.save(editor.getValue());
+        const serialized = serializeToChunks(editor.getValue(), marks);
+        console.log(serialized);
+        props.save(serialized);
         props.run();
         // While this runs, we should update the <hr /> placeholder, for visual
         // reasons. There's not really a good state for this. Technically, the
@@ -190,7 +208,7 @@ function Embeditor(props: Props) {
         forceUpdate();
       } else {
         console.log('Empty line with no open context. Presenting tooltip.');
-        // "What? This looks weird! Why are you doing pixel stuff!"
+        // NOTE(luna): "What? This looks weird! Why are you doing pixel stuff!"
         // Well here are some examples of things that DON'T work:
         // - CM.markText: Seems perfect! But doesn't work at all on blank lines fsr!
         // - Modifying the text: Not a good abstraction, hard to keep the cursor
@@ -198,18 +216,19 @@ function Embeditor(props: Props) {
         // - Grabbing the cursor itself and adding css after to it or something:
         //   fsr (React? CM?) it gets overwritten. It's also nigh impossible
         //   to tell cursors apart
-        // As for this, we use the bottom of the previous line because the
-        // editor gets confused with lines that don't exist. In the current
-        // formulation, this line does exist, but when things get rearranged,
-        // sometimes this gets called before the line actually exists
         const lastLineBegin = { line: pos.line - 1, ch: 0 };
         const { bottom, left } = editor.cursorCoords(lastLineBegin, 'local');
-        // Because some parent of this component is relatively positioned, we
-        // cannot use 'window' positioning for convenience. Instead, we can
-        // position relative to the codemirror! Except codemirror reports
-        // relative positions differently than CSS seems to want to with a
-        // 'position: relative' container div. So for now i'm just winging an
-        // adjustment
+        // We use the bottom of the previous line because the editor gets
+        // confused with lines that don't exist. In the current formulation,
+        // this line does exist, but when things get rearranged, sometimes this
+        // gets called before the line actually exists
+        // ---
+        // TODO(luna): Because some parent of this component is relatively
+        // positioned, we cannot use 'window' positioning for convenience.
+        // Instead, we can position relative to the codemirror! Except
+        // codemirror reports relative positions differently than CSS seems to
+        // want to with a 'position: relative' container div. So for now i'm
+        // just winging an adjustment
         tooltipPosRef.current = { left: left + 30, top: bottom };
         setTooltipPos(tooltipPosRef.current);
       }
