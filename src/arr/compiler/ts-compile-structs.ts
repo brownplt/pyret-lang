@@ -518,7 +518,11 @@ export type CompileError =
 
 export type Pipeline = 
   | { $name: "pipeline-anchor", dict: {} }
-  | { $name: "pipeline-ts-anchor", dict: {} }
+  | { $name: "pipeline-ts-anchor", dict: 
+      {
+        'modules': List<string>,
+      }
+    }
 
 
 export interface Exports {

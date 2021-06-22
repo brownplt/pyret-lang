@@ -66,7 +66,9 @@ fun populate-options(dictionary, this-pyret-dir) block:
   fun to-pipeline(s):
     ask:
       | s == "anchor" then: CS.pipeline-anchor
-      | s == "ts-anchor" then: CS.pipeline-ts-anchor
+      | string-starts-with(s, "ts-anchor") then:
+        args = string-split-all(s, ":").rest
+        CS.pipeline-ts-anchor(args)
       | otherwise: raise("Unknown pipeline argument: " + s)
     end 
   end

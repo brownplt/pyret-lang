@@ -2918,7 +2918,7 @@ end
 
 data Pipeline:
   | pipeline-anchor
-  | pipeline-ts-anchor
+  | pipeline-ts-anchor(modules :: List<String>)
 end
 
 type CompileOptions = {

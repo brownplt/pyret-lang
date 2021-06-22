@@ -172,7 +172,8 @@ type SDExports = {
         default: throw new ExhaustiveSwitchError(provide.$name);
       }
     }
-    function typeCheck(program: A.Program, compileEnv, postCompileEnv, modules) {
+    function typeCheck(program: A.Program, compileEnv, postCompileEnv, modules, options) {
+      // DEMO output: options.dict.log.app("Hi!", runtime.ffi.makeNone());
       const provides = listToArray(program.dict.provides);
       const context = emptyContext.app();
       const info = gatherProvides(provides[0], context);

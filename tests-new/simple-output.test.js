@@ -11,7 +11,7 @@ const RUN_TIMEOUT = 5000; // ms, for each program execution
 describe("testing simple-output programs", () => {
   let files;
   let dir;
-  if(global._PYRET_PIPELINE === "ts-anchor") {
+  if(global._PYRET_PIPELINE && global._PYRET_PIPELINE.startsWith("ts-anchor")) {
     dir = "ts-simple-output";
   }
   else {
@@ -27,7 +27,8 @@ describe("testing simple-output programs", () => {
       var typecheck = "notypecheck";
       var pipeline = "anchor";
       if(typeCheck) { typecheck = "typecheck"; }
-      if(global._PYRET_PIPELINE === "ts-anchor") { pipeline = "ts-anchor"; }
+      if(global._PYRET_PIPELINE && 
+         global._PYRET_PIPELINE.startsWith("ts-anchor")) { pipeline = global._PYRET_PIPELINE; }
       compileProcess = cp.spawnSync(
         "node",
         ["tests-new/run-pyret.js", f, typecheck, pipeline],

@@ -1,1 +1,1 @@
-global._PYRET_PIPELINE = "ts-anchor";
+global._PYRET_PIPELINE = "ts-anchor:typecheck";
