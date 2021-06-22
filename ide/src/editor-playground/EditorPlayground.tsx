@@ -66,6 +66,8 @@ function Embeditor(props: Props) {
   // const lineWidgetsRef = React.useRef(_staleLineWidgets);
   const [stateEditor, setEditor] = React.useState<(CM.Editor & CM.Doc) | null>(null);
   const [_needsFirstMark, setNeedsFirstMark] = React.useState<boolean>(true);
+  // https://reactjs.org/docs/hooks-faq.html#is-there-something-like-forceupdate
+  const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
   const needsFirstMarkRef = React.useRef(_needsFirstMark);
   function editorDidMount(editor: CM.Editor & CM.Doc) {
     setEditor(editor);
@@ -74,10 +76,8 @@ function Embeditor(props: Props) {
     return s.replace(/ /g, '') === '';
   }
   function clearTooltip() {
-    if (tooltipPosRef.current !== null) {
-      setTooltipPos(null);
-      tooltipPosRef.current = null;
-    }
+    tooltipPosRef.current = null;
+    setTooltipPos(null);
   }
   // "Methods prefixed with doc. can, unless otherwise specified, be called both
   // on CodeMirror (editor) instances and CodeMirror.Doc instances."
@@ -108,13 +108,15 @@ function Embeditor(props: Props) {
       const token = editor.getTokenAt(pos);
       const lastLine = editor.getLine(pos.line - 1);
       const currentLine = editor.getLine(pos.line);
-      if (pos.line <= 1 || !empty(currentLine)) {
+      if ((pos.line <= 1 && empty(lastLine)) || !empty(currentLine)) {
         // Do nothing. This was not an end-of-line enter, so we don't wanna get in the way!
       // from DefChunk.tsx: handleEnter
       } else if (token.state.lineState.tokens.length !== 0) {
         console.log('Open block. Doing nothing.');
         // My design instinct is to show nothing here: in the happy case, the
         // person is just writing a multiline expression and having a ball
+        // However, we might have rules and such around, that should update
+        forceUpdate();
       // Due to the above check, lastLine === '' as well in almost all cases
       } else if (empty(lastLine)) {
         // Double enter
@@ -181,6 +183,11 @@ function Embeditor(props: Props) {
         marks.sort((a, b) => a.find()?.from.line - b.find()?.from.line);
         props.save(editor.getValue());
         props.run();
+        // While this runs, we should update the <hr /> placeholder, for visual
+        // reasons. There's not really a good state for this. Technically, the
+        // state that changed is the number of marks. We could put that state,
+        // but it'd claim we're tracking more than we really are
+        forceUpdate();
       } else {
         console.log('Empty line with no open context. Presenting tooltip.');
         // "What? This looks weird! Why are you doing pixel stuff!"
@@ -196,8 +203,15 @@ function Embeditor(props: Props) {
         // formulation, this line does exist, but when things get rearranged,
         // sometimes this gets called before the line actually exists
         const lastLineBegin = { line: pos.line - 1, ch: 0 };
-        const { bottom, left } = editor.cursorCoords(lastLineBegin);
-        setTooltipPos({ left, top: bottom });
+        const { bottom, left } = editor.cursorCoords(lastLineBegin, 'local');
+        // Because some parent of this component is relatively positioned, we
+        // cannot use 'window' positioning for convenience. Instead, we can
+        // position relative to the codemirror! Except codemirror reports
+        // relative positions differently than CSS seems to want to with a
+        // 'position: relative' container div. So for now i'm just winging an
+        // adjustment
+        tooltipPosRef.current = { left: left + 30, top: bottom };
+        setTooltipPos(tooltipPosRef.current);
       }
     }
   }

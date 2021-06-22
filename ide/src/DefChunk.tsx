@@ -17,7 +17,6 @@ import { connect, ConnectedProps } from 'react-redux';
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { BackendCmd, State, EditorResponseLoop } from './state';
 
-import RenderedValue from './reps/RenderedValue';
 import backendCmdFromState from './editor_loop';
 
 import {
@@ -49,6 +48,7 @@ import {
   getRow,
   isRHSCheck,
 } from './rhsObject';
+import RHSObjectComponent from './RHSObjectComponent';
 
 type StateProps = {
   chunks: Chunk[],
@@ -859,20 +859,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                     {thisChunkRHSObjects.map((val) => {
                       if (!isRHSCheck(val)) {
                         return (
-                          <div style={{
-                            display: 'flex',
-                          }}
-                          >
-                            <RenderedValue key={getRow(val)} value={val.value} />
-                            <div
-                              style={{
-                                width: '1em',
-                              }}
-                            />
-                          </div>
+                          <RHSObjectComponent
+                            key={getRow(val)}
+                            rhsObject={val}
+                            isSelected={false}
+                          />
                         );
                       }
-
                       return false;
                     })}
                   </pre>
