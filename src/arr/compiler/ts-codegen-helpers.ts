@@ -55,11 +55,13 @@ export interface Exports {
   Var : (id : A.Name, expr : J.Expression) => J.Declaration,
   bindToName: (b: A.Bind) => A.Name,
   listToArray : <T>(list: List<T>) => T[],
+  map: <T extends { $name: string, dict: {} }, A extends T>(v : Partial<Record<T["$name"], any>>, d : A) => A,
   nameToKey : (name: A.Name) => string,
   nameToName : (name: A.Name) => string,
   nameToSourceString: (name: A.Name) => string,
   dummyLoc : A.Srcloc,
   compileSrcloc: (context: any, l : A.Srcloc) => J.Expression,
+  visit: <T extends { $name: string, dict: {} }>(v : Partial<Record<T["$name"], any>>, d : T) => void,
 }
 
 ({
@@ -126,6 +128,40 @@ export interface Exports {
     class TODOError extends Error {
       constructor(message: string) {
         super(`Incomplete feature in compiler: ${message}`);
+      }
+    }
+
+    function visit<T extends { $name: string, dict: {} }>(v : Partial<Record<T["$name"], any>>, d : T) {
+      if(typeof d !== "object" || !("$name" in d)) { throw new Error("Visit failed: " + JSON.stringify(d)); }
+      if(d.$name in v) { v[d.$name](v, d); }
+      else {
+        for(const [k, subd] of Object.entries(d.dict)) {
+          if(typeof subd === 'object' && "$name" in subd) {
+            visit(v, subd as any);
+          }
+        }
+      }
+    }
+
+    function map<T extends { $name: string, dict: {} }, A extends T>(v : Partial<Record<T["$name"], any>>, d : A) : A {
+      if(typeof d !== "object" || !("$name" in d)) { throw new Error("Map failed: " + JSON.stringify(d)); }
+      if(d.$name in v) { return v[d.$name](v, d); }
+      else {
+        const newObj : typeof d = Object.create(Object.getPrototypeOf(d));
+        for(const [k, meta] of Object.entries(d)) {
+          if(k !== "dict") { newObj[k] = meta; }
+        }
+        newObj.dict = Object.create(Object.getPrototypeOf(d.dict));
+        for(const [k, subd] of Object.entries(d.dict)) {
+          if(typeof subd === 'object' && "$name" in subd) {
+            const result = map(v, subd as any);
+            newObj.dict[k] = result;
+          }
+          else {
+            newObj.dict[k] = subd;
+          }
+        }
+        return newObj;
       }
     }
     
@@ -455,11 +491,13 @@ export interface Exports {
       Var,
       bindToName,
       listToArray,
+      map,
       nameToKey,
       nameToName,
       nameToSourceString,
       dummyLoc,
       compileSrcloc,
+      visit,
     });
   }
 })
