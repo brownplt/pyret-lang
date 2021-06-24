@@ -77,12 +77,35 @@ type DesugarInfo = {
         nameToKey,
         map,
       } = tj;
+
+      const flatPrimApp = A.dict.values.dict['prim-app-info-c'].app(false);
   
       function g(id: string): TJ.Variant<A.Name, 's-global'> {
         return A.dict.values.dict['s-global'].app(id);
       }
       function gid(l : A.Srcloc, id: string): TJ.Variant<A.Expr, 's-id'> {
         return A.dict.values.dict['s-id'].app(l, g(id));
+      }
+      function noBranchesExn(l: A.Srcloc, typ: string) {
+        const srcloc = A.dict.values.dict['s-srcloc'].app(l, l);
+        const str = A.dict.values.dict['s-str'].app(l, typ);
+        return A.dict.values.dict['s-prim-app'].app(l, "throwNoBranchesMatched", runtime.ffi.makeList(srcloc, str), flatPrimApp);
+      }
+      function desugarIf(l: A.Srcloc, branches: List<TJ.Variant<A.IfBranch, 's-if-branch'>>, _else: A.Expr, blocky: boolean, visitor) {
+        let dsElse = map(visitor, _else);
+        const reverseBranches = listToArray(branches).reverse();
+        return reverseBranches.reduce((acc, branch) => {
+          const dsTest = map(visitor, branch.dict.test);
+          const dsBody = map(visitor, branch.dict.body);
+          return A.dict.values.dict['s-if-else'].app(
+            l,
+            runtime.ffi.makeList(A.dict.values.dict['s-if-branch'].app(
+              branch.dict.l,
+              dsTest,
+              dsBody)),
+            acc,
+            blocky);
+        }, dsElse);
       }
       // options.dict.log.app("Hi from ts-desugar-impl!\n", runtime.ffi.makeNone());
       const generatedBinds = SD.dict.values.dict['make-mutable-string-dict'].app<CS.ValueBind>();
@@ -114,6 +137,14 @@ type DesugarInfo = {
             A.dict.values.dict['s-block'].app(expr.dict.l, runtime.ffi.makeList([nothing])),
             expr.dict.blocky,
           );
+        },
+        's-if': (visitor, expr : TJ.Variant<A.Expr, 's-if'>) => {
+          const l = expr.dict.l;
+          const noElse = A.dict.values.dict['s-block'].app(l, runtime.ffi.makeList(noBranchesExn(l, "if")));
+          return desugarIf(l, expr.dict.branches, noElse, expr.dict.blocky, visitor);
+        },
+        's-if-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-else'>) => {
+          return desugarIf(expr.dict.l, expr.dict.branches, expr.dict._else, expr.dict.blocky, visitor);
         }
       };
       const desugared = map(dsVisitor, program);
