@@ -1047,7 +1047,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
         case 'srcloc': 
           if (showFile) {
             const start = `${loc.dict.source}:${loc.dict['start-line']}:${loc.dict['start-column']}`;
-            const end = `${loc.dict.source}:${loc.dict['end-line']}:${loc.dict['end-column']}`;
+            const end = `${loc.dict['end-line']}:${loc.dict['end-column']}`;
             return `${start}-${end}`;
           } else {
             return `line ${loc.dict['start-line']}, column ${loc.dict['start-column']}`;
