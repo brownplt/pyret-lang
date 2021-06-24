@@ -91,7 +91,7 @@ type DesugarInfo = {
         const str = A.dict.values.dict['s-str'].app(l, typ);
         return A.dict.values.dict['s-prim-app'].app(l, "throwNoBranchesMatched", runtime.ffi.makeList([srcloc, str]), flatPrimApp);
       }
-      function desugarIf(l: A.Srcloc, branches: List<TJ.Variant<A.IfBranch, 's-if-branch'>>, _else: A.Expr, blocky: boolean, visitor) {
+      function desugarIf(l: A.Srcloc, branches: List<TJ.Variant<A.IfBranch, 's-if-branch'> | TJ.Variant<A.IfPipeBranch, 's-if-pipe-branch'>>, _else: A.Expr, blocky: boolean, visitor) {
         let dsElse = map(visitor, _else);
         return listToArray(branches).reduceRight((acc, branch) => {
           const dsTest = map(visitor, branch.dict.test);
@@ -144,7 +144,15 @@ type DesugarInfo = {
         },
         's-if-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-else'>) => {
           return desugarIf(expr.dict.l, expr.dict.branches, expr.dict._else, expr.dict.blocky, visitor);
-        }
+        },
+        's-if-pipe': (visitor, expr: TJ.Variant<A.Expr, 's-if-pipe'>) => {
+          const l = expr.dict.l;
+          const noOtherwise = A.dict.values.dict['s-block'].app(l, runtime.ffi.makeList([noBranchesExn(l, "ask")]));
+          return desugarIf(l, expr.dict.branches, noOtherwise, expr.dict.blocky, visitor);
+        },
+        's-if-pipe-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-pipe-else'>) => {
+          return desugarIf(expr.dict.l, expr.dict.branches, expr.dict._else, expr.dict.blocky, visitor);
+        },
       };
       const desugared = map(dsVisitor, program);
       return runtime.makeObject({
