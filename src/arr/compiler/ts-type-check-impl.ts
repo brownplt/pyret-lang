@@ -3,6 +3,7 @@ import type * as A from './ts-ast';
 import type * as CS from './ts-compile-structs';
 import type * as TJ from './ts-codegen-helpers';
 import type * as TCS from './ts-type-check-structs';
+import type * as TCSH from './ts-compile-structs-helpers';
 import type { List, MutableStringDict, PFunction, StringDict } from './ts-impl-types';
 
 type SDExports = {
@@ -24,6 +25,7 @@ type SDExports = {
   requires: [
     { 'import-type': 'builtin', name: 'string-dict' },
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']},
+    { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-compile-structs-helpers']},
     { 'import-type': 'dependency', protocol: 'file', args: ['type-structs.arr']},
     { 'import-type': 'dependency', protocol: 'file', args: ['ast.arr']},
     { 'import-type': 'dependency', protocol: 'file', args: ['compile-structs.arr']},
@@ -36,14 +38,16 @@ type SDExports = {
       "type-check": "tany"
     }
   },
-  theModule: function(runtime, _, __, SD: SDExports, tj : TJ.Exports, TS : (TS.Exports), A : (A.Exports), CS : (CS.Exports), TCS : (TCS.Exports)) {
+  theModule: function(runtime, _, __, SD: SDExports, tj : TJ.Exports, TCSH : (TCSH.Exports), TS : (TS.Exports), A : (A.Exports), CS : (CS.Exports), TCS : (TCS.Exports)) {
     const {
       ExhaustiveSwitchError,
       InternalCompilerError,
       listToArray,
       nameToKey,
     } = tj;
+    const { globalValueValue } = TCSH.dict.values.dict;
     const { ok } = CS.dict.values.dict;
+    const { 's-global': sGlobal } = A.dict.values.dict;
     const { 
       typed,
       'tc-info': tcInfo,
@@ -172,10 +176,33 @@ type SDExports = {
         default: throw new ExhaustiveSwitchError(provide.$name);
       }
     }
-    function typeCheck(program: A.Program, compileEnv, postCompileEnv, modules, options) {
+    function typeCheck(program: A.Program, compileEnv : CS.CompileEnvironment, postCompileEnv, modules, options) {
       // DEMO output: options.dict.log.app("Hi!", runtime.ffi.makeNone());
       const provides = listToArray(program.dict.provides);
-      const context = emptyContext.app();
+      let context = emptyContext.app();
+
+      const globVs = compileEnv.dict.globals.dict.values;
+      const globTs = compileEnv.dict.globals.dict.types;
+
+      const contextGlobTs = context.dict['aliases'].dict.unfreeze.full_meth(context.dict['aliases']);
+      const contextGlobVs = context.dict['global-types'].dict.unfreeze.full_meth(context.dict['global-types']);
+
+      for (const g of listToArray(globVs.dict['keys-list'].full_meth(globVs))) {
+        const key = nameToKey(sGlobal.app(g));
+        if (contextGlobVs.dict['has-key-now'].full_meth(contextGlobVs, key)) {
+          continue;
+        }
+        else {
+          if(g === "_") {
+            continue;
+          }
+          else {
+            const ve =  globalValueValue(compileEnv, g);
+            contextGlobVs.dict['set-now'].full_meth(contextGlobVs, key, ve.dict.t);
+          }
+        }
+      }
+
       const info = gatherProvides(provides[0], context);
       return ok.app(typed.app(program, info));
     }
