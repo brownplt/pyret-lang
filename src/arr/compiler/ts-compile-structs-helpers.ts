@@ -9,7 +9,8 @@ export interface Exports {
   dict: {
     values: {
       dict: {
-        globalValueValue: (ce : CS.CompileEnvironment, g : string) => NonAliasExport
+        globalValueValue: (ce : CS.CompileEnvironment, g : string) => NonAliasExport,
+        callMethod: <Name extends string, O extends {dict: {[n in Name]: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) => ReturnType<O["dict"][Name]["full_meth"]>,
       }
     }
   }
@@ -32,6 +33,9 @@ type SDExports = {
 
 export type NonAliasExport = TJ.Variant<CS.ValueExport, Exclude<CS.ValueExport["$name"], "v-alias">>
 
+// Based on https://stackoverflow.com/a/55344772/783424
+type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1, ...rest: infer R) => void) ? R : never
+
 ({
   requires: [
     { 'import-type': 'builtin', name: 'string-dict' },
@@ -48,7 +52,7 @@ export type NonAliasExport = TJ.Variant<CS.ValueExport, Exclude<CS.ValueExport["
 
     const { InternalCompilerError, ExhaustiveSwitchError, nameToName } = tj;
 
-    function callMethod<Name extends string, M extends (...args : any[]) => any, O extends{dict: {[n in Name]: PMethod<any, M>}}>(obj : O, name: Name, ...args: Parameters<ReturnType<O["dict"][Name]["meth"]>>) : ReturnType<O["dict"][Name]["full_meth"]> {
+    function callMethod<Name extends string, O extends {dict: {[n in Name]: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) : ReturnType<O["dict"][Name]["full_meth"]> {
       return obj.dict[name].full_meth(obj, ...args);
     }
 
@@ -100,6 +104,9 @@ export type NonAliasExport = TJ.Variant<CS.ValueExport, Exclude<CS.ValueExport["
       }
     }
 
-    return runtime.makeJSModuleReturn({globalValueValue});
+    return runtime.makeJSModuleReturn({
+      globalValueValue,
+      callMethod,
+    });
   }
 })

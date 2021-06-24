@@ -45,7 +45,7 @@ type SDExports = {
       listToArray,
       nameToKey,
     } = tj;
-    const { globalValueValue } = TCSH.dict.values.dict;
+    const { globalValueValue, callMethod } = TCSH.dict.values.dict;
     const { ok } = CS.dict.values.dict;
     const { 's-global': sGlobal } = A.dict.values.dict;
     const { 
@@ -80,8 +80,8 @@ type SDExports = {
       switch(provide.$name) {
         case 's-provide-block': {
           const curTypes = SD.dict.values.dict['make-mutable-string-dict'].app<TS.Type>();
-          const curAliases = context.dict.info.dict.aliases.dict.unfreeze.full_meth(context.dict.info.dict.aliases);
-          const curData = context.dict.info.dict['data-types'].dict.unfreeze.full_meth(context.dict.info.dict['data-types']);
+          const curAliases = callMethod(context.dict.info.dict.aliases, 'unfreeze');
+          const curData = callMethod(context.dict.info.dict['data-types'], 'unfreeze');
           // Note(Ben): I'm doing two things differently than the original Pyret code:
           // 1. I'm traversing the list of specs from first to last.  If this ultimately matters,
           //    we could reverse the array on the next line before traversing it.
@@ -95,20 +95,20 @@ type SDExports = {
                 switch(nameSpec.$name) {
                   case 's-local-ref': {
                     const valueKey = nameToKey(nameSpec.dict.name);
-                    if (curTypes.dict['has-key-now'].full_meth(curTypes, valueKey)) {
+                    if (callMethod(curTypes, 'has-key-now', valueKey)) {
                       break; // nothing more to do
                     } else {
                       // MARK(joe): test as-name here; it appears unused
-                      const getValueFromContext = context.dict.info.dict.types.dict.get.full_meth(context.dict.info.dict.types, valueKey);
+                      const getValueFromContext = callMethod(context.dict.info.dict.types, 'get', valueKey);
                       switch(getValueFromContext.$name) {
                         case 'some': {
                           const typ = setInferred(getValueFromContext.dict.value, false);
-                          curTypes.dict['set-now'].full_meth(curTypes, valueKey, typ);
+                          callMethod(curTypes, 'set-now', valueKey, typ);
                           break;
                         }
                         case 'none': {
-                          const typ = setInferred(context.dict['global-types'].dict['get-value'].full_meth(context.dict['global-types'], valueKey), false);
-                          curTypes.dict['set-now'].full_meth(curTypes, valueKey, typ);
+                          const typ = setInferred(callMethod(context.dict['global-types'], 'get-value', valueKey), false);
+                          callMethod(curTypes, 'set-now', valueKey, typ);
                           break;
                         }
                         default: throw new ExhaustiveSwitchError(getValueFromContext);
@@ -127,11 +127,11 @@ type SDExports = {
                 switch(nameSpec.$name) {
                   case 's-local-ref': {
                     const aliasKey = nameToKey(nameSpec.dict.name);
-                    if (curAliases.dict['has-key-now'].full_meth(curAliases, aliasKey)) {
+                    if (callMethod(curAliases, 'has-key-now', aliasKey)) {
                       break; // nothing to do
                     } else {
-                      const typ = context.dict.aliases.dict['get-value'].full_meth(context.dict.aliases, aliasKey);
-                      curAliases.dict['set-now'].full_meth(curAliases, aliasKey, typ);
+                      const typ = callMethod(context.dict.aliases, 'get-value', aliasKey);
+                      callMethod(curAliases, 'set-now', aliasKey, typ);
                       break;
                     }
                   }
@@ -150,11 +150,11 @@ type SDExports = {
                 switch(nameSpec.$name) {
                   case 's-local-ref': {
                     const dataKey = nameToKey(nameSpec.dict.name);
-                    if (curData.dict['has-key-now'].full_meth(curData, dataKey)) {
+                    if (callMethod(curData, 'has-key-now', dataKey)) {
                       break; // nothing to do
                     } else {
-                      const typ = context.dict['data-types'].dict['get-value'].full_meth(context.dict['data-types'], dataKey);
-                      curData.dict['set-now'].full_meth(curData, dataKey, typ);
+                      const typ = callMethod(context.dict['data-types'], 'get-value', dataKey);
+                      callMethod(curData, 'set-now', dataKey, typ);
                       break;
                     }
                   }
@@ -169,9 +169,9 @@ type SDExports = {
             }
           }
           return tcInfo.app(
-            curTypes.dict.freeze.full_meth(curTypes),
-            curAliases.dict.freeze.full_meth(curAliases),
-            curData.dict.freeze.full_meth(curData));
+            callMethod(curTypes, 'freeze'),
+            callMethod(curAliases, 'freeze'),
+            callMethod(curData, 'freeze'));
         }
         default: throw new ExhaustiveSwitchError(provide.$name);
       }
@@ -184,12 +184,12 @@ type SDExports = {
       const globVs = compileEnv.dict.globals.dict.values;
       const globTs = compileEnv.dict.globals.dict.types;
 
-      const contextGlobTs = context.dict['aliases'].dict.unfreeze.full_meth(context.dict['aliases']);
-      const contextGlobVs = context.dict['global-types'].dict.unfreeze.full_meth(context.dict['global-types']);
+      const contextGlobTs = callMethod(context.dict['aliases'], 'unfreeze');
+      const contextGlobVs = callMethod(context.dict['global-types'], 'unfreeze');
 
-      for (const g of listToArray(globVs.dict['keys-list'].full_meth(globVs))) {
+      for (const g of listToArray(callMethod(globVs, 'keys-list'))) {
         const key = nameToKey(sGlobal.app(g));
-        if (contextGlobVs.dict['has-key-now'].full_meth(contextGlobVs, key)) {
+        if (callMethod(contextGlobVs, 'has-key-now', key)) {
           continue;
         }
         else {
@@ -198,7 +198,7 @@ type SDExports = {
           }
           else {
             const ve =  globalValueValue(compileEnv, g);
-            contextGlobVs.dict['set-now'].full_meth(contextGlobVs, key, ve.dict.t);
+            callMethod(contextGlobVs, 'set-now', key, ve.dict.t);
           }
         }
       }
