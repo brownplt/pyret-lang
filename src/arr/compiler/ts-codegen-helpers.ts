@@ -60,6 +60,7 @@ export interface Exports {
   nameToSourceString: (name: A.Name) => string,
   dummyLoc : A.Srcloc,
   compileSrcloc: (context: any, l : A.Srcloc) => J.Expression,
+  formatSrcloc: (loc: A.Srcloc, showFile: boolean) => string 
 }
 
 ({
@@ -421,6 +422,22 @@ export interface Exports {
       return ret;
     }
 
+    // mimics the Srcloc//format method from ast.arr
+    function formatSrcloc(loc: A.Srcloc, showFile: boolean): string {
+      switch(loc.$name) {
+        case 'builtin': return `<builtin ${loc.dict['module-name']}>`;
+        case 'srcloc': 
+          if (showFile) {
+            const start = `${loc.dict.source}:${loc.dict['start-line']}:${loc.dict['start-column']}`;
+            const end = `${loc.dict['end-line']}:${loc.dict['end-column']}`;
+            return `${start}-${end}`;
+          } else {
+            return `line ${loc.dict['start-line']}, column ${loc.dict['start-column']}`;
+          }
+      }
+    }
+
+
     return runtime.makeJSModuleReturn({
       ArrayExpression,
       AssignmentExpression,
@@ -460,6 +477,7 @@ export interface Exports {
       nameToSourceString,
       dummyLoc,
       compileSrcloc,
+      formatSrcloc
     });
   }
 })

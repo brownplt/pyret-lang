@@ -306,54 +306,52 @@ fun internal-type-check(program :: A.Program, compile-env :: C.CompileEnvironmen
     end
   end, context)
 
+  # NOTE(joe) – we cannot use module-env/type-env/env here because they
+  # represent the environment at the *end* of the module. So if the user
+  # shadows an imported ID, we would pick up that name as the type of the
+  # import. Instead, we filter through all the bindings looking for ones
+  # that came from a module. This is slower, and having Yet Another
+  # Datatype for "bindings after imports" would help here.
+
+  mbinds = post-compile-env.module-bindings
+  vbinds = post-compile-env.bindings
+  tbinds = post-compile-env.type-bindings
+
+  new-module-names =
+    for fold(mnames from context.module-names, key from mbinds.keys-list-now()):
+        mnames.set(key, mbinds.get-value-now(key).uri)
+    end
+
+  new-global-types =
+    for fold(global-types from context.global-types, key from vbinds.keys-list-now()):
+      vbind = vbinds.get-value-now(key)
+      if vbind.origin.new-definition: global-types
+      else:
+        thismod = context.modules.get-value(vbind.origin.uri-of-definition)
+        cases(Option) thismod.provides.fields.get(vbind.origin.original-name.toname()) block:
+          | none =>
+            raise("Cannot find value binding for " + vbind.origin.original-name.toname())
+          | some(typ) => global-types.set(key, typ)
+        end
+      end
+    end
+
+  new-aliases =
+    for fold(global-aliases from context.aliases, key from tbinds.keys-list-now()):
+      tbind = tbinds.get-value-now(key)
+      if tbind.origin.new-definition: global-aliases
+      else:
+        cases(Option) compile-env.type-by-uri(tbind.origin.uri-of-definition, tbind.origin.original-name.toname()):
+          | none => raise("Cannot find type binding for " + to-repr(tbind))
+          | some(typ) => global-aliases.set(key, typ)
+        end
+      end
+    end
+
+  shadow context = typing-context(new-global-types, new-aliases, context.data-types, context.modules, new-module-names, context.binds, context.constraints, context.info, context.misc)
+
   cases(A.Program) program block:
     | s-program(l, _provide, provided-types, provides, imports, body) =>
-
-
-      # NOTE(joe) – we cannot use module-env/type-env/env here because they
-      # represent the environment at the *end* of the module. So if the user
-      # shadows an imported ID, we would pick up that name as the type of the
-      # import. Instead, we filter through all the bindings looking for ones
-      # that came from a module. This is slower, and having Yet Another
-      # Datatype for "bindings after imports" would help here.
-
-      mbinds = post-compile-env.module-bindings
-      vbinds = post-compile-env.bindings
-      tbinds = post-compile-env.type-bindings
-
-      new-module-names =
-        for fold(mnames from context.module-names, key from mbinds.keys-list-now()):
-            mnames.set(key, mbinds.get-value-now(key).uri)
-        end
-
-      new-global-types =
-        for fold(global-types from context.global-types, key from vbinds.keys-list-now()):
-          vbind = vbinds.get-value-now(key)
-          if vbind.origin.new-definition: global-types
-          else:
-            thismod = context.modules.get-value(vbind.origin.uri-of-definition)
-            cases(Option) thismod.provides.fields.get(vbind.origin.original-name.toname()) block:
-              | none =>
-                raise("Cannot find value binding for " + vbind.origin.original-name.toname())
-              | some(typ) => global-types.set(key, typ)
-            end
-          end
-        end
-
-      new-aliases =
-        for fold(global-aliases from context.aliases, key from tbinds.keys-list-now()):
-          tbind = tbinds.get-value-now(key)
-          if tbind.origin.new-definition: global-aliases
-          else:
-            cases(Option) compile-env.type-by-uri(tbind.origin.uri-of-definition, tbind.origin.original-name.toname()):
-              | none => raise("Cannot find type binding for " + to-repr(tbind))
-              | some(typ) => global-aliases.set(key, typ)
-            end
-          end
-        end
-
-      shadow context = typing-context(new-global-types, new-aliases, context.data-types, context.modules, new-module-names, context.binds, context.constraints, context.info, context.misc)
-
       # print("\n\n")
       # each(lam(x) block:
       #   print(x)

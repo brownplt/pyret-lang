@@ -1,5 +1,8 @@
 import type { List, PFunction, PTuple, StringDict } from './ts-impl-types';
 import type * as TCH from './ts-codegen-helpers';
+import type { Srcloc } from './ts-srcloc';
+
+export { Srcloc }
 
 export type Option<T> =
   | { $name: 'none', dict: {} }
@@ -7,26 +10,6 @@ export type Option<T> =
 
 type NumInteger = any;
 type PyretNumber = number | Number; // TODO: finish this definition
-
-export type Srcloc =
-  | {
-    $name: 'builtin',
-    dict: {
-      'module-name': string
-    }
-  }
-  | {
-    $name: 'srcloc',
-    dict: {
-      source: string,
-      'start-line': number,
-      'start-column': number,
-      'start-char': number,
-      'end-line': number,
-      'end-column': number,
-      'end-char': number
-    }
-  }
 
 type Loc = Srcloc
 

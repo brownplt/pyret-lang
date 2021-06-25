@@ -64,6 +64,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       nameToKey,
       nameToName,
       nameToSourceString,
+      formatSrcloc
     } = tj;
 
     const { compileProvides, compileProvidesOverrideUri } = ps;
@@ -1038,21 +1039,6 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
 
       // tableTansform(table, colnames, updates)
       return [returnExpr, returnStmts];
-    }
-
-    // mimics the Srcloc//format method from ast.arr
-    function formatSrcloc(loc: A.Srcloc, showFile: boolean): string {
-      switch(loc.$name) {
-        case 'builtin': return `<builtin ${loc.dict['module-name']}>`;
-        case 'srcloc': 
-          if (showFile) {
-            const start = `${loc.dict.source}:${loc.dict['start-line']}:${loc.dict['start-column']}`;
-            const end = `${loc.dict['end-line']}:${loc.dict['end-column']}`;
-            return `${start}-${end}`;
-          } else {
-            return `line ${loc.dict['start-line']}, column ${loc.dict['start-column']}`;
-          }
-      }
     }
 
     function compileTableSelect(context, expr : Variant<A.Expr, 's-table-select'>): CompileResult {

@@ -288,7 +288,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
       const provides = callMethod(ce.dict['all-modules'], 'get-now', uri);
       switch(provides.$name) {
         case 'none': return provides;
-        case 'some': return runtime.ffi.makeSome(provides.dict.value);
+        case 'some': return runtime.ffi.makeSome(provides.dict.value.dict.provides);
         default: throw new ExhaustiveSwitchError(provides, 'providesByUri');
       }
     }
