@@ -43,6 +43,7 @@ export interface Exports {
   originByTypeName: (ce: CS.CompileEnvironment, name: string) => Option<CS.BindOrigin>,
   originByModuleName: (ce: CS.CompileEnvironment, name: string) => Option<CS.BindOrigin>,
   callMethod: <Name extends string, O extends {dict: {[n in Name]: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) => ReturnType<O["dict"][Name]["full_meth"]>,
+  unwrap: <T>(opt: Option<T>, orElseMsg: string) => T,
 }
 
 type SDExports = {
@@ -87,45 +88,42 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
       return obj.dict[name].full_meth(obj, ...args);
     }
 
+    function unwrap<T>(opt: Option<T>, orElseMsg: string): T {
+      switch(opt.$name) {
+        case 'none': throw new InternalCompilerError(orElseMsg);
+        case 'some': return opt.dict.value;
+        default: throw new ExhaustiveSwitchError(opt);
+      }
+    }
+
     function valueByUri(ce : CS.CompileEnvironment, uri: CS.URI, name : string) : Option<NonAliasValueExport> {
-      const moduleByUri = callMethod(ce.dict['all-modules'], 'get-now', uri);
-      switch(moduleByUri.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find module with uri ${uri} in valueByUri`);
+      const moduleByUriOpt = callMethod(ce.dict['all-modules'], 'get-now', uri);
+      const moduleByUri = unwrap(moduleByUriOpt, `Could not find module with uri ${uri} in valueByUri`);
+      const val = callMethod(moduleByUri.dict.provides.dict.values, 'get', name);
+      switch(val.$name) {
+        case 'none': return val;
         case 'some': {
-          const val = callMethod(moduleByUri.dict.value.dict.provides.dict.values, 'get', name);
-          switch(val.$name) {
-            case 'none': return val;
-            case 'some': {
-              switch(val.dict.value.$name) {
-                case 'v-alias': {
-                  const { origin, 'original-name': originName } = val.dict.value.dict;
-                  if(uri === origin.dict['uri-of-definition']) {
-                    throw new InternalCompilerError(`Self-referential alias for ${originName} in module ${uri}`);
-                  }
-                  return valueByUri(ce, origin.dict['uri-of-definition'], originName);
-                }
-                case 'v-fun':
-                case 'v-just-type':
-                case 'v-var': {
-                  return runtime.ffi.makeSome(val.dict.value);
-                }
-                default: throw new ExhaustiveSwitchError(val.dict.value, "valueByUri exports");
+          switch(val.dict.value.$name) {
+            case 'v-alias': {
+              const { origin, 'original-name': originName } = val.dict.value.dict;
+              if(uri === origin.dict['uri-of-definition']) {
+                throw new InternalCompilerError(`Self-referential alias for ${originName} in module ${uri}`);
               }
+              return valueByUri(ce, origin.dict['uri-of-definition'], originName);
             }
-            default: throw new ExhaustiveSwitchError(val, "valueByUri");
+            case 'v-fun':
+            case 'v-just-type':
+            case 'v-var': {
+              return runtime.ffi.makeSome(val.dict.value);
+            }
+            default: throw new ExhaustiveSwitchError(val.dict.value, "valueByUri exports");
           }
         }
-        default: throw new ExhaustiveSwitchError(moduleByUri, "valueByUri");
       }
     }
 
     function valueByUriValue(ce : CS.CompileEnvironment, uri: CS.URI, name : string) : NonAliasValueExport {
-      const ve = valueByUri(ce, uri, name);
-      switch(ve.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find value ${name} on module ${uri}`);
-        case 'some': return ve.dict.value;
-        default: throw new ExhaustiveSwitchError(ve, "valueByUriValue");
-      }
+      return unwrap(valueByUri(ce, uri, name), `Could not find value ${name} on module ${uri}`);
     }
 
     function datatypeByUri(ce: CS.CompileEnvironment, uri: CS.URI, name: string): Option<NonAliasDataExport> {
@@ -150,12 +148,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     }
 
     function datatypeByUriValue(ce : CS.CompileEnvironment, uri: CS.URI, name : string) : NonAliasDataExport {
-      const de = datatypeByUri(ce, uri, name);
-      switch(de.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find datatype ${name} on module ${uri}`);
-        case 'some': return de.dict.value;
-        default: throw new ExhaustiveSwitchError(de, "datatypeByUriValue");
-      }
+      return unwrap(datatypeByUri(ce, uri, name), `Could not find datatype ${name} on module ${uri}`);
     }
 
     function resolveDatatypeByUri(ce: CS.CompileEnvironment, uri: CS.URI, name: string): Option<TS.DataType> {
@@ -168,12 +161,8 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     }
 
     function resolveDatatypeByUriValue(ce: CS.CompileEnvironment, uri: CS.URI, name: string): TS.DataType {
-      const de = datatypeByUri(ce, uri, name);
-      switch(de.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find datatype ${name} on module ${uri}`);
-        case 'some': return de.dict.value.dict.typ;
-        default: throw new ExhaustiveSwitchError(de, "resolveDatatypeByUriValue");
-      }
+      const de = unwrap(datatypeByUri(ce, uri, name), `Could not find datatype ${name} on module ${uri}`);
+      return de.dict.typ;
     }
 
     function valueByOrigin(ce : CS.CompileEnvironment, origin : CS.BindOrigin) : Option<NonAliasValueExport> {
@@ -193,15 +182,8 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
           let de: NonAliasDataExport;
           switch(remoteDatatype.$name) {
             case 'd-alias': {
-              const resolved = datatypeByUri(ce, remoteDatatype.dict.origin.dict['uri-of-definition'], remoteDatatype.dict.name);
-              switch(resolved.$name) {
-                case 'none': throw new InternalCompilerError(`A datatype alias in an export was not found: ${JSON.stringify(remoteDatatype)}`);
-                case 'some': {
-                  de = resolved.dict.value;
-                  break;
-                }
-                default: throw new ExhaustiveSwitchError(resolved, "typeByUri resolved");
-              }
+              const resolvedOpt = datatypeByUri(ce, remoteDatatype.dict.origin.dict['uri-of-definition'], remoteDatatype.dict.name);
+              de = unwrap(resolvedOpt, `A datatype alias in an export was not found: ${JSON.stringify(remoteDatatype)}`);
               break;
             }
             case 'd-type': {
@@ -246,12 +228,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     }
 
     function typeByUriValue(ce : CS.CompileEnvironment, uri: CS.URI, name : string) : TS.Type {
-      const te = typeByUri(ce, uri, name);
-      switch(te.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find type ${name} on module ${uri}`);
-        case 'some': return te.dict.value;
-        default: throw new ExhaustiveSwitchError(te, "typeByUriValue");
-      }
+      return unwrap(typeByUri(ce, uri, name), `Could not find type ${name} on module ${uri}`);
     }
 
     function typeByOrigin(ce: CS.CompileEnvironment, origin: CS.BindOrigin): Option<TS.Type> {
@@ -272,12 +249,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     }
 
     function globalValueValue(ce : CS.CompileEnvironment, name : string) : NonAliasValueExport {
-      const ve = globalValue(ce, name);
-      switch(ve.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find value ${name} as a global`);
-        case 'some': return ve.dict.value;
-        default: throw new ExhaustiveSwitchError(ve, "globalValueValue");
-      }
+      return unwrap(globalValue(ce, name), `Could not find value ${name} as a global`);
     }
 
     function uriByDepKey(ce: CS.CompileEnvironment, depKey: string): CS.URI {
@@ -294,12 +266,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     }
 
     function providesByUriValue(ce : CS.CompileEnvironment, uri: CS.URI) : CS.Provides {
-      const provides = providesByUri(ce, uri);
-      switch(provides.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find module with uri ${uri}`);
-        case 'some': return provides.dict.value;
-        default: throw new ExhaustiveSwitchError(provides, "providesByUriValue");
-      }
+      return unwrap(providesByUri(ce, uri), `Could not find module with uri ${uri}`);
     }
 
     function providesByOrigin(ce : CS.CompileEnvironment, origin: CS.BindOrigin): Option<CS.Provides> {
@@ -311,24 +278,13 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     }
 
     function providesByDepKey(ce: CS.CompileEnvironment, depKey: string): Option<CS.Provides> {
-      const mod = callMethod(ce.dict['my-modules'], 'get', depKey);
-      switch(mod.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find module with dep key ${depKey}`);
-        case 'some': {
-          const val = callMethod(ce.dict['all-modules'], 'get-value-now', mod.dict.value);
-          return runtime.ffi.makeSome(val.dict.provides);
-        }
-        default: throw new ExhaustiveSwitchError(mod, 'providesByDepKey');
-      }
+      const mod = unwrap(callMethod(ce.dict['my-modules'], 'get', depKey), `Could not find module with dep key ${depKey}`);
+      const val = callMethod(ce.dict['all-modules'], 'get-value-now', mod);
+      return runtime.ffi.makeSome(val.dict.provides);
     }
 
     function providesByDepKeyValue(ce : CS.CompileEnvironment, depKey: string) : CS.Provides {
-      const provides = providesByDepKey(ce, depKey);
-      switch(provides.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find module with dep key ${depKey}`);
-        case 'some': return provides.dict.value;
-        default: throw new ExhaustiveSwitchError(provides, "providesByUriValue");
-      }
+      return unwrap(providesByDepKey(ce, depKey), `Could not find module with dep key ${depKey}`);
     }
 
     function providesByValueName(ce: CS.CompileEnvironment, name: string): Option<CS.Provides> {
@@ -341,12 +297,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     }
 
     function providesByValueNameValue(ce: CS.CompileEnvironment, name: string): CS.Provides {
-      const provides = providesByValueName(ce, name);
-      switch(provides.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find value named ${name}`);
-        case 'some': return provides.dict.value;
-        default: throw new ExhaustiveSwitchError(provides, "providesByValueNameValue");
-      }
+      return unwrap(providesByValueName(ce, name), `Could not find value named ${name}`);
     }
 
     function providesByTypeName(ce: CS.CompileEnvironment, name: string): Option<CS.Provides> {
@@ -359,12 +310,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     }
 
     function providesByTypeNameValue(ce: CS.CompileEnvironment, name: string): CS.Provides {
-      const provides = providesByTypeName(ce, name);
-      switch(provides.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find type named ${name}`);
-        case 'some': return provides.dict.value;
-        default: throw new ExhaustiveSwitchError(provides, "providesByTypeNameValue");
-      }
+      return unwrap(providesByTypeName(ce, name), `Could not find type named ${name}`);
     }
 
     function providesByModuleName(ce: CS.CompileEnvironment, name: string): Option<CS.Provides> {
@@ -377,12 +323,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     }
 
     function providesByModuleNameValue(ce: CS.CompileEnvironment, name: string): CS.Provides {
-      const provides = providesByModuleName(ce, name);
-      switch(provides.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find module named ${name}`);
-        case 'some': return provides.dict.value;
-        default: throw new ExhaustiveSwitchError(provides, "providesByModuleNameValue");
-      }
+      return unwrap(providesByModuleName(ce, name), `Could not find module named ${name}`);
     }
 
     function valueByDepKey(ce: CS.CompileEnvironment, depKey: string, name: string): Option<NonAliasValueExport> {
@@ -425,12 +366,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     }
 
     function uriByValueNameValue(ce: CS.CompileEnvironment, name: string): CS.URI {
-      const uri = uriByValueName(ce, name);
-      switch(uri.$name) {
-        case 'none': throw new InternalCompilerError(`Could not find ${name} in global values`);
-        case 'some': return uri.dict.value;
-        default: throw new ExhaustiveSwitchError(uri, 'uriByValueNameValue');
-      }
+      return unwrap(uriByValueName(ce, name), `Could not find ${name} in global values`);
     }
 
     function originByValueName(ce: CS.CompileEnvironment, name: string): Option<CS.BindOrigin> {
@@ -485,6 +421,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
       originByTypeName,
       originByModuleName,
       callMethod,
+      unwrap,
     };
     return runtime.makeJSModuleReturn(exports);
   }

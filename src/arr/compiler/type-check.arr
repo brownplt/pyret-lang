@@ -229,7 +229,7 @@ end
 
 # I believe modules is always of type SD.MutableStringDict<Loadable> -Matt
 fun internal-type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-compile-env :: C.ComputedEnvironment, modules) -> C.CompileResult<A.Program>:
-  context = TCS.empty-context()
+  context = TCS.empty-context
   globvs = compile-env.globals.values
   globts = compile-env.globals.types
   shadow context = globvs.fold-keys(lam(g, shadow context):

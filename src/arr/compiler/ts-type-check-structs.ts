@@ -171,6 +171,6 @@ dict: {values: {dict: {
 
 'empty-info': PFunction< () => TCInfo>
 
-'empty-context': PFunction< () => Context>
+'empty-context': Context
 
 }}}}

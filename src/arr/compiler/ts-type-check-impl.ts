@@ -53,7 +53,15 @@ type SDExports = {
     const { builtin } = SL.dict.values.dict;
     const TS = TSin.dict.values.dict;
     const builtinUri = TS['module-uri'].app("builtin://global");
-    const { globalValueValue, callMethod, providesByUri, valueByUriValue, resolveDatatypeByUri, resolveDatatypeByUriValue, typeByUri } = TCSH;
+    const {
+      globalValueValue,
+      callMethod,
+      unwrap,
+      providesByUri,
+      valueByUriValue,
+      resolveDatatypeByUriValue,
+      typeByUri,
+    } = TCSH;
     const { ok } = CS.dict.values.dict;
     const { 's-global': sGlobal, 's-type-global': sTypeGlobal } = A.dict.values.dict;
     const { 
@@ -188,7 +196,7 @@ type SDExports = {
     function typeCheck(program: A.Program, compileEnv : CS.CompileEnvironment, postCompileEnv : CS.ComputedEnvironment, modules : MutableStringDict<CS.Loadable>, options) {
       // DEMO output: options.dict.log.app("Hi!", runtime.ffi.makeNone());
       const provides = listToArray(program.dict.provides);
-      let context = emptyContext.app();
+      let context = emptyContext;
 
       const globVs = compileEnv.dict.globals.dict.values;
       const globTs = compileEnv.dict.globals.dict.types;
@@ -223,39 +231,33 @@ type SDExports = {
           const origin = callMethod(globTs, 'get-value', g);
           if (g === "_") { continue; }
           else {
-            const provides = providesByUri(compileEnv, origin.dict['uri-of-definition']);
-            switch(provides.$name) {
-              case 'none':
-                throw new InternalCompilerError(`Could not find module ${origin.dict['uri-of-definition']} in ${listToArray(callMethod(compileEnv.dict['all-modules'], 'keys-list-now'))} at ${formatSrcloc(program.dict.l, true)}}`);
-              case 'some': {
-                const provs = provides.dict.value;
-                let t;
-                const alias = callMethod(provs.dict.aliases, 'get', g);
-                switch(alias.$name) {
-                  case 'some': { t = alias.dict.value; break; }
-                  case 'none': {
-                    const dd = callMethod(provs.dict['data-definitions'], 'get', g);
-                    switch(dd.$name) {
-                      case 'none':
-                        const keys = [
-                          ...listToArray(callMethod(provs.dict.aliases, 'keys-list')),
-                          ...listToArray(callMethod(provs.dict['data-definitions'], 'keys-list'))
-                        ];
-                        throw new InternalCompilerError(`Key ${g} not found in ${keys}`);
-                      case 'some':
-                        t = TS['t-name'].app(builtinUri, sTypeGlobal.app(g), builtin.app("global"), false);
-                        break;
-                      default: throw new ExhaustiveSwitchError(dd, "computing aliases from data defs");
-                    }
+            const provs = unwrap(providesByUri(compileEnv, origin.dict['uri-of-definition']),
+                `Could not find module ${origin.dict['uri-of-definition']} in ${listToArray(callMethod(compileEnv.dict['all-modules'], 'keys-list-now'))} at ${formatSrcloc(program.dict.l, true)}}`);
+            let t: TS.Type;
+            const alias = callMethod(provs.dict.aliases, 'get', g);
+            switch(alias.$name) {
+              case 'some': { t = alias.dict.value; break; }
+              case 'none': {
+                const dd = callMethod(provs.dict['data-definitions'], 'get', g);
+                switch(dd.$name) {
+                  case 'none':
+                    // Note(Ben): could use `unwrap(callMethod(...))` above, but since this
+                    // error message is expensive to compute, I didn't.
+                    const keys = [
+                      ...listToArray(callMethod(provs.dict.aliases, 'keys-list')),
+                      ...listToArray(callMethod(provs.dict['data-definitions'], 'keys-list'))
+                    ];
+                    throw new InternalCompilerError(`Key ${g} not found in ${keys}`);
+                  case 'some':
+                    t = TS['t-name'].app(builtinUri, sTypeGlobal.app(g), builtin.app("global"), false);
                     break;
-                  }
-                  default: throw new ExhaustiveSwitchError(alias, "computing aliases");
+                  default: throw new ExhaustiveSwitchError(dd, "computing aliases from data defs");
                 }
-                callMethod(contextGlobTs, 'set-now', key, t);
                 break;
               }
-              default: throw new ExhaustiveSwitchError(provides, "computing aliases");
+              default: throw new ExhaustiveSwitchError(alias, "computing aliases");
             }
+            callMethod(contextGlobTs, 'set-now', key, t);
           }
         }
       }
@@ -329,15 +331,8 @@ type SDExports = {
         else {
           const thismod = callMethod(contextGlobMods, 'get-value-now', vbind.dict.origin.dict['uri-of-definition']);
           const originalName = nameToName(vbind.dict.origin.dict['original-name']);
-          const field = callMethod(thismod.dict.provides.dict.fields, 'get', originalName);
-          switch(field.$name) {
-            case 'none': throw new InternalCompilerError(`Cannot find value bind for ${originalName} in ${formatSrcloc(program.dict.l, true)}`);
-            case 'some':
-              callMethod(contextGlobVs, 'set-now', key, field.dict.value);
-              break;
-            default:
-              throw new ExhaustiveSwitchError(field, "vbinds context setup");
-          }
+          const field = unwrap(callMethod(thismod.dict.provides.dict.fields, 'get', originalName), `Cannot find value bind for ${originalName} in ${formatSrcloc(program.dict.l, true)}`);
+          callMethod(contextGlobVs, 'set-now', key, field);
         }
       }
 
@@ -347,11 +342,10 @@ type SDExports = {
         if (origin.dict['new-definition']) { continue; }
         else {
           const originalName = nameToName(origin.dict['original-name']);
-          const originalType = typeByUri(compileEnv, origin.dict['uri-of-definition'], originalName);
-          switch(originalType.$name) {
-            case 'none': throw new InternalCompilerError(`Cannot find type bind for ${originalName} in ${formatSrcloc(program.dict.l, true)}`);
-            case 'some': callMethod(contextGlobTs, 'set-now', key, originalType.dict.value)
-          }
+          const originalType = unwrap(
+            typeByUri(compileEnv, origin.dict['uri-of-definition'], originalName),
+            `Cannot find type bind for ${originalName} in ${formatSrcloc(program.dict.l, true)}`);
+          callMethod(contextGlobTs, 'set-now', key, originalType)
         }
       }
 
