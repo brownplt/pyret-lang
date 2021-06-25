@@ -3,7 +3,6 @@ provide-types *
 
 import type-logger as LOG
 
-import error as ERR
 import file("ast.arr") as A
 import srcloc as SL
 import string-dict as SD

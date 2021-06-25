@@ -6,7 +6,6 @@ import type-logger as LOG
 import file("ast.arr") as A
 import string-dict as SD
 import valueskeleton as VS
-import lists as LISTS
 import file("type-structs.arr") as TS
 import file("compile-structs.arr") as C
 import file("type-defaults.arr") as TD
@@ -17,7 +16,6 @@ type ModuleType = TS.ModuleType
 type DataType = TS.DataType
 type Loc = A.Loc
 
-all = LISTS.all
 string-dict = SD.string-dict
 
 t-name = TS.t-name

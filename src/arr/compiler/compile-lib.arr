@@ -5,14 +5,9 @@ import either as E
 import js-file("parse-pyret") as P
 import file("ast.arr") as A
 import load-lib as L
-import render-error-display as RED
 import runtime-lib as R
-import sets as S
-import sha as SHA
-import srcloc as Loc
 import string-dict as SD
 import file("compile-structs.arr") as CS
-import file("concat-lists.arr") as C
 import file("gensym.arr") as G
 import file("js-of-pyret.arr") as JSP
 import file("ast-util.arr") as AU
