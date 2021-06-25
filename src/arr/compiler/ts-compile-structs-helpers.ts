@@ -6,49 +6,43 @@ import type * as A from './ts-ast';
 import type { List, MutableStringDict, Option, PFunction, PMethod, StringDict } from './ts-impl-types';
 
 export interface Exports {
-  dict: {
-    values: {
-      dict: {
-        valueByUri: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => Option<NonAliasValueExport>,
-        valueByUriValue: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => NonAliasValueExport,
-        datatypeByUri: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => Option<NonAliasDataExport>,
-        datatypeByUriValue: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => NonAliasDataExport,
-        resolveDatatypeByUri: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => Option<TS.DataType>,
-        resolveDatatypeByUriValue: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => TS.DataType,
-        valueByOrigin: (ce : CS.CompileEnvironment, origin : CS.BindOrigin) => Option<NonAliasValueExport>,
-        valueByOriginValue: (ce : CS.CompileEnvironment, origin : CS.BindOrigin) => NonAliasValueExport,
-        typeByUri: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => Option<TS.Type>,
-        typeByUriValue: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => TS.Type,
-        typeByOrigin: (ce : CS.CompileEnvironment, origin: CS.BindOrigin) => Option<TS.Type>,
-        typeByOriginValue: (ce : CS.CompileEnvironment, origin: CS.BindOrigin) => TS.Type,
-        globalValueValue: (ce : CS.CompileEnvironment, g : string) => NonAliasValueExport,
-        uriByDepKey: (ce: CS.CompileEnvironment, depKey: string) => CS.URI,
-        providesByUri: (ce: CS.CompileEnvironment, uri: CS.URI) => Option<CS.Provides>,
-        providesByUriValue: (ce : CS.CompileEnvironment, uri: CS.URI) => CS.Provides,
-        providesByOrigin: (ce : CS.CompileEnvironment, origin: CS.BindOrigin) => Option<CS.Provides>,
-        providesByOriginValue: (ce : CS.CompileEnvironment, origin: CS.BindOrigin) => CS.Provides,
-        providesByDepKey: (ce: CS.CompileEnvironment, depKey: string) => Option<CS.Provides>,
-        providesByDepKeyValue: (ce: CS.CompileEnvironment, depKey: string) => CS.Provides,
-        providesByValueName: (ce: CS.CompileEnvironment, name: string) => Option<CS.Provides>,
-        providesByValueNameValue: (ce: CS.CompileEnvironment, name: string) => CS.Provides,
-        providesByTypeName: (ce: CS.CompileEnvironment, name: string) => Option<CS.Provides>,
-        providesByTypeNameValue: (ce: CS.CompileEnvironment, name: string) => CS.Provides,
-        providesByModuleName: (ce: CS.CompileEnvironment, name: string) => Option<CS.Provides>,
-        providesByModuleNameValue: (ce: CS.CompileEnvironment, name: string) => CS.Provides,
-        valueByDepKey: (ce: CS.CompileEnvironment, depKey: string, name: string) => Option<NonAliasValueExport>,
-        valueByDepKeyValue: (ce: CS.CompileEnvironment, depKey: string, name: string) => NonAliasValueExport,
-        typeByDepKey: (ce: CS.CompileEnvironment, depKey: string, name: string) => Option<TS.Type>,
-        uriByValueName: (ce: CS.CompileEnvironment, name: string) => Option<CS.URI>,
-        uriByTypeName: (ce: CS.CompileEnvironment, name: string) => Option<CS.URI>,
-        uriByModuleName: (ce: CS.CompileEnvironment, name: string) => Option<CS.URI>,
-        uriByValueNameValue: (ce: CS.CompileEnvironment, name: string) => CS.URI,
-        originByValueName: (ce: CS.CompileEnvironment, name: string) => Option<CS.BindOrigin>,
-        originByTypeName: (ce: CS.CompileEnvironment, name: string) => Option<CS.BindOrigin>,
-        originByModuleName: (ce: CS.CompileEnvironment, name: string) => Option<CS.BindOrigin>,
-        callMethod: <Name extends string, O extends {dict: {[n in Name]: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) => ReturnType<O["dict"][Name]["full_meth"]>,
-      }
-    }
-  }
+  valueByUri: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => Option<NonAliasValueExport>,
+  valueByUriValue: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => NonAliasValueExport,
+  datatypeByUri: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => Option<NonAliasDataExport>,
+  datatypeByUriValue: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => NonAliasDataExport,
+  resolveDatatypeByUri: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => Option<TS.DataType>,
+  resolveDatatypeByUriValue: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => TS.DataType,
+  valueByOrigin: (ce : CS.CompileEnvironment, origin : CS.BindOrigin) => Option<NonAliasValueExport>,
+  valueByOriginValue: (ce : CS.CompileEnvironment, origin : CS.BindOrigin) => NonAliasValueExport,
+  typeByUri: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => Option<TS.Type>,
+  typeByUriValue: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => TS.Type,
+  typeByOrigin: (ce : CS.CompileEnvironment, origin: CS.BindOrigin) => Option<TS.Type>,
+  typeByOriginValue: (ce : CS.CompileEnvironment, origin: CS.BindOrigin) => TS.Type,
+  globalValueValue: (ce : CS.CompileEnvironment, g : string) => NonAliasValueExport,
+  uriByDepKey: (ce: CS.CompileEnvironment, depKey: string) => CS.URI,
+  providesByUri: (ce: CS.CompileEnvironment, uri: CS.URI) => Option<CS.Provides>,
+  providesByUriValue: (ce : CS.CompileEnvironment, uri: CS.URI) => CS.Provides,
+  providesByOrigin: (ce : CS.CompileEnvironment, origin: CS.BindOrigin) => Option<CS.Provides>,
+  providesByOriginValue: (ce : CS.CompileEnvironment, origin: CS.BindOrigin) => CS.Provides,
+  providesByDepKey: (ce: CS.CompileEnvironment, depKey: string) => Option<CS.Provides>,
+  providesByDepKeyValue: (ce: CS.CompileEnvironment, depKey: string) => CS.Provides,
+  providesByValueName: (ce: CS.CompileEnvironment, name: string) => Option<CS.Provides>,
+  providesByValueNameValue: (ce: CS.CompileEnvironment, name: string) => CS.Provides,
+  providesByTypeName: (ce: CS.CompileEnvironment, name: string) => Option<CS.Provides>,
+  providesByTypeNameValue: (ce: CS.CompileEnvironment, name: string) => CS.Provides,
+  providesByModuleName: (ce: CS.CompileEnvironment, name: string) => Option<CS.Provides>,
+  providesByModuleNameValue: (ce: CS.CompileEnvironment, name: string) => CS.Provides,
+  valueByDepKey: (ce: CS.CompileEnvironment, depKey: string, name: string) => Option<NonAliasValueExport>,
+  valueByDepKeyValue: (ce: CS.CompileEnvironment, depKey: string, name: string) => NonAliasValueExport,
+  typeByDepKey: (ce: CS.CompileEnvironment, depKey: string, name: string) => Option<TS.Type>,
+  uriByValueName: (ce: CS.CompileEnvironment, name: string) => Option<CS.URI>,
+  uriByTypeName: (ce: CS.CompileEnvironment, name: string) => Option<CS.URI>,
+  uriByModuleName: (ce: CS.CompileEnvironment, name: string) => Option<CS.URI>,
+  uriByValueNameValue: (ce: CS.CompileEnvironment, name: string) => CS.URI,
+  originByValueName: (ce: CS.CompileEnvironment, name: string) => Option<CS.BindOrigin>,
+  originByTypeName: (ce: CS.CompileEnvironment, name: string) => Option<CS.BindOrigin>,
+  originByModuleName: (ce: CS.CompileEnvironment, name: string) => Option<CS.BindOrigin>,
+  callMethod: <Name extends string, O extends {dict: {[n in Name]: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) => ReturnType<O["dict"][Name]["full_meth"]>,
 }
 
 type SDExports = {
@@ -453,7 +447,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
 
 
 
-    const exports : Exports['dict']['values']['dict'] = {
+    const exports : Exports = {
       valueByUri,
       valueByUriValue,
       datatypeByUri,

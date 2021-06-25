@@ -45,7 +45,7 @@ type SDExports = {
       listToArray,
       nameToKey,
     } = tj;
-    const { globalValueValue, callMethod } = TCSH.dict.values.dict;
+    const { globalValueValue, callMethod } = TCSH;
     const { ok } = CS.dict.values.dict;
     const { 's-global': sGlobal } = A.dict.values.dict;
     const { 

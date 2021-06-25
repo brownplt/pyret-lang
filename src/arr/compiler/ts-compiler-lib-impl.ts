@@ -116,7 +116,7 @@ type ShaExports = {
       ObjectExpression,
       Property,
     } = tj;
-    const { callMethod } = TCSH.dict.values.dict;
+    const { callMethod } = TCSH;
     function makeStandalone(worklist: List<ToCompile>, compiled: CompiledProgram, options) {
       const wl = listToArray(worklist);
       const natives = wl.flatMap((item) => {
