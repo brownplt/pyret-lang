@@ -73,6 +73,13 @@ type SDExports = {
       'fold-errors': foldErrors,
       "typing-context": typingContext
     } = TCS.dict.values.dict;
+    
+    class TypeCheckFailure extends Error {
+      constructor(errs : CS.CompileError[]) {
+        super("type error " + require('util').inspect(errs));
+      }
+    }
+
     function foldrFoldResult<X, Y>(f : (x: X, context: TCS.Context, acc: Y) => TCS.FoldResult<Y>, xs: X[], context: TCS.Context, base: Y): TCS.FoldResult<Y> {
       return xs.reduceRight((prev: TCS.FoldResult<Y>, cur: X): TCS.FoldResult<Y> => {
         switch(prev.$name) {
@@ -193,6 +200,15 @@ type SDExports = {
         default: throw new ExhaustiveSwitchError(provide.$name);
       }
     }
+
+    function checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : TCS.Context) : void {
+      return null;
+    }
+
+    function _checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : TCS.Context) : void {
+      return null;
+    }
+
     function typeCheck(program: A.Program, compileEnv : CS.CompileEnvironment, postCompileEnv : CS.ComputedEnvironment, modules : MutableStringDict<CS.Loadable>, options) {
       // DEMO output: options.dict.log.app("Hi!", runtime.ffi.makeNone());
       const provides = listToArray(program.dict.provides);
