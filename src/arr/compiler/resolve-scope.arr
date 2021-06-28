@@ -694,6 +694,9 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
     { atom: atom, env: env }
   end
   fun make-atom-for(name, is-shadowing, env, shadow bindings, make-binding):
+    make-atom-for-import(name, is-shadowing, false, env, bindings, make-binding)
+  end
+  fun make-atom-for-import(name, is-shadowing, is-import, env, shadow bindings, make-binding):
     cases(A.Name) name block:
       | s-name(l, s) =>
         when env.has-key(s) and not(is-shadowing):
@@ -705,15 +708,21 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
             else:
               some(local-loc)
             end
-          #|
           spy "import-loc-opt":
             name,
             use-loc: l,
             orig-loc: old-loc,
-            local-loc
+            local-loc,
+            import-loc-opt
           end
-          |#
-          name-errors := link(C.shadow-id(s, l, old-loc, import-loc-opt), name-errors)
+          is-old-loc-repl = cases(S.Srcloc) old-loc:
+            | builtin(_) => false
+            | srcloc(source, _, _, _, _, _, _) => string-starts-with(source, "definitions://") or string-starts-with(source, "interactions://")
+          end
+          is-import-shadow = not(old-loc.same-file(l)) and not(is-import) and not(is-old-loc-repl)
+          when not(is-import-shadow):
+            name-errors := link(C.shadow-id(s, l, old-loc, import-loc-opt), name-errors)
+          end
         end
         # when env.has-key(s):
         #   spy "make-atom-for":
@@ -751,10 +760,10 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
           # times. If not, then they count as shadowing one another (e.g. two
           # values named list coming from two different libs)
           shadowing = b.origin.uri-of-definition == from-uri
-          make-atom-for(name, shadowing, env, bindings, make-binding)
+          make-atom-for-import(name, shadowing, true, env, bindings, make-binding)
       end
     else:
-      make-atom-for(name, false, env, bindings, make-binding)
+      make-atom-for(name, false, true, env, bindings, make-binding)
     end
   end
 

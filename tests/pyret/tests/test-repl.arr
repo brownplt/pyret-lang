@@ -89,12 +89,10 @@ check:
   result2 = next-interaction("sd")
   result2 satisfies E.is-right
 
+  # NOTE(joe): an odd case – sd gets and `orig-loc` of builtin://string-dict, so
+  # it hits the case where it's a module import so can be shadowed
   result3 = next-interaction("sd = 5")
-  result3 satisfies E.is-left
-  msg3 = msgs(result3)
-  msg3 is%(string-contains) "declaration of `sd` at "
-  msg3 is%(string-contains) "imported from" # TODO: update this text when the error message is fixed
-  
+  result3 satisfies E.is-right
 end
 
 check:
@@ -102,28 +100,16 @@ check:
   L.get-result-answer(result.v) is none
 
   result2 = next-interaction("some = 5")
-  result2 satisfies E.is-left
-  msg2 = msgs(result2)
-  msg2 is%(string-contains) "declaration of `some` at "
-  msg2 is%(string-contains) "shadows a previous declaration of `some` defined at builtin://option"
-  msg2 is%(string-contains) "and imported from"
+  result2 satisfies E.is-right
 
   result3 = restart("some = 5", false)
-  result3 satisfies E.is-left
-  msg3 = msgs(result3)
-  msg3 is%(string-contains) "declaration of `some` at"
-  msg3 is%(string-contains) "shadows a previous declaration of `some` defined at builtin://option"
-  msg3 is-not%(string-contains) "and imported from"
+  result3 satisfies E.is-right
 
   result4 = restart("include ast", false)
   L.get-result-answer(result4.v) is none
 
   result5 = next-interaction("s-program = 5")
-  result5 satisfies E.is-left
-  msg5 = msgs(result5)
-  msg5 is%(string-contains) "declaration of `s-program` at "
-  msg5 is%(string-contains) "shadows a previous declaration of `s-program` defined at builtin://ast"
-  msg5 is%(string-contains) "and imported from"
+  result5 satisfies E.is-right
 end
 
 check:

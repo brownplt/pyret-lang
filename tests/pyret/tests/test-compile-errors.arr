@@ -59,15 +59,14 @@ check "underscores":
 end
 
 check "shadowing":
-  cmsgs("some = 5") is%(contain-all)
+  cmsgs(```
+  a = 10
+  block:
+    a = 5
+    a
+  end```) is%(contain-all)
   [list:
-    "declaration of `some` at ", "shadows a previous declaration of `some` defined at builtin://option"
-  ]
-  cmsgs("some = 5") is%(contain-none) [list: "and imported from" ]
-
-  cmsgs("import some from option\nsome = 5") is%(contain-all)
-  [list:
-    "declaration of `some` at ", "shadows a previous declaration of `some` defined at builtin://option", "and imported from"
+    "declaration of `a` at ", "shadows a previous declaration of `a` defined at"
   ]
 end
 
