@@ -55,7 +55,7 @@ fun make-repl<a>(
     modules :: SD.MutableStringDict<CS.Loadable>,
     realm :: L.Realm,
     compile-context :: a,
-    make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))):
+    make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))) block:
 
   var globals = CS.standard-globals
   var current-compile-options = CS.default-compile-options
@@ -151,7 +151,7 @@ fun make-repl<a>(
     }
   end
 
-  fun make-definitions-locator(get-defs, shadow globals):
+  fun make-definitions-locator-extras(get-defs, shadow globals, extras):
     var ast = nothing
     fun get-ast() block:
       when ast == nothing block:
@@ -168,9 +168,10 @@ fun make-repl<a>(
       method get-options(self, options): options end,
       method get-native-modules(self): [list:] end,
       method get-module(self): CL.pyret-ast(get-ast()) end,
-      method get-extra-imports(self): CS.standard-imports end,
+      method get-extra-imports(self): extras end,
       method get-dependencies(self):
-        CL.get-standard-dependencies(self.get-module(), self.uri())
+        mod-deps = CL.get-dependencies(self.get-module(), self.uri())
+        mod-deps + self.get-extra-imports().imports.map(_.dependency)
       end,
       method get-globals(self): globals end,
       method uri(self): "definitions://" end,
@@ -181,10 +182,15 @@ fun make-repl<a>(
     }
   end
 
+  fun make-definitions-locator(get-defs, shadow globals):
+    make-definitions-locator-extras(get-defs, globals, CS.standard-imports)
+  end
+
   {
     restart-interactions: restart-interactions,
     make-interaction-locator: make-interaction-locator,
     make-definitions-locator: make-definitions-locator,
+    make-definitions-locator-extras: make-definitions-locator-extras,
     run-interaction: run-interaction,
     runtime: runtime
   }
