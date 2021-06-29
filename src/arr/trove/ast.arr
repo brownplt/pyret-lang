@@ -444,7 +444,7 @@ data NameSpec:
         | none => 
           PP.flow([list: PP.separate(PP.str(","), self.path.map(_.tosource()))])
         | some(name) =>
-          PP.flow([list: PP.separate(PP.str(","), self.path.map(_.tosource()), PP.str("as"), name.tosource())])
+          PP.flow([list: PP.separate(PP.str(","), self.path.map(_.tosource())), PP.str("as"), name.tosource()])
       end
     end
   | s-remote-ref(l :: Loc, uri :: String, name :: Name, as-name :: Name) with:

@@ -757,9 +757,8 @@ fun solve-helper-refinements(system :: ConstraintSystem, solution :: ConstraintS
               cases(ConstraintSolution) temp-solution:
                 | constraint-solution(_, temp-substitutions) =>
                   temp-keys-set = temp-substitutions.keys()
-                  shadow temp-keys-set = temp-keys-set.difference(temp-variables)
-                  # TODO(MATT): make this more robust
-                  if (temp-keys-set.size() > 0): # or not(temp-system.refinement-constraints.length() == refinement-constraints.length()): # some change in refinement constraints
+                  shadow temp-variables = temp-variables.difference(temp-keys-set)
+                  if (temp-variables.size() > 0): # or not(temp-system.refinement-constraints.length() == refinement-constraints.length()): # some change in refinement constraints
                     shadow solution = constraint-solution(empty-tree-set, temp-substitutions.fold-keys(lam(key, shadow substitutions):
                       substitutions.set(key, temp-substitutions.get-value(key))
                     end, solution.substitutions))
