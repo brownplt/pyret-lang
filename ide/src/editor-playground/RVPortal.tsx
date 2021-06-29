@@ -5,6 +5,8 @@ import ResizeObserver from 'react-resize-detector';
 import { RHSObject } from '../rhsObject';
 import RHSObjectComponent from '../RHSObjectComponent';
 
+const lwOptions = { coverGutter: true };
+
 interface RVState {
   portal: HTMLElement,
   widget?: CM.LineWidget,
@@ -25,7 +27,7 @@ export default class RVPortal extends React.PureComponent<RVProps, RVState> {
     const { editor, line } = this.props;
     this.state = {
       portal,
-      widget: editor.addLineWidget(line, portal),
+      widget: editor.addLineWidget(line, portal, lwOptions),
     };
   }
 
@@ -39,7 +41,7 @@ export default class RVPortal extends React.PureComponent<RVProps, RVState> {
     const { portal, widget } = this.state;
     if (oldProps.line !== line) {
       editor.removeLineWidget(widget as CM.LineWidget);
-      editor.addLineWidget(line, portal);
+      editor.addLineWidget(line, portal, lwOptions);
     }
     widget?.changed();
   }

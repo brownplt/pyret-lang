@@ -8,8 +8,11 @@ import { NeverError } from './utils';
 type Props = {isSelected: boolean, rhsObject: RHSObject, onMouseEnter?: () => void};
 
 export default function RHSObjectComponent({ isSelected, rhsObject, onMouseEnter }: Props) {
+  const style = {
+    paddingLeft: '1em',
+  };
   const selectedStyle = {
-    background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
+    background: isSelected ? '#d7d4f0' : '#efe',
     borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
     borderBottom: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
   };
@@ -18,7 +21,7 @@ export default function RHSObjectComponent({ isSelected, rhsObject, onMouseEnter
     return (
       <pre
         style={{
-          paddingLeft: '1em',
+          ...style,
           ...selectedStyle,
         }}
         onMouseEnter={onMouseEnter}
@@ -32,9 +35,9 @@ export default function RHSObjectComponent({ isSelected, rhsObject, onMouseEnter
     return (
       <pre
         style={{
+          ...style,
           display: 'flex',
           alignItems: 'center',
-          paddingLeft: '1em',
           ...selectedStyle,
         }}
         onMouseEnter={onMouseEnter}
@@ -51,7 +54,7 @@ export default function RHSObjectComponent({ isSelected, rhsObject, onMouseEnter
     return (
       <pre
         style={{
-          paddingLeft: '1em',
+          ...style,
           ...selectedStyle,
         }}
         onMouseEnter={onMouseEnter}
