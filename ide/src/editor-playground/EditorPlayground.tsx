@@ -1,5 +1,5 @@
 import React from 'react';
-import { UnControlled as CodeMirror } from 'react-codemirror2';
+import { Controlled as CodeMirror } from 'react-codemirror2';
 import CM from 'codemirror';
 import { connect } from 'react-redux';
 import Tooltip from './Tooltip';
@@ -149,11 +149,13 @@ function Embeditor(props: Props) {
       }
     }
   }
-  const { rhs } = props;
+  const { rhs, text } = props;
   const rvs = stateEditor?.operation(() => {
-    const text = stateEditor.getValue();
     const barriers = Array.from(text.matchAll(/\n\n/g));
-    const indices = [0, ...barriers.map(({ index }) => index), 999999];
+    // Why +1? Because we want to put the widget immediately after the first
+    // newline but not the second (leaving a blank space *after* rather than
+    // before a segment
+    const indices = [0, ...barriers.map(({ index }) => index as number + 1), 999999];
     const poses = indices.map((index) => (
       stateEditor.posFromIndex(index as number)
     ));
@@ -181,7 +183,8 @@ function Embeditor(props: Props) {
   return (
     <>
       <CodeMirror
-        onChange={((editor: CM.Editor & CM.Doc, _data, value) => {
+        value={text}
+        onBeforeChange={((_editor: CM.Editor & CM.Doc, _data, value) => {
           props.save(value);
         }) as (editor: CM.Editor, _data: CM.EditorChange, value: string) => string}
         options={{
