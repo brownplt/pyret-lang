@@ -197,7 +197,7 @@ export const initialState: State = {
   dropdownVisible: false,
   editorLoopDropdownVisible: false,
   editorMode: EditorMode.Chunks,
-  fontSize: 12,
+  fontSize: 18,
   definitionsHighlights: [],
   currentRunner: undefined,
   shouldAdvanceCursor: false,

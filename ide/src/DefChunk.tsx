@@ -424,12 +424,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
      and, if so, instructs the linting infastructure to create a new chunk upon
      lint success. If shift+enter is pressed, no new chunk will be made. In
      either case, a run is triggered by saving the file. */
-  handleEnter(editor: any, event: Event) {
+  handleEnter(editor: CodeMirror.Editor, event: Event) {
     const {
       enqueueEffect,
       setShouldAdvanceCursor,
     } = this.props;
-    const pos = (editor as any).getCursor();
+    const pos = editor.getCursor();
     const token = editor.getTokenAt(pos);
     if ((event as any).shiftKey) {
       setShouldAdvanceCursor(false);
@@ -719,15 +719,10 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const {
       chunks, index, focusedChunk,
     } = this.props;
-    const { text, startLine } = chunks[index];
+    const { text } = chunks[index];
 
     return (
-      <div
-        style={{
-          width: '100%',
-          display: 'flex',
-        }}
-      >
+      <div>
         <div
           style={{
             position: 'relative',
@@ -766,9 +761,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         </div>
         <div
           style={{
-            width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
           }}
           onMouseEnter={(event: any) => {
             this.handleMouseEnter(event);
@@ -800,9 +792,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             options={{
               mode: 'pyret',
               theme: 'default',
-              lineNumbers: true,
               lineWrapping: true,
-              lineNumberFormatter: (l) => String(l + startLine),
               autofocus: index === focusedChunk,
             }}
             onBeforeChange={(editor, data, value) => {
@@ -859,11 +849,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                     {thisChunkRHSObjects.map((val) => {
                       if (!isRHSCheck(val)) {
                         return (
-                          <RHSObjectComponent
-                            key={getRow(val)}
-                            rhsObject={val}
-                            isSelected={false}
-                          />
+                          <div>
+                            <RHSObjectComponent
+                              key={getRow(val)}
+                              rhsObject={val}
+                              isSelected={false}
+                            />
+                          </div>
                         );
                       }
                       return false;

@@ -110,7 +110,7 @@ function Embeditor(props: Props) {
         // However, we might have rules and such around, that should update
         forceUpdate();
       // Due to the above check, lastLine === '' as well in almost all cases
-      } else if (empty(lastLine)) {
+      } else {
         // Double enter
         // Lots of edge cases to handle here
         // add chunk marker
@@ -122,30 +122,6 @@ function Embeditor(props: Props) {
         // state that changed is the number of marks. We could put that state,
         // but it'd claim we're tracking more than we really are
         forceUpdate();
-      } else {
-        // NOTE(luna): "What? This looks weird! Why are you doing pixel stuff!"
-        // Well here are some examples of things that DON'T work:
-        // - CM.markText: Seems perfect! But doesn't work at all on blank lines fsr!
-        // - Modifying the text: Not a good abstraction, hard to keep the cursor
-        //   in the right place, have to modify text back
-        // - Grabbing the cursor itself and adding css after to it or something:
-        //   fsr (React? CM?) it gets overwritten. It's also nigh impossible
-        //   to tell cursors apart
-        const lastLineBegin = { line: pos.line - 1, ch: 0 };
-        const { bottom, left } = editor.cursorCoords(lastLineBegin, 'local');
-        // We use the bottom of the previous line because the editor gets
-        // confused with lines that don't exist. In the current formulation,
-        // this line does exist, but when things get rearranged, sometimes this
-        // gets called before the line actually exists
-        // ---
-        // TODO(luna): Because some parent of this component is relatively
-        // positioned, we cannot use 'window' positioning for convenience.
-        // Instead, we can position relative to the codemirror! Except
-        // codemirror reports relative positions differently than CSS seems to
-        // want to with a 'position: relative' container div. So for now i'm
-        // just winging an adjustment
-        tooltipPosRef.current = { left: left + 30, top: bottom };
-        setTooltipPos(tooltipPosRef.current);
       }
     }
   }
@@ -186,6 +162,7 @@ function Embeditor(props: Props) {
   return (
     <>
       <CodeMirror
+        className="sms-codemirror"
         onChange={((_editor: CM.Editor & CM.Doc, _data, value) => {
           if (stateEditor !== null) {
             props.save(value);
@@ -193,7 +170,6 @@ function Embeditor(props: Props) {
         }) as (editor: CM.Editor, _data: CM.EditorChange, value: string) => string}
         options={{
           mode: 'pyret',
-          lineNumbers: true,
         }}
         // Bad types given by react-codemirror, too bad
         onKeyUp={onKeyDown as (x: CM.Editor, y: Event) => void}

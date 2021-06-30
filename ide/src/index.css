@@ -1,0 +1,41 @@
+.CodeMirror {
+  /* TODO(luna): !important because they're getting overridden by page styles, as
+   * they should be, but why are there page styles, and how can i override
+   * correctly? */
+  display: inline-block;
+  background-color: #d4f1ff !important;
+  border-radius: 0.9em !important;
+  border: 1px solid black !important;
+  border-bottom-left-radius: 0 !important;
+  padding: 0.7em;
+  cursor: pointer !important;
+}
+.CodeMirror-line {
+  cursor: pointer;
+}
+.CodeMirror-focused {
+  background-color: #f2fbff !important;
+}
+.CodeMirror-focused .CodeMirror-line {
+  cursor: text;
+}
+.new-expr .CodeMirror {
+  background-color: white !important;
+  border-radius: 0.5em !important;
+  border: 1px solid black !important;
+  padding: 1em;
+  position: fixed;
+  bottom: 0;
+  width: 35em;
+  left: 50%;
+  margin-left: -17.5em;
+  top: 100%;
+  margin-top: -2em;
+  height: 2em;
+}
+.new-expr .CodeMirror:focus {
+  background-color: #eee !important;
+}
+.new-expr .CodeMirror-scroll {
+  height: 2em;
+}
