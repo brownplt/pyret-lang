@@ -1,5 +1,5 @@
 import React from 'react';
-import { Controlled as CodeMirror } from 'react-codemirror2';
+import { UnControlled as CodeMirror } from 'react-codemirror2';
 import CM from 'codemirror';
 import { connect } from 'react-redux';
 import Tooltip from './Tooltip';
@@ -41,7 +41,7 @@ function mapStateToProps(state: State): StateProps {
 
   return {
     rhs,
-    text: currentFileContents ?? '',
+    text: currentFileContents ?? 'empty currentFileContents???',
   };
 }
 
@@ -150,6 +150,9 @@ function Embeditor(props: Props) {
     }
   }
   const { rhs, text } = props;
+  if (stateEditor !== null && text !== stateEditor.getValue()) {
+    stateEditor.setValue(text);
+  }
   const rvs = stateEditor?.operation(() => {
     const barriers = Array.from(text.matchAll(/\n\n/g));
     // Why +1? Because we want to put the widget immediately after the first
@@ -183,9 +186,10 @@ function Embeditor(props: Props) {
   return (
     <>
       <CodeMirror
-        value={text}
-        onBeforeChange={((_editor: CM.Editor & CM.Doc, _data, value) => {
-          props.save(value);
+        onChange={((_editor: CM.Editor & CM.Doc, _data, value) => {
+          if (stateEditor !== null) {
+            props.save(value);
+          }
         }) as (editor: CM.Editor, _data: CM.EditorChange, value: string) => string}
         options={{
           mode: 'pyret',
