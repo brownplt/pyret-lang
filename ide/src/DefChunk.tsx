@@ -728,7 +728,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const { editor: initialEditor, startLine } = chunks[index];
 
     return (
-      <div>
+      <div
+        style={{
+          width: '100%',
+          display: 'flex',
+        }}
+      >
         <div
           style={{
             position: 'relative',
@@ -767,6 +772,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         </div>
         <div
           style={{
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
           }}
           onMouseEnter={(event: any) => {
             this.handleMouseEnter(event);
@@ -858,13 +866,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                     {thisChunkRHSObjects.map((val) => {
                       if (!isRHSCheck(val)) {
                         return (
-                          <div>
-                            <RHSObjectComponent
-                              key={getRow(val)}
-                              rhsObject={val}
-                              isSelected={false}
-                            />
-                          </div>
+                          <RHSObjectComponent
+                            key={getRow(val)}
+                            rhsObject={val}
+                            isSelected={false}
+                          />
                         );
                       }
                       return false;
