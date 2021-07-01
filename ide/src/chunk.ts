@@ -38,8 +38,6 @@ export type Chunk = {
   /* the line number of the first line of this chunk */
   startLine: number,
 
-  endLine: number,
-
   /* the text in the chunk, not including the chunk separator, #.CHUNK# */
   text: string,
 
@@ -102,7 +100,6 @@ export function findChunkFromSrcloc(
 export function emptyChunk(options?: Partial<Chunk>): Chunk {
   return {
     startLine: 0,
-    endLine: 0,
     text: '',
     id: newId(),
     errorState: { status: 'notLinted' },
