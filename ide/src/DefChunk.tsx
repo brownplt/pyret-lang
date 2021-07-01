@@ -49,6 +49,7 @@ import {
   isRHSCheck,
 } from './rhsObject';
 import RHSObjectComponent from './RHSObjectComponent';
+import LinkedCodeMirror from './LinkedCodeMirror';
 
 type StateProps = {
   chunks: Chunk[],
@@ -109,6 +110,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
 type PropsFromReact = {
   index: number,
   focused: boolean,
+  parent: CodeMirror.Doc,
 };
 
 type DispatchProps = {
@@ -424,7 +426,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
      and, if so, instructs the linting infastructure to create a new chunk upon
      lint success. If shift+enter is pressed, no new chunk will be made. In
      either case, a run is triggered by saving the file. */
-  handleEnter(editor: CodeMirror.Editor, event: Event) {
+  handleEnter(editor: any, event: Event) {
     const {
       enqueueEffect,
       setShouldAdvanceCursor,
@@ -717,9 +719,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
   render() {
     const {
-      chunks, index, focusedChunk,
+      chunks, index, focusedChunk, parent,
     } = this.props;
-    const { text } = chunks[index];
+    const { text, startLine } = chunks[index];
 
     return (
       <div>
@@ -766,8 +768,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             this.handleMouseEnter(event);
           }}
         >
-          <CodeMirror
+          <LinkedCodeMirror
             ref={this.input}
+            parent={parent}
+            start={startLine}
+            end={startLine + text.split('\n').length}
             onMouseDown={(editor: any, e: any) => {
               this.handleMouseDown(e);
             }}
@@ -788,7 +793,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 modifiesText: false,
               });
             }}
-            value={text}
+            // value={text}
             options={{
               mode: 'pyret',
               theme: 'default',
@@ -821,7 +826,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 default:
               }
             }}
-            autoCursor
+            // autoCursor
           />
           <div>
             {(() => {
