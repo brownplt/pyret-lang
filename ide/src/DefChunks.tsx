@@ -63,9 +63,12 @@ function DefChunks({
   focusedChunk,
   debugBorders,
 }: DefChunksProps) {
-  const doc = React.useState<CodeMirror.Doc>(() => (
-    CodeMirror.Doc('original\n\n\n\n\n\n\n\n\n', 'pyret')
-  ))[0];
+  const doc = React.useState<CodeMirror.Doc>(() => {
+    const wholeProgram = chunks.reduce((acc, { editor }) => (
+      `${acc + editor.getValue()}\n`
+    ), '');
+    return CodeMirror.Doc(wholeProgram, 'pyret');
+  })[0];
   function setupChunk(chunk: Chunk, index: number) {
     const focused = focusedChunk === index;
 

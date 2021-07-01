@@ -353,7 +353,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   /* Called in response to an edit event, where `value` is the chunk's text
      after the edit. Marks updated chunks as not linted so that the running
      infastructure knows to lint them before compiling. */
-  scheduleUpdate(value: string) {
+  scheduleUpdate() {
     const {
       chunks,
       index,
@@ -367,8 +367,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     if ('getDoc' in editor) {
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
-      // TODO(luna): CHUNKSTEXT This could be an issue. Why is scheduleUpdate called with a string?
-      editor.setValue(value);
     }
 
     const newChunks = [...chunks];
@@ -806,8 +804,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
               lineWrapping: true,
               autofocus: index === focusedChunk,
             }}
-            onBeforeChange={(editor, data, value) => {
-              this.scheduleUpdate(value);
+            onBeforeChange={() => {
+              this.scheduleUpdate();
             }}
             onSelection={(editor, data) => {
               this.handleOnSelection(data);
