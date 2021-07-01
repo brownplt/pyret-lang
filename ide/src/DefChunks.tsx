@@ -98,14 +98,12 @@ function DefChunks({
     }
 
     return (
-      <>
-        <DefChunk
-          key={chunk.id}
-          index={index}
-          focused={focused}
-          parent={doc}
-        />
-      </>
+      <DefChunk
+        key={chunk.id}
+        index={index}
+        focused={focused}
+        parent={doc}
+      />
     );
   }
 

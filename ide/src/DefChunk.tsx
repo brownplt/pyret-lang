@@ -193,7 +193,7 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
 
       const newChunk = removeSelectedText(chunk);
 
-      if (newChunk.text === '') {
+      if (newChunk.editor.getValue() === '') {
         return newChunks;
       }
 
@@ -224,7 +224,7 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
 
 class DefChunk extends React.Component<DefChunkProps, any> {
   /* Used to autofocus this component when necessary */
-  private input: React.RefObject<any>;
+  private input: React.RefObject<LinkedCodeMirror>;
 
   constructor(props: DefChunkProps) {
     super(props);
@@ -252,13 +252,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
 
     if (n.index === o.index
-      && n.chunks[n.index].text === o.chunks[o.index].text
+      && n.chunks[n.index].editor.getValue() === o.chunks[o.index].editor.getValue()
       && n.focusedChunk !== n.index) {
       return false;
     }
 
     if (n.focusedChunk === o.focusedChunk
-        && n.chunks[n.index].text === o.chunks[o.index].text
+        && n.chunks[n.index].editor.getValue() === o.chunks[o.index].editor.getValue()
         && n.chunks[n.index].errorState === o.chunks[o.index].errorState) {
       return false;
     }
@@ -282,7 +282,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       selection,
     } = chunks[index];
 
-    if (editor !== false) {
+    if ('getDoc' in editor) {
       const doc = editor.getDoc();
 
       const cmSelectedText = doc.getSelection();
@@ -297,10 +297,10 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       }
     }
 
-    if (editor && errorState.status === 'succeeded') {
+    if ('getDoc' in editor && errorState.status === 'succeeded') {
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
-    } else if (editor && errorState.status === 'failed') {
+    } else if ('getDoc' in editor && errorState.status === 'failed') {
       const { highlights } = errorState;
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
@@ -342,7 +342,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
     const { focusedChunk } = this.props;
     if (index === focusedChunk && this.input.current !== null) {
-      this.input.current.editor.focus();
+      const { editor: toFocusEditor } = chunks[focusedChunk];
+      if (!('focus' in toFocusEditor)) {
+        throw new Error('uninitialized editor being focused');
+      }
+      toFocusEditor.focus();
     }
   }
 
@@ -360,15 +364,17 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
     const { editor } = chunks[index];
 
-    if (editor !== false) {
+    if ('getDoc' in editor) {
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
+      // TODO(luna): CHUNKSTEXT This could be an issue. Why is scheduleUpdate called with a string?
+      editor.setValue(value);
     }
 
     const newChunks = [...chunks];
     newChunks[index] = {
       ...newChunks[index],
-      text: value,
+      editor,
       errorState: { status: 'notLinted' },
     };
     for (let i = index; i < newChunks.length; i += 1) {
@@ -414,7 +420,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setShouldAdvanceCursor,
     } = this.props;
     const pos = (editor as any).getCursor();
-    if (pos.line === chunks[index].text.split('\n').length - 1 && index < chunks.length - 1) {
+    if (pos.line === chunks[index].editor.getValue().split('\n').length - 1 && index < chunks.length - 1) {
       setFocusedChunk(index + 1);
       setShouldAdvanceCursor(false);
       event.preventDefault();
@@ -460,7 +466,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       enqueueEffect,
       editorResponseLoop,
     } = this.props;
-    if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
+    if (index === 0 && chunks.length > 1 && chunks[0].editor.getValue().trim() === '') {
       /* Cursor is in the first chunk, the text of this chunk is empty, and
          there is more than one chunk. Delete this chunk, move every chunk up by
          one, and keep the focus where it is. */
@@ -477,7 +483,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       });
       setFocusedChunk(0);
       event.preventDefault();
-    } else if (index > 0 && index < chunks.length - 1 && chunks[index].text.trim() === '') {
+    } else if (index > 0 && index < chunks.length - 1 && chunks[index].editor.getValue().trim() === '') {
       /* Cursor is not in the first chunk nor in the last chunk, and the text of
          this chunk is empty. Delete this chunk, move every chunk below it up by
          one, and keep the focus where it is. */
@@ -534,7 +540,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const {
       chunks, index, setChunks, setFocusedChunk,
     } = this.props;
-    if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
+    if (index === 0 && chunks.length > 1 && chunks[0].editor.getValue().trim() === '') {
       /* Cursor is in the first chunk, the text of this chunk is empty, and
          there is more than one chunk. Delete this chunk, move every chunk up by
          one, and keep the focus where it is. */
@@ -551,7 +557,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       });
       setFocusedChunk(0);
       event.preventDefault();
-    } else if (index > 0 && chunks[index].text.trim() === '') {
+    } else if (index > 0 && chunks[index].editor.getValue().trim() === '') {
       /* Cursor is not in the first chunk and the text of this chunk is empty.
          Delete this chunk, move every chunk below it up by one, and focus the
          previous chunk. */
@@ -696,7 +702,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       return;
     }
 
-    const cmp = compareLineAndCh(chunks[index].text, ranges[0].anchor, ranges[0].head);
+    const cmp = compareLineAndCh(chunks[index].editor.getValue(), ranges[0].anchor, ranges[0].head);
 
     if (cmp <= 0) {
       setChunks({
@@ -721,7 +727,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const {
       chunks, index, focusedChunk, parent,
     } = this.props;
-    const { text, startLine } = chunks[index];
+    const { editor: initialEditor, startLine } = chunks[index];
 
     return (
       <div>
@@ -772,7 +778,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             ref={this.input}
             parent={parent}
             start={startLine}
-            end={startLine + text.split('\n').length}
+            end={startLine + initialEditor.getValue().split('\n').length}
             onMouseDown={(editor: any, e: any) => {
               this.handleMouseDown(e);
             }}

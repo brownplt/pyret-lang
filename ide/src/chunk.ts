@@ -34,12 +34,13 @@ export const emptySelection = {
   head: { line: 0, ch: 0 },
 };
 
+type UninitializedEditor = {
+  getValue: () => string,
+};
+
 export type Chunk = {
   /* the line number of the first line of this chunk */
   startLine: number,
-
-  /* the text in the chunk, not including the chunk separator, #.CHUNK# */
-  text: string,
 
   /* a unique id */
   id: string,
@@ -49,7 +50,7 @@ export type Chunk = {
 
   /* the underlying CodeMirror instance. Can be false if the chunk has not yet
      been rendered. */
-  editor: false | CodeMirror.Editor;
+  editor: UninitializedEditor | (CodeMirror.Editor & CodeMirror.Doc);
 
   /* Chunks used to jiggle when they had errors, but they don't anymore.
      TODO(michael): remove this field. */
@@ -64,7 +65,7 @@ export type Chunk = {
 export function getStartLineForIndex(chunks : Chunk[], index : number) {
   if (index === 0) { return 0; }
 
-  return chunks[index - 1].startLine + chunks[index - 1].text.split('\n').length;
+  return chunks[index - 1].startLine + chunks[index - 1].editor.getValue().split('\n').length;
 }
 
 export function newId() {
@@ -83,7 +84,7 @@ export function findChunkFromSrcloc(
   }
 
   for (let i = 0; i < chunks.length; i += 1) {
-    const end = chunks[i].startLine + chunks[i].text.split('\n').length;
+    const end = chunks[i].startLine + chunks[i].editor.getValue().split('\n').length;
     if (l1 >= chunks[i].startLine && l1 <= end) {
       return i;
     }
@@ -100,10 +101,9 @@ export function findChunkFromSrcloc(
 export function emptyChunk(options?: Partial<Chunk>): Chunk {
   return {
     startLine: 0,
-    text: '',
     id: newId(),
     errorState: { status: 'notLinted' },
-    editor: false,
+    editor: { getValue: () => '' },
     needsJiggle: false,
     selection: emptySelection,
     ...options,
@@ -116,7 +116,7 @@ export function makeChunksFromString(s: string): Chunk[] {
   let totalLines = 0;
   const chunks = chunkStrings.map((chunkString) => {
     const chunk: Chunk = emptyChunk({
-      text: chunkString,
+      editor: { getValue: () => chunkString },
       startLine: totalLines,
       errorState: notLintedState,
     });
@@ -142,7 +142,7 @@ export function removeAllSelections(chunks: Chunk[]): Chunk[] {
 export function selectAll(chunk: Chunk): Chunk {
   const anchor = { line: 0, ch: 0 };
 
-  const lines = chunk.text.split('\n');
+  const lines = chunk.editor.getValue().split('\n');
 
   // TODO: Are lines, characters zero-indexed? There might be an off-by-one
   // error here.
@@ -192,11 +192,11 @@ function getSelectedText(text: string, selection: Selection): string {
 
 export function getChunkSelectedText(chunk: Chunk): string {
   const {
-    text,
+    editor,
     selection,
   } = chunk;
 
-  const selectedText = getSelectedText(text, selection);
+  const selectedText = getSelectedText(editor.getValue(), selection);
 
   return selectedText;
 }
@@ -211,19 +211,34 @@ export function isEmptySelection(selection: Selection): boolean {
 export function removeSelectedText(chunk: Chunk): Chunk {
   const {
     selection,
-    text,
+    editor,
   } = chunk;
 
   if (isEmptySelection(selection) === false) {
-    const anchorIndex = getLineAndChIndex(text, selection.anchor);
-    const headIndex = getLineAndChIndex(text, selection.head);
+    const anchorIndex = getLineAndChIndex(editor.getValue(), selection.anchor);
+    const headIndex = getLineAndChIndex(editor.getValue(), selection.head);
 
     if (anchorIndex !== false && headIndex !== false) {
-      const newText = text.substring(0, anchorIndex) + text.substring(headIndex + 1, text.length);
+      let newEditor;
+      if ('replaceRange' in editor) {
+        const from = editor.posFromIndex(anchorIndex);
+        const to = editor.posFromIndex(headIndex);
+        editor.replaceRange('', from, to);
+        newEditor = editor;
+      } else {
+        // TODO(luna): CHUNKSTEXT
+        console.error('editor was not initialized when removedSelectedText called');
+        const text = editor.getValue();
+        newEditor = {
+          getValue: () => (
+            text.substring(0, anchorIndex) + text.substring(headIndex + 1, text.length)
+          ),
+        };
+      }
 
       return {
         ...chunk,
-        text: newText,
+        editor: newEditor,
         selection: emptySelection,
         errorState: notLintedState,
       };

@@ -184,7 +184,9 @@ export class Editor extends React.Component<EditorProps, any> {
       chunks.forEach((chunk, i) => {
         const { editor } = chunk;
 
-        if (editor === false) {
+        if (!('getDoc' in editor)) {
+          // TODO(luna): CHUNKSTEXT
+          console.error('uninitialized editor makeCopyHandler(?)');
           return;
         }
 
@@ -282,7 +284,7 @@ export class Editor extends React.Component<EditorProps, any> {
             >
               {definitions}
             </div>
-            {/* {rightHandSide} */}
+            {rightHandSide}
           </SplitterLayout>
         </div>
         <Footer />

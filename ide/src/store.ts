@@ -236,7 +236,7 @@ function handleSaveFile(
       //   * Using fs.WriteStream to stream the chunk contents into the file
       control.fs.writeFile(
         path,
-        chunks.map((chunk) => chunk.text).join(CHUNKSEP),
+        chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
         saveCallback,
       );
       break;
@@ -479,10 +479,10 @@ function handleFirstActionableEffect(
             }
             case EditorMode.Chunks: {
               const sendLintRequests = (): void => {
-                chunks.forEach(({ text, errorState, id }) => {
+                chunks.forEach(({ editor, errorState, id }) => {
                   if (errorState.status !== 'succeeded') {
                     console.log(`linting chunk ${id}`);
-                    handleChunkLint(text, id);
+                    handleChunkLint(editor.getValue(), id);
                   }
                 });
               };

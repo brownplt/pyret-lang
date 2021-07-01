@@ -28,6 +28,7 @@ export default class LinkedCM extends React.Component<Props, State> {
   }
 
   componentDidMount() {
+    // TODO(luna): Fix the refs
     if (this.tag.current === null) {
       throw new Error('ref didn\'t update');
     }
