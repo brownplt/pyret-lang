@@ -69,7 +69,7 @@ const connector = connect(mapStateToProps, mapDispatchToProps);
 type PropsFromRedux = ConnectedProps<typeof connector>;
 type DefChunksProps = PropsFromRedux & DispatchProps & StateProps;
 
-function DefChunks({
+function Chatitor({
   chunks,
   focusedChunk,
   debugBorders,
@@ -82,6 +82,8 @@ function DefChunks({
     ), '');
     return CodeMirror.Doc(wholeProgram, 'pyret');
   })[0];
+  const chunksRef = React.useRef(chunks);
+  chunksRef.current = chunks;
   function setupChunk(chunk: Chunk, index: number) {
     const focused = focusedChunk === index;
 
@@ -154,11 +156,10 @@ function DefChunks({
               const token = editor.getTokenAt(pos);
               if (token.state.lineState.tokens.length === 0) {
                 const value = editor.getValue();
-                console.log(value);
                 const nextChunks: Chunk[] = [
-                  ...chunks,
+                  ...chunksRef.current,
                   emptyChunk({
-                    startLine: getStartLineForIndex(chunks, chunks.length),
+                    startLine: getStartLineForIndex(chunksRef.current, chunksRef.current.length),
                     errorState: lintSuccessState,
                     editor: { getValue: () => value },
                   }),
@@ -182,4 +183,4 @@ function DefChunks({
   );
 }
 
-export default connector(DefChunks);
+export default connector(Chatitor);

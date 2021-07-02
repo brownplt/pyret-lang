@@ -59,6 +59,11 @@
   margin: 0;
   padding: 0.7em;
 }
+.chatitor-rhs.pending {
+  background-color: transparent;
+  border: 1px dotted black;
+}
+
 .chunks-rhs {
   padding-left: 1em;
   /* For positioning jitter */

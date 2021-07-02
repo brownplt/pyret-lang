@@ -740,7 +740,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       // Turn ghost UninitializedEditor into a real editor if the editor has mounted
       // This check might be extraneous
       if (editor.getValue() !== initialEditor.getValue()) {
-        console.log('reifying editor with text', initialEditor.getValue());
         editor.setValue(initialEditor.getValue());
       }
 
@@ -901,8 +900,31 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 displayResultsInline,
               } = this.props;
 
-              if (displayResultsInline && thisChunkRHSObjects.length > 0) {
+              if (displayResultsInline) {
                 const isSelected = index === focusedChunk;
+                const rhsComponents = thisChunkRHSObjects.map((val) => {
+                  if (!isRHSCheck(val) || parent) {
+                    if (parent) {
+                      return (
+                        <RHSObjectComponent
+                          key={getRow(val)}
+                          rhsObject={val}
+                          isSelected={false}
+                          className="chatitor-rhs"
+                        />
+                      );
+                    }
+                    return (
+                      <RHSObjectComponent
+                        key={getRow(val)}
+                        rhsObject={val}
+                        isSelected={false}
+                        className="chunks-rhs"
+                      />
+                    );
+                  }
+                  return false;
+                });
 
                 return (
                   <div
@@ -917,29 +939,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                       justifyContent: 'flex-end',
                     }}
                   >
-                    {thisChunkRHSObjects.map((val) => {
-                      if (!isRHSCheck(val)) {
-                        if (parent) {
-                          return (
-                            <RHSObjectComponent
-                              key={getRow(val)}
-                              rhsObject={val}
-                              isSelected={false}
-                              className="chatitor-rhs"
-                            />
-                          );
-                        }
-                        return (
-                          <RHSObjectComponent
-                            key={getRow(val)}
-                            rhsObject={val}
-                            isSelected={false}
-                            className="chunks-rhs"
-                          />
-                        );
-                      }
-                      return false;
-                    })}
+                    {rhsComponents.length === 0 && parent ? <div className="chatitor-rhs pending"> . . . </div> : rhsComponents}
                   </div>
                 );
               }
