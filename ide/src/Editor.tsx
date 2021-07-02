@@ -35,6 +35,7 @@ import 'react-tabs/style/react-tabs.css';
 import 'react-splitter-layout/lib/index.css';
 import EditorPlayground from './editor-playground/EditorPlayground';
 import { NeverError } from './utils';
+import Chatitor from './Chatitor';
 
 type StateProps = {
   browseRoot: string,
@@ -129,6 +130,10 @@ export class Editor extends React.Component<EditorProps, any> {
     } = this.props;
 
     switch (editorMode) {
+      case EditorMode.Chatitor:
+        return (
+          <Chatitor />
+        );
       case EditorMode.Embeditor:
         return (
           <EditorPlayground />

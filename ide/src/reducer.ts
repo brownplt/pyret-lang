@@ -258,6 +258,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
       };
     }
 
+    case EditorMode.Chatitor:
     case EditorMode.Chunks: {
       const {
         backendCmd,
@@ -526,6 +527,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
         linting: false,
         interactionErrors: action.errors,
       };
+    case EditorMode.Chatitor:
     case EditorMode.Chunks: {
       const { chunks } = state;
 
@@ -639,6 +641,7 @@ function handleCompileFailure(
         interactionErrors: status.errors,
         definitionsHighlights: places,
       };
+    case EditorMode.Chatitor:
     case EditorMode.Chunks: {
       console.log('Compilation failure: chunks');
       if (places.length > 0) {
@@ -755,6 +758,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         editorMode: newEditorMode,
       };
     }
+    case EditorMode.Chatitor:
     case EditorMode.Chunks: {
       // in text mode currentFileContents can be more up-to-date than chunks, so we
       // need to recreate the chunks.

@@ -162,9 +162,10 @@ export enum MessageTabIndex {
 }
 
 export enum EditorMode {
-  Chunks,
-  Text,
-  Embeditor,
+  Chunks = 'Chunks',
+  Text = 'Text',
+  Embeditor = 'Embeditor',
+  Chatitor = 'Chatitor',
 }
 
 export type LintFailure = {
