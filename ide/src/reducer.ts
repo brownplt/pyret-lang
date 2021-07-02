@@ -765,11 +765,15 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
 
       const { currentFileContents } = state;
 
+      const displayResultsInline = newEditorMode === EditorMode.Chatitor
+        ? true : state.displayResultsInline;
+
       if (currentFileContents === undefined) {
         return {
           ...state,
           editorMode: newEditorMode,
           chunks: [],
+          displayResultsInline,
         };
       }
 
@@ -791,6 +795,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         ...state,
         editorMode: newEditorMode,
         chunks,
+        displayResultsInline,
       };
     }
     default:

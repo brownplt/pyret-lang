@@ -6,14 +6,17 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import CodeMirror from 'codemirror';
 import { UnControlled } from 'react-codemirror2';
-import { Action } from './action';
+import { Action, ChunksUpdate } from './action';
 import {
   State,
   EditorResponseLoop,
 } from './state';
-import { Chunk } from './chunk';
+import {
+  Chunk, emptyChunk, getStartLineForIndex, lintSuccessState,
+} from './chunk';
 import { RHSObjects } from './rhsObject';
 import DefChunk from './DefChunk';
+import { BackendCmd, Effect } from './effect';
 
 type StateProps = {
   chunks: Chunk[],
@@ -25,6 +28,8 @@ type StateProps = {
 
 type DispatchProps = {
   setRHS: () => void,
+  setChunks: (chunks: ChunksUpdate) => void,
+  enqueueEffect: (effect: Effect) => void,
 };
 
 function mapStateToProps(state: State): StateProps {
@@ -50,6 +55,12 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     setRHS() {
       dispatch({ type: 'update', key: 'rhs', value: 'make-outdated' });
     },
+    setChunks(chunks: ChunksUpdate) {
+      dispatch({ type: 'update', key: 'chunks', value: chunks });
+    },
+    enqueueEffect(effect: Effect) {
+      dispatch({ type: 'enqueueEffect', effect });
+    },
   };
 }
 
@@ -62,6 +73,8 @@ function DefChunks({
   chunks,
   focusedChunk,
   debugBorders,
+  setChunks,
+  enqueueEffect,
 }: DefChunksProps) {
   const doc = React.useState<CodeMirror.Doc>(() => {
     const wholeProgram = chunks.reduce((acc, { editor }) => (
@@ -113,13 +126,15 @@ function DefChunks({
   const allChunks = chunks.map(setupChunk);
 
   const togetherStyle = {
-    width: '35em',
+    width: '30em',
     margin: '2em auto',
   };
   return (
-    <>
-      <div style={togetherStyle}>
-        {allChunks}
+    <div className="chatitor-container">
+      <div style={{ gridRow: '1', width: '100%', overflowY: 'scroll' }}>
+        <div style={togetherStyle}>
+          {allChunks}
+        </div>
       </div>
       <UnControlled
         className="new-expr"
@@ -129,20 +144,41 @@ function DefChunks({
           lineWrapping: true,
           autofocus: true,
         }}
-        onKeyDown={(_editor: CodeMirror.Editor, event: Event) => {
+        editorDidMount={(editor) => {
+          editor.setSize(null, 'auto');
+        }}
+        onKeyDown={((editor: CodeMirror.Editor & CodeMirror.Doc, event: Event) => {
           switch ((event as any).key) {
-            case 'Enter':
-              console.log('the money happens');
+            case 'Enter': {
+              const pos = editor.getCursor();
+              const token = editor.getTokenAt(pos);
+              if (token.state.lineState.tokens.length === 0) {
+                const value = editor.getValue();
+                console.log(value);
+                const nextChunks: Chunk[] = [
+                  ...chunks,
+                  emptyChunk({
+                    startLine: getStartLineForIndex(chunks, chunks.length),
+                    errorState: lintSuccessState,
+                    editor: { getValue: () => value },
+                  }),
+                ];
+                setChunks({ chunks: nextChunks, modifiesText: true });
+                editor.setValue('');
+                enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
+                event.preventDefault();
+              }
               break;
+            }
             case 'ArrowUp':
               console.log('more money');
               break;
             default:
           }
-        }}
+        }) as any}
         autoCursor
       />
-    </>
+    </div>
   );
 }
 

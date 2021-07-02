@@ -1,3 +1,9 @@
+.chatitor-container {
+  display: grid;
+  height: 100%;
+  grid-template-rows: 1fr 0fr;
+}
+
 .linked-cm .CodeMirror {
   /* TODO(luna): !important because they're getting overridden by page styles, as
    * they should be, but why are there page styles, and how can i override
@@ -5,46 +11,50 @@
   display: inline-block;
   background-color: #d4f1ff !important;
   border-radius: 0.9em !important;
-  border: 1px solid black !important;
   border-bottom-left-radius: 0 !important;
   padding: 0.7em;
   cursor: pointer !important;
+  transition: margin-left 0.1s, border-radius 0.1s, border-bottom-left-radius 0.1s;
 }
 .linked-cm .CodeMirror-line {
   cursor: pointer;
 }
 .linked-cm .CodeMirror-focused {
   background-color: #f2fbff !important;
+  width: 30em;
+  border-radius: 0.5em !important;
+  border-bottom-left-radius: 0.5em;
+  border: 1px solid black !important;
+  transition: margin-left 0.1s, border-radius 0.1s, border-bottom-left-radius 0.1s;
 }
 .linked-cm .CodeMirror-focused .CodeMirror-line {
   cursor: text;
+}
+
+.new-expr {
+  grid-row: 2;
 }
 .new-expr .CodeMirror {
   background-color: white !important;
   border-radius: 0.5em !important;
   border: 1px solid black !important;
+  /* This is a weird quirk of CodeMirror styles which set this to a value which
+   * breaks non-inline positioned elements, but this !important override fixes it */
+  min-height: 0 !important;
   padding: 1em;
-  position: fixed;
-  bottom: 0;
   width: 35em;
-  left: 50%;
-  margin-left: -17.5em;
-  top: 100%;
-  margin-top: -2em;
-  height: 2em;
+  margin: 0 auto;
+  margin-bottom: 1em;
 }
 .new-expr .CodeMirror:focus {
   background-color: #eee !important;
-}
-.new-expr .CodeMirror-scroll {
-  height: 2em;
 }
 
 .chatitor-rhs {
   padding-left: 1em;
   display: inline-block;
-  border: 1px solid black;
   border-radius: 0.5em;
+  background-color: rgb(239 226 208);
   border-bottom-right-radius: 0;
   margin: 0;
   padding: 0.7em;

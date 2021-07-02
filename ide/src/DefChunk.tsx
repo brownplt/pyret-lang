@@ -728,6 +728,31 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     } = this.props;
     const { editor: initialEditor, startLine } = chunks[index];
 
+    const handleMount = (editor: CodeMirror.Editor) => {
+      const {
+        setChunks,
+      } = this.props;
+
+      const marks = editor.getDoc().getAllMarks();
+      marks.forEach((m) => m.clear());
+      editor.setSize(null, 'auto');
+
+      // Turn ghost UninitializedEditor into a real editor if the editor has mounted
+      // This check might be extraneous
+      if (editor.getValue() !== initialEditor.getValue()) {
+        console.log('reifying editor with text', initialEditor.getValue());
+        editor.setValue(initialEditor.getValue());
+      }
+
+      setChunks({
+        chunk: {
+          ...chunks[index],
+          editor,
+        },
+        modifiesText: false,
+      });
+    };
+
     return (
       <div
         style={parent ? {} : {
@@ -790,24 +815,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 onMouseDown={(editor: any, e: any) => {
                   this.handleMouseDown(e);
                 }}
-                editorDidMount={(editor) => {
-                  const {
-                    setChunks,
-                  } = this.props;
-
-                  const marks = editor.getDoc().getAllMarks();
-                  marks.forEach((m) => m.clear());
-                  editor.setSize(null, 'auto');
-
-                  setChunks({
-                    chunk: {
-                      ...chunks[index],
-                      editor,
-                    },
-                    modifiesText: false,
-                  });
-                }}
-              // value={text}
+                editorDidMount={handleMount}
                 options={{
                   mode: 'pyret',
                   theme: 'default',
@@ -848,29 +856,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 onMouseDown={(editor: any, e: any) => {
                   this.handleMouseDown(e);
                 }}
-                editorDidMount={(editor) => {
-                  const {
-                    setChunks,
-                  } = this.props;
-
-                  const marks = editor.getDoc().getAllMarks();
-                  marks.forEach((m) => m.clear());
-                  editor.setSize(null, 'auto');
-
-                  // Turn ghost UninitializedEditor into a real editor if the editor has mounted
-                  // This check might be extraneous
-                  if (editor.getValue() !== initialEditor.getValue()) {
-                    editor.setValue(initialEditor.getValue());
-                  }
-
-                  setChunks({
-                    chunk: {
-                      ...chunks[index],
-                      editor,
-                    },
-                    modifiesText: false,
-                  });
-                }}
+                editorDidMount={handleMount}
                 options={{
                   mode: 'pyret',
                   theme: 'default',
