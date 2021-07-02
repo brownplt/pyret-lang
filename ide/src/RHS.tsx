@@ -102,6 +102,7 @@ function RHS({
           rhsObject={rhsObject}
           onMouseEnter={selectThisChunk}
           key={rhsObject.key}
+          className="chunks-rhs"
         />
       );
     }));

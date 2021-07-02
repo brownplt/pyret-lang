@@ -58,7 +58,7 @@ export default class LinkedCM extends React.Component<Props, State> {
   render() {
     return (
       <>
-        <div ref={this.tag} />
+        <div ref={this.tag} className="linked-cm" />
       </>
     );
   }

@@ -5,8 +5,6 @@
    - creates a copy (ctrl-c) event handler
    - lays out imported components */
 
-/* eslint-disable*/
-
 import React from 'react';
 import './App.css';
 import { connect, ConnectedProps } from 'react-redux';

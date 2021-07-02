@@ -14,7 +14,7 @@
    component and the Redux store. */
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { Controlled as CodeMirror } from 'react-codemirror2';
+import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { BackendCmd, State, EditorResponseLoop } from './state';
 
 import backendCmdFromState from './editor_loop';
@@ -110,7 +110,9 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
 type PropsFromReact = {
   index: number,
   focused: boolean,
-  parent: CodeMirror.Doc,
+  // If parent is provided, then DefChunk provides linkedDocs to it, otherwise
+  // it manages entirely separate documents
+  parent?: CodeMirror.Doc,
 };
 
 type DispatchProps = {
@@ -224,7 +226,7 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
 
 class DefChunk extends React.Component<DefChunkProps, any> {
   /* Used to autofocus this component when necessary */
-  private input: React.RefObject<LinkedCodeMirror>;
+  private input: React.RefObject<CodeMirror>;
 
   constructor(props: DefChunkProps) {
     super(props);
@@ -341,12 +343,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
 
     const { focusedChunk } = this.props;
-    if (index === focusedChunk && this.input.current !== null) {
+    if (index === focusedChunk) {
       const { editor: toFocusEditor } = chunks[focusedChunk];
-      if (!('focus' in toFocusEditor)) {
-        throw new Error('uninitialized editor being focused');
+      if ('focus' in toFocusEditor) {
+        toFocusEditor.focus();
       }
-      toFocusEditor.focus();
     }
   }
 
@@ -780,66 +781,133 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             this.handleMouseEnter(event);
           }}
         >
-          <LinkedCodeMirror
-            ref={this.input}
-            parent={parent}
-            start={startLine}
-            end={startLine + initialEditor.getValue().split('\n').length}
-            onMouseDown={(editor: any, e: any) => {
-              this.handleMouseDown(e);
-            }}
-            editorDidMount={(editor) => {
-              const {
-                setChunks,
-              } = this.props;
+          {parent
+            ? (
+              <LinkedCodeMirror
+                parent={parent}
+                start={startLine}
+                end={startLine + initialEditor.getValue().split('\n').length}
+                onMouseDown={(editor: any, e: any) => {
+                  this.handleMouseDown(e);
+                }}
+                editorDidMount={(editor) => {
+                  const {
+                    setChunks,
+                  } = this.props;
 
-              const marks = editor.getDoc().getAllMarks();
-              marks.forEach((m) => m.clear());
-              editor.setSize(null, 'auto');
+                  const marks = editor.getDoc().getAllMarks();
+                  marks.forEach((m) => m.clear());
+                  editor.setSize(null, 'auto');
 
-              setChunks({
-                chunk: {
-                  ...chunks[index],
-                  editor,
-                },
-                modifiesText: false,
-              });
-            }}
-            // value={text}
-            options={{
-              mode: 'pyret',
-              theme: 'default',
-              lineWrapping: true,
-              autofocus: index === focusedChunk,
-            }}
-            onBeforeChange={() => {
-              this.scheduleUpdate();
-            }}
-            onSelection={(editor, data) => {
-              this.handleOnSelection(data);
-            }}
-            onKeyDown={(editor, event) => {
-              switch ((event as any).key) {
-                case 'Enter':
-                  this.handleEnter(editor, event);
-                  break;
-                case 'Backspace':
-                  this.handleBackspace(event);
-                  break;
-                case 'Delete':
-                  this.handleDelete(event);
-                  break;
-                case 'ArrowUp':
-                  this.handleArrowUp(editor, event);
-                  break;
-                case 'ArrowDown':
-                  this.handleArrowDown(editor, event);
-                  break;
-                default:
-              }
-            }}
-            // autoCursor
-          />
+                  setChunks({
+                    chunk: {
+                      ...chunks[index],
+                      editor,
+                    },
+                    modifiesText: false,
+                  });
+                }}
+              // value={text}
+                options={{
+                  mode: 'pyret',
+                  theme: 'default',
+                  lineWrapping: true,
+                  autofocus: index === focusedChunk,
+                }}
+                onBeforeChange={() => {
+                  this.scheduleUpdate();
+                }}
+                onSelection={(editor, data) => {
+                  this.handleOnSelection(data);
+                }}
+                onKeyDown={(editor, event) => {
+                  switch ((event as any).key) {
+                    case 'Enter':
+                      this.handleEnter(editor, event);
+                      break;
+                    case 'Backspace':
+                      this.handleBackspace(event);
+                      break;
+                    case 'Delete':
+                      this.handleDelete(event);
+                      break;
+                    case 'ArrowUp':
+                      this.handleArrowUp(editor, event);
+                      break;
+                    case 'ArrowDown':
+                      this.handleArrowDown(editor, event);
+                      break;
+                    default:
+                  }
+                }}
+              />
+            )
+            : (
+              <CodeMirror
+                ref={this.input}
+                onMouseDown={(editor: any, e: any) => {
+                  this.handleMouseDown(e);
+                }}
+                editorDidMount={(editor) => {
+                  const {
+                    setChunks,
+                  } = this.props;
+
+                  const marks = editor.getDoc().getAllMarks();
+                  marks.forEach((m) => m.clear());
+                  editor.setSize(null, 'auto');
+
+                  // Turn ghost UninitializedEditor into a real editor if the editor has mounted
+                  // This check might be extraneous
+                  if (editor.getValue() !== initialEditor.getValue()) {
+                    editor.setValue(initialEditor.getValue());
+                  }
+
+                  setChunks({
+                    chunk: {
+                      ...chunks[index],
+                      editor,
+                    },
+                    modifiesText: false,
+                  });
+                }}
+                options={{
+                  mode: 'pyret',
+                  theme: 'default',
+                  lineNumbers: true,
+                  lineWrapping: true,
+                  lineNumberFormatter: (l) => String(l + startLine),
+                  autofocus: index === focusedChunk,
+                }}
+                onBeforeChange={() => {
+                  this.scheduleUpdate();
+                }}
+                onSelection={(editor, data) => {
+                  this.handleOnSelection(data);
+                }}
+                onKeyDown={(editor, event) => {
+                  switch ((event as any).key) {
+                    case 'Enter':
+                      this.handleEnter(editor, event);
+                      break;
+                    case 'Backspace':
+                      this.handleBackspace(event);
+                      break;
+                    case 'Delete':
+                      this.handleDelete(event);
+                      break;
+                    case 'ArrowUp':
+                      this.handleArrowUp(editor, event);
+                      break;
+                    case 'ArrowDown':
+                      this.handleArrowDown(editor, event);
+                      break;
+                    default:
+                  }
+                }}
+                autoCursor
+              />
+            )}
           <div>
             {(() => {
               const {
@@ -870,6 +938,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                             key={getRow(val)}
                             rhsObject={val}
                             isSelected={false}
+                            className={parent ? 'chatitor-rhs' : 'chunks-rhs'}
                           />
                         );
                       }

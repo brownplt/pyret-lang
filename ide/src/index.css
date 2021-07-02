@@ -1,4 +1,4 @@
-.CodeMirror {
+.linked-cm .CodeMirror {
   /* TODO(luna): !important because they're getting overridden by page styles, as
    * they should be, but why are there page styles, and how can i override
    * correctly? */
@@ -10,13 +10,13 @@
   padding: 0.7em;
   cursor: pointer !important;
 }
-.CodeMirror-line {
+.linked-cm .CodeMirror-line {
   cursor: pointer;
 }
-.CodeMirror-focused {
+.linked-cm .CodeMirror-focused {
   background-color: #f2fbff !important;
 }
-.CodeMirror-focused .CodeMirror-line {
+.linked-cm .CodeMirror-focused .CodeMirror-line {
   cursor: text;
 }
 .new-expr .CodeMirror {
@@ -38,4 +38,25 @@
 }
 .new-expr .CodeMirror-scroll {
   height: 2em;
+}
+
+.chatitor-rhs {
+  padding-left: 1em;
+  display: inline-block;
+  border: 1px solid black;
+  border-radius: 0.5em;
+  border-bottom-right-radius: 0;
+  margin: 0;
+  padding: 0.7em;
+}
+.chunks-rhs {
+  padding-left: 1em;
+  /* For positioning jitter */
+  border-top: 2px solid rgba(0, 0, 0, 0);
+  border-bottom: 2px solid rgba(0, 0, 0, 0);
+}
+.chunks-rhs-selected {
+  background: #d7d4f0;
+  border-top: 2px solid #c8c8c8;
+  border-bottom: 2px solid #c8c8c8;
 }
