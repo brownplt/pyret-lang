@@ -730,7 +730,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
     return (
       <div
-        style={{
+        style={parent ? {} : {
           width: '100%',
           display: 'flex',
         }}
@@ -772,7 +772,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           })()}
         </div>
         <div
-          style={{
+          style={parent ? {} : {
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
@@ -919,8 +919,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 const isSelected = index === focusedChunk;
 
                 return (
-                  <pre
-                    style={{
+                  <div
+                    style={parent ? { textAlign: 'right', display: 'block' } : {
                       margin: 0,
                       background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
                       borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
@@ -933,18 +933,28 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                   >
                     {thisChunkRHSObjects.map((val) => {
                       if (!isRHSCheck(val)) {
+                        if (parent) {
+                          return (
+                            <RHSObjectComponent
+                              key={getRow(val)}
+                              rhsObject={val}
+                              isSelected={false}
+                              className="chatitor-rhs"
+                            />
+                          );
+                        }
                         return (
                           <RHSObjectComponent
                             key={getRow(val)}
                             rhsObject={val}
                             isSelected={false}
-                            className={parent ? 'chatitor-rhs' : 'chunks-rhs'}
+                            className="chunks-rhs"
                           />
                         );
                       }
                       return false;
                     })}
-                  </pre>
+                  </div>
                 );
               }
 

@@ -219,6 +219,7 @@ export class Editor extends React.Component<EditorProps, any> {
       rtMessages,
       messageTabIndex,
       setMessageTabIndex,
+      editorMode,
     } = this.props;
 
     const interactionValues = (
@@ -267,6 +268,28 @@ export class Editor extends React.Component<EditorProps, any> {
 
     const definitions = this.makeDefinitions();
 
+    const mainSplit = editorMode === EditorMode.Chatitor ? (
+      <div
+        className="edit-area-container"
+        style={{ fontSize, width: '100%' }}
+      >
+        {definitions}
+      </div>
+    ) : (
+      <SplitterLayout
+        vertical={false}
+        percentage
+      >
+        <div
+          className="edit-area-container"
+          style={{ fontSize }}
+        >
+          {definitions}
+        </div>
+        {rightHandSide}
+      </SplitterLayout>
+    );
+
     return (
       <div className="page-container">
         <Header>
@@ -277,18 +300,7 @@ export class Editor extends React.Component<EditorProps, any> {
         </Header>
         <div className="code-container">
           <Menu />
-          <SplitterLayout
-            vertical={false}
-            percentage
-          >
-            <div
-              className="edit-area-container"
-              style={{ fontSize }}
-            >
-              {definitions}
-            </div>
-            {rightHandSide}
-          </SplitterLayout>
+          {mainSplit}
         </div>
         <Footer />
       </div>

@@ -82,7 +82,7 @@ function handleEnter(state: State): State {
     editorMode,
   } = state;
 
-  if (!(editorMode === EditorMode.Chunks)) {
+  if (!(editorMode === EditorMode.Chunks || editorMode === EditorMode.Chatitor)) {
     return state;
   }
 
@@ -768,7 +768,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
       if (currentFileContents === undefined) {
         return {
           ...state,
-          editorMode: EditorMode.Chunks,
+          editorMode: newEditorMode,
           chunks: [],
         };
       }
@@ -789,7 +789,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
 
       return {
         ...state,
-        editorMode: EditorMode.Chunks,
+        editorMode: newEditorMode,
         chunks,
       };
     }
@@ -844,7 +844,7 @@ function handleSetCurrentFile(state: State, file: string): State {
 
 function handleSetChunks(state: State, update: ChunksUpdate): State {
   const { editorMode, isFileSaved } = state;
-  if (editorMode !== EditorMode.Chunks) {
+  if (editorMode !== EditorMode.Chunks && editorMode !== EditorMode.Chatitor) {
     throw new Error('handleSetChunks: not in chunk mode');
   }
 
