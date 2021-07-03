@@ -1358,7 +1358,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
 
                             remote-datatype = initial-env.provides-by-uri-value(module-name.uri).data-definitions.get(datatype-name)
                             cases(Option) remote-datatype:
-                              | some(rd) => { module-name.uri; rd }
+                              | some(rd) => { module-name.uri; rd.typ }
                               | none =>
                                 raise("Cannot re-provide datatype " + datatype-name + " because it isn't a datatype in " + uri)
                             end
