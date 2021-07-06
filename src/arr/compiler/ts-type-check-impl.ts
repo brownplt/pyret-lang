@@ -201,11 +201,77 @@ type SDExports = {
       }
     }
 
-    function checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : TCS.Context) : void {
+    class ConstraintSystem {
+
+    }
+
+    class TCInfo {
+
+    }
+    class Context {
+      globalTypes : Map<string, TS.Type>;     // global name -> type
+      aliases : Map<string, TS.Type>;         // t-name -> aliased type
+      dataTypes : Map<string, TS.DataType>;   // t-name -> data type
+      modules : Map<string, TS.ModuleType>;   // module name -> module type
+      moduleNames : Map<string, string>;      // imported name -> module name
+      binds : Map<string, TS.Type>;           // local name -> type
+      constraints : ConstraintSystem;         // constraints should only be added with methods to ensure that they have the proper forms
+      info : TCInfo;
+      misc : Map<string, [TS.Type[], string]> // miscellaneous info that is used for logging. Keyed by the function name
+
+      constructor(globalTypes, aliases, dataTypes, modules, moduleNames) {
+        this.globalTypes = globalTypes;
+        this.aliases = aliases;
+        this.dataTypes = dataTypes;
+        this.modules = modules;
+        this.moduleNames = moduleNames;
+      }
+
+      addLevel() : void {
+
+      }
+    }   
+
+    function resolveAlias(t : TS.Type, c : Context) : TS.Type {
+      return t;
+    }
+
+    function mapFromStringDict<T>(s : StringDict<T>) : Map<string, T> {
+      const m : Map<string, T> = new Map();
+      for (let valKey of listToArray(callMethod(s, 'keys-list'))) {
+        m.set(valKey, callMethod(s, "get-value", valKey));
+      }
+      return m;
+    }
+    function mapFromMutableStringDict<T>(s : MutableStringDict<T>) : Map<string, T> {
+      const m : Map<string, T> = new Map();
+      for (let valKey of listToArray(callMethod(s, 'keys-list-now'))) {
+        m.set(valKey, callMethod(s, "get-value-now", valKey));
+      }
+      return m;
+    }
+
+    function simplifyTApp(appType : TJ.Variant<TS.Type, "t-app">, context : Context) : TS.Type {
+      const onto = resolveAlias(appType.dict.onto, context);
+      // TODO: Translate this to TS.
+      return onto;
+    }
+
+    function checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : Context) : void {
+      return _checking(e, expectTyp, topLevel, context);
+    }
+
+    function _checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : Context) : void {
+      context.addLevel();
+      expectTyp = resolveAlias(expectTyp, context);
       return null;
     }
 
-    function _checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : TCS.Context) : void {
+    function synth(e : A.Expr, topLevel : boolean, context : TCS.Context) : TS.Type {
+      return null;
+    }
+
+    function _synth(e : A.Expr, topLevel : boolean, context : TCS.Context) : TS.Type {
       return null;
     }
 
@@ -366,7 +432,7 @@ type SDExports = {
       }
 
 
-      const contextFromModules = typingContext.app(
+      const contextFromModulesToBeReplaced = typingContext.app(
           callMethod(contextGlobVs, 'freeze'),
           callMethod(contextGlobTs, 'freeze'),
           callMethod(contextGlobDTs, 'freeze'),
@@ -378,8 +444,21 @@ type SDExports = {
           context.dict['misc'],
       )
 
+      const contextFromModules = new Context(
+        mapFromMutableStringDict(contextGlobVs),
+        mapFromMutableStringDict(contextGlobTs),
+        mapFromMutableStringDict(contextGlobDTs),
+        mapFromMutableStringDict(contextGlobMods),
+        mapFromMutableStringDict(contextGlobModnames));
 
-      const info = gatherProvides(provides[0], contextFromModules);
+      try {
+        checking(program.dict.block, TS['t-top'].app(program.dict.l, false), true, contextFromModules);
+      }
+      catch(e) {
+        console.error("Got a type-checking error", e);
+      }
+
+      const info = gatherProvides(provides[0], contextFromModulesToBeReplaced);
       return ok.app(typed.app(program, info));
     }
     return runtime.makeModuleReturn({
