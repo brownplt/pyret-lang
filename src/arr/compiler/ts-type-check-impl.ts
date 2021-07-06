@@ -40,7 +40,7 @@ type SDExports = {
       "type-check": "tany"
     }
   },
-  theModule: function(runtime, _, __, SDin: SDExports, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : (TS.Exports), A : (A.Exports), CS : (CS.Exports), TCS : (TCS.Exports)) {
+  theModule: function(runtime, _, __, SDin: SDExports, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : (TS.Exports), A : (A.Exports), CSin : (CS.Exports), TCS : (TCS.Exports)) {
     const SD = SDin.dict.values.dict;
     const {
       ExhaustiveSwitchError,
@@ -48,7 +48,9 @@ type SDExports = {
       listToArray,
       nameToKey,
       nameToName,
-      formatSrcloc
+      sameName,
+      formatSrcloc,
+      map,
     } = tj;
     const { builtin } = SL.dict.values.dict;
     const TS = TSin.dict.values.dict;
@@ -62,7 +64,7 @@ type SDExports = {
       resolveDatatypeByUriValue,
       typeByUri,
     } = TCSH;
-    const { ok } = CS.dict.values.dict;
+    const CS = CSin.dict.values.dict;
     const { 's-global': sGlobal, 's-type-global': sTypeGlobal } = A.dict.values.dict;
     const { 
       typed,
@@ -75,7 +77,7 @@ type SDExports = {
     } = TCS.dict.values.dict;
     
     class TypeCheckFailure extends Error {
-      constructor(errs : CS.CompileError[]) {
+      constructor(...errs : CS.CompileError[]) {
         super("type error " + require('util').inspect(errs));
       }
     }
@@ -91,15 +93,7 @@ type SDExports = {
         }
       }, foldResult.app(base, context));
     }
-    function setInferred(typ: TS.Type, inferred: boolean): TS.Type {
-      return {
-        ...typ,
-        dict: {
-          ...typ.dict,
-          inferred
-        }
-      } as TS.Type;
-    }
+
     function gatherProvides(provide: A.ProvideBlock, context: TCS.Context): TCS.TCInfo {
       switch(provide.$name) {
         case 's-provide-block': {
@@ -219,7 +213,13 @@ type SDExports = {
       info : TCInfo;
       misc : Map<string, [TS.Type[], string]> // miscellaneous info that is used for logging. Keyed by the function name
 
-      constructor(globalTypes, aliases, dataTypes, modules, moduleNames) {
+      constructor(
+        globalTypes: Map<string, TS.Type>, 
+        aliases: Map<string, TS.Type>,
+        dataTypes: Map<string, TS.DataType>,
+        modules: Map<string, TS.ModuleType>,
+        moduleNames: Map<string, string>
+      ) {
         this.globalTypes = globalTypes;
         this.aliases = aliases;
         this.dataTypes = dataTypes;
@@ -251,10 +251,134 @@ type SDExports = {
       return m;
     }
 
+    function stringDictFromMap<T>(m : Map<string, T>): StringDict<T> {
+      return callMethod(mutableStringDictFromMap(m), 'freeze');
+    }
+    function mutableStringDictFromMap<T>(m : Map<string, T>): MutableStringDict<T> {
+      const s = SD['make-mutable-string-dict'].app<T>();
+      for (const [k, v] of m.entries()) {
+        callMethod(s, 'set-now', k, v);
+      }
+      return s;
+    }
+
+    function setTypeLoc(type: TS.Type, loc: SL.Srcloc): TS.Type {
+      const newType = map({}, type);
+      newType.dict.l = loc;
+      return newType;
+    }
+
+    function setInferred(type: TS.Type, inferred: boolean): TS.Type {
+      const newType = map({}, type);
+      newType.dict.inferred = inferred;
+      return newType;
+    }
+
+    function substitute(type: TS.Type, newType: TS.Type, typeVar: TS.Type): TS.Type {
+      switch(type.$name) {
+        case 't-name': return type;
+        case 't-arrow': {
+          const { args, ret, l, inferred } = type.dict;
+          const newArgs = listToArray(args).map((t) => substitute(t, newType, typeVar));
+          const newRet = substitute(ret, newType, typeVar);
+          return TS['t-arrow'].app(runtime.ffi.makeList(newArgs), newRet, l, inferred);
+        }
+        case 't-app': {
+          const { args, onto, l, inferred } = type.dict;
+          const newArgs = listToArray(args).map((t) => substitute(t, newType, typeVar));
+          const newOnto = substitute(onto, newType, typeVar);
+          return TS['t-app'].app(newOnto, runtime.ffi.makeList(newArgs), l, inferred);
+        }
+        case 't-top': return type;
+        case 't-bot': return type;
+        case 't-record': {
+          const { fields, l, inferred } = type.dict;
+          const newFields = mapFromStringDict(fields);
+          for (const key of newFields.keys()) {
+            newFields.set(key, substitute(newFields.get(key), newType, typeVar));
+          }
+          return TS['t-record'].app(stringDictFromMap(newFields), l, inferred);
+        }
+        case 't-tuple': {
+          const { elts, l, inferred } = type.dict;
+          const newElts = listToArray(elts).map((t) => substitute(t, newType, typeVar));
+          return TS['t-tuple'].app(runtime.ffi.makeList(newElts), l, inferred);
+        }
+        case 't-forall': {
+          // Note: doesn't need to be capture-avoiding thanks to resolve-names
+          const { introduces, onto, l, inferred } = type.dict;
+          const newOnto = substitute(onto, newType, typeVar);
+          return TS['t-forall'].app(introduces, newOnto, l, inferred);
+        }
+        case 't-ref': {
+          const { typ, l, inferred } = type.dict;
+          const newTyp = substitute(typ, newType, typeVar);
+          return TS['t-ref'].app(newTyp, l, inferred);
+        }
+        case 't-data-refinement': {
+          const { "data-type": dataType, "variant-name": variantName, l, inferred } = type.dict;
+          const newDataType = substitute(dataType, newType, typeVar);
+          return TS['t-data-refinement'].app(newDataType, variantName, l, inferred);
+        }
+        case 't-var': {
+          switch(typeVar.$name) {
+            case 't-var': {
+              if (sameName(type.dict.id, typeVar.dict.id)) {
+                return setTypeLoc(newType, type.dict.l);
+              } else {
+                return type;
+              }
+            }
+            default: return type;
+          }
+        }
+        case 't-existential': {
+          switch(typeVar.$name) {
+            case 't-existential': {
+              // inferred existentials keep their locations
+              // this is along the lines of inferred argument types etc
+              // uninferred existentials are used to equate different pieces of code
+              // they should not keep their location
+              if (sameName(type.dict.id, typeVar.dict.id)) {
+                if (type.dict.inferred) {
+                  return setTypeLoc(newType, type.dict.l);
+                } else {
+                  return newType;
+                }
+              } else {
+                return type;
+              }
+            }
+            default: return type;
+          }
+        }
+        default: throw new ExhaustiveSwitchError(type);
+      }
+    }
+
     function simplifyTApp(appType : TJ.Variant<TS.Type, "t-app">, context : Context) : TS.Type {
+      const args = listToArray(appType.dict.args);
       const onto = resolveAlias(appType.dict.onto, context);
-      // TODO: Translate this to TS.
-      return onto;
+      switch(onto.$name) {
+        case 't-forall': {
+          const introduces = listToArray(onto.dict.introduces);
+          if (args.length !== introduces.length) {
+            throw new TypeCheckFailure(CS['bad-type-instantiation'].app(appType, introduces.length));
+          }
+          let newOnto: TS.Type = onto;
+          for (let i = 0; i < args.length; i++) {
+            newOnto = substitute(newOnto, args[i], introduces[i]);
+          }
+          return newOnto;
+        }
+        case 't-app': {
+          const newOnto = simplifyTApp(onto, context);
+          return simplifyTApp(
+            TS['t-app'].app(newOnto, appType.dict.args, appType.dict.l, appType.dict.inferred), 
+            context);
+        }
+        default: throw new TypeCheckFailure(CS['bad-type-instantiation'].app(appType, 0));
+      }
     }
 
     function checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : Context) : void {
@@ -459,7 +583,7 @@ type SDExports = {
       }
 
       const info = gatherProvides(provides[0], contextFromModulesToBeReplaced);
-      return ok.app(typed.app(program, info));
+      return CS.ok.app(typed.app(program, info));
     }
     return runtime.makeModuleReturn({
       'type-check': runtime.makeFunction(typeCheck)

@@ -67,6 +67,8 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       nameToName,
       nameToSourceString,
       formatSrcloc,
+      map,
+      visit,
     } = tj;
 
     const { unwrap } = TCSH;
@@ -1686,40 +1688,6 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       });
 
       return [...importStmts, ...fromModules];
-    }
-
-    function visit<T extends { $name: string, dict: {} }>(v : Partial<Record<T["$name"], any>>, d : T) {
-      if(typeof d !== "object" || !("$name" in d)) { throw new Error("Visit failed: " + JSON.stringify(d)); }
-      if(d.$name in v) { v[d.$name](v, d); }
-      else {
-        for(const [k, subd] of Object.entries(d.dict)) {
-          if(typeof subd === 'object' && "$name" in subd) {
-            visit(v, subd as any);
-          }
-        }
-      }
-    }
-
-    function map<T extends { $name: string, dict: {} }, A extends T>(v : Partial<Record<T["$name"], any>>, d : A) : A {
-      if(typeof d !== "object" || !("$name" in d)) { throw new Error("Map failed: " + JSON.stringify(d)); }
-      if(d.$name in v) { return v[d.$name](v, d); }
-      else {
-        const newObj : typeof d = Object.create(Object.getPrototypeOf(d));
-        for(const [k, meta] of Object.entries(d)) {
-          if(k !== "dict") { newObj[k] = meta; }
-        }
-        newObj.dict = Object.create(Object.getPrototypeOf(d.dict));
-        for(const [k, subd] of Object.entries(d.dict)) {
-          if(typeof subd === 'object' && "$name" in subd) {
-            const result = map(v, subd as any);
-            newObj.dict[k] = result;
-          }
-          else {
-            newObj.dict[k] = subd;
-          }
-        }
-        return newObj;
-      }
     }
 
     /**

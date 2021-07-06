@@ -58,9 +58,12 @@ export interface Exports {
   nameToKey : (name: A.Name) => string,
   nameToName : (name: A.Name) => string,
   nameToSourceString: (name: A.Name) => string,
+  sameName: (n1: A.Name, n2: A.Name) => boolean,
   dummyLoc : A.Srcloc,
   compileSrcloc: (context: any, l : A.Srcloc) => J.Expression,
-  formatSrcloc: (loc: A.Srcloc, showFile: boolean) => string 
+  formatSrcloc: (loc: A.Srcloc, showFile: boolean) => string,
+  visit: <T extends { $name: string, dict: {} }>(v : Partial<Record<T["$name"], any>>, d : T) => void,
+  map: <T extends { $name: string, dict: {} }, A extends T>(v : Partial<Record<T["$name"], any>>, d : A) => A,
 }
 
 ({
@@ -390,6 +393,30 @@ export interface Exports {
         case "s-atom": return "atom#" + name.dict.base + "#" + String(name.dict.serial);
       }
     }
+
+    function sameName(n1: A.Name, n2: A.Name): boolean {
+      switch(n1.$name) {
+        case 's-atom': 
+          return n2.$name === n1.$name && 
+                n2.dict.base === n1.dict.base &&
+                n2.dict.serial === n1.dict.serial;
+        case 's-underscore': return n2.$name === n1.$name;
+        case 's-global':  
+          return n2.$name === n1.$name && 
+                 n2.dict.s === n1.dict.s;
+        case 's-module-global':
+          return n2.$name === n1.$name && 
+                n2.dict.s === n1.dict.s;
+        case 's-type-global':
+          return n2.$name === n1.$name && 
+                 n2.dict.s === n1.dict.s;
+        case 's-name':
+          return n2.$name === n1.$name && 
+                 n2.dict.s === n1.dict.s;
+        default:
+          throw new ExhaustiveSwitchError(n1);
+      }
+    }
     
     const dummyLoc : A.Srcloc = {
       $name: "builtin",
@@ -437,6 +464,41 @@ export interface Exports {
       }
     }
 
+    function visit<T extends { $name: string, dict: {} }>(v : Partial<Record<T["$name"], any>>, d : T) {
+      if(typeof d !== "object" || !("$name" in d)) { throw new Error("Visit failed: " + JSON.stringify(d)); }
+      if(d.$name in v) { v[d.$name](v, d); }
+      else {
+        for(const [k, subd] of Object.entries(d.dict)) {
+          if(typeof subd === 'object' && "$name" in subd) {
+            visit(v, subd as any);
+          }
+        }
+      }
+    }
+
+    function map<T extends { $name: string, dict: {} }, A extends T>(v : Partial<Record<T["$name"], any>>, d : A) : A {
+      if(typeof d !== "object" || !("$name" in d)) { throw new Error("Map failed: " + JSON.stringify(d)); }
+      if(d.$name in v) { return v[d.$name](v, d); }
+      else {
+        const newObj : typeof d = Object.create(Object.getPrototypeOf(d));
+        for(const [k, meta] of Object.entries(d)) {
+          if(k !== "dict") { newObj[k] = meta; }
+        }
+        newObj.dict = Object.create(Object.getPrototypeOf(d.dict));
+        for(const [k, subd] of Object.entries(d.dict)) {
+          if(typeof subd === 'object' && "$name" in subd) {
+            const result = map(v, subd as any);
+            newObj.dict[k] = result;
+          }
+          else {
+            newObj.dict[k] = subd;
+          }
+        }
+        return newObj;
+      }
+    }
+
+
 
     return runtime.makeJSModuleReturn({
       ArrayExpression,
@@ -475,9 +537,12 @@ export interface Exports {
       nameToKey,
       nameToName,
       nameToSourceString,
+      sameName,
       dummyLoc,
       compileSrcloc,
-      formatSrcloc
+      formatSrcloc,
+      visit,
+      map,
     });
   }
 })
