@@ -50,6 +50,7 @@ import {
 } from './rhsObject';
 import RHSObjectComponent from './RHSObjectComponent';
 import LinkedCodeMirror from './LinkedCodeMirror';
+import FailureComponent from './FailureComponent';
 
 type StateProps = {
   chunks: Chunk[],
@@ -770,24 +771,25 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             const chunk = chunks[index];
 
             if (chunk.errorState.status === 'failed'
-          && focusedChunk === index) {
+          && focusedChunk === index && !parent) {
               return (
-                <div style={{
-                  alignSelf: 'center',
-                  background: '#FFF2F2',
-                  position: 'absolute',
-                  top: '100%',
-                  width: '40em',
-                  zIndex: 500001,
-                  fontFamily: 'sans-serif',
-                  borderRadius: '3px',
-                  border: '0.3em solid hsl(204, 100%, 74%)',
-                  padding: '0.2em',
-                  marginRight: '1em',
-                  boxShadow: '0 0 1em',
-                }}
+                <div
+                  style={{
+                    alignSelf: 'center',
+                    background: '#FFF2F2',
+                    position: 'absolute',
+                    top: '100%',
+                    width: '40em',
+                    zIndex: 500001,
+                    fontFamily: 'sans-serif',
+                    borderRadius: '3px',
+                    border: '0.3em solid hsl(204, 100%, 74%)',
+                    padding: '0.2em',
+                    marginRight: '1em',
+                    boxShadow: '0 0 1em',
+                  }}
                 >
-                  {chunk.errorState.failures}
+                  {chunk.errorState.failures.map((error) => <FailureComponent failure={error} />)}
                 </div>
               );
             }
@@ -901,6 +903,21 @@ class DefChunk extends React.Component<DefChunkProps, any> {
               } = this.props;
 
               if (displayResultsInline) {
+                const chunk = chunks[index];
+
+                if (chunk.errorState.status === 'failed' && parent) {
+                  return (
+                    <div style={{ textAlign: 'right', display: 'block' }}>
+                      {chunk.errorState.failures.map((failure, i) => (
+                        // eslint-disable-next-line
+                        <div className="chatitor-rhs" key={i}>
+                          <FailureComponent failure={failure} />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+
                 const isSelected = index === focusedChunk;
                 const rhsComponents = thisChunkRHSObjects.map((val) => {
                   if (!isRHSCheck(val) || parent) {

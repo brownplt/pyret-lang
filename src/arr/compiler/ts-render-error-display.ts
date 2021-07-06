@@ -6,6 +6,7 @@ import type * as S from '../compiler/ts-srcloc';
 export interface Exports {
   dict: { values: { dict: {
     'display-to-string': PFunction<(e: ED.ErrorDisplay, embedDisplay: PFunction<(val: any) => string>, stack: List<S.Srcloc>) => string>,
+    'display-to-json': PFunction<(e: ED.ErrorDisplay, embedDisplay: PFunction<(val: any) => string>, stack: List<S.Srcloc>) => object>,
   }}}
 }
 
@@ -16,7 +17,7 @@ export interface Exports {
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']},
     { 'import-type': 'builtin', name: 'srcloc'},
   ],
-  provides: { values: { 'display-to-string': 'tany' } },
+  provides: { values: { 'display-to-string': 'tany', 'display-to-json': 'tany' } },
   nativeRequires: [],
   theModule: function(runtime, _, __, EDimp : ED.Exports, TCH: TCH.Exports, Simp: S.Exports) {
     const { ExhaustiveSwitchError, listToArray, formatSrcloc } = TCH;
@@ -155,14 +156,97 @@ export interface Exports {
       }
     }
 
+    // https://github.com/microsoft/TypeScript/issues/1897
+    type JSONPrim = string|number|null;
+    type JSONObj = { [k: string]: JSONPrim|JSONObj|JSONArr };
+    type JSONArr = Array<JSONPrim|JSONObj|JSONArr>;
+    function serializeSrcLoc(loc: S.Srcloc): JSONObj {
+      return { $name: loc.$name, ...loc.dict, asString: formatSrcloc(loc, true) };
+    }
+    // Some of these maybe should be tagged but aren't and vice versa
+    function displayToJSON(e: ED.ErrorDisplay, embedDisplay: (val: any) => string, stack: S.Srcloc[]): { $name: string } & JSONObj {
+      const recur = (error: ED.ErrorDisplay) => displayToJSON(error, embedDisplay, stack);
+      switch(e.$name) {
+        case 'paragraph':
+        // TODO(luna): filter is-optional?
+        case 'v-sequence':
+        case 'bulleted-sequence': {
+          return { $name: e.$name, contents: listToArray(e.dict.contents).map(recur) };
+        }
+        case 'text': {
+          return { $name: 'text', str: e.dict.str };
+        }
+        case 'embed': {
+          try {
+            const val = e.dict.val;
+            if (val?.dict?.val?.dict?.['render-reason']?.full_meth) {
+              const disp = (val.dict.val.dict['render-reason'].full_meth(val.dict.val));
+              return displayToJSON(disp, embedDisplay, stack);
+            } else {
+              return { $name: 'embed', val: embedDisplay(e.dict.val) };
+            }
+            // Why is this an exception catch?
+          } catch (e) {
+            return { $name: 'embed', val: embedDisplay(e.dict.val) };
+          }
+        }
+        case 'loc':
+        case 'cmcode': {
+          return { $name: e.$name, loc: serializeSrcLoc(e.dict.loc) };
+        }
+        case 'maybe-stack-loc': {
+          const maybeLoc = nthStackFrame(e.dict.n, e.dict['user-frames-only'], stack);
+          if (maybeLoc) {
+            return displayToJSON(e.dict['contents-with-loc'].app(maybeLoc), embedDisplay, stack);
+          } else {
+            return displayToJSON(e.dict['contents-without-loc'], embedDisplay, stack);
+          }
+        }
+        case 'loc-display': {
+          if(e.dict.contents.$name === 'loc' && sameSrcloc(e.dict.loc, e.dict.contents.dict.loc)) {
+            return displayToJSON(e.dict.contents, embedDisplay, stack);
+          } else {
+            return { $name: 'loc-display', 'contents': displayToJSON(e.dict.contents, embedDisplay, stack), loc: serializeSrcLoc(e.dict.loc) };
+          }
+        }
+        case 'code':
+        // TODO(luna): Why does optional originally give us nothing?
+        case 'optional': {
+          return { $name: e.$name, contents: recur(e.dict.contents) };
+        }
+        case 'h-sequence': {
+          // TODO(luna): filter is-optional?
+          return { $name: 'h-sequence', contents: listToArray(e.dict.contents).map(recur), sep: e.dict.sep };
+        }
+        case 'h-sequence-sep': {
+          // TODO(luna): filter is-optional?
+          return { $name: 'h-sequence-sep', contents: listToArray(e.dict.contents).map(recur), sep: e.dict.sep, last: e.dict.last };
+        }
+        case 'highlight': {
+          return {
+            $name: 'highlight',
+            contents: recur(e.dict.contents),
+            locs: listToArray(e.dict.locs).map(serializeSrcLoc),
+            color: e.dict.color.valueOf(),
+          };
+        }
+        default: throw new ExhaustiveSwitchError(e);
+      }
+    }
+
     function displayToString(e: ED.ErrorDisplay, embedDisplay: PFunction<(val: any) => string>, stack: List<S.Srcloc>): string {
       const ans: string[] = [];
       displayToStringInternal(e, embedDisplay.app, listToArray(stack), ans);
       return ans.join("");
     }
 
+    function displayToJSONString(e: ED.ErrorDisplay, embedDisplay: PFunction<(val: any) => string>, stack: List<S.Srcloc>): string {
+      return JSON.stringify(displayToJSON(e, embedDisplay.app, listToArray(stack)))
+    }
+
     const exports : Exports['dict']['values']['dict'] = {
       'display-to-string': runtime.makeFunction(displayToString),
+      'display-to-json': runtime.makeFunction(displayToJSONString),
     };
     return runtime.makeModuleReturn(exports, {});
   }

@@ -554,7 +554,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
             errorState: {
               status: 'failed',
               effect: 'lint',
-              failures: action.errors,
+              failures: action.errors.map((e) => JSON.parse(e)),
               highlights,
             },
             needsJiggle: true,
@@ -656,7 +656,7 @@ function handleCompileFailure(
               errorState: {
                 status: 'failed',
                 effect: 'compile',
-                failures: status.errors,
+                failures: status.errors.map((e) => JSON.parse(e)),
                 highlights: hl ? [...hl, places[i]] : [places[i]],
               },
               needsJiggle: true,

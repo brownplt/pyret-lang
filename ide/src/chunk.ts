@@ -2,6 +2,7 @@
 
 import { Controlled as CodeMirror } from 'react-codemirror2';
 import { v4 as uuidv4 } from 'uuid';
+import { Failure } from './failure';
 
 export const CHUNKSEP = '#.CHUNK#\n';
 
@@ -12,7 +13,7 @@ export const CHUNKSEP = '#.CHUNK#\n';
 
    TODO(michael): this should probably just be called 'state' */
 export type ErrorState =
-  ({ status: 'failed', effect: 'lint' | 'compile', failures: string[], highlights: number[][] }
+  ({ status: 'failed', effect: 'lint' | 'compile', failures: Failure[], highlights: number[][] }
   | { status: 'succeeded', effect: 'lint' | 'compile' }
   | { status: 'succeeded', effect: 'run', result: any }
   | { status: 'notLinted' });
