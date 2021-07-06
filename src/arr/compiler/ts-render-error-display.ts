@@ -12,11 +12,11 @@ export interface Exports {
 
 ({
   requires: [
-    { 'import-type': 'dependency', protocol: 'js-file', args: ['error-display']},,
+    { 'import-type': 'builtin', name: 'error-display'},
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']},
     { 'import-type': 'builtin', name: 'srcloc'},
   ],
-  provides: {},
+  provides: { values: { 'display-to-string': 'tany' } },
   nativeRequires: [],
   theModule: function(runtime, _, __, EDimp : ED.Exports, TCH: TCH.Exports, Simp: S.Exports) {
     const { ExhaustiveSwitchError, listToArray, formatSrcloc } = TCH;

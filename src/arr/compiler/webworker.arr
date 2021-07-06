@@ -3,7 +3,7 @@ import json as J
 import option as O
 import pathlib as P
 import string-dict as SD
-import render-error-display as RED
+import file("./render-error-display.arr") as RED
 import file("./ast-util.arr") as AU
 import file("./cli-module-loader.arr") as CLI
 import file("./compile-structs.arr") as CS
