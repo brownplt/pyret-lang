@@ -12,12 +12,12 @@ import {
 import { ContainerRange } from './Range';
 
 function isList(value: any): boolean {
-  if (typeof value.$brand === 'undefined') {
+  if (typeof value.$name === 'undefined') {
     return false;
   }
-  return (typeof value.$brand.names !== 'undefined' && value.$brand.names[0] === 'first'
-    && value.$brand.names[1] === 'rest')
-    || (value.$brand.names === false && typeof value.partition !== 'undefined');
+  return (typeof value.$fieldNames !== 'undefined' && value.$fieldNames[0] === 'first'
+    && value.$fieldNames[1] === 'rest')
+    || (value.$fieldNames === false && typeof value.partition !== 'undefined');
 }
 
 // A number of Pyret types are not RenderKinds (for example members of sets such

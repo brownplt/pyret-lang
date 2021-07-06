@@ -23,7 +23,7 @@ type ListWidgetProps = {
 function toJSArray<T>(inList: List<T>): Array<T> {
   const res = [];
   let rest = inList;
-  while (rest.$tag !== 0) {
+  while (rest.$name !== 'empty') {
     res.push(rest.first);
     rest = rest.rest;
   }
