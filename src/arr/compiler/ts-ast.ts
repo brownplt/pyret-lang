@@ -683,7 +683,7 @@ export type Ann =
   }
   | { $name: "a-method", dict: { 'l': Loc, 'args': List<Ann>, 'ret': Ann } }
   | { $name: "a-record", dict: { 'l': Loc, 'fields': List<AField> } }
-  | { $name: "a-tuple", dict: { 'l': Loc, 'fields': List<AField> } }
+  | { $name: "a-tuple", dict: { 'l': Loc, 'fields': List<Ann> } }
   | { $name: "a-app", dict: { 'l': Loc, 'ann': Ann, 'args': List<Ann> } }
   | { $name: "a-pred", dict: { 'l': Loc, 'ann': Ann, 'exp': Expr } }
   | { $name: "a-dot", dict: { 'l': Loc, 'obj': Name, 'field': string } }
@@ -1899,7 +1899,7 @@ dict: {values: {dict: {
 'is-a-tuple': PFunction< (val: any) => boolean >
 
 'a-tuple': 
-  PFunction< (l: Loc, fields: List<AField>) => TCH.Variant<Ann, 'a-tuple'> >
+  PFunction< (l: Loc, fields: List<Ann>) => TCH.Variant<Ann, 'a-tuple'> >
 
 'is-a-app': PFunction< (val: any) => boolean >
 

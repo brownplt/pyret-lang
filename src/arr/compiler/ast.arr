@@ -1787,7 +1787,7 @@ data Ann:
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
         self.fields.map(_.tosource()))
     end,
-  | a-tuple(l :: Loc, fields :: List<AField>) with:
+  | a-tuple(l :: Loc, fields :: List<Ann>) with:
     method label(self): "a-tuple" end,
     method tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,

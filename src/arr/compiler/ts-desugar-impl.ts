@@ -95,51 +95,70 @@ type DesugarInfo = {
         return A.dict.values.dict['a-field'].app(f.dict.l, f.dict.name, desugarAnn(f.dict.ann, visitor));
       }
       function desugarAnn(a: A.Ann, visitor): A.Ann {
-        if (a.$name === "a-arrow") {
-          return A.dict.values.dict['a-arrow'].app(
-            a.dict.l,
-            runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAnn(arg, visitor))),
-            desugarAnn(a.dict.ret, visitor),
-            a.dict['use-parens'],
-          );
-        } else if (a.$name === 'a-arrow-argnames') {
-          return A.dict.values.dict['a-arrow-argnames'].app(
-            a.dict.l,
-            runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAfield(arg, visitor))), // should be desugarAnn but typecheck fails
-            desugarAnn(a.dict.ret, visitor),
-            a.dict['use-parens'],
-          );
-        } else if (a.$name === 'a-method') {
-          return A.dict.values.dict['a-arrow'].app(
-            a.dict.l,
-            runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAnn(arg, visitor))),
-            desugarAnn(a.dict.ret, visitor),
-            true,
-          );
-        } else if (a.$name === 'a-app') {
-          return A.dict.values.dict['a-app'].app(
-            a.dict.l,
-            desugarAnn(a.dict.ann, visitor),
-            runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAnn(arg, visitor))),
-          );
-        } else if (a.$name === 'a-record') {
-          return A.dict.values.dict['a-record'].app(
-            a.dict.l,
-            runtime.ffi.makeList(listToArray(a.dict.fields).map(arg => desugarAfield(arg, visitor))),
-          );
-        } else if (a.$name === 'a-tuple') {
-          return A.dict.values.dict['a-tuple'].app(
-            a.dict.l,
-            runtime.ffi.makeList(listToArray(a.dict.fields).map(arg => desugarAfield(arg, visitor))) // should be desugarAnn but typecheckfails
-          )
-        } else if (a.$name === 'a-pred') {
-          return A.dict.values.dict['a-pred'].app(
-            a.dict.l,
-            desugarAnn(a.dict.ann, visitor),
-            map(visitor, a.dict.exp),
-          )
-        } else {
-          return a;
+        switch (a.$name) {
+          case "a-arrow": {
+            return A.dict.values.dict['a-arrow'].app(
+              a.dict.l,
+              runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAnn(arg, visitor))),
+              desugarAnn(a.dict.ret, visitor),
+              a.dict['use-parens'],
+            );
+          }
+          case 'a-arrow-argnames': {
+            return A.dict.values.dict['a-arrow-argnames'].app(
+              a.dict.l,
+              runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAfield(arg, visitor))),
+              desugarAnn(a.dict.ret, visitor),
+              a.dict['use-parens'],
+            );
+          } 
+          case 'a-method': {
+            return A.dict.values.dict['a-arrow'].app(
+              a.dict.l,
+              runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAnn(arg, visitor))),
+              desugarAnn(a.dict.ret, visitor),
+              true,
+            );
+          } 
+          case 'a-app': {
+            return A.dict.values.dict['a-app'].app(
+              a.dict.l,
+              desugarAnn(a.dict.ann, visitor),
+              runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAnn(arg, visitor))),
+            );
+          } 
+          case 'a-record': {
+            return A.dict.values.dict['a-record'].app(
+              a.dict.l,
+              runtime.ffi.makeList(listToArray(a.dict.fields).map(arg => desugarAfield(arg, visitor))),
+            );
+          }
+          case 'a-tuple': {
+            return A.dict.values.dict['a-tuple'].app(
+              a.dict.l,
+              runtime.ffi.makeList(listToArray(a.dict.fields).map(arg => desugarAnn(arg, visitor)))
+            )
+          } 
+          case 'a-pred': {
+            return A.dict.values.dict['a-pred'].app(
+              a.dict.l,
+              desugarAnn(a.dict.ann, visitor),
+              map(visitor, a.dict.exp),
+            )
+          }
+          case 'a-blank':
+          case 'a-any':
+          case 'a-name':
+          case 'a-type-var':
+          case 'a-dot': {
+            return a;
+          }
+          case 'a-checked': {
+            throw new InternalCompilerError("a-checked should not appear before desugaring");
+          }
+          default: {
+            throw new ExhaustiveSwitchError(a);
+          }
         }
       }
       function desugarIf(l: A.Srcloc, branches: List<TJ.Variant<A.IfBranch, 's-if-branch'> | TJ.Variant<A.IfPipeBranch, 's-if-pipe-branch'>>, _else: A.Expr, blocky: boolean, visitor) {

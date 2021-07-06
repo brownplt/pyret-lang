@@ -67,7 +67,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
     | a-arrow(l, args, ret, use-parens) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
     | a-arrow-argnames(l, args, ret, use-parens) =>
-      A.a-arrow-argnames(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
+      A.a-arrow-argnames(l, args.map(desugar-afield), desugar-ann(ret), use-parens)
     | a-method(l, args, ret) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), true)
     | a-app(l, base, args) =>
@@ -84,9 +84,14 @@ end
 fun desugar(program :: A.Program, options):
   cases(C.Pipeline) options.pipeline:
     | pipeline-ts-anchor(args) => 
-      if args.member("desugar"): # Only use TS version if we enable it in pipeline
+      if args.member("desugar") block: # Only use TS version if we enable it in pipeline
         # Note: passing `options` in to TSTC so that it can use options.log for debug output
-        TSD.desugar(program, options)
+        answer = TSD.desugar(program, options)
+        reference = internal-desugar(program)
+        when answer <> reference:
+          options.log(to-repr(program), none)
+        end
+        answer
       else:
         internal-desugar(program)
       end
