@@ -128,7 +128,8 @@ function Chatitor({
   const allChunks = chunks.map(setupChunk);
 
   const togetherStyle = {
-    width: '30em',
+    width: '40em',
+    maxWidth: '70%',
     margin: '2em auto',
   };
   return (

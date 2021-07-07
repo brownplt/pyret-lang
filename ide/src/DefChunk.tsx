@@ -753,6 +753,173 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       });
     };
 
+    const chunkEditorPart = parent ? (
+      <div style={{ width: '100%' }}>
+        <LinkedCodeMirror
+          parent={parent}
+          start={startLine}
+          end={startLine + initialEditor.getValue().split('\n').length}
+          onMouseDown={(editor: any, e: any) => {
+            this.handleMouseDown(e);
+          }}
+          editorDidMount={handleMount}
+          options={{
+            mode: 'pyret',
+            theme: 'default',
+            lineWrapping: true,
+            autofocus: index === focusedChunk,
+          }}
+          onBeforeChange={() => {
+            this.scheduleUpdate();
+          }}
+          onSelection={(editor, data) => {
+            this.handleOnSelection(data);
+          }}
+          onKeyDown={(editor, event) => {
+            switch ((event as any).key) {
+              case 'Enter':
+                this.handleEnter(editor, event);
+                break;
+              case 'Backspace':
+                this.handleBackspace(event);
+                break;
+              case 'Delete':
+                this.handleDelete(event);
+                break;
+              case 'ArrowUp':
+                this.handleArrowUp(editor, event);
+                break;
+              case 'ArrowDown':
+                this.handleArrowDown(editor, event);
+                break;
+              default:
+            }
+          }}
+        />
+      </div>
+    )
+      : (
+        <CodeMirror
+          ref={this.input}
+          onMouseDown={(editor: any, e: any) => {
+            this.handleMouseDown(e);
+          }}
+          editorDidMount={handleMount}
+          options={{
+            mode: 'pyret',
+            theme: 'default',
+            lineNumbers: true,
+            lineWrapping: true,
+            lineNumberFormatter: (l) => String(l + startLine),
+            autofocus: index === focusedChunk,
+          }}
+          onBeforeChange={() => {
+            this.scheduleUpdate();
+          }}
+          onSelection={(editor, data) => {
+            this.handleOnSelection(data);
+          }}
+          onKeyDown={(editor, event) => {
+            switch ((event as any).key) {
+              case 'Enter':
+                this.handleEnter(editor, event);
+                break;
+              case 'Backspace':
+                this.handleBackspace(event);
+                break;
+              case 'Delete':
+                this.handleDelete(event);
+                break;
+              case 'ArrowUp':
+                this.handleArrowUp(editor, event);
+                break;
+              case 'ArrowDown':
+                this.handleArrowDown(editor, event);
+                break;
+              default:
+            }
+          }}
+          autoCursor
+        />
+      );
+
+    const chunkResultsPart = (
+      <div>
+        {(() => {
+          const {
+            thisChunkRHSObjects,
+            displayResultsInline,
+          } = this.props;
+
+          if (displayResultsInline) {
+            const chunk = chunks[index];
+
+            if (chunk.errorState.status === 'failed' && parent) {
+              return (
+                <div style={{ textAlign: 'right', display: 'block' }}>
+                  {chunk.errorState.failures.map((failure, i) => (
+                    // eslint-disable-next-line
+                    <div className="chatitor-rhs" key={i}>
+                      <FailureComponent failure={failure} />
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            const isSelected = index === focusedChunk;
+            const rhsComponents = thisChunkRHSObjects.map((val) => {
+              if (!isRHSCheck(val) || parent) {
+                if (parent) {
+                  return (
+                    <RHSObjectComponent
+                      key={getRow(val)}
+                      rhsObject={val}
+                      isSelected={false}
+                      className="chatitor-rhs"
+                    />
+                  );
+                }
+                return (
+                  <RHSObjectComponent
+                    key={getRow(val)}
+                    rhsObject={val}
+                    isSelected={false}
+                    className="chunks-rhs"
+                  />
+                );
+              }
+              return false;
+            });
+
+            return (
+              <div
+                style={parent ? {
+                  display: 'flex',
+                  width: '100%',
+                  justifyContent: 'flex-end',
+                  marginBottom: '0.5em',
+                } : {
+                  margin: 0,
+                  background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
+                  borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
+                  borderBottom: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                }}
+              >
+                {rhsComponents.length === 0 && parent ? <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div> : rhsComponents}
+              </div>
+            );
+          }
+
+          return false;
+        })()}
+      </div>
+    );
+
     return (
       <div
         style={parent ? {} : {
@@ -798,7 +965,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           })()}
         </div>
         <div
-          style={parent ? {} : {
+          style={parent ? { } : {
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
@@ -807,163 +974,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             this.handleMouseEnter(event);
           }}
         >
-          {parent
-            ? (
-              <LinkedCodeMirror
-                parent={parent}
-                start={startLine}
-                end={startLine + initialEditor.getValue().split('\n').length}
-                onMouseDown={(editor: any, e: any) => {
-                  this.handleMouseDown(e);
-                }}
-                editorDidMount={handleMount}
-                options={{
-                  mode: 'pyret',
-                  theme: 'default',
-                  lineWrapping: true,
-                  autofocus: index === focusedChunk,
-                }}
-                onBeforeChange={() => {
-                  this.scheduleUpdate();
-                }}
-                onSelection={(editor, data) => {
-                  this.handleOnSelection(data);
-                }}
-                onKeyDown={(editor, event) => {
-                  switch ((event as any).key) {
-                    case 'Enter':
-                      this.handleEnter(editor, event);
-                      break;
-                    case 'Backspace':
-                      this.handleBackspace(event);
-                      break;
-                    case 'Delete':
-                      this.handleDelete(event);
-                      break;
-                    case 'ArrowUp':
-                      this.handleArrowUp(editor, event);
-                      break;
-                    case 'ArrowDown':
-                      this.handleArrowDown(editor, event);
-                      break;
-                    default:
-                  }
-                }}
-              />
-            )
-            : (
-              <CodeMirror
-                ref={this.input}
-                onMouseDown={(editor: any, e: any) => {
-                  this.handleMouseDown(e);
-                }}
-                editorDidMount={handleMount}
-                options={{
-                  mode: 'pyret',
-                  theme: 'default',
-                  lineNumbers: true,
-                  lineWrapping: true,
-                  lineNumberFormatter: (l) => String(l + startLine),
-                  autofocus: index === focusedChunk,
-                }}
-                onBeforeChange={() => {
-                  this.scheduleUpdate();
-                }}
-                onSelection={(editor, data) => {
-                  this.handleOnSelection(data);
-                }}
-                onKeyDown={(editor, event) => {
-                  switch ((event as any).key) {
-                    case 'Enter':
-                      this.handleEnter(editor, event);
-                      break;
-                    case 'Backspace':
-                      this.handleBackspace(event);
-                      break;
-                    case 'Delete':
-                      this.handleDelete(event);
-                      break;
-                    case 'ArrowUp':
-                      this.handleArrowUp(editor, event);
-                      break;
-                    case 'ArrowDown':
-                      this.handleArrowDown(editor, event);
-                      break;
-                    default:
-                  }
-                }}
-                autoCursor
-              />
-            )}
-          <div>
-            {(() => {
-              const {
-                thisChunkRHSObjects,
-                displayResultsInline,
-              } = this.props;
-
-              if (displayResultsInline) {
-                const chunk = chunks[index];
-
-                if (chunk.errorState.status === 'failed' && parent) {
-                  return (
-                    <div style={{ textAlign: 'right', display: 'block' }}>
-                      {chunk.errorState.failures.map((failure, i) => (
-                        // eslint-disable-next-line
-                        <div className="chatitor-rhs" key={i}>
-                          <FailureComponent failure={failure} />
-                        </div>
-                      ))}
-                    </div>
-                  );
-                }
-
-                const isSelected = index === focusedChunk;
-                const rhsComponents = thisChunkRHSObjects.map((val) => {
-                  if (!isRHSCheck(val) || parent) {
-                    if (parent) {
-                      return (
-                        <RHSObjectComponent
-                          key={getRow(val)}
-                          rhsObject={val}
-                          isSelected={false}
-                          className="chatitor-rhs"
-                        />
-                      );
-                    }
-                    return (
-                      <RHSObjectComponent
-                        key={getRow(val)}
-                        rhsObject={val}
-                        isSelected={false}
-                        className="chunks-rhs"
-                      />
-                    );
-                  }
-                  return false;
-                });
-
-                return (
-                  <div
-                    style={parent ? { textAlign: 'right', display: 'block' } : {
-                      margin: 0,
-                      background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
-                      borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
-                      borderBottom: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
-                      width: '100%',
-                      display: 'flex',
-                      flexDirection: 'row',
-                      justifyContent: 'flex-end',
-                    }}
-                  >
-                    {rhsComponents.length === 0 && parent ? <div className="chatitor-rhs pending"> . . . </div> : rhsComponents}
-                  </div>
-                );
-              }
-
-              return false;
-            })()}
-          </div>
+          { chunkEditorPart }
+          { chunkResultsPart }
         </div>
       </div>
     );

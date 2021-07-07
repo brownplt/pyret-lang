@@ -42,7 +42,7 @@
    * breaks non-inline positioned elements, but this !important override fixes it */
   min-height: 0 !important;
   padding: 1em;
-  width: 35em;
+  width: 45em;
   margin: 0 auto;
   margin-bottom: 1em;
 }
@@ -52,12 +52,14 @@
 
 .chatitor-rhs {
   padding-left: 1em;
-  display: inline-block;
   border-radius: 0.5em;
-  background-color: rgb(239 226 208);
+  background-color: #eee;
   border-bottom-right-radius: 0;
   margin: 0;
   padding: 0.7em;
+  width: 90%;
+  float: right;
+  overflow: auto;
 }
 .chatitor-rhs.pending {
   background-color: transparent;
