@@ -238,8 +238,54 @@ type SDExports = {
       }
     }   
 
-    function resolveAlias(t : TS.Type, c : Context) : TS.Type {
-      return t;
+    function resolveAlias(type : TS.Type, context : Context) : TS.Type {
+      switch(type.$name) {
+        case 't-name': {
+          const { "module-name": aName, id, l, inferred } = type.dict;
+          switch(aName.$name) {
+            case 'dependency': {
+              throw new InternalCompilerError(`Should not get dependency in typechecker: ${aName.dict.dep}`);
+            }
+            case 'local': {
+              const aliased = context.aliases.get(nameToKey(id));
+              if (aliased === undefined) { return type; }
+              const resolved = resolveAlias(aliased, context)
+              return setLocAndInferred(resolved, l, inferred);
+            }
+            case 'module-uri': {
+              const mod = aName.dict.uri;
+              if (mod === 'builtin') {
+                const aliased = context.aliases.get(nameToKey(id));
+                if (aliased === undefined) { return type; }
+                return setLocAndInferred(aliased, l, inferred);
+              } else {
+                const modtyp = context.modules.get(mod);
+                if (modtyp === undefined) {
+                  throw new InternalCompilerError(`Module not found with name ${mod}`)
+                }
+                const dataType = callMethod(modtyp.dict.types, 'get', nameToName(id));
+                switch(dataType.$name) {
+                  case 'some': return type;
+                  case 'none': {
+                    const aliased = callMethod(modtyp.dict.aliases, 'get', nameToName(id));
+                    switch(aliased.$name) {
+                      case 'none': return type;
+                      case 'some': {
+                        const resolved = resolveAlias(aliased.dict.value, context);
+                        return setLocAndInferred(resolved, l, inferred);
+                      }
+                      default: throw new ExhaustiveSwitchError(aliased);
+                    }
+                  }
+                  default: throw new ExhaustiveSwitchError(dataType);
+                }
+              }
+            }
+            default: throw new ExhaustiveSwitchError(aName);
+          }
+        }
+        default: return type;
+      }
     }
 
     function mapFromStringDict<T>(s : StringDict<T>) : Map<string, T> {
@@ -276,6 +322,13 @@ type SDExports = {
 
     function setInferred(type: TS.Type, inferred: boolean): TS.Type {
       const newType = map({}, type);
+      newType.dict.inferred = inferred;
+      return newType;
+    }
+
+    function setLocAndInferred(type: TS.Type, loc: SL.Srcloc, inferred: boolean): TS.Type {
+      const newType = map({}, type);
+      newType.dict.l = loc;
       newType.dict.inferred = inferred;
       return newType;
     }
