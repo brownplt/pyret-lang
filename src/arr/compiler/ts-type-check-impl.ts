@@ -95,6 +95,55 @@ type SDExports = {
       }, foldResult.app(base, context));
     }
 
+    function typeKey(type: TS.Type): string {
+      switch(type.$name) {
+        case 't-name': {
+          const { "module-name": modName, id } = type.dict;
+          switch(modName.$name) {
+            case 'local': return nameToKey(id);
+            case 'module-uri': return `${modName.dict.uri}.${nameToKey(id)}`;
+            case 'dependency': 
+              throw new InternalCompilerError(`Should not get dependency in type-checker: ${modName.dict.dep}`);
+            default: throw new ExhaustiveSwitchError(modName);
+          }
+        }
+        case 't-arrow': {
+          const { args, ret } = type.dict;
+          return `(${listToArray(args).map(typeKey).join(", ")} -> ${typeKey(ret)})`;
+        }
+        case 't-app': {
+          const { onto, args } = type.dict;
+          return `${typeKey(onto)}<${listToArray(args).map(typeKey).join(", ")}>`;
+        }
+        case 't-top': return 'Any';
+        case 't-bot': return 'Bot';
+        case 't-record': {
+          const fields = mapFromStringDict(type.dict.fields);
+          const fieldStrs = [];
+          for (const [field, typ] of fields) {
+            fieldStrs.push(`${field} :: ${typeKey(typ)}`);
+          }
+          return `{${fieldStrs.join(", ")}}`;
+        }
+        case 't-tuple': {
+          const elts = listToArray(type.dict.elts);
+          return `{${elts.map(typeKey).join("; ")}}`;
+        }
+        case 't-forall': {
+          const { introduces, onto } = type.dict;
+          return `<${listToArray(introduces).map(typeKey).join(", ")}>${typeKey(onto)}`;
+        }
+        case 't-ref': return `ref ${typeKey(type.dict.typ)}`;
+        case 't-data-refinement': {
+          const { "data-type": dataType, "variant-name": variantName } = type.dict;
+          return `(${typeKey(dataType)}%is-${variantName})`;
+        }
+        case 't-var': return nameToKey(type.dict.id);
+        case 't-existential': return nameToKey(type.dict.id);
+        default: throw new ExhaustiveSwitchError(type);
+      }
+    }
+
     function gatherProvides(provide: A.ProvideBlock, context: TCS.Context): TCS.TCInfo {
       switch(provide.$name) {
         case 's-provide-block': {
@@ -196,7 +245,137 @@ type SDExports = {
       }
     }
 
+    // NOTE(Ben): In places where I use arrays instead of Pyret lists,
+    // I use Array.push rather than Array.unshift, so the arrays
+    // aren't necessarily in the same order as they were in the Pyret
+    // implementation.  I don't know whether this will be important.
+    type ExampleTypeInfo = {
+      existential: TS.Type,
+      annTypes: {argTypes: TS.Type[], retType : TS.Type, loc : SL.Srcloc},
+      exampleTypes: TS.Type[],
+      checkFunction: (type: TS.Type, context: Context) => TS.Type,
+      functionName: string
+    };
+
+    type ExampleTypes = Map<string, ExampleTypeInfo>;
+    
+    type FieldConstraint = Map<string, TS.Type[]>;
+    class ConstraintLevel {
+      // the constrained existentials
+      variables : Set<TS.Type>;
+      // list of {subtype; supertype}
+      constraints : Array<{subtype: TS.Type, supertype: TS.Type}>;
+      // list of {existential; t-data-refinement} 
+      refinementConstraints : Array<{existential: TS.Type, dataRefinement: TJ.Variant<TS.Type, 't-data-refinement'>}>;
+      // type -> {type, field labels -> field types (with the location of their use)}
+      fieldConstraints : Map<string, [TS.Type, FieldConstraint]>; 
+      // types for examples?
+      exampleTypes : ExampleTypes;
+
+      constructor() {
+        this.variables = new Set();
+        this.constraints = [];
+        this.refinementConstraints = [];
+        this.fieldConstraints = new Map();
+        this.exampleTypes = new Map();
+      }
+    }
     class ConstraintSystem {
+      levels: ConstraintLevel[];
+      constructor() {
+        this.levels = [];
+      }
+      ensureLevel(msg : string): void {
+        if (this.levels.length === 0) {
+          throw new InternalCompilerError(msg);
+        }
+      }
+      curLevel(): ConstraintLevel { return this.levels[this.levels.length - 1]; }
+      addVariable(variable : TS.Type): void {
+        this.ensureLevel("Can't add variable to an uninitialized system");
+        if (variable.$name === 't-existential') {
+          this.curLevel().variables.add(variable);
+        }
+      }
+      addVariableSet(variables: Set<TS.Type> | TS.Type[]): void {
+        this.ensureLevel("Can't add variables to an uninitialized system");
+        const curLevel = this.curLevel();
+        for (const variable of variables) {
+          curLevel.variables.add(variable);
+        }
+      }
+      addConstraint(subtype: TS.Type, supertype: TS.Type): void {
+        // inlining the call to ensureLevel so we don't needlessly construct the message
+        if (this.levels.length === 0) { 
+          const msg = `Can't add constraint to an uninitialized system: ${JSON.stringify(subtype)} = ${JSON.stringify(supertype)}\n${formatSrcloc(subtype.dict.l, true)}\n${formatSrcloc(supertype.dict.l, true)}`;
+          throw new InternalCompilerError(msg);
+        }
+        if (subtype.$name === 't-existential' && supertype.$name === 't-data-refinement') {
+          this.curLevel().refinementConstraints.push({
+            existential: subtype,
+            dataRefinement: supertype,
+          });
+        } else if (supertype.$name === 't-existential' && subtype.$name === 't-data-refinement') {
+          this.curLevel().refinementConstraints.push({
+            existential: supertype,
+            dataRefinement: subtype,
+          });
+        } else {
+          this.curLevel().constraints.push({ subtype, supertype });
+        }
+      }
+      addFieldConstraint(type: TS.Type, fieldName: string, fieldType: TS.Type): void {
+        this.ensureLevel("Can't add field constraints to an uninitialized system");
+        const curLevel = this.curLevel();
+        const typKey = typeKey(type);
+        if (curLevel.fieldConstraints.has(typKey)) {
+          const [_typ, labelMapping] = curLevel.fieldConstraints.get(typKey);
+          if (labelMapping.has(fieldName)) {
+            labelMapping.get(fieldName).push(fieldType);
+          } else {
+            labelMapping.set(fieldName, [fieldType]);
+          }
+        } else {
+          const newMap: FieldConstraint = new Map();
+          newMap.set(fieldName, [fieldType]);
+          curLevel.fieldConstraints.set(typKey, [type, newMap]);
+        }
+      }
+      addExampleVariable(
+        existential: TS.Type,
+        argTypes: TS.Type[],
+        retType: TS.Type,
+        loc: SL.Srcloc, 
+        checkFunction: ExampleTypeInfo['checkFunction'],
+        functionName: string
+      ): void {
+        this.ensureLevel("Can't add example variable to an uninitialized system");
+        this.curLevel().exampleTypes.set(typeKey(existential), {
+          existential,
+          annTypes: { argTypes, retType, loc },
+          exampleTypes: [],
+          checkFunction,
+          functionName
+        })
+      }
+      addExampleType(existential: TS.Type, type: TS.Type): void {
+        const existentialKey = typeKey(existential);
+        let level = this.levels.length - 1;
+        while (level >= 0) {
+          const curLevel = this.levels[level];
+          if (!curLevel.exampleTypes.has(existentialKey)) {
+            level -= 1;
+          } else {
+            const curInfo = curLevel.exampleTypes.get(existentialKey);
+            curInfo.exampleTypes.push(type);
+            return;
+          }
+        }
+        throw new InternalCompilerError("Can't add example type to an uninitialized system");
+      }
+      addLevel() : void {
+        this.levels.push(new ConstraintLevel());
+      }
 
     }
 
@@ -229,12 +408,11 @@ type SDExports = {
       }
 
       addLevel() : void {
-
+        this.constraints.addLevel();
       }
 
-      addVariableSet(vars: TS.Type[]): void {
-        // TODO: essentially,
-        // this.constraints.add-variable-set(vars)
+      addVariableSet(vars: Set<TS.Type> | TS.Type[]): void {
+        this.constraints.addVariableSet(vars)
       }
     }   
 
