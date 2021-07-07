@@ -71,10 +71,7 @@ type DesugarInfo = {
     */
     function desugar(program: A.Program, options): DesugarInfo {
       const {
-        ExhaustiveSwitchError,
-        InternalCompilerError,
         listToArray,
-        nameToKey,
         map,
       } = tj;
 
@@ -91,76 +88,6 @@ type DesugarInfo = {
         const str = A.dict.values.dict['s-str'].app(l, typ);
         return A.dict.values.dict['s-prim-app'].app(l, "throwNoBranchesMatched", runtime.ffi.makeList([srcloc, str]), flatPrimApp);
       }
-      function desugarAfield(f: A.AField, visitor): A.AField {
-        return A.dict.values.dict['a-field'].app(f.dict.l, f.dict.name, desugarAnn(f.dict.ann, visitor));
-      }
-      function desugarAnn(a: A.Ann, visitor): A.Ann {
-        switch (a.$name) {
-          case "a-arrow": {
-            return A.dict.values.dict['a-arrow'].app(
-              a.dict.l,
-              runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAnn(arg, visitor))),
-              desugarAnn(a.dict.ret, visitor),
-              a.dict['use-parens'],
-            );
-          }
-          case 'a-arrow-argnames': {
-            return A.dict.values.dict['a-arrow-argnames'].app(
-              a.dict.l,
-              runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAfield(arg, visitor))),
-              desugarAnn(a.dict.ret, visitor),
-              a.dict['use-parens'],
-            );
-          } 
-          case 'a-method': {
-            return A.dict.values.dict['a-arrow'].app(
-              a.dict.l,
-              runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAnn(arg, visitor))),
-              desugarAnn(a.dict.ret, visitor),
-              true,
-            );
-          } 
-          case 'a-app': {
-            return A.dict.values.dict['a-app'].app(
-              a.dict.l,
-              desugarAnn(a.dict.ann, visitor),
-              runtime.ffi.makeList(listToArray(a.dict.args).map(arg => desugarAnn(arg, visitor))),
-            );
-          } 
-          case 'a-record': {
-            return A.dict.values.dict['a-record'].app(
-              a.dict.l,
-              runtime.ffi.makeList(listToArray(a.dict.fields).map(arg => desugarAfield(arg, visitor))),
-            );
-          }
-          case 'a-tuple': {
-            return A.dict.values.dict['a-tuple'].app(
-              a.dict.l,
-              runtime.ffi.makeList(listToArray(a.dict.fields).map(arg => desugarAnn(arg, visitor)))
-            )
-          } 
-          case 'a-pred': {
-            return A.dict.values.dict['a-pred'].app(
-              a.dict.l,
-              desugarAnn(a.dict.ann, visitor),
-              map(visitor, a.dict.exp),
-            )
-          }
-          case 'a-blank':
-          case 'a-any':
-          case 'a-name':
-          case 'a-type-var':
-          case 'a-dot': {
-            return a;
-          }
-          case 'a-checked': {
-            throw new InternalCompilerError("a-checked should not appear before desugaring");
-          }
-          default: {
-            throw new ExhaustiveSwitchError(a);
-          }
-        }
-      }
       function desugarIf(l: A.Srcloc, branches: List<TJ.Variant<A.IfBranch, 's-if-branch'> | TJ.Variant<A.IfPipeBranch, 's-if-pipe-branch'>>, _else: A.Expr, blocky: boolean, visitor) {
         let dsElse = map(visitor, _else);
         return listToArray(branches).reduceRight((acc, branch) => {
@@ -175,45 +102,6 @@ type DesugarInfo = {
             acc,
             blocky);
         }, dsElse);
-      }
-      function desugarCasesBind(cb: A.CasesBind, visitor) {
-        if (cb.$name === 's-cases-bind') {
-          return A.dict.values.dict['s-cases-bind'].app(
-            cb.dict.l,
-            cb.dict['field-type'],
-            desugarBind(cb.dict.bind, visitor),
-          )
-        }
-      }
-      function desugarCaseBranch(c: A.CasesBranch, visitor) {
-        if (c.$name === 's-cases-branch') {
-          return A.dict.values.dict['s-cases-branch'].app(
-            c.dict.l,
-            c.dict['pat-loc'],
-            c.dict.name,
-            runtime.ffi.makeList(listToArray(c.dict.args).map(arg => desugarCasesBind(arg, visitor))),
-            map(visitor, c.dict.body)
-          );
-        } else if (c.$name === 's-singleton-cases-branch') {
-          return A.dict.values.dict['s-singleton-cases-branch'].app(
-            c.dict.l,
-            c.dict['pat-loc'],
-            c.dict.name,
-            map(visitor, c.dict.body),
-          );
-        }
-      }
-      function desugarBind(b: A.Bind, visitor) {
-        if (b.$name === 's-bind') {
-          return A.dict.values.dict['s-bind'].app(
-            b.dict.l,
-            b.dict.shadows,
-            b.dict.id,
-            desugarAnn(b.dict.ann, visitor)
-          );
-        } else {
-          throw "Non-bind given to desugar-bind: "; // need to add torepr
-        }
       }
       // options.dict.log.app("Hi from ts-desugar-impl!\n", runtime.ffi.makeNone());
       const generatedBinds = SD.dict.values.dict['make-mutable-string-dict'].app<CS.ValueBind>();
@@ -262,25 +150,8 @@ type DesugarInfo = {
         's-if-pipe-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-pipe-else'>) => {
           return desugarIf(expr.dict.l, expr.dict.branches, expr.dict._else, expr.dict.blocky, visitor);
         },
-        's-cases': (visitor, expr: TJ.Variant<A.Expr, 's-cases'>) => {
-          return A.dict.values.dict['s-cases'].app(
-            expr.dict.l,
-            desugarAnn(expr.dict.typ, visitor),
-            map(visitor, expr.dict.val),
-            runtime.ffi.makeList(listToArray(expr.dict.branches).map(branch => desugarCaseBranch(branch, visitor))),
-            expr.dict.blocky
-          );
-        },
-        's-cases-else': (visitor, expr: TJ.Variant<A.Expr, 's-cases-else'>) => {
-          return A.dict.values.dict['s-cases-else'].app(
-            expr.dict.l,
-            desugarAnn(expr.dict.typ, visitor),
-            map(visitor, expr.dict.val),
-            runtime.ffi.makeList(listToArray(expr.dict.branches).map(branch => desugarCaseBranch(branch, visitor))),
-            map(visitor, expr.dict._else),
-            expr.dict.blocky
-          );
-        },
+        // s-cases is uniform
+        // s-cases-else is uniform
       };
       const desugared = map(dsVisitor, program);
       return runtime.makeObject({
