@@ -853,14 +853,15 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
           if (displayResultsInline) {
             const chunk = chunks[index];
+            const { editor } = chunk;
 
-            if (chunk.errorState.status === 'failed' && parent) {
+            if (chunk.errorState.status === 'failed' && parent && 'markText' in editor) {
               return (
                 <div style={{ textAlign: 'right', display: 'block' }}>
                   {chunk.errorState.failures.map((failure, i) => (
                     // eslint-disable-next-line
                     <div className="chatitor-rhs" key={i}>
-                      <FailureComponent failure={failure} />
+                      <FailureComponent failure={failure} editor={editor} />
                     </div>
                   ))}
                 </div>
@@ -938,7 +939,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             const chunk = chunks[index];
 
             if (chunk.errorState.status === 'failed'
-          && focusedChunk === index && !parent) {
+          && focusedChunk === index && !parent && 'markText' in initialEditor) {
               return (
                 <div
                   style={{
@@ -956,7 +957,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                     boxShadow: '0 0 1em',
                   }}
                 >
-                  {chunk.errorState.failures.map((error) => <FailureComponent failure={error} />)}
+                  {chunk.errorState.failures.map((error) => (
+                    <FailureComponent failure={error} editor={initialEditor} />
+                  ))}
                 </div>
               );
             }

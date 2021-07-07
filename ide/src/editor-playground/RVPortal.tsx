@@ -41,7 +41,10 @@ export default class RVPortal extends React.PureComponent<RVProps, RVState> {
     const { portal, widget } = this.state;
     if (oldProps.line !== line) {
       editor.removeLineWidget(widget as CM.LineWidget);
-      editor.addLineWidget(line, portal, lwOptions);
+      // eslint-disable-next-line
+      this.setState({
+        widget: editor.addLineWidget(line, portal, lwOptions),
+      });
     }
     widget?.changed();
   }
