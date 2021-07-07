@@ -180,11 +180,15 @@ sharing:
   end,
   # this method calls generalize as it will only ever be called on let-bound bindings
   method substitute-in-binds(self, solution :: ConstraintSolution):
-    new-binds = self.binds.fold-keys(lam(key, binds):
-      bound-type = binds.get-value(key)
-      binds.set(key, solution.generalize(solution.apply(bound-type)))
-    end, self.binds)
-    self.set-binds(new-binds)
+    if solution.is-empty(): 
+      self
+    else:
+      new-binds = self.binds.fold-keys(lam(key, binds):
+        bound-type = binds.get-value(key)
+        binds.set(key, solution.generalize(solution.apply(bound-type)))
+      end, self.binds)
+      self.set-binds(new-binds)
+    end
   end,
   method add-misc-example-variable(self, fun-key :: String, fun-name :: String) -> Context:
     misc = self.misc.set(fun-key, {[list: ]; fun-name})
@@ -200,18 +204,25 @@ sharing:
     end
   end,
   method substitute-in-misc(self, solution :: ConstraintSolution):
-    new-misc = self.misc.fold-keys(lam(key, new-misc):
-      {types; name} = self.misc.get-value(key)
-      new-types = types.map(lam(typ): solution.apply(typ) end)
-      new-misc.set(key, {new-types; name})
-    end, [string-dict: ])
-    typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints, self.info, new-misc)
+    if solution.is-empty(): 
+      self
+    else:
+      new-misc = self.misc.fold-keys(lam(key, new-misc):
+        {types; name} = self.misc.get-value(key)
+        new-types = types.map(lam(typ): solution.apply(typ) end)
+        new-misc.set(key, {new-types; name})
+      end, [string-dict: ])
+      typing-context(self.global-types, self.aliases, self.data-types, self.modules, self.module-names, self.binds, self.constraints, self.info, new-misc)
+    end
   end
 end
 
 data ConstraintSolution:
   | constraint-solution(variables :: Set<Type>, substitutions :: StringDict<{Type; Type}>) # existential => {assigned-type; existential}
 sharing:
+  method is-empty(self):
+    self.variables.is-empty() and (self.substitutions.count() == 0)
+  end,
   method apply(self, typ :: Type) -> Type:
     app = lam(x): self.apply(x) end
     cases(ConstraintSolution) self:

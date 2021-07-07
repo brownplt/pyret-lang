@@ -726,276 +726,7 @@ fun synthesis(e, top-level, context) block:
 end
 
 fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingResult:
-  shadow context = context.add-level()
   cases(Expr) e:
-    | s-module(l, answer, defined-modules, defined-values, defined-types, checks) =>
-      synthesis(answer, false, context)
-        .map-expr(A.s-module(l, _, defined-modules, defined-values, defined-types, checks))
-        .map-type(_.set-loc(l))
-    | s-template(l) =>
-      new-exists = new-existential(l, false)
-      shadow context = context.add-variable(new-exists)
-      typing-result(e, new-exists, context)
-    | s-type-let-expr(l, binds, body, b) =>
-      handle-type-let-binds(binds, context).typing-bind(lam(_, shadow context):
-        synthesis(body, false, context)
-          .map-expr(A.s-type-let-expr(l, binds, _, b))
-          .map-type(_.set-loc(l))
-      end)
-    | s-let-expr(l, binds, body, b) =>
-      fun handler(shadow l, shadow binds, shadow body, shadow context):
-        binds-result = fold-typing(synthesis-let-bind, binds, context)
-        binds-result.typing-bind(lam(new-rhs, shadow context):
-          new-binds = map2(lam(binding, rhs):
-            cases(A.LetBind) binding:
-              | s-let-bind(let-l, let-b, _) =>
-                A.s-let-bind(let-l, let-b, rhs)
-              | s-var-bind(let-l, let-b, _) =>
-                A.s-var-bind(let-l, let-b, rhs)
-            end
-          end, binds, new-rhs)
-          synthesis(body, false, context)
-            .map-expr(A.s-let-expr(l, new-binds, _, b))
-            .map-type(_.set-loc(l))
-            .bind(lam(new-expr, new-type, shadow context):
-              shadow context = binds.foldr(lam(binding, shadow context):
-                context.remove-binding(binding.b.id.key())
-              end, context)
-              typing-result(new-expr, new-type, context)
-            end)
-        end)
-      end
-      ignore-checker(l, binds, body, b, context, handler)
-    | s-letrec(l, binds, body, blocky) =>
-      handle-letrec-bindings(binds, top-level, context, lam(new-binds, shadow context):
-        synthesis(body, top-level, context)
-          .map-expr(A.s-letrec(l, new-binds, _, blocky))
-          .map-type(_.set-loc(l))
-      end)
-    | s-hint-exp(l, hints, exp) =>
-      raise("synthesis for s-hint-exp not implemented")
-    | s-instantiate(l, expr, params) =>
-      synthesis-instantiation(l, expr, params, top-level, context)
-    | s-block(l, stmts) =>
-      var typ = t-top(l, false)
-      fold-typing(lam(stmt, shadow context):
-        synthesis(stmt, top-level, context).bind(
-          lam(stmt-expr, stmt-typ, shadow context) block:
-            typ := stmt-typ
-            typing-result(stmt-expr, stmt-typ, context)
-          end)
-      end, stmts, context).typing-bind(lam(new-stmts, shadow context):
-        typing-result(A.s-block(l, new-stmts), typ.set-loc(l), context)
-      end)
-    | s-user-block(l, body) =>
-      synthesis(body, top-level, context)
-    | s-fun(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
-      raise("s-fun should have already been desugared")
-    | s-type(l, name, params, ann) =>
-      raise("synthesis for s-type not implemented")
-    | s-newtype(l, name, namet) =>
-      raise("synthesis for s-newtype not implemented")
-    | s-var(l, name, value) =>
-      raise("s-var should have already been desugared")
-    | s-rec(l, name, value) =>
-      raise("synthesis for s-rec not implemented")
-    | s-let(l, name, value, keyword-val) =>
-      raise("s-let should have already been desugared")
-    | s-ref(l, ann) =>
-      raise("synthesis for s-ref not implemented")
-    | s-contract(l, name, params, ann) =>
-      raise("synthesis for s-contract not implemented")
-    | s-when(l, test, block, blocky) =>
-      synthesis(
-        A.s-if-else(l,
-                    [list: A.s-if-branch(l, test, block)],
-                    A.s-id(l, A.s-global("nothing")),   # TODO(alex): How to use nothing value?
-                    blocky),
-        top-level,
-        context
-      )
-    | s-assign(l, id, value) =>
-      lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
-        cases(Type) id-type:
-          | t-ref(arg-type, tl, _) =>
-            checking(value, arg-type, top-level, context).bind(lam(new-value, _, shadow context):
-              typing-result(A.s-assign(l, id, new-value), arg-type.set-loc(l), context)
-            end)
-          | else =>
-            typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l, false)), l, e)])
-        end
-      end)
-    | s-if-pipe(l, branches, blocky) =>
-      _synthesis(
-        A.s-if(l,
-               for map(b from branches): b.to-if-branch() end,
-               blocky),
-        top-level,
-        context)
-    | s-if-pipe-else(l, branches, _else, blocky) =>
-      _synthesis(
-        A.s-if-else(l,
-                    for map(b from branches): b.to-if-branch() end,
-                    _else,
-                    blocky),
-        top-level,
-        context)
-    | s-if(l, branches, blocky) =>
-      # TODO(ALEX): check s-if handling
-      # Manually desurgar into s-if-else
-      _synthesis(
-        A.s-if-else(l,
-                    branches,
-                    A.s-prim-app(l,
-                      "throwNoBranchesMatched",
-                      [list: A.s-srcloc(l, l), A.s-str(l, "if")],
-                      flat-prim-app),
-                    blocky),
-        top-level,
-        context)
-    | s-if-else(l, branches, _else, b) =>
-      map-fold-result(handle-if-branch, branches, context).typing-bind(lam(result, shadow context):
-        synthesis(_else, false, context).bind(
-          lam(new-else, else-type, shadow context):
-            split-result = split(result)
-            new-branches = split-result.{0}
-            new-if-else = A.s-if-else(l, new-branches, new-else, b)
-            meet-branch-types(link(else-type, split-result.{1}), l, context).typing-bind(lam(if-else-type, shadow context):
-              typing-result(new-if-else, if-else-type.set-loc(l), context)
-            end)
-          end)
-      end)
-    | s-cases(l, typ, val, branches, b) =>
-      synthesis-cases(l, typ, val, branches, none, context)
-    | s-cases-else(l, typ, val, branches, _else, blocky) =>
-      synthesis-cases(l, typ, val, branches, some(_else), context)
-    | s-op(loc, op-l, op, l, r) =>
-      desugared = desugar-s-op(loc, op-l, op, l, r)
-      cases(Expr) desugared:
-        | s-op(shadow loc, shadow op-l, shadow op, shadow l, shadow r) => synthesis-op(top-level, loc, op, op-l, l, r, context)
-        | else => synthesis(desugared, top-level, context)
-      end
-    | s-check-test(loc, op, refinement, l, r, cause) =>
-      if is-some(test-inference-data):
-        collect-example(e, context).typing-bind(lam(_, shadow context):
-          result-type = new-existential(loc, false)
-          shadow context = context.add-variable(result-type)
-          typing-result(e, result-type, context)
-        end)
-      else:
-        shadow context = misc-collect-example(e, context)
-        synthesis-s-check-test(e, loc, op, refinement, l, r, cause, context)
-      end
-    | s-check-expr(l, expr, ann) =>
-      synthesis(expr, false, context) # XXX: this should probably use the annotation instead
-    | s-paren(l, expr) =>
-      # TODO(ALEX): check s-paren handling
-      synthesis(expr, false, context)
-    | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
-      synthesis-fun(l, body, params, args, ann, A.s-lam(l, name, params, _, _, doc, _, _check-loc, _check, b), top-level, context)
-    | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
-      raise("synthesis for s-method not implemented")
-    | s-extend(l, supe, fields) =>
-      synthesis(supe, top-level, context).bind(synthesis-extend(l, _, _, fields, _))
-        .map-type(_.set-loc(l))
-    | s-update(l, obj, fields) =>
-      synthesis(obj, top-level, context).bind(synthesis-update(l, _, _, fields, _))
-        .map-type(_.set-loc(l))
-    | s-tuple(l, elts) =>
-      result = map-fold-result(lam(elt, shadow context):
-        synthesis(elt, false, context)
-          .fold-bind(lam(_, elt-type, shadow context):
-            fold-result(elt-type, context)
-          end)
-      end, elts, context)
-      result.typing-bind(lam(typs, shadow context):
-        typing-result(A.s-tuple(l, elts), t-tuple(typs, l, false), context)
-      end)
-    | s-tuple-get(l, tup, index, index-loc) =>
-      synthesis(tup, top-level, context).bind(lam(new-ast, new-type, shadow context):
-        synthesis-tuple-index(l, new-ast, new-type.l, new-type, index, A.s-tuple-get(_, _, _, index-loc), context)
-      end)
-    | s-obj(l, fields) =>
-      collect-members(fields, false, context).typing-bind(lam(field-types, shadow context):
-        initial-obj-type = t-record(field-types, l, false)
-        fold-new-field-types = foldr-fold-result(lam(field, shadow context, new-field-types):
-          to-type-member(field, field-types.get-value(field.name), initial-obj-type, false, context).bind(lam(new-field-type, shadow context):
-            fold-result(new-field-types.set(field.name, new-field-type), context)
-          end)
-        end, fields, context, [string-dict: ])
-        fold-new-field-types.typing-bind(lam(new-field-types, shadow context):
-          typing-result(A.s-obj(l, fields), t-record(new-field-types, l, false), context)
-        end)
-      end)
-    | s-array(l, values) =>
-      fun process(value :: A.Expr, shadow context) -> FoldResult<{A.Expr; Type}>:
-        synthesis(value, false, context).fold-bind(lam(expr, typ, shadow context):
-          fold-result({expr; typ}, context)
-        end)
-      end
-
-      map-fold-result(process, values, context).typing-bind(lam(result, shadow context):
-        {new-values; value-types} = split(result)
-        meet-branch-types(value-types, l, context).typing-bind(lam(array-type, shadow context):
-          new-array = A.s-array(l, new-values)
-          typing-result(new-array, t-array(array-type.set-loc(l), l), context)
-        end)
-      end)
-    | s-construct(l, modifier, constructor, values) =>
-      # TODO(joe): Ignoring modifier for now
-      synthesis(A.s-app(l, A.s-dot(l, constructor, "make"), [list: A.s-array(l, values)]), top-level, context)
-      #raise("synthesis for s-construct not implemented")
-    | s-app(l, _fun, args) =>
-      synthesis-app-fun(l, _fun, args, context)
-        .typing-bind(lam(fun-type, shadow context):
-          synthesis-spine(fun-type, A.s-app(l, _fun, _), args, l, context)
-        end)
-    | s-prim-app(l, _fun, args, app-info) =>
-      lookup-id(l, _fun, e, context).typing-bind(lam(arrow-type, shadow context):
-        synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _, app-info), args, l, context)
-          .map-type(_.set-loc(l))
-      end)
-    | s-prim-val(l, name) =>
-      raise("synthesis for s-prim-val not implemented")
-    | s-id(l, id) =>
-      lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
-        typing-result(e, id-type, context)
-      end)
-    | s-id-var-modref(l, _, uri, name) =>
-      mod-typs = context.modules.get-value(uri)
-      provided-types = mod-typs.provides
-      cases(Type) mod-typs.provides:
-        | t-record(fields, _, _) =>
-          cases(Option) fields.get(name):
-            | none => raise("Should be caught in unbound-ids: no such name on module " + uri + ": " + name)
-            | some(t) => typing-result(e, t, context)
-          end
-      end
-    | s-id-modref(l, _, uri, name) =>
-      mod-typs = context.modules.get-value(uri)
-      provided-types = mod-typs.provides
-      cases(Type) mod-typs.provides:
-        | t-record(fields, _, _) =>
-          cases(Option) fields.get(name):
-            | none => raise("Should be caught in unbound-ids: no such name on module " + uri + ": " + name)
-            | some(t) => typing-result(e, t, context)
-          end
-      end
-    | s-id-var(l, id) =>
-      lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
-        cases(Type) id-type:
-          | t-ref(arg-type, _, _) =>
-            typing-result(e, arg-type.set-loc(l), context)
-          | else =>
-            typing-error([list: C.incorrect-type-expression(tostring(id-type), id-type.l, tostring(t-ref(id-type, l, false)), l, e)])
-        end
-      end)
-    | s-id-letrec(l, id, safe) =>
-      lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
-        typing-result(e, id-type, context)
-      end)
-    | s-undefined(l) =>
-      raise("synthesis for s-undefined not implemented")
     | s-srcloc(l, loc) =>
       typing-result(e, t-srcloc(l), context)
     | s-num(l, n) =>
@@ -1008,48 +739,320 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
       typing-result(e, t-boolean(l), context)
     | s-str(l, s) =>
       typing-result(e, t-string(l), context)
-    | s-dot(l, obj, field) =>
-      synthesis(obj, top-level, context).bind(lam(new-ast, new-type, shadow context):
-        synthesis-field(l, new-ast, new-type, field, A.s-dot, context)
-      end)
-    | s-get-bang(l, obj, field) =>
-      synthesis(obj, top-level, context).bind(lam(new-ast, new-type, shadow context):
-        synthesis-field(l, new-ast, new-type, field, A.s-get-bang, context)
-      end).bind(lam(new-get-bang, field-type, shadow context):
-        cases(Type) field-type:
-          | t-ref(typ, _, _) =>
-            typing-result(new-get-bang, typ.set-loc(l), context)
-          | else =>
-            typing-error([list: C.incorrect-type-expression(tostring(field-type), field-type.l, "a ref type", l, e)])
-        end
-      end)
-    | s-bracket(l, obj, field) =>
-      raise("synthesis for s-bracket not implemented")
-    | s-data(l, name, params, mixins, variants, shared-members, _check-loc, _check) =>
-      raise("s-data should have already been desugared")
-    | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
-      raise("s-data-expr should have been handled by s-letrec")
-    | s-for(l, iterator, bindings, ann, body, blocky) =>
-      _synthesis(desugar-s-for(l, iterator, bindings, ann, body), top-level, context)
-    | s-check(l, name, body, keyword-check) =>
-      synthesis(body, false, context).bind(lam(_, _, _):
-        result-type = new-existential(l, false)
-        shadow context = context.add-variable(result-type)
-        typing-result(e, result-type, context)
-      end)
-    | s-spy-block(l :: Loc, message :: Option<Expr>, contents :: List<A.SpyField>) =>
-      # Spy block type will always be t-nothing
-      # Based off of s-block type check synthesis code
-      # Type check all spy field expressions
-      fold-typing(lam(spy-field, shadow context):
-        synthesis(spy-field.value, top-level, context).bind(
-          lam(spy-expr, spy-typ, shadow context) block:
-            typing-result(spy-expr, spy-typ, context)
+    | else => 
+      shadow context = context.add-level()
+      cases(Expr) e:
+        | s-module(l, answer, defined-modules, defined-values, defined-types, checks) =>
+          synthesis(answer, false, context)
+            .map-expr(A.s-module(l, _, defined-modules, defined-values, defined-types, checks))
+            .map-type(_.set-loc(l))
+        | s-template(l) =>
+          new-exists = new-existential(l, false)
+          shadow context = context.add-variable(new-exists)
+          typing-result(e, new-exists, context)
+        | s-type-let-expr(l, binds, body, b) =>
+          handle-type-let-binds(binds, context).typing-bind(lam(_, shadow context):
+            synthesis(body, false, context)
+              .map-expr(A.s-type-let-expr(l, binds, _, b))
+              .map-type(_.set-loc(l))
           end)
-      end, contents, context).typing-bind(lam(new-spy-fields, shadow context):
-        typing-result(A.s-spy-block(l, message, new-spy-fields), t-nothing(l), context)
-      end)
-  end.solve-bind()
+        | s-let-expr(l, binds, body, b) =>
+          fun handler(shadow l, shadow binds, shadow body, shadow context):
+            binds-result = fold-typing(synthesis-let-bind, binds, context)
+            binds-result.typing-bind(lam(new-rhs, shadow context):
+              new-binds = map2(lam(binding, rhs):
+                cases(A.LetBind) binding:
+                  | s-let-bind(let-l, let-b, _) =>
+                    A.s-let-bind(let-l, let-b, rhs)
+                  | s-var-bind(let-l, let-b, _) =>
+                    A.s-var-bind(let-l, let-b, rhs)
+                end
+              end, binds, new-rhs)
+              synthesis(body, false, context)
+                .map-expr(A.s-let-expr(l, new-binds, _, b))
+                .map-type(_.set-loc(l))
+                .bind(lam(new-expr, new-type, shadow context):
+                  shadow context = binds.foldr(lam(binding, shadow context):
+                    context.remove-binding(binding.b.id.key())
+                  end, context)
+                  typing-result(new-expr, new-type, context)
+                end)
+            end)
+          end
+          ignore-checker(l, binds, body, b, context, handler)
+        | s-letrec(l, binds, body, blocky) =>
+          handle-letrec-bindings(binds, top-level, context, lam(new-binds, shadow context):
+            synthesis(body, top-level, context)
+              .map-expr(A.s-letrec(l, new-binds, _, blocky))
+              .map-type(_.set-loc(l))
+          end)
+        | s-hint-exp(l, hints, exp) =>
+          raise("synthesis for s-hint-exp not implemented")
+        | s-instantiate(l, expr, params) =>
+          synthesis-instantiation(l, expr, params, top-level, context)
+        | s-block(l, stmts) =>
+          var typ = t-top(l, false)
+          fold-typing(lam(stmt, shadow context):
+            synthesis(stmt, top-level, context).bind(
+              lam(stmt-expr, stmt-typ, shadow context) block:
+                typ := stmt-typ
+                typing-result(stmt-expr, stmt-typ, context)
+              end)
+          end, stmts, context).typing-bind(lam(new-stmts, shadow context):
+            typing-result(A.s-block(l, new-stmts), typ.set-loc(l), context)
+          end)
+        | s-user-block(l, body) =>
+          synthesis(body, top-level, context)
+        | s-fun(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
+          raise("s-fun should have already been desugared")
+        | s-type(l, name, params, ann) =>
+          raise("synthesis for s-type not implemented")
+        | s-newtype(l, name, namet) =>
+          raise("synthesis for s-newtype not implemented")
+        | s-var(l, name, value) =>
+          raise("s-var should have already been desugared")
+        | s-rec(l, name, value) =>
+          raise("synthesis for s-rec not implemented")
+        | s-let(l, name, value, keyword-val) =>
+          raise("s-let should have already been desugared")
+        | s-ref(l, ann) =>
+          raise("synthesis for s-ref not implemented")
+        | s-contract(l, name, params, ann) =>
+          raise("synthesis for s-contract not implemented")
+        | s-when(l, test, block, blocky) =>
+          synthesis(
+            A.s-if-else(l,
+                        [list: A.s-if-branch(l, test, block)],
+                        A.s-id(l, A.s-global("nothing")),   # TODO(alex): How to use nothing value?
+                        blocky),
+            top-level,
+            context
+          )
+        | s-assign(l, id, value) =>
+          lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
+            cases(Type) id-type:
+              | t-ref(arg-type, tl, _) =>
+                checking(value, arg-type, top-level, context).bind(lam(new-value, _, shadow context):
+                  typing-result(A.s-assign(l, id, new-value), arg-type.set-loc(l), context)
+                end)
+              | else =>
+                typing-error([list: C.incorrect-type-expression(tostring(id-type), l, tostring(t-ref(id-type, l, false)), l, e)])
+            end
+          end)
+        | s-if-pipe(l, branches, blocky) =>
+          _synthesis(
+            A.s-if(l,
+                  for map(b from branches): b.to-if-branch() end,
+                  blocky),
+            top-level,
+            context)
+        | s-if-pipe-else(l, branches, _else, blocky) =>
+          _synthesis(
+            A.s-if-else(l,
+                        for map(b from branches): b.to-if-branch() end,
+                        _else,
+                        blocky),
+            top-level,
+            context)
+        | s-if(l, branches, blocky) =>
+          # TODO(ALEX): check s-if handling
+          # Manually desurgar into s-if-else
+          _synthesis(
+            A.s-if-else(l,
+                        branches,
+                        A.s-prim-app(l,
+                          "throwNoBranchesMatched",
+                          [list: A.s-srcloc(l, l), A.s-str(l, "if")],
+                          flat-prim-app),
+                        blocky),
+            top-level,
+            context)
+        | s-if-else(l, branches, _else, b) =>
+          map-fold-result(handle-if-branch, branches, context).typing-bind(lam(result, shadow context):
+            synthesis(_else, false, context).bind(
+              lam(new-else, else-type, shadow context):
+                split-result = split(result)
+                new-branches = split-result.{0}
+                new-if-else = A.s-if-else(l, new-branches, new-else, b)
+                meet-branch-types(link(else-type, split-result.{1}), l, context).typing-bind(lam(if-else-type, shadow context):
+                  typing-result(new-if-else, if-else-type.set-loc(l), context)
+                end)
+              end)
+          end)
+        | s-cases(l, typ, val, branches, b) =>
+          synthesis-cases(l, typ, val, branches, none, context)
+        | s-cases-else(l, typ, val, branches, _else, blocky) =>
+          synthesis-cases(l, typ, val, branches, some(_else), context)
+        | s-op(loc, op-l, op, l, r) =>
+          desugared = desugar-s-op(loc, op-l, op, l, r)
+          cases(Expr) desugared:
+            | s-op(shadow loc, shadow op-l, shadow op, shadow l, shadow r) => synthesis-op(top-level, loc, op, op-l, l, r, context)
+            | else => synthesis(desugared, top-level, context)
+          end
+        | s-check-test(loc, op, refinement, l, r, cause) =>
+          if is-some(test-inference-data):
+            collect-example(e, context).typing-bind(lam(_, shadow context):
+              result-type = new-existential(loc, false)
+              shadow context = context.add-variable(result-type)
+              typing-result(e, result-type, context)
+            end)
+          else:
+            shadow context = misc-collect-example(e, context)
+            synthesis-s-check-test(e, loc, op, refinement, l, r, cause, context)
+          end
+        | s-check-expr(l, expr, ann) =>
+          synthesis(expr, false, context) # XXX: this should probably use the annotation instead
+        | s-paren(l, expr) =>
+          # TODO(ALEX): check s-paren handling
+          synthesis(expr, false, context)
+        | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
+          synthesis-fun(l, body, params, args, ann, A.s-lam(l, name, params, _, _, doc, _, _check-loc, _check, b), top-level, context)
+        | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
+          raise("synthesis for s-method not implemented")
+        | s-extend(l, supe, fields) =>
+          synthesis(supe, top-level, context).bind(synthesis-extend(l, _, _, fields, _))
+            .map-type(_.set-loc(l))
+        | s-update(l, obj, fields) =>
+          synthesis(obj, top-level, context).bind(synthesis-update(l, _, _, fields, _))
+            .map-type(_.set-loc(l))
+        | s-tuple(l, elts) =>
+          result = map-fold-result(lam(elt, shadow context):
+            synthesis(elt, false, context)
+              .fold-bind(lam(_, elt-type, shadow context):
+                fold-result(elt-type, context)
+              end)
+          end, elts, context)
+          result.typing-bind(lam(typs, shadow context):
+            typing-result(A.s-tuple(l, elts), t-tuple(typs, l, false), context)
+          end)
+        | s-tuple-get(l, tup, index, index-loc) =>
+          synthesis(tup, top-level, context).bind(lam(new-ast, new-type, shadow context):
+            synthesis-tuple-index(l, new-ast, new-type.l, new-type, index, A.s-tuple-get(_, _, _, index-loc), context)
+          end)
+        | s-obj(l, fields) =>
+          collect-members(fields, false, context).typing-bind(lam(field-types, shadow context):
+            initial-obj-type = t-record(field-types, l, false)
+            fold-new-field-types = foldr-fold-result(lam(field, shadow context, new-field-types):
+              to-type-member(field, field-types.get-value(field.name), initial-obj-type, false, context).bind(lam(new-field-type, shadow context):
+                fold-result(new-field-types.set(field.name, new-field-type), context)
+              end)
+            end, fields, context, [string-dict: ])
+            fold-new-field-types.typing-bind(lam(new-field-types, shadow context):
+              typing-result(A.s-obj(l, fields), t-record(new-field-types, l, false), context)
+            end)
+          end)
+        | s-array(l, values) =>
+          fun process(value :: A.Expr, shadow context) -> FoldResult<{A.Expr; Type}>:
+            synthesis(value, false, context).fold-bind(lam(expr, typ, shadow context):
+              fold-result({expr; typ}, context)
+            end)
+          end
+
+          map-fold-result(process, values, context).typing-bind(lam(result, shadow context):
+            {new-values; value-types} = split(result)
+            meet-branch-types(value-types, l, context).typing-bind(lam(array-type, shadow context):
+              new-array = A.s-array(l, new-values)
+              typing-result(new-array, t-array(array-type.set-loc(l), l), context)
+            end)
+          end)
+        | s-construct(l, modifier, constructor, values) =>
+          # TODO(joe): Ignoring modifier for now
+          synthesis(A.s-app(l, A.s-dot(l, constructor, "make"), [list: A.s-array(l, values)]), top-level, context)
+          #raise("synthesis for s-construct not implemented")
+        | s-app(l, _fun, args) =>
+          synthesis-app-fun(l, _fun, args, context)
+            .typing-bind(lam(fun-type, shadow context):
+              synthesis-spine(fun-type, A.s-app(l, _fun, _), args, l, context)
+            end)
+        | s-prim-app(l, _fun, args, app-info) =>
+          lookup-id(l, _fun, e, context).typing-bind(lam(arrow-type, shadow context):
+            synthesis-spine(arrow-type, A.s-prim-app(l, _fun, _, app-info), args, l, context)
+              .map-type(_.set-loc(l))
+          end)
+        | s-prim-val(l, name) =>
+          raise("synthesis for s-prim-val not implemented")
+        | s-id(l, id) =>
+          lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
+            typing-result(e, id-type, context)
+          end)
+        | s-id-var-modref(l, _, uri, name) =>
+          mod-typs = context.modules.get-value(uri)
+          provided-types = mod-typs.provides
+          cases(Type) mod-typs.provides:
+            | t-record(fields, _, _) =>
+              cases(Option) fields.get(name):
+                | none => raise("Should be caught in unbound-ids: no such name on module " + uri + ": " + name)
+                | some(t) => typing-result(e, t, context)
+              end
+          end
+        | s-id-modref(l, _, uri, name) =>
+          mod-typs = context.modules.get-value(uri)
+          provided-types = mod-typs.provides
+          cases(Type) mod-typs.provides:
+            | t-record(fields, _, _) =>
+              cases(Option) fields.get(name):
+                | none => raise("Should be caught in unbound-ids: no such name on module " + uri + ": " + name)
+                | some(t) => typing-result(e, t, context)
+              end
+          end
+        | s-id-var(l, id) =>
+          lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
+            cases(Type) id-type:
+              | t-ref(arg-type, _, _) =>
+                typing-result(e, arg-type.set-loc(l), context)
+              | else =>
+                typing-error([list: C.incorrect-type-expression(tostring(id-type), id-type.l, tostring(t-ref(id-type, l, false)), l, e)])
+            end
+          end)
+        | s-id-letrec(l, id, safe) =>
+          lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
+            typing-result(e, id-type, context)
+          end)
+        | s-undefined(l) =>
+          raise("synthesis for s-undefined not implemented")
+        | s-dot(l, obj, field) =>
+          synthesis(obj, top-level, context).bind(lam(new-ast, new-type, shadow context):
+            synthesis-field(l, new-ast, new-type, field, A.s-dot, context)
+          end)
+        | s-get-bang(l, obj, field) =>
+          synthesis(obj, top-level, context).bind(lam(new-ast, new-type, shadow context):
+            synthesis-field(l, new-ast, new-type, field, A.s-get-bang, context)
+          end).bind(lam(new-get-bang, field-type, shadow context):
+            cases(Type) field-type:
+              | t-ref(typ, _, _) =>
+                typing-result(new-get-bang, typ.set-loc(l), context)
+              | else =>
+                typing-error([list: C.incorrect-type-expression(tostring(field-type), field-type.l, "a ref type", l, e)])
+            end
+          end)
+        | s-bracket(l, obj, field) =>
+          raise("synthesis for s-bracket not implemented")
+        | s-data(l, name, params, mixins, variants, shared-members, _check-loc, _check) =>
+          raise("s-data should have already been desugared")
+        | s-data-expr(l, name, namet, params, mixins, variants, shared-members, _check-loc, _check) =>
+          raise("s-data-expr should have been handled by s-letrec")
+        | s-for(l, iterator, bindings, ann, body, blocky) =>
+          _synthesis(desugar-s-for(l, iterator, bindings, ann, body), top-level, context)
+        | s-check(l, name, body, keyword-check) =>
+          synthesis(body, false, context).bind(lam(_, _, _):
+            result-type = new-existential(l, false)
+            shadow context = context.add-variable(result-type)
+            typing-result(e, result-type, context)
+          end)
+        | s-spy-block(l :: Loc, message :: Option<Expr>, contents :: List<A.SpyField>) =>
+          # Spy block type will always be t-nothing
+          # Based off of s-block type check synthesis code
+          # Type check all spy field expressions
+          fold-typing(lam(spy-field, shadow context):
+            synthesis(spy-field.value, top-level, context).bind(
+              lam(spy-expr, spy-typ, shadow context) block:
+                typing-result(spy-expr, spy-typ, context)
+              end)
+          end, contents, context).typing-bind(lam(new-spy-fields, shadow context):
+            typing-result(A.s-spy-block(l, message, new-spy-fields), t-nothing(l), context)
+          end)
+      end.solve-bind()
+  end
 end
 
 fun synthesis-spine(fun-type :: Type, recreate :: (List<Expr> -> Expr), args :: List<Expr>, app-loc :: Loc, context :: Context) -> TypingResult:
