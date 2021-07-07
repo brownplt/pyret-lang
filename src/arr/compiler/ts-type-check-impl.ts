@@ -6,6 +6,7 @@ import type * as TJ from './ts-codegen-helpers';
 import type * as TCS from './ts-type-check-structs';
 import type * as TCSH from './ts-compile-structs-helpers';
 import type { List, MutableStringDict, PFunction, StringDict, Option } from './ts-impl-types';
+import { labeledStatement, tsNumberKeyword, typeAlias } from '@babel/types';
 
 type SDExports = {
   dict: { values: { dict: {
@@ -95,7 +96,29 @@ type SDExports = {
       }, foldResult.app(base, context));
     }
 
-    function typeKey(type: TS.Type): string {
+    function toType(inAnn : A.Ann, context : Context) : TS.Type | false {
+      switch(inAnn.$name) {
+        case 'a-blank': return false;
+        default:
+          throw new InternalCompilerError("toType switch " + inAnn.$name);
+      }
+    }
+
+    const primitiveTypesUri = TS['module-uri'].app("builtin://primitive-types");
+
+    function tNumber(l : SL.Srcloc) : TS.Type {
+      return TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("Number"), l, false);
+    }
+
+    function typeKey(type : TS.Type & { $key?: string }) : string {
+      if(!("$key" in type)) {
+        const key = _typeKey(type);
+        type.$key = key;
+      }
+      return type.$key;
+    }
+    function _typeKey(type: TS.Type): string {
+      // TODO(joe): memoize the result on the type object?
       switch(type.$name) {
         case 't-name': {
           const { "module-name": modName, id } = type.dict;
@@ -262,7 +285,7 @@ type SDExports = {
     type FieldConstraint = Map<string, TS.Type[]>;
     class ConstraintLevel {
       // the constrained existentials
-      variables : Set<TS.Type>;
+      variables : Map<string, TS.Type>;
       // list of {subtype; supertype}
       constraints : Array<{subtype: TS.Type, supertype: TS.Type}>;
       // list of {existential; t-data-refinement} 
@@ -273,7 +296,7 @@ type SDExports = {
       exampleTypes : ExampleTypes;
 
       constructor() {
-        this.variables = new Set();
+        this.variables = new Map();
         this.constraints = [];
         this.refinementConstraints = [];
         this.fieldConstraints = new Map();
@@ -294,14 +317,21 @@ type SDExports = {
       addVariable(variable : TS.Type): void {
         this.ensureLevel("Can't add variable to an uninitialized system");
         if (variable.$name === 't-existential') {
-          this.curLevel().variables.add(variable);
+          this.curLevel().variables.set(typeKey(variable), variable);
         }
       }
-      addVariableSet(variables: Set<TS.Type> | TS.Type[]): void {
+      addVariableSet(variables: Map<string, TS.Type> | TS.Type[]): void {
         this.ensureLevel("Can't add variables to an uninitialized system");
         const curLevel = this.curLevel();
-        for (const variable of variables) {
-          curLevel.variables.add(variable);
+        if(variables instanceof Map) {
+          for (const [key, typ] of variables.entries()) {
+            curLevel.variables.set(key, typ);
+          }
+        }
+        else {
+          for (const variable of variables) {
+            curLevel.variables.set(typeKey(variable), variable);
+          }
         }
       }
       addConstraint(subtype: TS.Type, supertype: TS.Type): void {
@@ -376,7 +406,28 @@ type SDExports = {
       addLevel() : void {
         this.levels.push(new ConstraintLevel());
       }
+      solveLevel() : ConstraintSolution {
+        this.levels.pop(); // TODO(joe): use the information before popping, but this is where it happens
+         return new ConstraintSolution(new Map(), new Map());
+      }
 
+    }
+
+    class ConstraintSolution {
+      variables : Map<string, TS.Type>
+      substitutions: Map<string, TS.Type>
+
+      constructor(variables : Map<string, TS.Type>, substitutions : Map<string, TS.Type>) {
+        this.variables = variables;
+        this.substitutions = substitutions;
+      }
+
+      apply(typ : TS.Type) : TS.Type {
+        return typ;
+      }
+      generalize(typ : TS.Type) : TS.Type {
+        return typ;
+      }
     }
 
     class TCInfo {
@@ -411,8 +462,45 @@ type SDExports = {
         this.constraints.addLevel();
       }
 
-      addVariableSet(vars: Set<TS.Type> | TS.Type[]): void {
+      addBinding(termKey : string, assignedType : TS.Type) {
+        this.binds.set(termKey, assignedType);
+      }
+
+      removeBinding(termKey : string) {
+        this.binds.delete(termKey);
+      }
+
+      addVariable(v : TS.Type) {
+        this.constraints.addVariable(v);
+      }
+
+      addVariableSet(vars: Map<string, TS.Type> | TS.Type[]): void {
         this.constraints.addVariableSet(vars)
+      }
+
+      addConstraint(subtype : TS.Type, supertype : TS.Type) {
+        this.constraints.addConstraint(subtype, supertype);
+      }
+
+      substituteInBinds(solution : ConstraintSolution) {
+        for(const [key, boundType] of this.binds) {
+          this.binds.set(key, solution.generalize(solution.apply(boundType)));
+        }
+      }
+
+      substituteInMisc(solution : ConstraintSolution) {
+        return; // TODO(joe): fill
+      }
+
+      solveLevel() : ConstraintSolution {
+        return this.constraints.solveLevel();
+      }
+
+      solveAndResolveType(t : TS.Type) : TS.Type {
+        const solution = this.solveLevel()
+        this.substituteInBinds(solution);
+        this.substituteInMisc(solution);
+        return solution.apply(t);
       }
     }   
 
@@ -603,6 +691,18 @@ type SDExports = {
       return TS['t-var'].app(TCNames.makeAtom("%tyvar"), l, false);
     }
 
+    function lookupId(blameLoc : SL.Srcloc, idKey : string, idExpr : A.Expr, context : Context) : TS.Type {
+      if(context.binds.has(idKey)) {
+        return setTypeLoc(context.binds.get(idKey), blameLoc);
+      }
+      else if(context.globalTypes.has(idKey)) {
+        return setTypeLoc(context.globalTypes.get(idKey), blameLoc);
+      }
+      else {
+        throw new TypeCheckFailure(CS['unbound-id'].app(idExpr));
+      }
+    }
+
     // Examines a type and, if it is a t-forall, instantiates it with fresh variables
     // This process modifies context to record the newly generated variables.
     // All other types are unmodified.
@@ -655,15 +755,94 @@ type SDExports = {
     function _checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : Context) : void {
       context.addLevel();
       expectTyp = resolveAlias(expectTyp, context);
+      if(expectTyp.$name === 't-app') {
+        expectTyp = simplifyTApp(expectTyp, context);
+      }
+      if(expectTyp.$name === 't-existential' || expectTyp.$name === 't-top') {
+        checkSynthesis(e, expectTyp, topLevel, context);
+        return;
+      }
+      else {
+        switch(e.$name) {
+          default:
+            throw new InternalCompilerError("_checking switch " + e.$name);
+        }
+      }
       return null;
     }
 
-    function synth(e : A.Expr, topLevel : boolean, context : TCS.Context) : TS.Type {
-      return null;
+    function checkSynthesis(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : Context) : TS.Type {
+      const newType = synthesis(e, topLevel, context);
+      context.addConstraint(newType, expectTyp);
+      // TODO(MATT, 2017): decide whether this should return new-type or expect-type
+      return newType;
     }
 
-    function _synth(e : A.Expr, topLevel : boolean, context : TCS.Context) : TS.Type {
-      return null;
+    function synthesis(e : A.Expr, topLevel : boolean, context : Context) : TS.Type {
+      context.addLevel();
+      return context.solveAndResolveType(_synthesis(e, topLevel, context));
+    }
+
+    function _synthesis(e : A.Expr, topLevel : boolean, context : Context) : TS.Type {
+      switch(e.$name) {
+        case 's-module':
+          break;
+        case 's-block': {
+          let typ : TS.Type = TS['t-top'].app(e.dict.l, false);
+          for(const stmt of listToArray(e.dict.stmts)) {
+            const stmtTyp = synthesis(stmt, topLevel, context);
+            typ = stmtTyp;
+          }
+          return setTypeLoc(typ, e.dict.l);
+        }
+        case 's-let-expr': {
+          const rhsResult : TS.Type[] = [];
+          const binds = listToArray(e.dict.binds);
+          for(const lb of binds) {
+            rhsResult.push(synthesisLetBind(lb, context));
+          }
+          const newType = synthesis(e.dict.body, false, context);
+          for(const b of binds) {
+            context.removeBinding(nameToKey((b.dict.b as TJ.Variant<A.Bind, "s-bind">).dict.id));
+          }
+          return newType;
+        }
+        case 's-id': {
+          const idTyp = lookupId(e.dict.l, nameToKey(e.dict.id), e, context);
+          return idTyp;
+        }
+        case 's-num': return tNumber(e.dict.l);
+        case 's-srcloc':
+        case 's-app':
+        case 's-prim-app':
+          return TS['t-top'].app(e.dict.l, false);
+        default:
+          throw new InternalCompilerError("_synthesis switch " + e.$name);
+      }
+    }
+
+    function synthesisLetBind(binding : A.LetBind, context : Context) : TS.Type {
+      context.addLevel();
+      switch(binding.$name) {
+        case 's-let-bind':
+          const b = (binding.dict.b as TJ.Variant<A.Bind, "s-bind">);
+          const maybeType = toType(b.dict.ann, context);
+          let annTyp : TS.Type;
+          if(maybeType === false) {
+            annTyp = newExistential(binding.dict.l, true);
+          }
+          else {
+            annTyp = maybeType;
+          }
+          context.addVariable(annTyp);
+          checking(binding.dict.value, annTyp, false, context);
+          context.addBinding(nameToKey(b.dict.id), annTyp);
+          return context.solveAndResolveType(annTyp);
+        case 's-var-bind':
+          throw new InternalCompilerError("Not yet implemented in synthesisLetBind: s-var-bind");
+        default:
+          throw new ExhaustiveSwitchError(binding);
+      }
     }
 
     function typeCheck(program: A.Program, compileEnv : CS.CompileEnvironment, postCompileEnv : CS.ComputedEnvironment, modules : MutableStringDict<CS.Loadable>, options) {
