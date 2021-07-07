@@ -73,10 +73,28 @@ type DesugarInfo = {
       const {
         listToArray,
         map,
+        nameToKey,
+        MakeName,
+        ExhaustiveSwitchError
       } = tj;
 
+      const names = MakeName(0);
+      const generatedBinds = SD.dict.values.dict['make-mutable-string-dict'].app<CS.ValueBind>();
       const flatPrimApp = A.dict.values.dict['prim-app-info-c'].app(false);
   
+      function boLocal(l: A.Srcloc, originalName: A.Name) {
+        switch (l.$name) {
+          case 'builtin': {
+            return CS.dict.values.dict['bind-origin'].app(l, l, true, l.dict['module-name'], originalName);
+          }
+          case 'srcloc': {
+            return CS.dict.values.dict['bind-origin'].app(l, l, true, l.dict.source, originalName);
+          }
+          default: {
+            throw new ExhaustiveSwitchError(l);
+          }
+        }
+      }
       function g(id: string): TJ.Variant<A.Name, 's-global'> {
         return A.dict.values.dict['s-global'].app(id);
       }
@@ -87,6 +105,27 @@ type DesugarInfo = {
         const srcloc = A.dict.values.dict['s-srcloc'].app(l, l);
         const str = A.dict.values.dict['s-str'].app(l, typ);
         return A.dict.values.dict['s-prim-app'].app(l, "throwNoBranchesMatched", runtime.ffi.makeList([srcloc, str]), flatPrimApp);
+      }
+      function mkIdAnn(l: A.Srcloc, base: string, ann: A.Ann): { id: A.Name, idB: A.Bind, idE: A.Expr } {
+        const a = names.makeAtom(base);
+        generatedBinds.dict['set-now'].full_meth(
+          generatedBinds, 
+          nameToKey(a), 
+          CS.dict.values.dict['value-bind'].app(
+            boLocal(l, a),
+            CS.dict.values.dict['vb-let'],
+            a,
+            ann
+          )
+        );
+        return { 
+          id: a, 
+          idB: A.dict.values.dict['s-bind'].app(l, false, a, ann), 
+          idE: A.dict.values.dict['s-id'].app(l, a),
+        };
+      }
+      function mkId(l: A.Srcloc, base: string) {
+        return mkIdAnn(l, base, A.dict.values.dict['a-blank']);
       }
       function desugarIf(l: A.Srcloc, branches: List<TJ.Variant<A.IfBranch, 's-if-branch'> | TJ.Variant<A.IfPipeBranch, 's-if-pipe-branch'>>, _else: A.Expr, blocky: boolean, visitor) {
         let dsElse = map(visitor, _else);
@@ -103,11 +142,126 @@ type DesugarInfo = {
             blocky);
         }, dsElse);
       }
+      function isUnderscore(e: A.Expr) {
+        return A.dict.values.dict['is-s-id'].app(e) && A.dict.values.dict['is-s-underscore'].app(e);
+      }
+      function dsCurryArgs(l: A.Srcloc, args: List<A.Expr>) {
+        const binds: Array<A.Bind> = [];
+        const exprs: Array<A.Expr> = [];
+        listToArray(args).forEach(arg => {
+          if (isUnderscore(arg)) {
+            const argId = mkId(l, "arg_");
+            binds.push(argId.idB);
+            exprs.push(argId.idE);
+          } else {
+            exprs.push(arg);
+          }
+        });
+        const ret = [];
+        ret.push(binds);
+        ret.push(exprs);
+        return ret;
+      }
+      function dsCurry(l: A.Srcloc, f: A.Expr, args: List<A.Expr>, visitor) {
+        function fallthrough() {
+          const paramsAndArgs = dsCurryArgs(l, args);
+          const params: Array<A.Bind> = paramsAndArgs[0];
+          const argsRight: Array<A.Expr> = paramsAndArgs[1];
+          if (isUnderscore(f)) {
+            const fId = mkId(l, "f_");
+            params.unshift(fId.idB);
+            return A.dict.values.dict['s-lam'].app(
+              l,
+              "",
+              runtime.ffi.makeList([]),
+              runtime.ffi.makeList(params),
+              A.dict.values.dict['a-blank'],
+              "",
+              A.dict.values.dict['s-app'].app(l, fId.idE, runtime.ffi.makeList(argsRight)),
+              runtime.ffi.makeNone(),
+              runtime.ffi.makeNone(),
+              false
+            );
+          } else {
+            const dsF = map(visitor, f);
+            if (params.length === 0) {
+              return A.dict.values.dict['s-app'].app(
+                l, dsF, args
+              );
+            } else {
+              return A.dict.values.dict['s-lam'].app(
+                l,
+                "",
+                runtime.ffi.makeList([]),
+                runtime.ffi.makeList(params),
+                A.dict.values.dict['a-blank'],
+                "",
+                A.dict.values.dict['s-app'].app(l, dsF, runtime.ffi.makeList(argsRight)),
+                runtime.ffi.makeNone(),
+                runtime.ffi.makeNone(),
+                false
+              );
+            }
+          }
+        }
+        switch (f.$name) {
+          case 's-dot': {
+            if (isUnderscore(f.dict.obj)) {
+              const curriedObj = mkId(l, "recv_");
+              const paramsAndArgs = dsCurryArgs(l, args);
+              const params: Array<A.Bind> = paramsAndArgs[0];
+              params.unshift(curriedObj.idB);
+              const argsRight: Array<A.Expr> = paramsAndArgs[1];
+              return A.dict.values.dict['s-lam'].app(
+                l,
+                "",
+                runtime.ffi.makeList([]),
+                runtime.ffi.makeList(params),
+                A.dict.values.dict['a-blank'],
+                "",
+                A.dict.values.dict['s-app'].app(
+                  l,
+                  A.dict.values.dict['s-dot'].app(
+                    l,
+                    curriedObj.idE,
+                    f.dict.field
+                  ),
+                  runtime.ffi.makeList(argsRight)
+                ),
+                runtime.ffi.makeNone(),
+                runtime.ffi.makeNone(),
+                false
+              );
+            } else {
+              fallthrough();
+            }
+          }
+          default: {
+            fallthrough();
+          }
+        }
+      }
       // options.dict.log.app("Hi from ts-desugar-impl!\n", runtime.ffi.makeNone());
-      const generatedBinds = SD.dict.values.dict['make-mutable-string-dict'].app<CS.ValueBind>();
       const dsVisitor = {
         generatedBinds,
-        's-when': (visitor, expr : TJ.Variant<A.Expr, 's-when'>) => {
+        // s-module is uniform
+        // s-instantiate is uniform
+        // s-block is uniform
+        's-user-block': (visitor, expr: TJ.Variant<A.Expr, 's-user-block'>) => {
+          return map(visitor, expr.dict.body);
+        },
+        's-template': (visitor, expr: TJ.Variant<A.Expr, 's-template'>) => {
+          return expr;
+        },
+        /*'s-app': (visitor, expr: TJ.Variant<A.Expr, 's-app'>) => {
+          return dsCurry(
+            expr.dict.l, 
+            expr.dict._fun, 
+            runtime.ffi.makeList(listToArray(expr.dict.args).map(arg => map(visitor, arg))),
+            visitor
+          );
+        },*/
+        's-when': (visitor, expr: TJ.Variant<A.Expr, 's-when'>) => {
           options.dict.log.app("In s-when!\n", runtime.ffi.makeNone());
           
           const dsTest = map(visitor, expr.dict.test);
@@ -152,6 +306,7 @@ type DesugarInfo = {
         },
         // s-cases is uniform
         // s-cases-else is uniform
+        // s-assign is uniform
       };
       const desugared = map(dsVisitor, program);
       return runtime.makeObject({
