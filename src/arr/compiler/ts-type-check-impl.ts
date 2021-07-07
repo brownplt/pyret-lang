@@ -45,6 +45,7 @@ type SDExports = {
     const {
       ExhaustiveSwitchError,
       InternalCompilerError,
+      MakeName,
       listToArray,
       nameToKey,
       nameToName,
@@ -230,6 +231,11 @@ type SDExports = {
       addLevel() : void {
 
       }
+
+      addVariableSet(vars: TS.Type[]): void {
+        // TODO: essentially,
+        // this.constraints.add-variable-set(vars)
+      }
     }   
 
     function resolveAlias(t : TS.Type, c : Context) : TS.Type {
@@ -353,6 +359,36 @@ type SDExports = {
           }
         }
         default: throw new ExhaustiveSwitchError(type);
+      }
+    }
+
+    const TCNames = MakeName(0);
+
+    function newExistential(l : SL.Srcloc, inferred : boolean): TJ.Variant<TS.Type, 't-existential'> {
+      return TS['t-existential'].app(TCNames.makeAtom("%exists"), l, inferred);
+    }
+
+    function newTypeVar(l : SL.Srcloc): TJ.Variant<TS.Type, 't-var'> {
+      return TS['t-var'].app(TCNames.makeAtom("%tyvar"), l, false);
+    }
+
+    // Examines a type and, if it is a t-forall, instantiates it with fresh variables
+    // This process modifies context to record the newly generated variables.
+    // All other types are unmodified.
+    function instantiateForallWithFreshVars(type : TS.Type, context: Context): TS.Type {
+      switch(type.$name) {
+        case 't-forall': {
+          const { introduces, onto, l, inferred } = type.dict;
+          const introducesArr = listToArray(introduces);
+          const newExistentials = introducesArr.map((i) => newExistential(l, false));
+          let newOnto = onto;
+          for (let i = 0; i < newExistentials.length; i++) {
+            newOnto = substitute(newOnto, introducesArr[i], newExistentials[i]);
+          }
+          context.addVariableSet(newExistentials);
+          return newOnto;
+        }
+        default: return type;
       }
     }
 
