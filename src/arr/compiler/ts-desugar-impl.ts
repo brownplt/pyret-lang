@@ -80,6 +80,10 @@ type DesugarInfo = {
         InternalCompilerError,
       } = tj;
 
+      function log(value) {
+        options.dict.log.app("\n" + value, runtime.ffi.makeNone());
+      }
+
       // this is duplicated code and needs to be deleted when merging
       type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1, ...rest: infer R) => void) ? R : never
 
@@ -119,12 +123,17 @@ type DesugarInfo = {
       const flatPrimApp = A['prim-app-info-c'].app(false);
   
       function boLocal(l: A.Srcloc, originalName: A.Name): CS.BindOrigin {
-        if ('source' in l.dict) {
-          return CS.dict.values.dict['bind-origin'].app(l, l, true, l.dict.source, originalName);
-        } else if ('module-name' in l.dict) {
-          return CS.dict.values.dict['bind-origin'].app(l, l, true, l.dict['module-name'], originalName);
-        } else {
-          throw new InternalCompilerError("Source location does not have source or module-name!");
+        switch (l.$name) {
+          case 'builtin': {
+            return CS.dict.values.dict['bind-origin'].app(l, l, true, l.dict['module-name'], originalName);
+          }
+          case 'srcloc': {
+            log("binding local with source");
+            return CS.dict.values.dict['bind-origin'].app(l, l, true, l.dict.source, originalName);
+          }
+          default: {
+            throw new ExhaustiveSwitchError(l);
+          }
         }
       }
       function g(id: string): TJ.Variant<A.Name, 's-global'> {
@@ -141,7 +150,9 @@ type DesugarInfo = {
       function mkIdAnn(l: A.Srcloc, base: string, ann: A.Ann): { id: A.Name, idB: A.Bind, idE: A.Expr } {
         const a = names.makeAtom(base);
         const key = nameToKey(a);
+        log("trying binding local");
         const bindingLocal = boLocal(l, a);
+        log("passed binding local");
         generatedBinds.set(
           key,
           CS.dict.values.dict['value-bind'].app(
@@ -331,6 +342,7 @@ type DesugarInfo = {
           return expr;
         }
       };
+      generatedBinds.clear();
       const desugared = map(dsVisitor, program);
       return runtime.makeObject({
         ast: desugared,
