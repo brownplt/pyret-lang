@@ -3286,6 +3286,8 @@ no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict
 # MARK(joe/ben): modules
 standard-globals = globals([string-dict:], runtime-values, runtime-types)
 
+no-globals = globals([string-dict:], [string-dict:], [string-dict:])
+
 
 reactor-optional-fields = [SD.string-dict:
   "last-image",       {(l): A.a-name(l, A.s-type-global("Function"))},

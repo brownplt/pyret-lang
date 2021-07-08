@@ -16,8 +16,9 @@ import file("./ast-util.arr") as AU
 
 fun make-provide-for-repl(p :: A.Program):
   cases(A.Program) p:
-    | s-program(l, _, _, existing-provides, imports, body) =>
+    | s-program(l, _use, _, _, existing-provides, imports, body) =>
       A.s-program(l,
+          _use,
           A.s-provide-none(l),
           A.s-provide-types-none(l),
           existing-provides + [list: A.s-provide-block(l, empty, [list:
@@ -57,7 +58,7 @@ fun make-repl<a>(
     compile-context :: a,
     make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))):
 
-  var globals = CS.standard-globals
+  var globals = CS.no-globals
   var current-compile-options = CS.default-compile-options
   var current-modules = modules
   var current-realm = realm

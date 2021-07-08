@@ -580,3 +580,28 @@ end
   ```) is true
 
 end
+
+check "should parse use-stmt":
+  does-parse(```
+  use lang shared-gdrive("cse019-assignment1", "j0fd91328fhhf")
+  ```) is true
+
+  does-parse(```
+  use uninterpreted-token file("cse019-assignment1.arr")
+  ```) is true
+
+  does-parse(```
+  use uninterpreted-token file("cse019-assignment1.arr")
+  use uninterpreted-token2 file("cse019-assignment2.arr")
+  ```) is false
+
+  does-parse(```
+  use a b("c")
+  import e("f") as G
+  ```) is true
+
+  does-parse(```
+  use b("c")
+  ```) is false
+
+end

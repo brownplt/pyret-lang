@@ -97,6 +97,7 @@ str-tablecolon = PP.str("table:")
 str-rowcolon = PP.str("row:")
 str-extend = PP.str("extend")
 str-transform = PP.str("transform")
+str-use = PP.str("using")
 str-using = PP.str("using")
 str-select = PP.str("select")
 str-sieve = PP.str("sieve")
@@ -238,19 +239,34 @@ fun blocky-colon(blocky):
   if blocky: break-one + str-block else: str-colon end
 end
 
+data Use:
+  | s-use(l :: Loc, n :: Name, mod :: ImportType) with:
+    method label(self): "s-use" end,
+    method tosource(self):
+      PP.flow([list: str-use, self.n.tosource(), self.mod.tosource()])
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 data Program:
-  | s-program(l :: Loc, _provide :: Provide, provided-types :: ProvideTypes, provides :: List<ProvideBlock>, imports :: List<Import>, block :: Expr) with:
+  | s-program(l :: Loc, _use :: Option<Use>, _provide :: Provide, provided-types :: ProvideTypes, provides :: List<ProvideBlock>, imports :: List<Import>, block :: Expr) with:
     method label(self): "s-program" end,
     method tosource(self):
-      PP.group(
-        PP.vert(
+      parts = 
           [list:
             self._provide.tosource(),
             self.provided-types.tosource()]
             + self.provides.map(_.tosource())
             + self.imports.map(_.tosource())
             + [list: self.block.tosource()]
-          ))
+      with-use = cases(Option) self._use:
+        | none => parts
+        | some(u) => link(u.tosource(), parts)
+      end
+      PP.group(PP.vert(with-use))
     end
 sharing:
   method visit(self, visitor):
@@ -1892,8 +1908,12 @@ default-map-visitor = {
     s-module(l, answer.visit(self), dm.map(_.visit(self)), dv.map(_.visit(self)), dt.map(_.visit(self)), checks.visit(self))
   end,
 
-  method s-program(self, l, _provide, provided-types, provides, imports, body):
-    s-program(l, _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
+  method s-program(self, l, _use, _provide, provided-types, provides, imports, body):
+    s-program(l, self.option(_use), _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
+  end,
+
+  method s-use(self, l, name, import-type):
+    s-use(l, name.visit(self), import-type.visit(self))
   end,
 
   method s-include-from(self, l, mod, specs):
@@ -2497,12 +2517,17 @@ default-iter-visitor = {
     answer.visit(self) and lists.all(_.visit(self), dm) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and checks.visit(self)
   end,
 
-  method s-program(self, l, _provide, provided-types, provides, imports, body):
-    _provide.visit(self)
+  method s-program(self, l, _use, _provide, provided-types, provides, imports, body):
+    self.option(_use)
+    and _provide.visit(self)
     and provided-types.visit(self)
     and lists.all(_.visit(self), provides)
     and lists.all(_.visit(self), imports)
     and body.visit(self)
+  end,
+
+  method s-use(self, l, name, import-type):
+    name.visit(self) and import-type.visit(self)
   end,
 
   method s-import(self, l, import-type, name):
@@ -3096,8 +3121,12 @@ dummy-loc-visitor = {
       answer.visit(self), dm.map(_.visit(self)), dv.map(_.visit(self)), dt.map(_.visit(self)), checks.visit(self))
   end,
 
-  method s-program(self, l, _provide, provided-types, provides, imports, body):
-    s-program(dummy-loc, _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
+  method s-program(self, l, _use, _provide, provided-types, provides, imports, body):
+    s-program(dummy-loc, self.option(_use), _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
+  end,
+
+  method s-use(self, l, name, import-type):
+    s-use(dummy-loc, name.visit(self), import-type.visit(self))
   end,
 
   method s-const-import(self, l :: Loc, mod :: String):

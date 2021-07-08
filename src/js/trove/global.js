@@ -39,6 +39,7 @@
       "builtins": ["record", {
         "trace-value": ["forall", ["a"], ["arrow", ["Any", "tva"], "tva"]],
         "has-field": ["arrow", [["record", {}], "String"], "Boolean"],
+        "raw-array-to-list": ["forall", ["a"], ["arrow", [["RawArray", "tva"]], ["List", "tva"]]],
         "raw-array-from-list": ["forall", ["a"], ["arrow", [["List", "tva"]], ["RawArray", "tva"]]],
         "raw-array-join-str": ["forall", ["a"], ["arrow", [["RawArray", "tva"]], "String"]],
         "raw-array-sort-nums" : ["arrow", [["RawArray", "Number"], "Boolean"], ["RawArray", "Number"]],

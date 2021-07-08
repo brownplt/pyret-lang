@@ -202,7 +202,7 @@ fun create-check-block(l, checks):
       A.s-app(l, A.s-dot(l, U.checkers(l), "run-checks"), [list: 
           A.s-str(l, l.source),
           # TODO(joe): need to make this a s-global somehow
-          A.s-construct(l, A.s-construct-normal, A.s-id(l, A.s-name(l, "list")), checkers)
+          A.s-app(l, A.s-dot(l, A.s-prim-val(l, "builtins"), "raw-array-to-list"), [list: A.s-array(l, checkers)])
         ])
     ])
 end

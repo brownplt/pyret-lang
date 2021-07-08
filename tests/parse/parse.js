@@ -800,6 +800,30 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("```\\u````")).toBe(false);
       expect(parse("\"\\u`\"")).toBe(false);
     });
+
+    it("should parse use statements", function() {
+      expect(parse(`
+      use lang shared-gdrive("cse019-assignment1", "j0fd91328fhhf")
+      `)).not.toBe(false);
+    
+      expect(parse(`
+      use uninterpreted-token file("cse019-assignment1.arr")
+      `)).not.toBe(false);
+    
+      expect(parse(`
+      use uninterpreted-token file("cse019-assignment1.arr")
+      use uninterpreted-token2 file("cse019-assignment2.arr")
+      `)).toBe(false);
+    
+      expect(parse(`
+      use a b("c")
+      import e("f") as G
+      `)).not.toBe(false);
+    
+      expect(parse(`
+      use missing-name("c")
+      `)).toBe(false);
+    });
   });
 
   jazz.execute();

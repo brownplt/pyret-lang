@@ -194,8 +194,12 @@ end
 
 fun get-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
   parsed = get-ast(p, uri)
-  for map(s from lists.filter-map(get-import-type, parsed.imports)):
+  from-imports = for map(s from lists.filter-map(get-import-type, parsed.imports)):
     AU.import-to-dep(s)
+  end
+  cases(Option) parsed._use:
+    | none  => from-imports
+    | some(u) => link(AU.import-to-dep(u.mod), from-imports)
   end
 end
 
