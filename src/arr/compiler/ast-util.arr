@@ -35,7 +35,7 @@ fun ok-last(stmt):
   )
 end
 
-fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "current-checker"), [list: ]) end
+fun checkers(l): A.s-app(l, A.s-dot(l, A.s-prim-val(l, "builtins"), "current-checker"), [list: ]) end
 
 fun append-nothing-if-necessary(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
@@ -45,13 +45,13 @@ fun append-nothing-if-necessary(prog :: A.Program) -> A.Program:
           cases(List) stmts:
             | empty =>
               A.s-program(l1, _use, _provide, _provide-types, provides, imports,
-                A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))]))
+                A.s-block(l2, [list: A.s-prim-val(l2, "nothing")]))
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): prog
               else:
                 A.s-program(l1, _use, _provide, _provide-types, provides, imports,
-                  A.s-block(l2, stmts + [list: A.s-id(A.dummy-loc, A.s-name(l2, "nothing"))]))
+                  A.s-block(l2, stmts + [list: A.s-prim-val(A.dummy-loc, "nothing")]))
               end
           end
         | else => prog
@@ -62,7 +62,7 @@ end
 fun wrap-if-needed(exp :: A.Expr) -> A.Expr:
   l = exp.l
   if ok-last(exp) and not(A.is-s-spy-block(exp)):
-    A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "trace-value"),
+    A.s-app(l, A.s-dot(l, A.s-prim-val(l, "builtins"), "trace-value"),
       [list: A.s-srcloc(l, l), exp])
   else: exp
   end
@@ -878,7 +878,7 @@ fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
   expr = p.block
   full-imports = cases(Option) p._use:
     | some(_use) =>
-      link(A.s-include(p.l, _use.mod), p.imports)
+      link(A.s-include(A.dummy-loc, _use.mod), p.imports)
     | none =>
       # TODO(Joe/Ben Dec 2020) in the future we will desugar this case into
       # `s-include(p.l, default-namespace)` instead of relying on ExtraImports,

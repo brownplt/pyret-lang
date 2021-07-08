@@ -1,4 +1,4 @@
-use namespace global
+use context global
 include lists
 
 check:
