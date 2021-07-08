@@ -8,7 +8,7 @@ import pprint as PP
 import pathlib as PL
 import file("../../src/arr/compiler/desugar.arr") as D
 import file("../../src/arr/compiler/desugar-check.arr") as DC
-import ast as A
+import file("../../src/arr/compiler/ast.arr") as A
 import file("../../src/arr/compiler/compile-structs.arr") as CS
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../src/arr/compiler/compile-lib.arr") as CL
@@ -31,7 +31,9 @@ cl-options = [SD.string-dict:
   "type-check",
     C.flag(C.once, "Type check code"),
   "inline-case-body-limit",
-    C.next-val-default(C.Num, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
+    C.next-val-default(C.Num, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body"),
+  "ast",
+    C.flag(C.once, "Show AST instead of source code")
 ]
 
 parsed-options = C.parse-cmdline(cl-options)
@@ -63,14 +65,19 @@ println = lam(s) block:
   print("\n")
 end
 
-fun pretty-result(result):
-  if A.is-Program(result): result.tosource()
+fun pretty-result(result, show-ast):
+  fun print-prog(p):
+    if show-ast: PP.str(torepr(p))
+    else: p.tosource()
+    end
+  end
+  if A.is-Program(result): print-prog(result)
   else if JS.is-CompiledCodePrinter(result): result.pyret-to-js-pretty()
-  else if CS.is-NameResolution(result): result.ast.tosource()
-  else if CS.is-ScopeResolution(result): result.ast.tosource()
+  else if CS.is-NameResolution(result): print-prog(result.ast)
+  else if CS.is-ScopeResolution(result): print-prog(result.ast)
   else if CS.is-CompileResult(result):
     cases(CS.CompileResult) result:
-      | ok(c) => pretty-result(c)
+      | ok(c) => pretty-result(c, show-ast)
       | err(problems) => PP.flow-map(PP.hardline, lam(p): PP.str(tostring(p)) end, problems)
     end
   else if is-nothing(result): PP.mt-doc
@@ -79,15 +86,16 @@ fun pretty-result(result):
       PP.lbrace, PP.commabreak, PP.rbrace,
       result.keys-list-now().sort().map(
         lam(k):
-          PP.nest(2, PP.str(k) + PP.str(" => ") + PP.nest(2, pretty-result(result.get-value-now(k))))
+          PP.nest(2, PP.str(k) + PP.str(" => ") + PP.nest(2, pretty-result(result.get-value-now(k), show-ast)))
         end))
   else if SD.is-string-dict(result):
     PP.surround-separate(2, 1, PP.lbrace + PP.rbrace,
       PP.lbrace, PP.commabreak, PP.rbrace,
       result.keys-list().sort().map(
         lam(k):
-          PP.nest(2, PP.str(k) + PP.str(" => ") + PP.nest(2, pretty-result(result.get-value(k))))
+          PP.nest(2, PP.str(k) + PP.str(" => ") + PP.nest(2, pretty-result(result.get-value(k), show-ast)))
         end))
+  else if is-object(result): print-prog(result.ast)
   else: PP.str(torepr(result))
   end
 end
@@ -137,7 +145,7 @@ cases (C.ParsedArguments) parsed-options block:
           println("\n")
           println(">>>>>>>>>>>>>>>>>>")
           println(phase.name + ":   " + tostring(phase.time) + "ms")
-          each(println, pretty-result(phase.result).pretty(print-width))
+          each(println, pretty-result(phase.result, opts.get("ast").or-else(false)).pretty(print-width))
         end
     end
   | arg-error(m, _) =>
