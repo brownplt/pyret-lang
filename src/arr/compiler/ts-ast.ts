@@ -1354,7 +1354,7 @@ dict: {values: {dict: {
 
 's-prim-val': PFunction< (l: Loc, name: string) => TCH.Variant<Expr, 's-prim-val'> >
 
-'is-s-id': PFunction< (val: any) => boolean >
+'is-s-id': PFunction< (val: any) => val is TCH.Variant<Expr, 's-id'> >
 
 's-id': PFunction< (l: Loc, id: Name) => TCH.Variant<Expr, 's-id'> >
 
