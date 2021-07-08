@@ -38,7 +38,7 @@ parsed-options = C.parse-cmdline(cl-options)
 
 compile-str = lam(filename, options):
   base-module = CS.dependency("file-no-cache", [list: filename])
-  base = CLI.module-finder({current-load-path:"./", cache-base-dir: "./compiled"}, base-module)
+  base = CLI.module-finder({current-load-path:"./", cache-base-dir: "./build/runtime/", compiled-read-only-dirs: options.compiled-read-only, options: options}, base-module)
   wlist = CL.compile-worklist(CLI.module-finder, base.locator, base.context)
   traces = SD.make-mutable-string-dict()
   result = CL.compile-program(wlist, options.{
@@ -111,7 +111,7 @@ cases (C.ParsedArguments) parsed-options block:
       | empty => println("Require a file name")
       | link(file, _) =>
         println("File is " + file)
-        options = CS.default-compile-options.{
+        options = CS.make-default-compile-options("./").{
           check-mode: check-mode,
           type-check: type-check,
           proper-tail-calls: true,
