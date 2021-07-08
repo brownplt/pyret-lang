@@ -49,9 +49,9 @@ export interface Exports {
 type SDExports = {
   dict: { values: { dict: {
     'make-mutable-string-dict': PFunction<<T>() => MutableStringDict<T>>
-    'is-mutable-string-dict': PFunction<(val: any) => boolean>,
+    'is-mutable-string-dict': PFunction<<T>(val: any) => val is MutableStringDict<T>>,
     'make-string-dict': PFunction<<T>() => StringDict<T>>,
-    'is-string-dict': PFunction<(val: any) => boolean>,
+    'is-string-dict': PFunction<<T>(val: any) => val is StringDict<T>>,
     'map-keys': PFunction<<T, U>(f: ((key: T) => U), isd: StringDict<T>) => List<U>>,
     'map-keys-now': PFunction<<T, U>(f: ((key: T) => U), msd: MutableStringDict<T>) => List<U>>,
     'fold-keys': PFunction<<T, U>(f: (key: string, acc: U) => U, init: U, isd: StringDict<T>) => U>,

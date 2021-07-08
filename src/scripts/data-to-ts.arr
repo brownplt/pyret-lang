@@ -92,25 +92,25 @@ fun app(name, args):
 end
 create-constrs = A.default-iter-visitor.{
   method s-data(self, l, data-name, params, mixins, variants, shared-members, _check-loc, _check) block:
-    exports := link(field("is-" + data-name, PP.str("PFunction<(val: any) => boolean>")), exports)
+    baseName = string-replace(data-name, "-", "_")
+    exports := link(field("is-" + data-name, PP.str("PFunction<(val: any) => val is " + baseName + ">")), exports)
     typarams =
       if is-empty(params): PP.mt-doc
       else: PP.surround-separate(INDENT, 0, PP.mt-doc, PP.langle, PP.commabreak, PP.rangle,
           params.map(_.tosource()))
       end
     emptyMethods = obj([list: field("$methods", PP.braces(PP.mt-doc))])
-    baseName = string-replace(data-name, "-", "_")
     sharedBaseName = "sharedBase_" + baseName
     sharedBase = PP.infix(INDENT, 0, PP.str(" = "), PP.str("const " + sharedBaseName), emptyMethods)
     constrs := link(sharedBase, constrs)
     ppvars = for map(v from variants) block:
-      exports := link(field("is-" + v.name, PP.str("PFunction<(val: any) => boolean>")), exports)
+      exports := link(field("is-" + v.name, PP.str("PFunction<(val: any) => val is TCH.Variant<" + baseName + ", '" + v.name + "'>>")), exports)
       varName = string-replace(v.name, "-", "_")
       varBaseName = "variantBase_" + varName
       cases(A.Variant) v block:
         | s-singleton-variant(vl, name, with-members) =>
           variant = PP.infix(INDENT, 0, PP.str(" = "),
-            PP.str("const " + varBaseName + " : Variant<" + baseName + ", '" + name + "'>"),
+            PP.str("const " + varBaseName + " : TCH.Variant<" + baseName + ", '" + name + "'>"),
             app("PRIMITIVES.createVariant", [list:
                 PP.str(sharedBaseName),
                 emptyMethods,
@@ -119,7 +119,7 @@ create-constrs = A.default-iter-visitor.{
                     field("$name", PP.dquote(PP.str(name))),
                     field("$fieldNames", PP.str("null"))])]))
           constrs := link(variant, constrs)
-      	  singleton-export = field(name, PP.str("Variant<" + baseName + ", '" + name + "'>"))
+      	  singleton-export = field(name, PP.str("TCH.Variant<" + baseName + ", '" + name + "'>"))
 	        exports := link(singleton-export, exports)
           pred = PP.str(
             "export function is" + varName + "(val: any): boolean {\n" +
@@ -163,9 +163,9 @@ create-constrs = A.default-iter-visitor.{
               end))
           constr-header = PP.group(
             PP.str("export function " + varName) + constr-arglist
-              + PP.str(": ") + PP.str("Variant<" + data-name + ", '" + name + "'>"))
+              + PP.str(": ") + PP.str("TCH.Variant<" + data-name + ", '" + name + "'>"))
           variant-export = field(name, PP.surround(INDENT, 1, PP.str("PFunction<"),
-            constr-arglist + PP.str(" => ") + PP.str("Variant<" + data-name + ", '" + name + "'>"),
+            constr-arglist + PP.str(" => ") + PP.str("TCH.Variant<" + data-name + ", '" + name + "'>"),
             PP.str(">")))
           exports := link(variant-export, exports)
           constr = PP.surround(INDENT, 1, constr-header + PP.str(" {"),

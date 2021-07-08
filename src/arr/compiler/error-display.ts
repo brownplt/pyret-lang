@@ -39,50 +39,50 @@ export type ErrorDisplay =
 /////////////////////////// Exports //////////////////////////
 export interface Exports {
 dict: {values: {dict: {
-'is-ErrorDisplay': PFunction<(val: any) => boolean>
+'is-ErrorDisplay': PFunction<(val: any) => val is ErrorDisplay>
 
-'is-paragraph': PFunction<(val: any) => boolean>
+'is-paragraph': PFunction<(val: any) => val is Variant<ErrorDisplay, 'paragraph'>>
 
 'paragraph': 
   PFunction< (contents: unknown) => Variant<ErrorDisplay, 'paragraph'> >
 
-'is-bulleted-sequence': PFunction<(val: any) => boolean>
+'is-bulleted-sequence': PFunction<(val: any) => val is Variant<ErrorDisplay, 'bulleted-sequence'>>
 
 'bulleted-sequence': 
   PFunction< (contents: unknown) => Variant<ErrorDisplay, 'bulleted-sequence'> >
 
-'is-v-sequence': PFunction<(val: any) => boolean>
+'is-v-sequence': PFunction<(val: any) => val is Variant<ErrorDisplay, 'v-sequence'>>
 
 'v-sequence': 
   PFunction< (contents: unknown) => Variant<ErrorDisplay, 'v-sequence'> >
 
-'is-h-sequence': PFunction<(val: any) => boolean>
+'is-h-sequence': PFunction<(val: any) => val is Variant<ErrorDisplay, 'h-sequence'>>
 
 'h-sequence': 
   PFunction<
     (contents: unknown, sep: string) => Variant<ErrorDisplay, 'h-sequence'>
   >
 
-'is-h-sequence-sep': PFunction<(val: any) => boolean>
+'is-h-sequence-sep': PFunction<(val: any) => val is Variant<ErrorDisplay, 'h-sequence-sep'>>
 
 'h-sequence-sep': 
   PFunction<
     (contents: unknown, sep: string, last: string) => Variant<ErrorDisplay, 'h-sequence-sep'>
   >
 
-'is-embed': PFunction<(val: any) => boolean>
+'is-embed': PFunction<(val: any) => val is Variant<ErrorDisplay, 'embed'>>
 
 'embed': PFunction< (val: any) => Variant<ErrorDisplay, 'embed'> >
 
-'is-text': PFunction<(val: any) => boolean>
+'is-text': PFunction<(val: any) => val is Variant<ErrorDisplay, 'text'>>
 
 'text': PFunction< (str: string) => Variant<ErrorDisplay, 'text'> >
 
-'is-loc': PFunction<(val: any) => boolean>
+'is-loc': PFunction<(val: any) => val is Variant<ErrorDisplay, 'loc'>>
 
 'loc': PFunction< (loc: unknown) => Variant<ErrorDisplay, 'loc'> >
 
-'is-maybe-stack-loc': PFunction<(val: any) => boolean>
+'is-maybe-stack-loc': PFunction<(val: any) => val is Variant<ErrorDisplay, 'maybe-stack-loc'>>
 
 'maybe-stack-loc': 
   PFunction<
@@ -94,27 +94,27 @@ dict: {values: {dict: {
       ) => Variant<ErrorDisplay, 'maybe-stack-loc'>
   >
 
-'is-code': PFunction<(val: any) => boolean>
+'is-code': PFunction<(val: any) => val is Variant<ErrorDisplay, 'code'>>
 
 'code': PFunction< (contents: ErrorDisplay) => Variant<ErrorDisplay, 'code'> >
 
-'is-cmcode': PFunction<(val: any) => boolean>
+'is-cmcode': PFunction<(val: any) => val is Variant<ErrorDisplay, 'cmcode'>>
 
 'cmcode': PFunction< (loc: unknown) => Variant<ErrorDisplay, 'cmcode'> >
 
-'is-loc-display': PFunction<(val: any) => boolean>
+'is-loc-display': PFunction<(val: any) => val is Variant<ErrorDisplay, 'loc-display'>>
 
 'loc-display': 
   PFunction<
     (loc: unknown, style: string, contents: ErrorDisplay) => Variant<ErrorDisplay, 'loc-display'>
   >
 
-'is-optional': PFunction<(val: any) => boolean>
+'is-optional': PFunction<(val: any) => val is Variant<ErrorDisplay, 'optional'>>
 
 'optional': 
   PFunction< (contents: ErrorDisplay) => Variant<ErrorDisplay, 'optional'> >
 
-'is-highlight': PFunction<(val: any) => boolean>
+'is-highlight': PFunction<(val: any) => val is Variant<ErrorDisplay, 'highlight'>>
 
 'highlight': 
   PFunction<

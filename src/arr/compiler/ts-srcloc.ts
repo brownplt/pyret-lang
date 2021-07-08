@@ -21,13 +21,13 @@ export type Srcloc =
 /////////////////////////// Exports //////////////////////////
 export interface Exports {
 dict: {values: {dict: {
-  'is-Srcloc': PFunction<(val: any) => boolean>
+  'is-Srcloc': PFunction<(val: any) => val is Srcloc>
 
-  'is-builtin': PFunction<(val: any) => boolean>
+  'is-builtin': PFunction<(val: any) => val is TCH.Variant<Srcloc, 'builtin'>>
   
   'builtin': PFunction< (module_name: unknown) => TCH.Variant<Srcloc, 'builtin'> >
   
-  'is-srcloc': PFunction<(val: any) => boolean>
+  'is-srcloc': PFunction<(val: any) => val is TCH.Variant<Srcloc, 'srcloc'>>
   
   'srcloc': 
     PFunction<
