@@ -76,7 +76,6 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     { 'import-type': 'dependency', protocol: 'file', args: ['ast.arr']},
     { 'import-type': 'dependency', protocol: 'file', args: ['compile-structs.arr']},
     { 'import-type': 'dependency', protocol: 'file', args: ['type-check-structs.arr']},
-    { 'import-type': 'dependency', protocol: 'file', args: ['type-defaults.arr']},
   ],
   provides: {},
   nativeRequires: [],
