@@ -167,12 +167,12 @@ type SDExports = {
       }
     }
 
-    function gatherProvides(provide: A.ProvideBlock, context: TCS.Context): TCS.TCInfo {
+    function gatherProvides(provide: A.ProvideBlock, context: Context): TCS.TCInfo {
       switch(provide.$name) {
         case 's-provide-block': {
-          const curTypes = SD['make-mutable-string-dict'].app<TS.Type>();
-          const curAliases = callMethod(context.dict.info.dict.aliases, 'unfreeze');
-          const curData = callMethod(context.dict.info.dict['data-types'], 'unfreeze');
+          const curTypes = new Map<string, TS.Type>();
+          const curAliases = context.aliases;
+          const curData = context.dataTypes;
           // Note(Ben): I'm doing two things differently than the original Pyret code:
           // 1. I'm traversing the list of specs from first to last.  If this ultimately matters,
           //    we could reverse the array on the next line before traversing it.
@@ -186,23 +186,18 @@ type SDExports = {
                 switch(nameSpec.$name) {
                   case 's-local-ref': {
                     const valueKey = nameToKey(nameSpec.dict.name);
-                    if (callMethod(curTypes, 'has-key-now', valueKey)) {
+                    if (curTypes.has(valueKey)) {
                       break; // nothing more to do
                     } else {
                       // MARK(joe): test as-name here; it appears unused
-                      const getValueFromContext = callMethod(context.dict.info.dict.types, 'get', valueKey);
-                      switch(getValueFromContext.$name) {
-                        case 'some': {
-                          const typ = setInferred(getValueFromContext.dict.value, false);
-                          callMethod(curTypes, 'set-now', valueKey, typ);
-                          break;
-                        }
-                        case 'none': {
-                          const typ = setInferred(callMethod(context.dict['global-types'], 'get-value', valueKey), false);
-                          callMethod(curTypes, 'set-now', valueKey, typ);
-                          break;
-                        }
-                        default: throw new ExhaustiveSwitchError(getValueFromContext);
+                      const getValueFromContext = context.info.types.get(valueKey);
+                      if (getValueFromContext.$name) {
+                        const typ = setInferred(getValueFromContext, false);
+                        curTypes.set(valueKey, typ);
+                      }
+                      else {
+                        const typ = setInferred(context.globalTypes.get(valueKey), false);
+                        curTypes.set(valueKey, typ);
                       }
                     }
                   }
@@ -218,11 +213,11 @@ type SDExports = {
                 switch(nameSpec.$name) {
                   case 's-local-ref': {
                     const aliasKey = nameToKey(nameSpec.dict.name);
-                    if (callMethod(curAliases, 'has-key-now', aliasKey)) {
+                    if (curAliases.has(aliasKey)) {
                       break; // nothing to do
                     } else {
-                      const typ = callMethod(context.dict.aliases, 'get-value', aliasKey);
-                      callMethod(curAliases, 'set-now', aliasKey, typ);
+                      const typ = context.aliases.get(aliasKey);
+                      curAliases.set(aliasKey, typ);
                       break;
                     }
                   }
@@ -241,11 +236,11 @@ type SDExports = {
                 switch(nameSpec.$name) {
                   case 's-local-ref': {
                     const dataKey = nameToKey(nameSpec.dict.name);
-                    if (callMethod(curData, 'has-key-now', dataKey)) {
+                    if (curData.has(dataKey)) {
                       break; // nothing to do
                     } else {
-                      const typ = callMethod(context.dict['data-types'], 'get-value', dataKey);
-                      callMethod(curData, 'set-now', dataKey, typ);
+                      const typ = context.dataTypes.get(dataKey);
+                      curData.set(dataKey, typ);
                       break;
                     }
                   }
@@ -259,10 +254,7 @@ type SDExports = {
               default: throw new ExhaustiveSwitchError(spec);
             }
           }
-          return tcInfo.app(
-            callMethod(curTypes, 'freeze'),
-            callMethod(curAliases, 'freeze'),
-            callMethod(curData, 'freeze'));
+          return new TCInfo(curTypes, curAliases, curData).toPyretTCInfo();
         }
         default: throw new ExhaustiveSwitchError(provide.$name);
       }
@@ -431,6 +423,35 @@ type SDExports = {
     }
 
     class TCInfo {
+      types: Map<string, TS.Type>;
+      aliases: Map<string, TS.Type>;
+      dataTypes: Map<string, TS.DataType>;
+
+      constructor(
+        types?: Map<string, TS.Type>,
+        aliases?: Map<string, TS.Type>,
+        dataTypes?: Map<string, TS.DataType>,
+      ) {
+        this.types = types ?? new Map();
+        this.aliases = aliases ?? new Map();
+        this.dataTypes = dataTypes ?? new Map();
+      }
+
+      static fromPyretTCInfo(info: TCS.TCInfo): TCInfo {
+        return new TCInfo(
+          mapFromStringDict(info.dict.types),
+          mapFromStringDict(info.dict.aliases),
+          mapFromStringDict(info.dict['data-types'])
+        );
+      }
+
+      toPyretTCInfo() : TCS.TCInfo {
+        return TCS.dict.values.dict['tc-info'].app(
+          stringDictFromMap(this.types),
+          stringDictFromMap(this.aliases),
+          stringDictFromMap(this.dataTypes)
+        )
+      }
 
     }
     class Context {
@@ -449,13 +470,17 @@ type SDExports = {
         aliases: Map<string, TS.Type>,
         dataTypes: Map<string, TS.DataType>,
         modules: Map<string, TS.ModuleType>,
-        moduleNames: Map<string, string>
+        moduleNames: Map<string, string>,
       ) {
         this.globalTypes = globalTypes;
         this.aliases = aliases;
         this.dataTypes = dataTypes;
         this.modules = modules;
         this.moduleNames = moduleNames;
+        this.binds = new Map();
+        this.constraints = new ConstraintSystem();
+        this.info = new TCInfo();
+        this.misc = new Map();
       }
 
       addLevel() : void {
@@ -723,6 +748,12 @@ type SDExports = {
       }
     }
 
+    // FOR DEBUGGNG AID; this will be set within typeCheck using its `options` parameter
+    let logger: PFunction<(val: any, _ignored: Option<any>) => void>;
+    function LOG(val: any): void {
+      logger.app(val, runtime.ffi.makeNone());
+    }
+
     function simplifyTApp(appType : TJ.Variant<TS.Type, "t-app">, context : Context) : TS.Type {
       const args = listToArray(appType.dict.args);
       const onto = resolveAlias(appType.dict.onto, context);
@@ -846,21 +877,21 @@ type SDExports = {
     }
 
     function typeCheck(program: A.Program, compileEnv : CS.CompileEnvironment, postCompileEnv : CS.ComputedEnvironment, modules : MutableStringDict<CS.Loadable>, options) {
-      // DEMO output: options.dict.log.app("Hi!", runtime.ffi.makeNone());
+      logger = options.dict.log;
       const provides = listToArray(program.dict.provides);
-      let context = emptyContext;
 
-      const globVs = compileEnv.dict.globals.dict.values;
-      const globTs = compileEnv.dict.globals.dict.types;
+      const globVs = mapFromStringDict(compileEnv.dict.globals.dict.values);
+      const globTs = mapFromStringDict(compileEnv.dict.globals.dict.types);
 
-      const contextGlobTs = callMethod(context.dict['aliases'], 'unfreeze');
-      const contextGlobVs = callMethod(context.dict['global-types'], 'unfreeze');
-      const contextGlobMods = SD["make-mutable-string-dict"].app<TS.ModuleType>();
-      const contextGlobDTs = SD["make-mutable-string-dict"].app<TS.DataType>();
+      const contextGlobTs = mapFromStringDict(emptyContext.dict['aliases']);
+      const contextGlobVs = mapFromStringDict(emptyContext.dict['global-types']);
+      const contextGlobModnames = mapFromStringDict(emptyContext.dict['module-names']);
+      const contextGlobMods = new Map<string, TS.ModuleType>();
+      const contextGlobDTs = new Map<string, TS.DataType>();
 
-      for (const g of listToArray(callMethod(globVs, 'keys-list'))) {
+      for (const g of globVs.keys()) {
         const key = nameToKey(sGlobal.app(g));
-        if (callMethod(contextGlobVs, 'has-key-now', key)) {
+        if (contextGlobVs.has(key)) {
           continue;
         }
         else {
@@ -869,18 +900,18 @@ type SDExports = {
           }
           else {
             const ve =  globalValueValue(compileEnv, g);
-            callMethod(contextGlobVs, 'set-now', key, ve.dict.t);
+            contextGlobVs.set(key, ve.dict.t);
           }
         }
       }
 
-      for (const g of listToArray(callMethod(globTs, "keys-list"))) {
+      for (const g of globTs.keys()) {
         const key = nameToKey(sTypeGlobal.app(g));
-        if (callMethod(contextGlobTs, 'has-key-now', key)) {
+        if (contextGlobTs.has(key)) {
           continue;
         }
         else {
-          const origin = callMethod(globTs, 'get-value', g);
+          const origin = globTs.get(g);
           if (g === "_") { continue; }
           else {
             const provs = unwrap(providesByUri(compileEnv, origin.dict['uri-of-definition']),
@@ -909,20 +940,20 @@ type SDExports = {
               }
               default: throw new ExhaustiveSwitchError(alias, "computing aliases");
             }
-            callMethod(contextGlobTs, 'set-now', key, t);
+            contextGlobTs.set(key, t);
           }
         }
       }
 
       for (let k of listToArray(callMethod(modules, 'keys-list-now'))) {
-        if (callMethod(context.dict.modules, 'has-key', k)) {
+        if (contextGlobMods.has(k)) {
           continue;
         }
         else {
           // NOTE/TODO/REVISIT(joe/ben/luna): Can we just resolve these with valueByUriValue/resolveDatatypeByUriValue
           const mod = callMethod(modules, 'get-value-now', k).dict.provides;
           const key = mod.dict['from-uri'];
-          let valsTypesDict = SD['make-string-dict'].app<TS.Type>();
+          let valsTypesDict = new Map<string, TS.Type>();
           for (let valKey of listToArray(callMethod(mod.dict.values, 'keys-list'))) {
             let typ : TS.Type;
             const ve = callMethod(mod.dict.values, 'get-value', valKey);
@@ -934,9 +965,9 @@ type SDExports = {
               default:
                 typ = ve.dict.t;
             }
-            valsTypesDict = callMethod(valsTypesDict, 'set', valKey, typ);
+            valsTypesDict.set(valKey, typ);
           }
-          let dataDict = SD["make-string-dict"].app<TS.DataType>();
+          let dataDict = new Map<string, TS.DataType>();
           for (let dataKey of listToArray(callMethod(mod.dict['data-definitions'], 'keys-list'))) {
             const de = callMethod(mod.dict['data-definitions'], 'get-value', dataKey);
             let typ : TS.DataType;
@@ -948,17 +979,17 @@ type SDExports = {
               default:
                 typ = de.dict.typ;
             }
-            dataDict = callMethod(dataDict, 'set', dataKey, typ);
+            dataDict.set(dataKey, typ);
           }
-          const valProvides = TS['t-record'].app(valsTypesDict, program.dict.l, false);
-          const moduleType = TS['t-module'].app(key, valProvides, dataDict, mod.dict.aliases);
-          callMethod(contextGlobMods, 'set-now', key, moduleType);
+          const valProvides = TS['t-record'].app(stringDictFromMap(valsTypesDict), program.dict.l, false);
+          const moduleType = TS['t-module'].app(key, valProvides, stringDictFromMap(dataDict), mod.dict.aliases);
+          contextGlobMods.set(key, moduleType);
           for(let dataKey of listToArray(callMethod(mod.dict['data-definitions'], 'keys-list'))) {
             // NOTE(joe): changed this to byUri***Value*** to not return an
             // Option, which conflicted with the type of the data-types field of
             // context (but evidently never triggered a dynamic error in our tests)
             const resolved = resolveDatatypeByUriValue(compileEnv, key, dataKey);
-            callMethod(contextGlobDTs, 'set-now', dataKey, resolved);
+            contextGlobDTs.set(dataKey, resolved);
           }
         }
       }
@@ -967,29 +998,32 @@ type SDExports = {
         throw new InternalCompilerError(`type-check got computed-none postCompileEnv in ${formatSrcloc(program.dict.l, true)}`);
       }
 
-      const mbinds = postCompileEnv.dict['module-bindings'];
-      const vbinds = postCompileEnv.dict.bindings;
-      const tbinds = postCompileEnv.dict['type-bindings'];
+      // NOTE(joe) – we cannot use module-env/type-env/env here because they
+      // represent the environment at the *end* of the module. So if the user
+      // shadows an imported ID, we would pick up that name as the type of the
+      // import. Instead, we filter through all the bindings looking for ones
+      // that came from a module. This is slower, and having Yet Another
+      // Datatype for "bindings after imports" would help here.
+    
+      const mbinds = mapFromMutableStringDict(postCompileEnv.dict['module-bindings']);
+      const vbinds = mapFromMutableStringDict(postCompileEnv.dict.bindings);
+      const tbinds = mapFromMutableStringDict(postCompileEnv.dict['type-bindings']);
 
-      const contextGlobModnames = callMethod(context.dict['module-names'], 'unfreeze');
-
-      for (let key of listToArray(callMethod(mbinds, 'keys-list-now'))) {
-        callMethod(contextGlobModnames, 'set-now', key, callMethod(mbinds, 'get-value-now', key).dict.uri);
+      for (const [key, mbind] of mbinds.entries()) {
+        contextGlobModnames.set(key, mbind.dict.uri);
       }
 
-      for (let key of listToArray(callMethod(vbinds, 'keys-list-now'))) {
-        const vbind = callMethod(vbinds, 'get-value-now', key);
+      for (const [key, vbind] of vbinds.entries()) {
         if (vbind.dict.origin.dict['new-definition']) { continue; }
         else {
-          const thismod = callMethod(contextGlobMods, 'get-value-now', vbind.dict.origin.dict['uri-of-definition']);
+          const thismod = contextGlobMods.get(vbind.dict.origin.dict['uri-of-definition']);
           const originalName = nameToName(vbind.dict.origin.dict['original-name']);
           const field = unwrap(callMethod(thismod.dict.provides.dict.fields, 'get', originalName), `Cannot find value bind for ${originalName} in ${formatSrcloc(program.dict.l, true)}`);
-          callMethod(contextGlobVs, 'set-now', key, field);
+          contextGlobVs.set(key, field);
         }
       }
 
-      for (let key of listToArray(callMethod(tbinds, 'keys-list-now'))) {
-        const tbind = callMethod(tbinds, 'get-value-now', key);
+      for (const [key, tbind] of tbinds.entries()) {
         const origin = tbind.dict.origin;
         if (origin.dict['new-definition']) { continue; }
         else {
@@ -997,29 +1031,17 @@ type SDExports = {
           const originalType = unwrap(
             typeByUri(compileEnv, origin.dict['uri-of-definition'], originalName),
             `Cannot find type bind for ${originalName} in ${formatSrcloc(program.dict.l, true)}`);
-          callMethod(contextGlobTs, 'set-now', key, originalType)
+          contextGlobTs.set(key, originalType)
         }
       }
 
 
-      const contextFromModulesToBeReplaced = typingContext.app(
-          callMethod(contextGlobVs, 'freeze'),
-          callMethod(contextGlobTs, 'freeze'),
-          callMethod(contextGlobDTs, 'freeze'),
-          callMethod(contextGlobMods, 'freeze'),
-          callMethod(contextGlobModnames, 'freeze'),
-          context.dict['binds'],
-          context.dict['constraints'],
-          context.dict['info'],
-          context.dict['misc'],
-      )
-
       const contextFromModules = new Context(
-        mapFromMutableStringDict(contextGlobVs),
-        mapFromMutableStringDict(contextGlobTs),
-        mapFromMutableStringDict(contextGlobDTs),
-        mapFromMutableStringDict(contextGlobMods),
-        mapFromMutableStringDict(contextGlobModnames));
+        contextGlobVs,
+        contextGlobTs,
+        contextGlobDTs,
+        contextGlobMods,
+        contextGlobModnames);
 
       try {
         checking(program.dict.block, TS['t-top'].app(program.dict.l, false), true, contextFromModules);
@@ -1028,7 +1050,7 @@ type SDExports = {
         console.error("Got a type-checking error", e);
       }
 
-      const info = gatherProvides(provides[0], contextFromModulesToBeReplaced);
+      const info = gatherProvides(provides[0], contextFromModules);
       return CS.ok.app(typed.app(program, info));
     }
     return runtime.makeModuleReturn({
