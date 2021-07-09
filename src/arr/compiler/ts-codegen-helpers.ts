@@ -65,7 +65,9 @@ export interface Exports {
 }
 
 ({
-  requires: [],
+  requires: [
+    { 'import-type': 'dependency', protocol: 'file', args: ['ast.arr']},
+  ],
   nativeRequires: [],
   provides: {
     values: {
@@ -109,7 +111,8 @@ export interface Exports {
       compileSrcloc: 'tany',
     },
   },
-  theModule: function(runtime, _, __) {
+  theModule: function(runtime, _, __, Ain: A.Exports) {
+    const A = Ain.dict.values.dict;
     class ExhaustiveSwitchError extends Error {
       constructor(v: never, message?: string) {
         super(`Switch is not exhaustive on \`${JSON.stringify(v)}\`: ${message}`);
@@ -364,20 +367,20 @@ export interface Exports {
       };
     }
     
-    
+    // deliberately making pyret values here instead of synthesizing object 
     function MakeName(start : number) {
       var count = start;
       function atom(base : string) : A.Name {
         count = count + 1;
-        return { $name: "s-atom", dict: { base: base, serial: count }};
+        return A['s-atom'].app(base, count);
       }
       return {
         reset: () => count = start,
-        sUnderscore: (l : A.Srcloc) : A.Name => ({ $name: "s-underscore", dict: { l }}),
-        sName: (s : string, l : A.Srcloc) : A.Name => ({ $name: "s-name", dict: { s, l }}),
-        sGlobal: (s : string) : A.Name => ({ $name: "s-global", dict: { s }}),
-        sModuleGlobal: (s : string) : A.Name => ({ $name: "s-module-global", dict: { s }}),
-        sTypeGlobal: (s : string) : A.Name => ({ $name: "s-type-global", dict: { s }}),
+        sUnderscore: (l : A.Srcloc) : A.Name => (A['s-underscore'].app(l)),
+        sName: (s : string, l : A.Srcloc) : A.Name => (A['s-name'].app(l, s)),
+        sGlobal: (s : string) : A.Name => (A['s-global'].app(s)),
+        sModuleGlobal: (s : string) : A.Name => (A['s-module-global'].app(s)),
+        sTypeGlobal: (s : string) : A.Name => (A['s-type-global'].app(s)),
         makeAtom : atom,
         isSUnderscore: v => v.$name === "s-underscore",
         isSName: v => v.$name === "s-name",

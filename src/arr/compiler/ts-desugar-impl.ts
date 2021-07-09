@@ -128,7 +128,6 @@ type DesugarInfo = {
             return CS.dict.values.dict['bind-origin'].app(l, l, true, l.dict['module-name'], originalName);
           }
           case 'srcloc': {
-            log("binding local with source");
             return CS.dict.values.dict['bind-origin'].app(l, l, true, l.dict.source, originalName);
           }
           default: {
@@ -150,17 +149,16 @@ type DesugarInfo = {
       function mkIdAnn(l: A.Srcloc, base: string, ann: A.Ann): { id: A.Name, idB: A.Bind, idE: A.Expr } {
         const a = names.makeAtom(base);
         const key = nameToKey(a);
-        log("trying binding local");
         const bindingLocal = boLocal(l, a);
-        log("passed binding local");
+        const value = CS.dict.values.dict['value-bind'].app(
+          bindingLocal,
+          CS.dict.values.dict['vb-let'],
+          a,
+          ann
+        );
         generatedBinds.set(
           key,
-          CS.dict.values.dict['value-bind'].app(
-            bindingLocal,
-            CS.dict.values.dict['vb-let'],
-            a,
-            ann
-          )
+          value,
         );
         return { 
           id: a, 
@@ -202,6 +200,25 @@ type DesugarInfo = {
           }
         });
         return [binds, exprs];
+      }
+      function dsCurryNullary(rebuildNode, l: A.Srcloc, obj: A.Expr, field: string, visitor) {
+        if(isUnderscore(obj)) {
+          const curriedObj = mkId(l, "recv_");
+          return A['s-lam'].app(
+            l,
+            "",
+            runtime.ffi.makeList([]),
+            runtime.ffi.makeList([curriedObj.idB]),
+            A['a-blank'],
+            "",
+            rebuildNode(l, curriedObj.idE, field),
+            runtime.ffi.makeNone(),
+            runtime.ffi.makeNone(),
+            false
+          );
+        } else {
+          return rebuildNode(l, map(visitor, obj), field);
+        }
       }
       function dsCurry(l: A.Srcloc, f: A.Expr, args: Array<A.Expr>, visitor): A.Expr {
         if (f.$name === 's-dot' && isUnderscore(f.dict.obj)) { // _.foo(args)
@@ -336,13 +353,16 @@ type DesugarInfo = {
         // s-cases is uniform
         // s-cases-else is uniform
         // s-assign is uniform
+        's-dot': (visitor, expr: TJ.Variant<A.Expr, 's-dot'>) => {
+          return dsCurryNullary(A['s-dot'].app, expr.dict.l, expr.dict.obj, expr.dict.field, visitor);
+        },
         // s-frac is uniform
         // s-rfrac is uniform
         's-srcloc': (visitor, expr: TJ.Variant<A.Expr, 's-srcloc'>) => {
           return expr;
         }
       };
-      generatedBinds.clear();
+      //generatedBinds.clear();
       const desugared = map(dsVisitor, program);
       return runtime.makeObject({
         ast: desugared,
