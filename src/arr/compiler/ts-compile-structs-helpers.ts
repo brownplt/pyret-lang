@@ -3,7 +3,7 @@ import type * as CS from './ts-compile-structs';
 import type * as TJ from './ts-codegen-helpers';
 import type * as TCS from './ts-type-check-structs';
 import type * as A from './ts-ast';
-import type { List, MutableStringDict, Option, PFunction, PMethod, StringDict } from './ts-impl-types';
+import type { Option, PMethod } from './ts-impl-types';
 
 export interface Exports {
   valueByUri: (ce : CS.CompileEnvironment, uri: CS.URI, name : string) => Option<NonAliasValueExport>,
@@ -46,21 +46,6 @@ export interface Exports {
   unwrap: <T>(opt: Option<T>, orElseMsg: string) => T,
 }
 
-type SDExports = {
-  dict: { values: { dict: {
-    'make-mutable-string-dict': PFunction<<T>() => MutableStringDict<T>>
-    'is-mutable-string-dict': PFunction<<T>(val: any) => val is MutableStringDict<T>>,
-    'make-string-dict': PFunction<<T>() => StringDict<T>>,
-    'is-string-dict': PFunction<<T>(val: any) => val is StringDict<T>>,
-    'map-keys': PFunction<<T, U>(f: ((key: T) => U), isd: StringDict<T>) => List<U>>,
-    'map-keys-now': PFunction<<T, U>(f: ((key: T) => U), msd: MutableStringDict<T>) => List<U>>,
-    'fold-keys': PFunction<<T, U>(f: (key: string, acc: U) => U, init: U, isd: StringDict<T>) => U>,
-    'fold-keys-now': PFunction<<T, U>(f: (key: string, acc: U) => U, init: U, msd: MutableStringDict<T>) => U>,
-    'each-key': PFunction<<T>(f: ((key: T) => void), isd: StringDict<T>) => void>,
-    'each-key-now': PFunction<<T>(f: ((key: T) => void), msd: MutableStringDict<T>) => void>,
-  }}}
-}
-
 export type NonAliasValueExport = TJ.Variant<CS.ValueExport, Exclude<CS.ValueExport["$name"], "v-alias">>
 
 export type NonAliasDataExport = TJ.Variant<CS.DataExport, Exclude<CS.DataExport["$name"], "d-alias">>
@@ -70,7 +55,6 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
 
 ({
   requires: [
-    { 'import-type': 'builtin', name: 'string-dict' },
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']},
     { 'import-type': 'dependency', protocol: 'file', args: ['type-structs.arr']},
     { 'import-type': 'dependency', protocol: 'file', args: ['ast.arr']},
@@ -79,7 +63,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
   ],
   provides: {},
   nativeRequires: [],
-  theModule: function(runtime, _, __, SD: SDExports, tj : TJ.Exports, TS : (TS.Exports), A : (A.Exports), CS : (CS.Exports), TCS : (TCS.Exports)) {
+  theModule: function(runtime, _, __, tj : TJ.Exports, TS : (TS.Exports), A : (A.Exports), CS : (CS.Exports), TCS : (TCS.Exports)) {
 
     const { InternalCompilerError, ExhaustiveSwitchError, nameToName } = tj;
 

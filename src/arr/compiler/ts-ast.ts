@@ -677,6 +677,8 @@ export type AField =
 
 export interface Exports {
 dict: {values: {dict: {
+'dummy-loc': Srcloc,
+
 'is-Name': PFunction<(val: any) => val is Name>
 
 'is-s-underscore': PFunction<(val: any) => val is TCH.Variant<Name, 's-underscore'>>

@@ -9,7 +9,7 @@ import string-dict as SD
 import render-error-display as RED
 import file("../../src/arr/compiler/compile-lib.arr") as CL
 import file("../../src/arr/compiler/compile-structs.arr") as CS
-import file("../../src/arr/compiler/type-defaults.arr") as TD
+import file("../../src/arr/compiler/type-check.arr") as TC
 import file("../../src/arr/compiler/locators/builtin.arr") as BL
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../pyret/test-compile-helper.arr") as TCH
@@ -144,7 +144,7 @@ end
 
 #|
 check "All builtins should have a type":
-  covered = TD.make-default-types()
+  covered = TC.empty-context.global-types
   for each(builtin from CS.standard-globals.values.keys-list()):
     builtin-typ = covered.get-now(A.s-global(builtin).key())
     builtin-typ satisfies is-some

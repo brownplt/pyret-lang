@@ -2,11 +2,11 @@ import type * as TS from './ts-type-structs';
 import type * as A from './ts-ast';
 import type * as SL from './ts-srcloc';
 import type * as CS from './ts-compile-structs';
+import type * as TD from './ts-type-defaults';
 import type * as TJ from './ts-codegen-helpers';
 import type * as TCS from './ts-type-check-structs';
 import type * as TCSH from './ts-compile-structs-helpers';
-import type { List, MutableStringDict, PFunction, StringDict, Option } from './ts-impl-types';
-import { labeledStatement, tsNumberKeyword, typeAlias } from '@babel/types';
+import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } from './ts-impl-types';
 
 type SDExports = {
   dict: { values: { dict: {
@@ -33,15 +33,16 @@ type SDExports = {
     { 'import-type': 'dependency', protocol: 'file', args: ['ast.arr']},
     { 'import-type': 'dependency', protocol: 'file', args: ['compile-structs.arr']},
     { 'import-type': 'dependency', protocol: 'file', args: ['type-check-structs.arr']},
-    { 'import-type': 'dependency', protocol: 'file', args: ['type-defaults.arr']},
+    { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-type-defaults']},
  ],
   nativeRequires: ["escodegen", "path"],
   provides: {
     values: {
-      "type-check": "tany"
+      "type-check": "tany",
+      "empty-context": "tany",
     }
   },
-  theModule: function(runtime, _, __, SDin: SDExports, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : (TS.Exports), A : (A.Exports), CSin : (CS.Exports), TCS : (TCS.Exports)) {
+  theModule: function(runtime, _, __, SDin: SDExports, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : TS.Exports, A : A.Exports, CSin : CS.Exports, TCS : TCS.Exports, TD : TD.Exports) {
     const SD = SDin.dict.values.dict;
     const {
       ExhaustiveSwitchError,
@@ -72,7 +73,6 @@ type SDExports = {
       typed,
       'tc-info': tcInfo,
       'empty-info': emptyInfo,
-      'empty-context': emptyContext,
       'fold-result': foldResult,
       'fold-errors': foldErrors,
       "typing-context": typingContext
@@ -275,6 +275,15 @@ type SDExports = {
     type ExampleTypes = Map<string, ExampleTypeInfo>;
     
     type FieldConstraint = Map<string, TS.Type[]>;
+
+    function mapMapValues<K, V1, V2>(m : Map<K, V1>, f : ((val : V1) => V2)) : Map<K, V2> {
+      const ret = new Map<K, V2>();
+      for (const [k, v1] of m.entries()) {
+        ret.set(k, f(v1));
+      }
+      return ret;
+    }
+
     class ConstraintLevel {
       // the constrained existentials
       variables : Map<string, TS.Type>;
@@ -300,6 +309,40 @@ type SDExports = {
       constructor() {
         this.levels = [];
       }
+      toPyretConstraintSystem(): TCS.ConstraintSystem {
+        let ret : TCS.ConstraintSystem = TCS.dict.values.dict['no-constraints'];
+        for (const level of this.levels) {
+          let fieldConstraints = mapMapValues(level.fieldConstraints, ([type, fc]) : PTuple<[TS.Type, StringDict<List<TS.Type>>]> => {
+            return runtime.makeTuple([
+              type, 
+              stringDictFromMap(mapMapValues(fc, runtime.ffi.makeList))
+            ]);
+          });
+          ret = TCS.dict.values.dict['constraint-system'].app(
+            runtime.ffi.makeTreeSet(level.variables.values()),
+            runtime.ffi.makeList(level.constraints.map((c) => runtime.makeTuple([c.subtype, c.supertype]))),
+            runtime.ffi.makeList(level.refinementConstraints.map((r) => runtime.makeTuple([r.existential, r.dataRefinement]))),
+            stringDictFromMap(fieldConstraints),
+            // {Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>; (Type, Context -> TypingResult); String}
+            stringDictFromMap(mapMapValues(level.exampleTypes, (exTyInfo) => {
+              return runtime.makeTuple([
+                exTyInfo.existential,
+                runtime.makeObject({
+                  'arg-types': runtime.ffi.makeList(exTyInfo.annTypes.argTypes),
+                  'ret-type': exTyInfo.annTypes.retType,
+                  'loc': exTyInfo.annTypes.loc,
+                }),
+                runtime.ffi.makeList(exTyInfo.exampleTypes),
+                runtime.makeFunction(exTyInfo.checkFunction),
+                exTyInfo.functionName
+              ]);
+            })),
+            ret
+          )
+        }
+        return ret;
+      }
+
       ensureLevel(msg : string): void {
         if (this.levels.length === 0) {
           throw new InternalCompilerError(msg);
@@ -481,6 +524,20 @@ type SDExports = {
         this.constraints = new ConstraintSystem();
         this.info = new TCInfo();
         this.misc = new Map();
+      }
+
+      toPyretContext(): TCS.Context {
+        return TCS.dict.values.dict['typing-context'].app(
+          stringDictFromMap(this.globalTypes),
+          stringDictFromMap(this.aliases),
+          stringDictFromMap(this.dataTypes),
+          stringDictFromMap(this.modules),
+          stringDictFromMap(this.moduleNames),
+          stringDictFromMap(this.binds),
+          this.constraints.toPyretConstraintSystem(),
+          this.info.toPyretTCInfo(),
+          stringDictFromMap(mapMapValues(this.misc, ([typs, name]) => runtime.makeTuple([runtime.ffi.makeList(typs), name]))),
+        );
       }
 
       addLevel() : void {
@@ -876,6 +933,14 @@ type SDExports = {
       }
     }
 
+    const emptyContext = new Context(
+      new Map(TD['default-types']),
+      new Map(TD['default-aliases']),
+      new Map(TD['default-data-exprs']),
+      new Map(TD['default-modules']),
+      new Map()
+    );
+
     function typeCheck(program: A.Program, compileEnv : CS.CompileEnvironment, postCompileEnv : CS.ComputedEnvironment, modules : MutableStringDict<CS.Loadable>, options) {
       logger = options.dict.log;
       const provides = listToArray(program.dict.provides);
@@ -883,10 +948,10 @@ type SDExports = {
       const globVs = mapFromStringDict(compileEnv.dict.globals.dict.values);
       const globTs = mapFromStringDict(compileEnv.dict.globals.dict.types);
 
-      const contextGlobTs = mapFromStringDict(emptyContext.dict['aliases']);
-      const contextGlobVs = mapFromStringDict(emptyContext.dict['global-types']);
-      const contextGlobModnames = mapFromStringDict(emptyContext.dict['module-names']);
-      const contextGlobMods = new Map<string, TS.ModuleType>();
+      const contextGlobTs = new Map(TD['default-aliases']);
+      const contextGlobVs = new Map(TD['default-types']);
+      const contextGlobMods = new Map(TD['default-modules']);
+      const contextGlobModnames = new Map<string, string>();
       const contextGlobDTs = new Map<string, TS.DataType>();
 
       for (const g of globVs.keys()) {
@@ -1054,7 +1119,8 @@ type SDExports = {
       return CS.ok.app(typed.app(program, info));
     }
     return runtime.makeModuleReturn({
-      'type-check': runtime.makeFunction(typeCheck)
+      'type-check': runtime.makeFunction(typeCheck),
+      'empty-context': emptyContext.toPyretContext(),
     }, {});
   }
 })

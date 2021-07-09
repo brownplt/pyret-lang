@@ -8,7 +8,6 @@ import string-dict as SD
 import valueskeleton as VS
 import file("type-structs.arr") as TS
 import file("compile-structs.arr") as C
-import file("type-defaults.arr") as TD
 
 type StringDict = SD.StringDict
 type Type = TS.Type
@@ -1492,14 +1491,3 @@ fun misc-test-inference(fun-examples :: List<Type>, fun-name :: String) -> Nothi
       | empty => nothing
     end
 end
-
-empty-context =
-  typing-context(TD.make-default-types(),
-                 TD.make-default-aliases(),
-                 TD.make-default-data-exprs(),
-                 TD.make-default-modules(),
-                 SD.make-string-dict(),
-                 SD.make-string-dict(),
-                 no-constraints,
-                 empty-info(),
-                 [string-dict: ])

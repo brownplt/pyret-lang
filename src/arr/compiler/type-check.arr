@@ -22,6 +22,8 @@ type Name = A.Name
 type Bind = A.Bind
 type Ann = A.Ann
 
+empty-context = TSTC.empty-context
+
 flat-prim-app = A.prim-app-info-c(false)
 
 local = TS.local
@@ -228,7 +230,7 @@ end
 
 # I believe modules is always of type SD.MutableStringDict<Loadable> -Matt
 fun internal-type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-compile-env :: C.ComputedEnvironment, modules) -> C.CompileResult<A.Program>:
-  context = TCS.empty-context
+  context = TSTC.empty-context
   globvs = compile-env.globals.values
   globts = compile-env.globals.types
   shadow context = globvs.fold-keys(lam(g, shadow context):
