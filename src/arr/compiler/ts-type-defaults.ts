@@ -68,7 +68,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     const tString = tName(primitiveTypesUri, "String");
     const tBoolean = tName(primitiveTypesUri, "Boolean");
     const tTable = tName(primitiveTypesUri, "Table");
-    const tSrcloc = tName(srclocUri, "Srcloc");
+    const tSrcloc = tName(builtinUri, "Loc");
     const tImage = tName(imageUri, "Image");
     const tEqualityResult = tName(equalityUri, "EqualityResult");
 
