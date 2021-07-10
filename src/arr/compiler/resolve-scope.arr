@@ -9,7 +9,6 @@ import string-dict as SD
 import lists as L
 import file("compile-structs.arr") as C
 import file("ast-util.arr") as U
-import file("gensym.arr") as G
 import file("type-structs.arr") as T
 
 type ValueBind = C.ValueBind

@@ -8,6 +8,18 @@ export type PyretObject = {
   dict: any
 };
 
+/** The supertype of all possible Pyret data values. */
+// TODO: add the remaining reflective accessors to this definition
+type PyretDataValue = {
+  $name: string,
+  dict: {
+    [property: string]: any
+  }
+};
+
+export type Visitor<T extends PyretDataValue, Ret = any> = {
+  [method in T["$name"]]?: (self: Visitor<T, Ret>, val: Variant<T, method>) => Ret;
+};
 export interface Exports {
   ArrayExpression : (values : J.Expression[]) => J.ArrayExpression,
   AssignmentExpression : (lhs : J.MemberExpression | J.Identifier, rhs: J.Expression) => J.AssignmentExpression,
@@ -62,8 +74,14 @@ export interface Exports {
   dummyLoc : A.Srcloc,
   compileSrcloc: (context: any, l : A.Srcloc) => J.Expression,
   formatSrcloc: (loc: A.Srcloc, showFile: boolean) => string,
-  visit: <T extends { $name: string, dict: {} }>(v : Partial<Record<T["$name"], any>>, d : T) => void,
-  map: <T extends { $name: string, dict: {} }, A extends T>(v : Partial<Record<T["$name"], any>>, d : A) => A,
+  visit: <T extends PyretDataValue>(v : Visitor<T>, d : PyretDataValue) => void,
+  map: <
+      T extends PyretDataValue,
+      Ret extends T = T,
+    >(
+      v : Visitor<T>,
+      d : T,
+    ) => Ret,
 }
 
 ({
@@ -463,8 +481,13 @@ export interface Exports {
           }
       }
     }
-
-    function visit<T extends { $name: string, dict: {} }>(v : Partial<Record<T["$name"], any>>, d : T) {
+    
+    /**
+     * `visit<T>` will traverse an entire Pyret data value, looking for
+     * any nested values whose `$name` fields indicate they overlap with type `T`,
+     * and will call any matching visitor methods within the visitor object.
+     */
+    function visit<T extends PyretDataValue>(v : Visitor<T>, d : PyretDataValue) {
       if(typeof d !== "object" || !("$name" in d)) { throw new Error("Visit failed: " + JSON.stringify(d)); }
       if(d.$name in v) { v[d.$name](v, d); }
       else {
@@ -476,18 +499,32 @@ export interface Exports {
       }
     }
 
-    function map<T extends { $name: string, dict: {} }, A extends T>(v : Partial<Record<T["$name"], any>>, d : A) : A {
+    /**
+     * `map<T, R>` will traverse an entire data value of type `T`,
+     * and will call any matching visitor methods within the visitor.
+     * The return value of type `R` is by default the same as type `A`, but can be different if needed.
+     * Note that `R <: A` in order for any uniformly-transformed values to be type-correct:
+     * if the visitor doesn't modify the values directly, the result will be the same type of
+     * `PyretDataValue` as was given.
+     */
+    function map<
+      T extends PyretDataValue,
+      Ret extends T = T,
+    >(
+      v : Visitor<T>,
+      d : T,
+    ) : Ret {
       if(typeof d !== "object" || !("$name" in d)) { throw new Error("Map failed: " + JSON.stringify(d)); }
       if(d.$name in v) { return v[d.$name](v, d); }
       else {
-        const newObj : typeof d = Object.create(Object.getPrototypeOf(d));
+        const newObj : Ret = Object.create(Object.getPrototypeOf(d));
         for(const [k, meta] of Object.entries(d)) {
           if(k !== "dict") { newObj[k] = meta; }
         }
         newObj.dict = Object.create(Object.getPrototypeOf(d.dict));
         for(const [k, subd] of Object.entries(d.dict)) {
           if(typeof subd === 'object' && "$name" in subd) {
-            const result = map(v, subd as any);
+            const result = map<T>(v, subd as any);
             newObj.dict[k] = result;
           }
           else {
