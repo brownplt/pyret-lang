@@ -5,6 +5,7 @@ provide-types *
 import file("ast.arr") as A
 import file("desugar.arr") as D
 import file("compile-structs.arr") as C
+import js-file("ts-desugar-post-tc") as TDPT
 
 mk-id = D.mk-id
 no-branches-exn = D.no-branches-exn
@@ -47,7 +48,7 @@ desugar-visitor = A.default-map-visitor.{
   |#
 }
 
-fun desugar-post-tc(program :: A.Program, compile-env :: C.CompileEnvironment):
+fun desugar-post-tc(program :: A.Program, compile-env :: C.CompileEnvironment, options):
   doc: ```
         Desugar non-scope and non-check based constructs.
         Preconditions on program:
@@ -70,9 +71,13 @@ fun desugar-post-tc(program :: A.Program, compile-env :: C.CompileEnvironment):
       #
       #             direct-codegen.arr wants s-check and s-check-test to emit it
       #             Temporarily disabling s-check removal (see note above to revert)
-  cases(A.Program) program:
-    | s-program(l, _provide, provided-types, provides, imports, body) =>
-      A.s-program(l, _provide, provided-types, provides, imports, body.visit(desugar-visitor))
-    | else => raise("Attempt to desugar non-program: " + torepr(program))
+  if C.is-pipeline-ts-anchor(options.pipeline) and options.pipeline.modules.member("desugarPostTc"):
+    TDPT.desugar-post-tc(program, compile-env, options)
+  else:
+    cases(A.Program) program:
+      | s-program(l, _provide, provided-types, provides, imports, body) =>
+        A.s-program(l, _provide, provided-types, provides, imports, body.visit(desugar-visitor))
+      | else => raise("Attempt to desugar non-program: " + torepr(program))
+    end
   end
 end

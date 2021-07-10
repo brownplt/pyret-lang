@@ -413,7 +413,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             cases(CS.CompileResult) type-checked block:
               | ok(_) =>
                 var tc-ast = type-checked.code
-                var dp-ast = DP.desugar-post-tc(tc-ast, env)
+                var dp-ast = DP.desugar-post-tc(tc-ast, env, options)
                 tc-ast := nothing
                 var cleaned = dp-ast
                 dp-ast := nothing
