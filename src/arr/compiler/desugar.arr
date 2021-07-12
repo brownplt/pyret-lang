@@ -86,8 +86,9 @@ fun desugar(program :: A.Program, options):
     | pipeline-ts-anchor(args) => 
       if args.member("desugar") block: # Only use TS version if we enable it in pipeline
         # Note: passing `options` in to TSTC so that it can use options.log for debug output
-        answer = TSD.desugar(program, options)
+        bogus-name = names.make-atom("bogus")
         reference = internal-desugar(program)
+        answer = TSD.desugar(program, options, bogus-name.serial)
         when answer <> reference:
           options.log(to-repr(program), none)
         end

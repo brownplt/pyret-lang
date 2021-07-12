@@ -70,7 +70,7 @@ type DesugarInfo = {
         appear in binding positions as in s-let-bind, s-letrec-bind)
       - s-construct is not desugared
     */
-    function desugar(program: A.Program, options): DesugarInfo {
+    function desugar(program: A.Program, options, makeNameStart: number): DesugarInfo {
       const {
         listToArray,
         map,
@@ -117,8 +117,7 @@ type DesugarInfo = {
       }
       // end duplicated code
        
-
-      const names = MakeName(0);
+      const names = MakeName(makeNameStart);
       const generatedBinds = new Map<string, CS.ValueBind>();
       const flatPrimApp = A['prim-app-info-c'].app(false);
   
@@ -141,7 +140,7 @@ type DesugarInfo = {
       function gid(l : A.Srcloc, id: string): TJ.Variant<A.Expr, 's-id'> {
         return A['s-id'].app(l, g(id));
       }
-      function noBranchesExn(l: A.Srcloc, typ: string) {
+      function noBranchesExn(l: A.Srcloc, typ: string): TJ.Variant<A.Expr, 's-prim-app'> {
         const srcloc = A['s-srcloc'].app(l, l);
         const str = A['s-str'].app(l, typ);
         return A['s-prim-app'].app(l, "throwNoBranchesMatched", runtime.ffi.makeList([srcloc, str]), flatPrimApp);
@@ -201,7 +200,7 @@ type DesugarInfo = {
         });
         return [binds, exprs];
       }
-      function dsCurryNullary(rebuildNode, l: A.Srcloc, obj: A.Expr, field: string, visitor) {
+      function dsCurryNullary<F>(rebuildNode: (l: A.Srcloc, obj: A.Expr, field: F) => A.Expr, l: A.Srcloc, obj: A.Expr, field: F, visitor): A.Expr {
         if(isUnderscore(obj)) {
           const curriedObj = mkId(l, "recv_");
           return A['s-lam'].app(
@@ -218,6 +217,24 @@ type DesugarInfo = {
           );
         } else {
           return rebuildNode(l, map(visitor, obj), field);
+        }
+      }
+      function dsCurryBinop(l: A.Srcloc, e1: A.Expr, e2: A.Expr, rebuild: (e1: A.Expr, e2: A.Expr) => A.Expr): A.Expr {
+        const [params, args] = dsCurryArgs(l, [e1, e2]);
+        if (params.length === 0) {
+          return rebuild(e1, e2);
+        } else {
+          return A['s-lam'].app(
+            l,
+            "",
+            runtime.ffi.makeList([]),
+            runtime.ffi.makeList(params),
+            A['a-blank'],
+            "",
+            rebuild(args[0], args[1]),
+            runtime.ffi.makeNone(),
+            runtime.ffi.makeNone(),
+            false);
         }
       }
       function dsCurry(l: A.Srcloc, f: A.Expr, args: Array<A.Expr>, visitor): A.Expr {
@@ -290,7 +307,9 @@ type DesugarInfo = {
         // s-module is uniform
         // s-instantiate is uniform
         // s-block is uniform
-        // s-user-block is uniform
+        's-user-block': (visitor, expr: TJ.Variant<A.Expr, 's-user-block'>) => {
+          return map(visitor, expr.dict.body);
+        },
         // s-template is uniform
         's-app': (visitor, expr: TJ.Variant<A.Expr, 's-app'>) => {
           return dsCurry(
@@ -356,13 +375,66 @@ type DesugarInfo = {
         's-dot': (visitor, expr: TJ.Variant<A.Expr, 's-dot'>) => {
           return dsCurryNullary(A['s-dot'].app, expr.dict.l, expr.dict.obj, expr.dict.field, visitor);
         },
+        's-bracket': (visitor, expr: TJ.Variant<A.Expr, 's-bracket'>) => {
+          return dsCurryBinop(expr.dict.l, map(visitor, expr.dict.obj), map(visitor, expr.dict.key), (e1: A.Expr, e2: A.Expr) => A['s-bracket'].app(expr.dict.l, e1, e2));
+        },
+        's-get-bang': (visitor, expr: TJ.Variant<A.Expr, 's-get-bang'>) => {
+          return dsCurryNullary(A['s-get-bang'].app, expr.dict.l, expr.dict.obj, expr.dict.field, visitor);
+        },
+        's-update': (visitor, expr: TJ.Variant<A.Expr, 's-update'>) => {
+          const dsFields = runtime.ffi.makeList(listToArray(expr.dict.fields).map(field => map(visitor, field)));
+          return dsCurryNullary(A['s-update'].app, expr.dict.l, expr.dict.supe, dsFields, visitor);
+        },
+        's-extend': (visitor, expr: TJ.Variant<A.Expr, 's-extend'>) => {
+          const dsFields = runtime.ffi.makeList(listToArray(expr.dict.fields).map(field => map(visitor, field)));
+          return dsCurryNullary(A['s-extend'].app, expr.dict.l, expr.dict.supe, dsFields, visitor);
+        },
+        // s-for is uniform
+        // s-op is uniform
+        // s-id is uniform
+        // s-id-modref is uniform
+        // s-id-var-modref is uniform
+        // s-id-var is uniform
+        // s-id-letrec is uniform
+        // s-srcloc is uniform
+        // s-num is uniform
         // s-frac is uniform
         // s-rfrac is uniform
-        's-srcloc': (visitor, expr: TJ.Variant<A.Expr, 's-srcloc'>) => {
-          return expr;
+        // s-str is uniform
+        // s-bool is uniform
+        // s-obj is uniform
+        // s-tuple is uniform
+        // s-tuple-get is uniform
+        // s-ref is uniform
+        // s-construct in uniform
+        // TODO s-reactor
+        // s-table is uniform
+        's-paren': (visitor, expr: TJ.Variant<A.Expr, 's-paren'>) => {
+          return map(visitor, expr.dict.expr);
+        },
+        's-let': (visitor, expr: TJ.Variant<A.Expr, 's-let'>) => {
+          throw new InternalCompilerError('s-let should have already been desugared');
+        },
+        's-var': (visitor, expr: TJ.Variant<A.Expr, 's-var'>) => {
+          throw new InternalCompilerError('s-var should have already been desugared');
+        },
+        // s-check is uniform
+        // s-check-test is uniform
+        // s-load-table is uniform
+        // s-table-extend is uniform
+        // s-table-update is uniform
+        // s-table-select is uniform
+        's-tuple-bind': (visitor, expr: TJ.Variant<A.Bind, 's-tuple-bind'>) => {
+          throw new InternalCompilerError("s-tuple-bind should not appear in desugar: "); // where to put the jankyToRepr
+        },
+        's-mutable-field': (visitor, expr: TJ.Variant<A.Member, 's-mutable-field'>) => {
+          throw new InternalCompilerError("s-mutable-field desugar not yet implemented: "); // JSON.stringify
+        },
+        'a-checked': (visitor, expr: TJ.Variant<A.Ann, 'a-checked'>) => {
+          throw new InternalCompilerError("a-checked should not appear in desugar");
         }
       };
-      //generatedBinds.clear();
+      generatedBinds.clear();
       const desugared = map(dsVisitor, program);
       return runtime.makeObject({
         ast: desugared,
