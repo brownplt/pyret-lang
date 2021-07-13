@@ -81,7 +81,7 @@ type DesugarInfo = {
         appear in binding positions as in s-let-bind, s-letrec-bind)
       - s-construct is not desugared
     */
-    function desugar(program: A.Program, options, makeNameStart: number): DesugarInfo {
+    function desugar(program: A.Program, options): DesugarInfo {
       const {
         listToArray,
         map,
@@ -124,7 +124,7 @@ type DesugarInfo = {
       }
       // end duplicated code
        
-      const names = MakeName(makeNameStart); // TODO change this back to A['global-names']
+      const names = A['global-names'].dict;
       const generatedBinds = new Map<string, CS.ValueBind>();
       const flatPrimApp = A['prim-app-info-c'].app(false);
   
@@ -153,7 +153,7 @@ type DesugarInfo = {
         return A['s-prim-app'].app(l, "throwNoBranchesMatched", runtime.ffi.makeList([srcloc, str]), flatPrimApp);
       }
       function mkIdAnn(l: A.Srcloc, base: string, ann: A.Ann): { id: A.Name, idB: A.Bind, idE: A.Expr } {
-        const a = names.makeAtom(base);
+        const a = names['make-atom'].app(base);
         const key = nameToKey(a);
         const bindingLocal = boLocal(l, a);
         const value = CS.dict.values.dict['value-bind'].app(

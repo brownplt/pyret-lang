@@ -694,6 +694,21 @@ export type AField =
 
 export interface Exports {
 dict: {values: {dict: {
+'global-names': {dict: {
+  reset: () => void,
+  's-underscore': PFunction< (l : Srcloc) => Name >,
+  's-name': PFunction< (s: string, l: Srcloc) => Name >,
+  's-global': PFunction< (s: string) => Name >,
+  's-module-global': PFunction< (s: string) => Name >,
+  's-type-global': PFunction< (s: string) => Name >,
+  'make-atom': PFunction< (base: string) => Name >,
+  'is-s-underscore': PFunction< (v : Name) => boolean >,
+  'is-s-name': PFunction< (v: Name) => boolean >,
+  'is-s-global': PFunction< (v: Name) => boolean >,
+  'is-s-module-global': PFunction< (v: Name) => boolean >,
+  'is-s-atom': PFunction< (v: Name) => boolean >,
+}}
+
 'is-Name': PFunction< (val: any) => boolean >
 
 'is-s-underscore': PFunction< (val: any) => boolean >
