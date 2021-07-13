@@ -102,7 +102,6 @@ type PropsFromReact = {
 };
 
 type DispatchProps = {
-  setFocusedChunk: (index: number) => void,
   setChunks: (chunks: ChunksUpdate) => void,
   enqueueEffect: (effect: Effect) => void,
   setShouldAdvanceCursor: (value: boolean) => void,
@@ -112,9 +111,6 @@ type DispatchProps = {
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
-    setFocusedChunk(index: number) {
-      dispatch({ type: 'update', key: 'focusedChunk', value: index });
-    },
     setChunks(chunks: ChunksUpdate) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });
     },
@@ -349,6 +345,36 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
   }
 
+  handleBlur(editor: CodeMirror.Editor & CodeMirror.Doc) {
+    const {
+      index,
+    } = this.props;
+    if (editor.getValue().trim() === '') {
+      this.deleteChunk(index);
+    }
+  }
+
+  /* Delete this chunk and move every chunk below it up by one */
+  deleteChunk(index: number) {
+    const {
+      chunks,
+      setChunks,
+    } = this.props;
+    const newChunks = [
+      ...chunks.slice(0, index),
+      ...chunks.slice(index + 1, chunks.length)];
+    for (let i = index; i < newChunks.length; i += 1) {
+      newChunks[i] = {
+        ...newChunks[i],
+        startLine: getStartLineForIndex(newChunks, i),
+      };
+    }
+    setChunks({
+      chunks: newChunks,
+      modifiesText: true,
+    });
+  }
+
   /* Called in response to a Delete key event. Deletes chunks in different ways
      depending on where the cursor is and which chunks (if any) are selected.
 
@@ -359,43 +385,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const {
       chunks,
       index,
-      setChunks,
-      setFocusedChunk,
     } = this.props;
-    if (index === 0 && chunks.length > 1 && chunks[0].editor.getValue().trim() === '') {
-      /* Cursor is in the first chunk, the text of this chunk is empty, and
-         there is more than one chunk. Delete this chunk, move every chunk up by
-         one, and keep the focus where it is. */
-      const newChunks = [...chunks.slice(1, chunks.length)];
-      for (let i = 0; i < newChunks.length; i += 1) {
-        newChunks[i] = {
-          ...newChunks[i],
-          startLine: getStartLineForIndex(newChunks, i),
-        };
-      }
-      setChunks({
-        chunks: newChunks,
-        modifiesText: true,
-      });
-      setFocusedChunk(0);
-      event.preventDefault();
-    } else if (index > 0 && index < chunks.length - 1 && chunks[index].editor.getValue().trim() === '') {
-      /* Cursor is not in the first chunk nor in the last chunk, and the text of
-         this chunk is empty. Delete this chunk, move every chunk below it up by
-         one, and keep the focus where it is. */
-      const newChunks = [
-        ...chunks.slice(0, index),
-        ...chunks.slice(index + 1, chunks.length)];
-      for (let i = index; i < newChunks.length; i += 1) {
-        newChunks[i] = {
-          ...newChunks[i],
-          startLine: getStartLineForIndex(newChunks, i),
-        };
-      }
-      setChunks({
-        chunks: newChunks,
-        modifiesText: true,
-      });
+    if (chunks[index].editor.getValue().trim() === '') {
+      this.deleteChunk(index);
       event.preventDefault();
     }
   }
@@ -408,43 +400,10 @@ class DefChunk extends React.Component<DefChunkProps, any> {
      versus deleting something with Backspace */
   handleBackspace(event: Event) {
     const {
-      chunks, index, setChunks, setFocusedChunk,
+      chunks, index,
     } = this.props;
-    if (index === 0 && chunks.length > 1 && chunks[0].editor.getValue().trim() === '') {
-      /* Cursor is in the first chunk, the text of this chunk is empty, and
-         there is more than one chunk. Delete this chunk, move every chunk up by
-         one, and keep the focus where it is. */
-      const newChunks = [...chunks.slice(1, chunks.length)];
-      for (let i = 0; i < newChunks.length; i += 1) {
-        newChunks[i] = {
-          ...newChunks[i],
-          startLine: getStartLineForIndex(newChunks, i),
-        };
-      }
-      setChunks({
-        chunks: newChunks,
-        modifiesText: true,
-      });
-      setFocusedChunk(0);
-      event.preventDefault();
-    } else if (index > 0 && chunks[index].editor.getValue().trim() === '') {
-      /* Cursor is not in the first chunk and the text of this chunk is empty.
-         Delete this chunk, move every chunk below it up by one, and focus the
-         previous chunk. */
-      const newChunks = [
-        ...chunks.slice(0, index),
-        ...chunks.slice(index + 1, chunks.length)];
-      for (let i = index; i < newChunks.length; i += 1) {
-        newChunks[i] = {
-          ...newChunks[i],
-          startLine: getStartLineForIndex(newChunks, i),
-        };
-      }
-      setChunks({
-        chunks: newChunks,
-        modifiesText: true,
-      });
-      setFocusedChunk(index - 1);
+    if (chunks[index].editor.getValue().trim() === '') {
+      this.deleteChunk(index);
       event.preventDefault();
     }
   }
@@ -455,7 +414,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const {
       index,
       chunks,
-      setFocusedChunk,
       setShouldAdvanceCursor,
       setFirstSelectedChunkIndex,
       setChunks,
@@ -466,8 +424,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
        Without this, focus would first jump to this chunk (indented), but then jump
        away to the chunk past the linted chunk (unintended). */
     setShouldAdvanceCursor(false);
-
-    setFocusedChunk(index);
 
     if (event.buttons !== 1) {
       return;
@@ -552,6 +508,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
               default:
             }
           }}
+          onBlur={(editor) => this.handleBlur(editor)}
         />
       </div>
     );

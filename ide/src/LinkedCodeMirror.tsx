@@ -16,6 +16,7 @@ type Props = {
   onSelection?: (editor: Editor, data: any) => void,
   onKeyDown?: (editor: Editor, event: InputEvent) => void,
   // autoCursor: boolean,
+  onBlur?: (editor: Editor) => void,
 };
 type State = {};
 
@@ -34,7 +35,7 @@ export default class LinkedCM extends React.Component<Props, State> {
     }
     const {
       parent, start, end, editorDidMount, onMouseDown, options, onBeforeChange,
-      onSelection, onKeyDown,
+      onSelection, onKeyDown, onBlur,
     } = this.props;
     const doc = parent.linkedDoc({
       sharedHist: true,
@@ -52,6 +53,7 @@ export default class LinkedCM extends React.Component<Props, State> {
     editor.on('beforeChange', onBeforeChange as any);
     editor.on('selection', onSelection as any);
     editor.on('keydown', onKeyDown as any);
+    editor.on('blur', onBlur as any);
     editorDidMount(editor as Editor);
   }
 
