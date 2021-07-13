@@ -113,6 +113,9 @@ export function emptyChunk(options?: Partial<Chunk>): Chunk {
 
 /* Parses a string containing chunk separators (#.CHUNK#) into a list of Chunks. */
 export function makeChunksFromString(s: string): Chunk[] {
+  if (s === '') {
+    return [];
+  }
   const chunkStrings = s.split(CHUNKSEP);
   let totalLines = 0;
   const chunks = chunkStrings.map((chunkString) => {

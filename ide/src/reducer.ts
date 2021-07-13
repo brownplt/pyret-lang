@@ -780,16 +780,18 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
       let totalLines = 0;
       const chunks: Chunk[] = [];
 
-      currentFileContents.split(CHUNKSEP).forEach((chunkString) => {
-        chunks.push(emptyChunk({
-          // TODO(luna): CHUNKSTEXT this is where the fun happens
-          editor: { getValue: () => chunkString },
-          startLine: totalLines,
-          errorState: notLintedState,
-        }));
+      if (currentFileContents !== '' || newEditorMode === EditorMode.Chunks) {
+        currentFileContents.split(CHUNKSEP).forEach((chunkString) => {
+          chunks.push(emptyChunk({
+            // TODO(luna): CHUNKSTEXT this is where the fun happens
+            editor: { getValue: () => chunkString },
+            startLine: totalLines,
+            errorState: notLintedState,
+          }));
 
-        totalLines += chunkString.split('\n').length;
-      });
+          totalLines += chunkString.split('\n').length;
+        });
+      }
 
       return {
         ...state,
