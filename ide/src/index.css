@@ -18,7 +18,7 @@
   cursor: pointer !important;
   transition: border-radius 0.1s, border-bottom-left-radius 0.1s, min-width 0.1s -0.05s !important;
 }
-.linked-cm .CodeMirror-line {
+.linked-cm .CodeMirror-lines {
   cursor: pointer;
 }
 .linked-cm .CodeMirror-focused {
@@ -28,7 +28,7 @@
   border-bottom-left-radius: 0.5em;
   border: 1px solid black !important;
 }
-.linked-cm .CodeMirror-focused .CodeMirror-line {
+.linked-cm .CodeMirror-focused .CodeMirror-lines {
   cursor: text;
 }
 
