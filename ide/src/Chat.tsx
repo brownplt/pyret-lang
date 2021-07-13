@@ -21,9 +21,6 @@ import {
   Chunk,
   getStartLineForIndex,
   removeAllSelections,
-  isEmptySelection,
-  emptySelection,
-  getChunkSelectedText,
   findChunkFromSrcloc,
 } from './chunk';
 
@@ -189,23 +186,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       editor,
       errorState,
       startLine,
-      selection,
     } = chunks[index];
-
-    if ('getDoc' in editor) {
-      const doc = editor.getDoc();
-
-      const cmSelectedText = doc.getSelection();
-      const selectedText = getChunkSelectedText(chunks[index]);
-
-      if (cmSelectedText !== selectedText) {
-        if (isEmptySelection(selection)) {
-          doc.setSelection(emptySelection.anchor, emptySelection.head);
-        } else {
-          doc.setSelection(selection.anchor, selection.head);
-        }
-      }
-    }
 
     if ('getDoc' in editor && errorState.status === 'succeeded') {
       const marks = editor.getDoc().getAllMarks();
