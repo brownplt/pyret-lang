@@ -162,9 +162,10 @@ export enum MessageTabIndex {
 }
 
 export enum EditorMode {
-  Chunks,
-  Text,
-  Embeditor,
+  Chunks = 'Chunks',
+  Text = 'Text',
+  Embeditor = 'Embeditor',
+  Chatitor = 'Chatitor',
 }
 
 export type LintFailure = {
@@ -196,8 +197,8 @@ export const initialState: State = {
   editTimer: false,
   dropdownVisible: false,
   editorLoopDropdownVisible: false,
-  editorMode: EditorMode.Chunks,
-  fontSize: 12,
+  editorMode: EditorMode.Chatitor,
+  fontSize: 14,
   definitionsHighlights: [],
   currentRunner: undefined,
   shouldAdvanceCursor: false,
@@ -229,7 +230,7 @@ export const initialState: State = {
   ],
   firstSelectedChunkIndex: false,
   debugBorders: false,
-  displayResultsInline: false,
+  displayResultsInline: true,
   messageTabIndex: MessageTabIndex.RuntimeMessages,
   editorResponseLoop: EditorResponseLoop.Manual,
 };

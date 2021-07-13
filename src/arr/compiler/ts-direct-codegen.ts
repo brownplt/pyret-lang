@@ -5,12 +5,14 @@ import type * as A from './ts-ast';
 import type * as T from './ts-impl-types';
 import type * as CS from './ts-compile-structs';
 import type * as TJ from './ts-codegen-helpers';
+import type * as TCSH from './ts-compile-structs-helpers';
 import type * as PS from './provide-serialization';
 import type { Variant, PyretObject } from './ts-codegen-helpers';
 
 ({ 
   requires: [
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']},
+    { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-compile-structs-helpers']},
     { 'import-type': 'dependency', protocol: 'js-file', args: ['provide-serialization']},
     { 'import-type': 'dependency', protocol: 'file', args: ['ast.arr']},
    ],
@@ -20,7 +22,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       "compile-program": "tany"
     }
   },
-  theModule: function(runtime, _, ___, tj : TJ.Exports, ps : PS.Exports, A : (A.Exports), escodegen : (typeof Escodegen), P : (typeof Path)) {
+  theModule: function(runtime, _, ___, tj : TJ.Exports, TCSH : (TCSH.Exports), ps : PS.Exports, A : (A.Exports), escodegen : (typeof Escodegen), P : (typeof Path)) {
     // Pretty-print JS asts
     // Return a PyretObject
     // Type enough AST to get to s-num
@@ -65,8 +67,12 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       nameToKey,
       nameToName,
       nameToSourceString,
+      formatSrcloc,
+      map,
       visit,
     } = tj;
+
+    const { unwrap } = TCSH;
 
     const { compileProvides, compileProvidesOverrideUri } = ps;
 
@@ -514,7 +520,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
         | { $name: "expect-raises" }
         | { $name: "refinement-result", refinement: J.Expression, negate: boolean }
         | { $name: "predicate-result", predicate: any };
-      const {l, op, refinement, left, right, cause} = expr.dict;
+      const {l, op, refinement, left, right: rightOpt, cause} = expr.dict;
       function makeCheckOpResult(success : J.Expression, lhs : J.Expression, rhs: J.Expression) {
         return ObjectExpression([
           Property("success", success), Property("lhs", lhs), Property("rhs", rhs)
@@ -632,14 +638,10 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       switch(checkOp.$name) {
         case 'binop-result': {
           const binOp = checkOp.op;
-          switch(right.$name) {
-            case 'some': return defineBinTest(right.dict.value, (left, right) => {
-              return compileSOp(context, binOp, left, right);
-            });
-            case 'none': throw new InternalCompilerError('Attempting to use a binary check op without the RHS');
-            default:
-              throw new ExhaustiveSwitchError(right);
-          }
+          const right = unwrap(rightOpt, 'Attempting to use a binary check op without the RHS');
+          return defineBinTest(right, (left, right) => {
+            return compileSOp(context, binOp, left, right);
+          });
         }
         case 'expect-raises': {
           // Transforms the following Pyret test expression:
@@ -667,14 +669,8 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
 
           // Thunk the RHS
           let rhs: J.Expression, rhsStmts: J.Statement[];
-          switch(right.$name) {
-            case 'some': {
-              [rhs, rhsStmts] = compileExpr(context, right.dict.value);
-              break;
-            }
-            case 'none': throw new InternalCompilerError("`raises` checkop did not have a RHS, should be a parsing error");
-            default: throw new ExhaustiveSwitchError(right);
-          }
+          const right = unwrap(rightOpt, "`raises` checkop did not have a RHS, should be a parsing error");
+          [rhs, rhsStmts] = compileExpr(context, right);
           const rhFunc = thunkIt("RHS", rhs, rhsStmts);
 
           // Thunk the binCheckOp
@@ -704,19 +700,14 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
         }
         case 'refinement-result': {
           const { negate, refinement } = checkOp;
-          switch(right.$name) {
-            case 'some': {
-              return defineBinTest(right.dict.value, (left, right) => {
-                if (negate) {
-                  return UnaryExpression("!", CallExpression(refinement, [left, right]));
-                } else {
-                  return CallExpression(refinement, [left, right]);
-                }
-              })
+          const right = unwrap(rightOpt, 'Attempting to use a predicate check without the RHS');
+          return defineBinTest(right, (left, right) => {
+            if (negate) {
+              return UnaryExpression("!", CallExpression(refinement, [left, right]));
+            } else {
+              return CallExpression(refinement, [left, right]);
             }
-            case 'none': throw new InternalCompilerError('Attempting to use a predicate check without the RHS');
-            default: throw new ExhaustiveSwitchError(right);
-          }
+          });
         }
         // case 'predicate-result': {
 
@@ -1040,21 +1031,6 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
 
       // tableTansform(table, colnames, updates)
       return [returnExpr, returnStmts];
-    }
-
-    // mimics the Srcloc//format method from ast.arr
-    function formatSrcloc(loc: A.Srcloc, showFile: boolean): string {
-      switch(loc.$name) {
-        case 'builtin': return `<builtin ${loc.dict['module-name']}>`;
-        case 'srcloc': 
-          if (showFile) {
-            const start = `${loc.dict.source}:${loc.dict['start-line']}:${loc.dict['start-column']}`;
-            const end = `${loc.dict.source}:${loc.dict['end-line']}:${loc.dict['end-column']}`;
-            return `${start}-${end}`;
-          } else {
-            return `line ${loc.dict['start-line']}, column ${loc.dict['start-column']}`;
-          }
-      }
     }
 
     function compileTableSelect(context, expr : Variant<A.Expr, 's-table-select'>): CompileResult {

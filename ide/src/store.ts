@@ -58,6 +58,7 @@ function handleLoadFile(
     case EditorMode.Text:
       dispatch({ type: 'update', key: 'currentFileContents', value: contents });
       break;
+    case EditorMode.Chatitor:
     case EditorMode.Chunks: {
       const chunks = makeChunksFromString(contents);
 
@@ -228,6 +229,7 @@ function handleSaveFile(
     case EditorMode.Text:
       control.fs.writeFile(path, contents, saveCallback);
       break;
+    case EditorMode.Chatitor:
     case EditorMode.Chunks:
       // TODO(alex): Chunk file saving works by concating chunks together into a single buffer
       //   and writing it out.
@@ -236,7 +238,7 @@ function handleSaveFile(
       //   * Using fs.WriteStream to stream the chunk contents into the file
       control.fs.writeFile(
         path,
-        chunks.map((chunk) => chunk.text).join(CHUNKSEP),
+        chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
         saveCallback,
       );
       break;
@@ -477,12 +479,13 @@ function handleFirstActionableEffect(
                 applyEffect: () => handleTextLint(currentFileContents),
               };
             }
+            case EditorMode.Chatitor:
             case EditorMode.Chunks: {
               const sendLintRequests = (): void => {
-                chunks.forEach(({ text, errorState, id }) => {
+                chunks.forEach(({ editor, errorState, id }) => {
                   if (errorState.status !== 'succeeded') {
                     console.log(`linting chunk ${id}`);
-                    handleChunkLint(text, id);
+                    handleChunkLint(editor.getValue(), id);
                   }
                 });
               };

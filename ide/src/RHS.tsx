@@ -11,14 +11,10 @@
 
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import RenderedValue from './reps/RenderedValue';
 import { State } from './state';
 import {
   RHSObject,
   RHSObjects,
-  isTrace,
-  isLocation,
-  isRHSCheck,
   getRow,
 } from './rhsObject';
 import {
@@ -28,6 +24,7 @@ import {
 import {
   Action,
 } from './action';
+import RHSObjectComponent from './RHSObjectComponent';
 
 type StateProps = {
   rhs: RHSObjects,
@@ -94,69 +91,20 @@ function RHS({
         currentFile,
       );
       const isSelected = !rhs.outdated && focusedChunk !== undefined && chunk === focusedChunk;
-      const selectedStyle = {
-        background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
-        borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
-        borderBottom: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
-      };
-
       function selectThisChunk() {
         if (chunk !== false) {
           setFocusedChunk(chunk);
         }
       }
-
-      if (isTrace(rhsObject)) {
-        return (
-          <pre
-            key={rhsObject.key}
-            style={{
-              paddingLeft: '1em',
-              ...selectedStyle,
-            }}
-            onMouseEnter={selectThisChunk}
-          >
-            <RenderedValue value={rhsObject.value} />
-          </pre>
-        );
-      }
-
-      if (isLocation(rhsObject)) {
-        return (
-          <pre
-            key={rhsObject.key}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              paddingLeft: '1em',
-              ...selectedStyle,
-            }}
-            onMouseEnter={selectThisChunk}
-          >
-            {rhsObject.name}
-            {' '}
-            =&nbsp;
-            <RenderedValue value={rhsObject.value} />
-          </pre>
-        );
-      }
-
-      if (isRHSCheck(rhsObject)) {
-        return (
-          <pre
-            key={rhsObject.key}
-            style={{
-              paddingLeft: '1em',
-              ...selectedStyle,
-            }}
-            onMouseEnter={selectThisChunk}
-          >
-            <RenderedValue value={rhsObject} />
-          </pre>
-        );
-      }
-
-      throw new Error(`RHS: malformed RHSObject, ${JSON.stringify(rhsObject)}`);
+      return (
+        <RHSObjectComponent
+          isSelected={isSelected}
+          rhsObject={rhsObject}
+          onMouseEnter={selectThisChunk}
+          key={rhsObject.key}
+          className="chunks-rhs"
+        />
+      );
     }));
 
   /* Known issue: when the RHS is scrollable (because there are a lot of

@@ -1,1 +1,1 @@
-global._PYRET_PIPELINE = "ts-anchor:desugar";
+global._PYRET_PIPELINE = "ts-anchor:desugar:typecheck";

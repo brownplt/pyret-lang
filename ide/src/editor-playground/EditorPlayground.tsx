@@ -1,6 +1,6 @@
 import React from 'react';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
-import CM, { TextMarkerOptions } from 'codemirror';
+import CM from 'codemirror';
 import { connect } from 'react-redux';
 import Tooltip from './Tooltip';
 import { BackendCmd, State } from '../state';
@@ -28,6 +28,7 @@ interface DispatchProps {
 
 interface StateProps {
   rhs: RHSObjects,
+  text: string,
 }
 
 type Props = StateProps & DispatchProps;
@@ -35,10 +36,12 @@ type Props = StateProps & DispatchProps;
 function mapStateToProps(state: State): StateProps {
   const {
     rhs,
+    currentFileContents,
   } = state;
 
   return {
     rhs,
+    text: currentFileContents ?? 'empty currentFileContents???',
   };
 }
 
@@ -62,150 +65,87 @@ const connector = connect(mapStateToProps, mapDispatchToProps);
 function Embeditor(props: Props) {
   const [_tooltipPos, setTooltipPos] = React.useState<Pos | null>(null);
   const tooltipPosRef = React.useRef(_tooltipPos);
-  // const [_staleLineWidgets, setStaleLineWidgets] = React.useState<CM.LineWidget[]>([]);
-  // const lineWidgetsRef = React.useRef(_staleLineWidgets);
   const [stateEditor, setEditor] = React.useState<(CM.Editor & CM.Doc) | null>(null);
-  const [_needsFirstMark, setNeedsFirstMark] = React.useState<boolean>(true);
-  const needsFirstMarkRef = React.useRef(_needsFirstMark);
-  function editorDidMount(editor: CM.Editor & CM.Doc) {
-    setEditor(editor);
-  }
+  // https://reactjs.org/docs/hooks-faq.html#is-there-something-like-forceupdate
+  const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
   function empty(s: string): boolean {
     return s.replace(/ /g, '') === '';
   }
   function clearTooltip() {
-    if (tooltipPosRef.current !== null) {
-      setTooltipPos(null);
-      tooltipPosRef.current = null;
-    }
+    tooltipPosRef.current = null;
+    setTooltipPos(null);
+  }
+  // NOTE(luna): Let's discuss briefly why we need refs. If you search about
+  // this issue, you will read about stale state and how it has to do with
+  // closures.  This is not what's happening. JS should give us a fresh closure
+  // every time we render, which happens enough for state to be relevant in
+  // almost all cases, because state changes trigger re-renders. Instead, the
+  // problem has to do with react-codemirror2 (as always). react-codemirror2
+  // associates the callbacks (onKeyUp, critically) once during mount, and never
+  // again. So recomputed closures are thus lost. This causes what looks like a
+  // stale closure, but is not due to capturing variables, but rather a poor
+  // react-codemirror2 design decision. The workarounds, however, are
+  // essentially the same (except that restructuring the code isn't possible).
+  function editorDidMount(editor: CM.Editor & CM.Doc) {
+    setEditor(editor);
+    forceUpdate();
   }
   // "Methods prefixed with doc. can, unless otherwise specified, be called both
   // on CodeMirror (editor) instances and CodeMirror.Doc instances."
   // This means CM.Editor & CM.Doc should be equal to CM.Editor, but the types
   // given don't fit right
   function onKeyDown(editor: CM.Editor & CM.Doc, event: KeyboardEvent) {
-    if (needsFirstMarkRef.current) {
-      editor.markText({ line: 0, ch: 0 }, { line: 9999, ch: 9999 }, {
-        css: 'background-color: #ccc',
-        // NOTE(luna): This should be the only inclusiveLeft mark. Why:
-        // All chunks (and thus marks) own their single leading newline. Not
-        // trailing, because a chunk needs to exist after one single newline, so
-        // needs a character. This complication is also why we treat the
-        // beginning chunk specially, with it being truncated after new marks
-        // are added. Of course, the first line doesn't have a leading newline,
-        // so it needs to be inclusiveLeft because there's no "above chunk" to
-        // defer to.
-        // i should phrase this better if this continues to be true in a day or two
-        inclusiveLeft: true,
-        inclusiveRight: true,
-      });
-      setNeedsFirstMark(false as boolean);
-      needsFirstMarkRef.current = false;
-    }
     clearTooltip();
     if (event.key === 'Enter') {
       const pos = (editor as any).getCursor();
       const token = editor.getTokenAt(pos);
       const lastLine = editor.getLine(pos.line - 1);
       const currentLine = editor.getLine(pos.line);
-      if (pos.line <= 1 || !empty(currentLine)) {
+      if ((pos.line <= 1 && empty(lastLine)) || !empty(currentLine)) {
         // Do nothing. This was not an end-of-line enter, so we don't wanna get in the way!
       // from DefChunk.tsx: handleEnter
       } else if (token.state.lineState.tokens.length !== 0) {
-        console.log('Open block. Doing nothing.');
         // My design instinct is to show nothing here: in the happy case, the
         // person is just writing a multiline expression and having a ball
+        // However, we might have rules and such around, that should update
+        forceUpdate();
       // Due to the above check, lastLine === '' as well in almost all cases
-      } else if (empty(lastLine)) {
+      } else {
         // Double enter
         // Lots of edge cases to handle here
-        console.log('RUNNING THE CHUNKS (theoretically)');
         // add chunk marker
         console.assert(pos.ch === 0);
-        // We get rid of the extraneous newline, because visually it is occupied
-        // by the chunk boundary. This is debatable. Lerner would say not only
-        // keep it but rely on it for identifying chunk boundaries
-        const previousLine = { line: pos.line - 1, ch: 0 };
-        const newLine = { line: pos.line, ch: pos.ch };
-        editor.replaceRange('', previousLine, newLine);
-        // Update the previous mark that will keep expanding forever if we don't change it
-        const oldMarks = editor.findMarksAt(previousLine);
-        const previousMarks = oldMarks.filter((mark) => mark.find().to.line === previousLine.line);
-        const endOfPrevious = { line: previousLine.line - 1, ch: 9999 };
-        const adjustMark = (oldMark: CM.TextMarker, newEnd: CM.Position) => {
-          const oldMarkRange = oldMark.find();
-          // Make replacement mark. As a workaround, to get all the options
-          // back, just pass the old mark in as the options. i assume extraneous
-          // fields are ignored, since i haven't seen any errors or bugs from
-          // this. (TS claims there's a getOptions method but there isn't one
-          // documented in any version or in reality in this version)
-          editor.markText(oldMarkRange.from, newEnd, oldMark as TextMarkerOptions);
-          // Don't clear before making the replacement mark or bad things happen!
-          oldMark.clear();
-        };
-        const makeMark = (left: CM.Position, right: CM.Position) => {
-          // Mostly for debugging, it's nice (and fun) to have all our marks
-          // have different colors!
-          const rainbow = ['#fcc', '#fca', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
-          const numMarks = editor.getAllMarks().length;
-          editor.markText(left, right, {
-            css: `background-color: ${rainbow[numMarks % rainbow.length]};`,
-            // Above chunk owns the left side of this newline
-            inclusiveLeft: false,
-            // We own the newline itself and the right side
-            inclusiveRight: true,
-          });
-        };
-        if (previousMarks.length === 1) {
-          const oldMark = previousMarks[0];
-          adjustMark(oldMark, endOfPrevious);
-          makeMark(endOfPrevious, previousLine);
-        } else {
-          // The inside of a chunk. What do we actually want to do here? And how
-          // do we achieve it with the marks around?
-          // For now: we'll split into two chunks, "before-cursor" and
-          // "after-cursor" with the cursor at the beginning of "after-cursor"
-          // (and "after-cursor" should own the newline like the others
-          // presumably?")
-          console.assert(previousMarks.length === 0);
-          console.assert(oldMarks.length === 1);
-          const oldMark = oldMarks[0];
-          const oldEnd = oldMark.find().to;
-          adjustMark(oldMark, endOfPrevious);
-          // But now our new mark will be all the way to oldMarkRange.to this time
-          makeMark(endOfPrevious, oldEnd);
-        }
         // Run chunks!!
-        const marks = editor.getAllMarks();
-        // Is this necessary? It's not documented what order i get them in, so probably
-        marks.sort((a, b) => a.find()?.from.line - b.find()?.from.line);
-        props.save(editor.getValue());
         props.run();
-      } else {
-        console.log('Empty line with no open context. Presenting tooltip.');
-        // "What? This looks weird! Why are you doing pixel stuff!"
-        // Well here are some examples of things that DON'T work:
-        // - CM.markText: Seems perfect! But doesn't work at all on blank lines fsr!
-        // - Modifying the text: Not a good abstraction, hard to keep the cursor
-        //   in the right place, have to modify text back
-        // - Grabbing the cursor itself and adding css after to it or something:
-        //   fsr (React? CM?) it gets overwritten. It's also nigh impossible
-        //   to tell cursors apart
-        // As for this, we use the bottom of the previous line because the
-        // editor gets confused with lines that don't exist. In the current
-        // formulation, this line does exist, but when things get rearranged,
-        // sometimes this gets called before the line actually exists
-        const lastLineBegin = { line: pos.line - 1, ch: 0 };
-        const { bottom, left } = editor.cursorCoords(lastLineBegin);
-        setTooltipPos({ left, top: bottom });
+        // While this runs, we should update the <hr /> placeholder, for visual
+        // reasons. There's not really a good state for this. Technically, the
+        // state that changed is the number of marks. We could put that state,
+        // but it'd claim we're tracking more than we really are
+        forceUpdate();
       }
     }
   }
-  const { rhs } = props;
+  const { rhs, text } = props;
+  if (stateEditor !== null && text !== stateEditor.getValue()) {
+    stateEditor.setValue(text);
+  }
   const rvs = stateEditor?.operation(() => {
-    const marks = stateEditor?.getAllMarks() ?? [];
-    return marks.map((marker, i) => {
-      const { from, to } = marker.find();
+    const barriers = Array.from(text.matchAll(/\n\n/g));
+    // Why +1? Because we want to put the widget immediately after the first
+    // newline but not the second (leaving a blank space *after* rather than
+    // before a segment
+    const indices = [0, ...barriers.map(({ index }) => index as number + 1), 999999];
+    const poses = indices.map((index) => (
+      stateEditor.posFromIndex(index as number)
+    ));
+    type Pairs = [CM.Position, CM.Position][];
+    const pairsReducer: (acc: [Pairs, CM.Position], next: CM.Position) => [Pairs, CM.Position] = (
+      ([pairs, last], next) => [[...pairs, [last, next]], next]
+    );
+    const pairs = (arr: CM.Position[]) => arr.slice(1).reduce(pairsReducer, [[], arr[0]]);
+    const ranges = pairs(poses)[0].map(([from, to]) => ({ from, to }));
+    return ranges.map((pos, i) => {
+      const { from, to } = pos;
       // is rhs.objects sorted?
       const relevant = rhs.objects.filter((rhsObject) => {
         const line = getRow(rhsObject) - 1;
@@ -222,9 +162,14 @@ function Embeditor(props: Props) {
   return (
     <>
       <CodeMirror
+        className="sms-codemirror"
+        onChange={((_editor: CM.Editor & CM.Doc, _data, value) => {
+          if (stateEditor !== null) {
+            props.save(value);
+          }
+        }) as (editor: CM.Editor, _data: CM.EditorChange, value: string) => string}
         options={{
           mode: 'pyret',
-          lineNumbers: true,
         }}
         // Bad types given by react-codemirror, too bad
         onKeyUp={onKeyDown as (x: CM.Editor, y: Event) => void}

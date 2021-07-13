@@ -2,7 +2,7 @@ import type * as A from './ts-ast';
 import type {Srcloc as Loc} from './ts-ast';
 import type * as T from './ts-type-structs';
 import { Option, List, StringDict, MutableStringDict, PFunction, PMethod } from './ts-impl-types';
-import type * as ED from '../trove/error-display'
+import type * as ED from './error-display'
 import type { Variant } from './ts-codegen-helpers';
 
 export type URI = string;

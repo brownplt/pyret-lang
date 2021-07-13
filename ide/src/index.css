@@ -1,4 +1,79 @@
-.rhs-error {
-  background-color: rgb(255, 25, 113) !important;
-  font-weight: bold;
+.chatitor-container {
+  display: grid;
+  height: 100%;
+  grid-template-rows: 1fr 0fr;
+}
+
+.linked-cm .CodeMirror {
+  /* TODO(luna): !important because they're getting overridden by page styles, as
+   * they should be, but why are there page styles, and how can i override
+   * correctly? */
+  display: inline-block;
+  background-color: #d4f1ff !important;
+  border-radius: 0.9em !important;
+  border-bottom-left-radius: 0 !important;
+  padding: 0.7em;
+  cursor: pointer !important;
+  transition: margin-left 0.1s, border-radius 0.1s, border-bottom-left-radius 0.1s;
+}
+.linked-cm .CodeMirror-line {
+  cursor: pointer;
+}
+.linked-cm .CodeMirror-focused {
+  background-color: #f2fbff !important;
+  width: 30em;
+  border-radius: 0.5em !important;
+  border-bottom-left-radius: 0.5em;
+  border: 1px solid black !important;
+  transition: margin-left 0.1s, border-radius 0.1s, border-bottom-left-radius 0.1s;
+}
+.linked-cm .CodeMirror-focused .CodeMirror-line {
+  cursor: text;
+}
+
+.new-expr {
+  grid-row: 2;
+}
+.new-expr .CodeMirror {
+  background-color: white !important;
+  border-radius: 0.5em !important;
+  border: 1px solid black !important;
+  /* This is a weird quirk of CodeMirror styles which set this to a value which
+   * breaks non-inline positioned elements, but this !important override fixes it */
+  min-height: 0 !important;
+  padding: 1em;
+  width: 45em;
+  margin: 0 auto;
+  margin-bottom: 1em;
+}
+.new-expr .CodeMirror:focus {
+  background-color: #eee !important;
+}
+
+.chatitor-rhs {
+  padding-left: 1em;
+  border-radius: 0.5em;
+  background-color: #eee;
+  border-bottom-right-radius: 0;
+  margin: 0;
+  padding: 0.7em;
+  width: 90%;
+  float: right;
+  overflow: auto;
+}
+.chatitor-rhs.pending {
+  background-color: transparent;
+  border: 1px dotted black;
+}
+
+.chunks-rhs {
+  padding-left: 1em;
+  /* For positioning jitter */
+  border-top: 2px solid rgba(0, 0, 0, 0);
+  border-bottom: 2px solid rgba(0, 0, 0, 0);
+}
+.chunks-rhs-selected {
+  background: #d7d4f0;
+  border-top: 2px solid #c8c8c8;
+  border-bottom: 2px solid #c8c8c8;
 }

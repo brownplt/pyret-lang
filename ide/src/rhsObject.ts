@@ -86,7 +86,7 @@ export function getRow(hasSrcLoc: HasSrcLoc): number {
   const matches = loc.match(/:(\d+):\d+-\d+:\d+$/);
 
   if (matches === null) {
-    throw new Error('getRow: received malformed srcloc');
+    throw new Error(`getRow: received malformed srcloc ${String(loc)}`);
   }
 
   return Number(matches[1]);

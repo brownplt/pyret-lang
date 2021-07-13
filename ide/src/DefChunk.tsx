@@ -14,10 +14,9 @@
    component and the Redux store. */
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { Controlled as CodeMirror } from 'react-codemirror2';
+import { UnControlled as CodeMirror } from 'react-codemirror2';
 import { BackendCmd, State, EditorResponseLoop } from './state';
 
-import RenderedValue from './reps/RenderedValue';
 import backendCmdFromState from './editor_loop';
 
 import {
@@ -49,6 +48,9 @@ import {
   getRow,
   isRHSCheck,
 } from './rhsObject';
+import RHSObjectComponent from './RHSObjectComponent';
+import LinkedCodeMirror from './LinkedCodeMirror';
+import FailureComponent from './FailureComponent';
 
 type StateProps = {
   chunks: Chunk[],
@@ -109,6 +111,9 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
 type PropsFromReact = {
   index: number,
   focused: boolean,
+  // If parent is provided, then DefChunk provides linkedDocs to it, otherwise
+  // it manages entirely separate documents
+  parent?: CodeMirror.Doc,
 };
 
 type DispatchProps = {
@@ -191,7 +196,7 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
 
       const newChunk = removeSelectedText(chunk);
 
-      if (newChunk.text === '') {
+      if (newChunk.editor.getValue() === '') {
         return newChunks;
       }
 
@@ -222,7 +227,7 @@ function deleteSelectedChunks(chunks: Chunk[], index: number): {
 
 class DefChunk extends React.Component<DefChunkProps, any> {
   /* Used to autofocus this component when necessary */
-  private input: React.RefObject<any>;
+  private input: React.RefObject<CodeMirror>;
 
   constructor(props: DefChunkProps) {
     super(props);
@@ -250,13 +255,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
 
     if (n.index === o.index
-      && n.chunks[n.index].text === o.chunks[o.index].text
+      && n.chunks[n.index].editor.getValue() === o.chunks[o.index].editor.getValue()
       && n.focusedChunk !== n.index) {
       return false;
     }
 
     if (n.focusedChunk === o.focusedChunk
-        && n.chunks[n.index].text === o.chunks[o.index].text
+        && n.chunks[n.index].editor.getValue() === o.chunks[o.index].editor.getValue()
         && n.chunks[n.index].errorState === o.chunks[o.index].errorState) {
       return false;
     }
@@ -280,7 +285,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       selection,
     } = chunks[index];
 
-    if (editor !== false) {
+    if ('getDoc' in editor) {
       const doc = editor.getDoc();
 
       const cmSelectedText = doc.getSelection();
@@ -295,10 +300,10 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       }
     }
 
-    if (editor && errorState.status === 'succeeded') {
+    if ('getDoc' in editor && errorState.status === 'succeeded') {
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
-    } else if (editor && errorState.status === 'failed') {
+    } else if ('getDoc' in editor && errorState.status === 'failed') {
       const { highlights } = errorState;
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
@@ -339,15 +344,18 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     }
 
     const { focusedChunk } = this.props;
-    if (index === focusedChunk && this.input.current !== null) {
-      this.input.current.editor.focus();
+    if (index === focusedChunk) {
+      const { editor: toFocusEditor } = chunks[focusedChunk];
+      if ('focus' in toFocusEditor) {
+        toFocusEditor.focus();
+      }
     }
   }
 
   /* Called in response to an edit event, where `value` is the chunk's text
      after the edit. Marks updated chunks as not linted so that the running
      infastructure knows to lint them before compiling. */
-  scheduleUpdate(value: string) {
+  scheduleUpdate() {
     const {
       chunks,
       index,
@@ -358,7 +366,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
     const { editor } = chunks[index];
 
-    if (editor !== false) {
+    if ('getDoc' in editor) {
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
     }
@@ -366,7 +374,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const newChunks = [...chunks];
     newChunks[index] = {
       ...newChunks[index],
-      text: value,
+      editor,
       errorState: { status: 'notLinted' },
     };
     for (let i = index; i < newChunks.length; i += 1) {
@@ -412,7 +420,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       setShouldAdvanceCursor,
     } = this.props;
     const pos = (editor as any).getCursor();
-    if (pos.line === chunks[index].text.split('\n').length - 1 && index < chunks.length - 1) {
+    if (pos.line === chunks[index].editor.getValue().split('\n').length - 1 && index < chunks.length - 1) {
       setFocusedChunk(index + 1);
       setShouldAdvanceCursor(false);
       event.preventDefault();
@@ -429,7 +437,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       enqueueEffect,
       setShouldAdvanceCursor,
     } = this.props;
-    const pos = (editor as any).getCursor();
+    const pos = editor.getCursor();
     const token = editor.getTokenAt(pos);
     if ((event as any).shiftKey) {
       setShouldAdvanceCursor(false);
@@ -458,7 +466,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       enqueueEffect,
       editorResponseLoop,
     } = this.props;
-    if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
+    if (index === 0 && chunks.length > 1 && chunks[0].editor.getValue().trim() === '') {
       /* Cursor is in the first chunk, the text of this chunk is empty, and
          there is more than one chunk. Delete this chunk, move every chunk up by
          one, and keep the focus where it is. */
@@ -475,7 +483,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       });
       setFocusedChunk(0);
       event.preventDefault();
-    } else if (index > 0 && index < chunks.length - 1 && chunks[index].text.trim() === '') {
+    } else if (index > 0 && index < chunks.length - 1 && chunks[index].editor.getValue().trim() === '') {
       /* Cursor is not in the first chunk nor in the last chunk, and the text of
          this chunk is empty. Delete this chunk, move every chunk below it up by
          one, and keep the focus where it is. */
@@ -532,7 +540,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const {
       chunks, index, setChunks, setFocusedChunk,
     } = this.props;
-    if (index === 0 && chunks.length > 1 && chunks[0].text.trim() === '') {
+    if (index === 0 && chunks.length > 1 && chunks[0].editor.getValue().trim() === '') {
       /* Cursor is in the first chunk, the text of this chunk is empty, and
          there is more than one chunk. Delete this chunk, move every chunk up by
          one, and keep the focus where it is. */
@@ -549,7 +557,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       });
       setFocusedChunk(0);
       event.preventDefault();
-    } else if (index > 0 && chunks[index].text.trim() === '') {
+    } else if (index > 0 && chunks[index].editor.getValue().trim() === '') {
       /* Cursor is not in the first chunk and the text of this chunk is empty.
          Delete this chunk, move every chunk below it up by one, and focus the
          previous chunk. */
@@ -694,7 +702,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       return;
     }
 
-    const cmp = compareLineAndCh(chunks[index].text, ranges[0].anchor, ranges[0].head);
+    const cmp = compareLineAndCh(chunks[index].editor.getValue(), ranges[0].anchor, ranges[0].head);
 
     if (cmp <= 0) {
       setChunks({
@@ -717,13 +725,205 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
   render() {
     const {
-      chunks, index, focusedChunk,
+      chunks, index, focusedChunk, parent,
     } = this.props;
-    const { text, startLine } = chunks[index];
+    const { editor: initialEditor, startLine } = chunks[index];
+
+    const handleMount = (editor: CodeMirror.Editor) => {
+      const {
+        setChunks,
+      } = this.props;
+
+      const marks = editor.getDoc().getAllMarks();
+      marks.forEach((m) => m.clear());
+      editor.setSize(null, 'auto');
+
+      // Turn ghost UninitializedEditor into a real editor if the editor has mounted
+      // This check might be extraneous
+      if (editor.getValue() !== initialEditor.getValue()) {
+        editor.setValue(initialEditor.getValue());
+      }
+
+      setChunks({
+        chunk: {
+          ...chunks[index],
+          editor,
+        },
+        modifiesText: false,
+      });
+    };
+
+    const chunkEditorPart = parent ? (
+      <div style={{ width: '100%' }}>
+        <LinkedCodeMirror
+          parent={parent}
+          start={startLine}
+          end={startLine + initialEditor.getValue().split('\n').length}
+          onMouseDown={(editor: any, e: any) => {
+            this.handleMouseDown(e);
+          }}
+          editorDidMount={handleMount}
+          options={{
+            mode: 'pyret',
+            theme: 'default',
+            lineWrapping: true,
+            autofocus: index === focusedChunk,
+          }}
+          onBeforeChange={() => {
+            this.scheduleUpdate();
+          }}
+          onSelection={(editor, data) => {
+            this.handleOnSelection(data);
+          }}
+          onKeyDown={(editor, event) => {
+            switch ((event as any).key) {
+              case 'Enter':
+                this.handleEnter(editor, event);
+                break;
+              case 'Backspace':
+                this.handleBackspace(event);
+                break;
+              case 'Delete':
+                this.handleDelete(event);
+                break;
+              case 'ArrowUp':
+                this.handleArrowUp(editor, event);
+                break;
+              case 'ArrowDown':
+                this.handleArrowDown(editor, event);
+                break;
+              default:
+            }
+          }}
+        />
+      </div>
+    )
+      : (
+        <CodeMirror
+          ref={this.input}
+          onMouseDown={(editor: any, e: any) => {
+            this.handleMouseDown(e);
+          }}
+          editorDidMount={handleMount}
+          options={{
+            mode: 'pyret',
+            theme: 'default',
+            lineNumbers: true,
+            lineWrapping: true,
+            lineNumberFormatter: (l) => String(l + startLine),
+            autofocus: index === focusedChunk,
+          }}
+          onBeforeChange={() => {
+            this.scheduleUpdate();
+          }}
+          onSelection={(editor, data) => {
+            this.handleOnSelection(data);
+          }}
+          onKeyDown={(editor, event) => {
+            switch ((event as any).key) {
+              case 'Enter':
+                this.handleEnter(editor, event);
+                break;
+              case 'Backspace':
+                this.handleBackspace(event);
+                break;
+              case 'Delete':
+                this.handleDelete(event);
+                break;
+              case 'ArrowUp':
+                this.handleArrowUp(editor, event);
+                break;
+              case 'ArrowDown':
+                this.handleArrowDown(editor, event);
+                break;
+              default:
+            }
+          }}
+          autoCursor
+        />
+      );
+
+    const chunkResultsPart = (
+      <div>
+        {(() => {
+          const {
+            thisChunkRHSObjects,
+            displayResultsInline,
+          } = this.props;
+
+          if (displayResultsInline) {
+            const chunk = chunks[index];
+            const { editor } = chunk;
+
+            if (chunk.errorState.status === 'failed' && parent && 'markText' in editor) {
+              return (
+                <div style={{ textAlign: 'right', display: 'block' }}>
+                  {chunk.errorState.failures.map((failure, i) => (
+                    // eslint-disable-next-line
+                    <div className="chatitor-rhs" key={i}>
+                      <FailureComponent failure={failure} editor={editor} />
+                    </div>
+                  ))}
+                </div>
+              );
+            }
+
+            const isSelected = index === focusedChunk;
+            const rhsComponents = thisChunkRHSObjects.map((val) => {
+              if (!isRHSCheck(val) || parent) {
+                if (parent) {
+                  return (
+                    <RHSObjectComponent
+                      key={getRow(val)}
+                      rhsObject={val}
+                      isSelected={false}
+                      className="chatitor-rhs"
+                    />
+                  );
+                }
+                return (
+                  <RHSObjectComponent
+                    key={getRow(val)}
+                    rhsObject={val}
+                    isSelected={false}
+                    className="chunks-rhs"
+                  />
+                );
+              }
+              return false;
+            });
+
+            return (
+              <div
+                style={parent ? {
+                  display: 'flex',
+                  width: '100%',
+                  justifyContent: 'flex-end',
+                  marginBottom: '0.5em',
+                } : {
+                  margin: 0,
+                  background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
+                  borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
+                  borderBottom: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                }}
+              >
+                {rhsComponents.length === 0 && parent ? <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div> : rhsComponents}
+              </div>
+            );
+          }
+
+          return false;
+        })()}
+      </div>
+    );
 
     return (
       <div
-        style={{
+        style={parent ? {} : {
           width: '100%',
           display: 'flex',
         }}
@@ -739,24 +939,27 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             const chunk = chunks[index];
 
             if (chunk.errorState.status === 'failed'
-          && focusedChunk === index) {
+          && focusedChunk === index && !parent && 'markText' in initialEditor) {
               return (
-                <div style={{
-                  alignSelf: 'center',
-                  background: '#FFF2F2',
-                  position: 'absolute',
-                  top: '100%',
-                  width: '40em',
-                  zIndex: 500001,
-                  fontFamily: 'sans-serif',
-                  borderRadius: '3px',
-                  border: '0.3em solid hsl(204, 100%, 74%)',
-                  padding: '0.2em',
-                  marginRight: '1em',
-                  boxShadow: '0 0 1em',
-                }}
+                <div
+                  style={{
+                    alignSelf: 'center',
+                    background: '#FFF2F2',
+                    position: 'absolute',
+                    top: '100%',
+                    width: '40em',
+                    zIndex: 500001,
+                    fontFamily: 'sans-serif',
+                    borderRadius: '3px',
+                    border: '0.3em solid hsl(204, 100%, 74%)',
+                    padding: '0.2em',
+                    marginRight: '1em',
+                    boxShadow: '0 0 1em',
+                  }}
                 >
-                  {chunk.errorState.failures}
+                  {chunk.errorState.failures.map((error) => (
+                    <FailureComponent failure={error} editor={initialEditor} />
+                  ))}
                 </div>
               );
             }
@@ -765,7 +968,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           })()}
         </div>
         <div
-          style={{
+          style={parent ? { } : {
             width: '100%',
             display: 'flex',
             flexDirection: 'column',
@@ -774,114 +977,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             this.handleMouseEnter(event);
           }}
         >
-          <CodeMirror
-            ref={this.input}
-            onMouseDown={(editor: any, e: any) => {
-              this.handleMouseDown(e);
-            }}
-            editorDidMount={(editor) => {
-              const {
-                setChunks,
-              } = this.props;
-
-              const marks = editor.getDoc().getAllMarks();
-              marks.forEach((m) => m.clear());
-              editor.setSize(null, 'auto');
-
-              setChunks({
-                chunk: {
-                  ...chunks[index],
-                  editor,
-                },
-                modifiesText: false,
-              });
-            }}
-            value={text}
-            options={{
-              mode: 'pyret',
-              theme: 'default',
-              lineNumbers: true,
-              lineWrapping: true,
-              lineNumberFormatter: (l) => String(l + startLine),
-              autofocus: index === focusedChunk,
-            }}
-            onBeforeChange={(editor, data, value) => {
-              this.scheduleUpdate(value);
-            }}
-            onSelection={(editor, data) => {
-              this.handleOnSelection(data);
-            }}
-            onKeyDown={(editor, event) => {
-              switch ((event as any).key) {
-                case 'Enter':
-                  this.handleEnter(editor, event);
-                  break;
-                case 'Backspace':
-                  this.handleBackspace(event);
-                  break;
-                case 'Delete':
-                  this.handleDelete(event);
-                  break;
-                case 'ArrowUp':
-                  this.handleArrowUp(editor, event);
-                  break;
-                case 'ArrowDown':
-                  this.handleArrowDown(editor, event);
-                  break;
-                default:
-              }
-            }}
-            autoCursor
-          />
-          <div>
-            {(() => {
-              const {
-                thisChunkRHSObjects,
-                displayResultsInline,
-              } = this.props;
-
-              if (displayResultsInline && thisChunkRHSObjects.length > 0) {
-                const isSelected = index === focusedChunk;
-
-                return (
-                  <pre
-                    style={{
-                      margin: 0,
-                      background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
-                      borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
-                      borderBottom: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
-                      width: '100%',
-                      display: 'flex',
-                      flexDirection: 'row',
-                      justifyContent: 'flex-end',
-                    }}
-                  >
-                    {thisChunkRHSObjects.map((val) => {
-                      if (!isRHSCheck(val)) {
-                        return (
-                          <div style={{
-                            display: 'flex',
-                          }}
-                          >
-                            <RenderedValue key={getRow(val)} value={val.value} />
-                            <div
-                              style={{
-                                width: '1em',
-                              }}
-                            />
-                          </div>
-                        );
-                      }
-
-                      return false;
-                    })}
-                  </pre>
-                );
-              }
-
-              return false;
-            })()}
-          </div>
+          { chunkEditorPart }
+          { chunkResultsPart }
         </div>
       </div>
     );

@@ -4,7 +4,6 @@ provide *
 import ast as A
 import file("ast-anf.arr") as N
 import file("js-ast.arr") as J
-import file("gensym.arr") as G
 import file("compile-structs.arr") as CS
 import file("concat-lists.arr") as CL
 import file("js-dag-utils.arr") as DAG

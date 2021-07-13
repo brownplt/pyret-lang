@@ -82,7 +82,7 @@ function handleEnter(state: State): State {
     editorMode,
   } = state;
 
-  if (!(editorMode === EditorMode.Chunks)) {
+  if (!(editorMode === EditorMode.Chunks || editorMode === EditorMode.Chatitor)) {
     return state;
   }
 
@@ -106,7 +106,7 @@ function handleEnter(state: State): State {
       };
     }
 
-    if (chunks[focusedChunk + 1].text.trim() !== '') {
+    if (chunks[focusedChunk + 1].editor.getValue().trim() !== '') {
       const nextChunks: Chunk[] = [
         ...chunks.slice(0, focusedChunk + 1),
         emptyChunk({
@@ -129,7 +129,7 @@ function handleEnter(state: State): State {
       };
     }
 
-    if (chunks[focusedChunk + 1].text.trim() === '') {
+    if (chunks[focusedChunk + 1].editor.getValue().trim() === '') {
       return {
         ...state,
         focusedChunk: focusedChunk + 1,
@@ -258,6 +258,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
       };
     }
 
+    case EditorMode.Chatitor:
     case EditorMode.Chunks: {
       const {
         backendCmd,
@@ -453,7 +454,7 @@ function handleSaveFileSuccess(state: State): State {
     });
     if (newState.chunks.length === state.chunks.length + 1
       && newState.focusedChunk === newState.chunks.length - 1
-      && newState.chunks[newState.chunks.length - 2].text === '') {
+      && newState.chunks[newState.chunks.length - 2].editor.getValue() === '') {
       return { ...newState, effectQueue };
     }
     return newState;
@@ -526,6 +527,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
         linting: false,
         interactionErrors: action.errors,
       };
+    case EditorMode.Chatitor:
     case EditorMode.Chunks: {
       const { chunks } = state;
 
@@ -552,7 +554,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
             errorState: {
               status: 'failed',
               effect: 'lint',
-              failures: action.errors,
+              failures: action.errors.map((e) => JSON.parse(e)),
               highlights,
             },
             needsJiggle: true,
@@ -612,7 +614,7 @@ function handleCompileFailure(
   function findChunkFromSrclocResult([l1] : number[]): number | false {
     const { chunks } = state;
     for (let i = 0; i < chunks.length; i += 1) {
-      const end = chunks[i].startLine + chunks[i].text.split('\n').length;
+      const end = chunks[i].startLine + chunks[i].editor.getValue().split('\n').length;
       if (l1 >= chunks[i].startLine && l1 <= end) {
         return i;
       }
@@ -639,6 +641,7 @@ function handleCompileFailure(
         interactionErrors: status.errors,
         definitionsHighlights: places,
       };
+    case EditorMode.Chatitor:
     case EditorMode.Chunks: {
       console.log('Compilation failure: chunks');
       if (places.length > 0) {
@@ -653,7 +656,7 @@ function handleCompileFailure(
               errorState: {
                 status: 'failed',
                 effect: 'compile',
-                failures: status.errors,
+                failures: status.errors.map((e) => JSON.parse(e)),
                 highlights: hl ? [...hl, places[i]] : [places[i]],
               },
               needsJiggle: true,
@@ -755,17 +758,22 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         editorMode: newEditorMode,
       };
     }
+    case EditorMode.Chatitor:
     case EditorMode.Chunks: {
       // in text mode currentFileContents can be more up-to-date than chunks, so we
       // need to recreate the chunks.
 
       const { currentFileContents } = state;
 
+      const displayResultsInline = newEditorMode === EditorMode.Chatitor
+        ? true : state.displayResultsInline;
+
       if (currentFileContents === undefined) {
         return {
           ...state,
-          editorMode: EditorMode.Chunks,
+          editorMode: newEditorMode,
           chunks: [],
+          displayResultsInline,
         };
       }
 
@@ -774,7 +782,8 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
 
       currentFileContents.split(CHUNKSEP).forEach((chunkString) => {
         chunks.push(emptyChunk({
-          text: chunkString,
+          // TODO(luna): CHUNKSTEXT this is where the fun happens
+          editor: { getValue: () => chunkString },
           startLine: totalLines,
           errorState: notLintedState,
         }));
@@ -784,8 +793,9 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
 
       return {
         ...state,
-        editorMode: EditorMode.Chunks,
+        editorMode: newEditorMode,
         chunks,
+        displayResultsInline,
       };
     }
     default:
@@ -839,7 +849,7 @@ function handleSetCurrentFile(state: State, file: string): State {
 
 function handleSetChunks(state: State, update: ChunksUpdate): State {
   const { editorMode, isFileSaved } = state;
-  if (editorMode !== EditorMode.Chunks) {
+  if (editorMode !== EditorMode.Chunks && editorMode !== EditorMode.Chatitor) {
     throw new Error('handleSetChunks: not in chunk mode');
   }
 
@@ -864,7 +874,7 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
     let contents = currentFileContents;
 
     if (update.modifiesText) {
-      contents = update.chunks.map((chunk) => chunk.text).join(CHUNKSEP);
+      contents = update.chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
     }
 
     return {
@@ -893,7 +903,7 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
     let contents = currentFileContents;
 
     if (update.modifiesText) {
-      contents = newChunks.map((chunk) => chunk.text).join(CHUNKSEP);
+      contents = newChunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
     }
 
     return {

@@ -35,6 +35,7 @@ import 'react-tabs/style/react-tabs.css';
 import 'react-splitter-layout/lib/index.css';
 import EditorPlayground from './editor-playground/EditorPlayground';
 import { NeverError } from './utils';
+import Chatitor from './Chatitor';
 
 type StateProps = {
   browseRoot: string,
@@ -129,6 +130,10 @@ export class Editor extends React.Component<EditorProps, any> {
     } = this.props;
 
     switch (editorMode) {
+      case EditorMode.Chatitor:
+        return (
+          <Chatitor />
+        );
       case EditorMode.Embeditor:
         return (
           <EditorPlayground />
@@ -182,7 +187,9 @@ export class Editor extends React.Component<EditorProps, any> {
       chunks.forEach((chunk, i) => {
         const { editor } = chunk;
 
-        if (editor === false) {
+        if (!('getDoc' in editor)) {
+          // TODO(luna): CHUNKSTEXT
+          console.error('uninitialized editor makeCopyHandler(?)');
           return;
         }
 
@@ -212,6 +219,7 @@ export class Editor extends React.Component<EditorProps, any> {
       rtMessages,
       messageTabIndex,
       setMessageTabIndex,
+      editorMode,
     } = this.props;
 
     const interactionValues = (
@@ -260,6 +268,28 @@ export class Editor extends React.Component<EditorProps, any> {
 
     const definitions = this.makeDefinitions();
 
+    const mainSplit = editorMode === EditorMode.Chatitor ? (
+      <div
+        className="edit-area-container"
+        style={{ fontSize, width: '100%' }}
+      >
+        {definitions}
+      </div>
+    ) : (
+      <SplitterLayout
+        vertical={false}
+        percentage
+      >
+        <div
+          className="edit-area-container"
+          style={{ fontSize }}
+        >
+          {definitions}
+        </div>
+        {rightHandSide}
+      </SplitterLayout>
+    );
+
     return (
       <div className="page-container">
         <Header>
@@ -270,18 +300,7 @@ export class Editor extends React.Component<EditorProps, any> {
         </Header>
         <div className="code-container">
           <Menu />
-          <SplitterLayout
-            vertical={false}
-            percentage
-          >
-            <div
-              className="edit-area-container"
-              style={{ fontSize }}
-            >
-              {definitions}
-            </div>
-            {rightHandSide}
-          </SplitterLayout>
+          {mainSplit}
         </div>
         <Footer />
       </div>

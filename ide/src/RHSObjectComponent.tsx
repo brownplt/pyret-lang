@@ -1,0 +1,59 @@
+import React from 'react';
+import RenderedValue from './reps/RenderedValue';
+import {
+  isLocation, isRHSCheck, isTrace, RHSObject,
+} from './rhsObject';
+import { NeverError } from './utils';
+
+// .class, .class-selected
+type Props = {
+  isSelected: boolean,
+  rhsObject: RHSObject,
+  onMouseEnter?: () => void,
+  className: string
+};
+
+export default function RHSObjectComponent({
+  isSelected, rhsObject, onMouseEnter, className,
+}: Props) {
+  const taggedClass = isSelected ? `${className} ${className}-selected` : className;
+
+  if (isTrace(rhsObject)) {
+    return (
+      <pre
+        className={taggedClass}
+        onMouseEnter={onMouseEnter}
+      >
+        <RenderedValue value={rhsObject.value} />
+      </pre>
+    );
+  }
+
+  if (isLocation(rhsObject)) {
+    return (
+      <pre
+        className={taggedClass}
+        onMouseEnter={onMouseEnter}
+      >
+        {rhsObject.name}
+        {' '}
+        =
+        {' '}
+        <RenderedValue value={rhsObject.value} />
+      </pre>
+    );
+  }
+
+  if (isRHSCheck(rhsObject)) {
+    return (
+      <pre
+        className={taggedClass}
+        onMouseEnter={onMouseEnter}
+      >
+        <RenderedValue value={rhsObject} />
+      </pre>
+    );
+  }
+
+  throw new NeverError(rhsObject);
+}

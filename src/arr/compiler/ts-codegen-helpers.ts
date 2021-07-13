@@ -8,6 +8,18 @@ export type PyretObject = {
   dict: any
 };
 
+/** The supertype of all possible Pyret data values. */
+// TODO: add the remaining reflective accessors to this definition
+type PyretDataValue = {
+  $name: string,
+  dict: {
+    [property: string]: any
+  }
+};
+
+export type Visitor<T extends PyretDataValue, Ret = any> = {
+  [method in T["$name"]]?: (self: Visitor<T, Ret>, val: Variant<T, method>) => Ret;
+};
 export interface Exports {
   ArrayExpression : (values : J.Expression[]) => J.ArrayExpression,
   AssignmentExpression : (lhs : J.MemberExpression | J.Identifier, rhs: J.Expression) => J.AssignmentExpression,
@@ -55,13 +67,21 @@ export interface Exports {
   Var : (id : A.Name, expr : J.Expression) => J.Declaration,
   bindToName: (b: A.Bind) => A.Name,
   listToArray : <T>(list: List<T>) => T[],
-  map: <T extends { $name: string, dict: {} }, A extends T>(v : Partial<Record<T["$name"], any>>, d : A) => A,
   nameToKey : (name: A.Name) => string,
   nameToName : (name: A.Name) => string,
   nameToSourceString: (name: A.Name) => string,
+  sameName: (n1: A.Name, n2: A.Name) => boolean,
   dummyLoc : A.Srcloc,
   compileSrcloc: (context: any, l : A.Srcloc) => J.Expression,
-  visit: <T extends { $name: string, dict: {} }>(v : Partial<Record<T["$name"], any>>, d : T) => void,
+  formatSrcloc: (loc: A.Srcloc, showFile: boolean) => string,
+  visit: <T extends PyretDataValue>(v : Visitor<T>, d : PyretDataValue) => void,
+  map: <
+      T extends PyretDataValue,
+      Ret extends T = T,
+    >(
+      v : Visitor<T>,
+      d : T,
+    ) => Ret,
 }
 
 ({
@@ -428,6 +448,30 @@ export interface Exports {
         case "s-atom": return "atom#" + name.dict.base + "#" + String(name.dict.serial);
       }
     }
+
+    function sameName(n1: A.Name, n2: A.Name): boolean {
+      switch(n1.$name) {
+        case 's-atom': 
+          return n2.$name === n1.$name && 
+                n2.dict.base === n1.dict.base &&
+                n2.dict.serial === n1.dict.serial;
+        case 's-underscore': return n2.$name === n1.$name;
+        case 's-global':  
+          return n2.$name === n1.$name && 
+                 n2.dict.s === n1.dict.s;
+        case 's-module-global':
+          return n2.$name === n1.$name && 
+                n2.dict.s === n1.dict.s;
+        case 's-type-global':
+          return n2.$name === n1.$name && 
+                 n2.dict.s === n1.dict.s;
+        case 's-name':
+          return n2.$name === n1.$name && 
+                 n2.dict.s === n1.dict.s;
+        default:
+          throw new ExhaustiveSwitchError(n1);
+      }
+    }
     
     const dummyLoc : A.Srcloc = {
       $name: "builtin",
@@ -459,6 +503,76 @@ export interface Exports {
       }
       return ret;
     }
+
+    // mimics the Srcloc//format method from ast.arr
+    function formatSrcloc(loc: A.Srcloc, showFile: boolean): string {
+      switch(loc.$name) {
+        case 'builtin': return `<builtin ${loc.dict['module-name']}>`;
+        case 'srcloc': 
+          if (showFile) {
+            const start = `${loc.dict.source}:${loc.dict['start-line']}:${loc.dict['start-column']}`;
+            const end = `${loc.dict['end-line']}:${loc.dict['end-column']}`;
+            return `${start}-${end}`;
+          } else {
+            return `line ${loc.dict['start-line']}, column ${loc.dict['start-column']}`;
+          }
+      }
+    }
+    
+    /**
+     * `visit<T>` will traverse an entire Pyret data value, looking for
+     * any nested values whose `$name` fields indicate they overlap with type `T`,
+     * and will call any matching visitor methods within the visitor object.
+     */
+    function visit<T extends PyretDataValue>(v : Visitor<T>, d : PyretDataValue) {
+      if(typeof d !== "object" || !("$name" in d)) { throw new Error("Visit failed: " + JSON.stringify(d)); }
+      if(d.$name in v) { v[d.$name](v, d); }
+      else {
+        for(const [k, subd] of Object.entries(d.dict)) {
+          if(typeof subd === 'object' && "$name" in subd) {
+            visit(v, subd as any);
+          }
+        }
+      }
+    }
+
+    /**
+     * `map<T, R>` will traverse an entire data value of type `T`,
+     * and will call any matching visitor methods within the visitor.
+     * The return value of type `R` is by default the same as type `A`, but can be different if needed.
+     * Note that `R <: A` in order for any uniformly-transformed values to be type-correct:
+     * if the visitor doesn't modify the values directly, the result will be the same type of
+     * `PyretDataValue` as was given.
+     */
+    function map<
+      T extends PyretDataValue,
+      Ret extends T = T,
+    >(
+      v : Visitor<T>,
+      d : T,
+    ) : Ret {
+      if(typeof d !== "object" || !("$name" in d)) { throw new Error("Map failed: " + JSON.stringify(d)); }
+      if(d.$name in v) { return v[d.$name](v, d); }
+      else {
+        const newObj : Ret = Object.create(Object.getPrototypeOf(d));
+        for(const [k, meta] of Object.entries(d)) {
+          if(k !== "dict") { newObj[k] = meta; }
+        }
+        newObj.dict = Object.create(Object.getPrototypeOf(d.dict));
+        for(const [k, subd] of Object.entries(d.dict)) {
+          if(typeof subd === 'object' && "$name" in subd) {
+            const result = map<T>(v, subd as any);
+            newObj.dict[k] = result;
+          }
+          else {
+            newObj.dict[k] = subd;
+          }
+        }
+        return newObj;
+      }
+    }
+
+
 
     return runtime.makeJSModuleReturn({
       ArrayExpression,
@@ -494,13 +608,15 @@ export interface Exports {
       Var,
       bindToName,
       listToArray,
-      map,
       nameToKey,
       nameToName,
       nameToSourceString,
+      sameName,
       dummyLoc,
       compileSrcloc,
+      formatSrcloc,
       visit,
+      map,
     });
   }
 })

@@ -11,7 +11,7 @@ export type ModuleType =
     dict: 
       {
         'name': string,
-        'provides': Type,
+        'provides': Variant<Type, "t-record">,
         'types': StringDict<DataType>,
         'aliases': StringDict<Type>
       }

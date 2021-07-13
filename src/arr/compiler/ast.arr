@@ -267,8 +267,10 @@ data Import:
   | s-include-from(l :: Loc, mod :: List<Name>, specs :: List<IncludeSpec>) with:
     method label(self): "s-include" end,
     method tosource(self):
-      PP.flow([list: str-include, str-from, PP.separate(str-period, self.mod.map(_.tosource())), str-colon,
-        PP.separate(PP.commabreak, self.specs.map(_.tosource()))])
+      start = PP.str("import from ") + PP.separate(PP.str("."), self.mod.map(_.tosource())) + str-colon
+      PP.surround-separate(INDENT, 1, start + PP.str(": end"), 
+        start, PP.commabreak, str-end,
+        self.specs.map(_.tosource()))
     end
   | s-import(l :: Loc, file :: ImportType, name :: Name) with:
     method label(self): "s-import" end,
@@ -299,13 +301,13 @@ data IncludeSpec:
     method tosource(self): self.name-spec.tosource() end
   | s-include-data(l :: Loc, name-spec :: NameSpec, hidden :: List<Name>) with:
     method label(self): "s-include-data" end,
-    method tosource(self): PP.flow([list: self.name-spec.tosource(), PP.str("hiding"), PP.separate(PP.str(","), self.hidden.map(_.tosource()))]) end
+    method tosource(self): PP.flow([list: PP.str("data"), self.name-spec.tosource(), PP.str("hiding"), PP.parens(PP.separate(PP.str(","), self.hidden.map(_.tosource())))]) end
   | s-include-type(l :: Loc, name-spec :: NameSpec) with:
     method label(self): "s-include-type" end,
-    method tosource(self): self.name-spec.tosource() end
+    method tosource(self): PP.flow([list: PP.str("type"), self.name-spec.tosource()]) end
   | s-include-module(l :: Loc, name-spec :: NameSpec) with:
     method label(self): "s-include-module" end,
-    method tosource(self): self.name-spec.tosource() end
+    method tosource(self): PP.flow([list: PP.str("module"), self.name-spec.tosource()]) end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)

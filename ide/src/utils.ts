@@ -1,4 +1,4 @@
-export type List<T> = { $tag: 0 } | { $tag: 1, first: T, rest: List<T> };
+export type List<T> = { $name: 'empty' } | { $name: 'link', first: T, rest: List<T> };
 
 export type DataValue = { $brand: { names: string[] }, [key: string]: any };
 export function isDataValue(x: any): x is DataValue {

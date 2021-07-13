@@ -2,8 +2,10 @@ import React from 'react';
 import CM from 'codemirror';
 import ReactDOM from 'react-dom';
 import ResizeObserver from 'react-resize-detector';
-import { isTrace, RHSObject } from '../rhsObject';
-import RenderedValue from '../reps/RenderedValue';
+import { RHSObject } from '../rhsObject';
+import RHSObjectComponent from '../RHSObjectComponent';
+
+const lwOptions = { coverGutter: true };
 
 interface RVState {
   portal: HTMLElement,
@@ -25,7 +27,7 @@ export default class RVPortal extends React.PureComponent<RVProps, RVState> {
     const { editor, line } = this.props;
     this.state = {
       portal,
-      widget: editor.addLineWidget(line, portal),
+      widget: editor.addLineWidget(line, portal, lwOptions),
     };
   }
 
@@ -39,7 +41,10 @@ export default class RVPortal extends React.PureComponent<RVProps, RVState> {
     const { portal, widget } = this.state;
     if (oldProps.line !== line) {
       editor.removeLineWidget(widget as CM.LineWidget);
-      editor.addLineWidget(line, portal);
+      // eslint-disable-next-line
+      this.setState({
+        widget: editor.addLineWidget(line, portal, lwOptions),
+      });
     }
     widget?.changed();
   }
@@ -57,9 +62,7 @@ export default class RVPortal extends React.PureComponent<RVProps, RVState> {
   render() {
     const { rhs, editor } = this.props;
     const { portal, widget } = this.state;
-    const traces = rhs.filter(isTrace);
-    const values = traces.map((oneRHS) => oneRHS.value);
-    const rvs = values.map((rv, i) => (
+    const rvs = rhs.map((rv, i) => (
       <ResizeObserver
         handleWidth={false}
         onResize={() => {
@@ -72,15 +75,12 @@ export default class RVPortal extends React.PureComponent<RVProps, RVState> {
         }
         skipOnMount
       >
-        {/* A rendered value can be a DOM string ("5"), but ResizeObserver
-        expects a DOM *Element* */}
-        <div>
-          <RenderedValue value={rv} />
-        </div>
+        <RHSObjectComponent rhsObject={rv} isSelected={false} className="chunks-rhs" />
       </ResizeObserver>
     ));
+    const content = rvs.length === 0 ? <hr /> : rvs;
     return ReactDOM.createPortal(
-      <>{rvs}</>,
+      <>{content}</>,
       portal,
     );
   }

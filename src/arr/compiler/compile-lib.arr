@@ -5,22 +5,16 @@ import either as E
 import js-file("parse-pyret") as P
 import file("ast.arr") as A
 import load-lib as L
-import render-error-display as RED
 import runtime-lib as R
-import sets as S
-import sha as SHA
-import srcloc as Loc
 import string-dict as SD
 import file("compile-structs.arr") as CS
-import file("concat-lists.arr") as C
-import file("gensym.arr") as G
+import js-file("ts-gensym") as G
 import file("js-of-pyret.arr") as JSP
 import file("ast-util.arr") as AU
 import file("well-formed.arr") as W
 import file("desugar.arr") as D
 import file("desugar-post-tc.arr") as DP
 import file("type-check.arr") as T
-import file("desugar-check.arr") as CH
 import file("resolve-scope.arr") as RS
 import js-file("ts-compiler-lib-impl") as TCL
 
@@ -347,18 +341,13 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
       var wf = W.check-well-formed(ast-ended)
       ast-ended := nothing
       add-phase("Checked well-formedness", wf)
-      checker = if not(options.checks == "none") and not(is-builtin-module(locator.uri())):
-        CH.desugar-check
-      else:
-        CH.desugar-no-checks
-      end
       cases(CS.CompileResult) wf block:
         | ok(_) =>
           var wf-ast = AU.wrap-toplevels(wf.code)
           wf := nothing
           var checked = wf-ast
           # NOTE(joe, anchor): no desugaring of check blocks
-          # checker(wf-ast)
+          # checker(wf-ast, options)
           wf-ast := nothing
           add-phase(if not(options.checks == "none"): "Desugared (with checks)" else: "Desugared (skipping checks)" end, checked)
           var imported = AU.wrap-extra-imports(checked, libs)
@@ -424,7 +413,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
             cases(CS.CompileResult) type-checked block:
               | ok(_) =>
                 var tc-ast = type-checked.code
-                var dp-ast = DP.desugar-post-tc(tc-ast, env)
+                var dp-ast = DP.desugar-post-tc(tc-ast, env, options)
                 tc-ast := nothing
                 var cleaned = dp-ast
                 dp-ast := nothing

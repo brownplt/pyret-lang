@@ -575,11 +575,9 @@ sharing:
     end, 1, SD.make-string-dict(), free-vars-list)
     helper(self, free-vars-mapping, SD.make-mutable-string-dict())
   end,
-  #|
   method _output(self):
     VS.vs-str(self.to-string())
   end
-  |#
 end
 
 check:

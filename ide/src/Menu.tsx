@@ -82,6 +82,7 @@ function Menu({
       return false;
     }
 
+    const modes = [EditorMode.Chatitor, EditorMode.Embeditor, EditorMode.Text, EditorMode.Chunks];
     switch (menuItems[menuTabVisible].name) {
       case 'Files':
         return (
@@ -101,42 +102,19 @@ function Menu({
                 height: '2.7em',
               }}
             >
-              <button
-                id="embeditorModeButton"
-                onClick={() => setEditorMode(EditorMode.Embeditor)}
-                className="option"
-                key="Embeditor"
-                type="button"
-                style={{
-                  width: '33%',
-                }}
-              >
-                Embeditor
-              </button>
-              <button
-                id="textModeButton"
-                onClick={() => setEditorMode(EditorMode.Text)}
-                className="option"
-                key="TextEditor"
-                type="button"
-                style={{
-                  width: '33%',
-                }}
-              >
-                Text
-              </button>
-              <button
-                id="chunkModeButton"
-                onClick={() => setEditorMode(EditorMode.Chunks)}
-                className="option"
-                key="ChunkEditor"
-                type="button"
-                style={{
-                  width: '33%',
-                }}
-              >
-                Chunks
-              </button>
+              {modes.map((mode) => (
+                <button
+                  onClick={() => setEditorMode(mode)}
+                  className="option"
+                  key={mode}
+                  type="button"
+                  style={{
+                    width: `${Math.floor(100 * modes.length)}%`,
+                  }}
+                >
+                  {mode}
+                </button>
+              ))}
             </div>
             <FontSize key="FontSize" />
             {editorMode === EditorMode.Chunks && (
