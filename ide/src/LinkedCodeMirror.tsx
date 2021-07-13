@@ -50,8 +50,8 @@ export default class LinkedCM extends React.Component<Props, State> {
     });
     editor.on('mousedown', onMouseDown as any);
     editor.on('beforeChange', onBeforeChange as any);
-    editor.on('onSelection', onSelection as any);
-    editor.on('onKeyDown', onKeyDown as any);
+    editor.on('selection', onSelection as any);
+    editor.on('keydown', onKeyDown as any);
     editorDidMount(editor as Editor);
   }
 

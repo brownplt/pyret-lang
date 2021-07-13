@@ -335,20 +335,15 @@ class DefChunk extends React.Component<DefChunkProps, any> {
      and, if so, instructs the linting infastructure to create a new chunk upon
      lint success. If shift+enter is pressed, no new chunk will be made. In
      either case, a run is triggered by saving the file. */
-  handleEnter(editor: any, event: Event) {
+  handleEnter(editor: CodeMirror.Editor & CodeMirror.Doc, event: Event) {
     const {
       enqueueEffect,
-      setShouldAdvanceCursor,
     } = this.props;
     const pos = editor.getCursor();
     const token = editor.getTokenAt(pos);
-    if ((event as any).shiftKey) {
-      setShouldAdvanceCursor(false);
+    if ((event as any).shiftKey || editor.getValue().split('\n').length === 1 || token.state.lineState.tokens.length === 0) {
       enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
-      event.preventDefault();
-    } else if (token.state.lineState.tokens.length === 0) {
-      setShouldAdvanceCursor(true);
-      enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.None });
+      editor.getInputField().blur();
       event.preventDefault();
     }
   }
@@ -534,6 +529,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             this.scheduleUpdate();
           }}
           onKeyDown={(editor, event) => {
+            console.log((editor as any).key);
             switch ((event as any).key) {
               case 'Enter':
                 this.handleEnter(editor, event);
@@ -549,6 +545,9 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                 break;
               case 'ArrowDown':
                 this.handleArrowDown(editor, event);
+                break;
+              case 'Escape':
+                editor.getInputField().blur();
                 break;
               default:
             }
