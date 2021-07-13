@@ -15,8 +15,8 @@ import {
   Chunk, emptyChunk, getStartLineForIndex, lintSuccessState,
 } from './chunk';
 import { RHSObjects } from './rhsObject';
-import DefChunk from './DefChunk';
 import { BackendCmd, Effect } from './effect';
+import Chat from './Chat';
 
 type StateProps = {
   chunks: Chunk[],
@@ -116,7 +116,7 @@ function Chatitor({
     }
 
     return (
-      <DefChunk
+      <Chat
         key={chunk.id}
         index={index}
         focused={focused}

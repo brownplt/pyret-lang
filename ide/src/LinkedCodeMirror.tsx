@@ -8,13 +8,13 @@ type Props = {
   start: number,
   end: number,
   // react-codemirror2 equivalents
-  onMouseDown: (editor: Editor, e: InputEvent) => void,
+  onMouseDown?: (editor: Editor, e: InputEvent) => void,
   editorDidMount: (editor: Editor) => void,
   // value={text}
   options: CM.EditorConfiguration,
-  onBeforeChange: (editor: Editor, data: CM.EditorChange, value: string) => void,
-  onSelection: (editor: Editor, data: any) => void,
-  onKeyDown: (editor: Editor, event: InputEvent) => void,
+  onBeforeChange?: (editor: Editor, data: CM.EditorChange, value: string) => void,
+  onSelection?: (editor: Editor, data: any) => void,
+  onKeyDown?: (editor: Editor, event: InputEvent) => void,
   // autoCursor: boolean,
 };
 type State = {};
