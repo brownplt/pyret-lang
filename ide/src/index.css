@@ -10,22 +10,23 @@
    * correctly? */
   display: inline-block;
   background-color: #d4f1ff !important;
+  min-width: 0em;
   border-radius: 0.9em !important;
   border-bottom-left-radius: 0 !important;
+  border: 1px solid transparent !important;
   padding: 0.7em;
   cursor: pointer !important;
-  transition: margin-left 0.1s, border-radius 0.1s, border-bottom-left-radius 0.1s;
+  transition: border-radius 0.1s, border-bottom-left-radius 0.1s, min-width 0.1s -0.05s !important;
 }
 .linked-cm .CodeMirror-line {
   cursor: pointer;
 }
 .linked-cm .CodeMirror-focused {
   background-color: #f2fbff !important;
-  width: 30em;
+  min-width: 30em;
   border-radius: 0.5em !important;
   border-bottom-left-radius: 0.5em;
   border: 1px solid black !important;
-  transition: margin-left 0.1s, border-radius 0.1s, border-bottom-left-radius 0.1s;
 }
 .linked-cm .CodeMirror-focused .CodeMirror-line {
   cursor: text;
