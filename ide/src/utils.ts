@@ -1,5 +1,7 @@
 export type List<T> = { $name: 'empty' } | { $name: 'link', first: T, rest: List<T> };
 
+// TODO(luna): These two no longer describe data values. This will cause
+// problems. Check in about this
 export type DataValue = { $brand: { names: string[] }, [key: string]: any };
 export function isDataValue(x: any): x is DataValue {
   // https://eslint.org/docs/rules/no-prototype-builtins whoo that's a doozy

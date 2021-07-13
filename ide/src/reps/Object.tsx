@@ -15,7 +15,7 @@ export default function ObjectWidget({ value, RenderedValue }:
     toRender = keys.map((key: string) => ({ renderKind: 'key-value', key, value: value[key] }));
   } else {
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/entries
-    const asArray = Object.entries(value).sort((a, b) => b[0].localeCompare(a[0]));
+    const asArray = Object.entries(value).filter(([key]) => !key.startsWith('$')).sort((a, b) => b[0].localeCompare(a[0]));
     toRender = asArray.map(([key, v]) => ({ renderKind: 'key-value', key, value: v }));
   }
   return <ArrayWidget value={toRender} begin="{" end=" }" RenderedValue={RenderedValue} />;

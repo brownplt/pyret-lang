@@ -15,7 +15,7 @@ function isList(value: any): boolean {
   if (typeof value.$name === 'undefined') {
     return false;
   }
-  return (typeof value.$fieldNames !== 'undefined' && value.$fieldNames[0] === 'first'
+  return (value.$fieldNames && value.$fieldNames[0] === 'first'
     && value.$fieldNames[1] === 'rest')
     || (value.$fieldNames === false && typeof value.partition !== 'undefined');
 }
@@ -40,6 +40,9 @@ export type RenderKind = 'undefined' | 'number' | 'string' | 'boolean' |
 // anyway)
 
 export function getRenderKind(value: any): RenderKind {
+  if (value === null) {
+    throw new Error('null is not a pyret value and cannot be rendered');
+  }
   if (value === undefined) {
     return 'undefined';
   }
