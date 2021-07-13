@@ -28,7 +28,7 @@ export class ContainerRange<T> {
 }
 
 export function abbreviated(arr: Array<any>): Array<any> {
-  const MAX_LENGTH = 20;
+  const MAX_LENGTH = 10;
   const SHOW = 5;
   if (arr.length > MAX_LENGTH) {
     const end = arr.length - SHOW;

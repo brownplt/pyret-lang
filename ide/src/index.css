@@ -58,7 +58,6 @@
   border-bottom-right-radius: 0;
   margin: 0;
   padding: 0.7em;
-  width: 90%;
   float: right;
   overflow: auto;
 }
@@ -77,4 +76,8 @@
   background: #d7d4f0;
   border-top: 2px solid #c8c8c8;
   border-bottom: 2px solid #c8c8c8;
+}
+
+.list-container {
+  width: 35em;
 }
