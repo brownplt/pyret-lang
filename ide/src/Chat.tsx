@@ -34,10 +34,14 @@ import {
   RHSObject,
   RHSObjects,
   getRow,
+  isRHSCheck,
+  RHSCheck,
+  isLocation,
 } from './rhsObject';
 import RHSObjectComponent from './RHSObjectComponent';
 import LinkedCodeMirror from './LinkedCodeMirror';
 import FailureComponent from './FailureComponent';
+import CheckResults from './CheckResults';
 
 type StateProps = {
   chunks: Chunk[],
@@ -519,14 +523,36 @@ class DefChunk extends React.Component<DefChunkProps, any> {
               );
             }
 
-            const rhsComponents = thisChunkRHSObjects.map((val) => (
-              <RHSObjectComponent
-                key={getRow(val)}
-                rhsObject={val}
-                isSelected={false}
-                className="chatitor-rhs"
-              />
-            ));
+            let rhs;
+            // TODO(luna): more principled
+            const isDataDefinition = thisChunkRHSObjects.filter((r) => !isLocation(r)).length === 0
+              && thisChunkRHSObjects.filter((r) => isLocation(r) && r.name.startsWith('is-')).length > 0;
+            if (thisChunkRHSObjects.length === 0) {
+              rhs = <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div>;
+            } else if (thisChunkRHSObjects.length === 1) {
+              const val = thisChunkRHSObjects[0];
+              rhs = (
+                <RHSObjectComponent
+                  key={getRow(val)}
+                  rhsObject={val}
+                  isSelected={false}
+                  className="chatitor-rhs"
+                />
+              );
+            } else if (thisChunkRHSObjects.filter((r) => !isRHSCheck(r)).length === 0) {
+              rhs = (
+                <CheckResults
+                  key={getRow(thisChunkRHSObjects[0])}
+                  // Would love to have TypeScript obviate this `as`
+                  checks={thisChunkRHSObjects as RHSCheck[]}
+                />
+              );
+            } else if (isDataDefinition) {
+              rhs = <></>;
+            } else {
+              console.log(thisChunkRHSObjects);
+              throw new Error('unfolded multiple RHS (logged above)');
+            }
 
             return (
               <div
@@ -537,7 +563,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
                   marginBottom: '0.5em',
                 }}
               >
-                {rhsComponents.length === 0 ? <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div> : rhsComponents}
+                {rhs}
               </div>
             );
           }
