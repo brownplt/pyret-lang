@@ -25,9 +25,6 @@ type SDExports = {
   }}}
 }
 
-// Based on https://stackoverflow.com/a/55344772/783424
-type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1, ...rest: infer R) => void) ? R : never
-
 ({
   requires: [
     { 'import-type': 'builtin', name: 'string-dict' },
@@ -40,12 +37,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
   theModule: function(runtime, _, __, SD : SDExports, tj : TJ.Exports, TSin : (TS.Exports), Ain : (A.Exports)) {
     const TS = TSin.dict.values.dict;
     const A  = Ain.dict.values.dict;
-
-    // Note: duplicated because I don't think this file can import ts-compile-structs-helpers,
-    // without causing a cyclic import...
-    function callMethod<Name extends string, O extends {dict: {[n in Name]: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) : ReturnType<O["dict"][Name]["full_meth"]> {
-      return obj.dict[name].full_meth(obj, ...args);
-    }
+    const { callMethod } = tj;
 
     const builtinUri = TS['module-uri'].app("builtin://global");
     const srclocUri = TS['module-uri'].app("builtin://srcloc");
