@@ -43,6 +43,17 @@ type DesugarInfo = {
   },
   theModule: function(runtime, _, __, SD: SDExports, tj : TJ.Exports, TS : (TS.Exports), Ain : (A.Exports), CS : (CS.Exports)) {
     const A = Ain.dict.values.dict;
+    const reactorOptionalFields = new Map<string, (l: A.Srcloc) => TJ.Variant<A.Ann, "a-name">>();
+    reactorOptionalFields.set("last-image", l => A['a-name'].app(l, A['s-type-global'].app("Function")));
+    reactorOptionalFields.set("on-tick", l => A['a-name'].app(l, A['s-type-global'].app("Function")));
+    reactorOptionalFields.set("to-draw", l => A['a-name'].app(l, A['s-type-global'].app("Function")));
+    reactorOptionalFields.set("on-key", l => A['a-name'].app(l, A['s-type-global'].app("Function")));
+    reactorOptionalFields.set("on-mouse", l => A['a-name'].app(l, A['s-type-global'].app("Function")));
+    reactorOptionalFields.set("stop-when", l => A['a-name'].app(l, A['s-type-global'].app("Function")));
+    reactorOptionalFields.set("seconds-per-tick", l => A['a-name'].app(l, A['s-type-global'].app("NumPositive")));
+    reactorOptionalFields.set("title", l => A['a-name'].app(l, A['s-type-global'].app("String")));
+    reactorOptionalFields.set("close-when-stop", l => A['a-name'].app(l, A['s-type-global'].app("Boolean")));
+
     /**
     Desugar non-scope and non-check based constructs.
     Preconditions on program:
@@ -80,10 +91,6 @@ type DesugarInfo = {
         InternalCompilerError,
       } = tj;
 
-      function log(value) {
-        options.dict.log.app("\n" + value, runtime.ffi.makeNone());
-      }
-
       // this is duplicated code and needs to be deleted when merging
       type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1, ...rest: infer R) => void) ? R : never
 
@@ -117,7 +124,7 @@ type DesugarInfo = {
       }
       // end duplicated code
        
-      const names = MakeName(makeNameStart);
+      const names = MakeName(makeNameStart); // TODO change this back to A['global-names']
       const generatedBinds = new Map<string, CS.ValueBind>();
       const flatPrimApp = A['prim-app-info-c'].app(false);
   
@@ -165,10 +172,10 @@ type DesugarInfo = {
           idE: A['s-id'].app(l, a),
         };
       }
-      function mkId(l: A.Srcloc, base: string) {
+      function mkId(l: A.Srcloc, base: string): { id: A.Name, idB: A.Bind, idE: A.Expr } {
         return mkIdAnn(l, base, A['a-blank']);
       }
-      function desugarIf(l: A.Srcloc, branches: List<TJ.Variant<A.IfBranch, 's-if-branch'> | TJ.Variant<A.IfPipeBranch, 's-if-pipe-branch'>>, _else: A.Expr, blocky: boolean, visitor) {
+      function desugarIf(l: A.Srcloc, branches: List<TJ.Variant<A.IfBranch, 's-if-branch'> | TJ.Variant<A.IfPipeBranch, 's-if-pipe-branch'>>, _else: A.Expr, blocky: boolean, visitor): A.Expr {
         let dsElse = map(visitor, _else);
         return listToArray(branches).reduceRight((acc, branch) => {
           const dsTest = map(visitor, branch.dict.test);
@@ -183,7 +190,7 @@ type DesugarInfo = {
             blocky);
         }, dsElse);
       }
-      function isUnderscore(e: A.Expr) {
+      function isUnderscore(e: A.Expr): boolean {
         return A['is-s-id'].app(e) && A['is-s-underscore'].app(e.dict.id);
       }
       function dsCurryArgs(l: A.Srcloc, args: Array<A.Expr>): [A.Bind[], A.Expr[]] {
@@ -407,7 +414,42 @@ type DesugarInfo = {
         // s-tuple-get is uniform
         // s-ref is uniform
         // s-construct in uniform
-        // TODO s-reactor
+        's-reactor': (visitor, expr: TJ.Variant<A.Expr, 's-reactor'>) => {
+          const fieldsByName = new Map<string, A.Expr>();
+          listToArray(expr.dict.fields).forEach(field => {
+            if ("value" in field.dict) {
+              fieldsByName.set(field.dict.name, field.dict.value);
+            }
+          });
+          const optionFields: TJ.Variant<A.Member, "s-data-field">[] = [];
+          for (const [key, value] of reactorOptionalFields) {
+            if (fieldsByName.has(key)) {
+              const thisField = fieldsByName.get(key);
+              const thisFieldL = thisField.dict.l;
+              optionFields.push(A['s-data-field'].app(
+                thisFieldL,
+                key,
+                A['s-prim-app'].app(thisFieldL, "makeSome",
+                  runtime.ffi.makeList([A['s-check-expr'].app(thisFieldL, map(visitor, thisField), value(thisFieldL))]),
+                  flatPrimApp
+                )
+              ));
+            } else {
+              optionFields.push(A['s-data-field'].app(
+                expr.dict.l,
+                key,
+                A['s-prim-app'].app(expr.dict.l, "makeNone", runtime.ffi.makeList([]), flatPrimApp)
+              ));
+            }
+          }
+          return A['s-prim-app'].app(
+            expr.dict.l,
+            "makeReactor",
+            runtime.ffi.makeList([
+              map(visitor, fieldsByName.get("init")),
+              A['s-obj'].app(expr.dict.l, runtime.ffi.makeList(optionFields))]),
+            flatPrimApp);
+        },
         // s-table is uniform
         's-paren': (visitor, expr: TJ.Variant<A.Expr, 's-paren'>) => {
           return map(visitor, expr.dict.expr);
@@ -424,11 +466,15 @@ type DesugarInfo = {
         // s-table-extend is uniform
         // s-table-update is uniform
         // s-table-select is uniform
+        // s-table-extract is uniform
+        // s-table-order is uniform
+        // s-table-filter is uniform
+        // s-spy-block is uniform
         's-tuple-bind': (visitor, expr: TJ.Variant<A.Bind, 's-tuple-bind'>) => {
-          throw new InternalCompilerError("s-tuple-bind should not appear in desugar: "); // where to put the jankyToRepr
+          throw new InternalCompilerError("s-tuple-bind should not appear in desugar: " + JSON.stringify(expr));
         },
         's-mutable-field': (visitor, expr: TJ.Variant<A.Member, 's-mutable-field'>) => {
-          throw new InternalCompilerError("s-mutable-field desugar not yet implemented: "); // JSON.stringify
+          throw new InternalCompilerError("s-mutable-field desugar not yet implemented: " + JSON.stringify(expr));
         },
         'a-checked': (visitor, expr: TJ.Variant<A.Ann, 'a-checked'>) => {
           throw new InternalCompilerError("a-checked should not appear in desugar");
