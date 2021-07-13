@@ -19,6 +19,10 @@ export default function RHSObjectComponent({
   const taggedClass = isSelected ? `${className} ${className}-selected` : className;
 
   if (isTrace(rhsObject)) {
+    // NOTE(luna): i don't think there are any undefined's we want to display, right?
+    if (rhsObject.value === undefined) {
+      return <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div>;
+    }
     return (
       <pre
         className={taggedClass}
