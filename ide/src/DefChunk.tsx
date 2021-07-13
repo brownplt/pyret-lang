@@ -771,6 +771,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
           this.handleOnSelection(data);
         }}
         onKeyDown={(editor, event) => {
+          console.log((event as any).key);
           switch ((event as any).key) {
             case 'Enter':
               this.handleEnter(editor, event);

@@ -302,13 +302,14 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   handleArrowUp(editor: any, event: Event) {
     const {
       index,
-      setFocusedChunk,
-      setShouldAdvanceCursor,
+      chunks,
     } = this.props;
     const pos = (editor as any).getCursor();
-    if (pos.line === 0 && index > 0) {
-      setFocusedChunk(index - 1);
-      setShouldAdvanceCursor(false);
+    if (pos.line === chunks[index].startLine && index > 0) {
+      const newEditor = chunks[index - 1].editor;
+      if ('focus' in newEditor) {
+        newEditor.focus();
+      }
       event.preventDefault();
     }
   }
@@ -318,14 +319,14 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   handleArrowDown(editor: any, event: Event) {
     const {
       index,
-      setFocusedChunk,
       chunks,
-      setShouldAdvanceCursor,
     } = this.props;
     const pos = (editor as any).getCursor();
-    if (pos.line === chunks[index].editor.getValue().split('\n').length - 1 && index < chunks.length - 1) {
-      setFocusedChunk(index + 1);
-      setShouldAdvanceCursor(false);
+    if (pos.line === chunks[index].startLine + chunks[index].editor.getValue().split('\n').length - 1 && index < chunks.length - 1) {
+      const newEditor = chunks[index + 1].editor;
+      if ('focus' in newEditor) {
+        newEditor.focus();
+      }
       event.preventDefault();
     }
   }
@@ -529,7 +530,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             this.scheduleUpdate();
           }}
           onKeyDown={(editor, event) => {
-            console.log((editor as any).key);
             switch ((event as any).key) {
               case 'Enter':
                 this.handleEnter(editor, event);
