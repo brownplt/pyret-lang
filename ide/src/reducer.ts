@@ -45,7 +45,9 @@ import {
 } from './chunk';
 
 import {
+  getRow,
   makeRHSObjects,
+  RHSObject,
 } from './rhsObject';
 
 import {
@@ -331,7 +333,23 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
   console.log('run result', status.result.perfResults);
   const rhs = makeRHSObjects(status.result, `file://${state.currentFile}`);
 
-  const oldRHS = state.rhs;
+  // Associate rhs to chunks *now* before they're outdated. Then only chunk
+  // deletion / insertion needs to be tracked to correspond outdated RHSs
+  // through edits
+  const chunkToRHS: RHSObject[][] = state.chunks.map(() => []);
+  rhs.objects.forEach((rhsObject) => {
+    const correspondingChunk = findChunkFromSrcloc(
+      state.chunks,
+      [
+        `file://${state.currentFile}`,
+        getRow(rhsObject),
+      ],
+      state.currentFile,
+    );
+    if (correspondingChunk !== false) {
+      chunkToRHS[correspondingChunk].push(rhsObject);
+    }
+  });
 
   const {
     chunks,
@@ -377,10 +395,10 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
     chunks: newChunks,
     running: false,
     rhs: {
-      ...oldRHS,
       objects: rhs.objects,
       outdated: rhs.outdated,
     },
+    chunkToRHS,
   });
 }
 

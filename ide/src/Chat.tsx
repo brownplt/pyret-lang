@@ -21,7 +21,6 @@ import {
   Chunk,
   getStartLineForIndex,
   removeAllSelections,
-  findChunkFromSrcloc,
 } from './chunk';
 
 import {
@@ -61,29 +60,14 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     currentFile,
     displayResultsInline,
     editorResponseLoop,
+    chunkToRHS,
   } = state;
 
   const {
     index,
   } = ownProps;
 
-  const thisChunkRHSObjects: RHSObject[] = [];
-
-  // TODO(alex): Map runtime messages?
-  rhs.objects.forEach((rhsObject) => {
-    const correspondingChunk = findChunkFromSrcloc(
-      chunks,
-      [
-        `file://${currentFile}`,
-        getRow(rhsObject),
-      ],
-      currentFile,
-    );
-
-    if (index === correspondingChunk) {
-      thisChunkRHSObjects.push(rhsObject);
-    }
-  });
+  const thisChunkRHSObjects: RHSObject[] = chunkToRHS[index] ?? [];
 
   return {
     chunks,
