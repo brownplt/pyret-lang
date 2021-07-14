@@ -11,7 +11,7 @@ type Props = {
   onMouseDown?: (editor: Editor, e: InputEvent) => void,
   editorDidMount?: (editor: Editor) => void,
   // value={text}
-  options?: CM.EditorConfiguration,
+  options?: CM.EditorConfiguration & { matchBrackets?: boolean, matchKeywords?: boolean },
   onBeforeChange?: (editor: Editor, data: CM.EditorChange, value: string) => void,
   onSelection?: (editor: Editor, data: any) => void,
   onKeyDown?: (editor: Editor, event: InputEvent) => void,

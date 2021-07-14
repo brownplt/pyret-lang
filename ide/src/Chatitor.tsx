@@ -120,7 +120,9 @@ function Chatitor({
           theme: 'default',
           lineWrapping: true,
           autofocus: true,
-        }}
+          matchBrackets: true,
+          matchKeywords: true,
+        } as any}
         editorDidMount={((editor: CodeMirror.Editor & CodeMirror.Doc) => {
           editor.setSize(null, 'auto');
           setEditor(editor);
@@ -148,9 +150,12 @@ function Chatitor({
               break;
             }
             case 'ArrowUp': {
-              const lastEditor = chunksRef.current[chunksRef.current.length - 1].editor;
-              if ('getInputField' in lastEditor) {
-                lastEditor.getInputField().focus();
+              const pos = editor.getCursor();
+              if (pos.line === 0) {
+                const lastEditor = chunksRef.current[chunksRef.current.length - 1].editor;
+                if ('getInputField' in lastEditor) {
+                  lastEditor.getInputField().focus();
+                }
               }
               break;
             }
