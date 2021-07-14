@@ -41,7 +41,7 @@
 }
 .new-expr .CodeMirror {
   background-color: white !important;
-  border-radius: 0.5em !important;
+  border-radius: 1em !important;
   border: 1px solid black !important;
   /* This is a weird quirk of CodeMirror styles which set this to a value which
    * breaks non-inline positioned elements, but this !important override fixes it */
@@ -50,9 +50,10 @@
   width: 45em;
   margin: 0 auto;
   margin-bottom: 1em;
+  transition: border-radius 0.1s;
 }
-.new-expr .CodeMirror:focus {
-  background-color: #eee !important;
+.new-expr .CodeMirror-focused {
+  border-radius: 0.5em !important;
 }
 
 .chatitor-rhs {

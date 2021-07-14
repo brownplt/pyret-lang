@@ -71,8 +71,6 @@ type DefChunksProps = PropsFromRedux & DispatchProps & StateProps;
 
 function Chatitor({
   chunks,
-  focusedChunk,
-  debugBorders,
   setChunks,
   enqueueEffect,
 }: DefChunksProps) {
@@ -82,45 +80,20 @@ function Chatitor({
     ), '');
     return CodeMirror.Doc(wholeProgram, 'pyret');
   })[0];
+  const [mountedEditor, setEditor] = (
+    React.useState<(CodeMirror.Editor & CodeMirror.Doc) | null>(null)
+  );
+  // UnControlled continues to have stale closures for no reason, ref is an easy
+  // solution
   const chunksRef = React.useRef(chunks);
   chunksRef.current = chunks;
   function setupChunk(chunk: Chunk, index: number) {
-    const focused = focusedChunk === index;
-
-    /* Returns the color of the drag handle */
-    // eslint-disable-next-line
-    function getBorderColor() {
-      if (focused && chunk.errorState.status === 'failed') {
-        return 'red';
-      }
-
-      if (!focused && chunk.errorState.status === 'failed') {
-        return '#ff9999';
-      }
-
-      if (debugBorders === true) {
-        if (focused && chunk.errorState.status === 'notLinted') {
-          return 'orange';
-        }
-
-        if (!focused && chunk.errorState.status === 'notLinted') {
-          return 'yellow';
-        }
-      }
-
-      if (focused) {
-        return 'lightgray';
-      }
-
-      return '#eee';
-    }
-
     return (
       <Chat
         key={chunk.id}
         index={index}
-        focused={focused}
         parent={doc}
+        focusNewChat={() => mountedEditor?.getInputField().focus()}
       />
     );
   }
@@ -148,9 +121,10 @@ function Chatitor({
           lineWrapping: true,
           autofocus: true,
         }}
-        editorDidMount={(editor) => {
+        editorDidMount={((editor: CodeMirror.Editor & CodeMirror.Doc) => {
           editor.setSize(null, 'auto');
-        }}
+          setEditor(editor);
+        }) as (editor: CodeMirror.Editor) => void}
         onKeyDown={((editor: CodeMirror.Editor & CodeMirror.Doc, event: Event) => {
           switch ((event as any).key) {
             case 'Enter': {
@@ -173,8 +147,15 @@ function Chatitor({
               }
               break;
             }
-            case 'ArrowUp':
-              console.log('more money');
+            case 'ArrowUp': {
+              const lastEditor = chunksRef.current[chunksRef.current.length - 1].editor;
+              if ('getInputField' in lastEditor) {
+                lastEditor.getInputField().focus();
+              }
+              break;
+            }
+            case 'Escape':
+              editor.getInputField().blur();
               break;
             default:
           }

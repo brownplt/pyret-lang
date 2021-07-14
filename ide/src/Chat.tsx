@@ -82,8 +82,8 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
 
 type PropsFromReact = {
   index: number,
-  focused: boolean,
   parent: CodeMirror.Doc,
+  focusNewChat: () => void,
 };
 
 type DispatchProps = {
@@ -285,12 +285,17 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const {
       index,
       chunks,
+      focusNewChat,
     } = this.props;
     const pos = (editor as any).getCursor();
-    if (pos.line === chunks[index].startLine + chunks[index].editor.getValue().split('\n').length - 1 && index < chunks.length - 1) {
-      const newEditor = chunks[index + 1].editor;
-      if ('focus' in newEditor) {
-        newEditor.focus();
+    if (pos.line === chunks[index].startLine + chunks[index].editor.getValue().split('\n').length - 1) {
+      if (index < chunks.length - 1) {
+        const newEditor = chunks[index + 1].editor;
+        if ('focus' in newEditor) {
+          newEditor.focus();
+        }
+      } else {
+        focusNewChat();
       }
       event.preventDefault();
     }
@@ -328,6 +333,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
     const {
       chunks,
       setChunks,
+      enqueueEffect,
     } = this.props;
     const newChunks = [
       ...chunks.slice(0, index),
@@ -342,6 +348,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       chunks: newChunks,
       modifiesText: true,
     });
+    enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
   }
 
   /* Called in response to a Delete key event. Deletes chunks in different ways
