@@ -494,6 +494,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             }
           }}
           onBlur={(editor) => this.handleBlur(editor)}
+          className="chat"
         />
       </div>
     );
@@ -512,7 +513,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
             if (chunk.errorState.status === 'failed' && 'markText' in editor) {
               return (
-                <div style={{ textAlign: 'right', display: 'block' }}>
+                <div>
                   {chunk.errorState.failures.map((failure, i) => (
                     // eslint-disable-next-line
                     <div className="chatitor-rhs" key={i}>

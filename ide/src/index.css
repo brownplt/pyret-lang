@@ -4,7 +4,7 @@
   grid-template-rows: 1fr 0fr;
 }
 
-.linked-cm .CodeMirror {
+.chat .CodeMirror {
   /* TODO(luna): !important because they're getting overridden by page styles, as
    * they should be, but why are there page styles, and how can i override
    * correctly? */
@@ -18,18 +18,22 @@
   cursor: pointer !important;
   transition: border-radius 0.1s, border-bottom-left-radius 0.1s, min-width 0.1s -0.05s !important;
 }
-.linked-cm .CodeMirror-lines {
+.chat .CodeMirror-lines {
   cursor: pointer;
 }
-.linked-cm .CodeMirror-focused {
+.chat .CodeMirror-focused {
   background-color: #f2fbff !important;
   min-width: 30em;
   border-radius: 0.5em !important;
   border-bottom-left-radius: 0.5em;
   border: 1px solid black !important;
 }
-.linked-cm .CodeMirror-focused .CodeMirror-lines {
+.chat .CodeMirror-focused .CodeMirror-lines {
   cursor: text;
+}
+
+.failure-cmcode .CodeMirror {
+  background-color: transparent !important;
 }
 
 .new-expr {
@@ -60,6 +64,7 @@
   padding: 0.7em;
   float: right;
   overflow: auto;
+  max-width: 90%;
 }
 .chatitor-rhs.pending {
   background-color: transparent;

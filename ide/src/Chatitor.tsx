@@ -137,6 +137,7 @@ function Chatitor({
       <div style={{ gridRow: '1', width: '100%', overflowY: 'scroll' }}>
         <div style={togetherStyle}>
           {allChunks}
+          <div style={{ clear: 'both' }} />
         </div>
       </div>
       <UnControlled

@@ -9,14 +9,15 @@ type Props = {
   end: number,
   // react-codemirror2 equivalents
   onMouseDown?: (editor: Editor, e: InputEvent) => void,
-  editorDidMount: (editor: Editor) => void,
+  editorDidMount?: (editor: Editor) => void,
   // value={text}
-  options: CM.EditorConfiguration,
+  options?: CM.EditorConfiguration,
   onBeforeChange?: (editor: Editor, data: CM.EditorChange, value: string) => void,
   onSelection?: (editor: Editor, data: any) => void,
   onKeyDown?: (editor: Editor, event: InputEvent) => void,
   // autoCursor: boolean,
   onBlur?: (editor: Editor) => void,
+  className?: string,
 };
 type State = {};
 
@@ -54,12 +55,13 @@ export default class LinkedCM extends React.Component<Props, State> {
     editor.on('selection', onSelection as any);
     editor.on('keydown', onKeyDown as any);
     editor.on('blur', onBlur as any);
-    editorDidMount(editor as Editor);
+    editorDidMount?.(editor as Editor);
   }
 
   render() {
+    const { className } = this.props;
     return (
-      <div ref={this.tag} className="linked-cm" />
+      <div ref={this.tag} className={className} />
     );
   }
 }
