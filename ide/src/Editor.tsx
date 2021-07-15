@@ -36,6 +36,7 @@ import 'react-splitter-layout/lib/index.css';
 import EditorPlayground from './editor-playground/EditorPlayground';
 import { NeverError } from './utils';
 import Chatitor from './Chatitor';
+import GlobalInteractions from './GlobalInteractions';
 
 type StateProps = {
   browseRoot: string,
@@ -296,6 +297,7 @@ export class Editor extends React.Component<EditorProps, any> {
           <div>
             <MenuBar />
           </div>
+          {editorMode === EditorMode.Chatitor ? <GlobalInteractions /> : <></>}
           <Run />
         </Header>
         <div className="code-container">

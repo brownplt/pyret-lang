@@ -87,3 +87,7 @@
 .list-container {
   width: 35em;
 }
+
+.menu-button:active {
+  background: darkgrey !important;
+}
