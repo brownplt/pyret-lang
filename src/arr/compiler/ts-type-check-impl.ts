@@ -8,24 +8,8 @@ import type * as TCS from './ts-type-check-structs';
 import type * as TCSH from './ts-compile-structs-helpers';
 import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } from './ts-impl-types';
 
-type SDExports = {
-  dict: { values: { dict: {
-    'make-mutable-string-dict': PFunction<<T>() => MutableStringDict<T>>
-    'is-mutable-string-dict': PFunction<<T>(val: any) => val is MutableStringDict<T>>,
-    'make-string-dict': PFunction<<T>() => StringDict<T>>,
-    'is-string-dict': PFunction<<T>(val: any) => val is StringDict<T>>,
-    'map-keys': PFunction<<T, U>(f: ((key: T) => U), isd: StringDict<T>) => List<U>>,
-    'map-keys-now': PFunction<<T, U>(f: ((key: T) => U), msd: MutableStringDict<T>) => List<U>>,
-    'fold-keys': PFunction<<T, U>(f: (key: string, acc: U) => U, init: U, isd: StringDict<T>) => U>,
-    'fold-keys-now': PFunction<<T, U>(f: (key: string, acc: U) => U, init: U, msd: MutableStringDict<T>) => U>,
-    'each-key': PFunction<<T>(f: ((key: T) => void), isd: StringDict<T>) => void>,
-    'each-key-now': PFunction<<T>(f: ((key: T) => void), msd: MutableStringDict<T>) => void>,
-  }}}
-}
-
 ({
   requires: [
-    { 'import-type': 'builtin', name: 'string-dict' },
     { 'import-type': 'builtin', name: 'srcloc'},
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']},
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-compile-structs-helpers']},
@@ -42,8 +26,7 @@ type SDExports = {
       "empty-context": "tany",
     }
   },
-  theModule: function(runtime, _, __, SDin: SDExports, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : TS.Exports, A : A.Exports, CSin : CS.Exports, TCS : TCS.Exports, TD : TD.Exports) {
-    const SD = SDin.dict.values.dict;
+  theModule: function(runtime, _, __, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : TS.Exports, A : A.Exports, CSin : CS.Exports, TCS : TCS.Exports, TD : TD.Exports) {
     const {
       ExhaustiveSwitchError,
       InternalCompilerError,
@@ -54,6 +37,9 @@ type SDExports = {
       sameName,
       formatSrcloc,
       map,
+      mapFromStringDict,
+      mapFromMutableStringDict,
+      stringDictFromMap,
     } = tj;
     const { builtin } = SL.dict.values.dict;
     const TS = TSin.dict.values.dict;
@@ -634,32 +620,6 @@ type SDExports = {
         }
         default: return type;
       }
-    }
-
-    function mapFromStringDict<T>(s : StringDict<T>) : Map<string, T> {
-      const m : Map<string, T> = new Map();
-      for (let valKey of listToArray(callMethod(s, 'keys-list'))) {
-        m.set(valKey, callMethod(s, "get-value", valKey));
-      }
-      return m;
-    }
-    function mapFromMutableStringDict<T>(s : MutableStringDict<T>) : Map<string, T> {
-      const m : Map<string, T> = new Map();
-      for (let valKey of listToArray(callMethod(s, 'keys-list-now'))) {
-        m.set(valKey, callMethod(s, "get-value-now", valKey));
-      }
-      return m;
-    }
-
-    function stringDictFromMap<T>(m : Map<string, T>): StringDict<T> {
-      return callMethod(mutableStringDictFromMap(m), 'freeze');
-    }
-    function mutableStringDictFromMap<T>(m : Map<string, T>): MutableStringDict<T> {
-      const s = SD['make-mutable-string-dict'].app<T>();
-      for (const [k, v] of m.entries()) {
-        callMethod(s, 'set-now', k, v);
-      }
-      return s;
     }
 
     function setTypeLoc(type: TS.Type, loc: SL.Srcloc): TS.Type {

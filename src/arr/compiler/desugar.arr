@@ -10,6 +10,7 @@ import lists as L
 import file("compile-structs.arr") as C
 import file("ast-util.arr") as U
 import file("resolve-scope.arr") as R
+import js-file("ts-desugar-impl") as TSD
 
 names = A.global-names
 
@@ -66,7 +67,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
     | a-arrow(l, args, ret, use-parens) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
     | a-arrow-argnames(l, args, ret, use-parens) =>
-      A.a-arrow-argnames(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
+      A.a-arrow-argnames(l, args.map(desugar-afield), desugar-ann(ret), use-parens)
     | a-method(l, args, ret) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), true)
     | a-app(l, base, args) =>
@@ -80,7 +81,20 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
   end
 end
 
-fun desugar(program :: A.Program):
+fun desugar(program :: A.Program, options):
+  cases(C.Pipeline) options.pipeline:
+    | pipeline-ts-anchor(args) => 
+      if args.member("desugar"): # Only use TS version if we enable it in pipeline
+        # Note: passing `options` in to TSTC so that it can use options.log for debug output
+        TSD.desugar(program, options)
+      else:
+        internal-desugar(program)
+      end
+    | pipeline-anchor => internal-desugar(program)
+  end
+end
+
+fun internal-desugar(program :: A.Program):
   doc: ```
         Desugar non-scope and non-check based constructs.
         Preconditions on program:
