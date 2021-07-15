@@ -12,8 +12,8 @@ import js-file("ts-gensym") as G
 import file("js-of-pyret.arr") as JSP
 import file("ast-util.arr") as AU
 import file("well-formed.arr") as W
-import file("desugar.arr") as D
-import file("desugar-post-tc.arr") as DP
+import js-file("ts-desugar-impl") as D
+import js-file("ts-desugar-post-tc") as DP
 import file("type-check.arr") as T
 import file("resolve-scope.arr") as RS
 import js-file("ts-compiler-lib-impl") as TCL

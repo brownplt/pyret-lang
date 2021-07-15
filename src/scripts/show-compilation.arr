@@ -6,7 +6,7 @@ import parse-pyret as P
 import string-dict as SD
 import pprint as PP
 import pathlib as PL
-import file("../../src/arr/compiler/desugar.arr") as D
+import js-file("../../src/arr/compiler/ts-desugar-impl") as D
 import file("../../src/arr/compiler/ast.arr") as A
 import file("../../src/arr/compiler/compile-structs.arr") as CS
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
