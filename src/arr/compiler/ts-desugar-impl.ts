@@ -4,21 +4,6 @@ import type * as CS from './ts-compile-structs';
 import type * as TJ from './ts-codegen-helpers';
 import type { List, MutableStringDict, PFunction, StringDict, PMethod } from './ts-impl-types';
 
-type SDExports = {
-  dict: { values: { dict: {
-    'make-mutable-string-dict': PFunction<<T>() => MutableStringDict<T>>
-    'is-mutable-string-dict': PFunction<(val: any) => boolean>,
-    'make-string-dict': PFunction<<T>() => StringDict<T>>,
-    'is-string-dict': PFunction<(val: any) => boolean>,
-    'map-keys': PFunction<<T, U>(f: ((key: T) => U), isd: StringDict<T>) => List<U>>,
-    'map-keys-now': PFunction<<T, U>(f: ((key: T) => U), msd: MutableStringDict<T>) => List<U>>,
-    'fold-keys': PFunction<<T, U>(f: (key: string, acc: U) => U, init: U, isd: StringDict<T>) => U>,
-    'fold-keys-now': PFunction<<T, U>(f: (key: string, acc: U) => U, init: U, msd: MutableStringDict<T>) => U>,
-    'each-key': PFunction<<T>(f: ((key: T) => void), isd: StringDict<T>) => void>,
-    'each-key-now': PFunction<<T>(f: ((key: T) => void), msd: MutableStringDict<T>) => void>,
-  }}}
-}
-
 type DesugarInfo = {
   dict: {
     ast: A.Program,
@@ -28,7 +13,6 @@ type DesugarInfo = {
 
 ({
   requires: [
-    { 'import-type': 'builtin', name: 'string-dict' },
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers']},
     { 'import-type': 'dependency', protocol: 'file', args: ['type-structs.arr']},
     { 'import-type': 'dependency', protocol: 'file', args: ['ast.arr']},
@@ -40,7 +24,7 @@ type DesugarInfo = {
       "desugar": "tany"
     }
   },
-  theModule: function(runtime, _, __, SD: SDExports, tj : TJ.Exports, TS : (TS.Exports), Ain : (A.Exports), CS : (CS.Exports)) {
+  theModule: function(runtime, _, __, tj : TJ.Exports, TS : (TS.Exports), Ain : (A.Exports), CS : (CS.Exports)) {
     const A = Ain.dict.values.dict;
     const reactorOptionalFields = new Map<string, (l: A.Srcloc) => TJ.Variant<A.Ann, "a-name">>();
     reactorOptionalFields.set("last-image", l => A['a-name'].app(l, A['s-type-global'].app("Function")));
@@ -85,44 +69,11 @@ type DesugarInfo = {
         listToArray,
         map,
         nameToKey,
-        MakeName,
+        mutableStringDictFromMap,
         ExhaustiveSwitchError,
         InternalCompilerError,
       } = tj;
 
-      // this is duplicated code and needs to be deleted when merging
-      type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1, ...rest: infer R) => void) ? R : never
-
-      function callMethod<Name extends string, O extends {dict: {[n in Name]: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) : ReturnType<O["dict"][Name]["full_meth"]> {
-        return obj.dict[name].full_meth(obj, ...args);
-      }
-       
-      function mapFromStringDict<T>(s : StringDict<T>) : Map<string, T> {
-        const m : Map<string, T> = new Map();
-        for (let valKey of listToArray(callMethod(s, 'keys-list'))) {
-          m.set(valKey, callMethod(s, "get-value", valKey));
-        }
-        return m;
-      }
-      function mapFromMutableStringDict<T>(s : MutableStringDict<T>) : Map<string, T> {
-        const m : Map<string, T> = new Map();
-        for (let valKey of listToArray(callMethod(s, 'keys-list-now'))) {
-          m.set(valKey, callMethod(s, "get-value-now", valKey));
-        }
-        return m;
-      }
-      function stringDictFromMap<T>(m : Map<string, T>): StringDict<T> {
-        return callMethod(mutableStringDictFromMap(m), 'freeze');
-      }
-      function mutableStringDictFromMap<T>(m : Map<string, T>): MutableStringDict<T> {
-        const s = SD.dict.values.dict['make-mutable-string-dict'].app<T>();
-        for (const [k, v] of m.entries()) {
-          callMethod(s, 'set-now', k, v);
-        }
-        return s;
-      }
-      // end duplicated code
-       
       const names = A['global-names'].dict;
       const generatedBinds = new Map<string, CS.ValueBind>();
       const flatPrimApp = A['prim-app-info-c'].app(false);
