@@ -128,21 +128,25 @@ function Chatitor({
         onKeyDown={((editor: CodeMirror.Editor & CodeMirror.Doc, event: Event) => {
           switch ((event as any).key) {
             case 'Enter': {
-              const pos = editor.getCursor();
-              const token = editor.getTokenAt(pos);
-              if (token.state.lineState.tokens.length === 0) {
-                const value = editor.getValue();
-                const nextChunks: Chunk[] = [
-                  ...chunksRef.current,
-                  emptyChunk({
-                    startLine: getStartLineForIndex(chunksRef.current, chunksRef.current.length),
-                    errorState: lintSuccessState,
-                    editor: { getValue: () => value },
-                  }),
-                ];
-                setChunks({ chunks: nextChunks, modifiesText: true });
-                editor.setValue('');
-                enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
+              if (editor.getValue() !== '') {
+                const pos = editor.getCursor();
+                const token = editor.getTokenAt(pos);
+                if (token.state.lineState.tokens.length === 0) {
+                  const value = editor.getValue();
+                  const nextChunks: Chunk[] = [
+                    ...chunksRef.current,
+                    emptyChunk({
+                      startLine: getStartLineForIndex(chunksRef.current, chunksRef.current.length),
+                      errorState: lintSuccessState,
+                      editor: { getValue: () => value },
+                    }),
+                  ];
+                  setChunks({ chunks: nextChunks, modifiesText: true });
+                  editor.setValue('');
+                  enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
+                  event.preventDefault();
+                }
+              } else {
                 event.preventDefault();
               }
               break;
