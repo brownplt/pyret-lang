@@ -1,1 +1,1 @@
-global._PYRET_PIPELINE = "ts-anchor:typecheck:desugarPostTc";
+global._PYRET_PIPELINE = "ts-anchor:desugar";
