@@ -63,6 +63,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       compileSrcloc,
       dummyLoc,
       listToArray,
+      map,
       nameToKey,
       nameToName,
       nameToSourceString,

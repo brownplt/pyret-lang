@@ -54,9 +54,6 @@ type SDExports = {
       sameName,
       formatSrcloc,
       map,
-      mapFromStringDict,
-      mapFromMutableStringDict,
-      stringDictFromMap,
     } = tj;
     const { builtin } = SL.dict.values.dict;
     const TS = TSin.dict.values.dict;
@@ -637,6 +634,32 @@ type SDExports = {
         }
         default: return type;
       }
+    }
+
+    function mapFromStringDict<T>(s : StringDict<T>) : Map<string, T> {
+      const m : Map<string, T> = new Map();
+      for (let valKey of listToArray(callMethod(s, 'keys-list'))) {
+        m.set(valKey, callMethod(s, "get-value", valKey));
+      }
+      return m;
+    }
+    function mapFromMutableStringDict<T>(s : MutableStringDict<T>) : Map<string, T> {
+      const m : Map<string, T> = new Map();
+      for (let valKey of listToArray(callMethod(s, 'keys-list-now'))) {
+        m.set(valKey, callMethod(s, "get-value-now", valKey));
+      }
+      return m;
+    }
+
+    function stringDictFromMap<T>(m : Map<string, T>): StringDict<T> {
+      return callMethod(mutableStringDictFromMap(m), 'freeze');
+    }
+    function mutableStringDictFromMap<T>(m : Map<string, T>): MutableStringDict<T> {
+      const s = SD['make-mutable-string-dict'].app<T>();
+      for (const [k, v] of m.entries()) {
+        callMethod(s, 'set-now', k, v);
+      }
+      return s;
     }
 
     function setTypeLoc(type: TS.Type, loc: SL.Srcloc): TS.Type {
