@@ -94,6 +94,9 @@ string-dict = SD.string-dict
 
 is-s-check-test = A.is-s-check-test
 
+primval-types = [SD.mutable-string-dict:]
+primval-copy-keys = [list: "builtins", "nothing"]
+
 ################### Test Inference ####################
 
 # an option containing the key of the function name,
@@ -158,8 +161,11 @@ fun value-export-sd-to-type-sd(sd :: SD.StringDict<C.ValueExport>) -> SD.StringD
 end
 
 # I believe modules is always of type SD.MutableStringDict<Loadable> -Matt
-fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-compile-env :: C.ComputedEnvironment, modules) -> C.CompileResult<A.Program>:
+fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-compile-env :: C.ComputedEnvironment, modules) -> C.CompileResult<A.Program> block:
   context = TCS.empty-context()
+  for each(key from primval-copy-keys):
+    primval-types.set-now(key, modules.get-value-now("builtin://global").provides.values.get-value(key).t)
+  end
   globvs = compile-env.globals.values
   globts = compile-env.globals.types
   shadow context = globvs.fold-keys(lam(g, shadow context):
@@ -237,7 +243,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
   end, context)
 
   cases(A.Program) program block:
-    | s-program(l, _provide, provided-types, provides, imports, body) =>
+    | s-program(l, _use, _provide, provided-types, provides, imports, body) =>
 
 
       # NOTE(joe) – we cannot use module-env/type-env/env here because they
@@ -302,7 +308,7 @@ fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-c
           folded-info = gather-provides(provides.first, context)
           cases(FoldResult<TCInfo>) folded-info:
             | fold-result(info, _) =>
-              C.ok(TCS.typed(A.s-program(l, _provide, provided-types, provides, imports, new-body), info))
+              C.ok(TCS.typed(A.s-program(l, _use, _provide, provided-types, provides, imports, new-body), info))
             | fold-errors(errs) =>
               C.err(errs)
           end
@@ -592,7 +598,7 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
         | s-prim-app(l, _fun, args, _) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-prim-val(l, name) =>
-          raise("checking for s-prim-val not implemented")
+          check-synthesis(e, expect-type, top-level, context)
         | s-id(l, id) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-id-var-modref(l, _, uri, name) =>
@@ -847,7 +853,7 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           .map-type(_.set-loc(l))
       end)
     | s-prim-val(l, name) =>
-      raise("synthesis for s-prim-val not implemented")
+      typing-result(e, primval-types.get-value-now(name), context)
     | s-id(l, id) =>
       lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
         typing-result(e, id-type, context)

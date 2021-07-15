@@ -42,7 +42,7 @@ reserved-names = [SD.string-dict:
   "module", true,
   "package", true,
   "namespace", true,
-  "use", true,
+#  "use", true,
   "public", true,
   "private", true,
   "protected", true,
@@ -447,8 +447,16 @@ end
 var parent-block-loc = nothing
 
 well-formed-visitor = A.default-iter-visitor.{
-  method s-program(self, l, _provide, _provide-types, provides, imports, body):
+  method s-program(self, l, _use, _provide, _provide-types, provides, imports, body):
     raise("Impossible")
+  end,
+  method s-use(self, l, n, import-type):
+    if not(n.toname() == "context") block:
+      wf-error([list: ED.text("The only supported type of "), ED.code(ED.text("use")), ED.text(" is "), ED.code(ED.text("context")), ED.text(", but this program used "), ED.code(ED.text(n.toname()))], n.l)
+      false
+    else:
+      true
+    end
   end,
   method s-special-import(self, l, kind, args) block:
     if kind == "my-gdrive":
@@ -1010,12 +1018,18 @@ well-formed-visitor = A.default-iter-visitor.{
 }
 
 top-level-visitor = A.default-iter-visitor.{
-  method s-program(self, l, _provide, _provide-types, provides, imports, body):
+  method option(self, o):
+    cases(Option) o:
+      | some(v) => v.visit(self)
+      | none => true
+    end
+  end,
+  method s-program(self, l, _use, _provide, _provide-types, provides, imports, body):
     ok-body = cases(A.Expr) body:
       | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts, true)
       | else => body.visit(self)
     end
-    ok-body and (_provide.visit(self)) and _provide-types.visit(self) and (lists.all(_.visit(self), imports))
+    ok-body and self.option(_use) and (_provide.visit(self)) and _provide-types.visit(self) and (lists.all(_.visit(self), imports))
   end,
   method s-type(self, l, name, params, ann):
     ann.visit(well-formed-visitor)
@@ -1112,6 +1126,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
 
   # Everything else delegates to the non-toplevel visitor
+  method s-use(_, l, n, import-type):
+    well-formed-visitor.s-use(l, n, import-type)
+  end,
   method s-import(_, l, import-type, name):
     well-formed-visitor.s-import(l, import-type, name)
   end,

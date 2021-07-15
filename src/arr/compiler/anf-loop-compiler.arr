@@ -1752,6 +1752,9 @@ compiler-visitor = {
   method a-undefined(self, l :: Loc):
     c-exp(undefined, cl-empty)
   end,
+  method a-prim-val(self, l :: Loc, name :: String):
+    c-exp(rt-field(name), cl-empty)
+  end,
   method a-id(self, l :: Loc, id :: A.Name):
     c-exp(j-id(js-id-of(id)), cl-empty)
   end,

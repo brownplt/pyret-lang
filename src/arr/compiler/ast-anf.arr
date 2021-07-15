@@ -444,6 +444,11 @@ data AVal:
   | a-undefined(l :: Loc) with:
     method label(self): "a-undefined" end,
     method tosource(self): PP.str("UNDEFINED") end
+  | a-prim-val(l :: Loc, name :: String) with:
+    method label(self): "a-prim-val" end,
+    method tosource(self):
+      PP.infix(INDENT, 0, str-period, PP.str("%runtime"), PP.str(self.name))
+    end
   | a-id(l :: Loc, id :: A.Name) with:
     method label(self): "a-id" end,
     method tosource(self): self.id.to-compiled-source() end
@@ -541,6 +546,7 @@ fun strip-loc-val(val :: AVal):
     | a-str(_, s) => a-str(dummy-loc, s)
     | a-bool(_, b) => a-bool(dummy-loc, b)
     | a-undefined(_) => a-undefined(dummy-loc)
+    | a-prim-val(_, name) => a-prim-val(dummy-loc, name)
     | a-id(_, id) => a-id(dummy-loc, id)
     | a-id-modref(_, id, uri, name) => a-id-modref(dummy-loc, id, uri, name)
     | a-id-safe-letrec(_, id) => a-id-safe-letrec(dummy-loc, id)
@@ -674,6 +680,9 @@ default-map-visitor = {
   end,
   method a-undefined(self, l :: Loc):
     a-undefined(l)
+  end,
+  method a-prim-val(self, l :: Loc, name :: String):
+    a-prim-val(l, name)
   end,
   method a-id(self, l :: Loc, id :: A.Name):
     a-id(l, id)
@@ -935,6 +944,7 @@ fun freevars-v-acc(v :: AVal, seen-so-far :: NameDict<A.Name>) -> NameDict<A.Nam
     | a-id-safe-letrec(_, id) =>
       seen-so-far.set-now(id.key(), id)
       seen-so-far
+    | a-prim-val(_, _) => seen-so-far
     | a-srcloc(_, _) => seen-so-far
     | a-num(_, _) => seen-so-far
     | a-str(_, _) => seen-so-far

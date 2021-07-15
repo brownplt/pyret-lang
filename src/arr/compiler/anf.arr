@@ -97,7 +97,7 @@ end
 
 fun anf-program(e :: A.Program):
   cases(A.Program) e:
-    | s-program(l, _, _, provides, imports, block) =>
+    | s-program(l, _, _, _, provides, imports, block) =>
       # Note: provides have been desugared to a structure with no expressions, just
       # names and Ann information
       # MARK(joe/ben): provides
@@ -158,6 +158,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
     | s-str(l, s) => k(N.a-val(l, N.a-str(l, s)))
     | s-undefined(l) => k(N.a-val(l, N.a-undefined(l)))
     | s-bool(l, b) => k(N.a-val(l, N.a-bool(l, b)))
+    | s-prim-val(l, name) => k(N.a-val(l, N.a-prim-val(l, name)))
     | s-id(l, id) => k(N.a-val(l, N.a-id(l, id)))
     | s-id-modref(l, id, uri, name) => k(N.a-val(l, N.a-id-modref(l, id, uri, name)))
     | s-id-var-modref(l, id, uri, name) => k(N.a-id-var-modref(l, id, uri, name))
