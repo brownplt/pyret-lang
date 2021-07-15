@@ -58,7 +58,7 @@ fun make-repl<a>(
     compile-context :: a,
     make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))):
 
-  var globals = CS.no-globals
+  var globals = CS.standard-globals
   var current-compile-options = CS.default-compile-options
   var current-modules = modules
   var current-realm = realm
