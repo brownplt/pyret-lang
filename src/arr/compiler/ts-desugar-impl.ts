@@ -33,7 +33,6 @@ type DesugarInfo = {
     { 'import-type': 'dependency', protocol: 'file', args: ['type-structs.arr']},
     { 'import-type': 'dependency', protocol: 'file', args: ['ast.arr']},
     { 'import-type': 'dependency', protocol: 'file', args: ['compile-structs.arr']},
-    { 'import-type': 'dependency', protocol: 'file', args: ['type-defaults.arr']},
  ],
   nativeRequires: ["escodegen", "path"],
   provides: {
@@ -176,10 +175,10 @@ type DesugarInfo = {
         return mkIdAnn(l, base, A['a-blank']);
       }
       function desugarIf(l: A.Srcloc, branches: List<TJ.Variant<A.IfBranch, 's-if-branch'> | TJ.Variant<A.IfPipeBranch, 's-if-pipe-branch'>>, _else: A.Expr, blocky: boolean, visitor): A.Expr {
-        let dsElse = map(visitor, _else);
+        let dsElse = map<A.Expr>(visitor, _else);
         return listToArray(branches).reduceRight((acc, branch) => {
-          const dsTest = map(visitor, branch.dict.test);
-          const dsBody = map(visitor, branch.dict.body);
+          const dsTest = map<A.Expr>(visitor, branch.dict.test);
+          const dsBody = map<A.Expr>(visitor, branch.dict.body);
           return A['s-if-else'].app(
             l,
             runtime.ffi.makeList([A['s-if-branch'].app(
@@ -223,7 +222,7 @@ type DesugarInfo = {
             false
           );
         } else {
-          return rebuildNode(l, map(visitor, obj), field);
+          return rebuildNode(l, map<A.Expr>(visitor, obj), field);
         }
       }
       function dsCurryBinop(l: A.Srcloc, e1: A.Expr, e2: A.Expr, rebuild: (e1: A.Expr, e2: A.Expr) => A.Expr): A.Expr {
@@ -287,7 +286,7 @@ type DesugarInfo = {
               false
             );
           } else {
-            const dsF = map(visitor, f);
+            const dsF = map<A.Expr>(visitor, f);
             if (params.length === 0) { // f(args)
               return A['s-app'].app(
                 l, dsF, runtime.ffi.makeList(args)
@@ -309,20 +308,19 @@ type DesugarInfo = {
           }
         }
       }
-      const dsVisitor = {
-        generatedBinds,
+      const dsVisitor: TJ.Visitor<A.Program | A.Expr | A.Member | A.Bind | A.Ann> = {
         // s-module is uniform
         // s-instantiate is uniform
         // s-block is uniform
         's-user-block': (visitor, expr: TJ.Variant<A.Expr, 's-user-block'>) => {
-          return map(visitor, expr.dict.body);
+          return map<A.Expr>(visitor, expr.dict.body);
         },
         // s-template is uniform
         's-app': (visitor, expr: TJ.Variant<A.Expr, 's-app'>) => {
           return dsCurry(
             expr.dict.l, 
             expr.dict._fun, 
-            listToArray(expr.dict.args).map(arg => map(visitor, arg)),
+            listToArray(expr.dict.args).map(arg => map<A.Expr>(visitor, arg)),
             visitor
           );
         },
@@ -336,9 +334,9 @@ type DesugarInfo = {
         // s-letrec is uniform
         // s-data-expr is uniform
         's-when': (visitor, expr: TJ.Variant<A.Expr, 's-when'>) => {
-          const dsTest = map(visitor, expr.dict.test);
+          const dsTest = map<A.Expr>(visitor, expr.dict.test);
           const nothing = gid(expr.dict.l, "nothing");
-          const dsBody = map(visitor, expr.dict.block);
+          const dsBody = map<A.Expr>(visitor, expr.dict.block);
           let bodyWithNothing;
           let stmts;
           if (dsBody.$name === 's-block') {
@@ -383,17 +381,17 @@ type DesugarInfo = {
           return dsCurryNullary(A['s-dot'].app, expr.dict.l, expr.dict.obj, expr.dict.field, visitor);
         },
         's-bracket': (visitor, expr: TJ.Variant<A.Expr, 's-bracket'>) => {
-          return dsCurryBinop(expr.dict.l, map(visitor, expr.dict.obj), map(visitor, expr.dict.key), (e1: A.Expr, e2: A.Expr) => A['s-bracket'].app(expr.dict.l, e1, e2));
+          return dsCurryBinop(expr.dict.l, map<A.Expr>(visitor, expr.dict.obj), map<A.Expr>(visitor, expr.dict.key), (e1: A.Expr, e2: A.Expr) => A['s-bracket'].app(expr.dict.l, e1, e2));
         },
         's-get-bang': (visitor, expr: TJ.Variant<A.Expr, 's-get-bang'>) => {
           return dsCurryNullary(A['s-get-bang'].app, expr.dict.l, expr.dict.obj, expr.dict.field, visitor);
         },
         's-update': (visitor, expr: TJ.Variant<A.Expr, 's-update'>) => {
-          const dsFields = runtime.ffi.makeList(listToArray(expr.dict.fields).map(field => map(visitor, field)));
+          const dsFields = runtime.ffi.makeList(listToArray(expr.dict.fields).map(field => map<A.Member>(visitor, field)));
           return dsCurryNullary(A['s-update'].app, expr.dict.l, expr.dict.supe, dsFields, visitor);
         },
         's-extend': (visitor, expr: TJ.Variant<A.Expr, 's-extend'>) => {
-          const dsFields = runtime.ffi.makeList(listToArray(expr.dict.fields).map(field => map(visitor, field)));
+          const dsFields = runtime.ffi.makeList(listToArray(expr.dict.fields).map(field => map<A.Member>(visitor, field)));
           return dsCurryNullary(A['s-extend'].app, expr.dict.l, expr.dict.supe, dsFields, visitor);
         },
         // s-for is uniform
@@ -430,7 +428,7 @@ type DesugarInfo = {
                 thisFieldL,
                 key,
                 A['s-prim-app'].app(thisFieldL, "makeSome",
-                  runtime.ffi.makeList([A['s-check-expr'].app(thisFieldL, map(visitor, thisField), value(thisFieldL))]),
+                  runtime.ffi.makeList([A['s-check-expr'].app(thisFieldL, map<A.Expr>(visitor, thisField), value(thisFieldL))]),
                   flatPrimApp
                 )
               ));
@@ -446,13 +444,13 @@ type DesugarInfo = {
             expr.dict.l,
             "makeReactor",
             runtime.ffi.makeList([
-              map(visitor, fieldsByName.get("init")),
+              map<A.Expr>(visitor, fieldsByName.get("init")),
               A['s-obj'].app(expr.dict.l, runtime.ffi.makeList(optionFields))]),
             flatPrimApp);
         },
         // s-table is uniform
         's-paren': (visitor, expr: TJ.Variant<A.Expr, 's-paren'>) => {
-          return map(visitor, expr.dict.expr);
+          return map<A.Expr>(visitor, expr.dict.expr);
         },
         's-let': (visitor, expr: TJ.Variant<A.Expr, 's-let'>) => {
           throw new InternalCompilerError('s-let should have already been desugared');
@@ -481,7 +479,7 @@ type DesugarInfo = {
         }
       };
       generatedBinds.clear();
-      const desugared = map(dsVisitor, program);
+      const desugared = map<A.Program | A.Expr, A.Program>(dsVisitor, program);
       return runtime.makeObject({
         ast: desugared,
         'new-binds': mutableStringDictFromMap(generatedBinds),
