@@ -120,9 +120,7 @@ function Chatitor({
           theme: 'default',
           lineWrapping: true,
           autofocus: true,
-          matchBrackets: true,
-          matchKeywords: true,
-        } as any}
+        }}
         editorDidMount={((editor: CodeMirror.Editor & CodeMirror.Doc) => {
           editor.setSize(null, 'auto');
           setEditor(editor);

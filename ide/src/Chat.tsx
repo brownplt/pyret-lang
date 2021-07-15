@@ -42,9 +42,6 @@ import LinkedCodeMirror from './LinkedCodeMirror';
 import FailureComponent from './FailureComponent';
 import CheckResults from './CheckResults';
 
-import 'pyret-codemirror-mode/mode/pyret';
-import 'pyret-codemirror-mode/addon/matchkw';
-
 type StateProps = {
   chunks: Chunk[],
   rhs: RHSObjects,
@@ -460,8 +457,6 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             mode: 'pyret',
             theme: 'default',
             lineWrapping: true,
-            matchBrackets: true,
-            matchKeywords: true,
           }}
           onBeforeChange={() => {
             this.scheduleUpdate();
