@@ -48,7 +48,7 @@ compile-handler = lam(msg, send-message) block:
           cases(E.Either) CLI.lint(program-source, program) block:
             | left(errors) =>
               err-list = for map(e from errors):
-                J.j-str(RED.display-to-json(e.render-fancy-reason(), tostring, empty))
+                J.j-str(RED.display-to-json(e.render-reason(), tostring, empty))
               end
               M.lint-failure(program-source, err-list).send-using(send-message)
             | right(_) =>
@@ -84,7 +84,7 @@ compile-handler = lam(msg, send-message) block:
           
           cases(E.Either) run-task(lam(): compile(with-error, pyret-dir) end):
             | right(exn) =>
-              err-str = RED.display-to-json(exn-unwrap(exn).render-fancy-reason(), tostring, empty)
+              err-str = RED.display-to-json(exn-unwrap(exn).render-reason(), tostring, empty)
               err-list = [list: J.j-str(err-str)]
               M.compile-failure(err-list).send-using(send-message)
             | left(val) =>
