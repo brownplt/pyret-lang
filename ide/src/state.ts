@@ -3,7 +3,7 @@
 import { Chunk } from './chunk';
 import { BackendCmd, Effect } from './effect';
 import { MenuItems } from './menu-types';
-import { RHSObject, RHSObjects } from './rhsObject';
+import { RHSObjects } from './rhsObject';
 import { RTMessages } from './rtMessages';
 import * as control from './control';
 
@@ -41,7 +41,7 @@ export type State = {
   rhs: RHSObjects,
 
   /* The parsed module results of a Pyret program, but associated to chunks. */
-  chunkToRHS: RHSObject[][],
+  chunkToRHS: RHSObjects[],
 
   /* Parsed messages from an executed/executing Pyret program */
   rtMessages: RTMessages,

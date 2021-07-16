@@ -47,7 +47,7 @@ import {
 import {
   getRow,
   makeRHSObjects,
-  RHSObject,
+  RHSObjects,
 } from './rhsObject';
 
 import {
@@ -336,7 +336,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
   // Associate rhs to chunks *now* before they're outdated. Then only chunk
   // deletion / insertion needs to be tracked to correspond outdated RHSs
   // through edits
-  const chunkToRHS: RHSObject[][] = state.chunks.map(() => []);
+  const chunkToRHS: RHSObjects[] = state.chunks.map(() => ({ outdated: false, objects: [] }));
   rhs.objects.forEach((rhsObject) => {
     const correspondingChunk = findChunkFromSrcloc(
       state.chunks,
@@ -347,7 +347,7 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
       state.currentFile,
     );
     if (correspondingChunk !== false) {
-      chunkToRHS[correspondingChunk].push(rhsObject);
+      chunkToRHS[correspondingChunk].objects.push(rhsObject);
     }
   });
 

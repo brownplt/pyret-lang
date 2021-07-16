@@ -30,7 +30,6 @@ import {
 
 import { Effect } from './effect';
 import {
-  RHSObject,
   RHSObjects,
   getRow,
   isRHSCheck,
@@ -47,7 +46,7 @@ type StateProps = {
   rhs: RHSObjects,
   firstSelectedChunkIndex: false | number,
   currentFile: string,
-  thisChunkRHSObjects: RHSObject[],
+  thisChunkRHSObjects: RHSObjects,
   displayResultsInline: boolean,
   editorResponseLoop: EditorResponseLoop,
 };
@@ -67,7 +66,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     index,
   } = ownProps;
 
-  const thisChunkRHSObjects: RHSObject[] = chunkToRHS[index] ?? [];
+  const thisChunkRHSObjects = chunkToRHS[index] ?? { outdated: true, objects: [] };
 
   return {
     chunks,
@@ -443,6 +442,83 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       });
     };
 
+    const {
+      thisChunkRHSObjects,
+      displayResultsInline,
+    } = this.props;
+
+    let chunkResultsPart = <></>;
+    let displayCheckMark = false;
+    if (displayResultsInline) {
+      const chunk = chunks[index];
+      const { editor } = chunk;
+
+      if (chunk.errorState.status === 'failed' && 'markText' in editor) {
+        return (
+          <div>
+            {chunk.errorState.failures.map((failure, i) => (
+                    // eslint-disable-next-line
+                    <div className="chatitor-rhs" key={i}>
+                      <FailureComponent failure={failure} editor={editor} />
+                    </div>
+            ))}
+          </div>
+        );
+      }
+
+      let rhs;
+      const rhsObjects = thisChunkRHSObjects.objects;
+      // TODO(luna): more principled
+      const isDataDefinition = rhsObjects.filter((r) => !isLocation(r)).length === 0
+              && rhsObjects.filter((r) => isLocation(r) && r.name.startsWith('is-')).length > 0;
+      if (thisChunkRHSObjects.outdated) {
+        rhs = <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div>;
+      } else if (rhsObjects.length === 0) {
+        displayCheckMark = true;
+      } else if (rhsObjects.length === 1) {
+        const val = rhsObjects[0];
+        if (isLocation(val) && typeof val.value === 'function') {
+          displayCheckMark = true;
+        } else {
+          rhs = (
+            <RHSObjectComponent
+              key={getRow(val)}
+              rhsObject={val}
+              isSelected={false}
+              className="chatitor-rhs"
+            />
+          );
+        }
+      } else if (rhsObjects.filter((r) => !isRHSCheck(r)).length === 0) {
+        rhs = (
+          <CheckResults
+            key={getRow(rhsObjects[0])}
+                  // Would love to have TypeScript obviate this `as`
+            checks={rhsObjects as RHSCheck[]}
+          />
+        );
+      } else if (isDataDefinition) {
+        rhs = <></>;
+        displayCheckMark = true;
+      } else {
+        console.log(rhsObjects);
+        throw new Error('unfolded multiple RHS (logged above)');
+      }
+
+      chunkResultsPart = (
+        <div
+          style={{
+            display: 'flex',
+            width: '100%',
+            justifyContent: 'flex-end',
+            marginBottom: '0.5em',
+          }}
+        >
+          {rhs}
+        </div>
+      );
+    }
+
     const chunkEditorPart = (
       <div style={{ width: '100%' }}>
         <LinkedCodeMirror
@@ -485,83 +561,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
             }
           }}
           onBlur={(editor) => this.handleBlur(editor)}
-          className="chat"
+          className={displayCheckMark ? 'chat checkmark' : 'chat'}
         />
-      </div>
-    );
-
-    const chunkResultsPart = (
-      <div>
-        {(() => {
-          const {
-            thisChunkRHSObjects,
-            displayResultsInline,
-          } = this.props;
-
-          if (displayResultsInline) {
-            const chunk = chunks[index];
-            const { editor } = chunk;
-
-            if (chunk.errorState.status === 'failed' && 'markText' in editor) {
-              return (
-                <div>
-                  {chunk.errorState.failures.map((failure, i) => (
-                    // eslint-disable-next-line
-                    <div className="chatitor-rhs" key={i}>
-                      <FailureComponent failure={failure} editor={editor} />
-                    </div>
-                  ))}
-                </div>
-              );
-            }
-
-            let rhs;
-            // TODO(luna): more principled
-            const isDataDefinition = thisChunkRHSObjects.filter((r) => !isLocation(r)).length === 0
-              && thisChunkRHSObjects.filter((r) => isLocation(r) && r.name.startsWith('is-')).length > 0;
-            if (thisChunkRHSObjects.length === 0) {
-              rhs = <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div>;
-            } else if (thisChunkRHSObjects.length === 1) {
-              const val = thisChunkRHSObjects[0];
-              rhs = (
-                <RHSObjectComponent
-                  key={getRow(val)}
-                  rhsObject={val}
-                  isSelected={false}
-                  className="chatitor-rhs"
-                />
-              );
-            } else if (thisChunkRHSObjects.filter((r) => !isRHSCheck(r)).length === 0) {
-              rhs = (
-                <CheckResults
-                  key={getRow(thisChunkRHSObjects[0])}
-                  // Would love to have TypeScript obviate this `as`
-                  checks={thisChunkRHSObjects as RHSCheck[]}
-                />
-              );
-            } else if (isDataDefinition) {
-              rhs = <></>;
-            } else {
-              console.log(thisChunkRHSObjects);
-              throw new Error('unfolded multiple RHS (logged above)');
-            }
-
-            return (
-              <div
-                style={{
-                  display: 'flex',
-                  width: '100%',
-                  justifyContent: 'flex-end',
-                  marginBottom: '0.5em',
-                }}
-              >
-                {rhs}
-              </div>
-            );
-          }
-
-          return false;
-        })()}
       </div>
     );
 

@@ -31,6 +31,19 @@
 .chat .CodeMirror-focused .CodeMirror-lines {
   cursor: text;
 }
+.chat.checkmark .CodeMirror {
+  padding-right: 2em;
+}
+.chat.checkmark .CodeMirror::after {
+  content: '\01F5F8';
+  display: block;
+  position: relative;
+  height: 0;
+  top: -25px;
+  text-align: right;
+  color: green;
+  margin-right: -1.2em;
+}
 
 .failure-cmcode .CodeMirror {
   background-color: transparent !important;
