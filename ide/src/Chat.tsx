@@ -1,5 +1,5 @@
-/* The DefChunk component, one or more of which can be contained within the
-   DefChunks component.
+/* The Chat component, one or more of which can be contained within the
+   Chat component.
 
    Handles most of the chunk editor specific UI: selecting chunks; deleting
    chunks; handling edit events; handling key events, like arrow up, arrow down,
@@ -46,6 +46,7 @@ type StateProps = {
   rhs: RHSObjects,
   firstSelectedChunkIndex: false | number,
   currentFile: string,
+  chunkToRHS: RHSObjects[],
   thisChunkRHSObjects: RHSObjects,
   displayResultsInline: boolean,
   editorResponseLoop: EditorResponseLoop,
@@ -76,6 +77,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     thisChunkRHSObjects,
     displayResultsInline,
     editorResponseLoop,
+    chunkToRHS,
   };
 }
 
@@ -87,6 +89,7 @@ type PropsFromReact = {
 
 type DispatchProps = {
   setChunks: (chunks: ChunksUpdate) => void,
+  setChunkToRHS: (chunkToRHS: RHSObjects[]) => void,
   enqueueEffect: (effect: Effect) => void,
   setShouldAdvanceCursor: (value: boolean) => void,
   setRHS: () => void,
@@ -97,6 +100,9 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     setChunks(chunks: ChunksUpdate) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });
+    },
+    setChunkToRHS(chunkToRHS: RHSObjects[]) {
+      dispatch({ type: 'update', key: 'chunkToRHS', value: chunkToRHS });
     },
     enqueueEffect(effect: Effect) {
       dispatch({ type: 'enqueueEffect', effect });
@@ -116,13 +122,13 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
 const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
-type DefChunkProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
+type ChatProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
-class DefChunk extends React.Component<DefChunkProps, any> {
+class Chat extends React.Component<ChatProps, any> {
   /* Used to autofocus this component when necessary */
   private input: React.RefObject<CodeMirror>;
 
-  constructor(props: DefChunkProps) {
+  constructor(props: ChatProps) {
     super(props);
     this.input = React.createRef();
   }
@@ -135,7 +141,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
 
      Known issues: line numbers from CodeMirror objects do not always update
      when chunks are re-ordered. */
-  shouldComponentUpdate(newProps: DefChunkProps) {
+  shouldComponentUpdate(newProps: ChatProps) {
     const n = newProps;
     const o = this.props;
 
@@ -227,8 +233,8 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       chunks,
       index,
       setChunks,
-      rhs,
-      setRHS,
+      chunkToRHS,
+      setChunkToRHS,
     } = this.props;
 
     const { editor } = chunks[index];
@@ -256,9 +262,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       modifiesText: true,
     });
 
-    if (!rhs.outdated) {
-      setRHS();
+    const withInvalidation = [...chunkToRHS];
+    if (withInvalidation[index] !== undefined) {
+      withInvalidation[index].outdated = true;
     }
+    setChunkToRHS(withInvalidation);
   }
 
   /* Called in response to an arrow up event. Checks if the cursor is on the top
@@ -454,13 +462,13 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       const { editor } = chunk;
 
       if (chunk.errorState.status === 'failed' && 'markText' in editor) {
-        return (
+        chunkResultsPart = (
           <div>
             {chunk.errorState.failures.map((failure, i) => (
-                    // eslint-disable-next-line
-                    <div className="chatitor-rhs" key={i}>
-                      <FailureComponent failure={failure} editor={editor} />
-                    </div>
+              // eslint-disable-next-line
+              <div className="chatitor-rhs" key={i}>
+                <FailureComponent failure={failure} editor={editor} />
+              </div>
             ))}
           </div>
         );
@@ -471,10 +479,12 @@ class DefChunk extends React.Component<DefChunkProps, any> {
       // TODO(luna): more principled
       const isDataDefinition = rhsObjects.filter((r) => !isLocation(r)).length === 0
               && rhsObjects.filter((r) => isLocation(r) && r.name.startsWith('is-')).length > 0;
-      if (thisChunkRHSObjects.outdated) {
-        rhs = <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div>;
-      } else if (rhsObjects.length === 0) {
-        displayCheckMark = true;
+      if (rhsObjects.length === 0 || isDataDefinition) {
+        if (thisChunkRHSObjects.outdated) {
+          rhs = <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div>;
+        } else {
+          displayCheckMark = true;
+        }
       } else if (rhsObjects.length === 1) {
         const val = rhsObjects[0];
         if (isLocation(val) && typeof val.value === 'function') {
@@ -486,6 +496,7 @@ class DefChunk extends React.Component<DefChunkProps, any> {
               rhsObject={val}
               isSelected={false}
               className="chatitor-rhs"
+              outdated={thisChunkRHSObjects.outdated}
             />
           );
         }
@@ -493,13 +504,11 @@ class DefChunk extends React.Component<DefChunkProps, any> {
         rhs = (
           <CheckResults
             key={getRow(rhsObjects[0])}
-                  // Would love to have TypeScript obviate this `as`
+            // Would love to have TypeScript obviate this `as`
             checks={rhsObjects as RHSCheck[]}
+            outdated={thisChunkRHSObjects.outdated}
           />
         );
-      } else if (isDataDefinition) {
-        rhs = <></>;
-        displayCheckMark = true;
       } else {
         console.log(rhsObjects);
         throw new Error('unfolded multiple RHS (logged above)');
@@ -575,4 +584,4 @@ class DefChunk extends React.Component<DefChunkProps, any> {
   }
 }
 
-export default connector(DefChunk);
+export default connector(Chat);

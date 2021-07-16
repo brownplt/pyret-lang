@@ -11,6 +11,7 @@ import {
 import { Effect, EffectKey } from './effect';
 import { RawRTMessage } from './rtMessages';
 import * as control from './control';
+import { RHSObjects } from './rhsObject';
 
 export type EffectFailure =
   (| { effectKey: 'createRepl' }
@@ -83,6 +84,7 @@ export type Update =
   | { key: 'browsePath', value: string }
   | { key: 'currentFile', value: string }
   | { key: 'chunks', value: ChunksUpdate }
+  | { key: 'chunkToRHS', value: RHSObjects[] }
   | { key: 'focusedChunk', value: number | undefined }
   | { key: 'fontSize', value: number }
   | { key: 'runKind', value: control.backend.RunKind }

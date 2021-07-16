@@ -82,7 +82,10 @@
 }
 .chatitor-rhs.pending {
   background-color: transparent;
-  border: 1px dotted black;
+  border: 1px dashed black;
+}
+.outdated {
+  border: 1px dashed black;
 }
 
 .chunks-rhs {
