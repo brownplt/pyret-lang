@@ -321,7 +321,11 @@ class Chat extends React.Component<ChatProps, any> {
     } = this.props;
     const pos = editor.getCursor();
     const token = editor.getTokenAt(pos);
-    if ((event as any).shiftKey || editor.getValue().split('\n').length === 1 || token.state.lineState.tokens.length === 0) {
+    const lineEndToken = editor.getTokenAt({ line: pos.line, ch: 99999 });
+    // An enter anywhere on a single-line chat in which the ENTIRE chat is
+    // codemirror-parsible
+    const singleLineEnter = editor.getValue().split('\n').length === 1 && lineEndToken.state.lineState.tokens.length === 0;
+    if ((event as any).shiftKey || singleLineEnter || token.state.lineState.tokens.length === 0) {
       enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
       editor.getInputField().blur();
       event.preventDefault();
@@ -478,7 +482,8 @@ class Chat extends React.Component<ChatProps, any> {
       // TODO(luna): more principled
       const isDataDefinition = rhsObjects.filter((r) => !isLocation(r)).length === 0
               && rhsObjects.filter((r) => isLocation(r) && r.name.startsWith('is-')).length > 0;
-      if (rhsObjects.length === 0 || isDataDefinition) {
+      const isFunctionDefinition = rhsObjects.length === 1 && isLocation(rhsObjects[0]) && typeof rhsObjects[0].value === 'function';
+      if (rhsObjects.length === 0 || isDataDefinition || isFunctionDefinition) {
         if (thisChunkRHSObjects.outdated) {
           rhs = <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div>;
         } else {
@@ -486,19 +491,15 @@ class Chat extends React.Component<ChatProps, any> {
         }
       } else if (rhsObjects.length === 1) {
         const val = rhsObjects[0];
-        if (isLocation(val) && typeof val.value === 'function') {
-          displayCheckMark = true;
-        } else {
-          rhs = (
-            <RHSObjectComponent
-              key={getRow(val)}
-              rhsObject={val}
-              isSelected={false}
-              className="chatitor-rhs"
-              outdated={thisChunkRHSObjects.outdated}
-            />
-          );
-        }
+        rhs = (
+          <RHSObjectComponent
+            key={getRow(val)}
+            rhsObject={val}
+            isSelected={false}
+            className="chatitor-rhs"
+            outdated={thisChunkRHSObjects.outdated}
+          />
+        );
       } else if (rhsObjects.filter((r) => !isRHSCheck(r)).length === 0) {
         rhs = (
           <CheckResults
