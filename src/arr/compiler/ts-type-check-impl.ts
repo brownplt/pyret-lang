@@ -424,23 +424,75 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         }
         throw new InternalCompilerError("Can't add example type to an uninitialized system");
       }
-      addLevel() : void {
-        this.levels.push(new ConstraintLevel());
+      addLevel() : void{
+        const level = new ConstraintLevel();
+        this.levels.push(level);
       }
-      solveLevel() : ConstraintSolution {
-        this.levels.pop(); // TODO(joe): use the information before popping, but this is where it happens
-         return new ConstraintSolution(new Map(), new Map());
+      solveLevelHelper(solution : ConstraintSolution, context : Context) : ConstraintSolution {
+        const afterConstraints = solveHelperConstraints(this, solution, context);
+        const afterRefinements = solveHelperRefinements(this, afterConstraints, context);
+        const afterExamples = solveHelperExamples(this, afterRefinements, context);
+        const afterFields = solveHelperFields(this, afterExamples, context);
+        return afterFields;
       }
+      // After solve-level, the system will have one less level (unless it's already
+      // empty) It breaks the current level in two based on the set of variables
+      // that came from examples, then solves them first by solving the part
+      // unrelated to examples, then solving the part related to examples.  It then
+      // propagates variables to the context at the next level (if there is a next
+      // level) and returns the resulting system and solution
+      solveLevel(context : Context) : ConstraintSolution {
+        if (this.levels.length === 0) { return new ConstraintSolution(); }
+        else {
+          const levelToSplit = this.levels.pop();
+          // NOTE(old impl): introduce a half level so any constraints depending
+          // on test inference can be solved after test inference
+          this.addLevel();
+          for(let typkey of levelToSplit.variables.keys()) {
+            const { existential } = levelToSplit.exampleTypes.get(typkey);
+            this.addVariable(existential); // Adds to the newly added empty level from .addLevel()
+            levelToSplit.variables.delete(typkey);
+          }
+          this.levels.push(levelToSplit);
+          const solutionWithoutExamples = this.solveLevelHelper(new ConstraintSolution(), context);
+          // this.curLevel() is logically at the same depth as levelToSplit, but re-fetch curLevel()
+          // to allow solveLevelHelper implementation flexibility
+          const variablesFromCurLevel = this.curLevel().variables;
+          // Removes levelToSplit and exposes the empty added level from .addLevel()
+          this.levels.pop();
+          this.addVariableSet(variablesFromCurLevel);
+          const solutionWithExamples = this.solveLevelHelper(solutionWithoutExamples, context);
+          this.ensureLevel("Done solving the split level, there should be the empty level left");
+          // curLevel() is logically at the same depth as the empty level from addLevel() above
+          const variablesToPreserve = this.curLevel().variables;
+          // Removes the level that just had the examples in it
+          this.levels.pop();
+          if(this.levels.length > 0) { this.addVariableSet(variablesToPreserve); }
+          return new ConstraintSolution(variablesToPreserve, solutionWithExamples.substitutions);
+        }
+      }
+    }
 
+    function solveHelperFields(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
+      return solution;
+    }
+    function solveHelperConstraints(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
+      return solution;
+    }
+    function solveHelperRefinements(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
+      return solution;
+    }
+    function solveHelperExamples(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
+      return solution;
     }
 
     class ConstraintSolution {
       variables : Map<string, TS.Type>
       substitutions: Map<string, TS.Type>
 
-      constructor(variables : Map<string, TS.Type>, substitutions : Map<string, TS.Type>) {
-        this.variables = variables;
-        this.substitutions = substitutions;
+      constructor(variables? : Map<string, TS.Type>, substitutions? : Map<string, TS.Type>) {
+        this.variables = variables ?? new Map();
+        this.substitutions = substitutions ?? new Map();
       }
 
       apply(typ : TS.Type) : TS.Type {
@@ -561,7 +613,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
 
       solveLevel() : ConstraintSolution {
-        return this.constraints.solveLevel();
+        return this.constraints.solveLevel(this);
       }
 
       solveAndResolveType(t : TS.Type) : TS.Type {

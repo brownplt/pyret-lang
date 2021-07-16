@@ -445,27 +445,34 @@ sharing:
       end)
     end)
   end,
+  # After solve-level, the system will have one less level (unless it's already empty)
+  # It breaks the current level in two based on the set of variables that came from examples, then solves them
+  # first by solving the part unrelated to examples, then solving the part related to examples.
+  # It then propagates variables to the context at the next level (if there is a next level) and returns the resulting
+  # system and solution
   method solve-level(self, context :: Context) -> FoldResult<{ConstraintSystem; ConstraintSolution}>:
     cases(ConstraintSystem) self:
       | no-constraints =>
         fold-result({self; constraint-solution(empty-tree-set, [string-dict: ])}, context)
-      | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) =>
+      | constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) => #POP
         # introduce a half level so any constraints depending on test inference can be solved after test inference
-        shadow next-system = next-system.add-level()
+        shadow next-system = next-system.add-level() # PUSH
         {shadow variables; shadow next-system} = example-types.fold-keys(lam(key, {shadow variables; shadow next-system}):
           {existential; _; _; _; _} = example-types.get-value(key)
           {variables.remove(existential); next-system.add-variable(existential)}
         end, {variables; next-system})
-        system = constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system)
+        # This next system has all the variables *except* the example ones and everything else
+        system = constraint-system(variables, constraints, refinement-constraints, field-constraints, example-types, next-system) #PUSH
         system.solve-level-helper(constraint-solution(empty-tree-set, [string-dict: ]), context).bind(lam({shadow system; solution}, shadow context):
           # This is solving the level introduced above
-          shadow system = system.next-system.add-variable-set(system.variables)
+          # This system/level is adding the variables that weren't added above
+          shadow system = system.next-system.add-variable-set(system.variables) # POP
           system.solve-level-helper(solution, context).bind(lam({shadow system; shadow solution}, shadow context):
-            shadow solution = constraint-solution(variables, solution.substitutions)
             cases(ConstraintSystem) system:
               | no-constraints =>
+                shadow solution = constraint-solution(variables, solution.substitutions)
                 fold-result({system; solution}, context)
-              | constraint-system(shadow variables, _, _, _, _, shadow next-system) =>
+              | constraint-system(shadow variables, _, _, _, _, shadow next-system) => # POP
                 shadow solution = constraint-solution(variables, solution.substitutions)
                 shadow next-system = if is-constraint-system(next-system):
                   next-system.add-variable-set(variables)
