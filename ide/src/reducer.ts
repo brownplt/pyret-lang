@@ -938,14 +938,6 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   throw new Error('handleSetChunks: unreachable point reached');
 }
 
-function handleSetChunkToRHS(state: State, chunkToRHS: RHSObjects[]): State {
-  chunkToRHS.forEach((rhsObjects) => { if (rhsObjects.objects === undefined) { throw new Error('bad thing happened'); } });
-  return {
-    ...state,
-    chunkToRHS,
-  };
-}
-
 function handleSetFocusedChunk(state: State, index: number | undefined): State {
   if (index !== undefined) {
     const { effectQueue, isFileSaved, focusedChunk } = state;
@@ -1063,7 +1055,7 @@ function handleUpdate(
     case 'chunks':
       return handleSetChunks(state, action.value);
     case 'chunkToRHS':
-      return handleSetChunkToRHS(state, action.value);
+      return { ...state, chunkToRHS: action.value };
     case 'focusedChunk':
       return handleSetFocusedChunk(state, action.value);
     case 'fontSize':

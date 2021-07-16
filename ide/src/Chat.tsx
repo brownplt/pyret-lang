@@ -92,7 +92,6 @@ type DispatchProps = {
   setChunkToRHS: (chunkToRHS: RHSObjects[]) => void,
   enqueueEffect: (effect: Effect) => void,
   setShouldAdvanceCursor: (value: boolean) => void,
-  setRHS: () => void,
   setFirstSelectedChunkIndex: (value: false | number) => void,
 };
 
@@ -109,9 +108,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     },
     setShouldAdvanceCursor(value: boolean) {
       dispatch({ type: 'update', key: 'shouldAdvanceCursor', value });
-    },
-    setRHS() {
-      dispatch({ type: 'update', key: 'rhs', value: 'make-outdated' });
     },
     setFirstSelectedChunkIndex(value: false | number) {
       dispatch({ type: 'update', key: 'firstSelectedChunkIndex', value });
@@ -137,15 +133,20 @@ class Chat extends React.Component<ChatProps, any> {
      receives, as props, all other chunks, this would cause a lot of redundant
      re-rendering. This function attempts to determine when such prop updates
      can be ignored. It will probably need to be changed when new props are
-     added or removed from this component.
-
-     Known issues: line numbers from CodeMirror objects do not always update
-     when chunks are re-ordered. */
+     added or removed from this component. */
   shouldComponentUpdate(newProps: ChatProps) {
     const n = newProps;
     const o = this.props;
 
-    if (n.thisChunkRHSObjects !== o.thisChunkRHSObjects) {
+    if (n.thisChunkRHSObjects.outdated !== o.thisChunkRHSObjects.outdated) {
+      return true;
+    }
+
+    if (n.thisChunkRHSObjects.objects !== o.thisChunkRHSObjects.objects) {
+      return true;
+    }
+
+    if (n.chunks[n.index].errorState !== o.chunks[o.index].errorState) {
       return true;
     }
 
@@ -263,9 +264,10 @@ class Chat extends React.Component<ChatProps, any> {
     });
 
     const withInvalidation = [...chunkToRHS];
-    if (withInvalidation[index] !== undefined) {
-      withInvalidation[index].outdated = true;
-    }
+    withInvalidation[index] = {
+      ...(withInvalidation[index] ?? { outdated: true, objects: [] }),
+      outdated: true,
+    };
     setChunkToRHS(withInvalidation);
   }
 
@@ -452,28 +454,25 @@ class Chat extends React.Component<ChatProps, any> {
 
     const {
       thisChunkRHSObjects,
-      displayResultsInline,
     } = this.props;
 
     let chunkResultsPart = <></>;
     let displayCheckMark = false;
-    if (displayResultsInline) {
-      const chunk = chunks[index];
-      const { editor } = chunk;
+    const chunk = chunks[index];
+    const { editor: chunkEditor } = chunk;
 
-      if (chunk.errorState.status === 'failed' && 'markText' in editor) {
-        chunkResultsPart = (
-          <div>
-            {chunk.errorState.failures.map((failure, i) => (
-              // eslint-disable-next-line
-              <div className="chatitor-rhs" key={i}>
-                <FailureComponent failure={failure} editor={editor} />
-              </div>
-            ))}
-          </div>
-        );
-      }
-
+    if (chunk.errorState.status === 'failed' && 'markText' in chunkEditor) {
+      chunkResultsPart = (
+        <div>
+          {chunk.errorState.failures.map((failure, i) => (
+            // eslint-disable-next-line
+            <div className="chatitor-rhs" key={i}>
+              <FailureComponent failure={failure} editor={chunkEditor} />
+            </div>
+          ))}
+        </div>
+      );
+    } else {
       let rhs;
       const rhsObjects = thisChunkRHSObjects.objects;
       // TODO(luna): more principled
