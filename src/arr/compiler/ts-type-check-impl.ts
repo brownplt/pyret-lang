@@ -70,6 +70,49 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
     }
 
+    /*
+    function substitute(substIn : TS.Type, newType : TS.Type, typeVar : TS.Type) : TS.Type {
+      return map({
+        "t-var": (self, substFor) => {
+          if(typeVar.$name === "t-var" && sameName(substFor.dict.id, typeVar.dict.id)) {
+            return setTypeLoc(newType, substFor.dict.l);
+          }
+          return substFor;
+        },
+        "t-existential": (self, substFor) => {
+          if(typeVar.$name === "t-var" && sameName(substFor.dict.id, typeVar.dict.id)) {
+            if(substFor.dict.inferred) {
+              return setTypeLoc(newType, substFor.dict.l);
+            }
+            else {
+              return newType;
+            }
+            
+          }
+          return substFor;
+        }
+      }, substIn);
+    }
+    */
+
+    function sameOrigin(o1 : TS.NameOrigin, o2 : TS.NameOrigin) : boolean {
+      switch(o1.$name) {
+        case "local": {
+          if(o1.$name !== o2.$name) { return false; }
+          return true;
+        }
+        case "module-uri": { 
+          if(o1.$name !== o2.$name) { return false; }
+          return o1.dict.uri === o2.dict.uri;
+        }
+        case "dependency": {
+          if(o1.$name !== o2.$name) { return false; }
+          return o1.dict.dep === o2.dict.dep;
+        }
+      }
+
+    }
+
     function foldrFoldResult<X, Y>(f : (x: X, context: TCS.Context, acc: Y) => TCS.FoldResult<Y>, xs: X[], context: TCS.Context, base: Y): TCS.FoldResult<Y> {
       return xs.reduceRight((prev: TCS.FoldResult<Y>, cur: X): TCS.FoldResult<Y> => {
         switch(prev.$name) {
@@ -270,13 +313,16 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       return ret;
     }
 
+    type Constraint = {subtype: TS.Type, supertype: TS.Type};
+    type Refinement = {existential: TS.Type, dataRefinement: TJ.Variant<TS.Type, 't-data-refinement'>};
+
     class ConstraintLevel {
       // the constrained existentials
       variables : Map<string, TS.Type>;
       // list of {subtype; supertype}
-      constraints : Array<{subtype: TS.Type, supertype: TS.Type}>;
+      constraints : Array<Constraint>;
       // list of {existential; t-data-refinement} 
-      refinementConstraints : Array<{existential: TS.Type, dataRefinement: TJ.Variant<TS.Type, 't-data-refinement'>}>;
+      refinementConstraints : Array<Refinement>;
       // type -> {type, field labels -> field types (with the location of their use)}
       fieldConstraints : Map<string, [TS.Type, FieldConstraint]>; 
       // types for examples?
@@ -443,40 +489,172 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       // level) and returns the resulting system and solution
       solveLevel(context : Context) : ConstraintSolution {
         if (this.levels.length === 0) { return new ConstraintSolution(); }
-        else {
-          const levelToSplit = this.levels.pop();
-          // NOTE(old impl): introduce a half level so any constraints depending
-          // on test inference can be solved after test inference
-          this.addLevel();
-          for(let typkey of levelToSplit.variables.keys()) {
-            const { existential } = levelToSplit.exampleTypes.get(typkey);
-            this.addVariable(existential); // Adds to the newly added empty level from .addLevel()
-            levelToSplit.variables.delete(typkey);
-          }
-          this.levels.push(levelToSplit);
-          const solutionWithoutExamples = this.solveLevelHelper(new ConstraintSolution(), context);
-          // this.curLevel() is logically at the same depth as levelToSplit, but re-fetch curLevel()
-          // to allow solveLevelHelper implementation flexibility
-          const variablesFromCurLevel = this.curLevel().variables;
-          // Removes levelToSplit and exposes the empty added level from .addLevel()
-          this.levels.pop();
-          this.addVariableSet(variablesFromCurLevel);
-          const solutionWithExamples = this.solveLevelHelper(solutionWithoutExamples, context);
-          this.ensureLevel("Done solving the split level, there should be the empty level left");
-          // curLevel() is logically at the same depth as the empty level from addLevel() above
-          const variablesToPreserve = this.curLevel().variables;
-          // Removes the level that just had the examples in it
-          this.levels.pop();
-          if(this.levels.length > 0) { this.addVariableSet(variablesToPreserve); }
-          return new ConstraintSolution(variablesToPreserve, solutionWithExamples.substitutions);
+
+        const levelToSplit = this.levels.pop();
+        // NOTE(old impl): introduce a half level so any constraints depending
+        // on test inference can be solved after test inference
+        this.addLevel();
+        for(let typkey of levelToSplit.variables.keys()) {
+          const { existential } = levelToSplit.exampleTypes.get(typkey);
+          this.addVariable(existential); // Adds to the newly added empty level from .addLevel()
+          levelToSplit.variables.delete(typkey);
         }
+        this.levels.push(levelToSplit);
+        const solutionWithoutExamples = this.solveLevelHelper(new ConstraintSolution(), context);
+        // this.curLevel() is logically at the same depth as levelToSplit, but re-fetch curLevel()
+        // to allow solveLevelHelper implementation flexibility
+        const variablesFromCurLevel = this.curLevel().variables;
+        // Removes levelToSplit and exposes the empty added level from .addLevel()
+        this.levels.pop();
+        this.addVariableSet(variablesFromCurLevel);
+        const solutionWithExamples = this.solveLevelHelper(solutionWithoutExamples, context);
+        this.ensureLevel("Done solving the split level, there should be the empty level left");
+        // curLevel() is logically at the same depth as the empty level from addLevel() above
+        const variablesToPreserve = this.curLevel().variables;
+        // Removes the level that just had the examples in it
+        this.levels.pop();
+        if(this.levels.length > 0) { this.addVariableSet(variablesToPreserve); }
+        return new ConstraintSolution(variablesToPreserve, solutionWithExamples.substitutions);
       }
     }
 
     function solveHelperFields(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
       return solution;
     }
+
+    function substituteInConstraints(newType : TS.Type, typeVar : TS.Type, constraints : Constraint[]) {
+      return constraints.map(({subtype, supertype}) => {
+        return {
+          subtype: substitute(subtype, newType, typeVar),
+          supertype: substitute(supertype, newType, typeVar)
+        };
+      });
+    }
+    
+    function substituteInRefinements(newType : TS.Type, typeVar : TS.Type, refinements : Refinement[]) : Refinement[] {
+      return refinements.map(({existential, dataRefinement}) => {
+        return {
+          existential: substitute(existential, newType, typeVar),
+          // NOTE(joe): the cast below assumes that substitute cannot change
+          // the shape of a dataRefinement
+          dataRefinement: substitute(dataRefinement, newType, typeVar) as Refinement["dataRefinement"]
+        };
+      });
+    }
+
+    function substituteInFields(newType : TS.Type, typeVar : TS.Type, fieldConstraints : Map<string, [TS.Type, FieldConstraint]>) {
+      for(let [key, [constraintType, fieldMappings]] of fieldConstraints) {
+        const newConstraintType = substitute(constraintType, newType, typeVar);
+        for(let [fieldName, types] of fieldMappings) {
+          fieldMappings.set(fieldName, types.map(t => substitute(t, newType, typeVar)));
+        }
+        // NOTE(joe/ben): why is this key not updated?
+        fieldConstraints.set(key, [newConstraintType, fieldMappings]);
+      }
+    }
+
+    function substituteInExamples(newType : TS.Type, typeVar : TS.Type, examples : ExampleTypes) {
+      for(let [key, exampleTypeInfo] of examples) {
+        exampleTypeInfo.exampleTypes = exampleTypeInfo.exampleTypes.map(t => substitute(t, newType, typeVar));
+      }
+    }
+
+    function addSubstitution(newType : TS.Type, typeVar : TS.Type, system : ConstraintSystem, solution : ConstraintSolution) {
+      solution.substitutions.set(typeKey(typeVar), [newType, typeVar]);
+      const curLevel = system.curLevel();
+      curLevel.constraints = substituteInConstraints(newType, typeVar, curLevel.constraints);
+      curLevel.refinementConstraints = substituteInRefinements(newType, typeVar, curLevel.refinementConstraints);
+      substituteInFields(newType, typeVar, curLevel.fieldConstraints);
+      substituteInExamples(newType, typeVar, curLevel.exampleTypes);
+    }
+
     function solveHelperConstraints(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
+      const { constraints, variables } = system.curLevel();
+      if(constraints.length === 0) { return new ConstraintSolution(); }
+
+      // NOTE(joe): Compared to type-check-structs.arr, here continue; is a recursive call
+      while(constraints.length !== 0) {
+        const { subtype, supertype } = constraints.pop();
+        if(supertype.$name === "t-top" || subtype.$name === "t-bot") {
+          continue;
+        }
+
+        switch(supertype.$name) {
+          case "t-existential": {
+            const { id: aId, l: aLoc } = supertype.dict;
+            switch(subtype.$name) {
+              case "t-existential": {
+                const { id: bId, l: bLoc } = supertype.dict;
+                if (nameToKey(aId) === nameToKey(bId)) {
+                  continue;
+                }
+                else if(variables.has(typeKey(subtype))) {
+                  addSubstitution(supertype, subtype, system, solution);
+                  continue;
+                }
+                else if(variables.has(typeKey(supertype))) {
+                  addSubstitution(subtype, supertype, system, solution);
+                  continue;
+                }
+                else {
+                  // NOTE(joe/ben): 1. Is this repeatable as a method? 2. Why
+                  // push out the constraint to the next level?
+                  system.levels[system.levels.length - 2].constraints.push({ subtype, supertype });
+                  continue;
+                }
+              }
+              default: {
+                if(variables.has(typeKey(supertype))) {
+                  if(varNotFoundInType(subtype, supertype)) {
+                    addSubstitution(subtype, supertype, system, solution);
+                    continue;
+                  }
+                  else {
+                    throw new TypeCheckFailure(CS['cant-typecheck'].app(
+                      `The types ${String(supertype)} and ${String(subtype)} are mutually recursive and their constraints cannot be solved.`, supertype.dict.l));
+                  }
+                }
+                else {
+                  system.levels[system.levels.length - 2].constraints.push({ subtype, supertype });
+                  continue;
+                }
+              }
+            }
+          }
+          case "t-data-refinement": {
+            constraints.push({ subtype, supertype: supertype.dict['data-type']});
+            continue;
+          }
+          case "t-forall": {
+            const { introduces, onto, l } = supertype.dict;
+            const newExistentials = listToArray(introduces).map(v => newExistential(v.dict.l, false));
+            let newOnto = onto;
+            newExistentials.forEach((exists, index) => {
+              newOnto = substitute(newOnto, exists, introduces[index]);
+            });
+            system.addVariableSet(newExistentials);
+            constraints.push({ subtype, supertype: newOnto });
+            continue;
+          }
+          default: {
+            switch(subtype.$name) {
+              case "t-name": {
+                if(!(supertype.$name === "t-name")) { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+                const sameModule = sameOrigin(subtype.dict['module-name'], supertype.dict['module-name']);
+                const sameId = sameName(subtype.dict.id, supertype.dict.id);
+                if (sameModule && sameId) { continue; }
+                else { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+              }
+              // TODO(joe): add cases starting at type-check-structs:607
+              // These cases appear to "just" destructure matching type shapes
+              // to add more constraints and then continue to unify
+
+            }
+          }
+
+        }
+      }
+
       return solution;
     }
     function solveHelperRefinements(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
@@ -488,9 +666,9 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
 
     class ConstraintSolution {
       variables : Map<string, TS.Type>
-      substitutions: Map<string, TS.Type>
+      substitutions: Map<string, [TS.Type, TS.Type]>
 
-      constructor(variables? : Map<string, TS.Type>, substitutions? : Map<string, TS.Type>) {
+      constructor(variables? : Map<string, TS.Type>, substitutions? : Map<string, [TS.Type, TS.Type]>) {
         this.variables = variables ?? new Map();
         this.substitutions = substitutions ?? new Map();
       }
@@ -770,6 +948,58 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             }
             default: return type;
           }
+        }
+        default: throw new ExhaustiveSwitchError(type);
+      }
+    }
+
+    function varNotFoundInType(type: TS.Type, varType: TS.Type): boolean {
+      switch(type.$name) {
+        case 't-name': return true;
+        case 't-arrow': {
+          const { args, ret } = type.dict;
+          return listToArray(args).every(t => varNotFoundInType(t, varType)) &&
+            varNotFoundInType(ret, varType);
+        }
+        case 't-app': {
+          const { args, onto } = type.dict;
+          return listToArray(args).every(t => varNotFoundInType(t, varType)) &&
+            varNotFoundInType(onto, varType);
+        }
+        case 't-top': return true;
+        case 't-bot': return true;
+        case 't-record': {
+          const { fields } = type.dict;
+          for(let t of mapFromStringDict(fields).values()) {
+            if(!varNotFoundInType(t, varType)) { return false; }
+          }
+          return true;
+        }
+        case 't-tuple': {
+          const { elts } = type.dict;
+          return listToArray(elts).every(t => varNotFoundInType(t, varType));
+        }
+        case 't-forall': {
+          // TODO(MATT): can we really ignore the introduces?
+          // NOTE(joe): e.g. could it matter that the mutually recursive usage
+          // hides behind a forall so it could be resolved. Not sure but this is
+          // safe, just might report errors that it doesn't need to
+          const { onto } = type.dict;
+          return varNotFoundInType(onto, varType);
+        }
+        case 't-ref': {
+          const { typ } = type.dict;
+          return varNotFoundInType(typ, varType);
+        }
+        case 't-data-refinement': {
+          const { "data-type": dataType } = type.dict;
+          return varNotFoundInType(dataType, varType);
+        }
+        case 't-var': {
+          return varType.$name !== 't-var' || !sameName(type.dict.id, varType.dict.id);
+        }
+        case 't-existential': {
+          return varType.$name !== 't-existential' || !sameName(type.dict.id, varType.dict.id);
         }
         default: throw new ExhaustiveSwitchError(type);
       }
