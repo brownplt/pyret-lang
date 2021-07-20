@@ -24,7 +24,8 @@ data Request:
       checks :: String,
       type-check :: Boolean,
       recompile-builtins :: Boolean,
-      pipeline :: String)
+      pipeline :: String,
+      session :: String)
   | create-repl
   | compile-interaction(
       program :: String)
@@ -36,7 +37,7 @@ sharing:
           "program", program,
           "program-source", program-source]
       | compile-program(
-          program, base-dir, builtin-js-dir, checks, type-check, recompile-builtins, pipeline) =>
+          program, base-dir, builtin-js-dir, checks, type-check, recompile-builtins, pipeline, session) =>
         [SD.string-dict:
           "program", program,
           "base-dir", base-dir,
@@ -44,7 +45,8 @@ sharing:
           "checks", checks,
           "type-check", type-check,
           "recompile-builtins", recompile-builtins,
-          "pipeline", pipeline]
+          "pipeline", pipeline,
+          "session", session]
       | create-repl =>
         raise(".get-options not implemented for create-repl")
       | compile-interaction(_) =>
@@ -172,14 +174,19 @@ fun parse-compile-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-com
                           bind-option(
                             dict.get("pipeline"),
                             lam(pipeline):
-                            some(compile-program(
-                                program,
-                                base-dir,
-                                builtin-js-dir,
-                                checks,
-                                type-check,
-                                recompile-builtins,
-                                pipeline))
+                              bind-option(
+                                dict.get("session"),
+                                lam(session):
+                                  some(compile-program(
+                                      program,
+                                      base-dir,
+                                      builtin-js-dir,
+                                      checks,
+                                      type-check,
+                                      recompile-builtins,
+                                      pipeline,
+                                      session))
+                                end)
                             end)
                         end)
                     end)

@@ -1,4 +1,5 @@
 provide *
+import srcloc as SL
 import render-error-display as RED
 import runtime-lib as R
 import builtin-modules as B
@@ -26,7 +27,91 @@ import file("js-of-pyret.arr") as JSP
 import js-file("dependency-tree") as DT
 import js-file("filelib") as FS
 
+
+data Session:
+  | session(
+      module-cache :: SD.MutableStringDict<CS.Provides>,
+      ref globals :: CS.Globals
+    )
+end
+
+fun make-session():
+  session([SD.mutable-string-dict:], CS.standard-globals)
+end
+
+sessions = [SD.mutable-string-dict:]
+
 var module-cache = [SD.mutable-string-dict:]
+
+fun remove-globals-from-module(locator :: CL.Locator, g :: CS.Globals) -> CS.Globals:
+  uri = locator.uri()
+  fun remove-if-this-module(dict, key):
+    if dict.get-value(key).uri-of-definition == uri:
+      dict.remove(key)
+    else:
+      dict
+    end
+  end
+
+  CS.globals(
+    fold(remove-if-this-module, g.modules, g.modules.keys-list()),
+    fold(remove-if-this-module, g.values, g.values.keys-list()),
+    fold(remove-if-this-module, g.types, g.types.keys-list())
+  )
+end
+
+fun prepare-session(base :: CL.Located, options) block:
+  when not(sessions.has-key-now(options.session)):
+    sessions.set-now(options.session, make-session())
+  end
+  current-session = sessions.get-value-now(options.session)
+  current-session.module-cache.remove-now(base.locator.uri())
+  current-session!{ globals: remove-globals-from-module(base.locator, current-session!globals) }
+end
+
+fun get-starter-modules(options):
+  if options.recompile-builtins and (options.session == "empty") block:
+    [SD.mutable-string-dict:]
+  else if not(options.recompile-builtins) and (options.session == "empty"):
+    for each(sm from module-cache.keys-list-now()):
+      when string-index-of(sm, "builtin://") <> 0:
+        module-cache.remove-now(sm)
+      end
+    end
+    module-cache
+  else:
+    sessions.get-value-now(options.session).module-cache
+  end
+end
+
+fun add-globals-from-env(post-env :: CS.ComputedEnvironment, g :: CS.Globals) -> CS.Globals:
+  module-env = post-env.module-env
+  val-env = post-env.env
+  type-env = post-env.type-env
+
+  module-globals = for fold(mg from g.modules, k from module-env.keys-list()):
+    mg.set(k, module-env.get-value(k).origin)
+  end
+  val-globals = for fold(vg from g.values, k from val-env.keys-list()):
+    vg.set(k, val-env.get-value(k).origin)
+  end
+  type-globals = for fold(tg from g.types, k from type-env.keys-list()):
+    tg.set(k, type-env.get-value(k).origin)
+  end
+
+  CS.globals(module-globals, val-globals, type-globals)
+end
+
+fun save-session(options, base-locator, locator, loadable):
+  when (options.session <> "empty")
+      and (base-locator.uri() == locator.uri())
+      and CS.is-computed-env(loadable.post-compile-env):
+    current-session = sessions.get-value-now(options.session)
+    current-globals = current-session!globals
+    new-globals = add-globals-from-env(loadable.post-compile-env, current-globals)
+    current-session!{ globals: new-globals }
+  end
+end
 
 type Loadable = CS.Loadable
 
@@ -512,14 +597,22 @@ fun build-program(path, options, stats) block:
   }, base-module)
   clear-and-print("Compiling worklist...")
 
-  starter-modules = if options.recompile-builtins: [SD.mutable-string-dict:] else: module-cache end
-  for each(sm from starter-modules.keys-list-now()):
-    when string-index-of(sm, "builtin://") <> 0:
-      starter-modules.remove-now(sm)
+  prepare-session(base, options)
+
+  starter-modules = get-starter-modules(options)
+
+  base-locator = if options.session <> "empty":
+      base.locator.{
+        method get-globals(self):
+          sessions.get-value-now(options.session)!globals
+        end
+      }
+    else:
+      base.locator
     end
-  end
+
   clear-and-print("Found " + to-repr(starter-modules.keys-now()) + " as starter modules in-memory")
-  wl = CL.compile-worklist-known-modules(module-finder, base.locator, base.context, starter-modules)
+  wl = CL.compile-worklist-known-modules(module-finder, base-locator, base.context, starter-modules)
   clear-and-print("Found worklist of length: " + to-repr(wl.length()))
   compiler-edited-time = if FS.exists(CMD.file-name): F.file-times(CMD.file-name).mtime else: 0 end
   max-dep-times = CL.dep-times-from-worklist(wl, compiler-edited-time)
@@ -532,6 +625,7 @@ fun build-program(path, options, stats) block:
 
   clear-and-print("Loading existing compiled modules...")
 
+  print-progress("Aggregating modules and session was " + options.session)
   CL.modules-from-worklist-known-modules(wl, starter-modules, max-dep-times, get-loadable(options.compiled-cache, options.compiled-read-only.map(P.resolve), _, _))
   clear-and-print("Found " + to-repr(starter-modules.keys-now()) + " after looking at dep times")
 
@@ -543,7 +637,7 @@ fun build-program(path, options, stats) block:
   end
   shadow options = options.{
     method should-profile(_, locator):
-      options.add-profiling and (locator.uri() == base.locator.uri())
+      options.add-profiling and (locator.uri() == base-locator.uri())
     end,
     method before-compile(_, locator) block:
       num-compiled := num-compiled + 1
@@ -551,6 +645,7 @@ fun build-program(path, options, stats) block:
           + ": " + locator.name())
     end,
     method on-compile(self, locator, loadable, trace) block:
+      print-progress("Compiled " + locator.uri() + " and session was " + options.session)
       locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
@@ -563,6 +658,8 @@ fun build-program(path, options, stats) block:
       when num-compiled == total-modules:
         print-progress("\nCleaning up and generating standalone...\n")
       end
+
+      save-session(options, base-locator, locator, loadable)
       {static-path; code-path} = set-loadable(self, locator, loadable, max-dep-times)
       if (num-compiled == total-modules) and options.collect-all:
         # Don't squash the final JS-AST if we're collecting all of them, so
