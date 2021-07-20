@@ -1105,6 +1105,128 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
     }
 
+    function removeRefinementAndForalls(typ : TS.Type): TS.Type {
+      return map<TS.Type>({
+        't-forall': (visitor: TJ.Visitor<TS.Type>, forall : TJ.Variant<TS.Type, 't-forall'>) => {
+          const { introduces, onto } = forall.dict;
+          let ret = onto;
+          for (const aVar of listToArray(introduces)) {
+            ret = substitute(ret, newExistential(aVar.dict.l, false), aVar);
+          }
+          return map(visitor, ret);
+        },
+        't-data-refinement': (visitor: TJ.Visitor<TS.Type>, dataRefinement: TJ.Variant<TS.Type, 't-data-refinement'>) => {
+          return map(visitor, dataRefinement.dict['data-type']);
+        },
+        't-existential': (_, existential) => existential
+      }, typ);
+    }
+
+    function generalizeType(curType : TS.Type, nextType : TS.Type) : TS.Type {
+      const newVar = () => newExistential(curType.dict.l, false);
+      switch(curType.$name) {
+        case 't-name': {
+          if (curType.$name === nextType.$name) {
+            const sameModule = sameOrigin(curType.dict['module-name'], nextType.dict['module-name']);
+            const sameId = sameName(curType.dict.id, nextType.dict.id);
+            if (sameModule && sameId) {
+              return curType;
+            }
+          }
+          return newVar();
+        }
+        case 't-arrow': {
+          if (nextType.$name === curType.$name) {
+            const curArgs = listToArray(curType.dict.args);
+            const nextArgs = listToArray(nextType.dict.args);
+            if (curArgs.length === nextArgs.length) { 
+              const genArgs: TS.Type[] = [];
+              for (let i = 0; i < curArgs.length; i++) {
+                genArgs[i] = generalizeType(curArgs[i], nextArgs[i]);
+              }
+              const genRet = generalizeType(curType.dict.ret, nextType.dict.ret);
+              return TS['t-arrow'].app(runtime.ffi.makeList(genArgs), genRet, curType.dict.l, curType.dict.inferred);
+            }
+          }
+          return newVar();
+        }
+        case 't-app': {
+          if (nextType.$name === curType.$name) {
+            const curArgs = listToArray(curType.dict.args);
+            const nextArgs = listToArray(nextType.dict.args);
+            if (curArgs.length === nextArgs.length) { 
+              const genArgs: TS.Type[] = [];
+              for (let i = 0; i < curArgs.length; i++) {
+                genArgs[i] = generalizeType(curArgs[i], nextArgs[i]);
+              }
+              const genOnto = generalizeType(curType.dict.onto, nextType.dict.onto);
+              return TS['t-app'].app(genOnto, runtime.ffi.makeList(genArgs), curType.dict.l, curType.dict.inferred);
+            }
+          }
+          return newVar();
+        }
+        case 't-top': {
+          if (nextType.$name === curType.$name) { return curType; }
+          return newVar();
+        }
+        case 't-bot': {
+          if (nextType.$name === curType.$name) { return curType; }
+          return newVar();
+        }
+        case 't-record': {
+          if (curType.$name === nextType.$name) {
+            const curFields = mapFromStringDict(curType.dict.fields);
+            const nextFields = mapFromStringDict(nextType.dict.fields);
+            const genFields = new Map<string, TS.Type>();
+            for (let [curField, curType] of curFields) {
+              if (nextFields.has(curField)) {
+                genFields.set(curField, generalizeType(curType, nextFields.get(curField)));
+              }
+            }
+            return TS['t-record'].app(stringDictFromMap(genFields), curType.dict.l, curType.dict.inferred);
+          }
+          return newVar();
+        }
+        case 't-tuple': {
+          if (nextType.$name === curType.$name) {
+            const curElts = listToArray(curType.dict.elts);
+            const nextElts = listToArray(nextType.dict.elts);
+            if (curElts.length === nextElts.length) { 
+              const genElts: TS.Type[] = [];
+              for (let i = 0; i < curElts.length; i++) {
+                genElts[i] = generalizeType(curElts[i], nextElts[i]);
+              }
+              return TS['t-tuple'].app(runtime.ffi.makeList(genElts), curType.dict.l, curType.dict.inferred);
+            }
+          }
+          return newVar();
+        }
+        case 't-forall': {
+          throw new InternalCompilerError("foralls should have been removed already");
+        }
+        case 't-ref': {
+          if (nextType.$name === curType.$name) {
+            return TS['t-ref'].app(
+              generalizeType(curType.dict.typ, nextType.dict.typ), 
+              curType.dict.l, 
+              curType.dict.inferred);
+          }
+          return newVar();
+        }
+        case 't-data-refinement': {
+          throw new InternalCompilerError("refinements should have been removed already");
+        }
+        case 't-var': {
+          if (nextType.$name === curType.$name && sameName(curType.dict.id, nextType.dict.id)) {
+            return curType;
+          }
+          return newVar();
+        }
+        case 't-existential': return curType;
+        default: throw new ExhaustiveSwitchError(curType);
+      }
+    }
+
     // Examines a type and, if it is a t-forall, instantiates it with fresh variables
     // This process modifies system to record the newly generated variables.
     // All other types are unmodified.
