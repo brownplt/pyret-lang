@@ -626,29 +626,107 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             continue;
           }
           case "t-forall": {
-            const { introduces, onto, l } = supertype.dict;
-            const newExistentials = listToArray(introduces).map(v => newExistential(v.dict.l, false));
-            let newOnto = onto;
-            newExistentials.forEach((exists, index) => {
-              newOnto = substitute(newOnto, exists, introduces[index]);
-            });
-            system.addVariableSet(newExistentials);
+            const newOnto = instantiateForallWithFreshVars(supertype, system);
             constraints.push({ subtype, supertype: newOnto });
             continue;
           }
           default: {
             switch(subtype.$name) {
               case "t-name": {
-                if(!(supertype.$name === "t-name")) { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+                if(supertype.$name !== "t-name") { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
                 const sameModule = sameOrigin(subtype.dict['module-name'], supertype.dict['module-name']);
                 const sameId = sameName(subtype.dict.id, supertype.dict.id);
                 if (sameModule && sameId) { continue; }
                 else { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
               }
-              // TODO(joe): add cases starting at type-check-structs:607
-              // These cases appear to "just" destructure matching type shapes
-              // to add more constraints and then continue to unify
-
+              case "t-arrow": {
+                if(supertype.$name !== "t-arrow") { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+                const subtypeArgs = listToArray(subtype.dict.args);
+                const supertypeArgs = listToArray(supertype.dict.args);
+                if (subtypeArgs.length !== supertypeArgs.length) { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+                for (let i = 0; i < supertypeArgs.length; i++) {
+                  // contravariant argument types
+                  constraints.push({ subtype: supertypeArgs[i], supertype: subtypeArgs[i] });
+                }
+                // covariant return type
+                constraints.push({ subtype: subtype.dict.ret, supertype: supertype.dict.ret });
+                continue;
+              }
+              case "t-app": {
+                if(supertype.$name !== "t-app") { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+                const subtypeArgs = listToArray(subtype.dict.args);
+                const supertypeArgs = listToArray(supertype.dict.args);
+                if (subtypeArgs.length !== supertypeArgs.length) { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+                for (let i = 0; i < supertypeArgs.length; i++) {
+                  // covariant argument types
+                  constraints.push({ subtype: subtypeArgs[i], supertype: supertypeArgs[i] });
+                }
+                // covariant return type
+                constraints.push({ subtype: subtype.dict.onto, supertype: supertype.dict.onto });
+                continue;
+              }
+              case "t-top": {
+                // We've already checked that supertype is not t-top, above
+                throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype));
+              }
+              /*
+              This case can't happen, because of the short-circuiting on line 578
+              case "t-bot": {
+                if(supertype.$name !== "t-top") { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+                continue;
+              }
+              */
+              case "t-record": {
+                if(supertype.$name !== "t-record") { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+                const subtypeFields = mapFromStringDict(subtype.dict.fields);
+                const supertypeFields = mapFromStringDict(supertype.dict.fields);
+                for (let [superKey, superFieldType] of supertypeFields) {
+                  if (!subtypeFields.has(superKey)) { 
+                    // TODO(Matt): field-missing error
+                    throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); 
+                  }
+                  constraints.push({ subtype: subtypeFields.get(superKey), supertype: superFieldType });
+                }
+                continue;
+              }
+              case "t-tuple": {
+                if(supertype.$name !== "t-tuple") { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+                const subtypeElts = listToArray(subtype.dict.elts);
+                const supertypeElts = listToArray(supertype.dict.elts);
+                if (subtypeElts.length !== supertypeElts.length) { 
+                  // TODO(Matt): more specific error
+                  throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); 
+                }
+                for (let i = 0; i < supertypeElts.length; i++) {
+                  // covariant argument types
+                  constraints.push({ subtype: subtypeElts[i], supertype: supertypeElts[i] });
+                }
+                continue;                
+              }
+              case "t-forall": {
+                const newOnto = instantiateForallWithFreshVars(subtype, system);
+                constraints.push({ subtype: newOnto, supertype });
+                continue;
+              }
+              case "t-ref": {
+                if(supertype.$name !== "t-ref") { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+                // NOTE(Ben): should this be *invariant* (and add two constraints instead of just one)?
+                constraints.push({ subtype: subtype.dict.typ, supertype: supertype.dict.typ });
+                continue;
+              }
+              case "t-data-refinement": {
+                constraints.push({ subtype: subtype.dict['data-type'], supertype });
+                continue;
+              }
+              case "t-var": {
+                if(supertype.$name === "t-var" && sameName(subtype.dict.id, supertype.dict.id)) { continue; }
+                throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype));
+              }
+              case "t-existential": {
+                constraints.push({ subtype: supertype, supertype: subtype });
+                continue;
+              }
+              default: throw new ExhaustiveSwitchError(subtype);
             }
           }
 
@@ -1028,23 +1106,18 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     }
 
     // Examines a type and, if it is a t-forall, instantiates it with fresh variables
-    // This process modifies context to record the newly generated variables.
+    // This process modifies system to record the newly generated variables.
     // All other types are unmodified.
-    function instantiateForallWithFreshVars(type : TS.Type, context: Context): TS.Type {
-      switch(type.$name) {
-        case 't-forall': {
-          const { introduces, onto, l, inferred } = type.dict;
-          const introducesArr = listToArray(introduces);
-          const newExistentials = introducesArr.map((i) => newExistential(l, false));
-          let newOnto = onto;
-          for (let i = 0; i < newExistentials.length; i++) {
-            newOnto = substitute(newOnto, introducesArr[i], newExistentials[i]);
-          }
-          context.addVariableSet(newExistentials);
-          return newOnto;
-        }
-        default: return type;
+    function instantiateForallWithFreshVars(type : TJ.Variant<TS.Type, 't-forall'>, system : ConstraintSystem): TS.Type {
+      const { introduces, onto } = type.dict;
+      const introducesArr = listToArray(introduces);
+      const newExistentials = introducesArr.map((i) => newExistential(i.dict.l, false));
+      let newOnto = onto;
+      for (let i = 0; i < newExistentials.length; i++) {
+        newOnto = substitute(newOnto, introducesArr[i], newExistentials[i]);
       }
+      system.addVariableSet(newExistentials);
+      return newOnto;
     }
 
     // FOR DEBUGGNG AID; this will be set within typeCheck using its `options` parameter
