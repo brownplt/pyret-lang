@@ -7,6 +7,7 @@ import type * as TJ from './ts-codegen-helpers';
 import type * as TCS from './ts-type-check-structs';
 import type * as TCSH from './ts-compile-structs-helpers';
 import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } from './ts-impl-types';
+import { assertTSExpressionWithTypeArguments } from '@babel/types';
 
 ({
   requires: [
@@ -310,6 +311,22 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         this.fieldConstraints = new Map();
         this.exampleTypes = new Map();
       }
+
+      addFieldConstraint(type : TS.Type, fieldName : string, fieldType : TS.Type) : void{
+        const typKey = typeKey(type);
+        if (this.fieldConstraints.has(typKey)) {
+          const [_typ, labelMapping] = this.fieldConstraints.get(typKey);
+          if (labelMapping.has(fieldName)) {
+            labelMapping.get(fieldName).push(fieldType);
+          } else {
+            labelMapping.set(fieldName, [fieldType]);
+          }
+        } else {
+          const newMap: FieldConstraint = new Map();
+          newMap.set(fieldName, [fieldType]);
+          this.fieldConstraints.set(typKey, [type, newMap]);
+        }
+      }
     }
     class ConstraintSystem {
       levels: ConstraintLevel[];
@@ -399,19 +416,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       addFieldConstraint(type: TS.Type, fieldName: string, fieldType: TS.Type): void {
         this.ensureLevel("Can't add field constraints to an uninitialized system");
         const curLevel = this.curLevel();
-        const typKey = typeKey(type);
-        if (curLevel.fieldConstraints.has(typKey)) {
-          const [_typ, labelMapping] = curLevel.fieldConstraints.get(typKey);
-          if (labelMapping.has(fieldName)) {
-            labelMapping.get(fieldName).push(fieldType);
-          } else {
-            labelMapping.set(fieldName, [fieldType]);
-          }
-        } else {
-          const newMap: FieldConstraint = new Map();
-          newMap.set(fieldName, [fieldType]);
-          curLevel.fieldConstraints.set(typKey, [type, newMap]);
-        }
+        curLevel.addFieldConstraint(type, fieldName, fieldType);
       }
       addExampleVariable(
         existential: TS.Type,
@@ -449,6 +454,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         const level = new ConstraintLevel();
         this.levels.push(level);
       }
+      // ASSUMES(joe/ben): this === context.constraints
+      // Therefore in solveHelperFields & friends we don't need to do any merging of variables
+      // that happened in the existing type-checker, context.constraints aliases `this` and
+      // sees the same updates. Joe and Ben assert/assume/hope/etc. that this is Good Mutation.
       solveLevelHelper(solution : ConstraintSolution, context : Context) : ConstraintSolution {
         const afterConstraints = solveHelperConstraints(this, solution, context);
         const afterRefinements = solveHelperRefinements(this, afterConstraints, context);
@@ -491,10 +500,6 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         if(this.levels.length > 0) { this.addVariableSet(variablesToPreserve); }
         return new ConstraintSolution(variablesToPreserve, solutionWithExamples.substitutions);
       }
-    }
-
-    function solveHelperFields(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
-      return solution;
     }
 
     function substituteInConstraints(newType : TS.Type, typeVar : TS.Type, constraints : Constraint[]) {
@@ -541,6 +546,76 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       curLevel.refinementConstraints = substituteInRefinements(newType, typeVar, curLevel.refinementConstraints);
       substituteInFields(newType, typeVar, curLevel.fieldConstraints);
       substituteInExamples(newType, typeVar, curLevel.exampleTypes);
+    }
+
+    function solveHelperFields(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
+      const { fieldConstraints, variables } = system.curLevel();
+      const entries = [...(fieldConstraints.entries())];
+      if(entries.length === 0) { return new ConstraintSolution(); }
+      while(entries.length !== 0) {
+        const [key, [typ, fieldMappings]] = entries.pop();
+        const instantiated = instantiateObjectType(typ, context);
+        switch(typ.$name) {
+          case "t-record": {
+            const fields = mapFromStringDict(typ.dict.fields);
+            const requiredFieldSet = new Set(fieldMappings.keys());
+            const intersection = new Set<string>();
+            const remainingFields = new Set<string>();
+            for(let s of requiredFieldSet) {
+              if(fields.has(s)) { intersection.add(s); }
+              else { remainingFields.add(s); }
+            }
+            if(remainingFields.size > 0) {
+              const missingFieldErrors = [...remainingFields].map(rfn =>
+                CS['object-missing-field'].app(rfn, String(typ), typ.dict.l, fieldMappings.get(rfn)[0].dict.l)
+              );
+              throw new TypeCheckFailure(...missingFieldErrors);
+            }
+            else {
+              for(let fieldName of intersection) {
+                for(let fieldType of fieldMappings.get(fieldName)) {
+                  const objectFieldType = fields.get(fieldName);
+                  system.addConstraint(objectFieldType, fieldType);
+                }
+              }
+              // NOTE(joe/ben): this early return from the loop is kinda weird. Note that
+              // solveLevelHelper will get back here! But the existing algorithm does not
+              // process the rest of the fieldConstraints now, in the case of t-record
+              // it goes onto other constraints first.
+              return system.solveLevelHelper(solution, context);
+            }
+          }
+          case "t-existential": {
+            if(variables.has(typeKey(typ))) {
+              throw new TypeCheckFailure(CS['unable-to-infer'].app(typ.dict.l));
+            }
+            for(let [fieldName, fieldTypes] of fieldMappings) {
+              for(let fieldType of fieldTypes) {
+                system.levels[system.levels.length - 2].addFieldConstraint(typ, fieldName, fieldType);
+              }
+            }
+            // NOTE(ben/joe): this is a recursive call in the original Pyret code
+            continue;
+          }
+          default: {
+            const dataType = instantiateDataType(typ, context);
+            const dataFields = mapFromStringDict(dataType.dict.fields);
+            for(let [fieldName, fieldTypes] of fieldMappings) {
+              if(dataFields.has(fieldName)) {
+                const dataFieldType = dataFields.get(fieldName);
+                for(let fieldType of fieldTypes) {
+                  system.addConstraint(dataFieldType, fieldType);
+                }
+              }
+              else {
+                throw new TypeCheckFailure(CS['object-missing-field'].app(fieldName, String(typ), typ.dict.l, fieldMappings.get(fieldName)[0].dict.l))
+              }
+            }
+            return system.solveLevelHelper(solution, context);
+          }
+        }
+      }
+      return solution;
     }
 
     function solveHelperConstraints(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
@@ -1279,6 +1354,58 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     function substituteFields(fields: Map<string, TS.Type>, newType: TS.Type, typeVar: TS.Type): void {
       for (let [f, fType] of fields) {
         fields[f] = substitute(fType, newType, typeVar);
+      }
+    }
+
+    function instantiateObjectType(typ : TS.Type, context : Context) : TS.Type {
+      typ = resolveAlias(typ, context);
+      switch(typ.$name) {
+        case "t-name": { return typ; }
+        case "t-app": {
+          const { onto, args, l, inferred } = typ.dict;
+          const aOnto = resolveAlias(onto, context);
+          const argsArray = listToArray(args);
+          switch(aOnto.$name) {
+            case "t-name": return TS['t-app'].app(aOnto, args, l, inferred);
+            case "t-forall": {
+              const introduces = listToArray(aOnto.dict.introduces);
+              const bOnto = aOnto.dict.onto;
+              if (argsArray.length !== introduces.length) {
+                throw new TypeCheckFailure(CS['bad-type-instantiation'].app(typ, introduces.length));
+              }
+              else {
+                let newOnto = bOnto;
+                for(let i = 0; i < argsArray.length; i += 1) {
+                  newOnto = substitute(newOnto, argsArray[i], introduces[i]);
+                }
+                return newOnto;
+              }
+            }
+            case "t-app": {
+              const newOnto = instantiateObjectType(aOnto.dict.onto, context);
+              return instantiateObjectType(TS['t-app'].app(newOnto, args, l, inferred), context);
+            }
+            case "t-existential": {
+              throw new TypeCheckFailure(CS['unable-to-infer'].app(aOnto.dict.l));
+            }
+            default: {
+              throw new TypeCheckFailure(CS['incorrect-type'].app(String(aOnto), aOnto.dict.l, "a polymorphic type", l));
+            }
+          }
+        }
+        case "t-record": return typ;
+        case "t-data-refinement": {
+          const newDataType = instantiateObjectType(typ.dict['data-type'], context);
+          return TS['t-data-refinement'].app(newDataType, typ.dict['variant-name'], typ.dict.l, typ.dict.inferred);
+        }
+        case "t-existential": return typ;
+        case "t-forall": {
+          const instantiated = instantiateForallWithFreshVars(typ, context.constraints);
+          return instantiateObjectType(instantiated, context);
+        }
+        default: {
+          throw new TypeCheckFailure(CS['incorrect-type'].app(String(typ), typ.dict.l, "an object type", typ.dict.l));
+        }
       }
     }
 
