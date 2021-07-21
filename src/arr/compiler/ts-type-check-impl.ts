@@ -70,31 +70,6 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
     }
 
-    /*
-    function substitute(substIn : TS.Type, newType : TS.Type, typeVar : TS.Type) : TS.Type {
-      return map({
-        "t-var": (self, substFor) => {
-          if(typeVar.$name === "t-var" && sameName(substFor.dict.id, typeVar.dict.id)) {
-            return setTypeLoc(newType, substFor.dict.l);
-          }
-          return substFor;
-        },
-        "t-existential": (self, substFor) => {
-          if(typeVar.$name === "t-var" && sameName(substFor.dict.id, typeVar.dict.id)) {
-            if(substFor.dict.inferred) {
-              return setTypeLoc(newType, substFor.dict.l);
-            }
-            else {
-              return newType;
-            }
-            
-          }
-          return substFor;
-        }
-      }, substIn);
-    }
-    */
-
     function sameOrigin(o1 : TS.NameOrigin, o2 : TS.NameOrigin) : boolean {
       switch(o1.$name) {
         case "local": {
@@ -139,6 +114,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       return TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("Number"), l, false);
     }
 
+    // Note: if typeKey(t1) === typeKey(t2), then t1 == t2 (as Pyret values)
     function typeKey(type : TS.Type & { $key?: string }) : string {
       if(!("$key" in type)) {
         const key = _typeKey(type);
@@ -147,7 +123,6 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       return type.$key;
     }
     function _typeKey(type: TS.Type): string {
-      // TODO(joe): memoize the result on the type object?
       switch(type.$name) {
         case 't-name': {
           const { "module-name": modName, id } = type.dict;
@@ -948,7 +923,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       newType.dict.inferred = inferred;
       return newType;
     }
-
+ 
     function substitute(type: TS.Type, newType: TS.Type, typeVar: TS.Type): TS.Type {
       switch(type.$name) {
         case 't-name': return type;
@@ -1276,6 +1251,112 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         }
         default: throw new TypeCheckFailure(CS['bad-type-instantiation'].app(appType, 0));
       }
+    }
+
+    function substituteVariant(variant: TS.TypeVariant, newType: TS.Type, typeVar: TS.Type): TS.TypeVariant {
+      switch(variant.$name) {
+        case 't-variant': {
+          const fields = listToArray(variant.dict.fields);
+          const withFields = mapFromStringDict(variant.dict['with-fields']);
+          for (let i = 0; i < fields.length; i++) {
+            fields[i].vals[1] = substitute(fields[i].vals[1], newType, typeVar);
+          }
+          substituteFields(withFields, newType, typeVar);
+          return TS['t-variant'].app(
+            variant.dict.name,
+            runtime.ffi.makeList(fields),
+            stringDictFromMap(withFields),
+            variant.dict.l);
+        }
+        case 't-singleton-variant': {
+          const withFields = mapFromStringDict(variant.dict['with-fields']);
+          substituteFields(withFields, newType, typeVar);
+          return TS['t-singleton-variant'].app(variant.dict.name, stringDictFromMap(withFields), variant.dict.l);
+        }
+        default: throw new ExhaustiveSwitchError(variant);
+      }
+    }
+    function substituteFields(fields: Map<string, TS.Type>, newType: TS.Type, typeVar: TS.Type): void {
+      for (let [f, fType] of fields) {
+        fields[f] = substitute(fType, newType, typeVar);
+      }
+    }
+
+    function instantiateDataType(typ: TS.Type, context: Context): TS.DataType {
+      function helper(typ : TS.Type, context: Context): TS.DataType {
+        switch (typ.$name) {
+          case 't-name': {
+            const nameKey = nameToKey(typ.dict.id);
+            if (context.dataTypes.has(nameKey)) { return context.dataTypes.get(nameKey); }
+            throw new TypeCheckFailure(CS['cant-typecheck'].app(`Expected a data type but got ${String(typ)}`, typ.dict.l));
+          }
+          case 't-app': {
+            const args = listToArray(typ.dict.args);
+            const onto = resolveAlias(typ.dict.onto, context);
+            switch (onto.$name) {
+              case 't-name': {
+                const dataType = helper(onto, context);
+                const params = listToArray(dataType.dict.params);
+                const variants = listToArray(dataType.dict.variants);
+                const fields = mapFromStringDict(dataType.dict.fields);
+                if (args.length === params.length) {
+                  for (let i = 0; i < args.length; i++) {
+                    for (let v = 0; v < variants.length; v++) {
+                      variants[v] = substituteVariant(variants[v], args[i], params[i]);
+                    }
+                    substituteFields(fields, args[i], params[i]);
+                  }
+                  return TS['t-data'].app(
+                    dataType.dict.name, 
+                    runtime.ffi.makeList([]), 
+                    runtime.ffi.makeList(variants), 
+                    stringDictFromMap(fields), 
+                    dataType.dict.l);
+                } else {
+                  throw new TypeCheckFailure(CS['bad-type-instantiation'].app(typ, params.length));
+                }
+              }
+              default: {
+                const newOnto = simplifyTApp(typ, context);
+                return instantiateDataType(newOnto, context);
+              }
+            }
+          }
+          case 't-data-refinement': {
+            const dataType = instantiateDataType(typ.dict['data-type'], context);
+            const variant = listToArray(dataType.dict.variants).find((v) => v.dict.name === typ.dict['variant-name']);
+            if (variant === undefined) {
+              throw new InternalCompilerError(`data type ${dataType.dict.name} did not have a variant named ${typ.dict['variant-name']}`);
+            }
+            const newFields = mapFromStringDict(dataType.dict.fields);
+            for (const [f, fType] of mapFromStringDict(variant.dict['with-fields'])) {
+              newFields.set(f, fType);
+            }
+            if (variant.$name === 't-variant') {
+              for (const f of listToArray(variant.dict.fields)) {
+                const [name, type] = f.vals;
+                newFields.set(name, type);
+              }
+            }
+            const { name, params, variants, l } = dataType.dict;
+            return TS['t-data'].app(name, params, variants, stringDictFromMap(newFields), l);
+          }
+          case 't-forall': {
+            const newTyp = instantiateForallWithFreshVars(typ, context.constraints);
+            return instantiateDataType(newTyp, context);
+          }
+          case 't-existential': {
+            throw new TypeCheckFailure(CS['unable-to-infer'].app(typ.dict.l))
+          }
+          default: throw new TypeCheckFailure(CS['cant-typecheck'].app(`Expected a data type but got ${String(typ)}`, typ.dict.l));
+        }
+      }
+      const ret = helper(typ, context);
+      const params = listToArray(ret.dict.params);
+      if (params.length > 0) {
+        throw new TypeCheckFailure(CS['cant-typecheck'].app(`${String(typ)} expected ${params.length} type arguments, but received none`, ret.dict.l));
+      }
+      return ret;
     }
 
     function checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : Context) : void {
