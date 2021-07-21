@@ -467,7 +467,14 @@ class Chat extends React.Component<ChatProps, any> {
 
     if (chunk.errorState.status === 'failed' && 'markText' in chunkEditor) {
       chunkResultsPart = (
-        <div>
+        <div
+          style={{
+            display: 'flex',
+            width: '100%',
+            justifyContent: 'flex-end',
+            marginBottom: '0.5em',
+          }}
+        >
           {chunk.errorState.failures.map((failure, i) => (
             // eslint-disable-next-line
             <div className="chatitor-rhs" key={i}>
