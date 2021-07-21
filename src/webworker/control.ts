@@ -170,6 +170,7 @@ export const setupWorkerMessageHandler = (
   onCompileInteractionSuccess: (data: { program: string }) => void,
   onCompileInteractionFailure: (data: { program: string }) => void,
 ): void => {
+  /*
   worker.addEventListener('message', backend.makeBackendMessageHandler(
     onLog,
     setupFinished,
@@ -182,6 +183,7 @@ export const setupWorkerMessageHandler = (
     onCompileInteractionSuccess,
     onCompileInteractionFailure,
   ));
+  */
 };
 
 export const openOrCreateFile = (filePath: string): string => {

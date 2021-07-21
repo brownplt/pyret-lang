@@ -337,6 +337,7 @@ function handleCompileSuccess(state: State): State {
 }
 
 function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State {
+  debugger;
   console.log('run result', status.result.perfResults);
   const rhs = makeRHSObjects(status.result, `file://${state.currentFile}`);
 
@@ -1095,6 +1096,8 @@ function handleUpdate(
       return { ...state, editorLoopDropdownVisible: action.value };
     case 'backendCmd':
       return { ...state, backendCmd: action.value };
+    case 'updater':
+      return action.value(state);
     default:
       throw new Error(`handleUpdate: unknown action ${JSON.stringify(action)}`);
   }
@@ -1112,7 +1115,7 @@ async function runSessionAsync(state : State, action : Action) : Promise<any> {
   });
   for(let c of chunks) {
     const filename = `${state.currentFile}-${c.id}`;
-    const { dir, base } = bfsSetup.path.parse(state.currentFile);
+    const { dir, base } = bfsSetup.path.parse(filename);
     const result = await serverAPI.compileAndRun({
       baseDir: dir,
       program: base,
@@ -1128,6 +1131,18 @@ async function runSessionAsync(state : State, action : Action) : Promise<any> {
       checkBlockFilter: ideRt.checkBlockFilter,
     });
     console.log("Result from running: ", result);
+
+    if(result.type === 'compile-failure') {
+      store.dispatch({ type: 'update', key: 'updater', value: s => {
+        return handleCompileFailure(s, { effectKey: 'compile', errors: result.errors});
+      }});
+      return "runSessionAsyncFinished";
+    }
+    else {
+      store.dispatch({ type: 'update', key: 'updater', value: s => {
+        return handleRunSuccess(s, { effectKey: 'run', result: result.result });
+      }});
+    }
   }
   console.log("Returning from runSessionAsync");
   return "runSessionAsyncFinished";
