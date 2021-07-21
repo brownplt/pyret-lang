@@ -4,6 +4,7 @@ import * as runner from './runner';
 import * as backend from './backend';
 import * as path from './path';
 import { RuntimeConfig } from './runner';
+import { CompileOptions, RunKind, runProgram2 } from './backend';
 
 const runtimeFiles = require('./runtime-files.json');
 
@@ -169,7 +170,7 @@ export const setupWorkerMessageHandler = (
   onCompileInteractionSuccess: (data: { program: string }) => void,
   onCompileInteractionFailure: (data: { program: string }) => void,
 ): void => {
-  worker.onmessage = backend.makeBackendMessageHandler(
+  worker.addEventListener('message', backend.makeBackendMessageHandler(
     onLog,
     setupFinished,
     onCompileFailure,
@@ -180,7 +181,7 @@ export const setupWorkerMessageHandler = (
     onCreateReplSuccess,
     onCompileInteractionSuccess,
     onCompileInteractionFailure,
-  );
+  ));
 };
 
 export const openOrCreateFile = (filePath: string): string => {
@@ -190,3 +191,134 @@ export const openOrCreateFile = (filePath: string): string => {
   bfsSetup.fs.writeFileSync(filePath, '');
   return '';
 };
+
+type CompileResult =
+  | 'ok'
+  | string[];
+
+type LintResult =
+  | {data: { name: string, errors: string[] } }
+  | {data: { name: string } };
+
+type ServerAPIEvent =
+  | { type: 'compile', action: () => void, resolve: (result : CompileResult) => void}
+  | { type: 'lint', action: () => void, resolve: (result : LintResult) => void};
+
+type CompileAndRunResult =
+  | { type: 'compile-failure', errors: string[] }
+  | { type: 'run-result', result: any };
+
+export function makeServerAPI(echoLog : (l : string) => void, setupFinished : () => void) {
+  const queue : ServerAPIEvent[] = [];
+
+  function finishAndProcessNext() {
+    queue.shift();
+    if(queue.length > 0) {
+      queue[0].action();
+    }
+  }
+
+  function addEvent(e : ServerAPIEvent) {
+    queue.push(e);
+    if(queue.length === 1) { e.action(); }
+  }
+
+  function serverAPIMessageHandler(e: MessageEvent) {
+    if (e.data.browserfsMessage === true) {
+      return null;
+    }
+    const msgObject: any = JSON.parse(e.data);
+    const msgType = msgObject.type;
+
+    if (msgObject.tag === 'error') {
+      try {
+        console.log(JSON.parse(msgObject.data));
+      } catch (err) {
+        console.log(msgObject.data);
+      }
+    }
+
+    const currentEvent = queue[0];
+
+    if (msgType === undefined) {
+      return null;
+    }
+    else if (msgType === 'echo-log') {
+      echoLog(msgObject.contents);
+    } else if (msgType === 'setup-finished') {
+      setupFinished();
+    } else if (queue.length === 0) {
+      console.log("received with empty queue: ", msgObject);
+    } else if (msgType === 'compile-failure') {
+      if(currentEvent.type !== 'compile') {
+        throw new Error(`Mismatched event and response ${msgType} ${currentEvent.type}`);
+      }
+      currentEvent.resolve(msgObject.data);
+      finishAndProcessNext();
+    } else if (msgType === 'compile-success') {
+      if(currentEvent.type !== 'compile') {
+        throw new Error(`Mismatched event and response ${msgType} ${currentEvent.type}`);
+      }
+      currentEvent.resolve('ok');
+      finishAndProcessNext();
+    } else {
+      console.error(msgObject);
+      throw new Error(`Unhandled message type: ${msgType}`);
+    }
+    return null;
+  }
+
+  worker.addEventListener('message', serverAPIMessageHandler);
+
+  function compile(options : CompileOptions) : Promise<CompileResult> {
+    function compileAction() {
+      const message = {
+        request: 'compile-program',
+        program: options.program,
+        'base-dir': options.baseDir,
+        'builtin-js-dir': options.builtinJSDir,
+        checks: options.checks,
+        'type-check': options.typeCheck,
+        'recompile-builtins': options.recompileBuiltins,
+        pipeline: 'anchor',
+        session: options.session || "frontend-will-change",
+      };
+
+      worker.postMessage(message);
+    }
+    return new Promise((resolve) => {
+      addEvent({
+        type: 'compile',
+        resolve: resolve,
+        action: compileAction
+      });
+    });
+  }
+
+  function run(
+      baseDir : string,
+      program : string,
+      runKind : RunKind,
+      rtCfg?: RuntimeConfig)
+    : Promise<any> {
+    return new Promise((resolve) => {
+      runProgram2(runner, baseDir, program, runKind, rtCfg).then(runner => {
+        return runner.run(resolve);
+      })
+    })
+  }
+
+  async function compileAndRun(options: CompileOptions, runKind: RunKind, rtCfg? : RuntimeConfig) : Promise<CompileAndRunResult> {
+    const compileResult = await compile(options);
+    if(compileResult === 'ok') {
+      return run(path.runBase, `${options.program}.js`, runKind, rtCfg).then(result => {
+        return {type: 'run-result', result };
+      });
+    }
+    else {
+      return {type: 'compile-failure', errors: compileResult };
+    }
+  }
+
+  return { compile, run, compileAndRun };
+}

@@ -12,6 +12,7 @@ export interface CompileOptions {
   typeCheck: boolean,
   checks: string,
   recompileBuiltins: boolean,
+  session?: string
 }
 
 export enum RunKind {
@@ -25,6 +26,52 @@ export type RunResult = {
 };
 
 let compileStart = window.performance.now();
+
+
+
+export const runProgram2 = (
+  runner: any,
+  baseDir: string,
+  program: string,
+  runKind: RunKind,
+  rtCfg?: RuntimeConfig,
+): Promise<any> => {
+  runner.resetTimings();
+  if (runKind === RunKind.Sync) {
+    const result = runner.makeRequire(baseDir, rtCfg)(program);
+    return Promise.resolve({
+      perfResults: runner.getTimingResults(),
+      result,
+    });
+  } if (runKind === RunKind.Async) {
+    return new Promise<any>((resolve) => {
+      runner.makeRequireAsync(baseDir, rtCfg)(program).then((asyncRunner: any) => {
+        resolve({
+          run: (callback: (result: RunResult) => void): void => {
+            asyncRunner.run.then((result: any) => {
+              callback({
+                perfResults: runner.getTimingResults(),
+                result,
+              });
+            }).catch((result: any) => {
+              callback({
+                perfResults: runner.getTimingResults(),
+                result: { error: String(result.value), result },
+              });
+            });
+          },
+          pause: (callback: (line: number) => void): void => {
+            asyncRunner.pause(callback);
+          },
+          resume: (): void => {
+            asyncRunner.resume();
+          },
+        });
+      });
+    });
+  }
+  return assertNever(runKind);
+};
 
 /*
  * Handles Pyret compiler messages ONLY.
@@ -157,49 +204,6 @@ const assertNever = (arg: never): never => {
   throw new Error('assertNever');
 };
 
-export const runProgram2 = (
-  runner: any,
-  baseDir: string,
-  program: string,
-  runKind: RunKind,
-  rtCfg?: RuntimeConfig,
-): Promise<any> => {
-  runner.resetTimings();
-  if (runKind === RunKind.Sync) {
-    const result = runner.makeRequire(baseDir, rtCfg)(program);
-    return Promise.resolve({
-      perfResults: runner.getTimingResults(),
-      result,
-    });
-  } if (runKind === RunKind.Async) {
-    return new Promise<any>((resolve) => {
-      runner.makeRequireAsync(baseDir, rtCfg)(program).then((asyncRunner: any) => {
-        resolve({
-          run: (callback: (result: RunResult) => void): void => {
-            asyncRunner.run.then((result: any) => {
-              callback({
-                perfResults: runner.getTimingResults(),
-                result,
-              });
-            }).catch((result: any) => {
-              callback({
-                perfResults: runner.getTimingResults(),
-                result: { error: String(result.value), result },
-              });
-            });
-          },
-          pause: (callback: (line: number) => void): void => {
-            asyncRunner.pause(callback);
-          },
-          resume: (): void => {
-            asyncRunner.resume();
-          },
-        });
-      });
-    });
-  }
-  return assertNever(runKind);
-};
 
 export const runProgram = (
   runner: any,

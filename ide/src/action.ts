@@ -7,6 +7,7 @@ import {
   MessageTabIndex,
   EditorResponseLoop,
   BackendCmd,
+  State,
 } from './state';
 import { Effect, EffectKey } from './effect';
 import { RawRTMessage } from './rtMessages';
@@ -78,7 +79,7 @@ export function isSingleChunkUpdate(update: ChunksUpdate): update is SingleChunk
 
 // TODO(alex): Split editor updates into a separate type
 export type Update =
-  (| { key: 'editorMode', value: EditorMode }
+  | { key: 'editorMode', value: EditorMode }
   | { key: 'currentRunner', value: any }
   | { key: 'currentFileContents', value: string }
   | { key: 'browsePath', value: string }
@@ -100,7 +101,11 @@ export type Update =
   | { key: 'messageTabIndex', value: MessageTabIndex }
   | { key: 'editorResponseLoop', value: EditorResponseLoop }
   | { key: 'editorLoopDropdownVisible', value: boolean }
-  | { key: 'backendCmd', value: BackendCmd });
+  | { key: 'backendCmd', value: BackendCmd }
+  | { key: 'updater', value: (state : State) => State };
+
+export type Run =
+  | { key: 'runProgram' };
 
 export type UpdateKey = Update['key'];
 
@@ -113,10 +118,11 @@ export type EffectStarted = { effect: number };
 export type EnqueueEffect = { effect: Effect };
 
 export type Action =
-  (| { type: 'effectStarted' } & EffectStarted
+  | { type: 'effectStarted' } & EffectStarted
   | { type: 'effectEnded' } & EffectEnded
   | { type: 'enqueueEffect' } & EnqueueEffect
-  | { type: 'update' } & Update);
+  | { type: 'update' } & Update
+  | { type: 'runSession' } & Run;
 
 export type ActionType = Action['type'];
 
