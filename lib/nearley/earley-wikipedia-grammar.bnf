@@ -1,0 +1,7 @@
+/*
+    name: WikipediaGrammar
+*/
+p: s
+s: s PLUS m | m
+m: m TIMES t | t
+t: NUMBER
