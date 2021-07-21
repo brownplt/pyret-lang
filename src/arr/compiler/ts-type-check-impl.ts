@@ -1230,16 +1230,21 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     // Examines a type and, if it is a t-forall, instantiates it with fresh variables
     // This process modifies system to record the newly generated variables.
     // All other types are unmodified.
-    function instantiateForallWithFreshVars(type : TJ.Variant<TS.Type, 't-forall'>, system : ConstraintSystem): TS.Type {
-      const { introduces, onto } = type.dict;
-      const introducesArr = listToArray(introduces);
-      const newExistentials = introducesArr.map((i) => newExistential(i.dict.l, false));
-      let newOnto = onto;
-      for (let i = 0; i < newExistentials.length; i++) {
-        newOnto = substitute(newOnto, introducesArr[i], newExistentials[i]);
+    function instantiateForallWithFreshVars(type : TS.Type, system : ConstraintSystem): TS.Type {
+      switch (type.$name) {
+        case 't-forall': {
+          const { introduces, onto } = type.dict;
+          const introducesArr = listToArray(introduces);
+          const newExistentials = introducesArr.map((i) => newExistential(i.dict.l, false));
+          let newOnto = onto;
+          for (let i = 0; i < newExistentials.length; i++) {
+            newOnto = substitute(newOnto, introducesArr[i], newExistentials[i]);
+          }
+          system.addVariableSet(newExistentials);
+          return newOnto;
+        }
+        default: return type;
       }
-      system.addVariableSet(newExistentials);
-      return newOnto;
     }
 
     // FOR DEBUGGNG AID; this will be set within typeCheck using its `options` parameter
