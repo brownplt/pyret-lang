@@ -35,7 +35,7 @@
   padding-right: 2em;
 }
 .chat.checkmark .CodeMirror::after {
-  content: '\01F5F8';
+  content: "✓";
   display: block;
   position: relative;
   height: 0;
