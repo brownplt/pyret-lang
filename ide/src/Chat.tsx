@@ -88,6 +88,7 @@ type PropsFromReact = {
 };
 
 type DispatchProps = {
+  run: () => void,
   setChunks: (chunks: ChunksUpdate) => void,
   setChunkToRHS: (chunkToRHS: RHSObjects[]) => void,
   enqueueEffect: (effect: Effect) => void,
@@ -97,6 +98,9 @@ type DispatchProps = {
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
+    run() {
+      dispatch({ type: 'runSession', key: 'runProgram' });
+    },
     setChunks(chunks: ChunksUpdate) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });
     },
@@ -317,7 +321,7 @@ class Chat extends React.Component<ChatProps, any> {
      either case, a run is triggered by saving the file. */
   handleEnter(editor: CodeMirror.Editor & CodeMirror.Doc, event: Event) {
     const {
-      enqueueEffect,
+      run
     } = this.props;
     const pos = editor.getCursor();
     const token = editor.getTokenAt(pos);
@@ -325,8 +329,9 @@ class Chat extends React.Component<ChatProps, any> {
     // An enter anywhere on a single-line chat in which the ENTIRE chat is
     // codemirror-parsible
     const singleLineEnter = editor.getValue().split('\n').length === 1 && lineEndToken.state.lineState.tokens.length === 0;
-    if ((event as any).shiftKey || singleLineEnter || token.state.lineState.tokens.length === 0) {
-      enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
+    if ((event as any).shiftKey /* || singleLineEnter || token.state.lineState.tokens.length === 0 */) {
+      // enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
+      run();
       editor.getInputField().blur();
       event.preventDefault();
     }

@@ -38,6 +38,24 @@ import { NeverError } from './utils';
 import Chatitor from './Chatitor';
 import GlobalInteractions from './GlobalInteractions';
 
+/*
+function compileAndRun(name : string, source : string) : Promise<RunResult> {
+  const p1 = control.backend.compile(name, source, options...);
+  const p2 = p1.then((compileResult) => {
+    return control.backend.run(name);
+  });
+  return p2;
+}
+
+function editorWhenYouClickRun() {
+  const segments = getSegments();
+  for(let [name, source] of segments) {
+    const result = await compileAndRun(name, source);
+    updateReduxState(result);
+  }
+}
+*/
+
 type StateProps = {
   browseRoot: string,
   currentFileContents: undefined | string,

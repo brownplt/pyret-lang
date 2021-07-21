@@ -15,7 +15,7 @@ import {
   Chunk, emptyChunk, getStartLineForIndex, lintSuccessState,
 } from './chunk';
 import { RHSObjects } from './rhsObject';
-import { BackendCmd, Effect } from './effect';
+import { Effect } from './effect';
 import Chat from './Chat';
 
 type StateProps = {
@@ -27,6 +27,7 @@ type StateProps = {
 };
 
 type DispatchProps = {
+  run: () => void,
   setRHS: () => void,
   setChunks: (chunks: ChunksUpdate) => void,
   enqueueEffect: (effect: Effect) => void,
@@ -52,6 +53,9 @@ function mapStateToProps(state: State): StateProps {
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
+    run() {
+      dispatch({ type: 'runSession', key: 'runProgram' });
+    },
     setRHS() {
       dispatch({ type: 'update', key: 'rhs', value: 'make-outdated' });
     },
@@ -70,9 +74,9 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type DefChunksProps = PropsFromRedux & DispatchProps & StateProps;
 
 function Chatitor({
+  run,
   chunks,
-  setChunks,
-  enqueueEffect,
+  setChunks
 }: DefChunksProps) {
   const doc = React.useState<CodeMirror.Doc>(() => {
     const wholeProgram = chunks.reduce((acc, { editor }) => (
@@ -143,7 +147,11 @@ function Chatitor({
                   ];
                   setChunks({ chunks: nextChunks, modifiesText: true });
                   editor.setValue('');
-                  enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
+                  if((event as KeyboardEvent).shiftKey) {
+                    debugger;
+                    run();
+                  }
+                  // enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
                   event.preventDefault();
                 }
               } else {

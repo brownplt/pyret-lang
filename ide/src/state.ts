@@ -127,6 +127,9 @@ export type State = {
   /* True if the program is running, false otherwise. */
   running: boolean,
 
+  /* True if program is running through session */
+  runningSession: boolean,
+
   /* Names of the menus. These appear in the top left of the page. */
   menuItems: MenuItems,
 
@@ -217,6 +220,7 @@ export const initialState: State = {
   linted: false,
   compiling: false,
   running: false,
+  runningSession: false,
   chunks: [],
   focusedChunk: undefined,
   menuTabVisible: false,

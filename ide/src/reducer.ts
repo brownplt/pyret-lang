@@ -54,12 +54,19 @@ import {
   cleanStopify,
 } from './ide-rt-helpers';
 
+import * as ideRt from './ide-rt-override';
+
 import {
   RawRTMessage,
   makeRTMessage,
   RTMessages,
 } from './rtMessages';
 import { NeverError } from './utils';
+import store from './store';
+import { fs } from './browserfs-setup';
+import * as path from './path';
+import { bfsSetup, makeServerAPI } from './control';
+import { optionalCallExpression } from '@babel/types';
 
 // TODO(alex): Handling enter needs to be changed
 //   With the current setup, you will need to call `handleEnter` at the end of
@@ -1093,6 +1100,48 @@ function handleUpdate(
   }
 }
 
+const serverAPI = makeServerAPI(
+  msg => console.log("From server API: ", msg),
+  () => console.log("Setup finished from server API"));
+
+async function runSessionAsync(state : State, action : Action) : Promise<any> {
+  const chunks  = state.chunks;
+  chunks.forEach(c => {
+    const filename = `${state.currentFile}-${c.id}`;
+    fs.writeFileSync(filename, c.editor.getValue());
+  });
+  for(let c of chunks) {
+    const filename = `${state.currentFile}-${c.id}`;
+    const { dir, base } = bfsSetup.path.parse(state.currentFile);
+    const result = await serverAPI.compileAndRun({
+      baseDir: dir,
+      program: base,
+      builtinJSDir: path.compileBuiltinJS,
+      checks: 'none',
+      typeCheck: true,
+      recompileBuiltins: false,
+      session: "reducer-session"
+    }, state.runKind, {
+      spyMessgeHandler: ideRt.defaultSpyMessage,
+      spyExprHandler: ideRt.defaultSpyExpr,
+      imgUrlProxy: ideRt.defaultImageUrlProxy,
+      checkBlockFilter: ideRt.checkBlockFilter,
+    });
+    console.log("Result from running: ", result);
+  }
+  console.log("Returning from runSessionAsync");
+  return "runSessionAsyncFinished";
+}
+
+function runSession(state : State, action : Action) : State {
+  const result : Promise<any> = runSessionAsync(state, action);
+  result.then((result) => {
+    console.log(result);
+//    store.dispatch({ type: 'update', key: 'updater', value: (s) => ({ ...s, runningSession: false })});
+  });
+  return { ...state, runningSession: true };
+}
+
 function rootReducer(state: State, action: Action): State {
   switch (action.type) {
     case 'effectStarted':
@@ -1101,6 +1150,8 @@ function rootReducer(state: State, action: Action): State {
       return handleEffectEnded(state, action);
     case 'enqueueEffect':
       return handleEnqueueEffect(state, action);
+    case 'runSession':
+      return runSession(state, action);
     case 'update':
       return handleUpdate(state, action);
     default:
