@@ -482,10 +482,9 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         // NOTE(old impl): introduce a half level so any constraints depending
         // on test inference can be solved after test inference
         this.addLevel();
-        for(let typkey of levelToSplit.variables.keys()) {
-          const { existential } = levelToSplit.exampleTypes.get(typkey);
+        for(let { existential } of levelToSplit.exampleTypes.values()) {
           this.addVariable(existential); // Adds to the newly added empty level from .addLevel()
-          levelToSplit.variables.delete(typkey);
+          levelToSplit.variables.delete(typeKey(existential));
         }
         this.levels.push(levelToSplit);
         const solutionWithoutExamples = this.solveLevelHelper(new ConstraintSolution(), context);
@@ -555,7 +554,6 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     function solveHelperFields(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
       const { fieldConstraints, variables } = system.curLevel();
       const entries = [...(fieldConstraints.entries())];
-      if(entries.length === 0) { return new ConstraintSolution(); }
       while(entries.length !== 0) {
         const [key, [typ, fieldMappings]] = entries.pop();
         const instantiated = instantiateObjectType(typ, context);
@@ -624,8 +622,6 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
 
     function solveHelperConstraints(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
       const { constraints, variables } = system.curLevel();
-      if(constraints.length === 0) { return new ConstraintSolution(); }
-
       // NOTE(joe): Compared to type-check-structs.arr, here continue; is a recursive call
       while(constraints.length !== 0) {
         const { subtype, supertype } = constraints.pop();
@@ -1525,6 +1521,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
 
     function synthesisSpine(funType : TS.Type, original: A.Expr, args : A.Expr[], appLoc : SL.Srcloc, context : Context) : TS.Type {
       context.addLevel();
+      function wrapReturn(t : TS.Type) {
+        context.solveLevel();
+        return setTypeLoc(t, appLoc);
+      }
       funType = instantiateForallWithFreshVars(funType, context.constraints);
       switch(funType.$name) {
         case "t-arrow": {
@@ -1535,7 +1535,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           for(let i = 0; i < args.length; i += 1) {
             checking(args[i], argTypes[i], false, context);
           }
-          return funType.dict.ret;
+          return wrapReturn(funType.dict.ret);
         }
         case "t-existential": {
           const existentialArgs = args.map(a => newExistential(funType.dict.l, false));
@@ -1546,17 +1546,17 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           for(let i = 0; i < args.length; i += 1) {
             checking(args[i], existentialArgs[i], false, context);
           }
-          return existentialRet;
+          return wrapReturn(existentialRet);
         }
         case "t-app": {
           const onto = simplifyTApp(funType, context);
-          return synthesisSpine(onto, original, args, appLoc, context);
+          return wrapReturn(synthesisSpine(onto, original, args, appLoc, context));
         }
         case "t-bot": {
           for(let a of args) {
             checking(a, TS['t-top'].app(funType.dict.l, false), false, context);
           }
-          return funType;
+          return wrapReturn(funType);
         }
         default:
           throw new TypeCheckFailure(CS['apply-non-function'].app(original, funType));
@@ -1580,7 +1580,6 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         case 's-module':
           let typ : TS.Type = TS['t-top'].app(e.dict.l, false);
           return typ;
-          break;
         case 's-block': {
           let typ : TS.Type = TS['t-top'].app(e.dict.l, false);
           for(const stmt of listToArray(e.dict.stmts)) {
