@@ -129,7 +129,7 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObjects
   })));
 
   const nonBuiltinChecks: RHSCheck[] = $checks
-    .filter((c) => !/builtin/.test(c.loc))
+    .filter((c) => !/(builtin)|(runtime-arr)/.test(c.loc))
     .map((c) => ({
       tag: 'rhs-check',
       ...c,

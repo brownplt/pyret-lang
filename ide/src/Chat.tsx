@@ -31,7 +31,6 @@ import {
 import { Effect } from './effect';
 import {
   RHSObjects,
-  getRow,
   isRHSCheck,
   RHSCheck,
   isLocation,
@@ -508,7 +507,6 @@ class Chat extends React.Component<ChatProps, any> {
         const val = rhsObjects[0];
         rhs = (
           <RHSObjectComponent
-            key={getRow(val)}
             rhsObject={val}
             isSelected={false}
             className="chatitor-rhs"
@@ -518,16 +516,15 @@ class Chat extends React.Component<ChatProps, any> {
       } else if (rhsObjects.filter((r) => !isRHSCheck(r)).length === 0) {
         rhs = (
           <CheckResults
-            key={getRow(rhsObjects[0])}
             // Would love to have TypeScript obviate this `as`
             checks={rhsObjects as RHSCheck[]}
             outdated={thisChunkRHSObjects.outdated}
           />
         );
       } else {
-        rhsObjects.map((val) => (
+        rhs = rhsObjects.map((val) => (
           <RHSObjectComponent
-            key={getRow(val)}
+            key={val.key ?? 'oeunth'}
             rhsObject={val}
             isSelected={false}
             className="chatitor-rhs"
