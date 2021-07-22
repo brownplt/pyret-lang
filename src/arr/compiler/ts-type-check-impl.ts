@@ -7,7 +7,6 @@ import type * as TJ from './ts-codegen-helpers';
 import type * as TCS from './ts-type-check-structs';
 import type * as TCSH from './ts-compile-structs-helpers';
 import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } from './ts-impl-types';
-import { assertTSExpressionWithTypeArguments } from '@babel/types';
 
 ({
   requires: [
@@ -66,8 +65,10 @@ import { assertTSExpressionWithTypeArguments } from '@babel/types';
     } = TCS.dict.values.dict;
     
     class TypeCheckFailure extends Error {
+      errs : CS.CompileError[];
       constructor(...errs : CS.CompileError[]) {
-        super("type error " + require('util').inspect(errs));
+        super("type error " + require('util').inspect(errs, {depth:null}));
+        this.errs = errs;
       }
     }
 
@@ -113,6 +114,9 @@ import { assertTSExpressionWithTypeArguments } from '@babel/types';
 
     function tNumber(l : SL.Srcloc) : TS.Type {
       return TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("Number"), l, false);
+    }
+    function tBoolean(l : SL.Srcloc) : TS.Type {
+      return TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("Boolean"), l, false);
     }
 
     // Note: if typeKey(t1) === typeKey(t2), then t1 == t2 (as Pyret values)
@@ -981,19 +985,22 @@ import { assertTSExpressionWithTypeArguments } from '@babel/types';
     }
 
     function setTypeLoc(type: TS.Type, loc: SL.Srcloc): TS.Type {
-      const newType = map({}, type);
+      const newType = Object.create(Object.getPrototypeOf(type));
+      Object.assign(newType, type);
       newType.dict.l = loc;
       return newType;
     }
 
     function setInferred(type: TS.Type, inferred: boolean): TS.Type {
-      const newType = map({}, type);
+      const newType = Object.create(Object.getPrototypeOf(type));
+      Object.assign(newType, type);
       newType.dict.inferred = inferred;
       return newType;
     }
 
     function setLocAndInferred(type: TS.Type, loc: SL.Srcloc, inferred: boolean): TS.Type {
-      const newType = map({}, type);
+      const newType = Object.create(Object.getPrototypeOf(type));
+      Object.assign(newType, type);
       newType.dict.l = loc;
       newType.dict.inferred = inferred;
       return newType;
@@ -1500,13 +1507,60 @@ import { assertTSExpressionWithTypeArguments } from '@babel/types';
         checkSynthesis(e, expectTyp, topLevel, context);
         return;
       }
-      else {
-        switch(e.$name) {
-          default:
-            throw new InternalCompilerError("_checking switch " + e.$name);
+      switch(e.$name) {
+        case 's-id': {
+          checkSynthesis(e, expectTyp, topLevel, context);
+          return;
         }
+        default:
+          throw new InternalCompilerError("_checking switch " + e.$name);
       }
       return null;
+    }
+
+    function synthesisAppFun(appLoc : SL.Srcloc, fun : A.Expr, args : A.Expr[], context: Context) : TS.Type{
+      const newType = synthesis(fun, false, context);
+      return newType;
+    }
+
+    function synthesisSpine(funType : TS.Type, original: A.Expr, args : A.Expr[], appLoc : SL.Srcloc, context : Context) : TS.Type {
+      context.addLevel();
+      funType = instantiateForallWithFreshVars(funType, context.constraints);
+      switch(funType.$name) {
+        case "t-arrow": {
+          const argTypes = listToArray(funType.dict.args);
+          if(args.length !== argTypes.length) {
+            throw new TypeCheckFailure(CS['incorrect-number-of-args'].app(runtime.ffi.makeList(args), funType));
+          }
+          for(let i = 0; i < args.length; i += 1) {
+            checking(args[i], argTypes[i], false, context);
+          }
+          return funType.dict.ret;
+        }
+        case "t-existential": {
+          const existentialArgs = args.map(a => newExistential(funType.dict.l, false));
+          const existentialRet = newExistential(funType.dict.l, false);
+          context.addVariableSet([existentialRet, ...existentialArgs]);
+          const newArrow = TS['t-arrow'].app(runtime.ffi.makeList(existentialArgs), existentialRet, funType.dict.l, false);
+          context.addConstraint(funType, newArrow);
+          for(let i = 0; i < args.length; i += 1) {
+            checking(args[i], existentialArgs[i], false, context);
+          }
+          return existentialRet;
+        }
+        case "t-app": {
+          const onto = simplifyTApp(funType, context);
+          return synthesisSpine(onto, original, args, appLoc, context);
+        }
+        case "t-bot": {
+          for(let a of args) {
+            checking(a, TS['t-top'].app(funType.dict.l, false), false, context);
+          }
+          return funType;
+        }
+        default:
+          throw new TypeCheckFailure(CS['apply-non-function'].app(original, funType));
+      }
     }
 
     function checkSynthesis(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : Context) : TS.Type {
@@ -1524,6 +1578,8 @@ import { assertTSExpressionWithTypeArguments } from '@babel/types';
     function _synthesis(e : A.Expr, topLevel : boolean, context : Context) : TS.Type {
       switch(e.$name) {
         case 's-module':
+          let typ : TS.Type = TS['t-top'].app(e.dict.l, false);
+          return typ;
           break;
         case 's-block': {
           let typ : TS.Type = TS['t-top'].app(e.dict.l, false);
@@ -1550,10 +1606,18 @@ import { assertTSExpressionWithTypeArguments } from '@babel/types';
           return idTyp;
         }
         case 's-num': return tNumber(e.dict.l);
-        case 's-srcloc':
+        case 's-bool': return tBoolean(e.dict.l);
         case 's-app':
-        case 's-prim-app':
+          const args = listToArray(e.dict.args);
+          const funType = synthesisAppFun(e.dict.l, e.dict._fun, args, context);
+          return synthesisSpine(funType, e, args, e.dict.l, context);
+        case 's-srcloc':
           return TS['t-top'].app(e.dict.l, false);
+        case 's-prim-app': {
+          const arrowType = lookupId(e.dict.l, e.dict._fun, e, context);
+          const result = synthesisSpine(arrowType, e, listToArray(e.dict.args), e.dict.l, context);
+          return setTypeLoc(result, e.dict.l);
+        }
         default:
           throw new InternalCompilerError("_synthesis switch " + e.$name);
       }
@@ -1593,6 +1657,7 @@ import { assertTSExpressionWithTypeArguments } from '@babel/types';
 
     function typeCheck(program: A.Program, compileEnv : CS.CompileEnvironment, postCompileEnv : CS.ComputedEnvironment, modules : MutableStringDict<CS.Loadable>, options) {
       logger = options.dict.log;
+
       const provides = listToArray(program.dict.provides);
 
       const globVs = mapFromStringDict(compileEnv.dict.globals.dict.values);
@@ -1763,6 +1828,7 @@ import { assertTSExpressionWithTypeArguments } from '@babel/types';
       }
       catch(e) {
         console.error("Got a type-checking error", e);
+        LOG("Got a type-checking error " + require('util').inspect(e, {depth:null}) + "\n");
       }
 
       const info = gatherProvides(provides[0], contextFromModules);
