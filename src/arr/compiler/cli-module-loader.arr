@@ -69,6 +69,45 @@ fun prepare-session(base :: CL.Located, options) block:
   current-session!{ globals: remove-globals-from-module(base.locator, current-session!globals) }
 end
 
+fun make-provide-for-repl(p :: A.Program):
+  cases(A.Program) p:
+    | s-program(l, _, _, _, imports, body) =>
+      A.s-program(l,
+          A.s-provide-none(l),
+          A.s-provide-types-none(l),
+          [list: A.s-provide-block(l, empty, [list:
+            A.s-provide-name(l, A.s-star(l, empty)),
+            A.s-provide-type(l, A.s-star(l, empty)),
+            A.s-provide-module(l, A.s-star(l, empty))
+            # Adding s-provide-data for imports would be redundant because the
+            # name/type exports will refer to the data anyway
+            ])],
+          imports,
+          body)
+  end
+end
+
+fun get-base-locator(options, base):
+  if options.session <> "empty":
+    base.locator.{
+      method get-globals(self) block:
+        g = sessions.get-value-now(options.session)!globals
+        g
+      end,
+      method get-module(self):
+        ast = cases(CL.PyretCode) base.locator.get-module():
+          | pyret-ast(ast) => ast
+          | pyret-string(ast) => PP.surface-parse(ast, base.locator.uri)
+        end
+        CL.pyret-ast(make-provide-for-repl(ast))
+      end
+    }
+  else:
+    base.locator
+  end
+end
+
+
 fun get-starter-modules(options):
   if options.recompile-builtins and (options.session == "empty") block:
     [SD.mutable-string-dict:]
@@ -601,15 +640,8 @@ fun build-program(path, options, stats) block:
 
   starter-modules = get-starter-modules(options)
 
-  base-locator = if options.session <> "empty":
-      base.locator.{
-        method get-globals(self):
-          sessions.get-value-now(options.session)!globals
-        end
-      }
-    else:
-      base.locator
-    end
+  base-locator = get-base-locator(options, base)
+  
 
   clear-and-print("Found " + to-repr(starter-modules.keys-now()) + " as starter modules in-memory")
   wl = CL.compile-worklist-known-modules(module-finder, base-locator, base.context, starter-modules)
