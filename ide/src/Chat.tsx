@@ -525,8 +525,15 @@ class Chat extends React.Component<ChatProps, any> {
           />
         );
       } else {
-        console.log(rhsObjects);
-        throw new Error('unfolded multiple RHS (logged above)');
+        rhsObjects.map((val) => (
+          <RHSObjectComponent
+            key={getRow(val)}
+            rhsObject={val}
+            isSelected={false}
+            className="chatitor-rhs"
+            outdated={thisChunkRHSObjects.outdated}
+          />
+        ));
       }
 
       chunkResultsPart = (

@@ -1115,12 +1115,66 @@ const serverAPI = makeServerAPI(
   () => console.log('Setup finished from server API'),
 );
 
+function segmentName(file: string, id: string): string {
+  return `${file}-${id}`;
+}
+
+// TODO(luna): don't use index, check for id matches
+function handleRunSessionSuccess(state: State, index: number, id: string, result: any): State {
+  const {
+    chunks,
+    currentFile,
+  } = state;
+
+  console.log('run result', result.perfResults);
+  const rhs = makeRHSObjects(result, `file://${segmentName(currentFile, id)}`);
+
+  // Associate rhs to chunks *now* before they're outdated. Then only chunk
+  // deletion / insertion needs to be tracked to correspond outdated RHSs
+  // through edits
+  const chunkToRHS: RHSObjects[] = [...state.chunkToRHS];
+  chunkToRHS[index] = rhs;
+
+  // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
+  //   resulting in a severe memory leak of 50+MB PER RUN
+  cleanStopify();
+
+  const newChunks = chunks.slice();
+  const locations = result.result.$locations;
+  const traces = result.result.$traces;
+
+  if (locations.length > 0 || traces.length > 0) {
+    chunks[index].errorState = {
+      status: 'succeeded',
+      effect: 'run',
+      result: 'TODO(luna): is this ever read?',
+    };
+  }
+
+  return {
+    ...state,
+    backendCmd: BackendCmd.None,
+    currentRunner: undefined,
+    chunks: newChunks,
+    running: false,
+    rhs: {
+      objects: rhs.objects,
+      outdated: rhs.outdated,
+    },
+    chunkToRHS,
+  };
+}
+
 async function runSessionAsync(state : State) : Promise<any> {
   const { chunks } = state;
   chunks.forEach((c) => {
-    const filename = `${state.currentFile}-${c.id}`;
+    const filename = segmentName(state.currentFile, c.id);
     fs.writeFileSync(filename, c.editor.getValue());
   });
+  fs.writeFileSync(
+    state.currentFile,
+    chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
+  );
   for (let i = 0; i < chunks.length; i += 1) {
     const c = chunks[i];
     const filename = `${state.currentFile}-${c.id}`;
@@ -1154,7 +1208,7 @@ async function runSessionAsync(state : State) : Promise<any> {
     store.dispatch({
       type: 'update',
       key: 'updater',
-      value: (s) => handleRunSuccess(s, { effectKey: 'run', result: result.result }),
+      value: (s) => handleRunSessionSuccess(s, i, c.id, result.result),
     });
   }
   console.log('Returning from runSessionAsync');
