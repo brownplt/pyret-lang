@@ -71,7 +71,6 @@ type StateProps = {
 };
 
 function mapStateToProps(state: State.State): StateProps {
-  console.log('Getting props for editor: ', state, state.runningSession);
   return {
     browseRoot: state.browseRoot,
     currentFileContents: state.currentFileContents,
