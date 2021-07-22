@@ -1,5 +1,10 @@
 import { RuntimeConfig, RunnerPerfResults } from './runner';
-import { NeverError } from './utils';
+
+class NeverError extends Error {
+  constructor(val: never) {
+    super(`${val} is never`);
+  }
+}
 
 export interface LintOptions {
   program: string,
