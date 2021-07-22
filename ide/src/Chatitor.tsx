@@ -76,7 +76,7 @@ type DefChunksProps = PropsFromRedux & DispatchProps & StateProps;
 function Chatitor({
   run,
   chunks,
-  setChunks
+  setChunks,
 }: DefChunksProps) {
   const doc = React.useState<CodeMirror.Doc>(() => {
     const wholeProgram = chunks.reduce((acc, { editor }) => (
@@ -147,8 +147,7 @@ function Chatitor({
                   ];
                   setChunks({ chunks: nextChunks, modifiesText: true });
                   editor.setValue('');
-                  if((event as KeyboardEvent).shiftKey) {
-                    debugger;
+                  if ((event as KeyboardEvent).shiftKey) {
                     run();
                   }
                   // enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });

@@ -9,6 +9,7 @@
    It also means that side effects such as file saving should not be performed
    here---those should be dealt with in store.ts. */
 
+import { Store } from 'redux';
 import {
   EffectFailure,
   EffectSuccess,
@@ -62,11 +63,18 @@ import {
   RTMessages,
 } from './rtMessages';
 import { NeverError } from './utils';
-import store from './store';
 import { fs } from './browserfs-setup';
 import * as path from './path';
 import { bfsSetup, makeServerAPI } from './control';
-import { optionalCallExpression } from '@babel/types';
+
+// Dependency cycle between store and reducer because we dispatch from
+// runSession. Our solution is to inject the store into this global variable
+// after initializing it
+let store: Store<State, Action>;
+// Call once, immediately after initializing the store, from store.ts
+export function setStore(theStore: Store<State, Action>) {
+  store = theStore;
+}
 
 // TODO(alex): Handling enter needs to be changed
 //   With the current setup, you will need to call `handleEnter` at the end of
@@ -337,7 +345,6 @@ function handleCompileSuccess(state: State): State {
 }
 
 function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State {
-  debugger;
   console.log('run result', status.result.perfResults);
   const rhs = makeRHSObjects(status.result, `file://${state.currentFile}`);
 
@@ -858,10 +865,10 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
   };
 }
 
-function handleSetBrowsePath(state: State, path: string): State {
+function handleSetBrowsePath(state: State, browsePath: string): State {
   return {
     ...state,
-    browsePath: path,
+    browsePath,
   };
 }
 
@@ -1104,18 +1111,21 @@ function handleUpdate(
 }
 
 const serverAPI = makeServerAPI(
-  msg => console.log("From server API: ", msg),
-  () => console.log("Setup finished from server API"));
+  (msg) => console.log('From server API: ', msg),
+  () => console.log('Setup finished from server API'),
+);
 
-async function runSessionAsync(state : State, action : Action) : Promise<any> {
-  const chunks  = state.chunks;
-  chunks.forEach(c => {
+async function runSessionAsync(state : State) : Promise<any> {
+  const { chunks } = state;
+  chunks.forEach((c) => {
     const filename = `${state.currentFile}-${c.id}`;
     fs.writeFileSync(filename, c.editor.getValue());
   });
-  for(let c of chunks) {
+  for (let i = 0; i < chunks.length; i += 1) {
+    const c = chunks[i];
     const filename = `${state.currentFile}-${c.id}`;
     const { dir, base } = bfsSetup.path.parse(filename);
+    // eslint-disable-next-line
     const result = await serverAPI.compileAndRun({
       baseDir: dir,
       program: base,
@@ -1123,36 +1133,40 @@ async function runSessionAsync(state : State, action : Action) : Promise<any> {
       checks: 'none',
       typeCheck: true,
       recompileBuiltins: false,
-      session: "reducer-session"
+      session: 'reducer-session',
     }, state.runKind, {
       spyMessgeHandler: ideRt.defaultSpyMessage,
       spyExprHandler: ideRt.defaultSpyExpr,
       imgUrlProxy: ideRt.defaultImageUrlProxy,
       checkBlockFilter: ideRt.checkBlockFilter,
     });
-    console.log("Result from running: ", result);
+    console.log('Result from running: ', result);
 
-    if(result.type === 'compile-failure') {
-      store.dispatch({ type: 'update', key: 'updater', value: s => {
-        return handleCompileFailure(s, { effectKey: 'compile', errors: result.errors});
-      }});
-      return "runSessionAsyncFinished";
+    if (result.type === 'compile-failure') {
+      store.dispatch({
+        type: 'update',
+        key: 'updater',
+        value: (s) => handleCompileFailure(s, { effectKey: 'compile', errors: result.errors }),
+      });
+      return 'runSessionAsyncFinished';
     }
-    else {
-      store.dispatch({ type: 'update', key: 'updater', value: s => {
-        return handleRunSuccess(s, { effectKey: 'run', result: result.result });
-      }});
-    }
+
+    store.dispatch({
+      type: 'update',
+      key: 'updater',
+      value: (s) => handleRunSuccess(s, { effectKey: 'run', result: result.result }),
+    });
   }
-  console.log("Returning from runSessionAsync");
-  return "runSessionAsyncFinished";
+  console.log('Returning from runSessionAsync');
+  return 'runSessionAsyncFinished';
 }
 
-function runSession(state : State, action : Action) : State {
-  const result : Promise<any> = runSessionAsync(state, action);
-  result.then((result) => {
-    console.log(result);
-//    store.dispatch({ type: 'update', key: 'updater', value: (s) => ({ ...s, runningSession: false })});
+function runSession(state : State) : State {
+  const result : Promise<any> = runSessionAsync(state);
+  result.then((r) => {
+    console.log(r);
+    // store.dispatch(
+    //  { type: 'update', key: 'updater', value: (s) => ({ ...s, runningSession: false })});
   });
   return { ...state, runningSession: true };
 }
@@ -1166,7 +1180,7 @@ function rootReducer(state: State, action: Action): State {
     case 'enqueueEffect':
       return handleEnqueueEffect(state, action);
     case 'runSession':
-      return runSession(state, action);
+      return runSession(state);
     case 'update':
       return handleUpdate(state, action);
     default:

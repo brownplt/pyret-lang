@@ -1,4 +1,5 @@
 import { RuntimeConfig, RunnerPerfResults } from './runner';
+import { NeverError } from './utils';
 
 export interface LintOptions {
   program: string,
@@ -26,8 +27,6 @@ export type RunResult = {
 };
 
 let compileStart = window.performance.now();
-
-
 
 export const runProgram2 = (
   runner: any,
@@ -70,7 +69,7 @@ export const runProgram2 = (
       });
     });
   }
-  return assertNever(runKind);
+  throw new NeverError(runKind);
 };
 
 /*
@@ -199,12 +198,6 @@ export const compileInteraction = (
   compilerWorker.postMessage(message);
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const assertNever = (arg: never): never => {
-  throw new Error('assertNever');
-};
-
-
 export const runProgram = (
   runner: any,
   baseDir: string,
@@ -238,6 +231,5 @@ export const runProgram = (
 
     return wrapper;
   }
-  // NOTE(michael): type checking in Typescript on enums is not exhaustive (as of v3.5.3)
-  return assertNever(runKind);
+  throw new NeverError(runKind);
 };
