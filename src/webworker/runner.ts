@@ -83,11 +83,10 @@ function wrapContent(content: string): string {
   return `(function(require, exports, module) { ${content} })(require, exports, module);`;
 }
 
+const asyncCache : {[key:string]: any} = {};
 export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => Promise<any>
   ) => {
   let currentRunner: any = null;
-  const cache : {[key:string]: any} = {};
-
   const requireAsyncMain = (importPath: string) => new Promise(((resolve, reject) => {
     const startRootRequires = window.performance.now();
     if (importPath in nodeModules) {
@@ -99,9 +98,8 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
     // Get the absolute path to uniquely identify modules
     // Cache modules based upon the absolute path for singleton modules
     const cachePath = path.resolve(stoppedPath);
-    if (cachePath in cache) {
-      resolve(cache[cachePath]);
-      return;
+    if (cachePath in asyncCache) {
+      delete asyncCache[cachePath];
     }
     if (!fs.existsSync(nextPath)) {
       throw new Error(`Path did not exist in requireAsyncMain: ${nextPath}`);
@@ -161,7 +159,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
           } else {
             const toReturn = runner.g.module.exports;
             handleRuntimeConfig(cachePath, toReturn, rtCfg);
-            cache[cachePath] = toReturn;
+            asyncCache[cachePath] = toReturn;
             const endRootExecution = window.performance.now();
             timings[cachePath] = endRootExecution - startRootExecution;
             timings.$total = endRootExecution - startRootRequires;
@@ -198,7 +196,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
       // Get the absolute path to uniquely identify modules
       // Cache modules based upon the absolute path for singleton modules
       const cachePath = path.resolve(stoppedPath);
-      if (cachePath in cache) { return cache[cachePath]; }
+      if (cachePath in asyncCache) { return asyncCache[cachePath]; }
       if (!fs.existsSync(nextPath)) {
         throw new Error(`Path did not exist in requireASync: ${nextPath}`);
       }
@@ -240,7 +238,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
           // Need to set 'exports' global to work with TS export desugaring
           currentRunner.g.exports = lastModule.exports;
           handleRuntimeConfig(cachePath, toReturn, rtCfg);
-          cache[cachePath] = toReturn;
+          asyncCache[cachePath] = toReturn;
           const endRequire = window.performance.now();
           timings[cachePath] = endRequire - startRequire;
           kontinue({ type: 'normal', value: toReturn });
