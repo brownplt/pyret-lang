@@ -210,6 +210,7 @@ type CompileAndRunResult =
 
 export function makeServerAPI(echoLog : (l : string) => void, setupFinished : () => void) {
   const queue : ServerAPIEvent[] = [];
+  let hasInit = false;
 
   function finishAndProcessNext() {
     queue.shift();
@@ -220,7 +221,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
 
   function addEvent(e : ServerAPIEvent) {
     queue.push(e);
-    if (queue.length === 1) { e.action(); }
+    if (queue.length === 1 && hasInit) { e.action(); }
   }
 
   function serverAPIMessageHandler(e: MessageEvent) {
@@ -247,6 +248,10 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
       echoLog(msgObject.contents);
     } else if (msgType === 'setup-finished') {
       setupFinished();
+      hasInit = true;
+      if (queue.length > 0) {
+        queue[0].action();
+      }
     } else if (queue.length === 0) {
       console.log('received with empty queue: ', msgObject);
     } else if (msgType === 'compile-failure') {
