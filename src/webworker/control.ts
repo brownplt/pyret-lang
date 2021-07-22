@@ -170,8 +170,7 @@ export const setupWorkerMessageHandler = (
   onCompileInteractionSuccess: (data: { program: string }) => void,
   onCompileInteractionFailure: (data: { program: string }) => void,
 ): void => {
-  /*
-  worker.addEventListener('message', backend.makeBackendMessageHandler(
+  /* worker.addEventListener('message', */backend.makeBackendMessageHandler(
     onLog,
     setupFinished,
     onCompileFailure,
@@ -182,8 +181,7 @@ export const setupWorkerMessageHandler = (
     onCreateReplSuccess,
     onCompileInteractionSuccess,
     onCompileInteractionFailure,
-  ));
-  */
+  )/* ) */;
 };
 
 export const openOrCreateFile = (filePath: string): string => {
@@ -215,14 +213,14 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
 
   function finishAndProcessNext() {
     queue.shift();
-    if(queue.length > 0) {
+    if (queue.length > 0) {
       queue[0].action();
     }
   }
 
   function addEvent(e : ServerAPIEvent) {
     queue.push(e);
-    if(queue.length === 1) { e.action(); }
+    if (queue.length === 1) { e.action(); }
   }
 
   function serverAPIMessageHandler(e: MessageEvent) {
@@ -245,20 +243,20 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
     if (msgType === undefined) {
       return null;
     }
-    else if (msgType === 'echo-log') {
+    if (msgType === 'echo-log') {
       echoLog(msgObject.contents);
     } else if (msgType === 'setup-finished') {
       setupFinished();
     } else if (queue.length === 0) {
-      console.log("received with empty queue: ", msgObject);
+      console.log('received with empty queue: ', msgObject);
     } else if (msgType === 'compile-failure') {
-      if(currentEvent.type !== 'compile') {
+      if (currentEvent.type !== 'compile') {
         throw new Error(`Mismatched event and response ${msgType} ${currentEvent.type}`);
       }
       currentEvent.resolve(msgObject.data);
       finishAndProcessNext();
     } else if (msgType === 'compile-success') {
-      if(currentEvent.type !== 'compile') {
+      if (currentEvent.type !== 'compile') {
         throw new Error(`Mismatched event and response ${msgType} ${currentEvent.type}`);
       }
       currentEvent.resolve('ok');
@@ -272,7 +270,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
 
   worker.addEventListener('message', serverAPIMessageHandler);
 
-  function compile(options : CompileOptions) : Promise<CompileResult> {
+  function apiCompile(options : CompileOptions) : Promise<CompileResult> {
     function compileAction() {
       const message = {
         request: 'compile-program',
@@ -283,7 +281,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
         'type-check': options.typeCheck,
         'recompile-builtins': options.recompileBuiltins,
         pipeline: 'anchor',
-        session: options.session || "frontend-will-change",
+        session: options.session || 'frontend-will-change',
       };
 
       worker.postMessage(message);
@@ -291,36 +289,36 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
     return new Promise((resolve) => {
       addEvent({
         type: 'compile',
-        resolve: resolve,
-        action: compileAction
+        resolve,
+        action: compileAction,
       });
     });
   }
 
-  function run(
-      baseDir : string,
-      program : string,
-      runKind : RunKind,
-      rtCfg?: RuntimeConfig)
+  function apiRun(
+    baseDir : string,
+    program : string,
+    runKind : RunKind,
+    rtCfg?: RuntimeConfig,
+  )
     : Promise<any> {
     return new Promise((resolve) => {
-      runProgram2(runner, baseDir, program, runKind, rtCfg).then(runner => {
-        return runner.run(resolve);
-      })
-    })
+      runProgram2(runner, baseDir, program, runKind, rtCfg).then((r) => r.run(resolve));
+    });
   }
 
-  async function compileAndRun(options: CompileOptions, runKind: RunKind, rtCfg? : RuntimeConfig) : Promise<CompileAndRunResult> {
-    const compileResult = await compile(options);
-    if(compileResult === 'ok') {
-      return run(path.runBase, `${options.program}.js`, runKind, rtCfg).then(result => {
-        return {type: 'run-result', result };
-      });
+  async function compileAndRun(
+    options: CompileOptions,
+    runKind: RunKind,
+    rtCfg? : RuntimeConfig,
+  ) : Promise<CompileAndRunResult> {
+    const compileResult = await apiCompile(options);
+    if (compileResult === 'ok') {
+      return apiRun(path.runBase, `${options.program}.js`, runKind, rtCfg).then((result) => ({ type: 'run-result', result }));
     }
-    else {
-      return {type: 'compile-failure', errors: compileResult };
-    }
+
+    return { type: 'compile-failure', errors: compileResult };
   }
 
-  return { compile, run, compileAndRun };
+  return { compile: apiCompile, run: apiRun, compileAndRun };
 }

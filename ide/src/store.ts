@@ -1,7 +1,7 @@
 /* Handles side effects. */
 
 import { createStore } from 'redux';
-import ideApp from './reducer';
+import ideApp, { setStore } from './reducer';
 import { IDE } from './ide';
 import {
   BackendCmd,
@@ -585,6 +585,7 @@ const store = createStore(
   ideApp,
   (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__(),
 );
+setStore(store);
 
 const ide: IDE = {
   dispatchSpyMessage: (loc: string, message: string | undefined) => {

@@ -321,15 +321,18 @@ class Chat extends React.Component<ChatProps, any> {
      either case, a run is triggered by saving the file. */
   handleEnter(editor: CodeMirror.Editor & CodeMirror.Doc, event: Event) {
     const {
-      run
+      run,
     } = this.props;
     const pos = editor.getCursor();
+    // eslint-disable-next-line
     const token = editor.getTokenAt(pos);
     const lineEndToken = editor.getTokenAt({ line: pos.line, ch: 99999 });
     // An enter anywhere on a single-line chat in which the ENTIRE chat is
     // codemirror-parsible
+    // eslint-disable-next-line
     const singleLineEnter = editor.getValue().split('\n').length === 1 && lineEndToken.state.lineState.tokens.length === 0;
-    if ((event as any).shiftKey /* || singleLineEnter || token.state.lineState.tokens.length === 0 */) {
+    if ((event as any).shiftKey/*
+      || singleLineEnter || token.state.lineState.tokens.length === 0 */) {
       // enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
       run();
       editor.getInputField().blur();
