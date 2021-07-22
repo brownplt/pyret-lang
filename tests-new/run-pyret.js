@@ -1,7 +1,7 @@
 const client = require('../src/server/client-lib.js');
 const path = require('path');
 
-const [filename, typecheck, pipeline, recompileBuiltins] = process.argv.slice(2);
+const [filename, typecheck, pipeline, session] = process.argv.slice(2);
 
 client.start({
   client: {
@@ -21,6 +21,6 @@ client.start({
     'program': filename,
     'builtin-js-dir': 'build/runtime',
     'base-dir': path.resolve(path.join(__dirname, "/../")),
-    'recompile-builtins': recompileBuiltins !== "false"
+    'session': session || "empty"
   }
 });

@@ -783,7 +783,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
       uri-of-definition = origin.uri-of-definition
       val-info = initial.value-by-origin(origin)
       cases(Option) val-info block:
-        | none => raise("The value is a global that doesn't exist in any module: " + name)
+        | none => raise("The value is a global that doesn't exist in any module: " + name + " which was expected to be in " + origin.uri-of-definition + " " + to-repr(initial.all-modules.keys-list-now()))
         | some(shadow val-info) =>
           cases(C.ValueExport) val-info block:
             | v-var(_, t) =>
