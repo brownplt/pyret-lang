@@ -206,6 +206,7 @@ type ServerAPIEvent =
 
 type CompileAndRunResult =
   | { type: 'compile-failure', errors: string[] }
+  | { type: 'run-failure', error: string }
   | { type: 'run-result', result: any };
 
 export function makeServerAPI(echoLog : (l : string) => void, setupFinished : () => void) {
@@ -319,9 +320,12 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
   ) : Promise<CompileAndRunResult> {
     const compileResult = await apiCompile(options);
     if (compileResult === 'ok') {
-      return apiRun(path.runBase, `${options.program}.js`, runKind, rtCfg).then((result) => ({ type: 'run-result', result }));
+      const result = await apiRun(path.runBase, `${options.program}.js`, runKind, rtCfg);
+      if ('error' in result.result) {
+        return { type: 'run-failure', error: result.result.error };
+      }
+      return { type: 'run-result', result };
     }
-
     return { type: 'compile-failure', errors: compileResult };
   }
 

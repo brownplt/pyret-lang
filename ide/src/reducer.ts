@@ -1168,6 +1168,25 @@ function handleRunSessionSuccess(state: State, index: number, id: string, result
   };
 }
 
+function handleRunSessionFailure(state: State, index: number, error: string) {
+  console.log('handleRunSessionFailure', error);
+  // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
+  //   resulting in a severe memory leak of 50+MB PER RUN
+  cleanStopify();
+  const newChunks: Chunk[] = [...state.chunks];
+  newChunks[index] = {
+    ...newChunks[index],
+    errorState: {
+      // TODO(luna): obviously the effect is... run, not compile
+      status: 'failed', effect: 'compile', failures: [{ $name: 'text', str: error }], highlights: [],
+    },
+  };
+  return {
+    ...state,
+    chunks: newChunks,
+  };
+}
+
 function handleCompileSessionFailure(
   state: State,
   errors: string[],
@@ -1248,6 +1267,13 @@ async function runSessionAsync(state : State) : Promise<any> {
     state.currentFile,
     chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
   );
+  const update = (value: (s: State) => State) => {
+    store.dispatch({
+      type: 'update',
+      key: 'updater',
+      value,
+    });
+  };
   for (let i = 0; i < chunks.length; i += 1) {
     const c = chunks[i];
     const filename = `${state.currentFile}-${c.id}`;
@@ -1268,21 +1294,14 @@ async function runSessionAsync(state : State) : Promise<any> {
       checkBlockFilter: ideRt.checkBlockFilter,
     });
     console.log('Result from running: ', result);
-
     if (result.type === 'compile-failure') {
-      store.dispatch({
-        type: 'update',
-        key: 'updater',
-        value: (s) => handleCompileSessionFailure(s, result.errors),
-      });
+      update((s: State) => handleCompileSessionFailure(s, result.errors));
+      return 'runSessionAsyncFinished';
+    } if (result.type === 'run-failure') {
+      update((s: State) => handleRunSessionFailure(s, i, result.error));
       return 'runSessionAsyncFinished';
     }
-
-    store.dispatch({
-      type: 'update',
-      key: 'updater',
-      value: (s) => handleRunSessionSuccess(s, i, c.id, result.result),
-    });
+    update((s: State) => handleRunSessionSuccess(s, i, c.id, result.result));
   }
   console.log('Returning from runSessionAsync');
   return 'runSessionAsyncFinished';
