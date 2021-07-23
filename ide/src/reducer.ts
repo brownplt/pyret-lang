@@ -66,6 +66,7 @@ import { NeverError } from './utils';
 import { fs } from './browserfs-setup';
 import * as path from './path';
 import { bfsSetup, makeServerAPI } from './control';
+import { getLocs, Srcloc } from './failure';
 
 // Dependency cycle between store and reducer because we dispatch from
 // runSession. Our solution is to inject the store into this global variable
@@ -1126,6 +1127,7 @@ function handleRunSessionSuccess(state: State, index: number, id: string, result
     currentFile,
   } = state;
 
+  console.log(result);
   console.log('run result', result.perfResults);
   const rhs = makeRHSObjects(result, `file://${segmentName(currentFile, id)}`);
 
@@ -1133,6 +1135,7 @@ function handleRunSessionSuccess(state: State, index: number, id: string, result
   // deletion / insertion needs to be tracked to correspond outdated RHSs
   // through edits
   const chunkToRHS: RHSObjects[] = [...state.chunkToRHS];
+  console.log(rhs);
   chunkToRHS[index] = rhs;
 
   // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
@@ -1162,6 +1165,76 @@ function handleRunSessionSuccess(state: State, index: number, id: string, result
       outdated: rhs.outdated,
     },
     chunkToRHS,
+  };
+}
+
+function handleCompileSessionFailure(
+  state: State,
+  errors: string[],
+): State {
+  console.log('Compilation failure');
+
+  const failures = errors.map((e) => JSON.parse(e));
+  const places: Srcloc[] = failures.flatMap(getLocs);
+  console.log(places);
+
+  const { chunks, currentFile } = state;
+
+  function findChunkFromSrclocResult(loc: Srcloc): number | null {
+    for (let i = 0; i < chunks.length; i += 1) {
+      if (loc.$name === 'srcloc' && loc.source === `file://${segmentName(currentFile, chunks[i].id)}`) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  function getExistingHighlights(chunk : Chunk): number[][] | null {
+    if (chunk.errorState.status === 'failed') {
+      return chunk.errorState.highlights;
+    }
+    return null;
+  }
+
+  const asHL = (place: Srcloc) => {
+    if (place.$name !== 'srcloc') {
+      throw new Error('how is a builtin a segment?');
+    }
+    // x:x-x:x (old data structure)
+    return [place['start-line'], place['start-column'], place['end-line'], place['end-column']];
+  };
+
+  if (places.length > 0) {
+    const newChunks = [...chunks];
+    places.forEach((place) => {
+      const chunkIndex = findChunkFromSrclocResult(place);
+      if (chunkIndex) {
+        const hl = getExistingHighlights(newChunks[chunkIndex]);
+        newChunks[chunkIndex] = {
+          ...newChunks[chunkIndex],
+          errorState: {
+            status: 'failed',
+            failures,
+            // These might not be used in chatitor atm
+            effect: 'compile',
+            highlights: hl ? [...hl, asHL(place)] : [asHL(place)],
+          },
+          needsJiggle: true,
+        };
+      }
+    });
+    return {
+      ...state,
+      chunks: newChunks,
+    };
+  }
+
+  const definitionsHighlights = places.filter((place) => place.$name
+    === 'srcloc' && place.source.includes(currentFile)).map(asHL);
+  return {
+    ...state,
+    interactionErrors: errors,
+    definitionsHighlights,
   };
 }
 
@@ -1200,7 +1273,7 @@ async function runSessionAsync(state : State) : Promise<any> {
       store.dispatch({
         type: 'update',
         key: 'updater',
-        value: (s) => handleCompileFailure(s, { effectKey: 'compile', errors: result.errors }),
+        value: (s) => handleCompileSessionFailure(s, result.errors),
       });
       return 'runSessionAsyncFinished';
     }
