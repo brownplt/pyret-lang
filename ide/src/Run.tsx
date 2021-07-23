@@ -14,6 +14,7 @@ import {
 
 import {
   BackendCmd,
+  EditorMode,
   EditorResponseLoop,
   State,
 } from './state';
@@ -41,6 +42,7 @@ type StateProps = {
   linting: boolean,
   chunks: Chunk[],
   editorResponseLoop: EditorResponseLoop,
+  editorMode: EditorMode,
 };
 
 function mapStateToProps(state: State): StateProps {
@@ -54,6 +56,7 @@ function mapStateToProps(state: State): StateProps {
     linting,
     chunks,
     editorResponseLoop,
+    editorMode,
   } = state;
 
   return {
@@ -66,6 +69,7 @@ function mapStateToProps(state: State): StateProps {
     linting,
     chunks,
     editorResponseLoop,
+    editorMode,
   };
 }
 
@@ -75,6 +79,7 @@ type PropsFromReact = {
 type DispatchProps = {
   compile: () => void,
   run: () => void,
+  runSession: () => void,
   stop: () => void,
   setStopify: (stopify: boolean) => void,
   setTypeCheck: (typeCheck: boolean) => void,
@@ -87,6 +92,7 @@ function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
   return {
     compile: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Compile } }),
     run: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Run } }),
+    runSession: () => dispatch({ type: 'runSession', key: 'runProgram' }),
     stop: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'stop' } }),
     setStopify: (stopify: boolean) => {
       if (stopify) {
@@ -121,6 +127,7 @@ type Props = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 function Run({
   compile,
   run,
+  runSession,
   stop,
   setStopify,
   setTypeCheck,
@@ -136,6 +143,7 @@ function Run({
   linting,
   chunks,
   editorResponseLoop,
+  editorMode,
 }: Props) {
   // TODO(alex): Better UI for selection
   const editorLoopDropdown = editorLoopDropdownVisible && (
@@ -240,7 +248,7 @@ function Run({
         height: '100%',
       }}
     >
-      {stopify && running ? (
+      {stopify && running && editorMode !== EditorMode.Chatitor ? (
         <button
           id="StopButton"
           className="stop-available"
@@ -260,27 +268,31 @@ function Run({
       <div
         className="run-container"
       >
-        <button
-          id="CompileButton"
-          className="compile-ready"
-          type="button"
-          onClick={compile}
-          style={{
-            background: buttonBackground,
-          }}
-        >
-          {
-            // TODO(alex): figure out button style/margins
-            // TODO(alex): compile button has a persisting black outline (unlike the run button)
-            // TODO(alex): figure out compilation/run-ready progress bar
-          }
-          Compile
-        </button>
+        {editorMode !== EditorMode.Chatitor
+          ? (
+            <button
+              id="CompileButton"
+              className="compile-ready"
+              type="button"
+              onClick={compile}
+              style={{
+                background: buttonBackground,
+              }}
+            >
+              {
+              // TODO(alex): figure out button style/margins
+              // TODO(alex): compile button has a persisting black outline (unlike the run button)
+              // TODO(alex): figure out compilation/run-ready progress bar
+            }
+              Compile
+            </button>
+          )
+          : ''}
         <button
           id="RunButton"
           className="run-ready"
           type="button"
-          onClick={run}
+          onClick={editorMode === EditorMode.Chatitor ? runSession : run}
           style={{
             background: buttonBackground,
           }}
