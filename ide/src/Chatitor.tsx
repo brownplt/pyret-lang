@@ -147,10 +147,7 @@ function Chatitor({
                   ];
                   setChunks({ chunks: nextChunks, modifiesText: true });
                   editor.setValue('');
-                  if ((event as KeyboardEvent).shiftKey) {
-                    run();
-                  }
-                  // enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
+                  run();
                   event.preventDefault();
                 }
               } else {

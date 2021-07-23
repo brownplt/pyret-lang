@@ -330,9 +330,7 @@ class Chat extends React.Component<ChatProps, any> {
     // codemirror-parsible
     // eslint-disable-next-line
     const singleLineEnter = editor.getValue().split('\n').length === 1 && lineEndToken.state.lineState.tokens.length === 0;
-    if ((event as any).shiftKey/*
-      || singleLineEnter || token.state.lineState.tokens.length === 0 */) {
-      // enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
+    if (singleLineEnter || token.state.lineState.tokens.length === 0) {
       run();
       editor.getInputField().blur();
       event.preventDefault();
