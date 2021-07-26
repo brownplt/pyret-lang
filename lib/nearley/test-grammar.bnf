@@ -1,0 +1,7 @@
+/*
+    name: TestGrammar
+*/
+add: negate-opt NUMBER PLUS negate-opt num
+negate-opt: negate
+negate: [DASH]
+num: [NUMBER]
