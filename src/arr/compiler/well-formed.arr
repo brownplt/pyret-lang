@@ -12,6 +12,7 @@ import format as F
 import string-dict as SD
 import sets as S
 import lists as L
+import js-file("ts-well-formed-impl") as TSWF
 
 type Loc = SL.Srcloc
 
@@ -1400,7 +1401,19 @@ top-level-visitor = A.default-iter-visitor.{
   end
 }
 
-fun check-well-formed(ast) -> C.CompileResult<A.Program, Any> block:
+fun check-well-formed(ast, options) -> C.CompileResult<A.Program, Any> block:
+  cases(C.Pipeline) options.pipeline:
+    | pipeline-ts-anchor(args) =>
+      if args.member("well-formed"):
+        TSWF.check-well-formed(ast, options)
+      else:
+        internal-check-well-formed(ast)
+      end
+    | pipeline-anchor => internal-check-well-formed(ast)
+  end
+end
+
+fun internal-check-well-formed(ast) -> C.CompileResult<A.Program, Any> block:
   cur-shared := empty
   errors := empty
   in-check-block := false

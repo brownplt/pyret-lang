@@ -338,7 +338,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
       var ast-ended = AU.append-nothing-if-necessary(ast)
       ast := nothing
       add-phase("Added nothing", ast-ended)
-      var wf = W.check-well-formed(ast-ended)
+      var wf = W.check-well-formed(ast-ended, options)
       ast-ended := nothing
       add-phase("Checked well-formedness", wf)
       cases(CS.CompileResult) wf block:
