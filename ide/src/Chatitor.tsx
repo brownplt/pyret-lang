@@ -74,6 +74,32 @@ function Chatitor({
   chunksRef.current = chunks;
   const enterNewlineRef = React.useRef(enterNewline);
   enterNewlineRef.current = enterNewline;
+
+  // Merge a contract followed by an examples block followed by a function
+  // definition. Assume contract and examples are at the end of chunks, and
+  // definition has not yet been added to the chunks (passed in a string)
+  // Returns true if a merge occured and the chat shouldn't be sent normally,
+  // false otherwise
+  function mergeDesignRecipe(definition: string): boolean {
+    if (chunksRef.current.length < 2) {
+      return false;
+    }
+    const contract = chunksRef.current[chunksRef.current.length - 2];
+    const examples = chunksRef.current[chunksRef.current.length - 1];
+    const split = (s: string) => s.trim().split(/[ \n]+/);
+    const tokens = (chunk: Chunk) => split(chunk.editor.getValue());
+    // An extremely awful way to parse Pyret syntax
+    const isDesignRecipe = tokens(contract)[1] === '::' && tokens(examples)[0] === 'examples:' && split(definition)[0] === 'fun';
+    if (isDesignRecipe) {
+      const newChunks = [
+        ...chunksRef.current.slice(0, -2),
+        emptyChunk({ editor: { getValue: () => `${contract.editor.getValue()}\n${examples.editor.getValue()}\n${definition}` } }),
+      ];
+      setChunks({ chunks: newChunks, modifiesText: true });
+    }
+    return isDesignRecipe;
+  }
+
   function setupChunk(chunk: Chunk, index: number) {
     return (
       <Chat
@@ -122,15 +148,20 @@ function Chatitor({
               if ((enterKeySend || event.ctrlKey) && !event.shiftKey) {
                 if (editor.getValue() !== '') {
                   const value = editor.getValue();
-                  const nextChunks: Chunk[] = [
-                    ...chunksRef.current,
-                    emptyChunk({
-                      startLine: getStartLineForIndex(chunksRef.current, chunksRef.current.length),
-                      errorState: lintSuccessState,
-                      editor: { getValue: () => value },
-                    }),
-                  ];
-                  setChunks({ chunks: nextChunks, modifiesText: true });
+                  if (!mergeDesignRecipe(value)) {
+                    const nextChunks: Chunk[] = [
+                      ...chunksRef.current,
+                      emptyChunk({
+                        startLine: getStartLineForIndex(
+                          chunksRef.current,
+                          chunksRef.current.length,
+                        ),
+                        errorState: lintSuccessState,
+                        editor: { getValue: () => value },
+                      }),
+                    ];
+                    setChunks({ chunks: nextChunks, modifiesText: true });
+                  }
                   editor.setValue('');
                   run();
                   event.preventDefault();
