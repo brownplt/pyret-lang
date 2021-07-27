@@ -384,10 +384,13 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
     const { name, srcloc } = loc;
     const chunk = findChunkFromSrcloc(chunks, srcloc, currentFile);
     if (chunk !== false) {
-      newChunks[chunk].errorState = {
-        status: 'succeeded',
-        effect: 'run',
-        result: status.result.result[name],
+      newChunks[chunk] = {
+        ...newChunks[chunk],
+        errorState: {
+          status: 'succeeded',
+          effect: 'run',
+          result: status.result.result[name],
+        },
       };
     }
   });
@@ -396,10 +399,13 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
     const { value, srcloc } = loc;
     const chunk = findChunkFromSrcloc(chunks, srcloc, currentFile);
     if (chunk !== false) {
-      newChunks[chunk].errorState = {
-        status: 'succeeded',
-        effect: 'run',
-        result: value,
+      newChunks[chunk] = {
+        ...newChunks[chunk],
+        errorState: {
+          status: 'succeeded',
+          effect: 'run',
+          result: value,
+        },
       };
     }
   });
@@ -1146,11 +1152,16 @@ function handleRunSessionSuccess(state: State, index: number, id: string, result
   const locations = result.result.$locations;
   const traces = result.result.$traces;
 
-  if (locations.length > 0 || traces.length > 0) {
-    chunks[index].errorState = {
-      status: 'succeeded',
-      effect: 'run',
-      result: 'TODO(luna): is this ever read?',
+  if (index >= newChunks.length) {
+    console.warn('A chunk was run which no longer exists by index');
+  } else if (locations.length > 0 || traces.length > 0) {
+    newChunks[index] = {
+      ...newChunks[index],
+      errorState: {
+        status: 'succeeded',
+        effect: 'run',
+        result: 'TODO(luna): is this ever read?',
+      },
     };
   }
 
