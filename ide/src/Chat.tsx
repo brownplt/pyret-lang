@@ -331,8 +331,8 @@ class Chat extends React.Component<ChatProps, any> {
     // eslint-disable-next-line
     const singleLineEnter = editor.getValue().split('\n').length === 1 && lineEndToken.state.lineState.tokens.length === 0;
     if (singleLineEnter || token.state.lineState.tokens.length === 0) {
-      run();
       editor.getInputField().blur();
+      run();
       event.preventDefault();
     }
   }
