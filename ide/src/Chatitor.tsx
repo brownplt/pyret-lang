@@ -59,12 +59,6 @@ function Chatitor({
   enterNewline,
   setChunks,
 }: DefChunksProps) {
-  const doc = React.useState<CodeMirror.Doc>(() => {
-    const wholeProgram = chunks.reduce((acc, { editor }) => (
-      `${acc + editor.getValue()}\n`
-    ), '');
-    return CodeMirror.Doc(wholeProgram, 'pyret');
-  })[0];
   const [mountedEditor, setEditor] = (
     React.useState<(CodeMirror.Editor & CodeMirror.Doc) | null>(null)
   );
@@ -105,7 +99,6 @@ function Chatitor({
       <Chat
         key={chunk.id}
         index={index}
-        parent={doc}
         focusNewChat={() => mountedEditor?.getInputField().focus()}
       />
     );

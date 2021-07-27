@@ -1,9 +1,9 @@
 import React from 'react';
 import CM from 'codemirror';
+import { UnControlled as UnControlledCM } from 'react-codemirror2';
 import { Failure } from './failure';
 import { intersperse } from './utils';
 import Highlight from './Highlight';
-import LinkedCM from './LinkedCodeMirror';
 import RenderedValue from './reps/RenderedValue';
 
 type Props = { failure: Failure, editor: CM.Editor & CM.Doc };
@@ -48,13 +48,9 @@ export default function FailureComponent({ failure, editor }: Props) {
       if (failure.loc.$name !== 'srcloc') {
         throw new Error('Bad type of srcloc for a cmcode');
       }
-      const doc = editor.getDoc();
-      console.log('cmcode failure: ', failure);
       return (
-        <LinkedCM
-          parent={doc}
-          start={failure.loc['start-line'] - 1}
-          end={failure.loc['end-line']}
+        <UnControlledCM
+          value={editor.getRange({ line: failure.loc['start-line'] - 1, ch: 0 }, { line: failure.loc['end-line'], ch: 999999 })}
           options={{ readOnly: true }}
           editorDidMount={(newEditor) => {
             newEditor.setSize(null, 'auto');

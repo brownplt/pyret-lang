@@ -930,18 +930,13 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   }
 
   if (isSingleChunkUpdate(update)) {
-    const {
-      chunks,
-    } = state;
+    const { chunks } = state;
 
-    const newChunks = [];
-    for (let i = 0; i < chunks.length; i += 1) {
-      if (chunks[i].id === update.chunk.id) {
-        newChunks.push(update.chunk);
-      } else {
-        newChunks.push(chunks[i]);
-      }
-    }
+    console.log(update);
+    const newChunks = chunks.map((chunk) => (
+      chunk.id === update.chunk.id ? update.chunk : chunk
+    ));
+    console.log('newChunks', newChunks);
 
     let contents = currentFileContents;
 
@@ -958,7 +953,7 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
     };
   }
 
-  throw new Error('handleSetChunks: unreachable point reached');
+  throw new NeverError(update);
 }
 
 function handleSetFocusedChunk(state: State, index: number | undefined): State {
