@@ -37,6 +37,7 @@ export const emptySelection = {
 
 type UninitializedEditor = {
   getValue: () => string,
+  grabFocus?: boolean,
 };
 
 export type Chunk = {

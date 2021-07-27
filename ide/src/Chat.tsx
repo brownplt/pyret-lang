@@ -14,13 +14,14 @@
    component and the Redux store. */
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { UnControlled as CodeMirror } from 'react-codemirror2';
+import { UnControlled as CodeMirror, UnControlled } from 'react-codemirror2';
 import { State } from './state';
+import { CMEditor } from './utils';
 
 import {
   Chunk,
+  emptyChunk,
   getStartLineForIndex,
-  removeAllSelections,
 } from './chunk';
 
 import {
@@ -35,7 +36,7 @@ import {
   isLocation,
 } from './rhsObject';
 import RHSObjectComponent from './RHSObjectComponent';
-import LinkedCodeMirror from './LinkedCodeMirror';
+
 import FailureComponent from './FailureComponent';
 import CheckResults from './CheckResults';
 
@@ -324,6 +325,32 @@ class Chat extends React.Component<ChatProps, any> {
     }
   }
 
+  insertAbove() {
+    const {
+      chunks,
+      setChunks,
+      index,
+      parent,
+    } = this.props;
+    parent.replaceRange('\n', { line: chunks[index].startLine, ch: 0 });
+    const newChunks = [
+      ...chunks.slice(0, index),
+      emptyChunk({
+        editor: { getValue: () => '\n', grabFocus: true },
+      }),
+      ...chunks.slice(index, chunks.length)];
+    for (let i = 0; i < newChunks.length; i += 1) {
+      newChunks[i] = {
+        ...newChunks[i],
+        startLine: getStartLineForIndex(newChunks, i),
+      };
+    }
+    setChunks({
+      chunks: newChunks,
+      modifiesText: true,
+    });
+  }
+
   /* Delete this chunk and move every chunk below it up by one */
   deleteChunk(index: number) {
     const {
@@ -380,25 +407,6 @@ class Chat extends React.Component<ChatProps, any> {
     }
   }
 
-  /* Called in response to a mouse down key event. Sets this chunk as the
-     focused chunk and removes all chunk selections. */
-  handleMouseDown(event: any) {
-    const {
-      chunks,
-      setChunks,
-    } = this.props;
-
-    if (event.buttons !== 1) {
-      return;
-    }
-
-    const newChunks = removeAllSelections(chunks);
-    setChunks({
-      chunks: newChunks,
-      modifiesText: false,
-    });
-  }
-
   render() {
     const {
       chunks, index, parent,
@@ -418,6 +426,9 @@ class Chat extends React.Component<ChatProps, any> {
       // This check might be extraneous
       if (editor.getValue() !== initialEditor.getValue()) {
         editor.setValue(initialEditor.getValue());
+        if ('grabFocus' in initialEditor && initialEditor.grabFocus) {
+          editor.getInputField().focus();
+        }
       }
 
       setChunks({
@@ -515,24 +526,19 @@ class Chat extends React.Component<ChatProps, any> {
 
     const chunkEditorPart = (
       <div style={{ width: '100%' }}>
-        <LinkedCodeMirror
-          parent={parent}
-          start={startLine}
-          end={startLine + initialEditor.getValue().split('\n').length}
-          onMouseDown={(editor: any, e: any) => {
-            this.handleMouseDown(e);
-          }}
+        <UnControlled
           editorDidMount={handleMount}
           options={{
             mode: 'pyret',
             theme: 'default',
             lineWrapping: true,
+            firstLineNumber: startLine,
           }}
           onBeforeChange={() => {
             this.scheduleUpdate();
           }}
-          onKeyDown={(editor, event) => {
-            switch (event.key) {
+          onKeyDown={((editor: CMEditor, event: Event) => {
+            switch ((event as any).key) {
               case 'Enter':
                 this.handleEnter(editor, event);
                 break;
@@ -553,8 +559,8 @@ class Chat extends React.Component<ChatProps, any> {
                 break;
               default:
             }
-          }}
-          onBlur={(editor) => this.handleBlur(editor)}
+          }) as any}
+          onBlur={((editor: CMEditor) => this.handleBlur(editor)) as any}
           className={displayCheckMark ? 'chat checkmark' : 'chat'}
         />
       </div>
@@ -562,6 +568,9 @@ class Chat extends React.Component<ChatProps, any> {
 
     return (
       <>
+        <button className="insert-arrow" onClick={() => this.insertAbove()} type="button">
+          &#10170;
+        </button>
         { chunkEditorPart }
         { chunkResultsPart }
       </>
