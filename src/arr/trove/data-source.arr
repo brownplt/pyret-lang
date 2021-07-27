@@ -2,17 +2,18 @@
 provide *
 provide-types *
 import global as G
+include from G:
+  num-to-string,
+  string-to-number,
+  raise,
+  string-to-lower,
+  js-to-string as torepr,
+end
 import option as O
 include from O:
   type Option,
+  some, none
 end
-none = O.none
-some = O.some
-num-to-string = G.num-to-str
-string-to-number = G.string-to-number
-raise = G.raise
-torepr = G.js-to-string
-string-tolower = G.string-to-lower
 
 data CellContent<A>:
   | c-empty
@@ -22,24 +23,23 @@ data CellContent<A>:
   | c-custom(datum :: A)
 end
 
-# Commenting out annotations because phase0 tried and failed to read them
 # (Contents, Column, Row -> Sanitized)
-type Sanitizer#|<A,B>|# = (CellContent<Any>, String, Number -> Any)
+type Sanitizer<A,B> = (CellContent<A>, String, Number -> B)
 
-type LoadedTable#|<A,B>|# = {
-  RawArray<{String; Sanitizer#|<A,B>|#}>;
+type LoadedTable<A,B> = {
+  RawArray<{String; Sanitizer<A,B>}>;
   RawArray<RawArray<CellContent<Any>>>
 }
 
 data DataSourceLoaderOption<A,B>:
-  | sanitize-col(col :: String, sanitizer :: Sanitizer#|<A,B>|#)
+  | sanitize-col(col :: String, sanitizer :: Sanitizer<A,B>)
 end
 
-type DataSourceLoader#|<A,B>|# = {
-  load :: (RawArray<String>, RawArray<DataSourceLoaderOption#|<A,B>|#> -> LoadedTable#|<A,B>|#)
+type DataSourceLoader<A,B> = {
+  load :: (RawArray<String>, RawArray<DataSourceLoaderOption<A,B>> -> LoadedTable<A,B>)
 }
 
-fun option-sanitizer<A, B>(val-sanitizer :: (CellContent<A>, Number, Number -> CellContent<B>)) -> (CellContent<A>, Number, Number -> Option<CellContent<B>>):
+fun option-sanitizer<A, B>(val-sanitizer :: Sanitizer<A, B>) -> Sanitizer<A, Option<B>>:
   lam(x :: CellContent<A>, col, row):
     cases(CellContent) x:
       | c-empty => none
@@ -48,7 +48,7 @@ fun option-sanitizer<A, B>(val-sanitizer :: (CellContent<A>, Number, Number -> C
   end
 end
 
-fun string-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> String:
+fun string-sanitizer<A>(x :: CellContent<A>, col :: String, row :: Number) -> String:
   cases(CellContent) x:
     | c-empty => ""
     | c-str(s) => s
@@ -58,8 +58,8 @@ fun string-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> St
   end
 end
 
-fun num-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Number:
-  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
+fun num-sanitizer<A>(x :: CellContent<A>, col :: String, row :: Number) -> Number:
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-str(s) =>
       cases(Option) string-to-number(s):
@@ -76,8 +76,8 @@ fun num-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Numbe
   end
 end
 
-fun bool-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Boolean:
-  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
+fun bool-sanitizer<A>(x :: CellContent<A>, col :: String, row :: Number) -> Boolean:
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-bool(b) => b
     | c-num(n) =>
@@ -89,8 +89,8 @@ fun bool-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Bool
       end
     | c-str(s) =>
       ask:
-        | string-tolower(s) == "true" then: true
-        | string-tolower(s) == "false" then: false
+        | string-to-lower(s) == "true" then: true
+        | string-to-lower(s) == "false" then: false
         | otherwise: raise('Cannot sanitize the string "'
               + s + '" at ' + loc + ' as a boolean')
       end
@@ -101,8 +101,8 @@ fun bool-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Bool
   end
 end
 
-fun strict-num-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Number:
-  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
+fun strict-num-sanitizer<A>(x :: CellContent<A>, col :: String, row :: Number) -> Number:
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-str(s) =>
       cases(Option) string-to-number(s):
@@ -120,8 +120,8 @@ fun strict-num-sanitizer<A>(x :: CellContent<A>, col :: Number, row :: Number) -
   end
 end
 
-fun strings-only<A>(x :: CellContent<A>, col :: Number, row :: Number) -> String:
-  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
+fun strings-only<A>(x :: CellContent<A>, col :: String, row :: Number) -> String:
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-str(s) => s
     | else =>
@@ -137,8 +137,8 @@ fun strings-only<A>(x :: CellContent<A>, col :: Number, row :: Number) -> String
   end
 end
 
-fun numbers-only<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Number:
-  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
+fun numbers-only<A>(x :: CellContent<A>, col :: String, row :: Number) -> Number:
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-num(n) => n
     | else =>
@@ -154,8 +154,8 @@ fun numbers-only<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Number
   end
 end
 
-fun booleans-only<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Boolean:
-  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
+fun booleans-only<A>(x :: CellContent<A>, col :: String, row :: Number) -> Boolean:
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-bool(b) => b
     | else =>
@@ -171,8 +171,8 @@ fun booleans-only<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Boole
   end
 end
 
-fun empty-only<A>(x :: CellContent<A>, col :: Number, row :: Number) -> Option<A>:
-  loc = 'column ' + num-to-string(col) + ', row ' + num-to-string(row)
+fun empty-only<A>(x :: CellContent<A>, col :: String, row :: Number) -> Option<A>:
+  loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-empty => none
     | else =>
