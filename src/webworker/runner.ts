@@ -94,7 +94,12 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
     }
     const nextPath = path.join(basePath, importPath);
     const cwd = path.parse(nextPath).dir;
-    const stoppedPath = `${nextPath}.stopped.main`;
+    // This previously named the file .stopped.main, to avoid having it read
+    // from cache. However, with REPL-like running we want to cache this program
+    // for the next segment! So instead, we delete this particular program from
+    // the cache if it already exists, but ultmately store it in the cache in
+    // the right place
+    const stoppedPath = `${nextPath}.stopped`;
     // Get the absolute path to uniquely identify modules
     // Cache modules based upon the absolute path for singleton modules
     const cachePath = path.resolve(stoppedPath);
