@@ -67,6 +67,7 @@ import { fs } from './browserfs-setup';
 import * as path from './path';
 import { bfsSetup, makeServerAPI } from './control';
 import { getLocs, Srcloc } from './failure';
+import { resetAsyncSession } from './runner';
 
 // Dependency cycle between store and reducer because we dispatch from
 // runSession. Our solution is to inject the store into this global variable
@@ -1278,6 +1279,7 @@ async function runSessionAsync(state : State) : Promise<any> {
     state.currentFile,
     chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
   );
+  resetAsyncSession();
   const update = (value: (s: State) => State) => {
     store.dispatch({
       type: 'update',
