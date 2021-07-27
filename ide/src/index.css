@@ -107,3 +107,23 @@
 .menu-button:active {
   background: darkgrey !important;
 }
+
+.insert-arrow {
+  position: relative;
+  height: 0px;
+  left: -1.3em;
+  bottom: 0.8em;
+  font-size: 4em;
+  opacity: 10%;
+  transition: opacity 0.2s;
+  cursor: pointer;
+  /* Button style reset */
+  display: block;
+  border: none;
+  margin: 0;
+  padding: 0;
+  line-height: normal;
+}
+.insert-arrow:hover {
+  opacity: 100%;
+}

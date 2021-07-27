@@ -1,3 +1,5 @@
+import CodeMirror from 'codemirror';
+
 export type List<T> = { $name: 'empty' } | { $name: 'link', first: T, rest: List<T> };
 
 // TODO(luna): These two no longer describe data values. This will cause
@@ -18,3 +20,5 @@ export class NeverError extends Error {
     super(`${val} is never`);
   }
 }
+
+export type CMEditor = CodeMirror.Editor & CodeMirror.Doc;
