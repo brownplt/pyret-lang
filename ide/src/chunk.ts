@@ -35,7 +35,7 @@ export const emptySelection = {
   head: { line: 0, ch: 0 },
 };
 
-type UninitializedEditor = {
+export type UninitializedEditor = {
   getValue: () => string,
   grabFocus?: boolean,
 };

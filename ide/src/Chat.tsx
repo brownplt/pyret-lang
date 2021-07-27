@@ -14,14 +14,14 @@
    component and the Redux store. */
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { UnControlled as CodeMirror, UnControlled } from 'react-codemirror2';
+import { UnControlled as ReactCM } from 'react-codemirror2';
 import { State } from './state';
 import { CMEditor } from './utils';
 
 import {
   Chunk,
   emptyChunk,
-  getStartLineForIndex,
+  UninitializedEditor,
 } from './chunk';
 
 import {
@@ -36,7 +36,6 @@ import {
   isLocation,
 } from './rhsObject';
 import RHSObjectComponent from './RHSObjectComponent';
-
 import FailureComponent from './FailureComponent';
 import CheckResults from './CheckResults';
 
@@ -70,7 +69,6 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
 
 type PropsFromReact = {
   index: number,
-  parent: CodeMirror.Doc,
   focusNewChat: () => void,
 };
 
@@ -101,7 +99,7 @@ type ChatProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
 class Chat extends React.Component<ChatProps, any> {
   /* Used to autofocus this component when necessary */
-  private input: React.RefObject<CodeMirror>;
+  private input: React.RefObject<ReactCM>;
 
   constructor(props: ChatProps) {
     super(props);
@@ -158,7 +156,6 @@ class Chat extends React.Component<ChatProps, any> {
     const {
       editor,
       errorState,
-      startLine,
     } = chunks[index];
 
     if ('getDoc' in editor && errorState.status === 'succeeded') {
@@ -190,11 +187,11 @@ class Chat extends React.Component<ChatProps, any> {
             const [l1, ch1, l2, ch2] = highlights[i];
             doc.markText(
               {
-                line: l1 - startLine - 1,
+                line: l1 - 1,
                 ch: ch1,
               },
               {
-                line: l2 - startLine - 1,
+                line: l2 - 1,
                 ch: ch2,
               },
               { className: 'styled-background-error' },
@@ -224,21 +221,12 @@ class Chat extends React.Component<ChatProps, any> {
       marks.forEach((m) => m.clear());
     }
 
-    const newChunks = [...chunks];
-    newChunks[index] = {
-      ...newChunks[index],
-      editor,
-      errorState: { status: 'notLinted' },
-    };
-    for (let i = index; i < newChunks.length; i += 1) {
-      newChunks[i] = {
-        ...newChunks[i],
-        startLine: getStartLineForIndex(newChunks, i),
-      };
-    }
-
     setChunks({
-      chunks: newChunks,
+      chunk: {
+        ...chunks[index],
+        editor,
+        errorState: { status: 'notLinted' },
+      },
       modifiesText: true,
     });
 
@@ -252,13 +240,13 @@ class Chat extends React.Component<ChatProps, any> {
 
   /* Called in response to an arrow up event. Checks if the cursor is on the top
      line of a chunk and, if so, focuses the previous chunk. */
-  handleArrowUp(editor: any, event: Event) {
+  handleArrowUp(editor: CMEditor, event: Event) {
     const {
       index,
       chunks,
     } = this.props;
-    const pos = (editor as any).getCursor();
-    if (pos.line === chunks[index].startLine && index > 0) {
+    const pos = editor.getCursor();
+    if (pos.line === 0 && index > 0) {
       const newEditor = chunks[index - 1].editor;
       if ('focus' in newEditor) {
         newEditor.focus();
@@ -269,14 +257,14 @@ class Chat extends React.Component<ChatProps, any> {
 
   /* Called in response to an arrow down event. Checks if the cursor is on the
      bottom line of a chunk and, if so, focuses the subsequent chunk. */
-  handleArrowDown(editor: any, event: Event) {
+  handleArrowDown(editor: CMEditor, event: Event) {
     const {
       index,
       chunks,
       focusNewChat,
     } = this.props;
-    const pos = (editor as any).getCursor();
-    if (pos.line === chunks[index].startLine + chunks[index].editor.getValue().split('\n').length - 1) {
+    const pos = editor.getCursor();
+    if (pos.line === chunks[index].editor.getValue().split('\n').length - 1) {
       if (index < chunks.length - 1) {
         const newEditor = chunks[index + 1].editor;
         if ('focus' in newEditor) {
@@ -294,7 +282,7 @@ class Chat extends React.Component<ChatProps, any> {
      and, if so, instructs the linting infastructure to create a new chunk upon
      lint success. If shift+enter is pressed, no new chunk will be made. In
      either case, a run is triggered by saving the file. */
-  handleEnter(editor: CodeMirror.Editor & CodeMirror.Doc, event: KeyboardEvent) {
+  handleEnter(editor: CMEditor, event: KeyboardEvent) {
     const {
       enterNewline,
       run,
@@ -316,7 +304,7 @@ class Chat extends React.Component<ChatProps, any> {
     }
   }
 
-  handleBlur(editor: CodeMirror.Editor & CodeMirror.Doc) {
+  handleBlur(editor: CMEditor) {
     const {
       index,
     } = this.props;
@@ -330,21 +318,14 @@ class Chat extends React.Component<ChatProps, any> {
       chunks,
       setChunks,
       index,
-      parent,
     } = this.props;
-    parent.replaceRange('\n', { line: chunks[index].startLine, ch: 0 });
     const newChunks = [
       ...chunks.slice(0, index),
       emptyChunk({
-        editor: { getValue: () => '\n', grabFocus: true },
+        editor: { getValue: () => '', grabFocus: true },
       }),
-      ...chunks.slice(index, chunks.length)];
-    for (let i = 0; i < newChunks.length; i += 1) {
-      newChunks[i] = {
-        ...newChunks[i],
-        startLine: getStartLineForIndex(newChunks, i),
-      };
-    }
+      ...chunks.slice(index, chunks.length),
+    ];
     setChunks({
       chunks: newChunks,
       modifiesText: true,
@@ -360,13 +341,8 @@ class Chat extends React.Component<ChatProps, any> {
     } = this.props;
     const newChunks = [
       ...chunks.slice(0, index),
-      ...chunks.slice(index + 1, chunks.length)];
-    for (let i = index; i < newChunks.length; i += 1) {
-      newChunks[i] = {
-        ...newChunks[i],
-        startLine: getStartLineForIndex(newChunks, i),
-      };
-    }
+      ...chunks.slice(index + 1, chunks.length),
+    ];
     setChunks({
       chunks: newChunks,
       modifiesText: true,
@@ -407,38 +383,37 @@ class Chat extends React.Component<ChatProps, any> {
     }
   }
 
+  handleMount(editor: CMEditor, initialEditor: CMEditor | UninitializedEditor) {
+    const {
+      setChunks,
+      chunks,
+      index,
+    } = this.props;
+
+    const marks = editor.getDoc().getAllMarks();
+    marks.forEach((m) => m.clear());
+    editor.setSize(null, 'auto');
+
+    // Use value of ghost UninitializedEditor in real editor
+    editor.setValue(initialEditor.getValue());
+    if ('grabFocus' in initialEditor && initialEditor.grabFocus) {
+      editor.getInputField().focus();
+    }
+
+    setChunks({
+      chunk: {
+        ...chunks[index],
+        editor,
+      },
+      modifiesText: false,
+    });
+  }
+
   render() {
     const {
-      chunks, index, parent,
+      chunks, index,
     } = this.props;
-    const { editor: initialEditor, startLine } = chunks[index];
-
-    const handleMount = (editor: CodeMirror.Editor) => {
-      const {
-        setChunks,
-      } = this.props;
-
-      const marks = editor.getDoc().getAllMarks();
-      marks.forEach((m) => m.clear());
-      editor.setSize(null, 'auto');
-
-      // Turn ghost UninitializedEditor into a real editor if the editor has mounted
-      // This check might be extraneous
-      if (editor.getValue() !== initialEditor.getValue()) {
-        editor.setValue(initialEditor.getValue());
-        if ('grabFocus' in initialEditor && initialEditor.grabFocus) {
-          editor.getInputField().focus();
-        }
-      }
-
-      setChunks({
-        chunk: {
-          ...chunks[index],
-          editor,
-        },
-        modifiesText: false,
-      });
-    };
+    const { editor: initialEditor } = chunks[index];
 
     const {
       thisChunkRHSObjects,
@@ -526,18 +501,17 @@ class Chat extends React.Component<ChatProps, any> {
 
     const chunkEditorPart = (
       <div style={{ width: '100%' }}>
-        <UnControlled
-          editorDidMount={handleMount}
+        <ReactCM
+          editorDidMount={(editor) => this.handleMount(editor as CMEditor, initialEditor)}
           options={{
             mode: 'pyret',
             theme: 'default',
             lineWrapping: true,
-            firstLineNumber: startLine,
           }}
           onBeforeChange={() => {
             this.scheduleUpdate();
           }}
-          onKeyDown={((editor: CMEditor, event: Event) => {
+          onKeyDown={((editor: CMEditor, event: KeyboardEvent) => {
             switch ((event as any).key) {
               case 'Enter':
                 this.handleEnter(editor, event);
