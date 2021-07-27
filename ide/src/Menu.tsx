@@ -13,6 +13,7 @@ import FontSize from './FontSize';
 type StateProps = {
   menuItems: MenuItems,
   menuTabVisible: false | number,
+  enterNewline: boolean,
   debugBorders: boolean,
   displayResultsInline: boolean,
   editorMode: EditorMode,
@@ -23,6 +24,7 @@ function mapStateToProps(state: State): StateProps {
   const {
     menuItems,
     menuTabVisible,
+    enterNewline,
     debugBorders,
     displayResultsInline,
     editorMode,
@@ -32,6 +34,7 @@ function mapStateToProps(state: State): StateProps {
   return {
     menuItems,
     menuTabVisible,
+    enterNewline,
     debugBorders,
     displayResultsInline,
     editorMode,
@@ -40,6 +43,7 @@ function mapStateToProps(state: State): StateProps {
 }
 
 type DispatchProps = {
+  update: (updater: (s: State) => State) => void,
   setEditorMode: (mode: EditorMode) => void,
   setDebugBorders: (debugBorders: boolean) => void,
   setDisplayResultsInline: (displayResultsInline: boolean) => void,
@@ -47,6 +51,9 @@ type DispatchProps = {
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
+    update: (value: (s: State) => State) => {
+      dispatch({ type: 'update', key: 'updater', value });
+    },
     setEditorMode: (mode: EditorMode) => {
       dispatch({ type: 'update', key: 'editorMode', value: mode });
     },
@@ -67,7 +74,9 @@ type MenuProps = PropsFromRedux & DispatchProps & StateProps;
 function Menu({
   menuItems,
   menuTabVisible,
+  update,
   setEditorMode,
+  enterNewline,
   debugBorders,
   setDebugBorders,
   displayResultsInline,
@@ -117,6 +126,24 @@ function Menu({
               ))}
             </div>
             <FontSize key="FontSize" />
+            {console.log(enterNewline)}
+            {editorMode === EditorMode.Chatitor && (
+              <button
+                onClick={() => update((s) => ({ ...s, enterNewline: !s.enterNewline }))}
+                className="option"
+                key="enterNewline"
+                type="button"
+                style={{
+                  height: '2.7em',
+                }}
+              >
+                {enterNewline ? (
+                  'Enter adds new line (click to change)'
+                ) : (
+                  'Enter can send chats (click to change)'
+                )}
+              </button>
+            )}
             {editorMode === EditorMode.Chunks && (
               <button
                 onClick={() => setDebugBorders(!debugBorders)}

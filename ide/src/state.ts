@@ -141,6 +141,10 @@ export type State = {
      chunks properly. See DefChunk.tsx. */
   firstSelectedChunkIndex: false | number,
 
+  /* Chatitor only. Enter always inserts a newline when true. Otherwise enter
+   * sends one-line chats and complete multi-line blocks. */
+  enterNewline: boolean,
+
   /* Chunk mode only. True if the drag handles should be yellow / orange if
      their corresponding chunks have not been linted yet, false otherwise. This
      is useful for debugging issues where chunks are not linting properly. */
@@ -237,6 +241,7 @@ export const initialState: State = {
     },
   ],
   firstSelectedChunkIndex: false,
+  enterNewline: false,
   debugBorders: false,
   displayResultsInline: true,
   messageTabIndex: MessageTabIndex.RuntimeMessages,

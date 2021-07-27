@@ -15,7 +15,7 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { UnControlled as CodeMirror } from 'react-codemirror2';
-import { BackendCmd, State, EditorResponseLoop } from './state';
+import { State } from './state';
 
 import {
   Chunk,
@@ -28,7 +28,6 @@ import {
   ChunksUpdate,
 } from './action';
 
-import { Effect } from './effect';
 import {
   RHSObjects,
   isRHSCheck,
@@ -42,23 +41,15 @@ import CheckResults from './CheckResults';
 
 type StateProps = {
   chunks: Chunk[],
-  rhs: RHSObjects,
-  firstSelectedChunkIndex: false | number,
-  currentFile: string,
   chunkToRHS: RHSObjects[],
   thisChunkRHSObjects: RHSObjects,
-  displayResultsInline: boolean,
-  editorResponseLoop: EditorResponseLoop,
+  enterNewline: boolean,
 };
 
 function mapStateToProps(state: State, ownProps: any): StateProps {
   const {
     chunks,
-    rhs,
-    firstSelectedChunkIndex,
-    currentFile,
-    displayResultsInline,
-    editorResponseLoop,
+    enterNewline,
     chunkToRHS,
   } = state;
 
@@ -70,12 +61,8 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
 
   return {
     chunks,
-    rhs,
-    firstSelectedChunkIndex,
-    currentFile,
     thisChunkRHSObjects,
-    displayResultsInline,
-    editorResponseLoop,
+    enterNewline,
     chunkToRHS,
   };
 }
@@ -90,9 +77,6 @@ type DispatchProps = {
   run: () => void,
   setChunks: (chunks: ChunksUpdate) => void,
   setChunkToRHS: (chunkToRHS: RHSObjects[]) => void,
-  enqueueEffect: (effect: Effect) => void,
-  setShouldAdvanceCursor: (value: boolean) => void,
-  setFirstSelectedChunkIndex: (value: false | number) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
@@ -105,15 +89,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     },
     setChunkToRHS(chunkToRHS: RHSObjects[]) {
       dispatch({ type: 'update', key: 'chunkToRHS', value: chunkToRHS });
-    },
-    enqueueEffect(effect: Effect) {
-      dispatch({ type: 'enqueueEffect', effect });
-    },
-    setShouldAdvanceCursor(value: boolean) {
-      dispatch({ type: 'update', key: 'shouldAdvanceCursor', value });
-    },
-    setFirstSelectedChunkIndex(value: false | number) {
-      dispatch({ type: 'update', key: 'firstSelectedChunkIndex', value });
     },
   };
 }
@@ -318,8 +293,9 @@ class Chat extends React.Component<ChatProps, any> {
      and, if so, instructs the linting infastructure to create a new chunk upon
      lint success. If shift+enter is pressed, no new chunk will be made. In
      either case, a run is triggered by saving the file. */
-  handleEnter(editor: CodeMirror.Editor & CodeMirror.Doc, event: Event) {
+  handleEnter(editor: CodeMirror.Editor & CodeMirror.Doc, event: KeyboardEvent) {
     const {
+      enterNewline,
       run,
     } = this.props;
     const pos = editor.getCursor();
@@ -330,7 +306,9 @@ class Chat extends React.Component<ChatProps, any> {
     // codemirror-parsible
     // eslint-disable-next-line
     const singleLineEnter = editor.getValue().split('\n').length === 1 && lineEndToken.state.lineState.tokens.length === 0;
-    if (singleLineEnter || token.state.lineState.tokens.length === 0) {
+    const smartEnterCondition = singleLineEnter || token.state.lineState.tokens.length === 0;
+    const smartEnter = smartEnterCondition && !enterNewline;
+    if ((smartEnter || event.ctrlKey) && !event.shiftKey) {
       editor.getInputField().blur();
       run();
       event.preventDefault();
@@ -351,7 +329,7 @@ class Chat extends React.Component<ChatProps, any> {
     const {
       chunks,
       setChunks,
-      enqueueEffect,
+      run,
     } = this.props;
     const newChunks = [
       ...chunks.slice(0, index),
@@ -366,7 +344,7 @@ class Chat extends React.Component<ChatProps, any> {
       chunks: newChunks,
       modifiesText: true,
     });
-    enqueueEffect({ effectKey: 'initCmd', cmd: BackendCmd.Run });
+    run();
   }
 
   /* Called in response to a Delete key event. Deletes chunks in different ways
@@ -406,18 +384,9 @@ class Chat extends React.Component<ChatProps, any> {
      focused chunk and removes all chunk selections. */
   handleMouseDown(event: any) {
     const {
-      index,
       chunks,
-      setShouldAdvanceCursor,
-      setFirstSelectedChunkIndex,
       setChunks,
     } = this.props;
-
-    /* Instruct Redux to not move the cursor into the next chunk upon lint
-       success. This only matters if a lint is happening at the time of clicking.
-       Without this, focus would first jump to this chunk (indented), but then jump
-       away to the chunk past the linted chunk (unintended). */
-    setShouldAdvanceCursor(false);
 
     if (event.buttons !== 1) {
       return;
@@ -428,7 +397,6 @@ class Chat extends React.Component<ChatProps, any> {
       chunks: newChunks,
       modifiesText: false,
     });
-    setFirstSelectedChunkIndex(index);
   }
 
   render() {
@@ -564,7 +532,7 @@ class Chat extends React.Component<ChatProps, any> {
             this.scheduleUpdate();
           }}
           onKeyDown={(editor, event) => {
-            switch ((event as any).key) {
+            switch (event.key) {
               case 'Enter':
                 this.handleEnter(editor, event);
                 break;

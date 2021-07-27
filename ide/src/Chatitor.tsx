@@ -9,45 +9,31 @@ import { UnControlled } from 'react-codemirror2';
 import { Action, ChunksUpdate } from './action';
 import {
   State,
-  EditorResponseLoop,
 } from './state';
 import {
   Chunk, emptyChunk, getStartLineForIndex, lintSuccessState,
 } from './chunk';
-import { RHSObjects } from './rhsObject';
-import { Effect } from './effect';
 import Chat from './Chat';
 
 type StateProps = {
   chunks: Chunk[],
-  focusedChunk: number | undefined,
-  rhs: RHSObjects,
-  debugBorders: boolean,
-  editorResponseLoop: EditorResponseLoop,
+  enterNewline: boolean,
 };
 
 type DispatchProps = {
   run: () => void,
-  setRHS: () => void,
   setChunks: (chunks: ChunksUpdate) => void,
-  enqueueEffect: (effect: Effect) => void,
 };
 
 function mapStateToProps(state: State): StateProps {
   const {
     chunks,
-    focusedChunk,
-    rhs,
-    debugBorders,
-    editorResponseLoop,
+    enterNewline,
   } = state;
 
   return {
     chunks,
-    focusedChunk,
-    rhs,
-    debugBorders,
-    editorResponseLoop,
+    enterNewline,
   };
 }
 
@@ -56,14 +42,8 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     run() {
       dispatch({ type: 'runSession', key: 'runProgram' });
     },
-    setRHS() {
-      dispatch({ type: 'update', key: 'rhs', value: 'make-outdated' });
-    },
     setChunks(chunks: ChunksUpdate) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });
-    },
-    enqueueEffect(effect: Effect) {
-      dispatch({ type: 'enqueueEffect', effect });
     },
   };
 }
@@ -76,6 +56,7 @@ type DefChunksProps = PropsFromRedux & DispatchProps & StateProps;
 function Chatitor({
   run,
   chunks,
+  enterNewline,
   setChunks,
 }: DefChunksProps) {
   const doc = React.useState<CodeMirror.Doc>(() => {
@@ -91,6 +72,8 @@ function Chatitor({
   // solution
   const chunksRef = React.useRef(chunks);
   chunksRef.current = chunks;
+  const enterNewlineRef = React.useRef(enterNewline);
+  enterNewlineRef.current = enterNewline;
   function setupChunk(chunk: Chunk, index: number) {
     return (
       <Chat
@@ -129,13 +112,15 @@ function Chatitor({
           editor.setSize(null, 'auto');
           setEditor(editor);
         }) as (editor: CodeMirror.Editor) => void}
-        onKeyDown={((editor: CodeMirror.Editor & CodeMirror.Doc, event: Event) => {
+        onKeyDown={((editor: CodeMirror.Editor & CodeMirror.Doc, event: KeyboardEvent) => {
           switch ((event as any).key) {
             case 'Enter': {
-              if (editor.getValue() !== '') {
-                const pos = editor.getCursor();
-                const token = editor.getTokenAt(pos);
-                if (token.state.lineState.tokens.length === 0) {
+              const pos = editor.getCursor();
+              const token = editor.getTokenAt(pos);
+              const enterKeySend = token.state.lineState.tokens.length === 0
+                && !enterNewlineRef.current;
+              if ((enterKeySend || event.ctrlKey) && !event.shiftKey) {
+                if (editor.getValue() !== '') {
                   const value = editor.getValue();
                   const nextChunks: Chunk[] = [
                     ...chunksRef.current,
@@ -149,9 +134,9 @@ function Chatitor({
                   editor.setValue('');
                   run();
                   event.preventDefault();
+                } else {
+                  event.preventDefault();
                 }
-              } else {
-                event.preventDefault();
               }
               break;
             }
