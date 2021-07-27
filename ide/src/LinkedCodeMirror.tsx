@@ -14,7 +14,7 @@ type Props = {
   options?: CM.EditorConfiguration,
   onBeforeChange?: (editor: Editor, data: CM.EditorChange, value: string) => void,
   onSelection?: (editor: Editor, data: any) => void,
-  onKeyDown?: (editor: Editor, event: InputEvent) => void,
+  onKeyDown?: (editor: Editor, event: KeyboardEvent) => void,
   // autoCursor: boolean,
   onBlur?: (editor: Editor) => void,
   className?: string,
