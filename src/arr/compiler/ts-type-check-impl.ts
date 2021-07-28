@@ -72,6 +72,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
     }
 
+    function prettyIsh(v : any) : string {
+      return require('util').inspect(v, {depth:null});
+    }
+
     function sameOrigin(o1 : TS.NameOrigin, o2 : TS.NameOrigin) : boolean {
       switch(o1.$name) {
         case "local": {
@@ -802,10 +806,63 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
 
       apply(typ : TS.Type) : TS.Type {
-        return typ;
+        const thisCS = this;
+        return map<TS.Type>({
+          "t-record": (self, t) => {
+            const fields = mapFromStringDict(t.dict.fields);
+            for(let [name, val] of fields.entries()) {
+              fields.set(name, thisCS.apply(val));
+            }
+            return TS['t-record'].app(stringDictFromMap(fields), t.dict.l, t.dict.inferred);
+          },
+          "t-existential": (self, t) => {
+            const key = typeKey(t);
+            if(thisCS.substitutions.has(key)) {
+              const [assignedType] = thisCS.substitutions.get(key);
+              const inferred = t.dict.inferred || assignedType.dict.inferred;
+              return thisCS.apply(setLocAndInferred(assignedType, t.dict.l, inferred));
+            }
+            else {
+              return t;
+            }
+          }
+        }, typ);
       }
       generalize(typ : TS.Type) : TS.Type {
-        return typ;
+        const thisCS = this;
+        function collectVars(typ : TS.Type, varMapping : Map<string, TS.Type>) : TS.Type {
+          return map<TS.Type>({
+            "t-record": (self, t) => {
+              const fields = mapFromStringDict(t.dict.fields);
+              for(let [name, val] of fields.entries()) {
+                fields.set(name, collectVars(val, varMapping));
+              }
+              return TS['t-record'].app(stringDictFromMap(fields), t.dict.l, t.dict.inferred);
+            },
+            "t-existential": (self, t) => {
+              const key = typeKey(t);
+              if(thisCS.variables.has(key)) {
+                if(varMapping.has(key)) {
+                  return varMapping.get(key);
+                }
+                else {
+                  const newVar = newTypeVar(t.dict.l);
+                  varMapping.set(key, newVar);
+                  return newVar;
+                }
+              }
+              else {
+                return t;
+              }
+
+            }
+          }, typ);
+        }
+        const varMapping = new Map<string, TS.Type>();
+        const newTyp = collectVars(typ, varMapping);
+        const vars = [...varMapping.values()];
+        if(vars.length === 0) { return typ; }
+        else { return TS['t-forall'].app(runtime.ffi.makeList(vars), newTyp, typ.dict.l, false); }
       }
     }
 
@@ -911,6 +968,8 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       substituteInBinds(solution : ConstraintSolution) {
         for(const [key, boundType] of this.binds) {
           this.binds.set(key, solution.generalize(solution.apply(boundType)));
+          //LOG(`Substituting ${key} for ${typeKey(boundType)}`);
+          //LOG(`~~~> ${typeKey(this.binds.get(key))}\n\n`);
         }
       }
 
@@ -926,7 +985,9 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         const solution = this.solveLevel()
         this.substituteInBinds(solution);
         this.substituteInMisc(solution);
-        return solution.apply(t);
+        const result = solution.apply(t);
+        //LOG(`Solved and resolved: ${typeKey(t)} ===> ${typeKey(result)}\n\n`);
+        return result;
       }
     }   
 
@@ -1495,23 +1556,26 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
 
     function _checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : Context) : void {
       context.addLevel();
+      function solveAndReturn() {
+        context.solveLevel();
+        return;
+      }
       expectTyp = resolveAlias(expectTyp, context);
       if(expectTyp.$name === 't-app') {
         expectTyp = simplifyTApp(expectTyp, context);
       }
       if(expectTyp.$name === 't-existential' || expectTyp.$name === 't-top') {
         checkSynthesis(e, expectTyp, topLevel, context);
-        return;
+        return solveAndReturn();
       }
       switch(e.$name) {
         case 's-id': {
           checkSynthesis(e, expectTyp, topLevel, context);
-          return;
+          return solveAndReturn();
         }
         default:
           throw new InternalCompilerError("_checking switch " + e.$name);
       }
-      return null;
     }
 
     function synthesisAppFun(appLoc : SL.Srcloc, fun : A.Expr, args : A.Expr[], context: Context) : TS.Type{
