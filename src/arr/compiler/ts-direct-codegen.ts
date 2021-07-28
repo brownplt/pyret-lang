@@ -333,8 +333,8 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       });
 
       const [aExp, aStmts] = compileExpr(context, expr.dict.answer);
-      const checkResults = rtMethod("$checkResults", []);
-      const traces = rtMethod("$getTraces", []);
+      const checkResults = rtMethod("$checkResults", [Literal(context.uri)]);
+      const traces = rtMethod("$getTraces", [Literal(context.uri)]);
 
       const answer1 = freshId(compilerName("answer"))
       const answerVar = Var(answer1, aExp)
@@ -1687,7 +1687,12 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
         return Var(jsIdOf(binding.dict["atom"]), rtMethod("getModuleValue", [Literal(uri), Literal(name)]));
       });
 
-      return [...importStmts, ...fromModules];
+      const setupRuntime = [
+        ExpressionStatement(rtMethod("$clearTraces", [Literal(provides.dict['from-uri'])])),
+        ExpressionStatement(rtMethod("$clearChecks", [Literal(provides.dict['from-uri'])]))
+      ];
+
+      return [...importStmts, ...setupRuntime, ...fromModules];
     }
 
     /**
