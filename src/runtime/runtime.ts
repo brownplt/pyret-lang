@@ -75,7 +75,7 @@ function _spy(spyObject: SpyObject): void {
 
 // *********Check Stuff*********
 var _globalCheckContext: string[] = [];
-var _globalCheckResults: CheckResult[] = [];
+var _globalCheckResults: { [uri : string]: CheckResult[] } = {};
 // TODO: Pass in the URI to the check test executors
 //   so we can attempt to filter check blocks by module
 // TODO: Add check test override
@@ -95,13 +95,14 @@ function checkBlockHandler(srcloc: string, name: string, checkBlock: () => void)
   $checkBlockExecutor(srcloc, name, checkBlock);
 }
 
-function getCheckResults(): CheckResult[] {
-  return _globalCheckResults.slice();
+function getCheckResults(uri : string): CheckResult[] {
+  return _globalCheckResults[uri].slice();
 }
 
-function checkResults(): CheckResult[] {
+function clearChecks(uri) { _globalCheckResults[uri] = []; }
+function checkResults(uri : string): CheckResult[] {
   let errorCount = 0;
-  _globalCheckResults.forEach((result) => {
+  _globalCheckResults[uri].forEach((result) => {
     if (!result.success) {
       errorCount += 1;
     }
@@ -112,7 +113,7 @@ function checkResults(): CheckResult[] {
   } else {
     console.log("Some tests failed.");
   }
-  _globalCheckResults.forEach((result) => {
+  _globalCheckResults[uri].forEach((result) => {
     let result_lhs = JSON.stringify(result.lhs, null, "\t");
     let result_rhs = JSON.stringify(result.rhs, null, "\t");
     if (result.success) {
@@ -127,12 +128,19 @@ function checkResults(): CheckResult[] {
     }
   });
 
-  return getCheckResults();
+  return getCheckResults(uri);
 }
 
 function eagerCheckTest(lhs: () => any,  rhs: () => any,
   test: (lhs: CheckExprEvalResult, rhs: CheckExprEvalResult) => CheckTestResult,
   loc: string): void {
+  
+  console.log("In an eager check test: ", loc);
+  
+  const uri = getUriForCheckLoc(loc);
+  if(!(uri in _globalCheckResults)) {
+    _globalCheckResults[uri] = [];
+  }
 
   let lhs_expr_eval: CheckExprEvalResult = {
     value: undefined,
@@ -162,7 +170,7 @@ function eagerCheckTest(lhs: () => any,  rhs: () => any,
 
   try {
     let result = test(lhs_expr_eval, rhs_expr_eval);
-    _globalCheckResults.push({
+    _globalCheckResults[uri].push({
         success: result.success,
         path: _globalCheckContext.join(),
         loc: loc,
@@ -171,7 +179,7 @@ function eagerCheckTest(lhs: () => any,  rhs: () => any,
         exception: undefined,
     });
   } catch(e) {
-    _globalCheckResults.push({
+    _globalCheckResults[uri].push({
         success: false,
         path: _globalCheckContext.join(),
         loc: loc,
@@ -202,16 +210,31 @@ function eagerCheckBlockRunner(uri: string, name: string, checkBlock: () => void
   }
 }
 
-var _globalTraceValues = [];
+var _globalTraceValues = {};
+
+function getUri(loc : [string, number, number, number, number, number, number]) {
+  console.log("Getting uri from", loc);
+  return loc[0];
+}
+function getUriForCheckLoc(loc : string) {
+  // NOTE(joe/luna): The locations look like file:///path:start-end. This gets
+  // the bit between the two colons (one after file:, one after path:)
+  return loc.substring(0, loc.indexOf(":", loc.indexOf(":") + 1));
+}
 
 // ********* Other Functions *********
 export function traceValue(loc, value) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
-  _globalTraceValues.push({srcloc: loc, value});
+  const uri = getUri(loc);
+  if(!(uri in _globalTraceValues)) {
+    _globalTraceValues[uri] = [];
+  }
+  _globalTraceValues[uri].push({srcloc: loc, value});
   return value;
 }
 
-function getTraces() { return _globalTraceValues; }
+function getTraces(uri) { return _globalTraceValues[uri]; }
+function clearTraces(uri) { _globalTraceValues[uri] = []; }
 
 // Allow '+' for string concat.
 // Otherwise, defer to the number library.
@@ -376,6 +399,7 @@ module.exports["raise"] = raise;
 module.exports["$raiseExtract"] = raiseExtract;
 module.exports["trace-value"] = traceValue;
 module.exports["$getTraces"] = getTraces;
+module.exports["$clearTraces"] = clearTraces;
 
 module.exports["$spy"] = _spy;
 
@@ -389,6 +413,7 @@ module.exports["$checkTest"] = eagerCheckTest;
 module.exports["$checkBlock"] = checkBlockHandler;
 module.exports["$checkResults"] = checkResults;
 module.exports["$getCheckResults"] = getCheckResults;
+module.exports["$clearChecks"] = clearChecks;
 
 module.exports["$makeRational"] = _NUMBER["makeRational"];
 module.exports["$makeRoughnum"] = _NUMBER["makeRoughnum"];
