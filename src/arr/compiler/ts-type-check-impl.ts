@@ -7,6 +7,7 @@ import type * as TJ from './ts-codegen-helpers';
 import type * as TCS from './ts-type-check-structs';
 import type * as TCSH from './ts-compile-structs-helpers';
 import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } from './ts-impl-types';
+import { typeofTypeAnnotation } from '@babel/types';
 
 ({
   requires: [
@@ -1616,6 +1617,21 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         return solveAndReturn();
       }
       switch(e.$name) {
+        case 's-tuple': {
+          if(expectTyp.$name !== 't-tuple') {
+            throw new TypeCheckFailure(CS['incorrect-type'].app(`${typeKey(expectTyp)}`, expectTyp.dict.l, "a tuple type", e.dict.l));
+          }
+          const elts = listToArray(e.dict.fields);
+          const expectElts = listToArray(expectTyp.dict.elts);
+          if(elts.length !== expectElts.length) {
+            throw new TypeCheckFailure(CS['incorrect-type'].app(`a tuple type with length ${elts.length}`, e.dict.l, typeKey(expectTyp), expectTyp.dict.l));
+          }
+          for(let i = 0; i < elts.length; i += 1) {
+            checking(elts[i], expectElts[i], false, context);
+          }
+          return solveAndReturn();
+        }
+        case 's-tuple-get':
         case 's-id': {
           checkSynthesis(e, expectTyp, topLevel, context);
           return solveAndReturn();
@@ -1688,9 +1704,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
 
     function _synthesis(e : A.Expr, topLevel : boolean, context : Context) : TS.Type {
       switch(e.$name) {
-        case 's-module':
-          let typ : TS.Type = TS['t-top'].app(e.dict.l, false);
-          return typ;
+        case 's-module': {
+          const resultTyp = synthesis(e.dict.answer, false, context);
+          return setTypeLoc(resultTyp, e.dict.l);
+        }
         case 's-block': {
           let typ : TS.Type = TS['t-top'].app(e.dict.l, false);
           for(const stmt of listToArray(e.dict.stmts)) {
@@ -1728,9 +1745,45 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           const result = synthesisSpine(arrowType, e, listToArray(e.dict.args), e.dict.l, context);
           return setTypeLoc(result, e.dict.l);
         }
+        case 's-tuple': {
+          const eltTyps = [];
+          for(let elt of listToArray(e.dict.fields)) {
+            eltTyps.push(synthesis(elt, false, context));
+          }
+          return TS['t-tuple'].app(runtime.ffi.makeList(eltTyps), e.dict.l, false);
+        }
+        case 's-tuple-get': {
+          const newType = synthesis(e.dict.tup, topLevel, context); // TODO(joe): toplevel should be false?
+          return synthesisTupleIndex(e.dict.l, newType.dict.l, newType, e.dict.index, context);
+
+        }
         default:
           throw new InternalCompilerError("_synthesis switch " + e.$name);
       }
+    }
+
+    function synthesisTupleIndex(accessLoc : SL.Srcloc, tupTypeLoc : SL.Srcloc, tupType : TS.Type, index : number, context : Context) {
+      const tupMembers = tupleView(accessLoc, tupTypeLoc, tupType, context);
+      if(index >= tupMembers.length) {
+        throw new TypeCheckFailure(CS['tuple-too-small'].app(index, tupMembers.length, "{" + tupMembers.map(typeKey).join("; ") + " }", tupTypeLoc, accessLoc));
+      }
+      else {
+        return tupMembers[index];
+      }
+    }
+
+    function tupleView(accessLoc : SL.Srcloc, tupTypeLoc : SL.Srcloc, tupType : TS.Type, context : Context) : TS.Type[] {
+      switch(tupType.$name) {
+        case 't-tuple': return listToArray(tupType.dict.elts);
+        case 't-forall':
+          const newType = instantiateForallWithFreshVars(tupType, context.constraints);
+          return tupleView(accessLoc, tupTypeLoc, newType, context);
+        case 't-existential':
+          throw new TypeCheckFailure(CS['unable-to-infer'].app(tupType.dict.l));
+        default:
+          throw new TypeCheckFailure(CS['incorrect-type'].app(typeKey(tupType), tupTypeLoc, "a tuple type", accessLoc));
+      }
+
     }
 
     function synthesisLetBind(binding : A.LetBind, context : Context) : TS.Type {
