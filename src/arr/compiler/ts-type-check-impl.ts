@@ -301,6 +301,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     type Refinement = {existential: TS.Type, dataRefinement: TJ.Variant<TS.Type, 't-data-refinement'>};
 
     class ConstraintLevel {
+      name?: string;
       // the constrained existentials
       variables : Map<string, TS.Type>;
       // list of {subtype; supertype}
@@ -312,12 +313,13 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       // types for examples?
       exampleTypes : ExampleTypes;
 
-      constructor() {
+      constructor(name? : string) {
         this.variables = new Map();
         this.constraints = [];
         this.refinementConstraints = [];
         this.fieldConstraints = new Map();
         this.exampleTypes = new Map();
+        this.name = name;
       }
 
       addFieldConstraint(type : TS.Type, fieldName : string, fieldType : TS.Type) : void{
@@ -340,6 +342,26 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       levels: ConstraintLevel[];
       constructor() {
         this.levels = [];
+      }
+      toString() {
+        const result = { levels: [] }
+        for(let level of this.levels) {
+          const l = {name : level.name, variables: {}, constraints: [], fieldConstraints: {}};
+          result.levels.push(l);
+          for(let [key, val] of level.variables) {
+            l.variables[key] = typeKey(val);
+          }
+          for(let {supertype, subtype} of level.constraints) {
+            l.constraints.push(`${typeKey(subtype)} < ${typeKey(supertype)}`);
+          }
+          for(let [key, [typ, constraint]] of level.fieldConstraints) {
+            l.constraints[key] = {};
+            for(let [fieldName, typs] of constraint) {
+              l.constraints[key][fieldName] = `[ ${typs.map(typeKey).join(", ")} ]`;
+            }
+          }
+        }
+        return prettyIsh(result);
       }
       toPyretConstraintSystem(): TCS.ConstraintSystem {
         let ret : TCS.ConstraintSystem = TCS.dict.values.dict['no-constraints'];
@@ -458,8 +480,8 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         }
         throw new InternalCompilerError("Can't add example type to an uninitialized system");
       }
-      addLevel() : void{
-        const level = new ConstraintLevel();
+      addLevel(name?: string) : void{
+        const level = new ConstraintLevel(name);
         this.levels.push(level);
       }
       // ASSUMES(joe/ben): this === context.constraints
@@ -485,7 +507,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         const levelToSplit = this.levels.pop();
         // NOTE(old impl): introduce a half level so any constraints depending
         // on test inference can be solved after test inference
-        this.addLevel();
+        this.addLevel("solveLevel half level");
         for(let { existential } of levelToSplit.exampleTypes.values()) {
           this.addVariable(existential); // Adds to the newly added empty level from .addLevel()
           levelToSplit.variables.delete(typeKey(existential));
@@ -805,6 +827,17 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         this.substitutions = substitutions ?? new Map();
       }
 
+      toString() {
+        let result = { variables: {}, substitutions: {} };
+        for(let [key, variable] of this.variables) {
+          result.variables[key] = typeKey(variable);
+        }
+        for(let [key, [t1, t2]] of this.substitutions) {
+          result.substitutions[key] = [typeKey(t1), typeKey(t2)];
+        }
+        return prettyIsh(result);
+      }
+
       apply(typ : TS.Type) : TS.Type {
         const thisCS = this;
         return map<TS.Type>({
@@ -941,8 +974,8 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         );
       }
 
-      addLevel() : void {
-        this.constraints.addLevel();
+      addLevel(name?: string) : void {
+        this.constraints.addLevel(name);
       }
 
       addBinding(termKey : string, assignedType : TS.Type) {
@@ -966,6 +999,11 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
 
       substituteInBinds(solution : ConstraintSolution) {
+        // TODO(joe/ben): two loops, one for apply() and one for generalize(), with
+        // apply guarded by substitutions === 0 and generalize guarded by variables === 0
+        if(solution.variables.size === 0 && solution.substitutions.size === 0) {
+          return;
+        }
         for(const [key, boundType] of this.binds) {
           this.binds.set(key, solution.generalize(solution.apply(boundType)));
           //LOG(`Substituting ${key} for ${typeKey(boundType)}`);
@@ -978,7 +1016,16 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
 
       solveLevel() : ConstraintSolution {
-        return this.constraints.solveLevel(this);
+        try {
+          LOG(`Solving ${String(this.constraints)}\n\n`);
+          const result = this.constraints.solveLevel(this);
+          LOG(`With solution: ${String(result)}\n\n`);
+          return result;
+        }
+        catch(e) {
+          LOG(`Got an exception while solving: ${String(this.constraints)}\n\n`);
+          throw e;
+        }
       }
 
       solveAndResolveType(t : TS.Type) : TS.Type {
@@ -1555,7 +1602,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     }
 
     function _checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : Context) : void {
-      context.addLevel();
+      context.addLevel(`_checking(${e.$name})`);
       function solveAndReturn() {
         context.solveLevel();
         return;
@@ -1584,7 +1631,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     }
 
     function synthesisSpine(funType : TS.Type, original: A.Expr, args : A.Expr[], appLoc : SL.Srcloc, context : Context) : TS.Type {
-      context.addLevel();
+      context.addLevel(`synthesisSpine(${original.$name})`);
       function wrapReturn(t : TS.Type) {
         context.solveLevel();
         return setTypeLoc(t, appLoc);
@@ -1635,7 +1682,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     }
 
     function synthesis(e : A.Expr, topLevel : boolean, context : Context) : TS.Type {
-      context.addLevel();
+      context.addLevel(`synthesis(${e.$name})`);
       return context.solveAndResolveType(_synthesis(e, topLevel, context));
     }
 
@@ -1687,7 +1734,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     }
 
     function synthesisLetBind(binding : A.LetBind, context : Context) : TS.Type {
-      context.addLevel();
+      context.addLevel(`synthesisLetBind(${binding.$name}))`);
       switch(binding.$name) {
         case 's-let-bind':
           const b = (binding.dict.b as TJ.Variant<A.Bind, "s-bind">);
