@@ -1,0 +1,4 @@
+/*
+    name: TestGrammar2
+*/
+num: (NUMBER)*

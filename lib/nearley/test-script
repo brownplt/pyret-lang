@@ -1,0 +1,21 @@
+#!/bin/zsh
+
+result=$(diff <(node nearley-grammar-test.js ../../tests-new/ts-simple-output/assign.arr) <(node jglr-test/pyret/pyret-parser-test.js ../../tests-new/ts-simple-output/assign.arr))
+
+if [ "$result" = "" ]; then
+    echo "result same"
+else
+    echo "result different"
+    echo $result
+fi
+
+for entry in ../../tests-new/ts-simple-output/*.arr
+do
+    echo $entry
+    result=$(diff <(node nearley-grammar-test.js $entry) <(node jglr-test/pyret/pyret-parser-test.js $entry))
+    if [ "$result" = "" ]; then
+        echo "result same"
+    else
+        echo "result different"
+    fi 
+done
