@@ -287,7 +287,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
         'type-check': options.typeCheck,
         'recompile-builtins': options.recompileBuiltins,
         pipeline: 'anchor',
-        session: options.session || 'frontend-will-change',
+        session: options.session,
       };
 
       worker.postMessage(message);

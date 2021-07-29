@@ -175,7 +175,6 @@ export const compileProgram = (
     'type-check': options.typeCheck,
     'recompile-builtins': options.recompileBuiltins,
     pipeline: 'anchor',
-    session: 'frontend-will-change',
   };
 
   compilerWorker.postMessage(message);
