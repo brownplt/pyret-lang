@@ -1099,7 +1099,8 @@ const serverAPI = makeServerAPI(
 );
 
 function segmentName(file: string, id: string): string {
-  return `${file}-${id}`;
+  const { base } = bfsSetup.path.parse(file);
+  return `/tmp/${base}-${id}`;
 }
 
 // TODO(luna): don't use index, check for id matches
@@ -1245,8 +1246,10 @@ function handleCompileSessionFailure(
 
 async function runSessionAsync(state : State) : Promise<any> {
   const { chunks } = state;
+  const filenames: string[] = [];
   chunks.forEach((c) => {
     const filename = segmentName(state.currentFile, c.id);
+    filenames.push(filename);
     fs.writeFileSync(filename, c.editor.getValue());
   });
   fs.writeFileSync(
@@ -1263,7 +1266,7 @@ async function runSessionAsync(state : State) : Promise<any> {
   };
   for (let i = 0; i < chunks.length; i += 1) {
     const c = chunks[i];
-    const filename = `${state.currentFile}-${c.id}`;
+    const filename = segmentName(state.currentFile, c.id);
     const { dir, base } = bfsSetup.path.parse(filename);
     // eslint-disable-next-line
     const result = await serverAPI.compileAndRun({
@@ -1283,14 +1286,16 @@ async function runSessionAsync(state : State) : Promise<any> {
     console.log('Result from running: ', result);
     if (result.type === 'compile-failure') {
       update((s: State) => handleCompileSessionFailure(s, result.errors));
-      return 'runSessionAsyncFinished';
+      break;
     } if (result.type === 'run-failure') {
-      update((s: State) => handleRunSessionFailure(s, i, result.error));
-      return 'runSessionAsyncFinished';
+      update((s: State) => handleRunSessionFailure(s, c.id, result.error));
+      break;
     }
-    update((s: State) => handleRunSessionSuccess(s, i, c.id, result.result));
+    update((s: State) => handleRunSessionSuccess(s, c.id, result.result));
   }
-  console.log('Returning from runSessionAsync');
+  filenames.forEach((f) => {
+    fs.unlinkSync(f);
+  });
   return 'runSessionAsyncFinished';
 }
 

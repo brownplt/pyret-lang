@@ -19,6 +19,10 @@ export default function load(
     fs.mkdirSync(compiledBuiltin);
   }
 
+  if (!fs.existsSync('/tmp')) {
+    fs.mkdirSync('/tmp');
+  }
+
   runtimeFiles.forEach((item: any) => {
     const { key, content, timestamp } = item;
 
