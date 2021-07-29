@@ -34,6 +34,7 @@ import {
   isRHSCheck,
   RHSCheck,
   isLocation,
+  isTrace,
 } from './rhsObject';
 import RHSObjectComponent from './RHSObjectComponent';
 import FailureComponent from './FailureComponent';
@@ -429,8 +430,8 @@ class Chat extends React.Component<ChatProps, any> {
         <div
           style={{
             display: 'flex',
-            width: '100%',
-            justifyContent: 'flex-end',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
             marginBottom: '0.5em',
           }}
         >
@@ -446,52 +447,49 @@ class Chat extends React.Component<ChatProps, any> {
       let rhs;
       const rhsObjects = thisChunkRHSObjects.objects;
       // TODO(luna): more principled
-      const isDataDefinition = rhsObjects.filter((r) => !isLocation(r)).length === 0
-              && rhsObjects.filter((r) => isLocation(r) && r.name.startsWith('is-')).length > 0;
-      const isFunctionDefinition = rhsObjects.length === 1 && isLocation(rhsObjects[0]) && typeof rhsObjects[0].value === 'function';
-      if (rhsObjects.length === 0 || isDataDefinition || isFunctionDefinition) {
+      // const isDataDefinition = rhsObjects.filter((r) => !isLocation(r)).length === 0
+      //         && rhsObjects.filter((r) => isLocation(r) && r.name.startsWith('is-')).length > 0;
+      const shown = rhsObjects.filter((r) => (
+        // location for function is mostly noise
+        !(isLocation(r) && typeof r.value === 'function')
+        // checks handled separately and grouped
+        && !isRHSCheck(r)
+        // undefined shows up sometimes go figure
+        && !(isTrace(r) && typeof r.value === 'undefined')));
+      const checks = rhsObjects.filter((r) => isRHSCheck(r));
+      if (shown.length + checks.length === 0) {
         if (thisChunkRHSObjects.outdated) {
           rhs = <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div>;
         } else {
           displayCheckMark = true;
         }
-      } else if (rhsObjects.length === 1) {
-        const val = rhsObjects[0];
-        rhs = (
-          <RHSObjectComponent
-            rhsObject={val}
-            isSelected={false}
-            className="chatitor-rhs"
-            outdated={thisChunkRHSObjects.outdated}
-          />
-        );
-      } else if (rhsObjects.filter((r) => !isRHSCheck(r)).length === 0) {
-        rhs = (
-          <CheckResults
-            // Would love to have TypeScript obviate this `as`
-            checks={rhsObjects as RHSCheck[]}
-            outdated={thisChunkRHSObjects.outdated}
-          />
-        );
       } else {
-        rhs = rhsObjects.map((val) => (
+        const values = shown.map((val) => (
           <RHSObjectComponent
-            key={val.key ?? 'oeunth'}
+            key={val.key ?? 'no key for val?'}
             rhsObject={val}
             isSelected={false}
             className="chatitor-rhs"
             outdated={thisChunkRHSObjects.outdated}
           />
         ));
+        const checkSummary = checks.length > 0
+          ? (
+            <CheckResults
+            // Would love to have TypeScript obviate this `as`
+              checks={checks as RHSCheck[]}
+              outdated={thisChunkRHSObjects.outdated}
+            />
+          ) : '';
+        rhs = [...values, checkSummary];
       }
 
       chunkResultsPart = (
         <div
           style={{
             display: 'flex',
-            width: '100%',
-            justifyContent: 'flex-end',
-            marginBottom: '0.5em',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
           }}
         >
           {rhs}
