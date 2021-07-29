@@ -983,6 +983,12 @@ import { typeofTypeAnnotation } from '@babel/types';
         this.binds.set(termKey, assignedType);
       }
 
+      addDictToBindings(bindings : Map<string, TS.Type>) {
+        for(let [key, typ] of bindings) {
+          this.binds.set(key, typ);
+        }
+      }
+
       removeBinding(termKey : string) {
         this.binds.delete(termKey);
       }
@@ -1415,6 +1421,7 @@ import { typeofTypeAnnotation } from '@babel/types';
       logger.app(val, runtime.ffi.makeNone());
     }
 
+    // NOTE(joe/ben): This was called introduce-onto in the original Pyret implementation
     function simplifyTApp(appType : TJ.Variant<TS.Type, "t-app">, context : Context) : TS.Type {
       const args = listToArray(appType.dict.args);
       const onto = resolveAlias(appType.dict.onto, context);
@@ -1617,6 +1624,10 @@ import { typeofTypeAnnotation } from '@babel/types';
         return solveAndReturn();
       }
       switch(e.$name) {
+        case 's-lam': {
+          checkFun(e.dict.l, e.dict.body, e.dict.params, e.dict.args, e.dict.ann, expectTyp, e, context);
+          return solveAndReturn();
+        }
         case 's-tuple': {
           if(expectTyp.$name !== 't-tuple') {
             throw new TypeCheckFailure(CS['incorrect-type'].app(`${typeKey(expectTyp)}`, expectTyp.dict.l, "a tuple type", e.dict.l));
@@ -1638,6 +1649,90 @@ import { typeofTypeAnnotation } from '@babel/types';
         }
         default:
           throw new InternalCompilerError("_checking switch " + e.$name);
+      }
+    }
+
+    // TODO(MATT): this should not generalize the arguments
+    function checkFun(funLoc : SL.Srcloc, body : A.Expr, params : List<A.Name>, args : List<A.Bind>, retAnn : A.Ann, expectTyp : TS.Type, original : A.Expr, context : Context) {
+      context.addLevel();
+      // NOTE(joe/ben): the original implementation called collectBindings here.
+      // However, it's only actually used in the cases that traverse into `body`, so
+      // save calling it for those cases.
+      const paramsArray = listToArray(params);
+      const argsArray = listToArray(args)  as TJ.Variant<A.Bind, "s-bind">[];
+
+      // TODO(MATT): checking when polymorphic lambda but non-polymorphic type
+      switch(expectTyp.$name) {
+        case 't-arrow': {
+          const lamBindings = collectBindings(argsArray, context);
+          const expectArgs = listToArray(expectTyp.dict.args);
+          if(lamBindings.size !== expectArgs.length) {
+            const expected = `a function with ${expectArgs.length} arguments`;
+            const found = `a function with ${lamBindings.size} arguments`;
+            throw new TypeCheckFailure(CS['incorrect-type'].app(expected, funLoc, found, expectTyp.dict.l));
+          }
+          for(let i = 0; i < expectArgs.length; i += 1) {
+            const key = nameToKey(argsArray[i].dict.id);
+            const typ = lamBindings.get(key);
+            if(typ.$name === 't-existential') {
+              lamBindings.set(key, expectArgs[i]);
+            }
+          }
+          for(let param of paramsArray) {
+            const newExists = newExistential(funLoc, false);
+            const paramType = TS['t-var'].app(param, funLoc, false);
+            for(let [key, typ] of lamBindings) {
+              lamBindings.set(key, substitute(typ, newExists, paramType));
+            }
+            context.addVariable(newExists);
+          }
+
+          context.addDictToBindings(lamBindings);
+
+          for(let i = 0; i < argsArray.length; i += 1) {
+            const typ = lamBindings.get(nameToKey(argsArray[i].dict.id));
+            context.addConstraint(typ, expectArgs[i]);
+          }
+
+          checking(body, expectTyp.dict.ret, false, context);
+
+          return context.solveAndResolveType(expectTyp);
+        }
+        case 't-forall': {
+          checkFun(funLoc, body, params, args, retAnn, expectTyp.dict.onto, original, context);
+          return context.solveAndResolveType(expectTyp);
+        }
+        case 't-existential': {
+          return context.solveAndResolveType(checkSynthesis(original, expectTyp, false, context));
+        }
+        case 't-app': {
+          const foldOnto = simplifyTApp(expectTyp, context);
+          checkFun(funLoc, body, params, args, retAnn, foldOnto, original, context);
+          return context.solveAndResolveType(foldOnto);
+        }
+        case 't-top': {
+          const lamBindings = collectBindings(argsArray, context);
+          context.addDictToBindings(lamBindings);
+          checking(body, expectTyp, false, context);
+          return context.solveAndResolveType(expectTyp);
+        }
+      }
+    }
+
+    function collectBindings(binds : TJ.Variant<A.Bind, "s-bind">[], context : Context) : Map<string, TS.Type> {
+      const bindings = new Map<string, TS.Type>();
+      for(let b of binds) {
+        const typ = toType(b.dict.ann, context);
+        let newTyp : TS.Type;
+        if(typ) {
+          newTyp = setTypeLoc(typ, b.dict.l);
+        }
+        else {
+          newTyp = newExistential(b.dict.l, true);
+          context.addVariable(newTyp);
+        }
+        bindings.set(nameToKey(b.dict.id), newTyp);
+        return bindings;
       }
     }
 
@@ -1755,10 +1850,64 @@ import { typeofTypeAnnotation } from '@babel/types';
         case 's-tuple-get': {
           const newType = synthesis(e.dict.tup, topLevel, context); // TODO(joe): toplevel should be false?
           return synthesisTupleIndex(e.dict.l, newType.dict.l, newType, e.dict.index, context);
-
+        }
+        case 's-lam': {
+          return synthesisFun(e.dict.l, e.dict.body, e.dict.params, e.dict.args, e.dict.ann, e, topLevel, context);
         }
         default:
           throw new InternalCompilerError("_synthesis switch " + e.$name);
+      }
+    }
+
+    function synthesisFun(l : SL.Srcloc, body : A.Expr, params : List<A.Name>, args : List<A.Bind>, ann : A.Ann, original : A.Expr, topLevel : boolean, context : Context) : TS.Type {
+      function setRetType(lamType : TS.Type, retType : TS.Type) {
+        switch(lamType.$name) {
+          case 't-arrow': {
+            return TS['t-arrow'].app(lamType.dict.args, retType, lamType.dict.l, lamType.dict.inferred);
+          }
+          case 't-forall': {
+            const { introduces, onto, l, inferred } = lamType.dict;
+            if(onto.$name !== 't-arrow') {
+              throw new InternalCompilerError("This shouldn't happen (non-function type lambda)");
+            }
+            return TS['t-forall'].app(introduces, setRetType(onto, retType), l, inferred);
+          }
+          default:
+            throw new InternalCompilerError("This shouldn't happen (non-function type lambda)");
+        }
+      }
+
+      context.addLevel();
+      const argsArray = listToArray(args) as TJ.Variant<A.Bind, "s-bind">[];
+      const collected = collectBindings(argsArray, context);
+      const { arrow, ret } = lamToType(collected, l, params, argsArray, ann, topLevel, context);
+      context.addDictToBindings(collected);
+      checking(body, ret, false, context);
+      return context.solveAndResolveType(setRetType(arrow, ret));
+    }
+
+    function lamToType(collected : Map<string, TS.Type>, l : SL.Srcloc, params : List<A.Name>, args : TJ.Variant<A.Bind, "s-bind">[], retAnn : A.Ann, topLevel : boolean, context : Context) : { arrow: TS.Type, ret: TS.Type } {
+      const maybeType = toType(retAnn, context);
+      const retTyp = maybeType || newExistential(l, true);
+      if(!maybeType) { context.addVariable(retTyp) };
+      const argTypes = [];
+      for(let arg of args) {
+        const argType = collected.get(nameToKey(arg.dict.id));
+        const argIsUnderscore = arg.dict.id.$name === "s-atom" && arg.dict.id.dict.base === "$underscore";
+        if(topLevel && argType.$name === 't-existential' && !(argIsUnderscore)) {
+          throw new TypeCheckFailure(CS['toplevel-unann'].app(arg));
+        }
+        // NOTE(joe/ben): Skipping adding the variable for argType because
+        // collectBindings should have done it already
+        argTypes.push(argType);
+      }
+      const arrowType = TS['t-arrow'].app(runtime.ffi.makeList(argTypes), retTyp, l, false);
+      if(params.$name === 'empty') {
+        return { arrow: arrowType, ret: retTyp };
+      }
+      else {
+        const forall = listToArray(params).map(p => TS['t-var'].app(p, l, false));
+        return { arrow: TS['t-forall'].app(runtime.ffi.makeList(forall), arrowType, l, false), ret: retTyp }
       }
     }
 
