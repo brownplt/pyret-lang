@@ -1762,7 +1762,9 @@ import { typeofTypeAnnotation } from '@babel/types';
           return solveAndReturn();
         }
         case 's-tuple-get':
-        case 's-id': {
+        case 's-id':
+        case 's-id-var-modref':
+        case 's-id-modref': {
           checkSynthesis(e, expectTyp, topLevel, context);
           return solveAndReturn();
         }
@@ -1955,6 +1957,17 @@ import { typeofTypeAnnotation } from '@babel/types';
         case 's-id': {
           const idTyp = lookupId(e.dict.l, nameToKey(e.dict.id), e, context);
           return idTyp;
+        }
+        case 's-id-var-modref':
+        case 's-id-modref': {
+          const modTyps = context.modules.get(e.dict.uri);
+          const providedTypes = modTyps.dict.provides;
+          const fields = mapFromStringDict(providedTypes.dict.fields);
+          if (fields.has(e.dict.name)) {
+            return fields.get(e.dict.name);
+          } else {
+            throw new InternalCompilerError(`should be caught in unbound-ids: no such name on module ${e.dict.uri}: ${e.dict.name}`);
+          }
         }
         case 's-num': return tNumber(e.dict.l);
         case 's-bool': return tBoolean(e.dict.l);
