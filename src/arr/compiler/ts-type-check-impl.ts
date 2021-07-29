@@ -1761,10 +1761,36 @@ import { typeofTypeAnnotation } from '@babel/types';
           }
           return solveAndReturn();
         }
+        case 's-check': return solveAndReturn();
+        case 's-prim-val':
+        case 's-undefined':
+        case 's-bracket':
+          throw new InternalCompilerError(`checking for ${e.$name} not implemented`);
+        case 's-data':
+          throw new InternalCompilerError("s-data should already have been desugared");
+        case 's-data-expr':
+          throw new InternalCompilerError("s-data-expr should have been handled by s-letrec");
+        case 's-instantiate':
+        case 's-op':
+        case 's-extend':
+        case 's-update':
         case 's-tuple-get':
-        case 's-id':
+        case 's-app':
+        case 's-prim-app':
+        case 's-id': 
         case 's-id-var-modref':
-        case 's-id-modref': {
+        case 's-id-modref':
+        case 's-id-var':
+        case 's-id-letrec':
+        case 's-srcloc':
+        case 's-num':
+        case 's-frac':
+        case 's-rfrac':
+        case 's-bool':
+        case 's-str':
+        case 's-dot':
+        case 's-get-bang':
+        case 's-for': {
           checkSynthesis(e, expectTyp, topLevel, context);
           return solveAndReturn();
         }
