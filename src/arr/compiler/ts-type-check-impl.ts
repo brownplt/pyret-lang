@@ -1087,6 +1087,10 @@ import { typeofTypeAnnotation } from '@babel/types';
         this.constraints.addLevel(name);
       }
 
+      addAlias(aliasKey : string, aliasTyp : TS.Type) {
+        this.aliases.set(aliasKey, aliasTyp);
+      }
+
       addBinding(termKey : string, assignedType : TS.Type) {
         this.binds.set(termKey, assignedType);
       }
@@ -1732,6 +1736,13 @@ import { typeofTypeAnnotation } from '@babel/types';
         return solveAndReturn();
       }
       switch(e.$name) {
+        case 's-template': return solveAndReturn();
+        case 's-type-let-expr': {
+          handleTypeLetBinds(listToArray(e.dict.binds), context);
+          // Note(Ben): why is this always toplevel=true?
+          checking(e.dict.body, expectTyp, true, context);
+          return solveAndReturn();
+        }
         case 's-lam': {
           checkFun(e.dict.l, e.dict.body, e.dict.params, e.dict.args, e.dict.ann, expectTyp, e, context);
           return solveAndReturn();
@@ -1911,6 +1922,16 @@ import { typeofTypeAnnotation } from '@babel/types';
           const resultTyp = synthesis(e.dict.answer, false, context);
           return setTypeLoc(resultTyp, e.dict.l);
         }
+        case 's-template': {
+          const newExists = newExistential(e.dict.l, false);
+          context.addVariable(newExists);
+          return newExists;
+        }
+        case 's-type-let-expr': {
+          handleTypeLetBinds(listToArray(e.dict.binds), context);
+          const typ = synthesis(e.dict.body, false, context);
+          return setTypeLoc(typ, e.dict.l);
+        }
         case 's-block': {
           let typ : TS.Type = TS['t-top'].app(e.dict.l, false);
           for(const stmt of listToArray(e.dict.stmts)) {
@@ -1992,6 +2013,43 @@ import { typeofTypeAnnotation } from '@babel/types';
       context.addDictToBindings(collected);
       checking(body, ret, false, context);
       return context.solveAndResolveType(setRetType(arrow, ret));
+    }
+
+    function handleTypeLetBinds(bindings : A.TypeLetBind[], context : Context) : void {
+      for (let bind of bindings) {
+        const l = bind.dict.l;
+        switch(bind.$name) {
+          case 's-type-bind': {
+            const typ = toType(bind.dict.ann, context);
+            if (!typ) {
+              // TODO(Matt): is this correct?
+              throw new TypeCheckFailure(CS['unbound-type-id'].app(bind.dict.ann));
+            }
+            let aliasTyp : TS.Type;
+            const params = listToArray(bind.dict.params);
+            if (params.length === 0) {
+              aliasTyp = typ;
+            } else {
+              const forall = params.map(p => TS['t-var'].app(p, l, false));
+              aliasTyp = TS['t-forall'].app(runtime.ffi.makeList(forall), typ, l, false);
+            }
+            context.addAlias(nameToKey(bind.dict.name), aliasTyp);
+            return;
+          }
+          case 's-newtype-bind': {
+            const typ = TS['t-name'].app(TS.local, bind.dict.namet, l, false);
+            const nametKey = nameToKey(bind.dict.namet);
+            context.addAlias(nameToKey(bind.dict.name), typ);
+            const brander = new Map<string, TS.Type>();
+            brander.set("test", TS['t-arrow'].app(runtime.ffi.makeList([typ]), tBoolean(l), l, false));
+            brander.set("brand", TS['t-arrow'].app(runtime.ffi.makeList([TS['t-top'].app(l, false)]), typ, l, false));
+            context.addBinding(nametKey, TS['t-record'].app(stringDictFromMap(brander), l, false));
+            return;
+          }
+          default:
+            throw new ExhaustiveSwitchError(bind);
+        }
+      }
     }
 
     function lamToType(collected : Map<string, TS.Type>, l : SL.Srcloc, params : List<A.Name>, args : TJ.Variant<A.Bind, "s-bind">[], retAnn : A.Ann, topLevel : boolean, context : Context) : { arrow: TS.Type, ret: TS.Type } {
