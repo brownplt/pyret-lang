@@ -38,9 +38,6 @@
     "values": {
       "display-string": ["arrow", ["String"], "Nothing"],
       "js-to-string": ["arrow", ["Any"], "String"],
-      "num-to-string": ["arrow", ["Number"], "String"],
-      "string-to-number": ["arrow", ["String"], ["Option", "Number"]],
-      "string-to-lower": ["arrow", ["String"], "String"],
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "time-now": ["arrow", [], "Number"],
       "console-log": ["arrow", ["tany"], "Nothing"],

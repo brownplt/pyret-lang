@@ -3,12 +3,19 @@ provide *
 provide-types *
 import global as G
 include from G:
-  num-to-string,
-  string-to-number,
   raise,
-  string-to-lower,
   js-to-string as torepr,
 end
+import string as S
+include from S:
+  string-to-number,
+  string-to-lower,
+end
+import number as N
+include from N:
+  num-to-string
+end
+
 import option as O
 include from O:
   type Option,
