@@ -108,10 +108,118 @@ import { typeofTypeAnnotation } from '@babel/types';
     }
 
     function toType(inAnn : A.Ann, context : Context) : TS.Type | false {
+      function toArrowType(l : SL.Srcloc, argAnns : A.Ann[], ret : A.Ann) : TS.Type {
+        const argTyps: TS.Type[] = [];
+        for (let arg of argAnns) {
+          const argTyp = toType(arg, context);
+          if (argTyp) {
+            argTyps.push(argTyp);
+          } else {
+            throw new TypeCheckFailure(CS['cant-typecheck'].app(`no argument annotation provided on ${arg}`, l));
+          }
+        }
+        const retTyp = toType(ret, context);
+        if (!retTyp) {
+          throw new TypeCheckFailure(CS['cant-typecheck'].app(`no return annotation provided on ${ret}`, l));
+        }
+        return TS['t-arrow'].app(runtime.ffi.makeList(argTyps), retTyp, l, false);
+      }
       switch(inAnn.$name) {
         case 'a-blank': return false;
+        case 'a-any': return TS['t-top'].app(inAnn.dict.l, false);
+        case 'a-name': {
+          const idKey = nameToKey(inAnn.dict.id);
+          if (context.aliases.has(idKey)) {
+            return context.aliases.get(idKey);
+          } else {
+            throw new TypeCheckFailure(CS['unbound-type-id'].app(inAnn));
+          }
+        }
+        case 'a-type-var': {
+          return TS['t-var'].app(inAnn.dict.id, inAnn.dict.l, false);
+        }
+        case 'a-arrow-argnames': {
+          const args = listToArray(inAnn.dict.args);
+          return toArrowType(inAnn.dict.l, args.map(a => a.dict.ann), inAnn.dict.ret);
+        }
+        case 'a-arrow': {
+          return toArrowType(inAnn.dict.l, listToArray(inAnn.dict.args), inAnn.dict.ret);
+        }
+        case 'a-method': {
+          throw new TypeCheckFailure(CS['cant-typecheck'].app("a-method toType not yet implemented", inAnn.dict.l));
+        }
+        case 'a-record': {
+          const fields = listToArray(inAnn.dict.fields);
+          const fieldTyps = new Map<string, TS.Type>();
+          for (const field of fields) {
+            const fieldTyp = toType(field.dict.ann, context);
+            if (fieldTyp) {
+              fieldTyps.set(field.dict.name, fieldTyp);
+            } else {
+              throw new TypeCheckFailure(CS['cant-typecheck'].app(`no annotation provided on field ${field}`, inAnn.dict.l));
+            }
+          }
+          return TS['t-record'].app(stringDictFromMap(fieldTyps), inAnn.dict.l, false);
+        }
+        case 'a-tuple': {
+          const elts = listToArray(inAnn.dict.fields);
+          const eltTyps : TS.Type[] = [];
+          for (const elt of elts) {
+            const eltTyp = toType(elt, context);
+            if (eltTyp) {
+              eltTyps.push(eltTyp);
+            } else {
+              const newExists = newExistential(inAnn.dict.l, true);
+              context.addVariable(newExists);
+              eltTyps.push(newExists);
+            }
+          }
+          return TS['t-tuple'].app(runtime.ffi.makeList(eltTyps), inAnn.dict.l, false);
+        }
+        case 'a-app': {
+          const annTyp = toType(inAnn.dict.ann, context);
+          if (!annTyp) {
+            throw new TypeCheckFailure(CS['cant-typecheck'].app(`no annotation provided on ${inAnn.dict.ann}`, inAnn.dict.l));
+          }
+          const args = listToArray(inAnn.dict.args);
+          const argTyps : TS.Type[] = [];
+          for (let arg of args) {
+            const argTyp = toType(arg, context);
+            if (!argTyp) {
+              throw new TypeCheckFailure(CS['cant-typecheck'].app(`no annotation on app argument ${arg}`, inAnn.dict.l));
+            }
+            argTyps.push(argTyp);
+          }
+          return TS['t-app'].app(annTyp, runtime.ffi.makeList(argTyps), inAnn.dict.l, false);
+        }
+        case 'a-pred': {
+          const annTyp = toType(inAnn.dict.ann, context);
+          if (!annTyp) {
+            throw new TypeCheckFailure(CS['cant-typecheck'].app(`no annotation provided on ${inAnn.dict.ann}`, inAnn.dict.l));
+          }
+          const expectTyp = TS['t-arrow'].app(runtime.ffi.makeList([annTyp]), tBoolean(inAnn.dict.l), inAnn.dict.l, false);
+          checking(inAnn.dict.exp, expectTyp, false, context);
+          return annTyp;
+        }
+        case 'a-dot': {
+          const objKey = nameToKey(inAnn.dict.obj)
+          if (!context.moduleNames.has(objKey)) {
+            throw new TypeCheckFailure(CS['no-module'].app(inAnn.dict.l, nameToName(inAnn.dict.obj)));
+          }
+          const origin = context.moduleNames.get(objKey);
+          const tMod = context.modules.get(origin);
+          const aliases = mapFromStringDict(tMod.dict.aliases);
+          if (aliases.has(inAnn.dict.field)) {
+            return resolveAlias(aliases.get(inAnn.dict.field), context);
+          } else {
+            throw new TypeCheckFailure(CS['unbound-type-id'].app(inAnn));
+          }
+        }
+        case 'a-checked': {
+          throw new TypeCheckFailure(CS['cant-typecheck'].app(`a-checked should not be appearing before type-checking: ${prettyIsh(inAnn)}`, A.dict.values.dict['dummy-loc']));
+        }
         default:
-          throw new InternalCompilerError("toType switch " + inAnn.$name);
+          throw new ExhaustiveSwitchError(inAnn);
       }
     }
 
