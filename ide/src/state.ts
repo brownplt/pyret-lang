@@ -41,7 +41,7 @@ export type State = {
   rhs: RHSObjects,
 
   /* The parsed module results of a Pyret program, but associated to chunks. */
-  chunkToRHS: RHSObjects[],
+  chunkToRHS: Map<string, RHSObjects>,
 
   /* Parsed messages from an executed/executing Pyret program */
   rtMessages: RTMessages,
@@ -198,7 +198,7 @@ export const initialState: State = {
     objects: [],
     outdated: false,
   },
-  chunkToRHS: [],
+  chunkToRHS: new Map(),
   rtMessages: {
     messages: [],
     outdated: false,

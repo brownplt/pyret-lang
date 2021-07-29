@@ -46,7 +46,6 @@ import {
 } from './chunk';
 
 import {
-  getRow,
   makeRHSObjects,
   RHSObjects,
 } from './rhsObject';
@@ -350,24 +349,6 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
   console.log('run result', status.result.perfResults);
   const rhs = makeRHSObjects(status.result, `file://${state.currentFile}`);
 
-  // Associate rhs to chunks *now* before they're outdated. Then only chunk
-  // deletion / insertion needs to be tracked to correspond outdated RHSs
-  // through edits
-  const chunkToRHS: RHSObjects[] = state.chunks.map(() => ({ outdated: false, objects: [] }));
-  rhs.objects.forEach((rhsObject) => {
-    const correspondingChunk = findChunkFromSrcloc(
-      state.chunks,
-      [
-        `file://${state.currentFile}`,
-        getRow(rhsObject),
-      ],
-      state.currentFile,
-    );
-    if (correspondingChunk !== false) {
-      chunkToRHS[correspondingChunk].objects.push(rhsObject);
-    }
-  });
-
   const {
     chunks,
     currentFile,
@@ -421,7 +402,6 @@ function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State 
       objects: rhs.objects,
       outdated: rhs.outdated,
     },
-    chunkToRHS,
   });
 }
 
@@ -1123,7 +1103,7 @@ function segmentName(file: string, id: string): string {
 }
 
 // TODO(luna): don't use index, check for id matches
-function handleRunSessionSuccess(state: State, index: number, id: string, result: any): State {
+function handleRunSessionSuccess(state: State, id: string, result: any): State {
   const {
     chunks,
     currentFile,
@@ -1136,9 +1116,8 @@ function handleRunSessionSuccess(state: State, index: number, id: string, result
   // Associate rhs to chunks *now* before they're outdated. Then only chunk
   // deletion / insertion needs to be tracked to correspond outdated RHSs
   // through edits
-  const chunkToRHS: RHSObjects[] = [...state.chunkToRHS];
-  console.log(rhs);
-  chunkToRHS[index] = rhs;
+  const chunkToRHS: Map<string, RHSObjects> = new Map(state.chunkToRHS);
+  chunkToRHS.set(id, rhs);
 
   // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
   //   resulting in a severe memory leak of 50+MB PER RUN
@@ -1148,9 +1127,8 @@ function handleRunSessionSuccess(state: State, index: number, id: string, result
   const locations = result.result.$locations;
   const traces = result.result.$traces;
 
-  if (index >= newChunks.length) {
-    console.warn('A chunk was run which no longer exists by index');
-  } else if (locations.length > 0 || traces.length > 0) {
+  const index = newChunks.findIndex((c) => c.id === id);
+  if (locations.length > 0 || traces.length > 0) {
     newChunks[index] = {
       ...newChunks[index],
       errorState: {
@@ -1175,12 +1153,13 @@ function handleRunSessionSuccess(state: State, index: number, id: string, result
   };
 }
 
-function handleRunSessionFailure(state: State, index: number, error: string) {
+function handleRunSessionFailure(state: State, id: string, error: string) {
   console.log('handleRunSessionFailure', error);
   // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
   //   resulting in a severe memory leak of 50+MB PER RUN
   cleanStopify();
   const newChunks: Chunk[] = [...state.chunks];
+  const index = newChunks.findIndex((c) => c.id === id);
   newChunks[index] = {
     ...newChunks[index],
     errorState: {

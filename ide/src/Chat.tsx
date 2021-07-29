@@ -42,7 +42,7 @@ import CheckResults from './CheckResults';
 
 type StateProps = {
   chunks: Chunk[],
-  chunkToRHS: RHSObjects[],
+  chunkToRHS: Map<string, RHSObjects>,
   thisChunkRHSObjects: RHSObjects,
   enterNewline: boolean,
 };
@@ -58,7 +58,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     index,
   } = ownProps;
 
-  const thisChunkRHSObjects = chunkToRHS[index] ?? { outdated: true, objects: [] };
+  const thisChunkRHSObjects = chunkToRHS.get(chunks[index].id) ?? { outdated: true, objects: [] };
 
   return {
     chunks,
@@ -76,7 +76,7 @@ type PropsFromReact = {
 type DispatchProps = {
   run: () => void,
   setChunks: (chunks: ChunksUpdate) => void,
-  setChunkToRHS: (chunkToRHS: RHSObjects[]) => void,
+  setChunkToRHS: (chunkToRHS: Map<string, RHSObjects>) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
@@ -87,7 +87,7 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     setChunks(chunks: ChunksUpdate) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });
     },
-    setChunkToRHS(chunkToRHS: RHSObjects[]) {
+    setChunkToRHS(chunkToRHS: Map<string, RHSObjects>) {
       dispatch({ type: 'update', key: 'chunkToRHS', value: chunkToRHS });
     },
   };
@@ -215,7 +215,7 @@ class Chat extends React.Component<ChatProps, any> {
       setChunkToRHS,
     } = this.props;
 
-    const { editor } = chunks[index];
+    const { editor, id } = chunks[index];
 
     if ('getDoc' in editor) {
       const marks = editor.getDoc().getAllMarks();
@@ -231,11 +231,11 @@ class Chat extends React.Component<ChatProps, any> {
       modifiesText: true,
     });
 
-    const withInvalidation = [...chunkToRHS];
-    withInvalidation[index] = {
-      ...(withInvalidation[index] ?? { outdated: true, objects: [] }),
+    const withInvalidation = new Map(chunkToRHS);
+    withInvalidation.set(id, {
+      ...(withInvalidation.get(id) ?? { outdated: true, objects: [] }),
       outdated: true,
-    };
+    });
     setChunkToRHS(withInvalidation);
   }
 

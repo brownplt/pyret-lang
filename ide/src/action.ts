@@ -85,7 +85,7 @@ export type Update =
   | { key: 'browsePath', value: string }
   | { key: 'currentFile', value: string }
   | { key: 'chunks', value: ChunksUpdate }
-  | { key: 'chunkToRHS', value: RHSObjects[] }
+  | { key: 'chunkToRHS', value: Map<string, RHSObjects> }
   | { key: 'focusedChunk', value: number | undefined }
   | { key: 'fontSize', value: number }
   | { key: 'runKind', value: control.backend.RunKind }
