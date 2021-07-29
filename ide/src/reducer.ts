@@ -346,7 +346,6 @@ function handleCompileSuccess(state: State): State {
 }
 
 function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State {
-  console.log('run result', status.result.perfResults);
   const rhs = makeRHSObjects(status.result, `file://${state.currentFile}`);
 
   const {
@@ -912,11 +911,9 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   if (isSingleChunkUpdate(update)) {
     const { chunks } = state;
 
-    console.log(update);
     const newChunks = chunks.map((chunk) => (
       chunk.id === update.chunk.id ? update.chunk : chunk
     ));
-    console.log('newChunks', newChunks);
 
     let contents = currentFileContents;
 
@@ -977,8 +974,6 @@ function handleSetRHS(
   state: State,
   value: 'make-outdated' | 'reset-rt-messages',
 ) {
-  console.log('handleSetRHS', value);
-
   const {
     rhs,
     rtMessages,
@@ -1110,8 +1105,7 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
     currentFile,
   } = state;
 
-  console.log(result);
-  console.log('run result', result.perfResults);
+  console.log('run result', result);
   const rhs = makeRHSObjects(result, `file://${segmentName(currentFile, id)}`);
 
   // Associate rhs to chunks *now* before they're outdated. Then only chunk
@@ -1155,7 +1149,6 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
 }
 
 function handleRunSessionFailure(state: State, id: string, error: string) {
-  console.log('handleRunSessionFailure', error);
   // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
   //   resulting in a severe memory leak of 50+MB PER RUN
   cleanStopify();
@@ -1178,11 +1171,8 @@ function handleCompileSessionFailure(
   state: State,
   errors: string[],
 ): State {
-  console.log('Compilation failure');
-
   const failures = errors.map((e) => JSON.parse(e));
   const places: Srcloc[] = failures.flatMap(getLocs);
-  console.log(places);
 
   const { chunks, currentFile } = state;
 
@@ -1301,8 +1291,7 @@ async function runSessionAsync(state : State) : Promise<any> {
 
 function runSession(state : State) : State {
   const result : Promise<any> = runSessionAsync(state);
-  result.then((r) => {
-    console.log(r);
+  result.then(() => {
     // store.dispatch(
     //  { type: 'update', key: 'updater', value: (s) => ({ ...s, runningSession: false })});
   });
