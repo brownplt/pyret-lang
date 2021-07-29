@@ -212,6 +212,12 @@ type CompileAndRunResult =
 export function makeServerAPI(echoLog : (l : string) => void, setupFinished : () => void) {
   const queue : ServerAPIEvent[] = [];
   let hasInit = false;
+  type RunActions = {
+    run: (callback: (value: any) => void) => void,
+    pause: () => void,
+    stop: () => void
+  };
+  let runActions: undefined | RunActions;
 
   function finishAndProcessNext() {
     queue.shift();
@@ -309,8 +315,17 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
   )
     : Promise<any> {
     return new Promise((resolve) => {
-      runProgram2(runner, baseDir, program, runKind, rtCfg).then((r) => r.run(resolve));
+      runProgram2(runner, baseDir, program, runKind, rtCfg).then((r: RunActions) => {
+        runActions = r;
+        r.run((result) => {
+          runActions = undefined;
+          resolve(result);
+        });
+      });
     });
+  }
+  function apiStop() {
+    runActions!.stop();
   }
 
   async function compileAndRun(
@@ -329,5 +344,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
     return { type: 'compile-failure', errors: compileResult };
   }
 
-  return { compile: apiCompile, run: apiRun, compileAndRun };
+  return {
+    compile: apiCompile, run: apiRun, stop: apiStop, compileAndRun,
+  };
 }

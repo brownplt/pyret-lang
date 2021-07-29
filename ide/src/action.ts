@@ -122,7 +122,8 @@ export type Action =
   | { type: 'effectEnded' } & EffectEnded
   | { type: 'enqueueEffect' } & EnqueueEffect
   | { type: 'update' } & Update
-  | { type: 'runSession' } & Run;
+  | { type: 'runSession' } & Run
+  | { type: 'stopSession' };
 
 export type ActionType = Action['type'];
 

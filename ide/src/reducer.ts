@@ -1140,7 +1140,6 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
     backendCmd: BackendCmd.None,
     currentRunner: undefined,
     chunks: newChunks,
-    running: false,
     rhs: {
       objects: rhs.objects,
       outdated: rhs.outdated,
@@ -1235,6 +1234,7 @@ function handleCompileSessionFailure(
   };
 }
 
+let stopFlag = false;
 async function runSessionAsync(state : State) : Promise<any> {
   const { chunks } = state;
   const filenames: string[] = [];
@@ -1293,6 +1293,16 @@ async function runSessionAsync(state : State) : Promise<any> {
       update((s: State) => handleRunSessionFailure(s, c.id, result.error));
       break;
     }
+    if (stopFlag) {
+      // NOTE(luna): Arguably, there should be no state change. If this chat was
+      // outdated, it will still be outdated, if it was
+      // "outdated-by-other-chat-edit" then it's still that is the only
+      // difference, which there's currently no UI change for (there maybe
+      // should be a super subtle one for a couple reasons)
+      update((s: State) => handleRunSessionFailure(s, c.id, 'Compile was canceled'));
+      stopFlag = false;
+      break;
+    }
     update((s: State) => handleRunSessionSuccess(s, c.id, result.result));
   }
   filenames.forEach((f) => {
@@ -1304,10 +1314,20 @@ async function runSessionAsync(state : State) : Promise<any> {
 function runSession(state : State) : State {
   const result : Promise<any> = runSessionAsync(state);
   result.then(() => {
-    // store.dispatch(
-    //  { type: 'update', key: 'updater', value: (s) => ({ ...s, runningSession: false })});
+    store.dispatch(
+      { type: 'update', key: 'updater', value: (s) => ({ ...s, running: false }) },
+    );
   });
-  return { ...state, runningSession: true };
+  return { ...state, running: true };
+}
+function stopSession(state: State): State {
+  console.assert(state.running);
+  stopFlag = true;
+  serverAPI.stop();
+  return {
+    ...state,
+    running: false,
+  };
 }
 
 function rootReducer(state: State, action: Action): State {
@@ -1320,6 +1340,8 @@ function rootReducer(state: State, action: Action): State {
       return handleEnqueueEffect(state, action);
     case 'runSession':
       return runSession(state);
+    case 'stopSession':
+      return stopSession(state);
     case 'update':
       return handleUpdate(state, action);
     default:

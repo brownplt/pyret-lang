@@ -81,6 +81,7 @@ type DispatchProps = {
   run: () => void,
   runSession: () => void,
   stop: () => void,
+  stopSession: () => void,
   setStopify: (stopify: boolean) => void,
   setTypeCheck: (typeCheck: boolean) => void,
   setDropdownVisible: (dropdownVisible: boolean) => void,
@@ -94,6 +95,7 @@ function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
     run: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Run } }),
     runSession: () => dispatch({ type: 'runSession', key: 'runProgram' }),
     stop: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'stop' } }),
+    stopSession: () => dispatch({ type: 'stopSession' }),
     setStopify: (stopify: boolean) => {
       if (stopify) {
         dispatch({ type: 'update', key: 'runKind', value: control.backend.RunKind.Async });
@@ -129,6 +131,7 @@ function Run({
   run,
   runSession,
   stop,
+  stopSession,
   setStopify,
   setTypeCheck,
   setDropdownVisible,
@@ -248,11 +251,11 @@ function Run({
         height: '100%',
       }}
     >
-      {stopify && running && editorMode !== EditorMode.Chatitor ? (
+      {stopify && running ? (
         <button
           id="StopButton"
           className="stop-available"
-          onClick={stop}
+          onClick={editorMode === EditorMode.Chatitor ? stopSession : stop}
           type="button"
         >
           Stop

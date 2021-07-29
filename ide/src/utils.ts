@@ -17,7 +17,7 @@ export function intersperse(array: Array<JSX.Element>, btwn: JSX.Element): Array
 
 export class NeverError extends Error {
   constructor(val: never) {
-    super(`${val} is never`);
+    super(`${JSON.stringify(val)} is never`);
   }
 }
 
