@@ -441,7 +441,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       addFieldConstraint(type : TS.Type, fieldName : string, fieldType : TS.Type) : void{
         const typKey = typeKey(type);
         if (this.fieldConstraints.has(typKey)) {
-          const [_typ, labelMapping] = this.fieldConstraints.get(typKey);
+          const [typ, labelMapping] = this.fieldConstraints.get(typKey);
           if (labelMapping.has(fieldName)) {
             labelMapping.get(fieldName).push(fieldType);
           } else {
@@ -1124,6 +1124,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         this.constraints.addConstraint(subtype, supertype);
       }
 
+      addFieldConstraint(typ : TS.Type, fieldName: string, fieldType: TS.Type) {
+        this.constraints.addFieldConstraint(typ, fieldName, fieldType);
+      }
+
       substituteInBinds(solution : ConstraintSolution) {
         // TODO(joe/ben): two loops, one for apply() and one for generalize(), with
         // apply guarded by substitutions === 0 and generalize guarded by variables === 0
@@ -1653,7 +1657,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           case 't-name': {
             const nameKey = nameToKey(typ.dict.id);
             if (context.dataTypes.has(nameKey)) { return context.dataTypes.get(nameKey); }
-            throw new TypeCheckFailure(CS['cant-typecheck'].app(`Expected a data type but got ${String(typ)}`, typ.dict.l));
+            throw new TypeCheckFailure(CS['cant-typecheck'].app(`Expected a data type but got ${typeKey(typ)}`, typ.dict.l));
           }
           case 't-app': {
             const args = listToArray(typ.dict.args);
@@ -2134,6 +2138,15 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           );
             return synthesis(constr, topLevel, context);
         }
+        case 's-op': {
+          const desugaredOp = desugarSOp(e);
+          if (desugaredOp.$name === "s-op") {
+            const { l, "op-l": opL, op, left, right } = desugaredOp.dict;
+            return synthesisOp(topLevel, l, op, opL, left, right, context);
+          } else {
+            return synthesis(desugaredOp, topLevel, context);
+          }
+        }
         case 's-let-expr':
         case 's-letrec':
         case 's-instantiate':
@@ -2144,7 +2157,6 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         case 's-obj':
         case 's-array':
         case 's-spy-block':
-        case 's-op':
         case 's-check-expr':
         case 's-extend':
         case 's-update':
@@ -2189,6 +2201,59 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           throw new InternalCompilerError(`_synthesis switch ${e.$name} not even mentioned`);
         default:
           throw new ExhaustiveSwitchError(e);
+      }
+    }
+
+    const flatPrimApp = A['prim-app-info-c'].app(false);
+    function desugarSOp(sOp : TJ.Variant<A.Expr, "s-op">) : A.Expr {
+      const { l, op, left, right } = sOp.dict;
+      switch(op) {
+        case "op==": return A['s-prim-app'].app(l, "equal-always", runtime.ffi.makeList([left, right]), flatPrimApp);
+        case "op<>": 
+          return A['s-prim-app'].app(l, "not", runtime.ffi.makeList([
+            A['s-prim-app'].app(l, "equal-always", runtime.ffi.makeList([left, right]), flatPrimApp)
+          ]), flatPrimApp);
+        case "op^": return A['s-app'].app(l, right, runtime.ffi.makeList([left]));
+        default: return sOp;
+      }
+    }
+
+    const opNamesAsFunctions = {
+      "op+": "_plus",
+      "op-": "_minus",
+      "op*": "_times",
+      "op/": "_divide",
+      "op<": "_lessthan",
+      "op>": "_greaterthan",
+      "op<=": "_lessequal",
+      "op>=": "_greaterequal",
+    };
+    function synthesisOp(topLevel: boolean, appLoc: SL.Srcloc, op: string, opLoc: SL.Srcloc, left: A.Expr, right: A.Expr, context: Context): TS.Type {
+      if (op === "opand" || op === "opor") {
+        const tBool = tBoolean(opLoc);
+        checking(left, tBool, topLevel, context);
+        checking(right, tBool, topLevel, context);
+        return tBool;
+      } else {
+        if (opNamesAsFunctions[op]) {
+          const opName = opNamesAsFunctions[op];
+          const objExists = newExistential(left.dict.l, false);
+          const otherType = newExistential(right.dict.l, false);
+          const retType = newExistential(appLoc, false);
+          const arrowType = TS['t-arrow'].app(runtime.ffi.makeList([objExists, otherType]), retType, appLoc, false);
+          context.addVariable(objExists);
+          context.addVariable(otherType);
+          context.addVariable(retType);
+          context.addFieldConstraint(objExists, opName, 
+            TS['t-arrow'].app(runtime.ffi.makeList([otherType]), retType, appLoc, false));
+          const argsArray = [left, right];
+          return synthesisSpine(arrowType, 
+            A['s-app'].app(appLoc, A['s-id'].app(opLoc, A['s-global'].app(opName)), runtime.ffi.makeList(argsArray)),
+            argsArray, appLoc, context
+          );
+        } else {
+          throw new InternalCompilerError(`unknown op: '${op}'`);
+        }
       }
     }
 
