@@ -7,7 +7,6 @@ import type * as TJ from './ts-codegen-helpers';
 import type * as TCS from './ts-type-check-structs';
 import type * as TCSH from './ts-compile-structs-helpers';
 import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } from './ts-impl-types';
-import { typeofTypeAnnotation } from '@babel/types';
 
 ({
   requires: [
@@ -27,7 +26,7 @@ import { typeofTypeAnnotation } from '@babel/types';
       "empty-context": "tany",
     }
   },
-  theModule: function(runtime, _, __, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : TS.Exports, A : A.Exports, CSin : CS.Exports, TCS : TCS.Exports, TD : TD.Exports) {
+  theModule: function(runtime, _, __, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : TS.Exports, Ain : A.Exports, CSin : CS.Exports, TCS : TCS.Exports, TD : TD.Exports) {
     const {
       ExhaustiveSwitchError,
       InternalCompilerError,
@@ -55,8 +54,9 @@ import { typeofTypeAnnotation } from '@babel/types';
       typeByUri,
     } = TCSH;
     const CS = CSin.dict.values.dict;
-    const { 's-global': sGlobal, 's-type-global': sTypeGlobal } = A.dict.values.dict;
-    const { 
+    const A = Ain.dict.values.dict;
+    const { 's-global': sGlobal, 's-type-global': sTypeGlobal } = A;
+    const {
       typed,
       'tc-info': tcInfo,
       'empty-info': emptyInfo,
@@ -64,7 +64,7 @@ import { typeofTypeAnnotation } from '@babel/types';
       'fold-errors': foldErrors,
       "typing-context": typingContext
     } = TCS.dict.values.dict;
-    
+
     class TypeCheckFailure extends Error {
       errs : CS.CompileError[];
       constructor(...errs : CS.CompileError[]) {
@@ -83,7 +83,7 @@ import { typeofTypeAnnotation } from '@babel/types';
           if(o1.$name !== o2.$name) { return false; }
           return true;
         }
-        case "module-uri": { 
+        case "module-uri": {
           if(o1.$name !== o2.$name) { return false; }
           return o1.dict.uri === o2.dict.uri;
         }
@@ -216,7 +216,7 @@ import { typeofTypeAnnotation } from '@babel/types';
           }
         }
         case 'a-checked': {
-          throw new TypeCheckFailure(CS['cant-typecheck'].app(`a-checked should not be appearing before type-checking: ${prettyIsh(inAnn)}`, A.dict.values.dict['dummy-loc']));
+          throw new TypeCheckFailure(CS['cant-typecheck'].app(`a-checked should not be appearing before type-checking: ${prettyIsh(inAnn)}`, A['dummy-loc']));
         }
         default:
           throw new ExhaustiveSwitchError(inAnn);
@@ -230,6 +230,13 @@ import { typeofTypeAnnotation } from '@babel/types';
     }
     function tBoolean(l : SL.Srcloc) : TS.Type {
       return TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("Boolean"), l, false);
+    }
+    function tString(l : SL.Srcloc) : TS.Type {
+      return TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("String"), l, false);
+    }
+
+    function tSrcloc(l : SL.Srcloc) : TS.Type {
+      return TS['t-name'].app(builtinUri, sTypeGlobal.app("Loc"), l, false);
     }
 
     // Note: if typeKey(t1) === typeKey(t2), then t1 == t2 (as Pyret values)
@@ -247,7 +254,7 @@ import { typeofTypeAnnotation } from '@babel/types';
           switch(modName.$name) {
             case 'local': return nameToKey(id);
             case 'module-uri': return `${modName.dict.uri}.${nameToKey(id)}`;
-            case 'dependency': 
+            case 'dependency':
               throw new InternalCompilerError(`Should not get dependency in type-checker: ${modName.dict.dep}`);
             default: throw new ExhaustiveSwitchError(modName);
           }
@@ -298,7 +305,7 @@ import { typeofTypeAnnotation } from '@babel/types';
           // Note(Ben): I'm doing two things differently than the original Pyret code:
           // 1. I'm traversing the list of specs from first to last.  If this ultimately matters,
           //    we could reverse the array on the next line before traversing it.
-          // 2. I'm mutably updatng the three dictionaries object above, rather than functionally 
+          // 2. I'm mutably updatng the three dictionaries object above, rather than functionally
           //    folding over a `TCInfo` object.  Since the original code never produced `fold-errors`
           //    objects, it's not necessary to mimic all of foldr-fold-result here.
           for (const spec of listToArray(provide.dict.specs)) {
@@ -313,7 +320,7 @@ import { typeofTypeAnnotation } from '@babel/types';
                     } else {
                       // MARK(joe): test as-name here; it appears unused
                       const getValueFromContext = context.info.types.get(valueKey);
-                      if (getValueFromContext.$name) {
+                      if (getValueFromContext) {
                         const typ = setInferred(getValueFromContext, false);
                         curTypes.set(valueKey, typ);
                       }
@@ -395,7 +402,7 @@ import { typeofTypeAnnotation } from '@babel/types';
     };
 
     type ExampleTypes = Map<string, ExampleTypeInfo>;
-    
+
     type FieldConstraint = Map<string, TS.Type[]>;
 
     function mapMapValues<K, V1, V2>(m : Map<K, V1>, f : ((val : V1) => V2)) : Map<K, V2> {
@@ -415,10 +422,10 @@ import { typeofTypeAnnotation } from '@babel/types';
       variables : Map<string, TS.Type>;
       // list of {subtype; supertype}
       constraints : Array<Constraint>;
-      // list of {existential; t-data-refinement} 
+      // list of {existential; t-data-refinement}
       refinementConstraints : Array<Refinement>;
       // type -> {type, field labels -> field types (with the location of their use)}
-      fieldConstraints : Map<string, [TS.Type, FieldConstraint]>; 
+      fieldConstraints : Map<string, [TS.Type, FieldConstraint]>;
       // types for examples?
       exampleTypes : ExampleTypes;
 
@@ -477,7 +484,7 @@ import { typeofTypeAnnotation } from '@babel/types';
         for (const level of this.levels) {
           let fieldConstraints = mapMapValues(level.fieldConstraints, ([type, fc]) : PTuple<[TS.Type, StringDict<List<TS.Type>>]> => {
             return runtime.makeTuple([
-              type, 
+              type,
               stringDictFromMap(mapMapValues(fc, runtime.ffi.makeList))
             ]);
           });
@@ -534,7 +541,7 @@ import { typeofTypeAnnotation } from '@babel/types';
       }
       addConstraint(subtype: TS.Type, supertype: TS.Type): void {
         // inlining the call to ensureLevel so we don't needlessly construct the message
-        if (this.levels.length === 0) { 
+        if (this.levels.length === 0) {
           const msg = `Can't add constraint to an uninitialized system: ${JSON.stringify(subtype)} = ${JSON.stringify(supertype)}\n${formatSrcloc(subtype.dict.l, true)}\n${formatSrcloc(supertype.dict.l, true)}`;
           throw new InternalCompilerError(msg);
         }
@@ -561,7 +568,7 @@ import { typeofTypeAnnotation } from '@babel/types';
         existential: TS.Type,
         argTypes: TS.Type[],
         retType: TS.Type,
-        loc: SL.Srcloc, 
+        loc: SL.Srcloc,
         checkFunction: ExampleTypeInfo['checkFunction'],
         functionName: string
       ): void {
@@ -648,7 +655,7 @@ import { typeofTypeAnnotation } from '@babel/types';
         };
       });
     }
-    
+
     function substituteInRefinements(newType : TS.Type, typeVar : TS.Type, refinements : Refinement[]) : Refinement[] {
       return refinements.map(({existential, dataRefinement}) => {
         return {
@@ -866,9 +873,9 @@ import { typeofTypeAnnotation } from '@babel/types';
                 const subtypeFields = mapFromStringDict(subtype.dict.fields);
                 const supertypeFields = mapFromStringDict(supertype.dict.fields);
                 for (let [superKey, superFieldType] of supertypeFields) {
-                  if (!subtypeFields.has(superKey)) { 
+                  if (!subtypeFields.has(superKey)) {
                     // TODO(Matt): field-missing error
-                    throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); 
+                    throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype));
                   }
                   constraints.push({ subtype: subtypeFields.get(superKey), supertype: superFieldType });
                 }
@@ -878,15 +885,15 @@ import { typeofTypeAnnotation } from '@babel/types';
                 if(supertype.$name !== "t-tuple") { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
                 const subtypeElts = listToArray(subtype.dict.elts);
                 const supertypeElts = listToArray(supertype.dict.elts);
-                if (subtypeElts.length !== supertypeElts.length) { 
+                if (subtypeElts.length !== supertypeElts.length) {
                   // TODO(Matt): more specific error
-                  throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); 
+                  throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype));
                 }
                 for (let i = 0; i < supertypeElts.length; i++) {
                   // covariant argument types
                   constraints.push({ subtype: subtypeElts[i], supertype: supertypeElts[i] });
                 }
-                continue;                
+                continue;
               }
               case "t-forall": {
                 const newOnto = instantiateForallWithFreshVars(subtype, system);
@@ -1052,7 +1059,7 @@ import { typeofTypeAnnotation } from '@babel/types';
       misc : Map<string, [TS.Type[], string]> // miscellaneous info that is used for logging. Keyed by the function name
 
       constructor(
-        globalTypes: Map<string, TS.Type>, 
+        globalTypes: Map<string, TS.Type>,
         aliases: Map<string, TS.Type>,
         dataTypes: Map<string, TS.DataType>,
         modules: Map<string, TS.ModuleType>,
@@ -1155,7 +1162,7 @@ import { typeofTypeAnnotation } from '@babel/types';
         //LOG(`Solved and resolved: ${typeKey(t)} ===> ${typeKey(result)}\n\n`);
         return result;
       }
-    }   
+    }
 
     function resolveAlias(type : TS.Type, context : Context) : TS.Type {
       switch(type.$name) {
@@ -1228,7 +1235,7 @@ import { typeofTypeAnnotation } from '@babel/types';
       newType.dict.inferred = inferred;
       return newType;
     }
- 
+
     function substitute(type: TS.Type, newType: TS.Type, typeVar: TS.Type): TS.Type {
       switch(type.$name) {
         case 't-name': return type;
@@ -1419,7 +1426,7 @@ import { typeofTypeAnnotation } from '@babel/types';
           if (nextType.$name === curType.$name) {
             const curArgs = listToArray(curType.dict.args);
             const nextArgs = listToArray(nextType.dict.args);
-            if (curArgs.length === nextArgs.length) { 
+            if (curArgs.length === nextArgs.length) {
               const genArgs: TS.Type[] = [];
               for (let i = 0; i < curArgs.length; i++) {
                 genArgs[i] = generalizeType(curArgs[i], nextArgs[i]);
@@ -1434,7 +1441,7 @@ import { typeofTypeAnnotation } from '@babel/types';
           if (nextType.$name === curType.$name) {
             const curArgs = listToArray(curType.dict.args);
             const nextArgs = listToArray(nextType.dict.args);
-            if (curArgs.length === nextArgs.length) { 
+            if (curArgs.length === nextArgs.length) {
               const genArgs: TS.Type[] = [];
               for (let i = 0; i < curArgs.length; i++) {
                 genArgs[i] = generalizeType(curArgs[i], nextArgs[i]);
@@ -1471,7 +1478,7 @@ import { typeofTypeAnnotation } from '@babel/types';
           if (nextType.$name === curType.$name) {
             const curElts = listToArray(curType.dict.elts);
             const nextElts = listToArray(nextType.dict.elts);
-            if (curElts.length === nextElts.length) { 
+            if (curElts.length === nextElts.length) {
               const genElts: TS.Type[] = [];
               for (let i = 0; i < curElts.length; i++) {
                 genElts[i] = generalizeType(curElts[i], nextElts[i]);
@@ -1487,8 +1494,8 @@ import { typeofTypeAnnotation } from '@babel/types';
         case 't-ref': {
           if (nextType.$name === curType.$name) {
             return TS['t-ref'].app(
-              generalizeType(curType.dict.typ, nextType.dict.typ), 
-              curType.dict.l, 
+              generalizeType(curType.dict.typ, nextType.dict.typ),
+              curType.dict.l,
               curType.dict.inferred);
           }
           return newVar();
@@ -1552,7 +1559,7 @@ import { typeofTypeAnnotation } from '@babel/types';
         case 't-app': {
           const newOnto = simplifyTApp(onto, context);
           return simplifyTApp(
-            TS['t-app'].app(newOnto, appType.dict.args, appType.dict.l, appType.dict.inferred), 
+            TS['t-app'].app(newOnto, appType.dict.args, appType.dict.l, appType.dict.inferred),
             context);
         }
         default: throw new TypeCheckFailure(CS['bad-type-instantiation'].app(appType, 0));
@@ -1665,10 +1672,10 @@ import { typeofTypeAnnotation } from '@babel/types';
                     substituteFields(fields, args[i], params[i]);
                   }
                   return TS['t-data'].app(
-                    dataType.dict.name, 
-                    runtime.ffi.makeList([]), 
-                    runtime.ffi.makeList(variants), 
-                    stringDictFromMap(fields), 
+                    dataType.dict.name,
+                    runtime.ffi.makeList([]),
+                    runtime.ffi.makeList(variants),
+                    stringDictFromMap(fields),
                     dataType.dict.l);
                 } else {
                   throw new TypeCheckFailure(CS['bad-type-instantiation'].app(typ, params.length));
@@ -1762,14 +1769,23 @@ import { typeofTypeAnnotation } from '@babel/types';
           return solveAndReturn();
         }
         case 's-check': return solveAndReturn();
-        case 's-prim-val':
-        case 's-undefined':
-        case 's-bracket':
-          throw new InternalCompilerError(`checking for ${e.$name} not implemented`);
-        case 's-data':
-          throw new InternalCompilerError("s-data should already have been desugared");
-        case 's-data-expr':
-          throw new InternalCompilerError("s-data-expr should have been handled by s-letrec");
+        case 's-check-expr': {
+          synthesis(e, topLevel, context);
+          return solveAndReturn();
+        }
+        case 's-paren': {
+          checkSynthesis(e.dict.expr, expectTyp, topLevel, context);
+          return solveAndReturn();
+        }
+        case 's-construct': {
+          const constr = A['s-app'].app(
+            e.dict.l,
+            A['s-dot'].app(e.dict.l, e.dict.constructor, "make"),
+            runtime.ffi.makeList([A['s-array'].app(e.dict.l, e.dict.values)])
+          );
+          checkSynthesis(constr, expectTyp, topLevel, context);
+          return solveAndReturn();
+        }
         case 's-instantiate':
         case 's-op':
         case 's-extend':
@@ -1777,7 +1793,7 @@ import { typeofTypeAnnotation } from '@babel/types';
         case 's-tuple-get':
         case 's-app':
         case 's-prim-app':
-        case 's-id': 
+        case 's-id':
         case 's-id-var-modref':
         case 's-id-modref':
         case 's-id-var':
@@ -1794,8 +1810,56 @@ import { typeofTypeAnnotation } from '@babel/types';
           checkSynthesis(e, expectTyp, topLevel, context);
           return solveAndReturn();
         }
+        case 's-module':
+        case 's-let-expr':
+        case 's-letrec':
+        case 's-block':
+        case 's-assign':
+        case 's-if-else':
+        case 's-cases':
+        case 's-cases-else':
+        case 's-check-test':
+        case 's-obj':
+        case 's-array':
+        case 's-spy-block':
+          throw new InternalCompilerError(`TODO: _checking switch ${e.$name}`);
+        case 's-data':
+        case 's-user-block':
+        case 's-fun':
+        case 's-var':
+        case 's-let':
+        case 's-when':
+        case 's-if-pipe':
+        case 's-if-pipe-else':
+        case 's-if':
+          throw new InternalCompilerError(`${e.$name} should already have been desugared`);
+        case 's-data-expr':
+          throw new InternalCompilerError("s-data-expr should have been handled by s-letrec");
+        case 's-prim-val':
+        case 's-undefined':
+        case 's-bracket':
+        case 's-hint-exp':
+        case 's-type':
+        case 's-newtype':
+        case 's-rec':
+        case 's-ref':
+        case 's-contract':
+        case 's-method':
+          throw new InternalCompilerError(`checking for ${e.$name} not implemented`);
+        case 's-app-enriched':
+        case 's-reactor':
+        case 's-table':
+        case 's-table-extend':
+        case 's-table-extract':
+        case 's-table-filter':
+        case 's-table-filter':
+        case 's-table-order':
+        case 's-table-select':
+        case 's-table-update':
+        case 's-load-table':
+          throw new InternalCompilerError(`_checking switch ${e.$name} not even mentioned`);
         default:
-          throw new InternalCompilerError("_checking switch " + e.$name);
+          throw new ExhaustiveSwitchError(e);
       }
     }
 
@@ -1940,12 +2004,30 @@ import { typeofTypeAnnotation } from '@babel/types';
     }
 
     function synthesis(e : A.Expr, topLevel : boolean, context : Context) : TS.Type {
+      switch(e.$name) {
+        // Handle these constant cases without needing to create a level
+        case 's-srcloc': return tSrcloc(e.dict.l);
+        case 's-num':
+        case 's-frac':
+        case 's-rfrac': return tNumber(e.dict.l);
+        case 's-bool': return tBoolean(e.dict.l);
+        case 's-str': return tString(e.dict.l);
+      }
       context.addLevel(`synthesis(${e.$name})`);
       return context.solveAndResolveType(_synthesis(e, topLevel, context));
     }
 
     function _synthesis(e : A.Expr, topLevel : boolean, context : Context) : TS.Type {
       switch(e.$name) {
+        // If we somehow wind up here, return the correct types anyway,
+        // but these cases should have been handled in `synthesis` itself
+        case 's-srcloc': return tSrcloc(e.dict.l);
+        case 's-num':
+        case 's-frac':
+        case 's-rfrac': return tNumber(e.dict.l);
+        case 's-bool': return tBoolean(e.dict.l);
+        case 's-str': return tString(e.dict.l);
+
         case 's-module': {
           const resultTyp = synthesis(e.dict.answer, false, context);
           return setTypeLoc(resultTyp, e.dict.l);
@@ -1968,6 +2050,7 @@ import { typeofTypeAnnotation } from '@babel/types';
           }
           return setTypeLoc(typ, e.dict.l);
         }
+        case 's-user-block': return synthesis(e.dict.body, topLevel, context);
         case 's-let-expr': {
           const rhsResult : TS.Type[] = [];
           const binds = listToArray(e.dict.binds);
@@ -1980,9 +2063,33 @@ import { typeofTypeAnnotation } from '@babel/types';
           }
           return newType;
         }
-        case 's-id': {
+        case 's-id':
+        case 's-id-letrec': {
           const idTyp = lookupId(e.dict.l, nameToKey(e.dict.id), e, context);
           return idTyp;
+        }
+        case 's-id-var': {
+          const idTyp = lookupId(e.dict.l, nameToKey(e.dict.id), e, context);
+          if (idTyp.$name === 't-ref') {
+            return setTypeLoc(idTyp.dict.typ, e.dict.l);
+          } else {
+            throw new TypeCheckFailure(CS['incorrect-type-expression'].app(
+              typeKey(idTyp), e.dict.l, 
+              typeKey(TS['t-ref'].app(idTyp, e.dict.l, false)), e.dict.l,
+              e));
+          }
+        }
+        case 's-assign': {
+          const idTyp = lookupId(e.dict.l, nameToKey(e.dict.id), e, context);
+          if (idTyp.$name === 't-ref') {
+            checking(e.dict.value, idTyp.dict.typ, topLevel, context);
+            return idTyp.dict.typ;
+          } else {
+            throw new TypeCheckFailure(CS['incorrect-type-expression'].app(
+              typeKey(idTyp), e.dict.l, 
+              typeKey(TS['t-ref'].app(idTyp, e.dict.l, false)), e.dict.l,
+              e));
+          }
         }
         case 's-id-var-modref':
         case 's-id-modref': {
@@ -1995,14 +2102,10 @@ import { typeofTypeAnnotation } from '@babel/types';
             throw new InternalCompilerError(`should be caught in unbound-ids: no such name on module ${e.dict.uri}: ${e.dict.name}`);
           }
         }
-        case 's-num': return tNumber(e.dict.l);
-        case 's-bool': return tBoolean(e.dict.l);
         case 's-app':
           const args = listToArray(e.dict.args);
           const funType = synthesisAppFun(e.dict.l, e.dict._fun, args, context);
           return synthesisSpine(funType, e, args, e.dict.l, context);
-        case 's-srcloc':
-          return TS['t-top'].app(e.dict.l, false);
         case 's-prim-app': {
           const arrowType = lookupId(e.dict.l, e.dict._fun, e, context);
           const result = synthesisSpine(arrowType, e, listToArray(e.dict.args), e.dict.l, context);
@@ -2019,11 +2122,73 @@ import { typeofTypeAnnotation } from '@babel/types';
           const newType = synthesis(e.dict.tup, topLevel, context); // TODO(joe): toplevel should be false?
           return synthesisTupleIndex(e.dict.l, newType.dict.l, newType, e.dict.index, context);
         }
+        case 's-paren': return synthesis(e.dict.expr, topLevel, context);
         case 's-lam': {
           return synthesisFun(e.dict.l, e.dict.body, e.dict.params, e.dict.args, e.dict.ann, e, topLevel, context);
         }
+        case 's-construct': {
+          const constr = A['s-app'].app(
+            e.dict.l,
+            A['s-dot'].app(e.dict.l, e.dict.constructor, "make"),
+            runtime.ffi.makeList([A['s-array'].app(e.dict.l, e.dict.values)])
+          );
+            return synthesis(constr, topLevel, context);
+        }
+        case 's-let-expr':
+        case 's-letrec':
+        case 's-instantiate':
+        case 's-if-else':
+        case 's-cases':
+        case 's-cases-else':
+        case 's-check-test':
+        case 's-obj':
+        case 's-array':
+        case 's-spy-block':
+        case 's-op':
+        case 's-check-expr':
+        case 's-extend':
+        case 's-update':
+        case 's-dot':
+        case 's-get-bang':
+        case 's-for':
+        case 's-check':
+          throw new InternalCompilerError(`TODO: _synthesis switch ${e.$name}`);
+        case 's-data':
+        case 's-fun':
+        case 's-var':
+        case 's-let':
+        case 's-when':
+        case 's-if-pipe':
+        case 's-if-pipe-else':
+        case 's-if':
+          throw new InternalCompilerError(`${e.$name} should already have been desugared`);
+        case 's-data-expr':
+          throw new InternalCompilerError("s-data-expr should have been handled by s-letrec");
+        case 's-hint-exp':
+        case 's-prim-val':
+        case 's-undefined':
+        case 's-bracket':
+        case 's-type':
+        case 's-newtype':
+        case 's-rec':
+        case 's-ref':
+        case 's-contract':
+        case 's-method':
+          throw new InternalCompilerError(`_synthesis for ${e.$name} not implemented`);
+        case 's-app-enriched':
+        case 's-reactor':
+        case 's-table':
+        case 's-table-extend':
+        case 's-table-extract':
+        case 's-table-filter':
+        case 's-table-filter':
+        case 's-table-order':
+        case 's-table-select':
+        case 's-table-update':
+        case 's-load-table':
+          throw new InternalCompilerError(`_synthesis switch ${e.$name} not even mentioned`);
         default:
-          throw new InternalCompilerError("_synthesis switch " + e.$name);
+          throw new ExhaustiveSwitchError(e);
       }
     }
 
@@ -2142,23 +2307,26 @@ import { typeofTypeAnnotation } from '@babel/types';
 
     function synthesisLetBind(binding : A.LetBind, context : Context) : TS.Type {
       context.addLevel(`synthesisLetBind(${binding.$name}))`);
+      const b = (binding.dict.b as TJ.Variant<A.Bind, "s-bind">);
+      const maybeType = toType(b.dict.ann, context);
+      let annTyp : TS.Type;
+      if(maybeType === false) {
+        annTyp = newExistential(binding.dict.l, true);
+      }
+      else {
+        annTyp = maybeType;
+      }
+      context.addVariable(annTyp);
+      checking(binding.dict.value, annTyp, false, context);
       switch(binding.$name) {
         case 's-let-bind':
-          const b = (binding.dict.b as TJ.Variant<A.Bind, "s-bind">);
-          const maybeType = toType(b.dict.ann, context);
-          let annTyp : TS.Type;
-          if(maybeType === false) {
-            annTyp = newExistential(binding.dict.l, true);
-          }
-          else {
-            annTyp = maybeType;
-          }
-          context.addVariable(annTyp);
-          checking(binding.dict.value, annTyp, false, context);
           context.addBinding(nameToKey(b.dict.id), annTyp);
           return context.solveAndResolveType(annTyp);
-        case 's-var-bind':
-          throw new InternalCompilerError("Not yet implemented in synthesisLetBind: s-var-bind");
+        case 's-var-bind': {
+          const refType = TS['t-ref'].app(annTyp, binding.dict.l, false);
+          context.addBinding(nameToKey(b.dict.id), refType);
+          return context.solveAndResolveType(refType);
+        }
         default:
           throw new ExhaustiveSwitchError(binding);
       }
@@ -2301,7 +2469,7 @@ import { typeofTypeAnnotation } from '@babel/types';
       // import. Instead, we filter through all the bindings looking for ones
       // that came from a module. This is slower, and having Yet Another
       // Datatype for "bindings after imports" would help here.
-    
+
       const mbinds = mapFromMutableStringDict(postCompileEnv.dict['module-bindings']);
       const vbinds = mapFromMutableStringDict(postCompileEnv.dict.bindings);
       const tbinds = mapFromMutableStringDict(postCompileEnv.dict['type-bindings']);
