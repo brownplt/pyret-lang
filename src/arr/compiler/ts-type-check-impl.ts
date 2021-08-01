@@ -325,7 +325,13 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
                         curTypes.set(valueKey, typ);
                       }
                       else {
-                        const typ = setInferred(context.globalTypes.get(valueKey), false);
+                        const globalType = context.globalTypes.get(valueKey);
+                        if (!globalType) {
+                          const typeKeys = [...context.info.types.keys()].join(',');
+                          const globalKeys = [...context.globalTypes.keys()].join(',');
+                          throw new InternalCompilerError(`Could not find global type for ${valueKey} in types ${typeKeys} or globals ${globalKeys}; got ${String(globalType)}`);
+                        }
+                        const typ = setInferred(globalType, false);
                         curTypes.set(valueKey, typ);
                       }
                     }
