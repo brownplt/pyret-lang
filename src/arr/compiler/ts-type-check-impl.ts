@@ -1573,11 +1573,11 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       switch (type.$name) {
         case 't-forall': {
           const { introduces, onto } = type.dict;
+          let newOnto = instantiateForallWithFreshVars(onto, system);
           const introducesArr = listToArray(introduces);
           const newExistentials = introducesArr.map((i) => newExistential(i.dict.l, false));
-          let newOnto = onto;
           for (let i = 0; i < newExistentials.length; i++) {
-            newOnto = substitute(newOnto, introducesArr[i], newExistentials[i]);
+            newOnto = substitute(newOnto, newExistentials[i], introducesArr[i]);
           }
           system.addVariableSet(newExistentials);
           return newOnto;
@@ -2017,7 +2017,9 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         context.solveLevel();
         return setTypeLoc(t, appLoc);
       }
+      LOG(`funType before instantiation: ${typeKey(funType)}\n`);
       funType = instantiateForallWithFreshVars(funType, context.constraints);
+      LOG(`funType after instantiation: ${typeKey(funType)}\n`);
       switch(funType.$name) {
         case "t-arrow": {
           const argTypes = listToArray(funType.dict.args);
