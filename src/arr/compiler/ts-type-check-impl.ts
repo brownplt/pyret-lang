@@ -465,7 +465,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       constructor() {
         this.levels = [];
       }
-      toString() {
+      toInertData() {
         const result = { levels: [] }
         for(let level of this.levels) {
           const l = {name : level.name, variables: {}, constraints: [], fieldConstraints: {}};
@@ -483,7 +483,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             }
           }
         }
-        return prettyIsh(result);
+        return result;
+      }
+      toString() {
+        return prettyIsh(this.toInertData());
       }
       toPyretConstraintSystem(): TCS.ConstraintSystem {
         let ret : TCS.ConstraintSystem = TCS.dict.values.dict['no-constraints'];
@@ -1024,6 +1027,20 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
     }
 
+    function renderData(data : TS.DataType) {
+      return {
+        name: data.dict.name,
+        params: listToArray(data.dict.params).map(typeKey),
+        variants: listToArray(data.dict.variants).map((v) => {
+          return {
+            l: formatSrcloc(v.dict.l, true),
+            name: v.dict.name,
+            withFields: mapMapValues(mapFromStringDict(v.dict['with-fields']), typeKey),
+          };
+        }),
+        fields: mapMapValues(mapFromStringDict(data.dict.fields), typeKey),
+      };
+    }
     class TCInfo {
       types: Map<string, TS.Type>;
       aliases: Map<string, TS.Type>;
@@ -1045,6 +1062,18 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           mapFromStringDict(info.dict.aliases),
           mapFromStringDict(info.dict['data-types'])
         );
+      }
+
+      toInertData() {
+        return {
+          types: mapMapValues(this.types, typeKey),
+          aliases: mapMapValues(this.aliases, typeKey),
+          dataTypes: mapMapValues(this.dataTypes, renderData),
+        }
+      }
+
+      toString() {
+        return prettyIsh(this.toInertData());
       }
 
       toPyretTCInfo() : TCS.TCInfo {
@@ -1083,6 +1112,32 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         this.constraints = new ConstraintSystem();
         this.info = new TCInfo();
         this.misc = new Map();
+      }
+
+      toString() {
+        const result = {
+          globalTypes: mapMapValues(this.globalTypes, typeKey),
+          aliases: mapMapValues(this.aliases, typeKey),
+          dataTypes: mapMapValues(this.dataTypes, renderData),
+          modules: mapMapValues(this.modules, (m) => {
+            const { name, provides, types, aliases } = m.dict;
+            return {
+              name, 
+              provides: typeKey(provides),
+              types: mapMapValues(mapFromStringDict(types), renderData),
+              aliases: mapMapValues(mapFromStringDict(aliases), typeKey)
+            }
+          }),
+          moduleNames: this.moduleNames,
+          binds: mapMapValues(this.binds, typeKey),
+          constraints: this.constraints.toInertData(),
+          info: this.info.toInertData(),
+          misc: mapMapValues(this.misc, (val) => {
+            const [types, str] = val;
+            return [types.map(typeKey), str];
+          })
+        };
+        return prettyIsh(result);
       }
 
       toPyretContext(): TCS.Context {
@@ -2635,6 +2690,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         contextGlobDTs,
         contextGlobMods,
         contextGlobModnames);
+
+      logger.app("\n\nContext from modules:\n", runtime.ffi.makeNone());
+      logger.app(contextFromModules.toString(), runtime.ffi.makeNone());
+      logger.app("\n\n", runtime.ffi.makeNone());
 
       try {
         checking(program.dict.block, TS['t-top'].app(program.dict.l, false), true, contextFromModules);
