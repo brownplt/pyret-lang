@@ -1191,7 +1191,11 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
 
       solveLevel() : ConstraintSolution {
         try {
-          LOG(`Solving ${String(this.constraints)}\n\n`);
+          LOG(`Solving ${String(this.constraints)}\nCurrent bindings:\n`);
+          for (let [name, type] of this.binds) {
+            LOG(`${name} => ${typeKey(type)}\n`);
+          }
+          LOG("\n");
           const result = this.constraints.solveLevel(this);
           LOG(`With solution: ${String(result)}\n\n`);
           return result;
@@ -1784,7 +1788,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     }
 
     function _checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : Context) : void {
-      context.addLevel(`_checking(${e.$name})`);
+      context.addLevel(`_checking(${e.$name}) at ${formatSrcloc(e.dict.l, false)} against expectTyp ${typeKey(expectTyp)}`);
       function solveAndReturn() {
         context.solveLevel();
         return;
@@ -1920,7 +1924,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
 
     // TODO(MATT): this should not generalize the arguments
     function checkFun(funLoc : SL.Srcloc, body : A.Expr, params : List<A.Name>, args : List<A.Bind>, retAnn : A.Ann, expectTyp : TS.Type, original : A.Expr, context : Context) {
-      context.addLevel();
+      context.addLevel(`checkFun at ${formatSrcloc(funLoc, false)} against expectTyp ${typeKey(expectTyp)}`);
       // NOTE(joe/ben): the original implementation called collectBindings here.
       // However, it's only actually used in the cases that traverse into `body`, so
       // save calling it for those cases.
@@ -2008,7 +2012,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     }
 
     function synthesisSpine(funType : TS.Type, original: A.Expr, args : A.Expr[], appLoc : SL.Srcloc, context : Context) : TS.Type {
-      context.addLevel(`synthesisSpine(${original.$name})`);
+      context.addLevel(`synthesisSpine(${original.$name}) at ${formatSrcloc(original.dict.l, false)}`);
       function wrapReturn(t : TS.Type) {
         context.solveLevel();
         return setTypeLoc(t, appLoc);
@@ -2068,7 +2072,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         case 's-bool': return tBoolean(e.dict.l);
         case 's-str': return tString(e.dict.l);
       }
-      context.addLevel(`synthesis(${e.$name})`);
+      context.addLevel(`synthesis(${e.$name}) at ${formatSrcloc(e.dict.l, false)}`);
       return context.solveAndResolveType(_synthesis(e, topLevel, context));
     }
 
@@ -2326,7 +2330,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         }
       }
 
-      context.addLevel();
+      context.addLevel(`synthesisFun at ${formatSrcloc(l, false)}`);
       const argsArray = listToArray(args) as TJ.Variant<A.Bind, "s-bind">[];
       const collected = collectBindings(argsArray, context);
       const { arrow, ret } = lamToType(collected, l, params, argsArray, ann, topLevel, context);
@@ -2422,7 +2426,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     }
 
     function synthesisLetBind(binding : A.LetBind, context : Context) : TS.Type {
-      context.addLevel(`synthesisLetBind(${binding.$name}))`);
+      context.addLevel(`synthesisLetBind(${binding.$name}) at ${formatSrcloc(binding.dict.l, false)}`);
       const b = (binding.dict.b as TJ.Variant<A.Bind, "s-bind">);
       const maybeType = toType(b.dict.ann, context);
       let annTyp : TS.Type;
