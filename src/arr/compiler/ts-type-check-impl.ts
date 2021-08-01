@@ -698,6 +698,9 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       const entries = [...(fieldConstraints.entries())];
       while(entries.length !== 0) {
         const [key, [typ, fieldMappings]] = entries.pop();
+        // NOTE: because entries is an array copy of the keys of the map,
+        // we have to delete the key from the original map in order to avoid infinite recursion
+        fieldConstraints.delete(key);
         const instantiated = instantiateObjectType(typ, context);
         switch(typ.$name) {
           case "t-record": {
@@ -1126,6 +1129,47 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
 
       addFieldConstraint(typ : TS.Type, fieldName: string, fieldType: TS.Type) {
         this.constraints.addFieldConstraint(typ, fieldName, fieldType);
+      }
+
+      getDataType(type : TJ.Variant<TS.Type, 't-name'>): TS.DataType | false {
+        const resolvedType = resolveAlias(type, this)
+        switch(resolvedType.$name) {
+          case 't-name': {
+            const modName = resolvedType.dict['module-name'];
+            const idName = nameToName(resolvedType.dict.id);
+            const idKey = nameToKey(resolvedType.dict.id);
+            switch(modName.$name) {
+              case 'module-uri': {
+                if (this.modules.has(modName.dict.uri)) {
+                  const mod = this.modules.get(modName.dict.uri);
+                  const modTypes = mapFromStringDict(mod.dict.types);
+                  if (modTypes.has(idName)) {
+                    return modTypes.get(idName);
+                  } else {
+                    throw new InternalCompilerError(`No type ${typeKey(type)} available on ${prettyIsh(mod)}`)
+                  }
+                } else if (modName.dict.uri === "builtin") {
+                  if (this.dataTypes.has(idKey)) {
+                    return this.dataTypes.get(idKey);
+                  } else {
+                    return false;
+                  }
+                } else {
+                  throw new InternalCompilerError(`No module available with the name '${modName}'`);
+                }
+              }
+              case 'local': {
+                if (this.dataTypes.has(idKey)) {
+                  return this.dataTypes.get(idKey);
+                } else {
+                  return false;
+                }
+              }
+              case 'dependency':
+                throw new InternalCompilerError(`Should not get dependency in typechecker; got ${prettyIsh(modName)}`);
+            }
+          }
+        }
       }
 
       substituteInBinds(solution : ConstraintSolution) {
@@ -1655,8 +1699,15 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       function helper(typ : TS.Type, context: Context): TS.DataType {
         switch (typ.$name) {
           case 't-name': {
-            const nameKey = nameToKey(typ.dict.id);
-            if (context.dataTypes.has(nameKey)) { return context.dataTypes.get(nameKey); }
+            const dataType = context.getDataType(typ);
+            if (dataType) { return dataType; }
+            LOG(`Searching for ${typeKey(typ)} in `);
+            LOG("Known datatypes:");
+            context.dataTypes.forEach((data, key) => {
+              LOG(`Key: ${key} ==> `);
+              LOG(`Data fields: ${[...mapFromStringDict(data.dict.fields).keys()].join(", ")}\n`);
+              LOG(`Data variants: ${listToArray(data.dict.variants).map((v) => v.dict.name).join(", ")}\n`);
+            });
             throw new TypeCheckFailure(CS['cant-typecheck'].app(`Expected a data type but got ${typeKey(typ)}`, typ.dict.l));
           }
           case 't-app': {
