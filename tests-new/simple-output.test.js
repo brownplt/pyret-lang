@@ -31,7 +31,7 @@ describe("testing simple-output programs", () => {
          global._PYRET_PIPELINE.startsWith("ts-anchor")) { pipeline = global._PYRET_PIPELINE; }
       compileProcess = cp.spawnSync(
         "node",
-        ["tests-new/run-pyret.js", f, typecheck, pipeline, "false"],
+        ["tests-new/run-pyret.js", f, typecheck, pipeline, "empty"],
         {stdio: "pipe", timeout: COMPILER_TIMEOUT});
 
       assert(compileProcess.status === 0, `${compileProcess.stdout}\n${compileProcess.stderr}`);
