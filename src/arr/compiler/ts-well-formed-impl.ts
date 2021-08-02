@@ -43,7 +43,7 @@ import type { List } from './ts-impl-types';
                 addError(C['wf-err'].app(msg, loc));
             }
 
-            function wrapVisitAllowSMethod(visitor, target: A.Expr | A.Provide, allow: boolean): void {
+            function wrapVisitAllowSMethod(visitor, target: A.Expr | A.Provide | A.Member, allow: boolean): void {
                 let curAllow = allowSMethod;
                 allowSMethod = allow;
                 visit(visitor, target);
@@ -81,7 +81,7 @@ import type { List } from './ts-impl-types';
                 }
             }
 
-            function ensureUniqueBindings(bindings: A.Bind[]): void {
+            function ensureUniqueIdsOrBindings(bindings: A.Bind[], checkShadows: boolean): void {
                 let ad = new Map<string, A.Srcloc>();
                 function help(bind: A.Bind) {
                     switch (bind.$name) {
@@ -90,7 +90,7 @@ import type { List } from './ts-impl-types';
                             if (id.$name === 's-underscore') {
                                 return;
                             }
-                            if (shadows) {
+                            if (shadows && checkShadows) {
                                 return
                             }
                             if (ad.has(nameToName(id))) {
@@ -122,6 +122,13 @@ import type { List } from './ts-impl-types';
                     }
                 }
                 bindings.forEach(help);
+            }
+
+            function checkUnderscoreName(fields: A.Member[], kindOfThing: string): void {
+                const underscores = fields.filter(f => f.dict.name === '_');
+                if (underscores.length !== 0) {
+                    addError(C['underscore-as'].app(underscores[0].dict.l, kindOfThing));
+                }
             }
 
             function ensureDistinctLines(loc: A.Srcloc, prevIsTemplate: boolean, stmts: List<A.Expr>): void {
@@ -171,6 +178,12 @@ import type { List } from './ts-impl-types';
                         throw new ExhaustiveSwitchError(stmts);
                     }
                 }
+            }
+
+            function fieldsToBinds(members: A.Member[]): A.Bind[] {
+                return members.map(member => {
+                    return A['s-bind'].app(member.dict.l, false, A['s-name'].app(member.dict.l, member.dict.name), A['a-blank']);
+                });
             }
 
             function rejectStandaloneExprs(stmts: A.Expr[], ignoreLast: boolean): void {
@@ -264,7 +277,7 @@ import type { List } from './ts-impl-types';
                     }
                 }
                 const bindStmts: A.Bind[] = listToArray(stmts).map(mapStmts).filter(stmt => stmt);
-                ensureUniqueBindings(bindStmts);
+                ensureUniqueIdsOrBindings(bindStmts, true);
                 ensureDistinctLines(A['dummy-loc'], false, stmts);
                 if (!inCheckBlock && !topLevel) {
                     rejectStandaloneExprs(listToArray(stmts), true);
@@ -280,7 +293,7 @@ import type { List } from './ts-impl-types';
                 },
             }
 
-            const topLevelVisitor: TJ.Visitor<A.Program | A.Expr | A.TypeLetBind, void> = {
+            const topLevelVisitor: TJ.Visitor<A.Program | A.Expr | A.TypeLetBind | A.Variant, void> = {
                 's-program': (visitor, expr: TJ.Variant<A.Program, 's-program'>) => {
                     const body = expr.dict.block;
                     if (body.$name === 's-block') {
@@ -310,6 +323,34 @@ import type { List } from './ts-impl-types';
                 },
                 's-newtype-bind': (visitor, expr: TJ.Variant<A.TypeLetBind, 's-newtype-bind'>) => {
                     return;
+                },
+                's-variant': (visitor, expr: TJ.Variant<A.Variant, 's-variant'>) => {
+                    const members = listToArray(expr.dict.members);
+                    const withMembers = listToArray(expr.dict['with-members']);
+                    const memberBinds = members.map(m => m.dict.bind);
+                    memberBinds.forEach(bind => {
+                        if (bind.$name === 's-tuple-bind') {
+                            wfError(runtime.ffi.makeList([
+                                ED.text.app("Tuple binding not allowed as variant member ")
+                            ]),
+                            bind.dict.l);
+                        }
+                    });
+                    const ids = fieldsToBinds(withMembers).concat(memberBinds);
+                    ensureUniqueIdsOrBindings(ids, false);
+                    const underscores = members
+                        .filter(member => A['is-s-bind'].app(member.dict.bind) && A['is-s-underscore'].app(member.dict.bind.dict.id));
+                    if (underscores.length !== 0) {
+                        addError(C['underscore-as'].app(underscores[0].dict.l, "a data variant name"));
+                    }
+                    checkUnderscoreName(withMembers, "a field name");
+                    members.forEach(m => visit(wellFormedVisitor, m));
+                    withMembers.forEach(wm => wrapVisitAllowSMethod(wellFormedVisitor, wm, true));
+                },
+                's-singleton-variant': (visitor, expr: TJ.Variant<A.Variant, 's-singleton-variant'>) => {
+                    const withMembers = listToArray(expr.dict['with-members']);
+                    ensureUniqueIdsOrBindings(fieldsToBinds(withMembers), false);
+                    withMembers.forEach(wm => wrapVisitAllowSMethod(wellFormedVisitor, wm, true));
                 }
             };
             visit<A.Program>(topLevelVisitor, ast);
