@@ -346,7 +346,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
                         if (!globalType) {
                           const typeKeys = [...context.info.types.keys()].join(',');
                           const globalKeys = [...context.globalTypes.keys()].join(',');
-                          throw new InternalCompilerError(`Could not find global type for ${valueKey} in types ${typeKeys} or globals ${globalKeys}; got ${String(globalType)}`);
+                          throw new InternalCompilerError(`Could not find global type for ${valueKey} in types [${typeKeys}] or globals [${globalKeys}]; got ${String(globalType)}`);
                         }
                         const typ = setInferred(globalType, false);
                         curTypes.set(valueKey, typ);
@@ -1975,8 +1975,20 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             }
           }
         }
+        case 's-let-expr': {
+          // TODO(Ben): ignoreChecker?
+          const rhsResult : TS.Type[] = [];
+          const binds = listToArray(e.dict.binds);
+          for (const lb of binds) {
+            rhsResult.push(synthesisLetBind(lb, context));
+          }
+          checking(e.dict.body, expectTyp, topLevel, context);
+          for (const b of binds) {
+            context.removeBinding(nameToKey((b.dict.b as TJ.Variant<A.Bind, "s-bind">).dict.id));
+          }
+          return solveAndReturn();
+        }
         case 's-module':
-        case 's-let-expr':
         case 's-letrec':
         case 's-block':
         case 's-assign':
@@ -2218,6 +2230,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         }
         case 's-user-block': return synthesis(e.dict.body, topLevel, context);
         case 's-let-expr': {
+          // TODO(Ben): ignoreChecker?
           const rhsResult : TS.Type[] = [];
           const binds = listToArray(e.dict.binds);
           for(const lb of binds) {
@@ -2322,7 +2335,6 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           const meetType = meetBranchTypes(types, e.dict.l, context);
           return tArray(setTypeLoc(meetType, e.dict.l), e.dict.l)
         }
-        case 's-let-expr':
         case 's-letrec':
         case 's-instantiate':
         case 's-if-else':
