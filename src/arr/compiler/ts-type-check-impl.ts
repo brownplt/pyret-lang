@@ -223,7 +223,20 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
     }
 
+    function meetBranchTypes(branchTypes : TS.Type[], loc : SL.Srcloc, context: Context): TS.Type {
+      const newExists = newExistential(loc, false);
+      context.addLevel("meet branch types");
+      context.addVariable(newExists);
+      for (let branchType of branchTypes) {
+        context.addConstraint(branchType, newExists);
+      }
+      const solution = context.solveLevel();
+      return solution.generalize(solution.apply(newExists));
+    }
+
     const primitiveTypesUri = TS['module-uri'].app("builtin://primitive-types");
+
+    const tArrayName = TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("RawArray"), A['dummy-loc'], false);
 
     function tNumber(l : SL.Srcloc) : TS.Type {
       return TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("Number"), l, false);
@@ -233,6 +246,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     }
     function tString(l : SL.Srcloc) : TS.Type {
       return TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("String"), l, false);
+    }
+
+    function tArray(t : TS.Type, l : SL.Srcloc): TS.Type {
+      return TS['t-app'].app(setTypeLoc(tArrayName, l), runtime.ffi.makeList([t]), l, false);
     }
 
     function tSrcloc(l : SL.Srcloc) : TS.Type {
@@ -1122,7 +1139,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           modules: mapMapValues(this.modules, (m) => {
             const { name, provides, types, aliases } = m.dict;
             return {
-              name, 
+              name,
               provides: typeKey(provides),
               types: mapMapValues(mapFromStringDict(types), renderData),
               aliases: mapMapValues(mapFromStringDict(aliases), typeKey)
@@ -1163,6 +1180,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
 
       addBinding(termKey : string, assignedType : TS.Type) {
+        LOG(`Binding ${termKey} to ${typeKey(assignedType)}\n`);
         this.binds.set(termKey, assignedType);
       }
 
@@ -1295,7 +1313,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
               const mod = aName.dict.uri;
               if (mod === 'builtin') {
                 const aliased = context.aliases.get(nameToKey(id));
-                if (aliased === undefined) { return type; }
+                if (aliased === undefined) {
+                  LOG(`Found no alias for ${typeKey(type)} among ${[...context.aliases.keys()].join(',')}`);
+                  return type;
+                }
                 return setLocAndInferred(aliased, l, inferred);
               } else {
                 const modtyp = context.modules.get(mod);
@@ -1304,11 +1325,17 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
                 }
                 const dataType = callMethod(modtyp.dict.types, 'get', nameToName(id));
                 switch(dataType.$name) {
-                  case 'some': return type;
+                  case 'some': {
+                    LOG(`Found type ${typeKey(type)} as ${dataType.dict.value.dict.name}, but ignoring that and returning type`);
+                    return type;
+                  }
                   case 'none': {
                     const aliased = callMethod(modtyp.dict.aliases, 'get', nameToName(id));
                     switch(aliased.$name) {
-                      case 'none': return type;
+                      case 'none': {
+                        LOG(`Did not find ${typeKey(type)} in modTyp.aliases, retruning type itself`);
+                        return type;
+                      }
                       case 'some': {
                         const resolved = resolveAlias(aliased.dict.value, context);
                         return setLocAndInferred(resolved, l, inferred);
@@ -1855,7 +1882,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         return;
       }
       expectTyp = resolveAlias(expectTyp, context);
-      if(expectTyp.$name === 't-app') {
+      if(expectTyp.$name === 't-app' && (expectTyp.dict.onto.$name === 't-app' || expectTyp.dict.onto.$name === 't-forall')) {
         expectTyp = simplifyTApp(expectTyp, context);
       }
       if(expectTyp.$name === 't-existential' || expectTyp.$name === 't-top') {
@@ -1930,6 +1957,24 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           checkSynthesis(e, expectTyp, topLevel, context);
           return solveAndReturn();
         }
+        case 's-array': {
+          switch(expectTyp.$name) {
+            case 't-app': {
+              if (typeKey(tArrayName) === typeKey(expectTyp.dict.onto)) {
+                const paramType = listToArray(expectTyp.dict.args)[0];
+                for (let value of listToArray(e.dict.values)) {
+                  checking(value, paramType, false, context);
+                }
+                return solveAndReturn();
+              } else {
+                throw new TypeCheckFailure(CS['incorrect-type-expression'].app(typeKey(tArrayName), e.dict.l, typeKey(expectTyp), expectTyp.dict.l, e));
+              }
+            }
+            default: {
+              throw new TypeCheckFailure(CS['incorrect-type-expression'].app("a raw array", e.dict.l, typeKey(expectTyp), expectTyp.dict.l, e));
+            }
+          }
+        }
         case 's-module':
         case 's-let-expr':
         case 's-letrec':
@@ -1940,7 +1985,6 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         case 's-cases-else':
         case 's-check-test':
         case 's-obj':
-        case 's-array':
         case 's-spy-block':
           throw new InternalCompilerError(`TODO: _checking switch ${e.$name}`);
         case 's-data':
@@ -2196,7 +2240,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             return setTypeLoc(idTyp.dict.typ, e.dict.l);
           } else {
             throw new TypeCheckFailure(CS['incorrect-type-expression'].app(
-              typeKey(idTyp), e.dict.l, 
+              typeKey(idTyp), e.dict.l,
               typeKey(TS['t-ref'].app(idTyp, e.dict.l, false)), e.dict.l,
               e));
           }
@@ -2208,7 +2252,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             return idTyp.dict.typ;
           } else {
             throw new TypeCheckFailure(CS['incorrect-type-expression'].app(
-              typeKey(idTyp), e.dict.l, 
+              typeKey(idTyp), e.dict.l,
               typeKey(TS['t-ref'].app(idTyp, e.dict.l, false)), e.dict.l,
               e));
           }
@@ -2265,6 +2309,19 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             return synthesis(desugaredOp, topLevel, context);
           }
         }
+        case 's-dot': {
+          const newType = synthesis(e.dict.obj, topLevel, context);
+          return synthesisField(e.dict.l, newType, e.dict.field, context);
+        }
+        case 's-array': {
+          const types : TS.Type[] = [];
+          const values = listToArray(e.dict.values);
+          for (let value of values) {
+            types.push(synthesis(value, false, context));
+          }
+          const meetType = meetBranchTypes(types, e.dict.l, context);
+          return tArray(setTypeLoc(meetType, e.dict.l), e.dict.l)
+        }
         case 's-let-expr':
         case 's-letrec':
         case 's-instantiate':
@@ -2273,12 +2330,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         case 's-cases-else':
         case 's-check-test':
         case 's-obj':
-        case 's-array':
         case 's-spy-block':
         case 's-check-expr':
         case 's-extend':
         case 's-update':
-        case 's-dot':
         case 's-get-bang':
         case 's-for':
         case 's-check':
@@ -2327,7 +2382,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       const { l, op, left, right } = sOp.dict;
       switch(op) {
         case "op==": return A['s-prim-app'].app(l, "equal-always", runtime.ffi.makeList([left, right]), flatPrimApp);
-        case "op<>": 
+        case "op<>":
           return A['s-prim-app'].app(l, "not", runtime.ffi.makeList([
             A['s-prim-app'].app(l, "equal-always", runtime.ffi.makeList([left, right]), flatPrimApp)
           ]), flatPrimApp);
@@ -2362,10 +2417,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           context.addVariable(objExists);
           context.addVariable(otherType);
           context.addVariable(retType);
-          context.addFieldConstraint(objExists, opName, 
+          context.addFieldConstraint(objExists, opName,
             TS['t-arrow'].app(runtime.ffi.makeList([otherType]), retType, appLoc, false));
           const argsArray = [left, right];
-          return synthesisSpine(arrowType, 
+          return synthesisSpine(arrowType,
             A['s-app'].app(appLoc, A['s-id'].app(opLoc, A['s-global'].app(opName)), runtime.ffi.makeList(argsArray)),
             argsArray, appLoc, context
           );
@@ -2400,6 +2455,38 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       context.addDictToBindings(collected);
       checking(body, ret, false, context);
       return context.solveAndResolveType(setRetType(arrow, ret));
+    }
+
+    function synthesisField(accessLoc : SL.Srcloc, objType: TS.Type, fieldName: string, context: Context): TS.Type {
+      objType = instantiateObjectType(objType, context);
+      switch (objType.$name) {
+        case 't-record': {
+          const fields = mapFromStringDict(objType.dict.fields);
+          if (fields.has(fieldName)) {
+            return fields.get(fieldName);
+          } else {
+            const synthesizedType = newExistential(accessLoc, false);
+            context.addVariable(synthesizedType);
+            context.addFieldConstraint(objType, fieldName, synthesizedType);
+            return synthesizedType;
+          }
+        }
+        case 't-existential': {
+          const synthesizedType = newExistential(accessLoc, false);
+          context.addVariable(synthesizedType);
+          context.addFieldConstraint(objType, fieldName, synthesizedType);
+          return synthesizedType;
+        }
+        default: {
+          const dataType = instantiateDataType(objType, context);
+          const fields = mapFromStringDict(dataType.dict.fields);
+          if (fields.has(fieldName)) {
+            return fields.get(fieldName);
+          } else {
+            throw new TypeCheckFailure(CS['object-missing-field'].app(fieldName, typeKey(objType), objType.dict.l, accessLoc));
+          }
+        }
+      }
     }
 
     function handleTypeLetBinds(bindings : A.TypeLetBind[], context : Context) : void {
@@ -2691,9 +2778,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         contextGlobMods,
         contextGlobModnames);
 
-      logger.app("\n\nContext from modules:\n", runtime.ffi.makeNone());
-      logger.app(contextFromModules.toString(), runtime.ffi.makeNone());
-      logger.app("\n\n", runtime.ffi.makeNone());
+      LOG(`\n\nContext from modules:\n${contextFromModules.toString()}\n\n`);
 
       try {
         checking(program.dict.block, TS['t-top'].app(program.dict.l, false), true, contextFromModules);
