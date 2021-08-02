@@ -31,7 +31,9 @@ cl-options = [SD.string-dict:
   "inline-case-body-limit",
     C.next-val-default(C.Num, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body"),
   "ast",
-    C.flag(C.once, "Show AST instead of source code")
+    C.flag(C.once, "Show AST instead of source code"),
+  "pipeline",
+    C.next-val(C.Str, C.once, "Specify a pipeline to be used"),
 ]
 
 parsed-options = C.parse-cmdline(cl-options)
@@ -98,7 +100,15 @@ fun pretty-result(result, show-ast):
   end
 end
 
-
+fun to-pipeline(s):
+  ask:
+    | s == "anchor" then: CS.pipeline-anchor
+    | string-starts-with(s, "ts-anchor") then:
+      args = string-split-all(s, ":").rest
+      CS.pipeline-ts-anchor(args)
+    | otherwise: raise("Unknown pipeline argument: " + s)
+  end 
+end
 
 cases (C.ParsedArguments) parsed-options block:
   | success(opts, rest) =>
@@ -111,6 +121,7 @@ cases (C.ParsedArguments) parsed-options block:
       end
     check-mode = opts.has-key("check-mode")
     type-check = opts.has-key("type-check")
+    pipeline = opts.get("pipeline").and-then(to-pipeline).or-else(CS.pipeline-anchor)
     inline-case-body-limit = opts.get-value("inline-case-body-limit")
     println("Success")
     cases (List) rest block:
@@ -121,6 +132,7 @@ cases (C.ParsedArguments) parsed-options block:
           check-mode: check-mode,
           type-check: type-check,
           proper-tail-calls: true,
+          pipeline: pipeline,
           inline-case-body-limit: inline-case-body-limit,
           builtin-js-dirs: [list: "./build/runtime"],
           runtime-builtin-relative-path: some("./")
