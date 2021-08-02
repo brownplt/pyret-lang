@@ -36,12 +36,21 @@ end
 var repl :: Option<R.ChunkyRepl> = none
 
 compile-handler = lam(msg, send-message) block:
-  spy: msg end
   cases(O.Option) M.parse-request(msg):
     | none =>
-      nothing
+      M.failure("Failed to parse " + msg).send-using(send-message)
     | some(request) =>
       cases(M.Request) request block:
+        | session-delete(session) => 
+          cases(Option) CLI.delete-session(session):
+            | some(message) => M.failure(message).send-using(send-message)
+            | none => M.success.send-using(send-message)
+          end
+        | session-filter(session, pattern) => 
+          cases(Option) CLI.filter-session(session, pattern):
+            | some(message) => M.failure(message).send-using(send-message)
+            | none => M.success.send-using(send-message)
+          end
         | lint-program(program, program-source) =>
           opts = request.get-options()
           spy: opts end

@@ -202,7 +202,9 @@ type LintResult =
 
 type ServerAPIEvent =
   | { type: 'compile', action: () => void, resolve: (result : CompileResult) => void}
-  | { type: 'lint', action: () => void, resolve: (result : LintResult) => void};
+  | { type: 'lint', action: () => void, resolve: (result : LintResult) => void}
+  | { type: 'delete-session', action: () => void, resolve: (a : any) => void, reject: (message : string) => void}
+  | { type: 'filter-session', action: () => void, resolve: (a : any) => void, reject: (message : string) => void};
 
 type CompileAndRunResult =
   | { type: 'compile-failure', errors: string[] }
@@ -261,6 +263,12 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
       }
     } else if (queue.length === 0) {
       console.log('received with empty queue: ', msgObject);
+    } else if (msgType === 'success') {
+      currentEvent.resolve(true);
+      finishAndProcessNext();
+    } else if ('reject' in currentEvent && msgType === 'failure') {
+      currentEvent.reject(msgObject.message);
+      finishAndProcessNext();
     } else if (msgType === 'compile-failure') {
       if (currentEvent.type !== 'compile') {
         throw new Error(`Mismatched event and response ${msgType} ${currentEvent.type}`);
@@ -281,6 +289,44 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
   }
 
   worker.addEventListener('message', serverAPIMessageHandler);
+
+  function deleteSession(session : String) : Promise<any> {
+    function deleteAction() {
+      const message = {
+        request: 'session-delete',
+        session,
+        'session-delete': true,
+      };
+      worker.postMessage(message);
+    }
+    return new Promise((resolve, reject) => {
+      addEvent({
+        type: 'delete-session',
+        resolve,
+        reject,
+        action: deleteAction,
+      });
+    });
+  }
+
+  function filterSession(session : String, pattern: string) : Promise<any> {
+    function filterAction() {
+      const message = {
+        request: 'session-filter',
+        session,
+        'session-filter': pattern,
+      };
+      worker.postMessage(message);
+    }
+    return new Promise((resolve, reject) => {
+      addEvent({
+        type: 'filter-session',
+        resolve,
+        reject,
+        action: filterAction,
+      });
+    });
+  }
 
   function apiCompile(options : CompileOptions) : Promise<CompileResult> {
     function compileAction() {
@@ -345,6 +391,11 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
   }
 
   return {
-    compile: apiCompile, run: apiRun, stop: apiStop, compileAndRun,
+    compile: apiCompile,
+    run: apiRun,
+    stop: apiStop,
+    compileAndRun,
+    filterSession,
+    deleteSession,
   };
 }

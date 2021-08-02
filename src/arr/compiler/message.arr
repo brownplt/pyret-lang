@@ -29,6 +29,8 @@ data Request:
   | create-repl
   | compile-interaction(
       program :: String)
+  | session-filter(session :: String, keeping :: String)
+  | session-delete(session :: String)
 sharing:
   method get-options(self :: Request) -> SD.StringDict<Any>:
     cases(Request) self:
@@ -36,6 +38,12 @@ sharing:
         [SD.string-dict:
           "program", program,
           "program-source", program-source]
+      | session-filter(session, keeping) =>
+        [SD.string-dict:
+          "session", session, "session-filter", keeping]
+      | session-delete(session) =>
+        [SD.string-dict:
+          "session", session, "session-delete", true]
       | compile-program(
           program, base-dir, builtin-js-dir, checks, type-check, recompile-builtins, pipeline, session) =>
         [SD.string-dict:
@@ -81,6 +89,8 @@ data Response:
   | compile-success
   | compile-interaction-success(program)
   | compile-interaction-failure(program)
+  | success
+  | failure(message :: String)
 sharing:
   method to-json(self :: Response) -> J.JSON:
     cases(Response) self:
@@ -118,6 +128,10 @@ sharing:
         J.j-obj([SD.string-dict:
             "type", J.j-str("compile-interaction-success"),
             "program", J.j-str(program)])
+      | success =>
+        J.j-obj([SD.string-dict: "type", J.j-str("success")])
+      | failure(message) =>
+        J.j-obj([SD.string-dict: "type", J.j-str("failure"), "message", J.j-str(message)])
     end
   end,
   method send-using(self :: Response, sender :: (String -> Nothing)) -> Nothing:
@@ -148,6 +162,17 @@ fun parse-lint-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-lint-p
           some(lint-program(program, program-source))
         end)
     end)
+end
+
+fun parse-session-filter(dict :: SD.StringDict<Any>) -> O.Option<Request%(is-session-filter)>:
+  session = dict.get-value("session")
+  filter-pattern = dict.get-value("session-filter")
+  some(session-filter(session, filter-pattern))
+end
+
+fun parse-session-delete(dict :: SD.StringDict<Any>) -> O.Option<Request%(is-session-filter)>:
+  session = dict.get-value("session")
+  some(session-delete(session))
 end
 
 # Creates a compile-program Request out of a dict, returning none when the dict could not be
@@ -222,6 +247,10 @@ fun parse-dict(dict :: SD.StringDict<Any>) -> O.Option<Request>:
         parse-create-repl-dict(dict)
       else if request == "compile-interaction":
         parse-compile-interaction-dict(dict)
+      else if request == "session-filter":
+        parse-session-filter(dict)
+      else if request == "session-delete":
+        parse-session-delete(dict)
       else:
         none
       end

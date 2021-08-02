@@ -10,7 +10,6 @@
    here---those should be dealt with in store.ts. */
 
 import { Store } from 'redux';
-import { v4 as uuidv4 } from 'uuid';
 import {
   EffectFailure,
   EffectSuccess,
@@ -1106,7 +1105,6 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
     currentFile,
   } = state;
 
-  console.log('run result', result);
   const rhs = makeRHSObjects(result, `file://${segmentName(currentFile, id)}`);
 
   // Associate rhs to chunks *now* before they're outdated. Then only chunk
@@ -1247,18 +1245,11 @@ async function runSessionAsync(state : State) : Promise<any> {
     state.currentFile,
     chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
   );
+
+  const sessionId = 'chatidor-session';
+  await serverAPI.filterSession(sessionId, 'builtin://');
   resetAsyncSession();
-  // TODO(luna): The session manager on the server does not clean up old
-  // sessions in any way. But we need a fresh session on every run:
-  //     lam(x): x + 2 end
-  //     x = 10
-  // So we need to resolve that (probably large) memory leak. One way would be
-  // to not manage sessions by id in the server, but rather have a session
-  // toggle and a session reset. Also:
-  // TODO(luna): Note that the current situation is much slower than with
-  // recompileBuiltins and no sessions, because builtins are all part of the
-  // session. So on each run we recompile list, etc
-  const sessionId = uuidv4();
+
   const update = (value: (s: State) => State) => {
     store.dispatch({
       type: 'update',
@@ -1317,6 +1308,8 @@ function runSession(state : State) : State {
     store.dispatch(
       { type: 'update', key: 'updater', value: (s) => ({ ...s, running: false }) },
     );
+  }).catch((e) => {
+    console.log('Running session failed', e);
   });
   return { ...state, running: true };
 }

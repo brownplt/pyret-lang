@@ -74,6 +74,8 @@ fun populate-options(dictionary, this-pyret-dir) block:
   end
   pipeline = dictionary.get("pipeline").and-then(to-pipeline).or-else(CS.pipeline-anchor)
   session = dictionary.get("session").or-else("empty")
+  session-filter = dictionary.get("session-filter")
+  session-delete = dictionary.has-key("session-delete")
 
   # TODO(alex): builtin arr files no longer supported; precompile them
   when dictionary.has-key("builtin-arr-dir"):
@@ -118,7 +120,9 @@ fun populate-options(dictionary, this-pyret-dir) block:
     user-annotations: user-annotations,
     compile-mode: compile-mode,
     pipeline: pipeline,
-    session: session
+    session: session,
+    session-filter: session-filter,
+    session-delete: session-delete
   }
 end
 

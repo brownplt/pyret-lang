@@ -43,8 +43,30 @@ sessions = [SD.mutable-string-dict:]
 
 var module-cache = [SD.mutable-string-dict:]
 
-fun remove-globals-from-module(locator :: CL.Locator, g :: CS.Globals) -> CS.Globals:
-  uri = locator.uri()
+fun delete-session(shadow session :: String) -> Option<String>:
+  if sessions.has-key-now(session) block:
+    sessions.remove-now(session)
+    none
+  else:
+    some("Session did not exist: " + session + ", sessions are " + sessions.keys-list-now().join-str(","))
+  end
+end
+
+fun filter-session(shadow session :: String, pattern :: String) -> Option<String> block:
+  cases(Option) sessions.get-now(session):
+    | none => nothing
+    | some(s) =>
+      for each(module-name from s.module-cache.keys-list-now()):
+        when not(string-contains(module-name, pattern)) block:
+          s.module-cache.remove-now(module-name)
+          s!{globals: remove-globals-from-uri(module-name, s!globals)}
+        end
+      end
+  end
+  none
+end
+
+fun remove-globals-from-uri(uri :: String, g :: CS.Globals) -> CS.Globals:
   fun remove-if-this-module(dict, key):
     if dict.get-value(key).uri-of-definition == uri:
       dict.remove(key)
@@ -58,6 +80,11 @@ fun remove-globals-from-module(locator :: CL.Locator, g :: CS.Globals) -> CS.Glo
     fold(remove-if-this-module, g.values, g.values.keys-list()),
     fold(remove-if-this-module, g.types, g.types.keys-list())
   )
+end
+
+fun remove-globals-from-module(locator :: CL.Locator, g :: CS.Globals) -> CS.Globals:
+  uri = locator.uri()
+  remove-globals-from-uri(uri, g)
 end
 
 fun prepare-session(base :: CL.Located, options) block:
