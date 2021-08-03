@@ -2275,8 +2275,25 @@ type Runtime = {
           checkingCases(e.dict.l, e.dict.typ, e.dict.val, listToArray(e.dict.branches), e.dict._else, expectTyp, context);
           return solveAndReturn();
         }
+        case 's-obj': {
+          const newExpectTyp = instantiateObjectType(expectTyp, context);
+          switch(newExpectTyp.$name) {
+            case 't-record': {
+              const fields = listToArray(e.dict.fields);
+              const fieldTypes = collectMembers(fields, true, context);
+              const tempObjectType = TS['t-record'].app(stringDictFromMap(fieldTypes), e.dict.l, false);
+              context.addConstraint(tempObjectType, expectTyp);
+              for (let field of fields) {
+                // NOTE(Ben): this appears to only be used for its side effects of checking each field
+                toTypeMember(field, fieldTypes.get(field.dict.name), tempObjectType, true, context);
+              }
+              return solveAndReturn();
+            }
+            default:
+              throw new TypeCheckFailure(CS['incorrect-type-expression'].app(typeKey(expectTyp), expectTyp.dict.l, "an object type", e.dict.l, e));
+          }
+        }
         case 's-check-test':
-        case 's-obj':
         case 's-spy-block':
         case 's-module':
           throw new InternalCompilerError(`TODO: _checking switch ${e.$name}`);
@@ -2940,7 +2957,7 @@ type Runtime = {
       }
     }
 
-    function collectMembers(members: A.Member[], collectFunctions: true, context: Context): Map<string, TS.Type> {
+    function collectMembers(members: A.Member[], collectFunctions: boolean, context: Context): Map<string, TS.Type> {
       const ret = new Map<string, TS.Type>();
       for (let member of members) {
         const memberType = collectMember(member, collectFunctions, context);
@@ -3427,15 +3444,26 @@ type Runtime = {
           branchTypes.push(synthesis(e.dict._else, false, context));
           return meetBranchTypes(branchTypes, e.dict.l, context);
         }
+        case 's-obj': {
+          const fields = listToArray(e.dict.fields);
+          const fieldTypes = collectMembers(fields, false, context);
+          const initialObjectType = TS['t-record'].app(stringDictFromMap(fieldTypes), e.dict.l, false);
+          const newFieldTypes = new Map<string, TS.Type>();
+          for (let field of fields) {
+            const newFieldType = toTypeMember(field, fieldTypes.get(field.dict.name), initialObjectType, false, context);
+            newFieldTypes.set(field.dict.name, newFieldType);
+          }
+          return TS['t-record'].app(stringDictFromMap(newFieldTypes), e.dict.l, false);
+        }
+        case 's-for': 
+          return synthesis(desugarSFor(e), topLevel, context);
         case 's-instantiate':
         case 's-check-test':
-        case 's-obj':
         case 's-spy-block':
         case 's-check-expr':
         case 's-extend':
         case 's-update':
         case 's-get-bang':
-        case 's-for':
         case 's-check':
           throw new InternalCompilerError(`TODO: _synthesis switch ${e.$name}`);
         case 's-data':
@@ -3475,6 +3503,19 @@ type Runtime = {
         default:
           throw new ExhaustiveSwitchError(e);
       }
+    }
+
+    function desugarSFor(e : TJ.Variant<A.Expr, 's-for'>): A.Expr {
+      const binds: A.Bind[] = [];
+      const args: A.Expr[] = [];
+      for (let fb of listToArray(e.dict.bindings)) {
+        const { bind, value } = fb.dict;
+        binds.push(bind);
+        args.push(value);
+      }
+      const { l, ann, body } = e.dict;
+      const lambdaFor = A['s-lam'].app(l, "", runtime.ffi.makeList([]), runtime.ffi.makeList(binds), ann, "", body, runtime.ffi.makeNone(), runtime.ffi.makeNone(), true);
+      return A['s-app'].app(l, e.dict.iterator, runtime.ffi.makeList([lambdaFor, ...args]));
     }
 
     const flatPrimApp = A['prim-app-info-c'].app(false);
