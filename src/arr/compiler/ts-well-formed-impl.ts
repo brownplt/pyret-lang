@@ -35,22 +35,53 @@ import type { List } from './ts-impl-types';
             let allowSMethod = false;
             let curShared = [];
 
-            function addError(err: C.CompileError) {
+            function addError(err: C.CompileError): void {
                 errors.push(err);
             }
 
-            function wfError(msg: List<ED.ErrorDisplay>, loc: A.Srcloc) {
+            function wfError(msg: List<ED.ErrorDisplay>, loc: A.Srcloc): void {
                 addError(C['wf-err'].app(msg, loc));
             }
 
-            function wrapVisitAllowSMethod(visitor, target: A.Expr | A.Provide, allow: boolean) {
+            function wrapVisitAllowSMethod(visitor, target: A.Expr | A.Provide | A.Member, allow: boolean): void {
                 let curAllow = allowSMethod;
                 allowSMethod = allow;
                 visit(visitor, target);
                 allowSMethod = curAllow;
             }
 
-            function ensureUniqueBindings(bindings: A.Bind[]) {
+            function isBinder(expr: A.Expr): boolean {
+                return A['is-s-let'].app(expr) || A['is-s-fun'].app(expr) || A['is-s-var'].app(expr) || A['is-s-rec'].app(expr);
+            }
+
+            function isBlockAllowed(expr: A.Expr): boolean {
+                return isBinder(expr) || A['is-s-spy-block'].app(expr);
+            }
+
+            function explicitlyBlockyBlock(block: TJ.Variant<A.Expr, 's-block'>): boolean {
+                let seenNonLet = false;
+                let isBlocky = false;
+                let seenTemplate = false;
+                listToArray(block.dict.stmts).forEach(stmt => {
+                    if (A['is-s-template'].app(stmt)) {
+                        seenTemplate = true;
+                    } else if (seenNonLet) {
+                        isBlocky = true;
+                    } else if (!isBlockAllowed(stmt)) {
+                        seenNonLet = true;
+                    }
+                });
+                return isBlocky && !seenTemplate;
+            }
+
+            function wfBlockyBlocks(l: A.Srcloc, blocks: TJ.Variant<A.Expr, 's-block'>[]): void {
+                const explicitlyBlockyBlocks = blocks.filter(explicitlyBlockyBlock);
+                if (explicitlyBlockyBlocks.length !== 0) {
+                    addError(C['block-needed'].app(l, runtime.ffi.makeList(explicitlyBlockyBlocks)));
+                }
+            }
+
+            function ensureUniqueIdsOrBindings(bindings: A.Bind[], checkShadows: boolean): void {
                 let ad = new Map<string, A.Srcloc>();
                 function help(bind: A.Bind) {
                     switch (bind.$name) {
@@ -59,7 +90,7 @@ import type { List } from './ts-impl-types';
                             if (id.$name === 's-underscore') {
                                 return;
                             }
-                            if (shadows) {
+                            if (shadows && checkShadows) {
                                 return
                             }
                             if (ad.has(nameToName(id))) {
@@ -93,7 +124,14 @@ import type { List } from './ts-impl-types';
                 bindings.forEach(help);
             }
 
-            function ensureDistinctLines(loc: A.Srcloc, prevIsTemplate: boolean, stmts: List<A.Expr>) {
+            function checkUnderscoreName(fields: A.Member[], kindOfThing: string): void {
+                const underscores = fields.filter(f => f.dict.name === '_');
+                if (underscores.length !== 0) {
+                    addError(C['underscore-as'].app(underscores[0].dict.l, kindOfThing));
+                }
+            }
+
+            function ensureDistinctLines(loc: A.Srcloc, prevIsTemplate: boolean, stmts: List<A.Expr>): void {
                 switch (stmts.$name) {
                     case 'empty': {
                         return;
@@ -142,7 +180,13 @@ import type { List } from './ts-impl-types';
                 }
             }
 
-            function rejectStandaloneExprs(stmts: A.Expr[], ignoreLast: boolean) {
+            function fieldsToBinds(members: A.Member[]): A.Bind[] {
+                return members.map(member => {
+                    return A['s-bind'].app(member.dict.l, false, A['s-name'].app(member.dict.l, member.dict.name), A['a-blank']);
+                });
+            }
+
+            function rejectStandaloneExprs(stmts: A.Expr[], ignoreLast: boolean): void {
                 function badStmt(l: A.Srcloc, stmt: A.Expr) {
                     if (stmt.$name === 's-op') {
                         if (stmt.dict.op === 'op==') {
@@ -220,7 +264,7 @@ import type { List } from './ts-impl-types';
                 }
             }
 
-            function wfBlockStmts(visitor, l: A.Srcloc, stmts: List<A.Expr>, topLevel: boolean) {
+            function wfBlockStmts(visitor, l: A.Srcloc, stmts: List<A.Expr>, topLevel: boolean): void {
                 function mapStmts(stmt: A.Expr): A.Bind | null {
                     if (A['is-s-var'].app(stmt)) {
                         return stmt.dict.name;
@@ -233,7 +277,7 @@ import type { List } from './ts-impl-types';
                     }
                 }
                 const bindStmts: A.Bind[] = listToArray(stmts).map(mapStmts).filter(stmt => stmt);
-                ensureUniqueBindings(bindStmts);
+                ensureUniqueIdsOrBindings(bindStmts, true);
                 ensureDistinctLines(A['dummy-loc'], false, stmts);
                 if (!inCheckBlock && !topLevel) {
                     rejectStandaloneExprs(listToArray(stmts), true);
@@ -241,7 +285,15 @@ import type { List } from './ts-impl-types';
                 listToArray(stmts).forEach(stmt => wrapVisitAllowSMethod(visitor, stmt, false));
             }
 
-            const topLevelVisitor: TJ.Visitor<A.Program, void> = {
+            const wellFormedVisitor: TJ.Visitor<A.Ann, void> = {
+                'a-name': (visitor, expr: TJ.Variant<A.Ann, 'a-name'>) => {
+                    if (A['is-s-underscore'].app(expr.dict.id)) {
+                        addError(C['underscore-as-ann'].app(expr.dict.l));
+                    }
+                },
+            }
+
+            const topLevelVisitor: TJ.Visitor<A.Program | A.Expr | A.TypeLetBind | A.Variant, void> = {
                 's-program': (visitor, expr: TJ.Variant<A.Program, 's-program'>) => {
                     const body = expr.dict.block;
                     if (body.$name === 's-block') {
@@ -252,6 +304,53 @@ import type { List } from './ts-impl-types';
                     wrapVisitAllowSMethod(visitor, expr.dict._provide, false);
                     visit(visitor, expr.dict['provided-types']);
                     listToArray(expr.dict.imports).forEach(i => visit(visitor, i));
+                },
+                's-type': (visitor, expr: TJ.Variant<A.Expr, 's-type'>) => {
+                    visit<A.Ann>(wellFormedVisitor, expr.dict.ann);
+                },
+                's-newtype': (visitor, expr: TJ.Variant<A.Expr, 's-newtype'>) => {
+                    return;
+                },
+                's-type-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-type-let-expr'>) => {
+                    if (!expr.dict.blocky && A['is-s-block'].app(expr.dict.body)) {
+                        wfBlockyBlocks(expr.dict.l, [expr.dict.body]);
+                    }
+                    listToArray(expr.dict.binds).forEach(b => visit(visitor, b));
+                    wrapVisitAllowSMethod(wellFormedVisitor, expr.dict.body, false);
+                },
+                's-type-bind': (visitor, expr: TJ.Variant<A.TypeLetBind, 's-type-bind'>) => {
+                    visit<A.Ann>(wellFormedVisitor, expr.dict.ann);
+                },
+                's-newtype-bind': (visitor, expr: TJ.Variant<A.TypeLetBind, 's-newtype-bind'>) => {
+                    return;
+                },
+                's-variant': (visitor, expr: TJ.Variant<A.Variant, 's-variant'>) => {
+                    const members = listToArray(expr.dict.members);
+                    const withMembers = listToArray(expr.dict['with-members']);
+                    const memberBinds = members.map(m => m.dict.bind);
+                    memberBinds.forEach(bind => {
+                        if (bind.$name === 's-tuple-bind') {
+                            wfError(runtime.ffi.makeList([
+                                ED.text.app("Tuple binding not allowed as variant member ")
+                            ]),
+                            bind.dict.l);
+                        }
+                    });
+                    const ids = fieldsToBinds(withMembers).concat(memberBinds);
+                    ensureUniqueIdsOrBindings(ids, false);
+                    const underscores = members
+                        .filter(member => A['is-s-bind'].app(member.dict.bind) && A['is-s-underscore'].app(member.dict.bind.dict.id));
+                    if (underscores.length !== 0) {
+                        addError(C['underscore-as'].app(underscores[0].dict.l, "a data variant name"));
+                    }
+                    checkUnderscoreName(withMembers, "a field name");
+                    members.forEach(m => visit(wellFormedVisitor, m));
+                    withMembers.forEach(wm => wrapVisitAllowSMethod(wellFormedVisitor, wm, true));
+                },
+                's-singleton-variant': (visitor, expr: TJ.Variant<A.Variant, 's-singleton-variant'>) => {
+                    const withMembers = listToArray(expr.dict['with-members']);
+                    ensureUniqueIdsOrBindings(fieldsToBinds(withMembers), false);
+                    withMembers.forEach(wm => wrapVisitAllowSMethod(wellFormedVisitor, wm, true));
                 }
             };
             visit<A.Program>(topLevelVisitor, ast);

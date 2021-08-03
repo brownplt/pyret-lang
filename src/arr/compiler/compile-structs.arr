@@ -2983,7 +2983,9 @@ default-compile-options = {
   deps-file: "build/bundled-node-deps.js",
   standalone-file: "src/js/base/handalone.js",
   pipeline: pipeline-anchor,
-  session: "empty"
+  session: "empty",
+  session-filter: none,
+  session-delete: false
 }
 
 fun make-default-compile-options(this-pyret-dir):

@@ -84,9 +84,9 @@ function wrapContent(content: string): string {
 }
 
 let asyncCache : {[key:string]: any} = {};
+let currentRunner: any = null;
 export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => Promise<any>
   ) => {
-  let currentRunner: any = null;
   const requireAsyncMain = (importPath: string) => new Promise(((resolve, reject) => {
     const startRootRequires = window.performance.now();
     if (importPath in nodeModules) {
@@ -109,20 +109,30 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
     if (!fs.existsSync(nextPath)) {
       throw new Error(`Path did not exist in requireAsyncMain: ${nextPath}`);
     }
-    let runner: any = null;
+
     const contents = String(fs.readFileSync(nextPath));
 
     const toStopify = wrapContent(contents);
-    runner = stopify.stopifyLocally(toStopify, { newMethod: 'direct' });
-    if (runner.kind !== 'ok') { reject(runner); }
-    fs.writeFileSync(stoppedPath, runner.code);
+    let isFirstOfSession = false;
+    let toWrite: string;
+
+    if (currentRunner === null) {
+      isFirstOfSession = true;
+      currentRunner = stopify.stopifyLocally(toStopify, { newMethod: 'direct' });
+      toWrite = currentRunner.code;
+    } else {
+      toWrite = currentRunner.compile(toStopify);
+    }
+
+    if (currentRunner.kind !== 'ok') { reject(currentRunner); }
+    fs.writeFileSync(stoppedPath, toWrite);
     const stopifyModuleExports = {
       exports: {
         __pyretExports: nextPath,
       },
     };
 
-    runner.g = Object.assign(runner.g, {
+    currentRunner.g = Object.assign(currentRunner.g, {
       document,
       Number,
       Math,
@@ -140,7 +150,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
       // TS 'export' syntax desugars to 'exports.name = value;'
       exports: stopifyModuleExports.exports,
       String,
-      $STOPIFY: runner,
+      $STOPIFY: currentRunner,
       setTimeout,
       clearTimeout,
       console,
@@ -150,19 +160,18 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
       // @ts-ignore
       ide: window.ide,
     });
-    runner.path = nextPath;
-    currentRunner = runner;
+    currentRunner.path = nextPath;
 
     resolve({
       run: new Promise((resolve, reject) => {
         const endRootRequires = window.performance.now();
         timings.$makeRootRequires = endRootRequires - startRootRequires;
         const startRootExecution = endRootRequires;
-        runner.run((result : any) => {
+        const cb =  (result : any) => {
           if (result.type !== 'normal') {
             reject(result);
           } else {
-            const toReturn = runner.g.module.exports;
+            const toReturn = currentRunner.g.module.exports;
             handleRuntimeConfig(cachePath, toReturn, rtCfg);
             asyncCache[cachePath] = toReturn;
             const endRootExecution = window.performance.now();
@@ -172,13 +181,18 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
             timings.$rootOnly = timings.$total - timings.$dependencies - timings.$makeRootRequires;
             resolve(toReturn);
           }
-        })
+        };
+        if (isFirstOfSession) {
+          currentRunner.run(cb);
+        } else {
+          currentRunner.evalCompiled(toWrite, cb);
+        }
       }),
       pause: (callback: (line: number) => void): void => {
-        runner.pause(callback);
+        currentRunner.pause(callback);
       },
       resume: (): void => {
-        runner.resume();
+        currentRunner.resume();
       },
     });
   }));
@@ -260,6 +274,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
 // :P) to use that old style instead of this
 export const resetAsyncSession = () => {
   delete asyncCache['/compiled/builtin/runtime.js.stopped'];
+  currentRunner = null;
 };
 
 export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => any) => {
