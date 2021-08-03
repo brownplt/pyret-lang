@@ -26,7 +26,7 @@ function tmpdir() {
     }
     catch(e) {
       error("Could not find or create temporary directory " + fulldir);
-      process.exit(1);
+      process.nextTick(() => process.exit(1));
     }
   }
   return fulldir;
@@ -72,7 +72,7 @@ function start(options) {
     catch(e) {
       error(String(e));
       error("No " + localParley + " directory found and couldn't create it, exiting");
-      process.exit(1);
+      process.nextTick(() => process.exit(1));
     }
   }
 
@@ -173,7 +173,7 @@ function start(options) {
         else if(parsed.type === "compile-failure") {
           // TODO(alex): Prettier error messages
           process.stderr.write(JSON.stringify(parsed.data));
-          process.exit(1);
+          process.nextTick(() => process.exit(1));
         }
         else if(parsed.type === "compile-success") {
           log("Successful compile response");

@@ -18,7 +18,7 @@
     function makeLogger(level) {
       return function(...args) {
         if(LOG_LEVEL >= level) {
-          console.log.apply(console, ["[server] ", new Date()].concat(args));
+          console.log("[server] ", new Date(), ...args);
         }
       }
     }
@@ -82,7 +82,7 @@
                 if(runtime.isFailureResult(result)) {
                   error("Failed: ", result.exn.exn, result.exn.stack, result.exn.pyretStack);
                   respondJSON({type: "echo-err", contents: "There was an internal error, please report this as a bug"});
-                  respondJSON({type: "echo-err", contents: String(result.exn.exn) });
+                  respondJSON({type: "echo-err", contents: require('util').inspect(result.exn.exn, {depth: null}) });
                   connection.close();
                   // restarter.error(result.exn);
                 }

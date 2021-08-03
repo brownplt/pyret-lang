@@ -647,8 +647,11 @@ fun build-program(path, options, stats) block:
       options.log(s, to-clear)
     end
   end
-  print-progress = lam(s): print-progress-clearing(s, none) end
   var str = "Gathering dependencies..."
+  fun print-progress(s) block:
+    print-progress-clearing(s + "\n", none) 
+    str := ""
+  end
   fun clear-and-print(new-str) block:
     print-progress-clearing(new-str, some(string-length(str)))
     str := new-str
@@ -704,7 +707,7 @@ fun build-program(path, options, stats) block:
           + ": " + locator.name())
     end,
     method on-compile(self, locator, loadable, trace) block:
-      print-progress("Compiled " + locator.uri() + " and session was " + options.session)
+      clear-and-print("Compiled " + locator.uri() + " and session was " + options.session)
       locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
