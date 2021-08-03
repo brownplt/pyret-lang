@@ -29,6 +29,9 @@ BUILD_DEPS := \
 
 build: $(BUILD_DEPS)
 
+show-comp: build parser runtime
+	npx pyret --checks none -c src/scripts/show-compilation.arr -o show-comp.jarr
+
 all-tests: build runtime web
 	npx jest --verbose
 
