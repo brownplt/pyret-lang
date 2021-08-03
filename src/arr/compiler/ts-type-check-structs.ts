@@ -61,7 +61,7 @@ export type ConstraintSystem =
               Type,
               { dict: { 'arg-types' : List<Type>, 'ret-type' : Type, loc : A.Srcloc } },
               List<Type>,
-              ((t: Type, c : Context) => TypingResult),
+              PFunction<((t: Type, c : Context) => TypingResult)>,
               string
 	]>>,
         'next-system': ConstraintSystem
@@ -140,7 +140,7 @@ dict: {values: {dict: {
               Type,
               {dict: { 'arg-types' : List<Type>, 'ret-type' : Type, loc : A.Srcloc }},
               List<Type>,
-              ((t: Type, c: Context) => TypingResult),
+              PFunction<((t: Type, c: Context) => TypingResult)>,
               string
 	]>>,
         next_system: ConstraintSystem

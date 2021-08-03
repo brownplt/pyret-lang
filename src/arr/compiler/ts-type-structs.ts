@@ -117,7 +117,7 @@ export interface Exports {
           PFunction<
             (
                 name: string,
-                fields: List<{ String; Type }>,
+                fields: List<PTuple<[ string, Type ]>>,
                 with_fields: TypeMembers,
                 l: Loc
               )=> Variant<TypeVariant, 't-variant'>
