@@ -8,6 +8,22 @@ import type * as TCS from './ts-type-check-structs';
 import type * as TCSH from './ts-compile-structs-helpers';
 import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } from './ts-impl-types';
 
+type Runtime = {
+  makeTuple: (<T1, T2>(vals : [T1, T2]) => PTuple<[T1, T2]>) 
+           & (<T1, T2, T3>(vals : [T1, T2, T3]) => PTuple<[T1, T2, T3]>)
+           & (<T1, T2, T3, T4>(vals : [T1, T2, T3, T4]) => PTuple<[T1, T2, T3, T4]>)
+           & (<T1, T2, T3, T4, T5>(vals : [T1, T2, T3, T4, T5]) => PTuple<[T1, T2, T3, T4, T5]>),
+  makeFunction: <T extends Function>(func: T) => PFunction<T>,
+  makeModuleReturn: (values: Record<string, any>, types: Record<string, any>) => any,
+  makeObject: <T extends {}>(val : T) => { dict: T },
+  ffi: {
+    makeList: <T>(ts: T[] | IterableIterator<T>) => List<T>,
+    makeTreeSet: <T>(ts: T[] | IterableIterator<T>) => Set<T>,
+    makeSome: <T>(val: T) => Option<T>,
+    makeNone: <T>() => Option<T>,
+  }
+}
+
 ({
   requires: [
     { 'import-type': 'builtin', name: 'srcloc'},
@@ -26,7 +42,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       "empty-context": "tany",
     }
   },
-  theModule: function(runtime, _, __, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : TS.Exports, Ain : A.Exports, CSin : CS.Exports, TCS : TCS.Exports, TD : TD.Exports) {
+  theModule: function(runtime: Runtime, _, __, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : TS.Exports, Ain : A.Exports, CSin : CS.Exports, TCS : TCS.Exports, TD : TD.Exports) {
     const {
       ExhaustiveSwitchError,
       InternalCompilerError,
@@ -220,6 +236,59 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         }
         default:
           throw new ExhaustiveSwitchError(inAnn);
+      }
+    }
+
+    function freeVariables(typ : TS.Type): TypeSet {
+      switch(typ.$name) {
+        case 't-existential': {
+          const ret = new TypeSet();
+          ret.add(typ);
+          return ret;
+        }
+        case 't-name':
+        case 't-var':
+        case 't-top':
+        case 't-bot': return new TypeSet();
+        case 't-arrow': {
+          const ret = new TypeSet();
+          for (let arg of listToArray(typ.dict.args)) {
+            ret.combine(freeVariables(arg));
+          }
+          ret.combine(freeVariables(typ.dict.ret));
+          return ret;
+        }
+        case 't-app': {
+          const ret = new TypeSet();
+          for (let arg of listToArray(typ.dict.args)) {
+            ret.combine(freeVariables(arg));
+          }
+          ret.combine(freeVariables(typ.dict.onto));
+          return ret;
+        }
+        case 't-record': {
+          const ret = new TypeSet();
+          for (let [_key, t] of mapFromStringDict(typ.dict.fields)) {
+            ret.combine(freeVariables(t));
+          }
+          return ret;
+        }
+        case 't-tuple': {
+          const ret = new TypeSet();
+          for (let t of listToArray(typ.dict.elts)) {
+            ret.combine(freeVariables(t));
+          }
+          return ret;
+        }
+        case 't-forall': {
+          const ret = freeVariables(typ.dict.onto);
+          // NOTE(Ben): this may not be needed, given name resolution
+          ret.removeAll(...listToArray(typ.dict.introduces)); 
+          return ret;
+        }
+        case 't-ref': return freeVariables(typ.dict.typ);
+        case 't-data-refinement': return freeVariables(typ.dict['data-type']);
+        default: throw new ExhaustiveSwitchError(typ);
       }
     }
 
@@ -439,6 +508,63 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     type Constraint = {subtype: TS.Type, supertype: TS.Type};
     type Refinement = {existential: TS.Type, dataRefinement: TJ.Variant<TS.Type, 't-data-refinement'>};
 
+    class TypeSet {
+      contents: Map<string, TS.Type>;
+      constructor() { 
+        this.contents = new Map();
+      }
+      values(): IterableIterator<TS.Type> { return this.contents.values(); }
+      size(): number { return this.contents.size }
+      add(typ : TS.Type): void {
+        this.contents.set(typeKey(typ), typ);
+      }
+      addAll(...typs: TS.Type[]): void {
+        for (let typ of typs) {
+          this.contents.set(typeKey(typ), typ);
+        }
+      }
+      combine(typs: TypeSet): void {
+        this.addAll(...typs.values());
+      }
+      union(typs: TypeSet) : TypeSet {
+        const ret = new TypeSet();
+        ret.combine(this);
+        ret.combine(typs);
+        return ret;
+      }
+      intersect(typs: TypeSet): void {
+        const keys = this.contents.keys();
+        for (let k of keys) {
+          if (!typs.contents.has(k)) {
+            this.contents.delete(k);
+          }
+        }
+      }
+      intersection(typs: TypeSet): TypeSet {
+        const ret = new TypeSet();
+        ret.combine(this);
+        ret.intersect(typs);
+        return ret;
+      }
+      remove(typ: TS.Type): void {
+        this.contents.delete(typeKey(typ));
+      }
+      removeAll(...typs: TS.Type[]) {
+        for (let typ of typs) {
+          this.contents.delete(typeKey(typ));
+        }
+      }
+      subtract(typs: TypeSet): void {
+        this.removeAll(...typs.values());
+      }
+      difference(typs: TypeSet): TypeSet {
+        const ret = new TypeSet();
+        ret.combine(this);
+        ret.subtract(typs);
+        return ret;
+      }
+
+    }
     class ConstraintLevel {
       name?: string;
       // the constrained existentials
@@ -520,7 +646,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             runtime.ffi.makeList(level.refinementConstraints.map((r) => runtime.makeTuple([r.existential, r.dataRefinement]))),
             stringDictFromMap(fieldConstraints),
             // {Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>; (Type, Context -> TypingResult); String}
-            stringDictFromMap(mapMapValues(level.exampleTypes, (exTyInfo) => {
+            stringDictFromMap(mapMapValues(level.exampleTypes, (exTyInfo: ExampleTypeInfo) => {
               return runtime.makeTuple([
                 exTyInfo.existential,
                 runtime.makeObject({
@@ -529,7 +655,9 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
                   'loc': exTyInfo.annTypes.loc,
                 }),
                 runtime.ffi.makeList(exTyInfo.exampleTypes),
-                runtime.makeFunction(exTyInfo.checkFunction),
+                runtime.makeFunction((t: TS.Type, c: TCS.Context): TCS.TypingResult => {
+                  throw new Error("Don't actually do this!");
+                }),
                 exTyInfo.functionName
               ]);
             })),
@@ -847,7 +975,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             continue;
           }
           case "t-forall": {
-            const newOnto = instantiateForallWithFreshVars(supertype, system);
+            const newOnto = instantiateForallWithFreshVars(supertype, system, true);
             constraints.push({ subtype, supertype: newOnto });
             continue;
           }
@@ -925,7 +1053,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
                 continue;
               }
               case "t-forall": {
-                const newOnto = instantiateForallWithFreshVars(subtype, system);
+                const newOnto = instantiateForallWithFreshVars(subtype, system, true);
                 constraints.push({ subtype: newOnto, supertype });
                 continue;
               }
@@ -1005,6 +1133,30 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             }
           }
         }, typ);
+      }
+      applyDataType(dataType: TS.DataType): TS.DataType {
+        const { name, params, l } = dataType.dict;
+        const variants = listToArray(dataType.dict.variants).map((v) => this.applyVariant(v));
+        let fields = mapFromStringDict(dataType.dict.fields);
+        fields = mapMapValues(fields, (typ) => this.generalize(this.apply(typ)));
+        return TS['t-data'].app(name, params, runtime.ffi.makeList(variants), stringDictFromMap(fields), l);
+      }
+      applyVariant(variantType: TS.TypeVariant): TS.TypeVariant {
+        switch(variantType.$name) {
+          case 't-variant':{
+            let withFields = mapFromStringDict(variantType.dict['with-fields']);
+            withFields = mapMapValues(withFields, (typ) => this.generalize(this.apply(typ)));
+            const { name, fields, l } = variantType.dict;
+            return TS['t-variant'].app(name, fields, stringDictFromMap(withFields), l);
+          }
+          case 't-singleton-variant': {
+            let withFields = mapFromStringDict(variantType.dict['with-fields']);
+            withFields = mapMapValues(withFields, (typ) => this.generalize(this.apply(typ)));
+            const { name, l } = variantType.dict;
+            return TS['t-singleton-variant'].app(name, stringDictFromMap(withFields), l);
+          }
+          default: throw new ExhaustiveSwitchError(variantType);
+        }
       }
       generalize(typ : TS.Type) : TS.Type {
         const thisCS = this;
@@ -1103,15 +1255,30 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
 
     }
     class Context {
-      globalTypes : Map<string, TS.Type>;     // global name -> type
-      aliases : Map<string, TS.Type>;         // t-name -> aliased type
-      dataTypes : Map<string, TS.DataType>;   // t-name -> data type
-      modules : Map<string, TS.ModuleType>;   // module name -> module type
-      moduleNames : Map<string, string>;      // imported name -> module name
-      binds : Map<string, TS.Type>;           // local name -> type
-      constraints : ConstraintSystem;         // constraints should only be added with methods to ensure that they have the proper forms
+      globalTypes : Map<string, TS.Type>;      // global name -> type
+      aliases : Map<string, TS.Type>;          // t-name -> aliased type
+      dataTypes : Map<string, TS.DataType>;    // t-name -> data type
+      modules : Map<string, TS.ModuleType>;    // module name -> module type
+      moduleNames : Map<string, string>;       // imported name -> module name
+      binds : Map<string, TS.Type>;            // local name -> type
+      constraints : ConstraintSystem;          // constraints should only be added with methods to ensure that they have the proper forms
       info : TCInfo;
-      misc : Map<string, [TS.Type[], string]> // miscellaneous info that is used for logging. Keyed by the function name
+      misc : Map<string, [TS.Type[], string]>; // miscellaneous info that is used for logging. Keyed by the function name
+
+      /** an option containing the key of the function name,
+       the arg-types (some of which are existentials),
+       the return type (which may be an existential),
+       and the existential that is the function's type
+       */
+      testInferenceData?: {
+        name: A.Name,
+        argTypes: TS.Type[],
+        retType: TS.Type,
+        loc: SL.Srcloc,
+        existential: TS.Type,
+      };
+
+      miscTestInferenceData?: A.Name;
 
       constructor(
         globalTypes: Map<string, TS.Type>,
@@ -1129,6 +1296,9 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         this.constraints = new ConstraintSystem();
         this.info = new TCInfo();
         this.misc = new Map();
+
+        this.testInferenceData = null;
+        this.miscTestInferenceData = null;
       }
 
       toString() {
@@ -1186,11 +1356,13 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
 
       addDictToBindings(bindings : Map<string, TS.Type>) {
         for(let [key, typ] of bindings) {
+          LOG(`Binding ${key} to ${typeKey(typ)}\n`);
           this.binds.set(key, typ);
         }
       }
 
       removeBinding(termKey : string) {
+        LOG(`Deleting binding ${termKey} (which ${this.binds.has(termKey) ? 'was' : 'was NOT'} found)\n`);
         this.binds.delete(termKey);
       }
 
@@ -1208,6 +1380,28 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
 
       addFieldConstraint(typ : TS.Type, fieldName: string, fieldType: TS.Type) {
         this.constraints.addFieldConstraint(typ, fieldName, fieldType);
+      }
+
+      addMiscExampleVariable(funKey: string, funName: string) {
+        this.misc.set(funKey, [[], funName]);
+      }
+
+      addExampleVariable(
+        existential: TS.Type,
+        argTypes: TS.Type[],
+        retType: TS.Type,
+        loc: SL.Srcloc,
+        checkFunction: ExampleTypeInfo['checkFunction'],
+        functionName: string
+      ): void {
+        this.constraints.addExampleVariable(existential, argTypes, retType, loc, checkFunction, functionName);
+      }
+
+      addMiscExampleType(funKey: string, typ: TS.Type) {
+        if (this.misc.has(funKey)) {
+          const cur = this.misc.get(funKey);
+          cur[0].unshift(typ);
+        }
       }
 
       getDataType(type : TJ.Variant<TS.Type, 't-name'>): TS.DataType | false {
@@ -1314,7 +1508,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
               if (mod === 'builtin') {
                 const aliased = context.aliases.get(nameToKey(id));
                 if (aliased === undefined) {
-                  LOG(`Found no alias for ${typeKey(type)} among ${[...context.aliases.keys()].join(',')}`);
+                  LOG(`Found no alias for ${typeKey(type)} among ${[...context.aliases.keys()].join(',')}\n`);
                   return type;
                 }
                 return setLocAndInferred(aliased, l, inferred);
@@ -1326,14 +1520,14 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
                 const dataType = callMethod(modtyp.dict.types, 'get', nameToName(id));
                 switch(dataType.$name) {
                   case 'some': {
-                    LOG(`Found type ${typeKey(type)} as ${dataType.dict.value.dict.name}, but ignoring that and returning type`);
+                    LOG(`Found type ${typeKey(type)} as ${dataType.dict.value.dict.name}, but ignoring that and returning type\n`);
                     return type;
                   }
                   case 'none': {
                     const aliased = callMethod(modtyp.dict.aliases, 'get', nameToName(id));
                     switch(aliased.$name) {
                       case 'none': {
-                        LOG(`Did not find ${typeKey(type)} in modTyp.aliases, retruning type itself`);
+                        LOG(`Did not find ${typeKey(type)} in modTyp.aliases, retruning type itself\n`);
                         return type;
                       }
                       case 'some': {
@@ -1354,11 +1548,60 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       }
     }
 
-    function setTypeLoc(type: TS.Type, loc: SL.Srcloc): TS.Type {
-      const newType = Object.create(Object.getPrototypeOf(type));
-      Object.assign(newType, type);
-      newType.dict.l = loc;
-      return newType;
+    function setTypeLoc(typ: TS.Type, loc: SL.Srcloc): TS.Type {
+      switch(typ.$name) {
+        case 't-name':
+          return TS['t-name'].app(typ.dict['module-name'], typ.dict.id, loc, typ.dict.inferred);
+        case 't-arrow':
+          return TS['t-arrow'].app(
+            runtime.ffi.makeList(listToArray(typ.dict.args).map((a) => setTypeLoc(a, loc))),
+            setTypeLoc(typ.dict.ret, loc),
+            loc,
+            typ.dict.inferred
+          );
+        case 't-app':
+          return TS['t-app'].app(
+            setTypeLoc(typ.dict.onto, loc),
+            runtime.ffi.makeList(listToArray(typ.dict.args).map((a) => setTypeLoc(a, loc))),
+            loc,
+            typ.dict.inferred
+          );
+        case 't-top': return TS['t-top'].app(loc, typ.dict.inferred);
+        case 't-bot': return TS['t-bot'].app(loc, typ.dict.inferred);
+        case 't-record':
+          return TS['t-record'].app(
+            stringDictFromMap(mapMapValues(mapFromStringDict(typ.dict.fields), (a) => setTypeLoc(a, loc))),
+            loc,
+            typ.dict.inferred
+          );
+        case 't-tuple':
+          return TS['t-tuple'].app(
+            runtime.ffi.makeList(listToArray(typ.dict.elts).map((a) => setTypeLoc(a, loc))),
+            loc,
+            typ.dict.inferred
+          );
+        case 't-forall':
+          return TS['t-forall'].app(
+            runtime.ffi.makeList(listToArray(typ.dict.introduces).map((a) => setTypeLoc(a, loc))),
+            setTypeLoc(typ.dict.onto, loc),
+            loc,
+            typ.dict.inferred
+          );
+        case 't-ref':
+          return TS['t-ref'].app(setTypeLoc(typ.dict.typ, loc), loc, typ.dict.inferred);
+        case 't-data-refinement':
+          return TS['t-data-refinement'].app(
+            setTypeLoc(typ.dict['data-type'], loc),
+            typ.dict['variant-name'],
+            loc,
+            typ.dict.inferred
+          );
+        case 't-var':
+          return TS['t-var'].app(typ.dict.id, loc, typ.dict.inferred);
+        case 't-existential':
+          return TS['t-existential'].app(typ.dict.id, loc, typ.dict.inferred);
+        default: throw new ExhaustiveSwitchError(typ);
+      }
     }
 
     function setInferred(type: TS.Type, inferred: boolean): TS.Type {
@@ -1369,11 +1612,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     }
 
     function setLocAndInferred(type: TS.Type, loc: SL.Srcloc, inferred: boolean): TS.Type {
-      const newType = Object.create(Object.getPrototypeOf(type));
-      Object.assign(newType, type);
-      newType.dict.l = loc;
-      newType.dict.inferred = inferred;
-      return newType;
+      return setTypeLoc(setInferred(type, inferred), loc);
     }
 
     function substitute(type: TS.Type, newType: TS.Type, typeVar: TS.Type): TS.Type {
@@ -1657,11 +1896,11 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
     // Examines a type and, if it is a t-forall, instantiates it with fresh variables
     // This process modifies system to record the newly generated variables.
     // All other types are unmodified.
-    function instantiateForallWithFreshVars(type : TS.Type, system : ConstraintSystem): TS.Type {
+    function instantiateForallWithFreshVars(type : TS.Type, system : ConstraintSystem, deep: boolean): TS.Type {
       switch (type.$name) {
         case 't-forall': {
           const { introduces, onto } = type.dict;
-          let newOnto = instantiateForallWithFreshVars(onto, system);
+          let newOnto = deep ? instantiateForallWithFreshVars(onto, system, deep) : onto;
           const introducesArr = listToArray(introduces);
           const newExistentials = introducesArr.map((i) => newExistential(i.dict.l, false));
           for (let i = 0; i < newExistentials.length; i++) {
@@ -1778,7 +2017,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         }
         case "t-existential": return typ;
         case "t-forall": {
-          const instantiated = instantiateForallWithFreshVars(typ, context.constraints);
+          const instantiated = instantiateForallWithFreshVars(typ, context.constraints, true);
           return instantiateObjectType(instantiated, context);
         }
         default: {
@@ -1854,7 +2093,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             return TS['t-data'].app(name, params, variants, stringDictFromMap(newFields), l);
           }
           case 't-forall': {
-            const newTyp = instantiateForallWithFreshVars(typ, context.constraints);
+            const newTyp = instantiateForallWithFreshVars(typ, context.constraints, true);
             return instantiateDataType(newTyp, context);
           }
           case 't-existential': {
@@ -1988,16 +2227,58 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           }
           return solveAndReturn();
         }
-        case 's-module':
-        case 's-letrec':
-        case 's-block':
-        case 's-assign':
-        case 's-if-else':
-        case 's-cases':
-        case 's-cases-else':
+        case 's-letrec': {
+          const binds = listToArray(e.dict.binds);
+          handleLetrecBindings(binds, topLevel, context);
+          checking(e.dict.body, expectTyp, topLevel, context);
+          for (const b of binds) {
+            context.removeBinding(nameToKey((b.dict.b as TJ.Variant<A.Bind, "s-bind">).dict.id));
+          }
+          return solveAndReturn();
+        }
+        case 's-block': {
+          const stmts = listToArray(e.dict.stmts);
+          const lastStmt = stmts.pop();
+          const top = TS['t-top'].app(e.dict.l, false);
+          for (let stmt of stmts) {
+            checking(stmt, top, topLevel, context);
+          }
+          checking(lastStmt, expectTyp, topLevel, context);
+          return solveAndReturn();
+        }
+        case 's-assign': {
+          const idType = lookupId(e.dict.l, nameToKey(e.dict.id), e, context);
+          switch(idType.$name) {
+            case 't-ref': {
+              checking(e.dict.value, idType.dict.typ, topLevel, context);
+              return solveAndReturn();
+            }
+            default: {
+              throw new TypeCheckFailure(CS['incorrect-type-expression'].app(typeKey(idType), e.dict.l, typeKey(TS['t-ref'].app(idType, e.dict.l, false)), e.dict.l, e));
+            }
+          }
+        }
+        case 's-if-else': {
+          const branches = listToArray(e.dict.branches);
+          for (let b of branches) {
+            checking(b.dict.test, tBoolean(b.dict.l), false, context);
+            checking(b.dict.body, expectTyp, false, context);
+          }
+          checking(e.dict._else, expectTyp, false, context);
+          return solveAndReturn();
+        }
+        case 's-cases': {
+          checkingCases(e.dict.l, e.dict.typ, e.dict.val, listToArray(e.dict.branches), false, expectTyp, context);
+          return solveAndReturn();
+        }
+        case 's-cases-else': {
+          checkingCases(e.dict.l, e.dict.typ, e.dict.val, listToArray(e.dict.branches), e.dict._else, expectTyp, context);
+          return solveAndReturn();
+        }
         case 's-check-test':
         case 's-obj':
         case 's-spy-block':
+        case 's-module':
           throw new InternalCompilerError(`TODO: _checking switch ${e.$name}`);
         case 's-data':
         case 's-user-block':
@@ -2037,6 +2318,787 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         default:
           throw new ExhaustiveSwitchError(e);
       }
+    }
+
+    function checkingCases(
+      l: SL.Srcloc,
+      ann: A.Ann,
+      val: A.Expr,
+      branches: A.CasesBranch[],
+      maybeElse: A.Expr | false,
+      expectType: TS.Type,
+      context: Context): void {
+      handleCases(
+        l, 
+        ann,
+        val,
+        branches,
+        maybeElse,
+        expectType,
+        (_l, _branchTypes, elseBranch, context) => {
+          checking(elseBranch, expectType, false, context);
+        },
+        (_l, _branchTypes, _context) => {
+          return;
+        },
+        context);
+    }
+
+    function synthesisCases(
+      l: SL.Srcloc,
+      ann: A.Ann,
+      val: A.Expr,
+      branches: A.CasesBranch[],
+      maybeElse: A.Expr | false,
+      context: Context): TS.Type {
+      return handleCases(
+        l,
+        ann,
+        val,
+        branches,
+        maybeElse,
+        false,
+        (l, branchTypes, elseBranch, context) => {
+          const elseType = synthesis(elseBranch, false, context);
+          return setTypeLoc(meetBranchTypes([elseType, ...branchTypes], l, context), l);
+        },
+        (l, branchTypes, context) => {
+          return setTypeLoc(meetBranchTypes(branchTypes, l, context), l);
+        },
+        context
+      );
+    }
+
+
+    function handleCases<T>(l: SL.Srcloc,
+      ann: A.Ann,
+      val: A.Expr,
+      branches: A.CasesBranch[],
+      maybeElse: A.Expr | false,
+      maybeExpect: TS.Type | false,
+      hasElse: (
+        l: SL.Srcloc,
+        branchTypes: TS.Type[],
+        elseBranch: A.Expr,
+        context: Context,
+      ) => T,
+      noElse: (
+        l: SL.Srcloc,
+        branchTypes: TS.Type[],
+        context: Context,
+      ) => T,
+      context: Context): T {
+      const typ = toType(ann, context);
+      if (typ) {
+        context.addLevel(`handleCases at ${formatSrcloc(l, false)}`);
+        const casesType = addExistentialsToDataName(typ, context);
+        let valType = synthesis(val, false, context);
+        context.addConstraint(valType, casesType);
+        valType = context.solveAndResolveType(valType);
+
+        const dataType = instantiateDataType(valType, context);
+        const variants = listToArray(dataType.dict.variants);
+        // Branch map contains all the variants of the data type for which
+        // we haven't yet found a CasesBranch that match it
+        const branchMap = new Map<string, TS.TypeVariant>();
+        for (const v of variants) {
+          branchMap.set(v.dict.name, v);
+        }
+        
+        let maybeKeyToUpdate : string | false = false;
+        switch(val.$name) {
+          case 's-id':
+          case 's-id-var':
+          case 's-id-letrec': maybeKeyToUpdate = nameToKey(val.dict.id);
+        }
+        const branchResults: TS.Type[] = [];
+        for (const b of branches) {
+          if (maybeKeyToUpdate) {
+            context.addBinding(maybeKeyToUpdate, TS['t-data-refinement'].app(valType, b.dict.name, l, true));
+          }
+          branchResults.push(handleBranch(dataType, l, b, maybeExpect, branchMap, context));
+        }
+        if (maybeElse) {
+          if (branchMap.size === 0) {
+            throw new TypeCheckFailure(CS['unnecessary-else-branch'].app(typeKey(typ), l));
+          } else {
+            return hasElse(l, branchResults, maybeElse, context);
+          }
+        } else {
+          if (branchMap.size === 0) {
+            return noElse(l, branchResults, context);
+          } else {
+            throw new TypeCheckFailure(CS['non-exhaustive-pattern'].app(runtime.ffi.makeList(branchMap.values()), typeKey(typ), l));
+          }
+        }
+      } else {
+        throw new TypeCheckFailure(CS['cant-typecheck'].app("Could not resole type on cases expression", l));
+      }
+    }
+
+    function handleBranch(
+      dataType: TS.DataType,
+      casesLoc: SL.Srcloc,
+      branch: A.CasesBranch,
+      maybeCheck: TS.Type | false,
+      branchMap: Map<string, TS.TypeVariant>,
+      context: Context): TS.Type {
+
+      // Technically, branchMap might lose members over time, as we handle them.
+      // But that's ok!  Duplicate branch names are handled in well-formedness,
+      // so we'll only encounter *unique* names here
+      if (branchMap.has(branch.dict.name)) {
+        const tv = branchMap.get(branch.dict.name);
+        switch(tv.$name) {
+          case 't-variant': {
+            switch(branch.$name) {
+              case 's-singleton-cases-branch':
+                throw new TypeCheckFailure(CS['cases-singleton-mismatch'].app(branch.dict.name, branch.dict.l, false));
+              case 's-cases-branch': {
+                const args = listToArray(branch.dict.args);
+                const fields = listToArray(tv.dict.fields);
+                if (args.length !== fields.length) {
+                  throw new TypeCheckFailure(CS['incorrect-number-of-bindings'].app(branch, tv));
+                }
+                context.addLevel();
+                for (let i = 0; i < args.length; i++) {
+                  const bind = args[i].dict.bind as TJ.Variant<A.Bind, "s-bind">;
+                  const maybeType = toType(bind.dict.ann, context);
+                  if (maybeType) {
+                    context.addConstraint(maybeType, fields[i].vals[1]);
+                    context.addBinding(nameToKey(bind.dict.id), maybeType);
+                  } else {
+                    context.addBinding(nameToKey(bind.dict.id), fields[i].vals[1]);
+                  }
+                }
+                const solution = context.solveLevel();
+                context.substituteInBinds(solution);
+                branchMap.delete(branch.dict.name);
+                let ret: TS.Type;
+                if (maybeCheck) {
+                  checking(branch.dict.body, maybeCheck, false, context);
+                  ret = maybeCheck;
+                } else {
+                  ret = synthesis(branch.dict.body, false, context);
+                }
+                branchMap.delete(branch.dict.name);
+                for (let a of args) {
+                  context.removeBinding(nameToKey((a.dict.bind as TJ.Variant<A.Bind, "s-bind">).dict.id));
+                }
+                return ret;
+              }
+              default: throw new ExhaustiveSwitchError(branch);
+            }
+          }
+          case 't-singleton-variant': {
+            switch(branch.$name) {
+              case 's-cases-branch':
+                throw new TypeCheckFailure(CS['cases-singleton-mismatch'].app(branch.dict.name, branch.dict.l, true));
+              case 's-singleton-cases-branch': {
+                branchMap.delete(branch.dict.name);
+                if (maybeCheck) {
+                  checking(branch.dict.body, maybeCheck, false, context);
+                  return maybeCheck;
+                } else {
+                  return synthesis(branch.dict.body, false, context);
+                }
+              }
+              default: throw new ExhaustiveSwitchError(branch);
+            }
+          }
+          default: throw new ExhaustiveSwitchError(tv);
+        }
+      } else {
+        throw new TypeCheckFailure(CS['unnecessary-branch'].app(branch, dataType, casesLoc));
+      }
+    }
+
+    function addExistentialsToDataName(typ: TS.Type, context: Context): TS.Type {
+      switch(typ.$name) {
+        case 't-name': {
+          const dataType = context.getDataType(typ);
+          if (dataType) {
+            const params = listToArray(dataType.dict.params);
+            if (params.length === 0) {
+              return typ;
+            }
+            const newExistentials = params.map((a) => newExistential(a.dict.l, false));
+            const newType = TS['t-app'].app(typ, runtime.ffi.makeList(newExistentials), typ.dict.l, typ.dict.inferred);
+            context.addVariableSet(newExistentials);
+            return newType;
+          } else {
+            LOG(`Failed trying to get ${typeKey(typ)} from context ${context.toString()}`);
+            throw new TypeCheckFailure(CS['cant-typecheck'].app(`Expected a data type but got ${typeKey(typ)}`, typ.dict.l));
+          }
+        }
+        default: return typ;
+      }
+    }
+
+    function handleLetrecBindings(
+      binds: A.LetrecBind[],
+      topLevel: boolean,
+      context: Context): void {
+      context.addLevel("handleLetrecBindings");
+      const { dataBindings, bindings: { bindingsToType, collectedTypes } } = collectLetrecBindings(binds, topLevel, context);
+      context.addDictToBindings(collectedTypes);
+      const newDataBinds: A.LetrecBind[] = []
+      for (let dataBinding of dataBindings) {
+        handleDatatype(dataBinding.dataBinding, dataBinding.variants, context);
+        newDataBinds.push(dataBinding.dataBinding, ...dataBinding.variants);
+      }
+      for (let binding of bindingsToType) {
+        const b = binding.dict.b as TJ.Variant<A.Bind, 's-bind'>;
+        const { l: l2, value } = binding.dict; 
+        const expectedType = collectedTypes.get(nameToKey(b.dict.id));
+        if (context.constraints.curLevel().exampleTypes.has(typeKey(expectedType))) {
+          const partialType = context.constraints.curLevel().exampleTypes.get(typeKey(expectedType)).annTypes;
+          if (value.$name === 's-lam') {
+            context.testInferenceData = {
+              name: b.dict.id,
+              argTypes: partialType.argTypes,
+              retType: partialType.retType,
+              loc: partialType.loc,
+              existential: expectedType,
+            };
+            const _check = value.dict._check;
+            if (_check.$name === 'none') {
+              throw new InternalCompilerError("Original type-checker assumed this would always be some(value)");
+            }
+            const checkBlock = _check.dict.value;
+            checking(checkBlock, TS['t-top'].app(l2, false), false, context);
+            context.testInferenceData = null;
+          } else {
+            throw new InternalCompilerError(`the right hand side should be a lambda; got ${value.$name} at ${formatSrcloc(l2, true)}`);
+          }
+        } else {
+          if (context.misc.has(nameToKey(b.dict.id))) {
+            context.miscTestInferenceData = b.dict.id;
+          }
+          context.addLevel(`handleLetrecBindings for ${nameToKey(b.dict.id)}, with no exampleType for ${typeKey(expectedType)}`);
+          const freeVars = freeVariables(expectedType);
+          context.addVariableSet([...freeVars.values()]);
+          checking(value, expectedType, false, context);
+          const solution = context.solveLevel();
+          context.substituteInBinds(solution);
+          const newType = solution.generalize(solution.apply(expectedType));
+          context.addBinding(nameToKey(b.dict.id), newType);
+          if (value.$name === "s-lam") {
+            if (value.dict._check.$name === "some") {
+              const checkLoc = value.dict['_check-loc'] as TJ.Variant<Option<SL.Srcloc>, 'some'>;
+              checking(value.dict._check.dict.value, TS['t-top'].app(checkLoc.dict.value, false), false, context);
+            }
+          }
+          context.miscTestInferenceData = null;
+        }
+      }
+      newDataBinds.push(...bindingsToType);
+      const solution = context.solveLevel();
+      context.substituteInBinds(solution);
+    }
+
+    function handleDatatype(dataTypeBind: A.LetrecBind, bindings: A.LetrecBind[], context: Context): void {
+      // TODO(MATT): this should require unifying of same-named methods
+      //             should it require unifying types of same-named members?
+      // Type checks data types
+      // Returns the list of all relevant letrec bindings
+      // Use the context returned from this function
+      const dataExpr = dataTypeBind.dict.value;
+      if (dataExpr.$name !== "s-data-expr") {
+        throw new InternalCompilerError(`handleDatatype expected an s-data-expr, but got ${dataExpr.$name}`); 
+      }
+      context.addLevel(`handleDataType for ${dataExpr.dict.name} at ${formatSrcloc(dataExpr.dict.l, true)}`);
+      const branderType = TS['t-name'].app(TS.local, dataExpr.dict.namet, dataExpr.dict.l, false);
+      const params = listToArray(dataExpr.dict.params);
+      const tVars = params.map((p) => TS['t-var'].app(p, dataExpr.dict.l, false));
+      const tVarsList = runtime.ffi.makeList(tVars);
+      let appliedBranderType: TS.Type;
+      if (tVars.length === 0) {
+        appliedBranderType = branderType;
+      } else {
+        appliedBranderType = TS['t-app'].app(branderType, tVarsList, dataExpr.dict.l, false);
+      }
+
+      const variants = listToArray(dataExpr.dict.variants);
+      let initialVariantTypes = variants.map((v) => collectVariantConstructor(v, context));
+      let predicateType: TS.Type =
+        TS['t-arrow'].app(runtime.ffi.makeList([branderType]), tBoolean(dataExpr.dict.l), dataExpr.dict.l, false);
+      if (tVars.length > 0) {
+        predicateType = TS['t-forall'].app(tVarsList, predicateType, dataExpr.dict.l, false);
+      }
+      const dataFields = new Map<string, TS.Type>();
+      dataFields.set(`is-${dataExpr.dict.name}`, predicateType);
+      for (let varType of initialVariantTypes) {
+        const constructorType = makeConstructorType(varType, branderType, tVars);
+        dataFields.set(varType.dict.name, constructorType);
+        dataFields.set(`is-${varType.dict.name}`, predicateType);
+      }
+      const dataTypeBindId = (dataTypeBind.dict.b as TJ.Variant<A.Bind, 's-bind'>).dict.id;
+      context.addBinding(nameToKey(dataTypeBindId), TS['t-record'].app(stringDictFromMap(dataFields), dataExpr.dict.l, false));
+      for (const binding of bindings) {
+        const bindingType = synthesis(binding.dict.value, false, context);
+        context.addBinding(nameToKey((binding.dict.b as TJ.Variant<A.Bind, 's-bind'>).dict.id), bindingType);
+      }
+      initialVariantTypes = variants.map((v) => collectVariant(v, context));
+      const variantTypesMap = new Map(initialVariantTypes.map((v) => [v.dict.name, v]));
+      const initialSharedFieldTypes = collectMembers(listToArray(dataExpr.dict['shared-members']), true, context);
+      const initialDataType = TS['t-data'].app(
+        dataExpr.dict.name,
+        tVarsList, 
+        runtime.ffi.makeList(initialVariantTypes),
+        stringDictFromMap(initialSharedFieldTypes),
+        dataExpr.dict.l);
+      context.dataTypes.set(nameToKey(dataExpr.dict.namet), initialDataType);
+      mergeCommonFields(initialVariantTypes, dataExpr.dict.l, context);
+      for (let variant of variants) {
+        const newVariantType = checkVariant(variant, variantTypesMap.get(variant.dict.name), branderType, tVars, context);
+        variantTypesMap.set(variant.dict.name, newVariantType);
+      }
+      const variantTypeFields: Map<string, TS.Type>[] = [];
+      for (let variant of variants) {
+        const variantType = variantTypesMap.get(variant.dict.name);
+        const allFields = new Map<string, TS.Type>();
+        if (variantType.$name === 't-variant') {
+          for (let ft of listToArray(variantType.dict.fields)) {
+            const [fieldName, fieldType] = ft.vals;
+            allFields.set(fieldName, fieldType);
+          }
+        }
+        for (let [fieldName, fieldType] of mapFromStringDict(variantType.dict['with-fields'])) {
+          allFields.set(fieldName, fieldType);
+        }
+        variantTypeFields.push(allFields);
+      }
+      let variantsMeet: Map<string, TS.Type>;
+      if (variantTypeFields.length === 0) {
+        variantsMeet = new Map<string, TS.Type>();
+      } else {
+        variantsMeet = variantTypeFields.reduce((acc, cur) => meetFields(acc, cur, dataExpr.dict.l, context));
+      }
+      const extendedSharedFieldTypes = new Map([...variantsMeet, ...initialSharedFieldTypes]);
+      const newVariantTypes = runtime.ffi.makeList([...variantTypesMap.values()]);
+      const sharedDataType = TS['t-data'].app(dataExpr.dict.name, tVarsList, newVariantTypes, stringDictFromMap(extendedSharedFieldTypes), dataExpr.dict.l);
+      context.dataTypes.set(nameToKey(dataExpr.dict.namet), sharedDataType);
+      const newSharedFieldTypes = new Map<string, TS.Type>();
+      for (let sharedField of listToArray(dataExpr.dict['shared-members'])) {
+        const sharedFieldType = checkSharedField(sharedField, initialSharedFieldTypes, appliedBranderType, context);
+        newSharedFieldTypes.set(sharedField.dict.name, sharedFieldType);
+      }
+      const finalSharedFieldTypes = new Map([...variantsMeet, ...newSharedFieldTypes]);
+      const finalDataType = TS['t-data'].app(dataExpr.dict.name, tVarsList, newVariantTypes, stringDictFromMap(finalSharedFieldTypes), dataExpr.dict.l);
+      const solution = context.solveLevel();
+      const solvedDataType = solution.applyDataType(finalDataType);
+      context.dataTypes.set(nameToKey(dataExpr.dict.namet), sharedDataType);
+    }
+
+    function mergeCommonFields(variants: TS.TypeVariant[], dataLoc: SL.Srcloc, context: Context): void {
+      if (variants.length === 0) return; 
+      const fieldsToMerge = new Map<string, TS.Type[]>();
+      const allWithFields = variants.map((v) => mapFromStringDict(v.dict['with-fields']));
+      const firstMap = allWithFields[0];
+      for (let key of firstMap.keys()) {
+        let allTyps = [];
+        for (let map of allWithFields) {
+          if (map.has(key)) {
+            allTyps.push(map.get(key));
+          } else {
+            allTyps = null;
+            break;
+          }
+        }
+        if (allTyps) {
+          fieldsToMerge.set(key, allTyps);
+        }
+      }
+      for (let [_key, typs] of fieldsToMerge) {
+        const mergeExistential = newExistential(dataLoc, false);
+        context.addVariable(mergeExistential);
+        for (let typ of typs) {
+          context.addConstraint(mergeExistential, typ);
+        }
+      }
+    }
+
+    function meetFields(aFields: Map<string, TS.Type>, bFields: Map<string, TS.Type>, loc: SL.Srcloc, context: Context): Map<string, TS.Type> {
+      const ret = new Map<string, TS.Type>();
+      for (let [aFieldName, aType] of aFields) {
+        if (bFields.has(aFieldName)) {
+          const tempExistential = newExistential(loc, false);
+          context.addLevel();
+          context.addVariable(tempExistential);
+          aType = instantiateForallWithFreshVars(aType, context.constraints, false);
+          const bType = instantiateForallWithFreshVars(bFields.get(aFieldName), context.constraints, false);
+          context.addConstraint(tempExistential, aType);
+          context.addConstraint(tempExistential, bType);
+          const solution = context.solveLevel();
+          const meetType = solution.generalize(solution.apply(tempExistential));
+          ret.set(aFieldName, meetType);
+        }
+      }
+      return ret;
+    }
+
+    /** Checks with-members on a variant */
+    function checkVariant(variant: A.Variant, variantType: TS.TypeVariant, dataType: TS.Type, tVars: TS.Type[], context: Context): TS.TypeVariant {
+      const innerType = tVars.length === 0 ? dataType : TS['t-app'].app(dataType, runtime.ffi.makeList(tVars), dataType.dict.l, false);
+      const refinedType = TS['t-data-refinement'].app(innerType, variant.dict.name, dataType.dict.l, false);
+
+      const withMembersTypeMap = mapFromStringDict(variantType.dict['with-fields']);
+      for (let member of listToArray(variant.dict['with-members'])) {
+        const memberType = withMembersTypeMap.get(member.dict.name);
+        const checkedMemberType = toTypeMember(member, memberType, refinedType, true, context);
+        withMembersTypeMap.set(member.dict.name, checkedMemberType);
+      }
+      const { name, l } = variantType.dict;
+      switch(variantType.$name) {
+        case 't-variant': 
+          return TS['t-variant'].app(name, variantType.dict.fields, stringDictFromMap(withMembersTypeMap), l);
+        case 't-singleton-variant':
+          return TS['t-singleton-variant'].app(name, stringDictFromMap(withMembersTypeMap), l);
+        default: throw new ExhaustiveSwitchError(variantType);
+      }
+    }
+    function checkSharedField(field: A.Member, fieldTypes: Map<string, TS.Type>, dataType: TS.Type, context: Context): TS.Type {
+      const fieldType = fieldTypes.get(field.dict.name);
+      return toTypeMember(field, fieldType, dataType, true, context);
+    }
+
+    function addSelfType(funType: TS.Type, selfType: TS.Type): TS.Type {
+      switch(funType.$name) {
+        case 't-arrow': {
+          const { args, ret, l, inferred } = funType.dict;
+          return TS['t-arrow'].app(runtime.ffi.makeList([selfType, ...listToArray(args)]), ret, l, inferred);
+        }
+        case 't-forall': {
+          const { introduces, onto, l, inferred } = funType.dict;
+          switch(onto.$name) {
+            case 't-arrow': {
+              const { args, ret, l: lOnto, inferred: infOnto } = onto.dict;
+              return TS['t-forall'].app(
+                introduces, 
+                TS['t-arrow'].app(runtime.ffi.makeList([selfType, ...listToArray(args)]), ret, lOnto, infOnto),
+                l,
+                inferred
+              );
+            }
+            default:
+              throw new InternalCompilerError(`method type is not a function (this shouldn't happen): ${typeKey(funType)}`);
+          }
+        }
+        default:
+          throw new InternalCompilerError(`method type is not a function (this shouldn't happen): ${typeKey(funType)}`);
+      }
+    }
+    function removeSelfType(funType: TS.Type): TS.Type {
+      switch(funType.$name) {
+        case 't-arrow': {
+          const { args, ret, l, inferred } = funType.dict;
+          if (args.$name === 'empty') {
+            throw new InternalCompilerError(`function type has no arguments (this shouldn't happen): ${typeKey(funType)}`);
+          }
+          return TS['t-arrow'].app(args.dict.rest, ret, l, inferred);
+        }
+        case 't-forall': {
+          const { introduces, onto, l, inferred } = funType.dict;
+          switch(onto.$name) {
+            case 't-arrow': {
+              const { args, ret, l: lOnto, inferred: infOnto } = onto.dict;
+              if (args.$name === 'empty') {
+                throw new InternalCompilerError(`function type has no arguments (this shouldn't happen): ${typeKey(funType)}`);
+              }
+              return TS['t-forall'].app(introduces, TS['t-arrow'].app(args.dict.rest, ret, lOnto, infOnto), l, inferred);
+            }
+            default:
+              throw new InternalCompilerError(`method type is not a function (this shouldn't happen): ${typeKey(funType)}`);
+          }
+        }
+        default:
+          throw new InternalCompilerError(`method type is not a function (this shouldn't happen): ${typeKey(funType)}`);
+      }
+    }
+    function toTypeMember(member: A.Member, typ: TS.Type, selfType: TS.Type, typeCheckFunctions: boolean, context: Context): TS.Type {
+      switch(member.$name) {
+        case 's-data-field': {
+          const { value } = member.dict;
+          switch(value.$name) {
+            case 's-method': {
+              const { l, name, params, args, ann, doc, body, "_check-loc": checkLoc, _check, blocky } = value.dict;
+              const newType = addSelfType(typ, selfType);
+              const fieldAsMethod = A['s-method'].app(l, name, params, args, ann, doc, body, checkLoc, _check, blocky);
+              const checkedType = checkFun(l, body, params, args, ann, newType, fieldAsMethod, context);
+              return removeSelfType(checkedType);
+            }
+            case 's-lam': {
+              if (typeCheckFunctions) {
+                checking(value, typ, false, context);
+              }
+              return typ;
+            }
+            default: return typ;
+          }
+        }
+        case 's-method-field': {
+          // TODO(alex): TC limitations means cannot implement _equality() as a with-member
+          //   See tests-new/simple-output/custom-equal-always.arr for details
+          const { l, name, params, args, ann, doc, body, "_check-loc": checkLoc, _check, blocky } = member.dict;
+          const newType = addSelfType(typ, selfType);
+          const fieldAsMethod = A['s-method'].app(l, name, params, args, ann, doc, body, checkLoc, _check, blocky);
+          const checkedType = checkFun(l, body, params, args, ann, newType, fieldAsMethod, context);
+          return removeSelfType(checkedType);
+        }
+        case 's-mutable-field': throw new InternalCompilerError(`toTypeMember: mutable fields not handled yet (field name is ${member.dict.name})`);
+        default: throw new ExhaustiveSwitchError(member);
+      }
+    }
+
+    function makeConstructorType(variantType: TS.TypeVariant, branderType: TS.Type, params: TS.Type[]): TS.Type {
+      let innerType = branderType;
+      if (params.length > 0) {
+        innerType = TS['t-app'].app(branderType, runtime.ffi.makeList(params), variantType.dict.l, false);
+      }
+      const refinedType = setTypeLoc(TS['t-data-refinement'].app(innerType, variantType.dict.name, variantType.dict.l, false), variantType.dict.l);
+      switch(variantType.$name) {
+        case 't-variant': {
+          const fieldTypes = listToArray(variantType.dict.fields).map((field) => {
+            const [_fieldName, typ] = field.vals;
+            return (typ.$name === 't-ref' ? typ.dict.typ : typ);
+          });
+          let ret: TS.Type = TS['t-arrow'].app(runtime.ffi.makeList(fieldTypes), refinedType, variantType.dict.l, false);
+          if (params.length > 0) {
+            ret = TS['t-forall'].app(runtime.ffi.makeList(params), ret, variantType.dict.l, false);
+          }
+          return ret;
+        }
+        case 't-singleton-variant': {
+          if (params.length === 0) {
+            return refinedType;
+          } else {
+            return TS['t-forall'].app(runtime.ffi.makeList(params), refinedType, variantType.dict.l, false);
+          }
+        }
+        default: throw new ExhaustiveSwitchError(variantType);
+      }
+    }
+
+    function collectVariantConstructor(variant: A.Variant, context: Context): TS.TypeVariant {
+      switch(variant.$name) {
+        case 's-variant': {
+          const typeMembers: PTuple<[string, TS.Type]>[] = [];
+          const members = listToArray(variant.dict.members);
+          for (const member of members) {
+            const bind = member.dict.bind as TJ.Variant<A.Bind, 's-bind'>;
+            const maybeType = toType(bind.dict.ann, context);
+            if (maybeType) {
+              let typ: TS.Type;
+              switch(member.dict['member-type'].$name) {
+              case 's-normal': typ = setTypeLoc(maybeType, member.dict.l); break;
+              case 's-mutable': typ =TS['t-ref'].app(setTypeLoc(maybeType, member.dict.l), member.dict.l, false); break;
+              default: throw new ExhaustiveSwitchError(member.dict['member-type']);
+              }
+              typeMembers.push(runtime.makeTuple([nameToName(bind.dict.id), typ]));
+            } else {
+              throw new TypeCheckFailure(CS['cant-typecheck'].app("No type annotation provided on member", member.dict.l));
+            }
+          }
+          return TS['t-variant'].app(variant.dict.name, runtime.ffi.makeList(typeMembers), stringDictFromMap(new Map<string, TS.Type>()), variant.dict.l);
+        }
+        case 's-singleton-variant': {
+          return TS['t-singleton-variant'].app(variant.dict.name, stringDictFromMap(new Map<string, TS.Type>()), variant.dict.l);
+        }
+        default: throw new ExhaustiveSwitchError(variant);
+      }
+    }
+
+    function collectVariant(variant: A.Variant, context: Context): TS.TypeVariant {
+      switch(variant.$name) {
+        case 's-variant': {
+          const typeMembers: PTuple<[string, TS.Type]>[] = [];
+          const members = listToArray(variant.dict.members);
+          for (const member of members) {
+            const bind = member.dict.bind as TJ.Variant<A.Bind, 's-bind'>;
+            const maybeType = toType(bind.dict.ann, context);
+            if (maybeType) {
+              let typ: TS.Type;
+              switch(member.dict['member-type'].$name) {
+              case 's-normal': typ = setTypeLoc(maybeType, member.dict.l); break;
+              case 's-mutable': typ =TS['t-ref'].app(setTypeLoc(maybeType, member.dict.l), member.dict.l, false); break;
+              default: throw new ExhaustiveSwitchError(member.dict['member-type']);
+              }
+              typeMembers.push(runtime.makeTuple([nameToName(bind.dict.id), typ]));
+            } else {
+              throw new TypeCheckFailure(CS['cant-typecheck'].app("No type annotation provided on member", member.dict.l));
+            }
+          }
+          const typeWithMembers = collectMembers(listToArray(variant.dict['with-members']), true, context);
+          return TS['t-variant'].app(variant.dict.name, runtime.ffi.makeList(typeMembers), stringDictFromMap(typeWithMembers), variant.dict.l);
+        }
+        case 's-singleton-variant': {
+          const typeWithMembers = collectMembers(listToArray(variant.dict['with-members']), true, context);
+          return TS['t-singleton-variant'].app(variant.dict.name, stringDictFromMap(typeWithMembers), variant.dict.l);
+        }
+        default: throw new ExhaustiveSwitchError(variant);
+      }
+    }
+
+    function collectMembers(members: A.Member[], collectFunctions: true, context: Context): Map<string, TS.Type> {
+      const ret = new Map<string, TS.Type>();
+      for (let member of members) {
+        const memberType = collectMember(member, collectFunctions, context);
+        ret.set(member.dict.name, memberType);
+      }
+      return ret;
+    }
+    function collectMember(member: A.Member, collectFunctions: boolean, context: Context): TS.Type {
+      switch(member.$name) {
+        case 's-data-field': {
+          const { l, name, value } = member.dict;
+          switch(value.$name) {
+            case 's-method': {
+              const { l, params, args, ann } = value.dict;
+              if (args.$name === 'empty') {
+                throw new TypeCheckFailure(CS['method-missing-self'].app(value));
+              } else {
+                const argsArray = listToArray(args.dict.rest as List<TJ.Variant<A.Bind, 's-bind'>>);
+                const bindings = collectBindings(argsArray, context);
+                return lamToType(bindings, l, params, argsArray, ann, !collectFunctions, context).arrow;    
+              }
+            }
+            case 's-lam': {
+              const { l, params, args, ann } = value.dict;
+              const argsArray = listToArray(args as List<TJ.Variant<A.Bind, 's-bind'>>);
+              if (collectFunctions) {
+                const bindings = collectBindings(argsArray, context);
+                return lamToType(bindings, l, params, argsArray, ann, false, context).arrow;
+              } else {
+                return synthesis(value, true, context);
+              }
+            }
+            default: {
+              return synthesis(value, true, context);
+            }
+          }
+        }
+        case 's-method-field': {
+          const { l, name, params, args, ann, doc, body, "_check-loc": checkLoc, _check, blocky } = member.dict;
+          if (args.$name === 'empty') {
+            const memberAsFunction = A['s-fun'].app(l, name, params, args, ann, doc, body, checkLoc, _check, blocky);
+            // NOTE: This was a type-error in the original type-checker, and method-missing-self would give a contract error
+            throw new TypeCheckFailure(CS['method-missing-self'].app(memberAsFunction));
+          } else {
+            const argsArray = listToArray(args.dict.rest as List<TJ.Variant<A.Bind, 's-bind'>>);
+            const bindings = collectBindings(argsArray, context);
+            return lamToType(bindings, l, params, argsArray, ann, !collectFunctions, context).arrow;
+          }
+        }
+        case 's-mutable-field': throw new InternalCompilerError("Type checker does not handle mutable fields yet");
+        default: throw new ExhaustiveSwitchError(member);
+      }
+    }
+
+    type CollectedLetrecBindings = {
+      dataBindings: {
+        dataBinding: A.LetrecBind, 
+        variants: A.LetrecBind[],
+      }[],
+      bindings: {
+        bindingsToType: A.LetrecBind[],
+        collectedTypes: Map<string, TS.Type>
+      },
+    }
+
+    function collectLetrecBindings(binds: A.LetrecBind[], topLevel: boolean, context: Context): CollectedLetrecBindings {
+      const ret: CollectedLetrecBindings = {
+        dataBindings: [],
+        bindings: {
+          bindingsToType: [], 
+          collectedTypes: new Map<string, TS.Type>()
+        },
+      };
+      for (let i = 0; i < binds.length; i++) {
+        const firstBind = binds[i];
+        const firstValue = firstBind.dict.value;
+        switch(firstValue.$name) {
+          case 's-data-expr': {
+            const variants = listToArray(firstValue.dict.variants);
+            const numDataBinds = (2 * variants.length) + 1 // foo(), is-foo(), and Foo
+            LOG(`i = ${i}, numDataBinds = ${numDataBinds} in\n`);
+            for (let cur = 0; cur < binds.length; cur++) {
+              LOG(`  [${cur} => ${formatSrcloc(binds[cur].dict.l, true)}, ${nameToKey((binds[cur].dict.b as TJ.Variant<A.Bind, "s-bind">).dict.id)}]\n`);
+            }
+            const dataBinds = binds.slice(i + 1, i + 1 + numDataBinds);
+            i += numDataBinds; // skip over all the processed data-bindings
+            ret.dataBindings.push({
+              dataBinding: firstBind,
+              variants: dataBinds,
+            });
+            break;
+          }
+          default: {
+            if (firstBind.dict.b.$name !== "s-bind") { throw new InternalCompilerError(`${firstBind.dict.b.$name} should have been desugared`); }
+            const key = nameToKey(firstBind.dict.b.dict.id);
+            const collected = collectBindings([firstBind.dict.b], context);
+            context.addDictToBindings(collected);
+            const initialType = collected.get(key);
+            if (initialType.$name === 't-existential') {
+              if (firstValue.$name === 's-lam') {
+                const args = listToArray(firstValue.dict.args) as TJ.Variant<A.Bind, "s-bind">[];
+                const argColl = collectBindings(args, context);
+                const { _check, l: lamL, params, ann, } = firstValue.dict;
+                switch(_check.$name) {
+                  case 'some': {
+                    const checkBlock = _check.dict.value;
+                    const { arrow: lamType } = lamToType(argColl, lamL, params, args, ann, false, context);
+                    LOG(prettyIsh({
+                      functionName: nameToName(firstBind.dict.b.dict.id),
+                      annotatedType: typeKey(lamType),
+                      checkBlock: String(checkBlock),
+                    }));
+                    switch(lamType.$name) {
+                      case 't-arrow': {
+                        const freeVars = freeVariables(lamType);
+                        if (freeVars.size() > 0) {
+                          const newExists = newExistential(lamType.dict.l, true);
+                          context.addVariable(newExists);
+                          context.addExampleVariable(
+                            newExists,
+                            listToArray(lamType.dict.args),
+                            lamType.dict.ret,
+                            lamType.dict.l, 
+                            (typ, context) => {
+                              checking(firstValue, typ, topLevel, context);
+                              return typ;
+                            },
+                            nameToName(firstBind.dict.b.dict.id));
+                          collected.set(key, newExists);
+                        } else {
+                          context.addMiscExampleVariable(key, nameToName(firstBind.dict.b.dict.id));
+                          collected.set(key, lamType);
+                        }
+                        break;
+                      }
+                      default: {
+                        context.addMiscExampleVariable(key, nameToName(firstBind.dict.b.dict.id));
+                        const { arrow: lamType } = lamToType(argColl, lamL, params, args, ann, topLevel, context);
+                        collected.set(key, lamType);
+                      }
+                    }
+                    break;
+                  }
+                  case 'none': {
+                    const { arrow: lamType } = lamToType(argColl, lamL, params, args, ann, topLevel, context);
+                    collected.set(key, lamType);
+                    break;
+                  }
+                  default: throw new ExhaustiveSwitchError(_check);
+                }
+              }
+            }
+            ret.bindings.bindingsToType.push(firstBind);
+            ret.bindings.collectedTypes.set(key, collected.get(key));
+          }
+        }
+      }
+      return ret;
     }
 
     // TODO(MATT): this should not generalize the arguments
@@ -2081,7 +3143,14 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
             context.addConstraint(typ, expectArgs[i]);
           }
 
+          LOG(`Checking body at ${formatSrcloc(body.dict.l, true)}\n`);
           checking(body, expectTyp.dict.ret, false, context);
+          LOG(`DONE checking body at ${formatSrcloc(body.dict.l, true)}\n`);
+
+          // NOTE(Ben): the original code never removed the arguments from the context
+          for (let key of lamBindings.keys()) {
+            context.removeBinding(key);
+          }
 
           return context.solveAndResolveType(expectTyp);
         }
@@ -2119,8 +3188,8 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           context.addVariable(newTyp);
         }
         bindings.set(nameToKey(b.dict.id), newTyp);
-        return bindings;
       }
+      return bindings;
     }
 
     function synthesisAppFun(appLoc : SL.Srcloc, fun : A.Expr, args : A.Expr[], context: Context) : TS.Type{
@@ -2135,7 +3204,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         return setTypeLoc(t, appLoc);
       }
       LOG(`funType before instantiation: ${typeKey(funType)}\n`);
-      funType = instantiateForallWithFreshVars(funType, context.constraints);
+      funType = instantiateForallWithFreshVars(funType, context.constraints, true);
       LOG(`funType after instantiation: ${typeKey(funType)}\n`);
       switch(funType.$name) {
         case "t-arrow": {
@@ -2335,11 +3404,30 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
           const meetType = meetBranchTypes(types, e.dict.l, context);
           return tArray(setTypeLoc(meetType, e.dict.l), e.dict.l)
         }
-        case 's-letrec':
-        case 's-instantiate':
-        case 's-if-else':
-        case 's-cases':
+        case 's-cases': 
+          return synthesisCases(e.dict.l, e.dict.typ, e.dict.val, listToArray(e.dict.branches), false, context);
         case 's-cases-else':
+          return synthesisCases(e.dict.l, e.dict.typ, e.dict.val, listToArray(e.dict.branches), e.dict._else, context);
+        case 's-letrec': {
+          const binds = listToArray(e.dict.binds);
+          handleLetrecBindings(binds, topLevel, context);
+          const ret = synthesis(e.dict.body, topLevel, context);
+          for (const b of binds) {
+            context.removeBinding(nameToKey((b.dict.b as TJ.Variant<A.Bind, "s-bind">).dict.id));
+          }
+          return ret;
+        }
+        case 's-if-else': {
+          const branches = listToArray(e.dict.branches);
+          const branchTypes: TS.Type[] = [];
+          for (let b of branches) {
+            checking(b.dict.test, tBoolean(b.dict.l), false, context);
+            branchTypes.push(synthesis(b.dict.body, false, context));
+          }
+          branchTypes.push(synthesis(e.dict._else, false, context));
+          return meetBranchTypes(branchTypes, e.dict.l, context);
+        }
+        case 's-instantiate':
         case 's-check-test':
         case 's-obj':
         case 's-spy-block':
@@ -2545,6 +3633,9 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       const argTypes = [];
       for(let arg of args) {
         const argType = collected.get(nameToKey(arg.dict.id));
+        if (!argType) {
+          throw new InternalCompilerError(`Could not find ${nameToKey(arg.dict.id)} in ${prettyIsh(mapMapValues(collected, typeKey))}`);
+        }
         const argIsUnderscore = arg.dict.id.$name === "s-atom" && arg.dict.id.dict.base === "$underscore";
         if(topLevel && argType.$name === 't-existential' && !(argIsUnderscore)) {
           throw new TypeCheckFailure(CS['toplevel-unann'].app(arg));
@@ -2577,7 +3668,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       switch(tupType.$name) {
         case 't-tuple': return listToArray(tupType.dict.elts);
         case 't-forall':
-          const newType = instantiateForallWithFreshVars(tupType, context.constraints);
+          const newType = instantiateForallWithFreshVars(tupType, context.constraints, true);
           return tupleView(accessLoc, tupTypeLoc, newType, context);
         case 't-existential':
           throw new TypeCheckFailure(CS['unable-to-infer'].app(tupType.dict.l));
@@ -2790,7 +3881,7 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
         contextGlobMods,
         contextGlobModnames);
 
-      LOG(`\n\nContext from modules:\n${contextFromModules.toString()}\n\n`);
+      //LOG(`\n\nContext from modules:\n${contextFromModules.toString()}\n\n`);
 
       try {
         checking(program.dict.block, TS['t-top'].app(program.dict.l, false), true, contextFromModules);
@@ -2798,6 +3889,10 @@ import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } f
       catch(e) {
         console.error("Got a type-checking error", e);
         LOG("Got a type-checking error " + require('util').inspect(e, {depth:null}) + "\n");
+        if (e instanceof TypeCheckFailure) {
+          return CS.err.app(runtime.ffi.makeList(e.errs));
+        }
+        throw e;
       }
 
       const info = gatherProvides(provides[0], contextFromModules);
