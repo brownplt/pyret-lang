@@ -963,7 +963,7 @@ type Runtime = {
             }
             for(let [fieldName, fieldTypes] of fieldMappings) {
               for(let fieldType of fieldTypes) {
-                system.levels[system.levels.length - 2].addFieldConstraint(instantiatedTyp, fieldName, fieldType);
+                system.nextLevel().addFieldConstraint(instantiatedTyp, fieldName, fieldType);
               }
             }
             // NOTE(ben/joe): this is a recursive call in the original Pyret code
@@ -1001,11 +1001,9 @@ type Runtime = {
 
         switch(supertype.$name) {
           case "t-existential": {
-            const { id: aId, l: aLoc } = supertype.dict;
             switch(subtype.$name) {
               case "t-existential": {
-                const { id: bId, l: bLoc } = supertype.dict;
-                if (nameToKey(aId) === nameToKey(bId)) {
+                if (nameToKey(supertype.dict.id) === nameToKey(subtype.dict.id)) {
                   continue;
                 }
                 else if(variables.has(typeKey(subtype))) {
@@ -1019,7 +1017,7 @@ type Runtime = {
                 else {
                   // NOTE(joe/ben): 1. Is this repeatable as a method? 2. Why
                   // push out the constraint to the next level?
-                  system.levels[system.levels.length - 2].constraints.push({ subtype, supertype });
+                  system.nextLevel().addConstraint(subtype, supertype);
                   continue;
                 }
               }
@@ -1035,7 +1033,7 @@ type Runtime = {
                   }
                 }
                 else {
-                  system.levels[system.levels.length - 2].constraints.push({ subtype, supertype });
+                  system.nextLevel().addConstraint(subtype, supertype);
                   continue;
                 }
               }
@@ -3366,8 +3364,7 @@ type Runtime = {
     function synthesisSpine(funType : TS.Type, original: A.Expr, args : A.Expr[], appLoc : SL.Srcloc, context : Context) : TS.Type {
       context.addLevel(`synthesisSpine(${original.$name}) at ${formatSrcloc(original.dict.l, false)}`);
       function wrapReturn(t : TS.Type) {
-        context.solveLevel();
-        return setTypeLoc(t, appLoc);
+        return setTypeLoc(context.solveAndResolveType(t), appLoc);
       }
       LOG(`funType before instantiation: ${typeKey(funType)}\n`);
       funType = instantiateForallWithFreshVars(funType, context.constraints, true);
