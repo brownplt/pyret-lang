@@ -21,6 +21,7 @@ type Runtime = {
     makeTreeSet: <T>(ts: T[] | IterableIterator<T>) => Set<T>,
     makeSome: <T>(val: T) => Option<T>,
     makeNone: <T>() => Option<T>,
+    throwMessageException: (msg: string) => any,
   }
 }
 
@@ -313,6 +314,9 @@ type Runtime = {
     function tBoolean(l : SL.Srcloc) : TS.Type {
       return TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("Boolean"), l, false);
     }
+    function tNothing(l : SL.Srcloc) : TS.Type {
+      return TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("Nothing"), l, false);
+    }
     function tString(l : SL.Srcloc) : TS.Type {
       return TS['t-name'].app(primitiveTypesUri, sTypeGlobal.app("String"), l, false);
     }
@@ -326,12 +330,13 @@ type Runtime = {
     }
 
     // Note: if typeKey(t1) === typeKey(t2), then t1 == t2 (as Pyret values)
+    const typeKeys = new WeakMap<TS.Type, string>();
     function typeKey(type : TS.Type & { $key?: string }) : string {
-      if(!("$key" in type)) {
+      if(!typeKeys.has(type)) {
         const key = _typeKey(type);
-        type.$key = key;
+        typeKeys.set(type, key);
       }
-      return type.$key;
+      return typeKeys.get(type);
     }
     function _typeKey(type: TS.Type): string {
       switch(type.$name) {
@@ -504,35 +509,43 @@ type Runtime = {
       }
       return ret;
     }
+    function objMapValues<K, V1, V2>(m : Map<K, V1>, f : ((val : V1) => V2)) : Record<string, V2> {
+      const ret: Record<string, V2> = {};
+      for (const [k, v1] of m.entries()) {
+        ret[String(k)] = f(v1);
+      }
+      return ret;
+    }
 
     type Constraint = {subtype: TS.Type, supertype: TS.Type};
-    type Refinement = {existential: TS.Type, dataRefinement: TJ.Variant<TS.Type, 't-data-refinement'>};
+    type Refinement = {existential: TJ.Variant<TS.Type, 't-existential'>, dataRefinements: TJ.Variant<TS.Type, 't-data-refinement'>[]};
 
-    class TypeSet {
-      contents: Map<string, TS.Type>;
-      constructor() { 
+    class TypeSet<T extends TS.Type = TS.Type> {
+      contents: Map<string, T>;
+      constructor(...typs: readonly T[]) { 
         this.contents = new Map();
+        this.addAll(...typs);
       }
-      values(): IterableIterator<TS.Type> { return this.contents.values(); }
+      values(): IterableIterator<T> { return this.contents.values(); }
       size(): number { return this.contents.size }
-      add(typ : TS.Type): void {
+      add(typ : T): void {
         this.contents.set(typeKey(typ), typ);
       }
-      addAll(...typs: TS.Type[]): void {
+      addAll(...typs: readonly T[]): void {
         for (let typ of typs) {
           this.contents.set(typeKey(typ), typ);
         }
       }
-      combine(typs: TypeSet): void {
+      combine(typs: TypeSet<T>): void {
         this.addAll(...typs.values());
       }
-      union(typs: TypeSet) : TypeSet {
-        const ret = new TypeSet();
+      union<U extends TS.Type = T>(typs: TypeSet<U>) : TypeSet<T | U> {
+        const ret = new TypeSet<T | U>();
         ret.combine(this);
         ret.combine(typs);
         return ret;
       }
-      intersect(typs: TypeSet): void {
+      intersect<U extends TS.Type = T>(typs: TypeSet<U>): void {
         const keys = this.contents.keys();
         for (let k of keys) {
           if (!typs.contents.has(k)) {
@@ -540,25 +553,28 @@ type Runtime = {
           }
         }
       }
-      intersection(typs: TypeSet): TypeSet {
-        const ret = new TypeSet();
-        ret.combine(this);
-        ret.intersect(typs);
+      intersection<U extends TS.Type = T>(typs: TypeSet<U>): TypeSet<T & U> {
+        const ret = new TypeSet<T & U>();
+        for (let [k, t] of this.contents) {
+          if (this.contents.has(k) && typs.contents.has(k)) {
+            ret.add(t as (T & U));
+          }
+        }
         return ret;
       }
       remove(typ: TS.Type): void {
         this.contents.delete(typeKey(typ));
       }
-      removeAll(...typs: TS.Type[]) {
+      removeAll(...typs: readonly TS.Type[]) {
         for (let typ of typs) {
           this.contents.delete(typeKey(typ));
         }
       }
-      subtract(typs: TypeSet): void {
+      subtract<U extends TS.Type>(typs: TypeSet<U>): void {
         this.removeAll(...typs.values());
       }
-      difference(typs: TypeSet): TypeSet {
-        const ret = new TypeSet();
+      difference<U extends TS.Type>(typs: TypeSet<U>): TypeSet<T> {
+        const ret = new TypeSet<T>();
         ret.combine(this);
         ret.subtract(typs);
         return ret;
@@ -572,7 +588,7 @@ type Runtime = {
       // list of {subtype; supertype}
       constraints : Array<Constraint>;
       // list of {existential; t-data-refinement}
-      refinementConstraints : Array<Refinement>;
+      refinementConstraints : Map<string, Refinement>;
       // type -> {type, field labels -> field types (with the location of their use)}
       fieldConstraints : Map<string, [TS.Type, FieldConstraint]>;
       // types for examples?
@@ -581,10 +597,62 @@ type Runtime = {
       constructor(name? : string) {
         this.variables = new Map();
         this.constraints = [];
-        this.refinementConstraints = [];
+        this.refinementConstraints = new Map();
         this.fieldConstraints = new Map();
         this.exampleTypes = new Map();
         this.name = name;
+      }
+
+      toInertData() {
+        return {
+          name: this.name,
+          variables: objMapValues(this.variables, typeKey),
+          constraints: this.constraints.map((c) => {
+            const {subtype, supertype} = c;
+            return `${typeKey(subtype)} < ${typeKey(supertype)}`;
+          }),
+          fieldConstraints: objMapValues(this.fieldConstraints, ([_typ, constraint]) => {
+            return objMapValues(constraint, (typs) => `[ ${typs.map(typeKey).join(", ")} ]`);
+          }),
+          refinementConstraints: objMapValues(this.refinementConstraints, (r) => {
+            const { existential, dataRefinements } = r;
+            return `${typeKey(existential)} < (${dataRefinements.map(typeKey).join(', ')})`;
+          }),
+          exampleTypes: objMapValues(this.exampleTypes, (e) => {
+            const { annTypes, exampleTypes, existential, functionName } = e;
+            return {
+              functionName,
+              existential: typeKey(existential),
+              annTypes: {
+                argTypes: annTypes.argTypes.map(typeKey),
+                retType: typeKey(annTypes.retType),
+                loc: formatSrcloc(annTypes.loc, true),
+              },
+              exampleTypes: exampleTypes.map(typeKey),
+            }
+          })
+        }
+      }
+      toString() {
+        return prettyIsh(this.toInertData());
+      }
+
+      addConstraint(subtype: TS.Type, supertype: TS.Type) {
+        if (subtype.$name === 't-existential' && supertype.$name === 't-data-refinement') {
+          this.addRefinementConstraint(subtype, supertype);
+        } else if (supertype.$name === 't-existential' && subtype.$name === 't-data-refinement') {
+          this.addRefinementConstraint(supertype, subtype);
+        } else {
+          this.constraints.push({ subtype, supertype });
+        }
+      }
+      addRefinementConstraint(existential: TJ.Variant<TS.Type, 't-existential'>, dataRefinement: TJ.Variant<TS.Type, 't-data-refinement'>) {
+        const key = typeKey(existential);
+        if (this.refinementConstraints.has(key)) {
+          this.refinementConstraints.get(key).dataRefinements.push(dataRefinement);
+        } else {
+          this.refinementConstraints.set(key, { existential, dataRefinements: [dataRefinement] });
+        }
       }
 
       addFieldConstraint(type : TS.Type, fieldName : string, fieldType : TS.Type) : void{
@@ -609,24 +677,9 @@ type Runtime = {
         this.levels = [];
       }
       toInertData() {
-        const result = { levels: [] }
-        for(let level of this.levels) {
-          const l = {name : level.name, variables: {}, constraints: [], fieldConstraints: {}};
-          result.levels.push(l);
-          for(let [key, val] of level.variables) {
-            l.variables[key] = typeKey(val);
-          }
-          for(let {supertype, subtype} of level.constraints) {
-            l.constraints.push(`${typeKey(subtype)} < ${typeKey(supertype)}`);
-          }
-          for(let [key, [typ, constraint]] of level.fieldConstraints) {
-            l.constraints[key] = {};
-            for(let [fieldName, typs] of constraint) {
-              l.constraints[key][fieldName] = `[ ${typs.map(typeKey).join(", ")} ]`;
-            }
-          }
-        }
-        return result;
+        return {
+          levels: this.levels.map((l) => l.toInertData())
+        };
       }
       toString() {
         return prettyIsh(this.toInertData());
@@ -643,7 +696,9 @@ type Runtime = {
           ret = TCS.dict.values.dict['constraint-system'].app(
             runtime.ffi.makeTreeSet(level.variables.values()),
             runtime.ffi.makeList(level.constraints.map((c) => runtime.makeTuple([c.subtype, c.supertype]))),
-            runtime.ffi.makeList(level.refinementConstraints.map((r) => runtime.makeTuple([r.existential, r.dataRefinement]))),
+            runtime.ffi.makeList([...mapMapValues(level.refinementConstraints, (r) => {
+              return r.dataRefinements.map((dr) => runtime.makeTuple([r.existential, dr]));
+            }).values()].flat()),
             stringDictFromMap(fieldConstraints),
             // {Type; {arg-types :: List<Type>, ret-type :: Type, loc :: Loc}; List<Type>; (Type, Context -> TypingResult); String}
             stringDictFromMap(mapMapValues(level.exampleTypes, (exTyInfo: ExampleTypeInfo) => {
@@ -667,12 +722,16 @@ type Runtime = {
         return ret;
       }
 
-      ensureLevel(msg : string): void {
-        if (this.levels.length === 0) {
+      ensureLevel(msg : string, offset?: number): void {
+        if (this.levels.length < (offset ?? 0)) {
           throw new InternalCompilerError(msg);
         }
       }
       curLevel(): ConstraintLevel { return this.levels[this.levels.length - 1]; }
+      nextLevel(): ConstraintLevel { 
+        this.ensureLevel("Can't get next level with only one level available", 1);
+        return this.levels[this.levels.length - 2]; 
+      }
       addVariable(variable : TS.Type): void {
         this.ensureLevel("Can't add variable to an uninitialized system");
         if (variable.$name === 't-existential') {
@@ -699,19 +758,7 @@ type Runtime = {
           const msg = `Can't add constraint to an uninitialized system: ${JSON.stringify(subtype)} = ${JSON.stringify(supertype)}\n${formatSrcloc(subtype.dict.l, true)}\n${formatSrcloc(supertype.dict.l, true)}`;
           throw new InternalCompilerError(msg);
         }
-        if (subtype.$name === 't-existential' && supertype.$name === 't-data-refinement') {
-          this.curLevel().refinementConstraints.push({
-            existential: subtype,
-            dataRefinement: supertype,
-          });
-        } else if (supertype.$name === 't-existential' && subtype.$name === 't-data-refinement') {
-          this.curLevel().refinementConstraints.push({
-            existential: supertype,
-            dataRefinement: subtype,
-          });
-        } else {
-          this.curLevel().constraints.push({ subtype, supertype });
-        }
+        this.curLevel().addConstraint(subtype, supertype);
       }
       addFieldConstraint(type: TS.Type, fieldName: string, fieldType: TS.Type): void {
         this.ensureLevel("Can't add field constraints to an uninitialized system");
@@ -765,12 +812,20 @@ type Runtime = {
         const afterFields = solveHelperFields(this, afterExamples, context);
         return afterFields;
       }
-      // After solve-level, the system will have one less level (unless it's already
-      // empty) It breaks the current level in two based on the set of variables
-      // that came from examples, then solves them first by solving the part
-      // unrelated to examples, then solving the part related to examples.  It then
-      // propagates variables to the context at the next level (if there is a next
-      // level) and returns the resulting system and solution
+      /**
+       * After solve-level, the system will have one less level (unless it's already
+       * empty) It breaks the current level in two based on the set of variables
+       * that came from examples, then solves them first by solving the part
+       * unrelated to examples, then solving the part related to examples.  It then
+       * propagates variables to the context at the next level (if there is a next
+       * level) and returns the resulting system and solution
+
+       * NOTE: We'd like solveLevel to be "like a transaction", such that either
+       * it has no effect on the Context and produces an error, or it produces
+       * a ConstraintSolution.  It appears to be the case that solveLevel can affect
+       * the top *two* levels, so it's not quite a simple matter of cloning the top level
+       * and restoring it upon failure...
+       */
       solveLevel(context : Context) : ConstraintSolution {
         if (this.levels.length === 0) { return new ConstraintSolution(); }
 
@@ -810,15 +865,27 @@ type Runtime = {
       });
     }
 
-    function substituteInRefinements(newType : TS.Type, typeVar : TS.Type, refinements : Refinement[]) : Refinement[] {
-      return refinements.map(({existential, dataRefinement}) => {
-        return {
-          existential: substitute(existential, newType, typeVar),
-          // NOTE(joe): the cast below assumes that substitute cannot change
-          // the shape of a dataRefinement
-          dataRefinement: substitute(dataRefinement, newType, typeVar) as Refinement["dataRefinement"]
-        };
-      });
+    function substituteInRefinements(newType : TS.Type, typeVar : TS.Type, refinements : Map<string, Refinement>) : { newRefinements: Map<string, Refinement>, newConstraints: Constraint[] } {
+      const newRefinements = new Map<string, Refinement>();
+      const newConstraints: Constraint[] = []
+      for (let [key, r] of refinements) {
+        const { existential, dataRefinements } = r;
+        const substExist = substitute(existential, newType, typeVar);
+        for (let dataRefinement of dataRefinements) {
+          const substData = substitute(dataRefinement, newType, typeVar) as TJ.Variant<TS.Type, 't-data-refinement'>;
+          if (substExist.$name === 't-existential') {
+            const key = typeKey(substExist);
+            if (newRefinements.has(key)) {
+              newRefinements.get(key).dataRefinements.push(dataRefinement);
+            } else {
+              newRefinements.set(key, { existential: substExist, dataRefinements: [substData] });
+            }
+          } else {
+            newConstraints.push({ subtype: substExist, supertype: substData });
+          }
+        }
+      }
+      return { newRefinements, newConstraints };
     }
 
     function substituteInFields(newType : TS.Type, typeVar : TS.Type, fieldConstraints : Map<string, [TS.Type, FieldConstraint]>) {
@@ -838,11 +905,13 @@ type Runtime = {
       }
     }
 
-    function addSubstitution(newType : TS.Type, typeVar : TS.Type, system : ConstraintSystem, solution : ConstraintSolution) {
-      solution.substitutions.set(typeKey(typeVar), [newType, typeVar]);
+    function addSubstitution(newType : TS.Type, typeVar : TJ.Variant<TS.Type, 't-existential'>, system : ConstraintSystem, solution : ConstraintSolution) {
+      solution.substitutions.set(typeKey(typeVar), {newType, typeVar});
       const curLevel = system.curLevel();
       curLevel.constraints = substituteInConstraints(newType, typeVar, curLevel.constraints);
-      curLevel.refinementConstraints = substituteInRefinements(newType, typeVar, curLevel.refinementConstraints);
+      const { newRefinements, newConstraints } = substituteInRefinements(newType, typeVar, curLevel.refinementConstraints);
+      curLevel.constraints.push(...newConstraints);
+      curLevel.refinementConstraints = newRefinements;
       substituteInFields(newType, typeVar, curLevel.fieldConstraints);
       substituteInExamples(newType, typeVar, curLevel.exampleTypes);
     }
@@ -855,10 +924,10 @@ type Runtime = {
         // NOTE: because entries is an array copy of the keys of the map,
         // we have to delete the key from the original map in order to avoid infinite recursion
         fieldConstraints.delete(key);
-        const instantiated = instantiateObjectType(typ, context);
-        switch(typ.$name) {
+        const instantiatedTyp = instantiateObjectType(typ, context);
+        switch(instantiatedTyp.$name) {
           case "t-record": {
-            const fields = mapFromStringDict(typ.dict.fields);
+            const fields = mapFromStringDict(instantiatedTyp.dict.fields);
             const requiredFieldSet = new Set(fieldMappings.keys());
             const intersection = new Set<string>();
             const remainingFields = new Set<string>();
@@ -868,7 +937,7 @@ type Runtime = {
             }
             if(remainingFields.size > 0) {
               const missingFieldErrors = [...remainingFields].map(rfn =>
-                CS['object-missing-field'].app(rfn, String(typ), typ.dict.l, fieldMappings.get(rfn)[0].dict.l)
+                CS['object-missing-field'].app(rfn, String(instantiatedTyp), instantiatedTyp.dict.l, fieldMappings.get(rfn)[0].dict.l)
               );
               throw new TypeCheckFailure(...missingFieldErrors);
             }
@@ -887,19 +956,21 @@ type Runtime = {
             }
           }
           case "t-existential": {
-            if(variables.has(typeKey(typ))) {
-              throw new TypeCheckFailure(CS['unable-to-infer'].app(typ.dict.l));
+            if(variables.has(typeKey(instantiatedTyp))) {
+              LOG(`About to fail in solveHelperFields, typ = ${typeKey(typ)} => ${typeKey(instantiatedTyp)}\n`);
+              LOG(`Current constraint: ${key} => [${typeKey(typ)} => ${prettyIsh(objMapValues(fieldMappings, (typs) => typs.map(typeKey).join(',')))}]\n`);
+              throw new TypeCheckFailure(CS['unable-to-infer'].app(instantiatedTyp.dict.l));
             }
             for(let [fieldName, fieldTypes] of fieldMappings) {
               for(let fieldType of fieldTypes) {
-                system.levels[system.levels.length - 2].addFieldConstraint(typ, fieldName, fieldType);
+                system.levels[system.levels.length - 2].addFieldConstraint(instantiatedTyp, fieldName, fieldType);
               }
             }
             // NOTE(ben/joe): this is a recursive call in the original Pyret code
             continue;
           }
           default: {
-            const dataType = instantiateDataType(typ, context);
+            const dataType = instantiateDataType(instantiatedTyp, context);
             const dataFields = mapFromStringDict(dataType.dict.fields);
             for(let [fieldName, fieldTypes] of fieldMappings) {
               if(dataFields.has(fieldName)) {
@@ -909,7 +980,7 @@ type Runtime = {
                 }
               }
               else {
-                throw new TypeCheckFailure(CS['object-missing-field'].app(fieldName, String(typ), typ.dict.l, fieldMappings.get(fieldName)[0].dict.l))
+                throw new TypeCheckFailure(CS['object-missing-field'].app(fieldName, String(instantiatedTyp), instantiatedTyp.dict.l, fieldMappings.get(fieldName)[0].dict.l))
               }
             }
             return system.solveLevelHelper(solution, context);
@@ -922,7 +993,7 @@ type Runtime = {
     function solveHelperConstraints(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
       const { constraints, variables } = system.curLevel();
       // NOTE(joe): Compared to type-check-structs.arr, here continue; is a recursive call
-      while(constraints.length !== 0) {
+      while(constraints.length > 0) {
         const { subtype, supertype } = constraints.pop();
         if(supertype.$name === "t-top" || subtype.$name === "t-bot") {
           continue;
@@ -1085,30 +1156,100 @@ type Runtime = {
       return solution;
     }
     function solveHelperRefinements(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
-      return solution;
+      const { refinementConstraints, variables } = system.curLevel();
+      // If we have any refinement constraints whose variables aren't in our level,
+      // make them be the next level's problem
+      const nextLevelConstraints = new Map<string, Refinement>();
+      for (let [key, r] of refinementConstraints) {
+        if (!variables.has(key)) {
+          nextLevelConstraints.set(key, r);
+        }
+      }
+      if (nextLevelConstraints.size > 0) {
+        const nextLevel = system.nextLevel();
+        for (let [key, r] of nextLevelConstraints) {
+          refinementConstraints.delete(key);
+          for (let dr of r.dataRefinements) {
+            nextLevel.addRefinementConstraint(r.existential, dr);
+          }
+        }
+      }
+      // At this point,
+      // * All normal subtyping constraints should be solved, and 
+      // * All refinements should be in our variables
+      // By construction, refinementConstraints has already merged all 
+      // data refinements of the same existential variables.
+
+      const tempVariables = new TypeSet<TJ.Variant<TS.Type, 't-existential'>>();
+      for (let refinement of refinementConstraints.values()) {
+        const { existential, dataRefinements } = refinement;
+        const tempVar = newExistential(existential.dict.l, false);
+        LOG(`Creating tempVar ${typeKey(tempVar)} for ${typeKey(existential)}\n`);
+        system.addVariable(tempVar);
+        tempVariables.add(tempVar);
+        for (let dr of dataRefinements) {
+          LOG(`Constraining tempVar ${typeKey(tempVar)} < ${typeKey(dr.dict['data-type'])}\n`);
+          system.addConstraint(tempVar, dr.dict['data-type']);
+        }
+      }
+      const tempSolution = solveHelperConstraints(system, new ConstraintSolution(), context);
+      const tempSubstitutions = new TypeSet(...[...tempSolution.substitutions.values()].map(({typeVar}) => typeVar));
+      const newKeys = tempSubstitutions.difference(tempVariables);
+      // TODO(Matt): make this more robust
+      if (newKeys.size() > 0) { // || !tempSustem.refinementConstraints.size() > 0
+        LOG(`newKeys: ${[...newKeys.values()].map(typeKey).join(',')}\n`);
+        for (let tempVar of newKeys.values()) {
+          solution.substitutions.set(typeKey(tempVar), tempSolution.substitutions.get(typeKey(tempVar)))
+        }
+        LOG("About to recur...?\n");
+        return solveHelperRefinements(system, solution, context);
+      } else {
+        // merge all constraints for each existential variable
+        // same data-refinements get merged otherwise goes to the inner data type
+        for (let refinement of refinementConstraints.values()) {
+          const { existential: exists, dataRefinements: refinements } = refinement;
+          const mergedType = (refinements as TS.Type[]).reduce((refinement, merged) => {
+            if (merged.$name === 't-data-refinement') {
+              if (refinement.$name === 't-data-refinement') {
+                if (refinement.dict['variant-name'] === merged.dict['variant-name']) {
+                  return merged;
+                } else {
+                  return refinement.dict['data-type'];
+                }
+              } else {
+                return refinement;
+              }
+            } else {
+              return merged;
+            }
+          });
+          addSubstitution(mergedType, exists, system, solution);
+        }
+        return solution;
+      }
     }
     function solveHelperExamples(system : ConstraintSystem, solution : ConstraintSolution, context : Context) : ConstraintSolution {
       return solution;
     }
 
+    type Substitution = {newType: TS.Type, typeVar: TJ.Variant<TS.Type, 't-existential'>}
     class ConstraintSolution {
       variables : Map<string, TS.Type>
-      substitutions: Map<string, [TS.Type, TS.Type]>
+      substitutions: Map<string, Substitution>
 
-      constructor(variables? : Map<string, TS.Type>, substitutions? : Map<string, [TS.Type, TS.Type]>) {
+      constructor(variables? : Map<string, TS.Type>, substitutions? : Map<string, Substitution>) {
         this.variables = variables ?? new Map();
         this.substitutions = substitutions ?? new Map();
       }
 
+      toInertData() {
+        return {
+          variables: objMapValues(this.variables, typeKey),
+          substitutions: objMapValues(this.substitutions, ({newType, typeVar}) => ({newType: typeKey(newType), typeVar: typeKey(typeVar)})),
+        };
+      }
       toString() {
-        let result = { variables: {}, substitutions: {} };
-        for(let [key, variable] of this.variables) {
-          result.variables[key] = typeKey(variable);
-        }
-        for(let [key, [t1, t2]] of this.substitutions) {
-          result.substitutions[key] = [typeKey(t1), typeKey(t2)];
-        }
-        return prettyIsh(result);
+        return prettyIsh(this.toInertData());
       }
 
       apply(typ : TS.Type) : TS.Type {
@@ -1124,7 +1265,7 @@ type Runtime = {
           "t-existential": (self, t) => {
             const key = typeKey(t);
             if(thisCS.substitutions.has(key)) {
-              const [assignedType] = thisCS.substitutions.get(key);
+              const {newType: assignedType} = thisCS.substitutions.get(key);
               const inferred = t.dict.inferred || assignedType.dict.inferred;
               return thisCS.apply(setLocAndInferred(assignedType, t.dict.l, inferred));
             }
@@ -1204,10 +1345,10 @@ type Runtime = {
           return {
             l: formatSrcloc(v.dict.l, true),
             name: v.dict.name,
-            withFields: mapMapValues(mapFromStringDict(v.dict['with-fields']), typeKey),
+            withFields: objMapValues(mapFromStringDict(v.dict['with-fields']), typeKey),
           };
         }),
-        fields: mapMapValues(mapFromStringDict(data.dict.fields), typeKey),
+        fields: objMapValues(mapFromStringDict(data.dict.fields), typeKey),
       };
     }
     class TCInfo {
@@ -1235,9 +1376,9 @@ type Runtime = {
 
       toInertData() {
         return {
-          types: mapMapValues(this.types, typeKey),
-          aliases: mapMapValues(this.aliases, typeKey),
-          dataTypes: mapMapValues(this.dataTypes, renderData),
+          types: objMapValues(this.types, typeKey),
+          aliases: objMapValues(this.aliases, typeKey),
+          dataTypes: objMapValues(this.dataTypes, renderData),
         }
       }
 
@@ -1301,30 +1442,32 @@ type Runtime = {
         this.miscTestInferenceData = null;
       }
 
-      toString() {
-        const result = {
-          globalTypes: mapMapValues(this.globalTypes, typeKey),
-          aliases: mapMapValues(this.aliases, typeKey),
-          dataTypes: mapMapValues(this.dataTypes, renderData),
-          modules: mapMapValues(this.modules, (m) => {
+      toInertData() {
+        return {
+          globalTypes: objMapValues(this.globalTypes, typeKey),
+          aliases: objMapValues(this.aliases, typeKey),
+          dataTypes: objMapValues(this.dataTypes, renderData),
+          modules: objMapValues(this.modules, (m) => {
             const { name, provides, types, aliases } = m.dict;
             return {
               name,
               provides: typeKey(provides),
-              types: mapMapValues(mapFromStringDict(types), renderData),
-              aliases: mapMapValues(mapFromStringDict(aliases), typeKey)
+              types: objMapValues(mapFromStringDict(types), renderData),
+              aliases: objMapValues(mapFromStringDict(aliases), typeKey)
             }
           }),
           moduleNames: this.moduleNames,
-          binds: mapMapValues(this.binds, typeKey),
+          binds: objMapValues(this.binds, typeKey),
           constraints: this.constraints.toInertData(),
           info: this.info.toInertData(),
-          misc: mapMapValues(this.misc, (val) => {
+          misc: objMapValues(this.misc, (val) => {
             const [types, str] = val;
             return [types.map(typeKey), str];
           })
         };
-        return prettyIsh(result);
+      }
+      toString() {
+        return prettyIsh(this.toInertData());
       }
 
       toPyretContext(): TCS.Context {
@@ -1464,7 +1607,7 @@ type Runtime = {
 
       solveLevel() : ConstraintSolution {
         try {
-          LOG(`Solving ${String(this.constraints)}\nCurrent bindings:\n`);
+          LOG(`Solving level ${this.constraints.curLevel().name}:\n${String(this.constraints)}\nCurrent bindings:\n`);
           for (let [name, type] of this.binds) {
             LOG(`${name} => ${typeKey(type)}\n`);
           }
@@ -1474,7 +1617,7 @@ type Runtime = {
           return result;
         }
         catch(e) {
-          LOG(`Got an exception while solving: ${String(this.constraints)}\n\n`);
+          LOG(`Got an exception while solving: ${this.constraints.toString()}\n\n`);
           throw e;
         }
       }
@@ -1484,7 +1627,8 @@ type Runtime = {
         this.substituteInBinds(solution);
         this.substituteInMisc(solution);
         const result = solution.apply(t);
-        //LOG(`Solved and resolved: ${typeKey(t)} ===> ${typeKey(result)}\n\n`);
+        LOG(`Solved and resolved: ${typeKey(t)} ===> ${typeKey(result)}\n`);
+        LOG(`under solution ${solution.toString()}\n\n`);
         return result;
       }
     }
@@ -2192,6 +2336,7 @@ type Runtime = {
         case 's-str':
         case 's-dot':
         case 's-get-bang':
+        case 's-spy-block':
         case 's-for': {
           checkSynthesis(e, expectTyp, topLevel, context);
           return solveAndReturn();
@@ -2294,7 +2439,6 @@ type Runtime = {
           }
         }
         case 's-check-test':
-        case 's-spy-block':
         case 's-module':
           throw new InternalCompilerError(`TODO: _checking switch ${e.$name}`);
         case 's-data':
@@ -2559,10 +2703,8 @@ type Runtime = {
       context.addLevel("handleLetrecBindings");
       const { dataBindings, bindings: { bindingsToType, collectedTypes } } = collectLetrecBindings(binds, topLevel, context);
       context.addDictToBindings(collectedTypes);
-      const newDataBinds: A.LetrecBind[] = []
       for (let dataBinding of dataBindings) {
         handleDatatype(dataBinding.dataBinding, dataBinding.variants, context);
-        newDataBinds.push(dataBinding.dataBinding, ...dataBinding.variants);
       }
       for (let binding of bindingsToType) {
         const b = binding.dict.b as TJ.Variant<A.Bind, 's-bind'>;
@@ -2599,6 +2741,7 @@ type Runtime = {
           const solution = context.solveLevel();
           context.substituteInBinds(solution);
           const newType = solution.generalize(solution.apply(expectedType));
+          LOG(`${nameToKey(b.dict.id)} had type ${typeKey(expectedType)}, substitution got ${typeKey(newType)}\n`);
           context.addBinding(nameToKey(b.dict.id), newType);
           if (value.$name === "s-lam") {
             if (value.dict._check.$name === "some") {
@@ -2609,7 +2752,6 @@ type Runtime = {
           context.miscTestInferenceData = null;
         }
       }
-      newDataBinds.push(...bindingsToType);
       const solution = context.solveLevel();
       context.substituteInBinds(solution);
     }
@@ -2638,10 +2780,11 @@ type Runtime = {
 
       const variants = listToArray(dataExpr.dict.variants);
       let initialVariantTypes = variants.map((v) => collectVariantConstructor(v, context));
-      let predicateType: TS.Type =
-        TS['t-arrow'].app(runtime.ffi.makeList([branderType]), tBoolean(dataExpr.dict.l), dataExpr.dict.l, false);
-      if (tVars.length > 0) {
-        predicateType = TS['t-forall'].app(tVarsList, predicateType, dataExpr.dict.l, false);
+      let predicateType: TS.Type;
+      if (tVars.length === 0) {
+        predicateType = TS['t-arrow'].app(runtime.ffi.makeList([branderType]), tBoolean(dataExpr.dict.l), dataExpr.dict.l, false);
+      } else {
+        predicateType = TS['t-forall'].app(tVarsList, TS['t-arrow'].app(runtime.ffi.makeList([TS['t-app'].app(branderType, tVarsList, dataExpr.dict.l, false)]), tBoolean(dataExpr.dict.l), dataExpr.dict.l, false), dataExpr.dict.l, false);
       }
       const dataFields = new Map<string, TS.Type>();
       dataFields.set(`is-${dataExpr.dict.name}`, predicateType);
@@ -2674,15 +2817,12 @@ type Runtime = {
       const variantTypeFields: Map<string, TS.Type>[] = [];
       for (let variant of variants) {
         const variantType = variantTypesMap.get(variant.dict.name);
-        const allFields = new Map<string, TS.Type>();
+        const allFields = mapFromStringDict(variantType.dict['with-fields']);
         if (variantType.$name === 't-variant') {
           for (let ft of listToArray(variantType.dict.fields)) {
             const [fieldName, fieldType] = ft.vals;
             allFields.set(fieldName, fieldType);
           }
-        }
-        for (let [fieldName, fieldType] of mapFromStringDict(variantType.dict['with-fields'])) {
-          allFields.set(fieldName, fieldType);
         }
         variantTypeFields.push(allFields);
       }
@@ -2698,6 +2838,7 @@ type Runtime = {
       context.dataTypes.set(nameToKey(dataExpr.dict.namet), sharedDataType);
       const newSharedFieldTypes = new Map<string, TS.Type>();
       for (let sharedField of listToArray(dataExpr.dict['shared-members'])) {
+        // NOTE(Ben/Joe): why isn't this extendedSharedFieldTypes, instead of initialSharedFieldTypes?
         const sharedFieldType = checkSharedField(sharedField, initialSharedFieldTypes, appliedBranderType, context);
         newSharedFieldTypes.set(sharedField.dict.name, sharedFieldType);
       }
@@ -2705,7 +2846,7 @@ type Runtime = {
       const finalDataType = TS['t-data'].app(dataExpr.dict.name, tVarsList, newVariantTypes, stringDictFromMap(finalSharedFieldTypes), dataExpr.dict.l);
       const solution = context.solveLevel();
       const solvedDataType = solution.applyDataType(finalDataType);
-      context.dataTypes.set(nameToKey(dataExpr.dict.namet), sharedDataType);
+      context.dataTypes.set(nameToKey(dataExpr.dict.namet), solvedDataType);
     }
 
     function mergeCommonFields(variants: TS.TypeVariant[], dataLoc: SL.Srcloc, context: Context): void {
@@ -2713,6 +2854,9 @@ type Runtime = {
       const fieldsToMerge = new Map<string, TS.Type[]>();
       const allWithFields = variants.map((v) => mapFromStringDict(v.dict['with-fields']));
       const firstMap = allWithFields[0];
+      // This essentially computes the intersection of all the WithFields of all of the variants.
+      // So we might as well start with the first one in the allWithFields list,
+      // and keep only the ones that appear in every set.
       for (let key of firstMap.keys()) {
         let allTyps = [];
         for (let map of allWithFields) {
@@ -2747,6 +2891,11 @@ type Runtime = {
           const bType = instantiateForallWithFreshVars(bFields.get(aFieldName), context.constraints, false);
           context.addConstraint(tempExistential, aType);
           context.addConstraint(tempExistential, bType);
+          // NOTE(Ben/Joe): this is changed semantics from type-check.arr:
+          // in the original, if solveLevel failed then this line of code
+          // would just discard the current field, and proceed with the remaining ones.
+          // Instead, this will currently abort the entire type-checker with a unification error.
+          // We can restore the original semantics *iff* context.solveLevel is transactional.
           const solution = context.solveLevel();
           const meetType = solution.generalize(solution.apply(tempExistential));
           ret.set(aFieldName, meetType);
@@ -2937,9 +3086,9 @@ type Runtime = {
             if (maybeType) {
               let typ: TS.Type;
               switch(member.dict['member-type'].$name) {
-              case 's-normal': typ = setTypeLoc(maybeType, member.dict.l); break;
-              case 's-mutable': typ =TS['t-ref'].app(setTypeLoc(maybeType, member.dict.l), member.dict.l, false); break;
-              default: throw new ExhaustiveSwitchError(member.dict['member-type']);
+                case 's-normal': typ = setTypeLoc(maybeType, member.dict.l); break;
+                case 's-mutable': typ =TS['t-ref'].app(setTypeLoc(maybeType, member.dict.l), member.dict.l, false); break;
+                default: throw new ExhaustiveSwitchError(member.dict['member-type']);
               }
               typeMembers.push(runtime.makeTuple([nameToName(bind.dict.id), typ]));
             } else {
@@ -2968,7 +3117,7 @@ type Runtime = {
     function collectMember(member: A.Member, collectFunctions: boolean, context: Context): TS.Type {
       switch(member.$name) {
         case 's-data-field': {
-          const { l, name, value } = member.dict;
+          const { value } = member.dict;
           switch(value.$name) {
             case 's-method': {
               const { l, params, args, ann } = value.dict;
@@ -3457,12 +3606,27 @@ type Runtime = {
         }
         case 's-for': 
           return synthesis(desugarSFor(e), topLevel, context);
+        case 's-extend': {
+          const superType = synthesis(e.dict.supe, topLevel, context);
+          return setTypeLoc(synthesisExtend(e, superType, context), e.dict.l);
+        }
+        case 's-spy-block': {
+          const contents = listToArray(e.dict.contents);
+          if (e.dict.message.$name === 'some') {
+            synthesis(e.dict.message.dict.value, topLevel, context);
+          }
+          for (let spyField of contents) {
+            synthesis(spyField.dict.value, topLevel, context);
+          }
+          return tNothing(e.dict.l);
+        }
+        case 's-update': {
+          //const objType = synthesis(e.dict.supe, topLevel, context);
+          //return synthesisUpdate();
+        }
         case 's-instantiate':
         case 's-check-test':
-        case 's-spy-block':
         case 's-check-expr':
-        case 's-extend':
-        case 's-update':
         case 's-get-bang':
         case 's-check':
           throw new InternalCompilerError(`TODO: _synthesis switch ${e.$name}`);
@@ -3503,6 +3667,12 @@ type Runtime = {
         default:
           throw new ExhaustiveSwitchError(e);
       }
+    }
+
+    function synthesisExtend(extend: TJ.Variant<A.Expr, 's-extend'>, superType: TS.Type, context: Context): TS.Type {
+      const { l, supe: obj, fields } = extend.dict;
+      LOG("Why are we here?")
+      throw new InternalCompilerError("synthesisExtend not finished");
     }
 
     function desugarSFor(e : TJ.Variant<A.Expr, 's-for'>): A.Expr {
@@ -3720,8 +3890,8 @@ type Runtime = {
     }
 
     function synthesisLetBind(binding : A.LetBind, context : Context) : TS.Type {
-      context.addLevel(`synthesisLetBind(${binding.$name}) at ${formatSrcloc(binding.dict.l, false)}`);
       const b = (binding.dict.b as TJ.Variant<A.Bind, "s-bind">);
+      context.addLevel(`synthesisLetBind(${binding.$name})(${nameToKey(b.dict.id)}) at ${formatSrcloc(binding.dict.l, false)}`);
       const maybeType = toType(b.dict.ann, context);
       let annTyp : TS.Type;
       if(maybeType === false) {
@@ -3735,11 +3905,15 @@ type Runtime = {
       switch(binding.$name) {
         case 's-let-bind':
           context.addBinding(nameToKey(b.dict.id), annTyp);
-          return context.solveAndResolveType(annTyp);
+          const ret = context.solveAndResolveType(annTyp);
+          context.addBinding(nameToKey(b.dict.id), ret);
+          return ret;
         case 's-var-bind': {
           const refType = TS['t-ref'].app(annTyp, binding.dict.l, false);
           context.addBinding(nameToKey(b.dict.id), refType);
-          return context.solveAndResolveType(refType);
+          const ret = context.solveAndResolveType(refType);
+          context.addBinding(nameToKey(b.dict.id), ret);
+          return ret;
         }
         default:
           throw new ExhaustiveSwitchError(binding);
@@ -3928,12 +4102,12 @@ type Runtime = {
         checking(program.dict.block, TS['t-top'].app(program.dict.l, false), true, contextFromModules);
       }
       catch(e) {
-        console.error("Got a type-checking error", e);
-        LOG("Got a type-checking error " + require('util').inspect(e, {depth:null}) + "\n");
-        if (e instanceof TypeCheckFailure) {
-          return CS.err.app(runtime.ffi.makeList(e.errs));
-        }
-        throw e;
+        console.error("XXX Got a type-checking error", e);
+        LOG("YYY Got a type-checking error " + require('util').inspect(e, {depth:null}) + "\n");
+        // if (e instanceof TypeCheckFailure) {
+        //   return CS.err.app(runtime.ffi.makeList(e.errs));
+        // }
+        return runtime.ffi.throwMessageException(String(e));
       }
 
       const info = gatherProvides(provides[0], contextFromModules);
