@@ -21,7 +21,7 @@ src/arr/compiler/%.js : src/arr/compiler/%.ts
 	`npm bin`/tsc --target "esnext" --module "es2015" --listFilesOnly $< \
 		| sed s/.ts$$/.js/ | xargs -n1 -I{} realpath --relative-to="src" '{}' | grep -v "\.\." \
 		| xargs -n1 -I{} realpath --relative-to="." 'src/{}' \
-		| xargs -n1 -I{} perl -0777 -p -i -e 's/;(\n*)\Z/\1/m' '{}'
+		| xargs -n1 -I{} perl -0777 -p -i -e 's/;(\n*)(export \{\}(\n*);?)?\Z/\1/m' '{}'
 
 BUILD_DEPS := \
 	src/arr/compiler/pyret-parser.js \

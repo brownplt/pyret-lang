@@ -46,7 +46,7 @@ export type DataType =
     dict: 
       {
         'name': string,
-        'params': List<Type>,
+        'params': List<Variant<Type, 't-var'>>,
         'variants': List<TypeVariant>,
         'fields': TypeMembers,
         'l': A.Srcloc
@@ -80,7 +80,7 @@ export type Type =
   | {
     $name: "t-forall",
     dict: 
-      { 'introduces': List<Type>, 'onto': Type, 'l': A.Srcloc, 'inferred': boolean }
+      { 'introduces': List<Variant<Type, 't-var'>>, 'onto': Type, 'l': A.Srcloc, 'inferred': boolean }
   }
   | { $name: "t-ref", dict: { 'typ': Type, 'l': A.Srcloc, 'inferred': boolean } }
   | {
@@ -138,7 +138,7 @@ export interface Exports {
           PFunction<
             (
                 name: string,
-                params: List<Type>,
+                params: List<Variant<Type, 't-var'>>,
                 variants: List<TypeVariant>,
                 fields: TypeMembers,
                 l: Loc
@@ -176,7 +176,7 @@ export interface Exports {
 
         't-forall': 
           PFunction<
-            (introduces: List<Type>, onto: Type, l: Loc, inferred: boolean)=> Variant<Type, 't-forall'>
+            (introduces: List<Variant<Type, 't-var'>>, onto: Type, l: Loc, inferred: boolean)=> Variant<Type, 't-forall'>
           >
 
         't-ref': 

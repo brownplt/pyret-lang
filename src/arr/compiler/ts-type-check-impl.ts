@@ -856,7 +856,7 @@ type Runtime = {
       }
     }
 
-    function substituteInConstraints(newType : TS.Type, typeVar : TS.Type, constraints : Constraint[]) {
+    function substituteInConstraints(newType : TS.Type, typeVar : TJ.Variant<TS.Type, 't-var' | 't-existential'>, constraints : Constraint[]) {
       return constraints.map(({subtype, supertype}) => {
         return {
           subtype: substitute(subtype, newType, typeVar),
@@ -865,7 +865,7 @@ type Runtime = {
       });
     }
 
-    function substituteInRefinements(newType : TS.Type, typeVar : TS.Type, refinements : Map<string, Refinement>) : { newRefinements: Map<string, Refinement>, newConstraints: Constraint[] } {
+    function substituteInRefinements(newType : TS.Type, typeVar : TJ.Variant<TS.Type, 't-var' | 't-existential'>, refinements : Map<string, Refinement>) : { newRefinements: Map<string, Refinement>, newConstraints: Constraint[] } {
       const newRefinements = new Map<string, Refinement>();
       const newConstraints: Constraint[] = []
       for (let [key, r] of refinements) {
@@ -888,7 +888,7 @@ type Runtime = {
       return { newRefinements, newConstraints };
     }
 
-    function substituteInFields(newType : TS.Type, typeVar : TS.Type, fieldConstraints : Map<string, [TS.Type, FieldConstraint]>) {
+    function substituteInFields(newType : TS.Type, typeVar : TJ.Variant<TS.Type, 't-var' | 't-existential'>, fieldConstraints : Map<string, [TS.Type, FieldConstraint]>) {
       for(let [key, [constraintType, fieldMappings]] of fieldConstraints) {
         const newConstraintType = substitute(constraintType, newType, typeVar);
         for(let [fieldName, types] of fieldMappings) {
@@ -899,7 +899,7 @@ type Runtime = {
       }
     }
 
-    function substituteInExamples(newType : TS.Type, typeVar : TS.Type, examples : ExampleTypes) {
+    function substituteInExamples(newType : TS.Type, typeVar : TJ.Variant<TS.Type, 't-var' | 't-existential'>, examples : ExampleTypes) {
       for(let [key, exampleTypeInfo] of examples) {
         exampleTypeInfo.exampleTypes = exampleTypeInfo.exampleTypes.map(t => substitute(t, newType, typeVar));
       }
@@ -1299,7 +1299,7 @@ type Runtime = {
       }
       generalize(typ : TS.Type) : TS.Type {
         const thisCS = this;
-        function collectVars(typ : TS.Type, varMapping : Map<string, TS.Type>) : TS.Type {
+        function collectVars(typ : TS.Type, varMapping : Map<string, TJ.Variant<TS.Type, 't-var'>>) : TS.Type {
           return map<TS.Type>({
             "t-record": (self, t) => {
               const fields = mapFromStringDict(t.dict.fields);
@@ -1327,7 +1327,7 @@ type Runtime = {
             }
           }, typ);
         }
-        const varMapping = new Map<string, TS.Type>();
+        const varMapping = new Map<string, TJ.Variant<TS.Type, 't-var'>>();
         const newTyp = collectVars(typ, varMapping);
         const vars = [...varMapping.values()];
         if(vars.length === 0) { return typ; }
@@ -1690,60 +1690,18 @@ type Runtime = {
       }
     }
 
-    function setTypeLoc(typ: TS.Type, loc: SL.Srcloc): TS.Type {
-      switch(typ.$name) {
-        case 't-name':
-          return TS['t-name'].app(typ.dict['module-name'], typ.dict.id, loc, typ.dict.inferred);
-        case 't-arrow':
-          return TS['t-arrow'].app(
-            runtime.ffi.makeList(listToArray(typ.dict.args).map((a) => setTypeLoc(a, loc))),
-            setTypeLoc(typ.dict.ret, loc),
-            loc,
-            typ.dict.inferred
-          );
-        case 't-app':
-          return TS['t-app'].app(
-            setTypeLoc(typ.dict.onto, loc),
-            runtime.ffi.makeList(listToArray(typ.dict.args).map((a) => setTypeLoc(a, loc))),
-            loc,
-            typ.dict.inferred
-          );
-        case 't-top': return TS['t-top'].app(loc, typ.dict.inferred);
-        case 't-bot': return TS['t-bot'].app(loc, typ.dict.inferred);
-        case 't-record':
+    function setTypeLoc<T extends TS.Type>(typ: T, loc: SL.Srcloc): TJ.Variant<TS.Type, T['$name']> {
+      return map<SL.Srcloc | TS.Type, T>({
+        "builtin": (_self, _oldLoc) => loc,
+        "srcloc": (_self, _oldLoc) => loc,
+        "t-record": (self, tRecord) => {
           return TS['t-record'].app(
-            stringDictFromMap(mapMapValues(mapFromStringDict(typ.dict.fields), (a) => setTypeLoc(a, loc))),
+            stringDictFromMap(mapMapValues(mapFromStringDict(tRecord.dict.fields), (a) => map(self, a))),
             loc,
-            typ.dict.inferred
+            tRecord.dict.inferred
           );
-        case 't-tuple':
-          return TS['t-tuple'].app(
-            runtime.ffi.makeList(listToArray(typ.dict.elts).map((a) => setTypeLoc(a, loc))),
-            loc,
-            typ.dict.inferred
-          );
-        case 't-forall':
-          return TS['t-forall'].app(
-            runtime.ffi.makeList(listToArray(typ.dict.introduces).map((a) => setTypeLoc(a, loc))),
-            setTypeLoc(typ.dict.onto, loc),
-            loc,
-            typ.dict.inferred
-          );
-        case 't-ref':
-          return TS['t-ref'].app(setTypeLoc(typ.dict.typ, loc), loc, typ.dict.inferred);
-        case 't-data-refinement':
-          return TS['t-data-refinement'].app(
-            setTypeLoc(typ.dict['data-type'], loc),
-            typ.dict['variant-name'],
-            loc,
-            typ.dict.inferred
-          );
-        case 't-var':
-          return TS['t-var'].app(typ.dict.id, loc, typ.dict.inferred);
-        case 't-existential':
-          return TS['t-existential'].app(typ.dict.id, loc, typ.dict.inferred);
-        default: throw new ExhaustiveSwitchError(typ);
-      }
+        }
+      }, typ);
     }
 
     function setInferred(type: TS.Type, inferred: boolean): TS.Type {
@@ -1757,86 +1715,41 @@ type Runtime = {
       return setTypeLoc(setInferred(type, inferred), loc);
     }
 
-    function substitute(type: TS.Type, newType: TS.Type, typeVar: TS.Type): TS.Type {
-      switch(type.$name) {
-        case 't-name': return type;
-        case 't-arrow': {
-          const { args, ret, l, inferred } = type.dict;
-          const newArgs = listToArray(args).map((t) => substitute(t, newType, typeVar));
-          const newRet = substitute(ret, newType, typeVar);
-          return TS['t-arrow'].app(runtime.ffi.makeList(newArgs), newRet, l, inferred);
-        }
-        case 't-app': {
-          const { args, onto, l, inferred } = type.dict;
-          const newArgs = listToArray(args).map((t) => substitute(t, newType, typeVar));
-          const newOnto = substitute(onto, newType, typeVar);
-          return TS['t-app'].app(newOnto, runtime.ffi.makeList(newArgs), l, inferred);
-        }
-        case 't-top': return type;
-        case 't-bot': return type;
-        case 't-record': {
-          const { fields, l, inferred } = type.dict;
-          const newFields = mapFromStringDict(fields);
-          for (const key of newFields.keys()) {
-            newFields.set(key, substitute(newFields.get(key), newType, typeVar));
+    function substitute(type: TS.Type, newType: TS.Type, typeVar: TJ.Variant<TS.Type, 't-var' | 't-existential'>): TS.Type {
+      return map<TS.Type>({
+        // Note: t-forall doesn't need to be capture-avoiding thanks to resolve-names
+        // so we don't need to handle it specially
+
+        "t-record": (self, t) => {
+          const fields = mapFromStringDict(t.dict.fields);
+          for(let [name, val] of fields.entries()) {
+            fields.set(name, map(self, val));
           }
-          return TS['t-record'].app(stringDictFromMap(newFields), l, inferred);
-        }
-        case 't-tuple': {
-          const { elts, l, inferred } = type.dict;
-          const newElts = listToArray(elts).map((t) => substitute(t, newType, typeVar));
-          return TS['t-tuple'].app(runtime.ffi.makeList(newElts), l, inferred);
-        }
-        case 't-forall': {
-          // Note: doesn't need to be capture-avoiding thanks to resolve-names
-          const { introduces, onto, l, inferred } = type.dict;
-          const newOnto = substitute(onto, newType, typeVar);
-          return TS['t-forall'].app(introduces, newOnto, l, inferred);
-        }
-        case 't-ref': {
-          const { typ, l, inferred } = type.dict;
-          const newTyp = substitute(typ, newType, typeVar);
-          return TS['t-ref'].app(newTyp, l, inferred);
-        }
-        case 't-data-refinement': {
-          const { "data-type": dataType, "variant-name": variantName, l, inferred } = type.dict;
-          const newDataType = substitute(dataType, newType, typeVar);
-          return TS['t-data-refinement'].app(newDataType, variantName, l, inferred);
-        }
-        case 't-var': {
-          switch(typeVar.$name) {
-            case 't-var': {
-              if (sameName(type.dict.id, typeVar.dict.id)) {
-                return setTypeLoc(newType, type.dict.l);
-              } else {
-                return type;
-              }
+          return TS['t-record'].app(stringDictFromMap(fields), t.dict.l, t.dict.inferred);
+        },
+        "t-var": (_self, t) => {
+          if (typeVar.$name === "t-var" && sameName(t.dict.id, typeVar.dict.id)) {
+            return setTypeLoc(newType, type.dict.l);
+          } else {
+            return t;
+          }
+        },
+        "t-existential": (_self, t) => {
+          // inferred existentials keep their locations
+          // this is along the lines of inferred argument types etc
+          // uninferred existentials are used to equate different pieces of code
+          // they should not keep their location
+          if (typeVar.$name === "t-existential" && sameName(t.dict.id, typeVar.dict.id)) {
+            if (t.dict.inferred) {
+              return setTypeLoc(newType, type.dict.l);
+            } else {
+              return newType;
             }
-            default: return type;
+          } else {
+            return t;
           }
         }
-        case 't-existential': {
-          switch(typeVar.$name) {
-            case 't-existential': {
-              // inferred existentials keep their locations
-              // this is along the lines of inferred argument types etc
-              // uninferred existentials are used to equate different pieces of code
-              // they should not keep their location
-              if (sameName(type.dict.id, typeVar.dict.id)) {
-                if (type.dict.inferred) {
-                  return setTypeLoc(newType, type.dict.l);
-                } else {
-                  return newType;
-                }
-              } else {
-                return type;
-              }
-            }
-            default: return type;
-          }
-        }
-        default: throw new ExhaustiveSwitchError(type);
-      }
+      }, type);
     }
 
     function varNotFoundInType(type: TS.Type, varType: TS.Type): boolean {
@@ -2087,7 +2000,7 @@ type Runtime = {
       }
     }
 
-    function substituteVariant(variant: TS.TypeVariant, newType: TS.Type, typeVar: TS.Type): TS.TypeVariant {
+    function substituteVariant(variant: TS.TypeVariant, newType: TS.Type, typeVar: TJ.Variant<TS.Type, 't-var' | 't-existential'>): TS.TypeVariant {
       switch(variant.$name) {
         case 't-variant': {
           const fields = listToArray(variant.dict.fields);
@@ -2110,7 +2023,7 @@ type Runtime = {
         default: throw new ExhaustiveSwitchError(variant);
       }
     }
-    function substituteFields(fields: Map<string, TS.Type>, newType: TS.Type, typeVar: TS.Type): void {
+    function substituteFields(fields: Map<string, TS.Type>, newType: TS.Type, typeVar: TJ.Variant<TS.Type, 't-var' | 't-existential'>): void {
       for (let [f, fType] of fields) {
         fields[f] = substitute(fType, newType, typeVar);
       }
@@ -3015,7 +2928,7 @@ type Runtime = {
       }
     }
 
-    function makeConstructorType(variantType: TS.TypeVariant, branderType: TS.Type, params: TS.Type[]): TS.Type {
+    function makeConstructorType(variantType: TS.TypeVariant, branderType: TS.Type, params: TJ.Variant<TS.Type, 't-var'>[]): TS.Type {
       let innerType = branderType;
       if (params.length > 0) {
         innerType = TS['t-app'].app(branderType, runtime.ffi.makeList(params), variantType.dict.l, false);

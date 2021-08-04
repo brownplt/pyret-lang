@@ -112,9 +112,7 @@ import type { Variant } from './ts-codegen-helpers';
                 Literal(typ.dict.name),
                 ArrayExpression(listToArray(typ.dict.params).map((p) => {
                   switch(p.$name) {
-                    case 't-name': 
-                    case 't-var':
-                    case 't-existential': return Literal(nameToKey(p.dict.id));
+                    case 't-var': return Literal(nameToKey(p.dict.id));
                     default:
                       throw new InternalCompilerError(`Expected type to have an id field, but was a ${p.$name}`);
                   }
@@ -196,9 +194,7 @@ import type { Variant } from './ts-codegen-helpers';
             [Literal("forall"),
               ArrayExpression(listToArray(typ.dict.introduces).map((p) => {
                 switch(p.$name) {
-                  case 't-name':
-                  case 't-var': 
-                  case 't-existential': return Literal(nameToKey(p.dict.id));
+                  case 't-var': return Literal(nameToKey(p.dict.id));
                   default:
                     throw new InternalCompilerError(`Expected type to have an id field, but was a ${p.$name}`);
                 }
