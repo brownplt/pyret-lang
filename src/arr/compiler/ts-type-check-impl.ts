@@ -872,7 +872,7 @@ type Runtime = {
         const { existential, dataRefinements } = r;
         const substExist = substitute(existential, newType, typeVar);
         for (let dataRefinement of dataRefinements) {
-          const substData = substitute(dataRefinement, newType, typeVar) as TJ.Variant<TS.Type, 't-data-refinement'>;
+          const substData = substitute(dataRefinement, newType, typeVar);
           if (substExist.$name === 't-existential') {
             const key = typeKey(substExist);
             if (newRefinements.has(key)) {
@@ -1715,7 +1715,11 @@ type Runtime = {
       return setTypeLoc(setInferred(type, inferred), loc);
     }
 
-    function substitute(type: TS.Type, newType: TS.Type, typeVar: TJ.Variant<TS.Type, 't-var' | 't-existential'>): TS.Type {
+    function substitute<T extends TS.Type>(
+      type: T,
+      newType: TS.Type,
+      typeVar: TJ.Variant<TS.Type, 't-var' | 't-existential'>
+    ): (T['$name'] extends (typeof typeVar)['$name'] ? TS.Type : TJ.Variant<TS.Type, T['$name']>) {
       return map<TS.Type>({
         // Note: t-forall doesn't need to be capture-avoiding thanks to resolve-names
         // so we don't need to handle it specially
