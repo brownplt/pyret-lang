@@ -49,6 +49,7 @@ type PropsFromReact = {
     'get-value': () => any,
     'draw': () => any,
     '$interactNoPauseResume': (insertNode: (node: any, title: string, setupClose: (close: () => void) => void) => void) => any,
+    '$interact': (insertNode: (node: any, title: string, setupClose: (close: () => void) => void) => void) => any,
     '$shutdown': () => void,
   },
   RenderedValue: React.ReactType,
@@ -67,14 +68,14 @@ function Reactor({ reactor, RenderedValue }: Props) {
     setOpen(false);
   };
 
-  function runGetValue() {
+  function runGetValue(r : any) {
     const source = '(function(reactor, answer) { answer.value = reactor[\'draw\'](); })(reactor, answer)';
     let runner = stopify.stopifyLocally(source, { newMethod: 'direct' });
     const answer = { value: 'runGetValue: Value wasn\'t set!' };
     return new Promise((resolve, reject) => {
       if (runner.kind !== 'ok') { reject(runner); return; }
       runner = runner as (stopify.AsyncRun & stopify.AsyncEval);
-      runner.g = { reactor, answer };
+      runner.g = { reactor: r, answer };
       runner.run((result : any) => {
         if (result.type !== 'normal') {
           console.log('runGetValue reject', answer.value);
@@ -87,9 +88,30 @@ function Reactor({ reactor, RenderedValue }: Props) {
     });
   }
 
+  function runStopify<A>(f : () => A) {
+    const source = '(function(f, answer) { answer.value = f(); })(f, answer)';
+    let runner = stopify.stopifyLocally(source, { newMethod: 'direct' });
+    const answer = { value: 'runStopify: Value wasn\'t set!' };
+    return new Promise((resolve, reject) => {
+      if (runner.kind !== 'ok') { reject(runner); return; }
+      runner = runner as (stopify.AsyncRun & stopify.AsyncEval);
+      runner.g = { f, answer };
+      runner.run((result : any) => {
+        if (result.type !== 'normal') {
+          console.log('runStopify reject', answer.value);
+          runGetValue(result.value).then((v) => console.log('Reactor value', v));
+          reject(answer.value);
+        } else {
+          console.log('runStopify resolve', answer.value);
+          resolve(answer.value);
+        }
+      });
+    });
+  }
+
   function setInitialValue() {
     try {
-      runGetValue().then((v) => {
+      runGetValue(reactor).then((v) => {
         console.log('setInitialValue: covert', v);
         setValue(v);
       });
@@ -107,14 +129,16 @@ function Reactor({ reactor, RenderedValue }: Props) {
         onClick={() => {
           if (open === false) {
             try {
-              reactor.$interactNoPauseResume(
-                (newNode, newTitle, setupClose) => {
-                  setupClose(close);
-                  setNode(newNode);
-                  setTitle(newTitle);
-                  setOpen(true);
-                },
-              );
+              runStopify(() => {
+                reactor.$interact(
+                  (newNode, newTitle, setupClose) => {
+                    setupClose(close);
+                    setNode(newNode);
+                    setTitle(newTitle);
+                    setOpen(true);
+                  },
+                );
+              });
             } catch (e) {
               console.log('failed with', e);
             }

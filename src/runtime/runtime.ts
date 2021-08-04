@@ -300,14 +300,20 @@ function customDivide(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any 
     }
 }
 
+/* @stopify flat */
 export function pauseStack(callback) {
   // @ts-ignore
-  return $STOPIFY.pauseK(kontinue => {
+  return $STOPIFY.pauseK(/* @stopify flat */ (kontinue) => {
     return callback({
-      resume: (val) => kontinue({ type: "normal", value: val }),
-      error: (err) => kontinue({ type: "error", error: err })
+      resume: /* @stopify flat */ (val) => kontinue({ type: "normal", value: val }),
+      error: /* @stopify flat */ (err) => kontinue({ type: "error", error: err })
     })
   });
+}
+
+export function run<A>(f : (() => A), onDone : ((a : A) => void)) : void {
+  // @ts-ignore
+  return $STOPIFY.runStopifiedCode(f, onDone);
 }
 
 const allModules = { };

@@ -144,7 +144,7 @@ function makeBigBangFromDict(shouldPauseAndResume) {
         add("close-when-stop", CloseWhenStop);
 
         if (shouldPauseAndResume) {
-            return bigBang(init, handlers, tracer, title);
+            return bigBang(init, handlers, tracer, title, insertNode);
         }
 
         return bigBangNoPauseResume(init, handlers, tracer, title, insertNode);
@@ -286,12 +286,20 @@ var isWorldConfigOption = function(v) { return v instanceof WorldConfigOption; }
 // (it should be paused).  The run gets paused by pauseStack() in the
 // call to bigBang, so these runs will all be fresh
 var adaptWorldFunction = function(worldFunction) {
-    return function() {
+    return /* @stopify flat */ function() {
         // Consumes any number of arguments.
         var success = arguments[arguments.length - 1];
         var pyretArgs = [].slice.call(arguments, 0, arguments.length - 1);
-        const result = worldFunction.apply(null, pyretArgs);
-        success(result);
+        anchorRuntime.run(/* @stopify flat */ () => {
+            return worldFunction.apply(null, pyretArgs);
+        }, (result) => {
+            if(result.type === 'normal') {
+                success(result.value);
+            }
+            else {
+                console.error("Result was an error or not normal in reactor callback: ", result);
+            }
+        });
     };
 };
 
