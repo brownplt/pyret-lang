@@ -1518,6 +1518,19 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       return globalNames;
     }
 
+    function getModuleGlobals(prog : A.Program) : Set<[A.Name, string]> {
+      const globalURIs = new Set<[A.Name, string]>();
+      visit<A.Expr | A.Program>({
+        "s-id-modref": (_, g : (Variant<A.Expr, "s-id-modref">)) => {
+          if(g.dict.id.$name === 's-module-global') {
+            globalURIs.add([ g.dict.id, g.dict.uri ]);
+          }
+        }
+      }, prog);
+      return globalURIs;
+    }
+
+
     function importToDep(i : A.ImportType) : CS.Dependency {
       switch(i.$name) {
         case 's-const-import': return { $name: 'builtin', dict: { modname: i.dict.mod }}
@@ -1603,6 +1616,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       }
 
       const globalNames = getGlobals(prog);
+      const globalModuleNames = getModuleGlobals(prog);
       const uriToLocalJsName = new Map<string, A.Name>();
 
       function importBuiltin(bindName : A.Name, name : string) {
@@ -1670,6 +1684,15 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
           implicitImports.push(...uriToImport(uri, newName));
         }
       });
+
+      const hasModuleImport = new Set<string>();
+      for(let [name, uri] of globalModuleNames) {
+        const key = uri + nameToKey(name);
+        if(!hasModuleImport.has(key)) {
+          implicitImports.push(...uriToImport(uri, name));
+          hasModuleImport.add(key);
+        }
+      }
 
       const importStmts = [...manualImports, ...explicitImports, ...implicitImports];
 
@@ -1802,7 +1825,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
         datatypes: translatedDatatypeMap,
         env: env,
         postEnv: postEnv,
-        freeBindings: freeBindings,
+        freeBindings,
         checkBlockTestCalls: []
       }, prog.dict.block);
 
