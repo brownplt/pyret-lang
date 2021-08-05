@@ -130,16 +130,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
     const contents = String(fs.readFileSync(nextPath));
 
     const toStopify = wrapContent(contents);
-    let isFirstOfSession = false;
-    let toWrite: string;
-
-    if (currentRunner === null) {
-      isFirstOfSession = true;
-      currentRunner = stopify.stopifyLocally(toStopify, { newMethod: 'direct' });
-      toWrite = currentRunner.code;
-    } else {
-      toWrite = currentRunner.compile(toStopify);
-    }
+    let toWrite = currentRunner.compile(toStopify);
 
     if (currentRunner.kind !== 'ok') { reject(currentRunner); }
     fs.writeFileSync(stoppedPath, toWrite);
@@ -199,11 +190,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
             resolve(toReturn);
           }
         };
-        if (isFirstOfSession) {
-          currentRunner.run(cb);
-        } else {
-          currentRunner.evalCompiled(toWrite, cb);
-        }
+        currentRunner.evalCompiled(toWrite, cb);
       }),
       pause: (callback: (line: number) => void): void => {
         currentRunner.pause(callback);
@@ -291,7 +278,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
 // :P) to use that old style instead of this
 export const resetAsyncSession = () => {
   // delete asyncCache['/compiled/builtin/runtime.js.stopped'];
-  currentRunner = null;
+  // currentRunner = null;
 };
 
 export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => any) => {
