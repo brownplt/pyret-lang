@@ -62,6 +62,12 @@ function Chatitor({
   const [mountedEditor, setEditor] = (
     React.useState<(CodeMirror.Editor & CodeMirror.Doc) | null>(null)
   );
+  const [enterSendRender, setEnterSendRender] = (
+    React.useState<boolean>(false as boolean)
+  );
+  const [isFocused, setIsFocused] = (
+    React.useState<boolean>(false as boolean)
+  );
   // UnControlled continues to have stale closures for no reason, ref is an easy
   // solution
   const chunksRef = React.useRef(chunks);
@@ -111,6 +117,16 @@ function Chatitor({
     maxWidth: '70%',
     margin: '2em auto',
   };
+  // Slightly different from in a chat! (Should it be the same?)
+  const doesEnterKeySend = (
+    editor: CodeMirror.Editor & CodeMirror.Doc,
+    pos: CodeMirror.Position,
+  ) => {
+    const token = editor.getTokenAt(pos);
+    return token.state.lineState.tokens.length === 0;
+  };
+  const tooltipStyle = { margin: '0 0.5em' };
+  const shiftEnterStyle = { ...tooltipStyle, color: enterNewlineRef.current ? 'grey' : 'black' };
   return (
     <div className="chatitor-container">
       <div style={{ gridRow: '1', width: '100%', overflowY: 'scroll' }}>
@@ -131,6 +147,17 @@ function Chatitor({
           editor.setSize(null, 'auto');
           setEditor(editor);
         }) as (editor: CodeMirror.Editor) => void}
+        onChange={((editor: CodeMirror.Editor & CodeMirror.Doc) => {
+          setEnterSendRender(doesEnterKeySend(editor, editor.getCursor()));
+        }) as any}
+        onSelection={((
+          editor: CodeMirror.Editor & CodeMirror.Doc,
+          { ranges }: {ranges: [{head: CodeMirror.Position, anchor: CodeMirror.Position}]},
+        ) => {
+          setEnterSendRender(doesEnterKeySend(editor, ranges[0].head));
+        }) as any}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         onKeyDown={((editor: CodeMirror.Editor & CodeMirror.Doc, event: KeyboardEvent) => {
           switch ((event as any).key) {
             case 'Enter': {
@@ -182,6 +209,25 @@ function Chatitor({
         }) as any}
         autoCursor
       />
+      <div style={{
+        width: '48em',
+        textAlign: 'right',
+        margin: '0.3em auto',
+        transition: isFocused ? 'opacity 0.2s 2s ease-in' : 'opacity 0.2s ease-in',
+        opacity: isFocused ? '60%' : '0%',
+      }}
+      >
+        <span style={shiftEnterStyle}>Shift-Enter: new line</span>
+        <span style={tooltipStyle}>Ctrl-Enter: send</span>
+        <span style={{
+          ...tooltipStyle, display: 'inline-block', textAlign: 'left', width: '7em',
+        }}
+        >
+          Enter:
+          {' '}
+          {enterSendRender && !enterNewlineRef.current ? 'send' : 'new line'}
+        </span>
+      </div>
     </div>
   );
 }

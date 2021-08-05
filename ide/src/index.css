@@ -62,7 +62,6 @@
   padding: 1em;
   width: 45em;
   margin: 0 auto;
-  margin-bottom: 1em;
   transition: border-radius 0.1s;
 }
 .new-expr .CodeMirror-focused {
