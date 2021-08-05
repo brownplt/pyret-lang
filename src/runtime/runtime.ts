@@ -311,7 +311,20 @@ export function pauseStack(callback) {
   });
 }
 
-export function run<A>(f : (() => A), onDone : ((a : A) => void)) : void {
+export function safeVoidCallback<A>(f : ((...args : any[]) => A)) : () => void {
+  return function(...args : any[]) {
+    return run(() => f(...args), (a) => {
+      if(a.type === 'error') {
+        console.error("A safeVoidCallback failed with an error: ", a);
+      }
+      else {
+        console.log("A safeVoidCallback succeeded");
+      }
+    });
+  }
+}
+
+export function run<A>(f : (() => A), onDone : ((a : {type: 'normal', value: A} | {type: 'error', result: any}) => void)) : void {
   // @ts-ignore
   return $STOPIFY.runStopifiedCode(f, onDone);
 }
