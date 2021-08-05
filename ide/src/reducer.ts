@@ -1095,7 +1095,7 @@ const serverAPI = makeServerAPI(
 
 function segmentName(file: string, id: string): string {
   const { base } = bfsSetup.path.parse(file);
-  return `/tmp/${base}-${id}`;
+  return `/projects/${base}-${id}`;
 }
 
 // TODO(luna): don't use index, check for id matches
@@ -1234,7 +1234,7 @@ function handleCompileSessionFailure(
 
 let stopFlag = false;
 async function runSessionAsync(state : State) : Promise<any> {
-  const { chunks } = state;
+  const { typeCheck, chunks } = state;
   const filenames: string[] = [];
   chunks.forEach((c) => {
     const filename = segmentName(state.currentFile, c.id);
@@ -1267,7 +1267,7 @@ async function runSessionAsync(state : State) : Promise<any> {
       program: base,
       builtinJSDir: path.compileBuiltinJS,
       checks: 'none',
-      typeCheck: true,
+      typeCheck,
       recompileBuiltins: false,
       session: sessionId,
     }, state.runKind, {
