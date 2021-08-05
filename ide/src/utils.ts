@@ -11,8 +11,15 @@ export function isDataValue(x: any): x is DataValue {
   return Object.prototype.hasOwnProperty.call(x, '$brand');
 }
 
-export function intersperse(array: Array<JSX.Element>, btwn: JSX.Element): Array<JSX.Element> {
-  return array.slice(1).reduce((acc, comp) => acc.concat([btwn, comp]), [array[0]]);
+export function intersperse(array: Array<JSX.Element>,
+  btwn: JSX.Element,
+  last?: JSX.Element): Array<JSX.Element> {
+  return [
+    array[0],
+    ...array.slice(1, -1).flatMap((comp) => [btwn, comp]),
+    last ?? btwn,
+    array[array.length - 1],
+  ];
 }
 
 export class NeverError extends Error {

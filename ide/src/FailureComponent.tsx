@@ -31,6 +31,19 @@ export default function FailureComponent({ failure, editor }: Props) {
           )}
         </>
       );
+    case 'h-sequence-sep':
+      return (
+        <>
+          {intersperse(
+            failure.contents.map((f, i) => (
+            // eslint-disable-next-line
+            <FailureComponent failure={f} key={i} editor={editor} />
+            )),
+            <>{failure.sep === '\n' ? '' : failure.sep}</>,
+            <>{failure.last}</>,
+          )}
+        </>
+      );
     case 'embed':
       // A little strange as it seems to expect strings to be rendered as-is,
       // rather than indicated they are strings. That, in my opinion, is

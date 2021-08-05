@@ -187,8 +187,10 @@ export class Editor extends React.Component<EditorProps, any> {
         editorMode,
       } = that.props;
 
-      if (editorMode === EditorMode.Text) {
+      if (editorMode !== EditorMode.Chunks) {
         // We can rely on the browser's native copy here, since there's only one CodeMirror.
+        // We also prefer native copy for Chatitor, because there are no
+        // selections across multiple chunks
         return;
       }
 
