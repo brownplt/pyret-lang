@@ -758,6 +758,7 @@ type Runtime = {
           const msg = `Can't add constraint to an uninitialized system: ${JSON.stringify(subtype)} = ${JSON.stringify(supertype)}\n${formatSrcloc(subtype.dict.l, true)}\n${formatSrcloc(supertype.dict.l, true)}`;
           throw new InternalCompilerError(msg);
         }
+        LOG(`Adding constraint (at level ${this.levels.length}) ${typeKey(subtype)}  <:  ${typeKey(supertype)}\n`);
         this.curLevel().addConstraint(subtype, supertype);
       }
       addFieldConstraint(type: TS.Type, fieldName: string, fieldType: TS.Type): void {
@@ -998,6 +999,7 @@ type Runtime = {
         if(supertype.$name === "t-top" || subtype.$name === "t-bot") {
           continue;
         }
+        LOG(`In solveHelperConstraints, ${typeKey(subtype)}  <:  ${typeKey(supertype)}\n`);
 
         switch(supertype.$name) {
           case "t-existential": {
@@ -1051,7 +1053,10 @@ type Runtime = {
           default: {
             switch(subtype.$name) {
               case "t-name": {
-                if(supertype.$name !== "t-name") { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
+                if(supertype.$name !== "t-name") { 
+                  LOG(`About to fail in solveHelperConstraints/super-default/sub-name, subtype = ${typeKey(subtype)} < ${typeKey(supertype)} = supertype\n`);
+                  throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); 
+                }
                 const sameModule = sameOrigin(subtype.dict['module-name'], supertype.dict['module-name']);
                 const sameId = sameName(subtype.dict.id, supertype.dict.id);
                 if (sameModule && sameId) { continue; }
@@ -1605,7 +1610,7 @@ type Runtime = {
 
       solveLevel() : ConstraintSolution {
         try {
-          LOG(`Solving level ${this.constraints.curLevel().name}:\n${String(this.constraints)}\nCurrent bindings:\n`);
+          LOG(`Solving level (depth ${this.constraints.levels.length}) ${this.constraints.curLevel().name}:\n${String(this.constraints)}\nCurrent bindings:\n`);
           for (let [name, type] of this.binds) {
             LOG(`${name} => ${typeKey(type)}\n`);
           }
@@ -2065,7 +2070,7 @@ type Runtime = {
               throw new TypeCheckFailure(CS['unable-to-infer'].app(aOnto.dict.l));
             }
             default: {
-              throw new TypeCheckFailure(CS['incorrect-type'].app(String(aOnto), aOnto.dict.l, "a polymorphic type", l));
+              throw new TypeCheckFailure(CS['incorrect-type'].app(typeKey(aOnto), aOnto.dict.l, "a polymorphic type", l));
             }
           }
         }
@@ -2080,7 +2085,7 @@ type Runtime = {
           return instantiateObjectType(instantiated, context);
         }
         default: {
-          throw new TypeCheckFailure(CS['incorrect-type'].app(String(typ), typ.dict.l, "an object type", typ.dict.l));
+          throw new TypeCheckFailure(CS['incorrect-type'].app(typeKey(typ), typ.dict.l, "an object type", typ.dict.l));
         }
       }
     }
@@ -2176,7 +2181,7 @@ type Runtime = {
     function _checking(e : A.Expr, expectTyp : TS.Type, topLevel : boolean, context : Context) : void {
       context.addLevel(`_checking(${e.$name}) at ${formatSrcloc(e.dict.l, false)} against expectTyp ${typeKey(expectTyp)}`);
       function solveAndReturn() {
-        context.solveLevel();
+        const solution = context.solveLevel();
         return;
       }
       expectTyp = resolveAlias(expectTyp, context);
@@ -2253,7 +2258,8 @@ type Runtime = {
         case 's-get-bang':
         case 's-spy-block':
         case 's-for': {
-          checkSynthesis(e, expectTyp, topLevel, context);
+          const result = checkSynthesis(e, expectTyp, topLevel, context);
+          LOG(`checkSynthesis on ${e.$name} of ${typeKey(expectTyp)} produced ${typeKey(result)}\n`);
           return solveAndReturn();
         }
         case 's-array': {
