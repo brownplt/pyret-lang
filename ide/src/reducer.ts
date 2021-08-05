@@ -1167,6 +1167,7 @@ function handleRunSessionFailure(state: State, id: string, error: string) {
 
 function handleCompileSessionFailure(
   state: State,
+  id: string,
   errors: string[],
 ): State {
   const failures = errors.map((e) => JSON.parse(e));
@@ -1198,8 +1199,8 @@ function handleCompileSessionFailure(
     return [place['start-line'], place['start-column'], place['end-line'], place['end-column']];
   };
 
+  const newChunks = [...chunks];
   if (places.length > 0) {
-    const newChunks = [...chunks];
     places.forEach((place) => {
       const chunkIndex = findChunkFromSrclocResult(place);
       if (chunkIndex) {
@@ -1222,13 +1223,31 @@ function handleCompileSessionFailure(
       chunks: newChunks,
     };
   }
-
-  const definitionsHighlights = places.filter((place) => place.$name
-    === 'srcloc' && place.source.includes(currentFile)).map(asHL);
+  const chunkIndex = newChunks.findIndex((c) => c.id === id);
+  newChunks[chunkIndex] = {
+    ...newChunks[chunkIndex],
+    errorState: {
+      status: 'failed',
+      failures,
+      // These might not be used in chatitor atm
+      effect: 'compile',
+      highlights: [asHL({
+        $name: 'srcloc',
+        source: 'dummy',
+        'start-line': 1,
+        'start-column': 0,
+        'end-line': 999999,
+        'end-column': 9999,
+        'start-char': 0,
+        'end-char': 99999,
+        asString: 'dummy',
+      })],
+    },
+    needsJiggle: true,
+  };
   return {
     ...state,
-    interactionErrors: errors,
-    definitionsHighlights,
+    chunks: newChunks,
   };
 }
 
@@ -1278,7 +1297,7 @@ async function runSessionAsync(state : State) : Promise<any> {
     });
     console.log('Result from running: ', result);
     if (result.type === 'compile-failure') {
-      update((s: State) => handleCompileSessionFailure(s, result.errors));
+      update((s: State) => handleCompileSessionFailure(s, c.id, result.errors));
       break;
     } if (result.type === 'run-failure') {
       update((s: State) => handleRunSessionFailure(s, c.id, result.error));
