@@ -115,7 +115,7 @@ export const compile = (
       checks: 'none',
       typeCheck,
       recompileBuiltins: false,
-      session: 'empty'
+      session: 'empty',
     },
   );
 };
