@@ -877,7 +877,7 @@ type Runtime = {
           if (substExist.$name === 't-existential') {
             const key = typeKey(substExist);
             if (newRefinements.has(key)) {
-              newRefinements.get(key).dataRefinements.push(dataRefinement);
+              newRefinements.get(key).dataRefinements.push(substData);
             } else {
               newRefinements.set(key, { existential: substExist, dataRefinements: [substData] });
             }
@@ -1184,6 +1184,7 @@ type Runtime = {
       // By construction, refinementConstraints has already merged all 
       // data refinements of the same existential variables.
 
+      if(refinementConstraints.size === 0) { return solution; }
       const tempVariables = new TypeSet<TJ.Variant<TS.Type, 't-existential'>>();
       for (let refinement of refinementConstraints.values()) {
         const { existential, dataRefinements } = refinement;
@@ -1199,6 +1200,7 @@ type Runtime = {
       const tempSolution = solveHelperConstraints(system, new ConstraintSolution(), context);
       const tempSubstitutions = new TypeSet(...[...tempSolution.substitutions.values()].map(({typeVar}) => typeVar));
       const newKeys = tempSubstitutions.difference(tempVariables);
+      console.log("Differenced: ", newKeys, tempSubstitutions, tempVariables);
       // TODO(Matt): make this more robust
       if (newKeys.size() > 0) { // || !tempSustem.refinementConstraints.size() > 0
         LOG(`newKeys: ${[...newKeys.values()].map(typeKey).join(',')}\n`);
@@ -1206,7 +1208,7 @@ type Runtime = {
           solution.substitutions.set(typeKey(tempVar), tempSolution.substitutions.get(typeKey(tempVar)))
         }
         LOG("About to recur...?\n");
-        return solveHelperRefinements(system, solution, context);
+        return solveHelperRefinements(system, new ConstraintSolution(new Map(), solution.substitutions), context);
       } else {
         // merge all constraints for each existential variable
         // same data-refinements get merged otherwise goes to the inner data type
