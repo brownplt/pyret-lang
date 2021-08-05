@@ -59,7 +59,7 @@ type Provides = CS.Provides
 data CompileTODO:
   | already-done( result :: CS.CompileResult )
   | arr-js-file( provides, header-file :: String, code-file :: String )
-  | arr-file( mod, libs, options )
+  | arr-file( mod :: PyretCode, libs :: CS.ExtraImports, options :: CS.CompileOptions )
 end
 
 type Locator = {
