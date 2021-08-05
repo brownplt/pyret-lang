@@ -213,7 +213,6 @@ function eagerCheckBlockRunner(uri: string, name: string, checkBlock: () => void
 var _globalTraceValues = {};
 
 function getUri(loc : [string, number, number, number, number, number, number]) {
-  console.log("Getting uri from", loc);
   return loc[0];
 }
 function getUriForCheckLoc(loc : string) {
