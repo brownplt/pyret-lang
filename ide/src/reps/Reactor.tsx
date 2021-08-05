@@ -24,8 +24,7 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { Rnd } from 'react-rnd';
 import { X } from 'react-feather';
-import * as stopify from '@stopify/stopify';
-import { getCurrentRunner } from '../runner';
+import { runStopify } from '../runner';
 // import { interact } from './control';
 // import { State } from './state';
 // import { Action } from './action';
@@ -65,66 +64,11 @@ function Reactor({ reactor, RenderedValue }: Props) {
   const [open, setOpen]: [boolean, (open: boolean) => void] = React.useState(false as boolean);
   const [value, setValue]: [any, (newValue: any) => void] = React.useState(undefined);
   const close = () => {
-    reactor.$shutdown();
-    setOpen(false);
+    runStopify(() => { reactor.$shutdown(); }).then(() => setOpen(false));
   };
 
   function runGetValue(r : any) {
-    return new Promise((resolve, reject) => {
-      const runner = getCurrentRunner();
-      const toRun = runner.compile('(function(f, answer) { answer.value = f(); })(f, answer)');
-      const answer : any = {};
-      runner.g.f = () => r.draw();
-      runner.g.answer = answer;
-      runner.evalCompiled(toRun, (result : any) => {
-        if (result.type !== 'normal') {
-          console.log('runGetValue reject', answer.value);
-          reject(result);
-        } else {
-          console.log('runGetValue resolve', result);
-          resolve(answer.value);
-        }
-      });
-    });
-    /*
-    let runner = stopify.stopifyLocally(source, { newMethod: 'direct' });
-    const answer = { value: 'runGetValue: Value wasn\'t set!' };
-    return new Promise((resolve, reject) => {
-      if (runner.kind !== 'ok') { reject(runner); return; }
-      runner = runner as (stopify.AsyncRun & stopify.AsyncEval);
-      runner.g = { reactor: r, answer };
-      runner.run((result : any) => {
-        if (result.type !== 'normal') {
-          console.log('runGetValue reject', answer.value);
-          reject(answer.value);
-        } else {
-          console.log('runGetValue resolve', answer.value);
-          resolve(answer.value);
-        }
-      });
-    });
-    */
-  }
-
-  function runStopify<A>(f : () => A) {
-    const source = '(function(f, answer) { answer.value = f(); })(f, answer)';
-    let runner = stopify.stopifyLocally(source, { newMethod: 'direct' });
-    const answer = { value: 'runStopify: Value wasn\'t set!' };
-    return new Promise((resolve, reject) => {
-      if (runner.kind !== 'ok') { reject(runner); return; }
-      runner = runner as (stopify.AsyncRun & stopify.AsyncEval);
-      Object.assign(runner.g, { f, answer });
-      runner.run((result : any) => {
-        if (result.type !== 'normal') {
-          console.log('runStopify reject', answer.value);
-          runGetValue(result.value).then((v) => console.log('Reactor value', v));
-          reject(answer.value);
-        } else {
-          console.log('runStopify resolve', answer.value);
-          resolve(answer.value);
-        }
-      });
-    });
+    return runStopify(() => r.draw());
   }
 
   function setInitialValue() {

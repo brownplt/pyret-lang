@@ -145,7 +145,7 @@ function makeReactorRaw<A>(init: A, handlers: RawReactorFields<A>, tracing: bool
                 throw e;
             }
         },
-        $shutdown: () => world.$shutdown({cleanShutdown: true}),
+        $shutdown: /* @stopify flat */ () => world.$shutdown({cleanShutdown: true}),
         'start-trace': () => {
             return makeReactorRaw(init, handlers, true, [init]);
         },

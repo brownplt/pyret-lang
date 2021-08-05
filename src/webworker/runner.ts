@@ -20,7 +20,7 @@ export interface RunnerPerfResults {
 const csv = require('csv-parse/lib/sync');
 const assert = require('assert');
 const immutable = require('immutable');
-export const stopify = require('@stopify/stopify');
+import * as stopify from '@stopify/stopify';
 const browserFS = require('./browserfs-setup.ts');
 
 (window as any).stopify = stopify;
@@ -85,8 +85,19 @@ function wrapContent(content: string): string {
 
 let asyncCache : {[key:string]: any} = {};
 let currentRunner: any = null;
-export function getCurrentRunner() {
-  return currentRunner;
+
+export function runStopify<A>(f : () => A) {
+  return new Promise((resolve, reject) => {
+    currentRunner.runStopifiedCode(f, (result : any) => {
+      if (result.type !== 'normal') {
+        console.log('runStopify reject', result);
+        reject(result);
+      } else {
+        console.log('runStopify resolve', result);
+        resolve(result.value);
+      }
+    });
+  });
 }
 
 export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => Promise<any>

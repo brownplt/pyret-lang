@@ -1,3 +1,5 @@
+const anchorRuntime = require('./runtime.js');
+
 var _worldIndex = 0;
 
 var getNewWorldIndex = function() {
@@ -128,8 +130,8 @@ function resume_running_state() {
 
 
 // Close all world computations.
-Jsworld.shutdown = function(options) {
-    while(runningBigBangs.length > 0) {
+Jsworld.shutdown = /* @stopify flat */ function(options) {
+    /* @stopify flat */ while(runningBigBangs.length > 0) {
         var currentRecord = runningBigBangs.pop();
         currentRecord.pause();
         if (options.cleanShutdown) {
@@ -143,7 +145,7 @@ Jsworld.shutdown = function(options) {
 };
 
 // Closes the most recent world computation.
-Jsworld.shutdownSingle = function(options) {
+Jsworld.shutdownSingle = /* @stopify flat */ function(options) {
     if(runningBigBangs.length > 0) {
         var currentRecord = runningBigBangs.pop();
         currentRecord.pause();
@@ -190,9 +192,9 @@ var change_world = function(updater, k) {
     // and exit quickly.
     if (changingWorld[changingWorld.length - 1]) {
         setTimeout(
-            function() {
+            anchorRuntime.safeVoidCallback(function() {
                 change_world(updater, k);
-            },
+            }),
             DELAY_BEFORE_RETRY);
         return;
     }
@@ -766,24 +768,23 @@ Jsworld.bigBang = bigBang;
 
 
 
-
 // on_tick: number CPS(world -> world) -> handler
 var on_tick = function(delay, tick) {
-    return function(thisWorldIndex) {
+    /* @stopify flat */ return function(thisWorldIndex) {
         var scheduleTick, ticker;
         scheduleTick = function(t) {
             ticker.watchId = setTimeout(
-                function() {
+                anchorRuntime.safeVoidCallback(function() {
                     if (thisWorldIndex != worldIndex) { return; }
                     ticker.watchId = undefined;
                     var startTime = (new Date()).valueOf();
                     change_world(tick,
-                                 function() {
+                                 /* @ stopify flat */ function() {
                                      var endTime = (new Date()).valueOf();
                                      scheduleTick(Math.max(delay - (endTime - startTime),
                                                            0));
                                  });
-                },
+                }),
                 t);
         };
 
@@ -998,8 +999,8 @@ detachEvent = function(node, eventName, fn) {
 // add_ev: node string CPS(world event -> world) -> void
 // Attaches a world-updating handler when the world is changed.
 function add_ev(node, event, f) {
-    var eventHandler = function(e) { change_world(function(w, k) { f(w, e, k); },
-                                                  doNothing); };
+    var eventHandler = anchorRuntime.safeVoidCallback(function(e) { change_world(function(w, k) { f(w, e, k); },
+                                                  doNothing); });
     attachEvent(node, event, eventHandler);
     eventDetachers.push(function() { detachEvent(node, event, eventHandler); });
 }
@@ -1008,11 +1009,11 @@ function add_ev(node, event, f) {
 // Attaches a world-updating handler when the world is changed, but only
 // after the fired event has finished.
 function add_ev_after(node, event, f) {
-    var eventHandler = function(e) {
-        setTimeout(function() { change_world(function(w, k) { f(w, e, k); },
-                                             doNothing); },
+    var eventHandler = anchorRuntime.safeVoidCallback(function(e) {
+        setTimeout(anchorRuntime.safeVoidCallback(function() { change_world(function(w, k) { f(w, e, k); },
+                                             doNothing); }),
                    0);
-    };
+    });
 
     attachEvent(node, event, eventHandler);
     eventDetachers.push(function() { detachEvent(node, event, eventHandler); });
@@ -1231,14 +1232,14 @@ text_input = function(type, updateF, attribs) {
     var onEvent = function() {
         if (! n.parentNode) { return; }
         setTimeout(
-            function() {
+            anchorRuntime.safeVoidCallback(function() {
                 if (lastVal !== n.value) {
                     lastVal = n.value;
                     change_world(function (w, k) {
                         updateF(w, n.value, k);
                     }, doNothing);
                 }
-            },
+            }),
             0);
     };
 
