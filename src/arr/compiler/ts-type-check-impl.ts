@@ -1042,12 +1042,12 @@ type Runtime = {
             }
           }
           case "t-data-refinement": {
-            constraints.push({ subtype, supertype: supertype.dict['data-type']});
+            system.addConstraint(subtype,supertype.dict['data-type']);
             continue;
           }
           case "t-forall": {
             const newOnto = instantiateForallWithFreshVars(supertype, system, true);
-            constraints.push({ subtype, supertype: newOnto });
+            system.addConstraint(subtype, newOnto);
             continue;
           }
           default: {
@@ -1069,10 +1069,10 @@ type Runtime = {
                 if (subtypeArgs.length !== supertypeArgs.length) { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
                 for (let i = 0; i < supertypeArgs.length; i++) {
                   // contravariant argument types
-                  constraints.push({ subtype: supertypeArgs[i], supertype: subtypeArgs[i] });
+                  system.addConstraint(supertypeArgs[i], subtypeArgs[i]);
                 }
                 // covariant return type
-                constraints.push({ subtype: subtype.dict.ret, supertype: supertype.dict.ret });
+                system.addConstraint(subtype.dict.ret, supertype.dict.ret);
                 continue;
               }
               case "t-app": {
@@ -1082,10 +1082,10 @@ type Runtime = {
                 if (subtypeArgs.length !== supertypeArgs.length) { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
                 for (let i = 0; i < supertypeArgs.length; i++) {
                   // covariant argument types
-                  constraints.push({ subtype: subtypeArgs[i], supertype: supertypeArgs[i] });
+                  system.addConstraint(subtypeArgs[i], supertypeArgs[i]);
                 }
                 // covariant return type
-                constraints.push({ subtype: subtype.dict.onto, supertype: supertype.dict.onto });
+                system.addConstraint(subtype.dict.onto,supertype.dict.onto);
                 continue;
               }
               case "t-top": {
@@ -1108,7 +1108,7 @@ type Runtime = {
                     // TODO(Matt): field-missing error
                     throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype));
                   }
-                  constraints.push({ subtype: subtypeFields.get(superKey), supertype: superFieldType });
+                  system.addConstraint(subtypeFields.get(superKey), superFieldType);
                 }
                 continue;
               }
@@ -1122,23 +1122,23 @@ type Runtime = {
                 }
                 for (let i = 0; i < supertypeElts.length; i++) {
                   // covariant argument types
-                  constraints.push({ subtype: subtypeElts[i], supertype: supertypeElts[i] });
+                  system.addConstraint(subtypeElts[i], supertypeElts[i]);
                 }
                 continue;
               }
               case "t-forall": {
                 const newOnto = instantiateForallWithFreshVars(subtype, system, true);
-                constraints.push({ subtype: newOnto, supertype });
+                system.addConstraint(newOnto, supertype);
                 continue;
               }
               case "t-ref": {
                 if(supertype.$name !== "t-ref") { throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); }
                 // NOTE(Ben): should this be *invariant* (and add two constraints instead of just one)?
-                constraints.push({ subtype: subtype.dict.typ, supertype: supertype.dict.typ });
+                system.addConstraint(subtype.dict.typ, supertype.dict.typ);
                 continue;
               }
               case "t-data-refinement": {
-                constraints.push({ subtype: subtype.dict['data-type'], supertype });
+                system.addConstraint(subtype.dict['data-type'], supertype);
                 continue;
               }
               case "t-var": {
@@ -1146,7 +1146,8 @@ type Runtime = {
                 throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype));
               }
               case "t-existential": {
-                constraints.push({ subtype: supertype, supertype: subtype });
+                // NOTE(Ben): contravariant -- why?
+                system.addConstraint(supertype, subtype);
                 continue;
               }
               default: throw new ExhaustiveSwitchError(subtype);
@@ -1335,8 +1336,9 @@ type Runtime = {
         const varMapping = new Map<string, TJ.Variant<TS.Type, 't-var'>>();
         const newTyp = collectVars(typ, varMapping);
         const vars = [...varMapping.values()];
-        if(vars.length === 0) { return typ; }
-        else { return TS['t-forall'].app(runtime.ffi.makeList(vars), newTyp, typ.dict.l, false); }
+        const ret = (vars.length === 0) ? typ : TS['t-forall'].app(runtime.ffi.makeList(vars), newTyp, typ.dict.l, false);
+        LOG(`Generalized ${typeKey(typ)} into ${typeKey(ret)}\n`);
+        return ret;
       }
     }
 
