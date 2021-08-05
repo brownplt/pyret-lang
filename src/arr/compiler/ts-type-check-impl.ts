@@ -3584,9 +3584,84 @@ type Runtime = {
     }
 
     function synthesisExtend(extend: TJ.Variant<A.Expr, 's-extend'>, superType: TS.Type, context: Context): TS.Type {
-      const { l, supe: obj, fields } = extend.dict;
-      LOG("Why are we here?")
-      throw new InternalCompilerError("synthesisExtend not finished");
+      const { l, supe: obj } = extend.dict;
+      const fields = listToArray(extend.dict.fields);
+      /** Type-check fields
+       * Note(Ben): do we actually need to synthesize any types here?
+       * Note(Ben): this is the only place in the typechecker (as far as I can tell)
+       * that genuinely could produce multiple type errors.
+       */
+      function fieldLookup(objType: TS.Type, availableFields: Map<string, TS.Type>) {
+        const errors: CS.CompileError[] = [];
+        for (const field of fields) {
+          switch(field.$name) {
+            case 's-data-field': {
+              if (availableFields.has(field.dict.name)) {
+                try { 
+                  checking(field.dict.value, availableFields.get(field.dict.name), false, context); 
+                } catch (e) {
+                  if (e instanceof TypeCheckFailure) {
+                    errors.push(...e.errs);
+                  } else {
+                    throw e;
+                  }
+                }
+              } else {
+                errors.push(CS['object-missing-field'].app(field.dict.name, typeKey(objType), objType.dict.l, field.dict.l));
+              }
+              break;
+            }
+            default: throw new InternalCompilerError(`synthesisExtend for ${field.$name} not implemented yet`);
+          }
+        }
+        if (errors.length > 0) {
+          throw new TypeCheckFailure(...errors);
+        }
+      }
+      const newMembers = collectMembers(fields, false, context);
+      const objType = instantiateObjectType(superType, context);
+      switch(objType.$name) {
+        case 't-record': {
+          for (let [fieldName, fieldType] of mapFromStringDict(objType.dict.fields)) {
+            newMembers.set(fieldName, fieldType);
+          }
+          return TS['t-record'].app(stringDictFromMap(newMembers), l, objType.dict.inferred);
+        }
+        case 't-name': {
+          const concreteDataType = instantiateDataType(objType, context);
+          const availableFields = mapFromStringDict(concreteDataType.dict.fields);
+          fieldLookup(objType, availableFields);
+          // NOTE(Ben): I think the original fieldLookup function returns 
+          // the type of the last field it examines, but that seems weird and wrong.
+          return objType;
+        }
+        case 't-data-refinement': {
+          // NOTE(alex): Only allow extend on data variants iff the field exists and match
+          //   the data variant's field type.
+          // This allows the type of an extend expression on a data variant is that data variant.
+          // Previously, this behavior was not supported and exposed runtime-implementations of
+          //   data variants and removed the type.
+          const concreteDataType = instantiateDataType(objType.dict['data-type'], context);
+          const variants = new Map(listToArray(concreteDataType.dict.variants).map((v) => [v.dict.name, v]));
+          if (!variants.has(objType.dict['variant-name'])) {
+            throw new InternalCompilerError(`Invalid variant: '${objType.dict['variant-name']}'`);
+          }
+          const concreteVariant = variants.get(objType.dict['variant-name']);
+          const availableFields = mapFromStringDict(concreteVariant.dict['with-fields']);
+          if (concreteVariant.$name === 't-variant') {
+            for (let field of listToArray(concreteVariant.dict.fields)) {
+              const [fieldName, fieldType] = field.vals;
+              availableFields.set(fieldName, fieldType);
+            }
+          }
+          fieldLookup(objType, availableFields);
+          return objType;
+        }
+        case 't-existential':
+          throw new TypeCheckFailure(CS['unable-to-infer'].app(l));
+        default:
+          throw new TypeCheckFailure(CS['incorrect-type-expression'].app(typeKey(objType), objType.dict.l, "an object type", l, obj));
+      }
     }
 
     function desugarSFor(e : TJ.Variant<A.Expr, 's-for'>): A.Expr {
