@@ -17,8 +17,8 @@ type Runtime = {
   makeModuleReturn: (values: Record<string, any>, types: Record<string, any>) => any,
   makeObject: <T extends {}>(val : T) => { dict: T },
   ffi: {
-    makeList: <T>(ts: T[] | IterableIterator<T>) => List<T>,
-    makeTreeSet: <T>(ts: T[] | IterableIterator<T>) => Set<T>,
+    makeList: <T>(ts: T[]) => List<T>,
+    makeTreeSet: <T>(ts: T[]) => Set<T>,
     makeSome: <T>(val: T) => Option<T>,
     makeNone: <T>() => Option<T>,
     throwMessageException: (msg: string) => any,
@@ -694,7 +694,7 @@ type Runtime = {
             ]);
           });
           ret = TCS.dict.values.dict['constraint-system'].app(
-            runtime.ffi.makeTreeSet(level.variables.values()),
+            runtime.ffi.makeTreeSet([...level.variables.values()]),
             runtime.ffi.makeList(level.constraints.map((c) => runtime.makeTuple([c.subtype, c.supertype]))),
             runtime.ffi.makeList([...mapMapValues(level.refinementConstraints, (r) => {
               return r.dataRefinements.map((dr) => runtime.makeTuple([r.existential, dr]));
@@ -2510,7 +2510,7 @@ type Runtime = {
           if (branchMap.size === 0) {
             return noElse(l, branchResults, context);
           } else {
-            throw new TypeCheckFailure(CS['non-exhaustive-pattern'].app(runtime.ffi.makeList(branchMap.values()), typeKey(typ), l));
+            throw new TypeCheckFailure(CS['non-exhaustive-pattern'].app(runtime.ffi.makeList([...branchMap.values()]), typeKey(typ), l));
           }
         }
       } else {
@@ -3284,7 +3284,7 @@ type Runtime = {
       return newType;
     }
 
-    function synthesisSpine(funType : TS.Type, original: A.Expr, args : A.Expr[], appLoc : SL.Srcloc, context : Context) : TS.Type {
+    function synthesisSpine(funType : TS.Type, original: TJ.Variant<A.Expr, 's-app'>, args : A.Expr[], appLoc : SL.Srcloc, context : Context) : TS.Type {
       context.addLevel(`synthesisSpine(${original.$name}) at ${formatSrcloc(original.dict.l, false)}`);
       function wrapReturn(t : TS.Type) {
         return setTypeLoc(context.solveAndResolveType(t), appLoc);
@@ -3296,7 +3296,7 @@ type Runtime = {
         case "t-arrow": {
           const argTypes = listToArray(funType.dict.args);
           if(args.length !== argTypes.length) {
-            throw new TypeCheckFailure(CS['incorrect-number-of-args'].app(runtime.ffi.makeList(args), funType));
+            throw new TypeCheckFailure(CS['incorrect-number-of-args'].app(original, funType));
           }
           for(let i = 0; i < args.length; i += 1) {
             checking(args[i], argTypes[i], false, context);
@@ -3442,7 +3442,8 @@ type Runtime = {
           return synthesisSpine(funType, e, args, e.dict.l, context);
         case 's-prim-app': {
           const arrowType = lookupId(e.dict.l, e.dict._fun, e, context);
-          const result = synthesisSpine(arrowType, e, listToArray(e.dict.args), e.dict.l, context);
+          const eAsApp = A['s-app'].app(e.dict.l, A['s-id'].app(e.dict.l, A['s-name'].app(A['dummy-loc'], e.dict._fun)), e.dict.args);
+          const result = synthesisSpine(arrowType, eAsApp, listToArray(e.dict.args), e.dict.l, context);
           return setTypeLoc(result, e.dict.l);
         }
         case 's-tuple': {

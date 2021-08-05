@@ -381,14 +381,14 @@ export type CompileError =
   }
   | {
     $name: "bad-type-instantiation",
-    dict: { 'app-type': Variant<T.Type, 't-app'>, 'expected-length': any }
+    dict: { 'app-type': Variant<T.Type, 't-app'>, 'expected-length': number }
   }
   | {
     $name: "incorrect-number-of-args",
-    dict: { 'app-expr': any, 'fun-typ': any }
+    dict: { 'app-expr': Variant<A.Expr, 's-app'>, 'fun-typ': T.Type }
   }
   | { $name: "method-missing-self", dict: { 'expr': A.Expr } }
-  | { $name: "apply-non-function", dict: { 'app-expr': A.Expr, 'typ': any } }
+  | { $name: "apply-non-function", dict: { 'app-expr': A.Expr, 'typ': T.Type } }
   | {
     $name: "tuple-too-small",
     dict: 
@@ -752,23 +752,23 @@ dict: {values: {dict: {
 
 'zero-fraction': 
   PFunction<
-    (loc: unknown, numerator: unknown) => Variant<CompileError, 'zero-fraction'>
+    (loc: Loc, numerator: number) => Variant<CompileError, 'zero-fraction'>
   >
 
 'mixed-binops': 
   PFunction<
     (
-        exp_loc: unknown,
-        op_a_name: unknown,
-        op_a_loc: unknown,
-        op_b_name: unknown,
-        op_b_loc: unknown
+        exp_loc: Loc,
+        op_a_name: string,
+        op_a_loc: Loc,
+        op_b_name: string,
+        op_b_loc: Loc
       ) => Variant<CompileError, 'mixed-binops'>
   >
 
 'block-ending': 
   PFunction<
-    (l: Loc, block_loc: Loc, kind: unknown) => Variant<CompileError, 'block-ending'>
+    (l: Loc, block_loc: Loc, kind: string) => Variant<CompileError, 'block-ending'>
   >
 
 'single-branch-if': 
@@ -776,7 +776,7 @@ dict: {values: {dict: {
 
 'unwelcome-where': 
   PFunction<
-    (kind: unknown, loc: unknown, block_loc: unknown) => Variant<CompileError, 'unwelcome-where'>
+    (kind: string, loc: Loc, block_loc: Loc) => Variant<CompileError, 'unwelcome-where'>
   >
 
 'non-example': 
@@ -784,26 +784,26 @@ dict: {values: {dict: {
 
 'tuple-get-bad-index': 
   PFunction<
-    (l: unknown, tup: unknown, index: unknown, index_loc: unknown) => Variant<CompileError, 'tuple-get-bad-index'>
+    (l: Loc, tup: A.Expr, index: number, index_loc: Loc) => Variant<CompileError, 'tuple-get-bad-index'>
   >
 
 'import-arity-mismatch': 
   PFunction<
     (
-        l: unknown,
-        kind: unknown,
-        args: unknown,
-        expected_arity: unknown,
-        expected_args: unknown
+        l: Loc,
+        kind: string,
+        args: List<string>,
+        expected_arity: number,
+        expected_args: List<string>
       ) => Variant<CompileError, 'import-arity-mismatch'>
   >
 
 'no-arguments': 
-  PFunction< (expr: unknown) => Variant<CompileError, 'no-arguments'> >
+  PFunction< (expr: A.Expr) => Variant<CompileError, 'no-arguments'> >
 
 'non-toplevel': 
   PFunction<
-    (kind: unknown, l: Loc, parent_loc: Loc) => Variant<CompileError, 'non-toplevel'>
+    (kind: string, l: Loc, parent_loc: Loc) => Variant<CompileError, 'non-toplevel'>
   >
 
 'unwelcome-test': 
@@ -811,11 +811,11 @@ dict: {values: {dict: {
 
 'unwelcome-test-refinement': 
   PFunction<
-    (refinement: unknown, op: unknown) => Variant<CompileError, 'unwelcome-test-refinement'>
+    (refinement: A.Expr, op: A.CheckOp) => Variant<CompileError, 'unwelcome-test-refinement'>
   >
 
 'underscore-as': 
-  PFunction< (l: Loc, kind: unknown) => Variant<CompileError, 'underscore-as'> >
+  PFunction< (l: Loc, kind: string) => Variant<CompileError, 'underscore-as'> >
 
 'underscore-as-pattern': 
   PFunction< (l: Loc) => Variant<CompileError, 'underscore-as-pattern'> >
@@ -833,7 +833,7 @@ dict: {values: {dict: {
 
 'name-not-provided': 
   PFunction<
-    (name_loc: unknown, imp_loc: unknown, name: A.Name, typ: string) => Variant<CompileError, 'name-not-provided'>
+    (name_loc: Loc, imp_loc: Loc, name: A.Name, typ: string) => Variant<CompileError, 'name-not-provided'>
   >
 
 'unbound-id': PFunction< (id: A.Expr) => Variant<CompileError, 'unbound-id'> >
@@ -934,7 +934,7 @@ dict: {values: {dict: {
 
 'incorrect-number-of-args': 
   PFunction<
-    (app_expr: unknown, fun_typ: unknown) => Variant<CompileError, 'incorrect-number-of-args'>
+    (app_expr: Variant<A.Expr, 's-app'>, fun_typ: T.Type) => Variant<CompileError, 'incorrect-number-of-args'>
   >
 
 'method-missing-self': 
@@ -942,7 +942,7 @@ dict: {values: {dict: {
 
 'apply-non-function': 
   PFunction<
-    (app_expr: A.Expr, typ: unknown) => Variant<CompileError, 'apply-non-function'>
+    (app_expr: A.Expr, typ: T.Type) => Variant<CompileError, 'apply-non-function'>
   >
 
 'tuple-too-small': 
@@ -1008,12 +1008,12 @@ dict: {values: {dict: {
 
 'cant-match-on': 
   PFunction<
-    (ann: unknown, type_name: string, loc: Loc) => Variant<CompileError, 'cant-match-on'>
+    (ann: A.Ann, type_name: string, loc: Loc) => Variant<CompileError, 'cant-match-on'>
   >
 
 'different-branch-types': 
   PFunction<
-    (l: unknown, branch_types: unknown) => Variant<CompileError, 'different-branch-types'>
+    (l: Loc, branch_types: List<T.Type>) => Variant<CompileError, 'different-branch-types'>
   >
 
 'incorrect-number-of-bindings': 

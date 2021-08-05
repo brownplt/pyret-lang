@@ -37,6 +37,7 @@ mutable-string-dict = SD.mutable-string-dict
 type MutableStringDict = SD.MutableStringDict
 
 is-s-block = A.is-s-block
+is-s-app = A.is-s-app
 
 type Loc = SL.Srcloc
 
@@ -871,7 +872,7 @@ data CompileError:
           ED.text("Contracts must appear just before their associated definition (or just before the function's examples block).  The contract for "), ED.code(ED.text(self.name)), ED.text(" at "), ED.loc(self.loc),
           ED.text(" comes after its associated definition at "), ED.loc(self.defn-loc), ED.text(". Move the contract just before its function.")]]
     end
-  | zero-fraction(loc, numerator) with:
+  | zero-fraction(loc :: A.Loc, numerator :: Number) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -895,7 +896,7 @@ data CompileError:
           ED.loc(self.loc),
           ED.text(" because its denominator is zero.")]]
     end
-  | mixed-binops(exp-loc, op-a-name, op-a-loc, op-b-name, op-b-loc) with:
+  | mixed-binops(exp-loc :: A.Loc, op-a-name :: String, op-a-loc :: A.Loc, op-b-name :: String, op-b-loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -925,7 +926,7 @@ data CompileError:
           ED.loc(self.op-b-loc),
           ED.text(". Use parentheses to group the operations and to make the order of operations clear.")]]
     end
-  | block-ending(l :: Loc, block-loc :: Loc, kind) with:
+  | block-ending(l :: Loc, block-loc :: Loc, kind :: String) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -965,7 +966,7 @@ data CompileError:
           ED.loc(self.expr.l),
           ED.text(" does not have any other branches.")]]
     end
-  | unwelcome-where(kind, loc, block-loc) with:
+  | unwelcome-where(kind :: String, loc :: A.Loc, block-loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -1010,7 +1011,7 @@ data CompileError:
           ED.loc(self.expr.l),
           ED.text(" isn't a testing statement.")]]
     end
-  | tuple-get-bad-index(l, tup, index, index-loc) with:
+  | tuple-get-bad-index(l :: A.Loc, tup :: A.Expr, index :: Number, index-loc :: Loc) with:
     method render-fancy-reason(self):
       if not(num-is-integer(self.index)):
         [ED.error:
@@ -1062,7 +1063,7 @@ data CompileError:
             ED.text(" was given an index bigger than any tuple.")]]
       end
     end
-  | import-arity-mismatch(l, kind, args, expected-arity, expected-args) with:
+  | import-arity-mismatch(l :: A.Loc, kind :: String, args :: List<String>, expected-arity :: Number, expected-args :: List<String>) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -1089,7 +1090,7 @@ data CompileError:
           ED.text(":")],
          ED.bulleted-sequence(self.expected-args.map(ED.text))]
     end
-  | no-arguments(expr) with:
+  | no-arguments(expr :: A.Expr) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -1107,7 +1108,7 @@ data CompileError:
           ED.loc(self.expr.l),
           ED.text(" has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end
-  | non-toplevel(kind, l :: Loc, parent-loc :: Loc) with:
+  | non-toplevel(kind :: String, l :: Loc, parent-loc :: Loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -1157,7 +1158,7 @@ data CompileError:
           ED.code(ED.text("examples")),
           ED.text(" block.")]]
     end
-  | unwelcome-test-refinement(refinement, op) with:
+  | unwelcome-test-refinement(refinement :: A.Expr, op :: A.CheckOp) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -1176,7 +1177,7 @@ data CompileError:
           ED.text(" may not be used with the refinement syntax, "),
           ED.code(ED.text("%(...)"))]]
     end
-  | underscore-as(l :: Loc, kind) with:
+  | underscore-as(l :: Loc, kind :: String) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -1302,7 +1303,7 @@ data CompileError:
             ED.code(ED.text("block:")), ED.text(" to indicate this is deliberate.")]]
       end
     end
-  | name-not-provided(name-loc, imp-loc, name :: A.Name, typ :: String) with:
+  | name-not-provided(name-loc :: Loc, imp-loc :: Loc, name :: A.Name, typ :: String) with:
     method render-fancy-reason(self):
       cases(SL.Srcloc) self.name-loc:
         | builtin(_) =>
@@ -2016,7 +2017,7 @@ data CompileError:
           ED.text(" but it was expected to be of type "), ED.code(ED.text(self.expected-name)),
           ED.text(" because of "), draw-and-highlight(self.expected-loc)]]
     end
-  | bad-type-instantiation(app-type :: T.Type%(is-t-app), expected-length :: Any) with:
+  | bad-type-instantiation(app-type :: T.Type%(is-t-app), expected-length :: Number) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -2033,7 +2034,7 @@ data CompileError:
           ED.text(" expected " + tostring(self.expected-length) + " type arguments, "),
           ED.text("but it received " + tostring(self.app-type.args.length()))]]
     end
-  | incorrect-number-of-args(app-expr, fun-typ) with:
+  | incorrect-number-of-args(app-expr :: A.Expr%(is-s-app), fun-typ :: T.Type) with:
     method render-fancy-reason(self):
       ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], 0)
       [ED.error:
@@ -2095,7 +2096,7 @@ data CompileError:
           ED.loc(self.expr.l),
           ED.text(" has no arguments. When a method is applied, the first argument is a reference to the object it belongs to.")]]
     end
-  | apply-non-function(app-expr :: A.Expr, typ) with:
+  | apply-non-function(app-expr :: A.Expr, typ :: T.Type) with:
     method render-fancy-reason(self):
       ed-applicant = ED.highlight(ED.text("applicant"), [list: self.app-expr._fun.l], 0)
       [ED.error:
@@ -2404,7 +2405,7 @@ data CompileError:
           ED.text("does not exhaust all variants of " + self.type-name
             + ". It is missing: " + self.missing.map(_.name).join-str(", ") + ".")]]
     end
-  | cant-match-on(ann, type-name :: String, loc :: A.Loc) with:
+  | cant-match-on(ann :: A.Ann, type-name :: String, loc :: A.Loc) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -2424,7 +2425,7 @@ data CompileError:
           draw-and-highlight(self.loc),
           ED.text("cannot be used in a cases expression.")]]
     end
-  | different-branch-types(l, branch-types) with:
+  | different-branch-types(l :: A.Loc, branch-types :: List<T.Type>) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
