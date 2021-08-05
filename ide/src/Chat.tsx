@@ -16,7 +16,7 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { UnControlled as ReactCM } from 'react-codemirror2';
 import { State } from './state';
-import { CMEditor } from './utils';
+import { CMEditor, isWrapFirst, isWrapLast } from './utils';
 
 import {
   Chunk,
@@ -247,7 +247,7 @@ class Chat extends React.Component<ChatProps, any> {
       chunks,
     } = this.props;
     const pos = editor.getCursor();
-    if (pos.line === 0 && index > 0) {
+    if (pos.line === 0 && isWrapFirst(editor, pos) && index > 0) {
       const newEditor = chunks[index - 1].editor;
       if ('focus' in newEditor) {
         newEditor.focus();
@@ -265,7 +265,7 @@ class Chat extends React.Component<ChatProps, any> {
       focusNewChat,
     } = this.props;
     const pos = editor.getCursor();
-    if (pos.line === chunks[index].editor.getValue().split('\n').length - 1) {
+    if (pos.line === chunks[index].editor.getValue().split('\n').length - 1 && isWrapLast(editor, pos)) {
       if (index < chunks.length - 1) {
         const newEditor = chunks[index + 1].editor;
         if ('focus' in newEditor) {

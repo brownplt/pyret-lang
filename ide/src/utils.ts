@@ -29,3 +29,29 @@ export class NeverError extends Error {
 }
 
 export type CMEditor = CodeMirror.Editor & CodeMirror.Doc;
+
+// Returns true if
+//     single-line|
+// Or
+//     line is wrapped |but
+//     cursor is still first
+// And false otherwise:
+//     line is wrapped and
+//     cursor| is later
+export function isWrapFirst(editor: CMEditor, pos: CodeMirror.Position): boolean {
+  const lineBegin = { line: pos.line, ch: 0 };
+  return editor.charCoords(pos).top === editor.charCoords(lineBegin).top;
+}
+// Returns true if
+//     single-line|
+// Or
+//     line is wrapped and
+//     cursor is |on last wrapped line
+// And false otherwise:
+//     line is wrapped and
+//     cursor is not |last
+//     overall
+export function isWrapLast(editor: CMEditor, pos: CodeMirror.Position): boolean {
+  const lineBegin = { line: pos.line, ch: 9999999 };
+  return editor.charCoords(pos).top === editor.charCoords(lineBegin).top;
+}

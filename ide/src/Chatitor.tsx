@@ -14,6 +14,7 @@ import {
   Chunk, emptyChunk, getStartLineForIndex, lintSuccessState,
 } from './chunk';
 import Chat from './Chat';
+import { isWrapFirst } from './utils';
 
 type StateProps = {
   chunks: Chunk[],
@@ -193,11 +194,12 @@ function Chatitor({
             }
             case 'ArrowUp': {
               const pos = editor.getCursor();
-              if (pos.line === 0) {
+              if (pos.line === 0 && isWrapFirst(editor, pos)) {
                 const lastEditor = chunksRef.current[chunksRef.current.length - 1].editor;
                 if ('getInputField' in lastEditor) {
                   lastEditor.getInputField().focus();
                 }
+                event.preventDefault();
               }
               break;
             }
