@@ -52,7 +52,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     const optionUri = TS['module-uri'].app("builtin://option");
     const equalityUri = TS['module-uri'].app("builtin://equality");
     const imageUri = TS['module-uri'].app("builtin://image");
-    const reactorUri = TS['module-uri'].app("builtin://reactor");
+    const reactorUri = TS['module-uri'].app("builtin://reactors");
     const primitiveTypesUri = TS['module-uri'].app("builtin://primitive-types")
 
     function typeGlobal(name: string): A.Name {

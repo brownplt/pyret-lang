@@ -25,6 +25,7 @@ import { connect, ConnectedProps } from 'react-redux';
 import { Rnd } from 'react-rnd';
 import { X } from 'react-feather';
 import * as stopify from '@stopify/stopify';
+import { getCurrentRunner } from '../runner';
 // import { interact } from './control';
 // import { State } from './state';
 // import { Action } from './action';
@@ -69,7 +70,23 @@ function Reactor({ reactor, RenderedValue }: Props) {
   };
 
   function runGetValue(r : any) {
-    const source = '(function(reactor, answer) { answer.value = reactor[\'draw\'](); })(reactor, answer)';
+    return new Promise((resolve, reject) => {
+      const runner = getCurrentRunner();
+      const toRun = runner.compile('(function(f, answer) { answer.value = f(); })(f, answer)');
+      const answer : any = {};
+      runner.g.f = () => r.draw();
+      runner.g.answer = answer;
+      runner.evalCompiled(toRun, (result : any) => {
+        if (result.type !== 'normal') {
+          console.log('runGetValue reject', answer.value);
+          reject(result);
+        } else {
+          console.log('runGetValue resolve', result);
+          resolve(answer.value);
+        }
+      });
+    });
+    /*
     let runner = stopify.stopifyLocally(source, { newMethod: 'direct' });
     const answer = { value: 'runGetValue: Value wasn\'t set!' };
     return new Promise((resolve, reject) => {
@@ -86,6 +103,7 @@ function Reactor({ reactor, RenderedValue }: Props) {
         }
       });
     });
+    */
   }
 
   function runStopify<A>(f : () => A) {
@@ -95,7 +113,7 @@ function Reactor({ reactor, RenderedValue }: Props) {
     return new Promise((resolve, reject) => {
       if (runner.kind !== 'ok') { reject(runner); return; }
       runner = runner as (stopify.AsyncRun & stopify.AsyncEval);
-      runner.g = { f, answer };
+      Object.assign(runner.g, { f, answer });
       runner.run((result : any) => {
         if (result.type !== 'normal') {
           console.log('runStopify reject', answer.value);
@@ -193,7 +211,7 @@ function Reactor({ reactor, RenderedValue }: Props) {
             ref={((div) => {
               if (div !== null && node !== false) {
                 div.appendChild(node);
-                (div.children[0].children[0] as any).focus();
+                // (div.children[0].children[0] as any).focus();
                 console.log(div);
               }
             })}

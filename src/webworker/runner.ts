@@ -85,8 +85,14 @@ function wrapContent(content: string): string {
 
 let asyncCache : {[key:string]: any} = {};
 let currentRunner: any = null;
+export function getCurrentRunner() {
+  return currentRunner;
+}
+
 export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => Promise<any>
   ) => {
+  currentRunner = stopify.stopifyLocally("", { newMethod: 'direct' });
+  currentRunner.run(() => { console.log("initialized stopify runner")});
   const requireAsyncMain = (importPath: string) => new Promise(((resolve, reject) => {
     const startRootRequires = window.performance.now();
     if (importPath in nodeModules) {
@@ -273,7 +279,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
 // runProgram2. Really, runProgram2 should be changed (or runProgram3 created
 // :P) to use that old style instead of this
 export const resetAsyncSession = () => {
-  delete asyncCache['/compiled/builtin/runtime.js.stopped'];
+  // delete asyncCache['/compiled/builtin/runtime.js.stopped'];
   currentRunner = null;
 };
 
