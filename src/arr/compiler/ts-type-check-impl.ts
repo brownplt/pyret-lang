@@ -1511,8 +1511,15 @@ type Runtime = {
         }
       }
 
+      /**
+       * Removes a binding from the list of bindings and ADDS its finalized type
+       * to the type info to be used by provides and other contexts (e.g. maybe
+       * by show-type-on-hover)
+       * @param termKey 
+       */
       removeBinding(termKey : string) {
         LOG(`Deleting binding ${termKey} (which ${this.binds.has(termKey) ? 'was' : 'was NOT'} found)\n`);
+        this.info.types.set(termKey, this.binds.get(termKey));
         this.binds.delete(termKey);
       }
 
@@ -2038,7 +2045,7 @@ type Runtime = {
     }
     function substituteFields(fields: Map<string, TS.Type>, newType: TS.Type, typeVar: TJ.Variant<TS.Type, 't-var' | 't-existential'>): void {
       for (let [f, fType] of fields) {
-        fields[f] = substitute(fType, newType, typeVar);
+        fields.set(f, substitute(fType, newType, typeVar));
       }
     }
 
