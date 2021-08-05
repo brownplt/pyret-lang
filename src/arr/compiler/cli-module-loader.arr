@@ -745,12 +745,12 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
   build-program(path, options, stats)
 end
 
-fun lint(program :: String, uri :: String):
+fun lint(program :: String, uri :: String, options):
   cases(E.Either) PP.maybe-surface-parse(uri, program):
     | left(exn) => E.left([list: exn.exn])
     | right(ast) =>
       ast-ended = AU.wrap-toplevels(AU.append-nothing-if-necessary(ast))
-      cases(CS.CompileResult) W.check-well-formed(ast-ended):
+      cases(CS.CompileResult) W.check-well-formed(ast-ended, options):
         | ok(_) => E.right(ast)
         | err(errs) => E.left(errs)
       end

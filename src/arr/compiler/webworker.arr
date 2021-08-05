@@ -54,7 +54,7 @@ compile-handler = lam(msg, send-message) block:
         | lint-program(program, program-source) =>
           opts = request.get-options()
           spy: opts end
-          cases(E.Either) CLI.lint(program-source, program) block:
+          cases(E.Either) CLI.lint(program-source, program, opts) block:
             | left(errors) =>
               err-list = for map(e from errors):
                 J.j-str(RED.display-to-json(e.render-reason(), tostring, empty))
