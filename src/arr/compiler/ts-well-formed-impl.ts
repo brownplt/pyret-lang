@@ -186,6 +186,29 @@ import type { List } from './ts-impl-types';
         });
       }
 
+      function opname(op: string): string {
+        return op.substr(2);
+      }
+
+      function reachableOps(visitor, l: A.Srcloc, opL: A.Srcloc, op: string, expr: A.Expr) {
+        switch (expr.$name) {
+          case 's-op': {
+            const {'l': l2, 'op-l': opL2, 'op': op2, 'left': left2, 'right': right2} = expr.dict;
+            if (op === op2) {
+              reachableOps(visitor, l, opL, op, left2);
+              reachableOps(visitor, l, opL, op, right2);
+            } else {
+              addError(C['mixed-binops'].app(l, opname(op), opL, opname(op2), opL2));
+            }
+            break;
+          }
+          default: {
+            wrapVisitAllowSMethod(visitor, expr, false);
+            break;
+          }
+        }
+      }
+
       function rejectStandaloneExprs(stmts: A.Expr[], ignoreLast: boolean): void {
         function badStmt(l: A.Srcloc, stmt: A.Expr) {
           if (stmt.$name === 's-op') {
@@ -285,12 +308,17 @@ import type { List } from './ts-impl-types';
         listToArray(stmts).forEach(stmt => wrapVisitAllowSMethod(visitor, stmt, false));
       }
 
-      const wellFormedVisitor: TJ.Visitor<A.Ann, void> = {
+      const wellFormedVisitor: TJ.Visitor<A.Ann | A.Expr, void> = {
         'a-name': (visitor, expr: TJ.Variant<A.Ann, 'a-name'>) => {
           if (A['is-s-underscore'].app(expr.dict.id)) {
             addError(C['underscore-as-ann'].app(expr.dict.l));
           }
         },
+        's-op': (visitor, expr: TJ.Variant<A.Expr, 's-op'>) => {
+          const {l, 'op-l': opL, op, left, right} = expr.dict;
+          reachableOps(visitor, l, opL, op, left);
+          reachableOps(visitor, l, opL, op, right);
+        }
       }
 
       const topLevelVisitor: TJ.Visitor<A.Program | A.Expr | A.TypeLetBind | A.Variant, void> = {
@@ -351,6 +379,9 @@ import type { List } from './ts-impl-types';
           const withMembers = listToArray(expr.dict['with-members']);
           ensureUniqueIdsOrBindings(fieldsToBinds(withMembers), false);
           withMembers.forEach(wm => wrapVisitAllowSMethod(wellFormedVisitor, wm, true));
+        },
+        's-op': (visitor, expr: TJ.Variant<A.Expr, 's-op'>) => {
+          visit(wellFormedVisitor, expr);
         }
       };
       visit<A.Program>(topLevelVisitor, ast);
