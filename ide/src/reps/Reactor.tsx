@@ -157,7 +157,6 @@ function Reactor({ reactor, RenderedValue }: Props) {
               if (div !== null && node !== false) {
                 div.appendChild(node);
                 // (div.children[0].children[0] as any).focus();
-                console.log(div);
               }
             })}
           />

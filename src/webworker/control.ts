@@ -218,7 +218,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
   type RunActions = {
     run: (callback: (value: any) => void) => void,
     pause: () => void,
-    stop: () => void
+    resume: () => void
   };
   let runActions: undefined | RunActions;
 
@@ -243,9 +243,9 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
 
     if (msgObject.tag === 'error') {
       try {
-        console.log(JSON.parse(msgObject.data));
+        console.log('Server reported error!', msgObject.data, JSON.parse(msgObject.data));
       } catch (err) {
-        console.log(msgObject.data);
+        console.log("Server reported error, and it couldn't be parsed as JSON!", msgObject.data);
       }
     }
 
@@ -263,7 +263,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
         queue[0].action();
       }
     } else if (queue.length === 0) {
-      console.log('received with empty queue: ', msgObject);
+      console.log('received with empty queue: ', JSON.stringify(msgObject));
     } else if (msgType === 'success') {
       currentEvent.resolve(true);
       finishAndProcessNext();
@@ -372,7 +372,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
     });
   }
   function apiStop() {
-    runActions!.stop();
+    runActions?.pause();
   }
 
   async function compileAndRun(

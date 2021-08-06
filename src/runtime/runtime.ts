@@ -135,8 +135,6 @@ function eagerCheckTest(lhs: () => any,  rhs: () => any,
   test: (lhs: CheckExprEvalResult, rhs: CheckExprEvalResult) => CheckTestResult,
   loc: string): void {
   
-  console.log("In an eager check test: ", loc);
-  
   const uri = getUriForCheckLoc(loc);
   if(!(uri in _globalCheckResults)) {
     _globalCheckResults[uri] = [];

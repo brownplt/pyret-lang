@@ -126,7 +126,6 @@ function Menu({
               ))}
             </div>
             <FontSize key="FontSize" />
-            {console.log(enterNewline)}
             {editorMode === EditorMode.Chatitor && (
               <button
                 onClick={() => update((s) => ({ ...s, enterNewline: !s.enterNewline }))}

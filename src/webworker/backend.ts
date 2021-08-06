@@ -106,6 +106,7 @@ export const makeBackendMessageHandler = (
       if (msgObject.tag === 'error') {
         try {
           console.log(JSON.parse(msgObject.data));
+          console.log(msgObject.data);
         } catch (err) {
           console.log(msgObject.data);
         }
@@ -138,7 +139,7 @@ export const makeBackendMessageHandler = (
 
       return null;
     } catch (err) {
-      console.log(err);
+      console.log(JSON.stringify(err));
       runtimeFailure(err);
       return null;
     }

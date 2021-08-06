@@ -1089,7 +1089,7 @@ function handleUpdate(
 }
 
 const serverAPI = makeServerAPI(
-  (msg) => console.log('From server API: ', msg),
+  (msg) => console.log('Server: ', msg),
   () => console.log('Setup finished from server API'),
 );
 
@@ -1255,11 +1255,15 @@ let stopFlag = false;
 async function runSessionAsync(state : State) : Promise<any> {
   const { typeCheck, chunks } = state;
   const filenames: string[] = [];
+  console.log('RUNNING THESE CHUNKS:');
   chunks.forEach((c) => {
     const filename = segmentName(state.currentFile, c.id);
     filenames.push(filename);
-    fs.writeFileSync(filename, c.editor.getValue());
+    const value = c.editor.getValue();
+    fs.writeFileSync(filename, value);
+    console.log(value);
   });
+  console.log('Chunks were saved in:', JSON.stringify(filenames));
   fs.writeFileSync(
     state.currentFile,
     chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
@@ -1295,7 +1299,7 @@ async function runSessionAsync(state : State) : Promise<any> {
       imgUrlProxy: ideRt.defaultImageUrlProxy,
       checkBlockFilter: ideRt.checkBlockFilter,
     });
-    console.log('Result from running: ', result);
+    console.log('Result from running: ', JSON.stringify(result));
     if (result.type === 'compile-failure') {
       update((s: State) => handleCompileSessionFailure(s, c.id, result.errors));
       break;

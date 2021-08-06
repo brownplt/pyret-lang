@@ -90,10 +90,10 @@ export function runStopify<A>(f : () => A) {
   return new Promise((resolve, reject) => {
     currentRunner.runStopifiedCode(f, (result : any) => {
       if (result.type !== 'normal') {
-        console.log('runStopify reject', result);
+        console.log('runStopify reject', JSON.stringify(result));
         reject(result);
       } else {
-        console.log('runStopify resolve', result);
+        console.log('runStopify resolve', JSON.stringify(result));
         resolve(result.value);
       }
     });
@@ -358,7 +358,6 @@ export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPa
 function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: RuntimeConfig) {
   // NOTE(alex): May need to find a better way to detect the runtime file eval
   if (!currentPath.includes("builtin/runtime.js")) {
-    console.log(`RUNNER: not runtime: ${currentPath}`);
     return;
   }
 
@@ -367,10 +366,7 @@ function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: R
     return;
   }
 
-  console.log(`RUNNER: FOUND RUNTIME ${currentPath}`);
-
   if (rtCfg.spyMessgeHandler) {
-    console.log("RUNNER: py message handler");
     // @ts-ignore
     evaldModule["$setSpyMessageHandler"](rtCfg.spyMessgeHandler);
   } else {
@@ -378,7 +374,6 @@ function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: R
   }
 
   if (rtCfg.spyExprHandler) {
-    console.log("RUNNER: spy expr handler");
     // @ts-ignore
     evaldModule["$setSpyValueHandler"](rtCfg.spyExprHandler);
   } else {
@@ -386,7 +381,6 @@ function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: R
   }
 
   if (rtCfg.imgUrlProxy) {
-    console.log("RUNNER: Overriding image URL proxy function");
     // @ts-ignore
     evaldModule["$setImgUrlProxyWrapper"](rtCfg.imgUrlProxy);
   } else {
@@ -394,7 +388,6 @@ function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: R
   }
 
   if (rtCfg.checkBlockRunner) {
-    console.log("RUNNER: check block handler");
     // @ts-ignore
     evaldModule["$setCheckBlockExecutor"](rtCfg.checkBlockRunner);
   } else {
@@ -402,7 +395,6 @@ function handleRuntimeConfig(currentPath: string, evaldModule: object, rtCfg?: R
   }
 
   if (rtCfg.checkBlockFilter) {
-    console.log("RUNNER: check block filter");
     // @ts-ignore
     evaldModule["$setCheckBlockFilter"](rtCfg.checkBlockFilter);
   } else {
