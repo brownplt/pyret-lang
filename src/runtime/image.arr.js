@@ -1782,7 +1782,7 @@ var PutImage = /* @stopify flat */ function (img, x, y, bg) {
   if (isScene(bg)) {
     return bg.add(img, x, bg.getHeight() - y);
   } else {
-    var newScene = new ScaleImage(bg.getWidth(), bg.getHeight(), [], false);
+    var newScene = new SceneImage(bg.getWidth(), bg.getHeight(), [], false);
     newScene = newScene.add(bg, bg.getWidth() / 2, bg.getHeight() / 2);
     newScene = newScene.add(img, x, bg.getHeight() - y);
     return newScene;
@@ -1793,7 +1793,7 @@ var PlaceImage = /* @stopify flat */ function (img, x, y, bg) {
   if (isScene(bg)) {
     return bg.add(img, x, y);
   } else {
-    var newScene = new ScaleImage(bg.getWidth(), bg.getHeight(), [], false);
+    var newScene = new SceneImage(bg.getWidth(), bg.getHeight(), [], false);
     newScene = newScene.add(bg, bg.getWidth() / 2, bg.getHeight() / 2);
     newScene = newScene.add(img, x, y);
     return newScene;
@@ -1809,7 +1809,7 @@ var PlaceImageAlign = /* @stopify flat */ function (img, x, y, placeX, placeY, b
   if (isScene(bg)) {
     return bg.add(img, x, y);
   } else {
-    var newScene = new ScaleImage(bg.getWidth(), bg.getHeight(), [], false);
+    var newScene = new SceneImage(bg.getWidth(), bg.getHeight(), [], false);
     newScene = newScene.add(bg, bg.getWidth() / 2, bg.getHeight() / 2);
     newScene = newScene.add(img, x, y);
     return newScene;
