@@ -49,7 +49,7 @@ check "Worklist generation (simple)":
       method uri(self): "file://" + name end,
       method name(self): name end,
       method set-compiled(self, ctxt, provs): nothing end,
-      method get-compiled(self): none end,
+      method get-compiled(self, options): CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options)) end,
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
@@ -117,7 +117,7 @@ check "Worklist generation (DAG)":
       method uri(self): "file://" + name end,
       method name(self): name end,
       method set-compiled(self, cr, provs): cresults.set-now(name, cr) end,
-      method get-compiled(self): if cresults.has-key-now(name): some(cresults.get-value-now(name)) else: none end end,
+      method get-compiled(self, options): CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options)) end,
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
@@ -179,7 +179,7 @@ check "Worklist generation (Cycle)":
       method uri(self): "file://" + name end,
       method name(self): name end,
       method set-compiled(self, ctxt, provs): nothing end,
-      method get-compiled(self): none end,
+      method get-compiled(self, options): CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options)) end,
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
@@ -241,7 +241,7 @@ check "Multiple includes":
       method uri(self): "file://" + name end,
       method name(self): name end,
       method set-compiled(self, ctxt, provs): nothing end,
-      method get-compiled(self): none end,
+      method get-compiled(self, options): CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options)) end,
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
