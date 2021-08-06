@@ -114,6 +114,7 @@ function Reactor({ reactor, RenderedValue }: Props) {
           style={{
             background: 'white',
             border: '2px solid #222222',
+            zIndex: 9999,
           }}
           minWidth="auto"
           minHeight="auto"
