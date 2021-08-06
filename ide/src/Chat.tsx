@@ -437,7 +437,7 @@ class Chat extends React.Component<ChatProps, any> {
         >
           {chunk.errorState.failures.map((failure, i) => (
             // eslint-disable-next-line
-            <div className="chatitor-rhs" key={i}>
+            <div className="chatitor-rhs" key={i} style={{border: '2px solid #dc4064'}}>
               <FailureComponent failure={failure} editor={chunkEditor} />
             </div>
           ))}
