@@ -15,6 +15,7 @@ import { RawRTMessage } from '../rtMessages';
 import { RangeWidget } from './RangeWidget';
 import ExactNumWidget from './ExactNum';
 import { NeverError } from '../utils';
+import Check from './Check';
 
 declare global {
   interface window { theKey: any; }
@@ -99,50 +100,7 @@ export default class RenderedValue extends React.Component<RenderedValueProps, R
         ) : `Spying at ${messageData.loc}`;
       }
       case 'check':
-        return (
-          <div>
-            Test
-            {' '}
-            {value.success ? 'succeeded' : 'failed'}
-            {' '}
-            at
-            {' '}
-            {value.loc}
-            {value.success === false && (
-              <div style={{
-                paddingLeft: '1em',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                >
-                  {'The left side was: '}
-                  {value.lhs.exception === true ? (
-                    <RenderedValue value={value.lhs.exception_val} />
-                  ) : (
-                    <RenderedValue value={value.lhs.value} />
-                  )}
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-                >
-                  {'The right side was: '}
-                  {value.rhs.exception === true ? (
-                    <RenderedValue value={value.rhs.exception_val} />
-                  ) : (
-                    <RenderedValue value={value.rhs.value} />
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        );
+        return <Check value={value} RenderedValue={RenderedValue} />;
       case 'object':
         return <ObjectWidget value={value} RenderedValue={RenderedValue} />;
       case 'range':
