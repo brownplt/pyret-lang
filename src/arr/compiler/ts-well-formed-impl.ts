@@ -485,6 +485,28 @@ import type { List, PFunction, Option } from './ts-impl-types';
           reachableOps(visitor, l, opL, op, left);
           reachableOps(visitor, l, opL, op, right);
         },
+        's-check-test': (visitor, expr: TJ.Variant<A.Expr, 's-check-test'>) => {
+          if (!inCheckBlock) {
+            addError(C['unwelcome-test'].app(expr.dict.l));
+          }
+          if (expr.dict.refinement.$name === 'some') {
+            switch (expr.dict.op.$name) {
+              case 's-op-is':
+              case 's-op-is-not': {
+                break;
+              }
+              default: {
+                addError(C['unwelcome-test-refinement'].app(
+                  expr.dict.refinement.dict.value,
+                  expr.dict.op));
+                break;
+              }
+            }
+          }
+          wrapVisitAllowSMethod(visitor, expr.dict.left, false)
+          visit(visitor, expr.dict.right);
+          visit(visitor, expr.dict.cause);
+        },
         's-method-field': (visitor, expr: TJ.Variant<A.Member, 's-method-field'>) => {
           let oldPbl = parentBlockLoc;
           switch (expr.dict['_check-loc'].$name) {
@@ -593,6 +615,9 @@ import type { List, PFunction, Option } from './ts-impl-types';
           withMembers.forEach(wm => wrapVisitAllowSMethod(wellFormedVisitor, wm, true));
         },
         's-op': (visitor, expr: TJ.Variant<A.Expr, 's-op'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
+        },
+        's-check-test': (visitor, expr: TJ.Variant<A.Expr, 's-check-test'>) => {
           visit<A.Expr>(wellFormedVisitor, expr);
         },
         's-method': (visitor, expr: TJ.Variant<A.Expr, 's-method'>) => {
