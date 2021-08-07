@@ -21,7 +21,7 @@ src/arr/compiler/%.js : src/arr/compiler/%.ts
 	`npm bin`/tsc --target "esnext" --module "es2015" --listFilesOnly $< \
 		| sed s/.ts$$/.js/ | xargs -n1 -I{} realpath --relative-to="src" '{}' | grep -v "\.\." \
 		| xargs -n1 -I{} realpath --relative-to="." 'src/{}' \
-		| xargs -n1 -I{} perl -0777 -p -i -e 's/;(\n*)(export \{\}(\n*);?)?\Z/\1/m' '{}'
+		| xargs -n1 -I{} perl -0777 -p -i -e 's/(?:;|\A)(\n*)(export \{\}(\n*);?)?\Z/\1/m' '{}'
 
 BUILD_DEPS := \
 	src/arr/compiler/pyret-parser.js \
@@ -220,12 +220,9 @@ clean:
 	rm -r -f tests-new/.pyret
 	rm -r -f .pyret
 	rm -r -f build/runtime
-	rm -f src/arr/compiler/ts-direct-codegen.js \
-			src/arr/compiler/ts-compile-structs.js \
-			src/arr/compiler/ts-codegen-helpers.js \
-			src/arr/compiler/ts-ast.js \
-			src/arr/compiler/ts-type-structs.js \
-			src/arr/compiler/provide-serialization.js
+	rm -f src/arr/compiler/ts-*.js
+	rm -f src/arr/compiler/provide-serialization.js \
+			src/arr/compiler/error-display.js
 
 clean-tests:
 	rm -r -f tests-new/.pyret
