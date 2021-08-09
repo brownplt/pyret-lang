@@ -63,6 +63,39 @@ import type { List, PFunction, Option } from './ts-impl-types';
         }
       }
 
+      function getLocWithCheckBlock(l: A.Srcloc, checkLoc: Option<A.Srcloc>): A.Srcloc {
+        switch (checkLoc.$name) {
+          case 'none': {
+            return l;
+          }
+          case 'some': {
+            const lRef = l as TJ.Variant<A.Srcloc, 'srcloc'>;
+            const l2 = checkLoc.dict.value as TJ.Variant<A.Srcloc, 'srcloc'>;
+            return uptoEnd(lRef, l2);
+          }
+          default: {
+            throw new ExhaustiveSwitchError(checkLoc);
+          }
+        }
+      }
+
+      function setParentBlockLocToCheckBlock(l: A.Srcloc, checkLoc: Option<A.Srcloc>) {
+        switch (checkLoc.$name) {
+          case 'none': {
+            break;
+          }
+          case 'some': {
+            const lRef = l as TJ.Variant<A.Srcloc, 'srcloc'>;
+            const cl = checkLoc.dict.value as TJ.Variant<A.Srcloc, 'srcloc'>;
+            parentBlockLoc = uptoEnd(cl, lRef);
+            break;
+          }
+          default: {
+            throw new ExhaustiveSwitchError(checkLoc);
+          }
+        }
+      }
+
       function sMethodHelper(visitor, expr: TJ.Variant<A.Expr, 's-method'> | TJ.Variant<A.Member, 's-method-field'>) {
         const args = listToArray(expr.dict.args);
         if (args.length === 0) {
@@ -100,20 +133,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
         args.forEach(arg => visit(visitor, arg));
         visit(visitor, expr.dict.ann);
         wrapVisitAllowSMethod(visitor, expr.dict.body, false);
-        switch (expr.dict['_check-loc'].$name) {
-          case 'none': {
-            break;
-          }
-          case 'some': {
-            const l = expr.dict.l as TJ.Variant<A.Srcloc, 'srcloc'>;
-            const l2 = expr.dict['_check-loc'].dict.value as TJ.Variant<A.Srcloc, 'srcloc'>;
-            parentBlockLoc = uptoEnd(l2, l);
-            break;
-          }
-          default: {
-            throw new ExhaustiveSwitchError(expr.dict['_check-loc']);
-          }
-        }
+        setParentBlockLocToCheckBlock(expr.dict.l, expr.dict['_check-loc']);
         wrapRejectStandalonesInCheck(expr.dict._check as A.Option<TJ.Variant<A.Expr, 's-block'>>);
         wrapVisitCheck(visitor, expr.dict._check);
       }
@@ -269,7 +289,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
         bindings.forEach(help);
       }
 
-      function checkUnderscoreName(fields: A.Member[], kindOfThing: string): void {
+      function checkUnderscoreName(fields: {dict: {l: A.Srcloc, name: string}}[], kindOfThing: string): void {
         const underscores = fields.filter(f => f.dict.name === '_');
         if (underscores.length !== 0) {
           addError(C['underscore-as'].app(underscores[0].dict.l, kindOfThing));
@@ -312,6 +332,29 @@ import type { List, PFunction, Option } from './ts-impl-types';
             }
             default: {
               throw new ExhaustiveSwitchError(loc);
+            }
+          }
+        }
+      }
+
+      function ensureUniqueVariantIds(variants: A.Variant[], name: string, dataLoc: A.Srcloc) {
+        for (let i = 0; i < variants.length; i++) {
+          const v = variants[i];
+          if (v.dict.name === name) {
+            addError(C['data-variant-duplicate-name'].app(v.dict.name, v.dict.l, dataLoc));
+          } else if (v.dict.name === "is-" + name) {
+            addError(C['duplicate-is-data'].app(name, v.dict.l, dataLoc));
+          } else if ("is-" + v.dict.name === name) {
+            addError(C['duplicate-is-data-variant'].app(v.dict.name, dataLoc, v.dict.l));
+          }
+          for (let j = i + 1; j < variants.length; j++) {
+            const b = variants[j];
+            if (b.dict.name === v.dict.name) {
+              addError(C['duplicate-variant'].app(v.dict.name, b.dict.l, v.dict.l));
+            } else if (b.dict.name === "is-" + v.dict.name) {
+              addError(C['duplicate-is-variant'].app(v.dict.name, b.dict.l, v.dict.l));
+            } else if ("is-" + b.dict.name === v.dict.name) {
+              addError(C['duplicate-is-variant'].app(b.dict.name, v.dict.l, b.dict.l));
             }
           }
         }
@@ -565,21 +608,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
         },
         's-method-field': (visitor, expr: TJ.Variant<A.Member, 's-method-field'>) => {
           let oldPbl = parentBlockLoc;
-          switch (expr.dict['_check-loc'].$name) {
-            case 'none': {
-              parentBlockLoc = expr.dict.l;
-              break;
-            }
-            case 'some': {
-              const l = expr.dict.l as TJ.Variant<A.Srcloc, 'srcloc'>;
-              const l2 = expr.dict['_check-loc'].dict.value as TJ.Variant<A.Srcloc, 'srcloc'>;
-              parentBlockLoc = uptoEnd(l, l2);
-              break;
-            }
-            default: {
-              throw new ExhaustiveSwitchError(expr.dict['_check-loc']);
-            }
-          }
+          parentBlockLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
           if (reservedNames.has(expr.dict.name)) {
             reservedName(expr.dict.l, expr.dict.name);
           }
@@ -591,41 +620,13 @@ import type { List, PFunction, Option } from './ts-impl-types';
             addError(C['wf-bad-method-expression'].app(expr.dict.l));
           }
           let oldPbl = parentBlockLoc;
-          switch (expr.dict['_check-loc'].$name) {
-            case 'none': {
-              parentBlockLoc = expr.dict.l;
-              break;
-            }
-            case 'some': {
-              const l = expr.dict.l as TJ.Variant<A.Srcloc, 'srcloc'>;
-              const l2 = expr.dict['_check-loc'].dict.value as TJ.Variant<A.Srcloc, 'srcloc'>;
-              parentBlockLoc = uptoEnd(l, l2);
-              break;
-            }
-            default: {
-              throw new ExhaustiveSwitchError(expr.dict['_check-loc']);
-            }
-          }
+          parentBlockLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
           sMethodHelper(visitor, expr);
           parentBlockLoc = oldPbl;
         },
         's-lam': (visitor, expr: TJ.Variant<A.Expr, 's-lam'>) => {
           let oldPbl = parentBlockLoc;
-          switch (expr.dict['_check-loc'].$name) {
-            case 'none': {
-              parentBlockLoc = expr.dict.l;
-              break;
-            }
-            case 'some': {
-              const l = expr.dict.l as TJ.Variant<A.Srcloc, 'srcloc'>;
-              const l2 = expr.dict['_check-loc'].dict.value as TJ.Variant<A.Srcloc, 'srcloc'>;
-              parentBlockLoc = uptoEnd(l, l2);
-              break;
-            }
-            default: {
-              throw new ExhaustiveSwitchError(expr.dict['_check-loc']);
-            }
-          }
+          parentBlockLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
           const args = listToArray(expr.dict.args);
           ensureUniqueIdsOrBindings(args, false);
           switch (expr.dict._check.$name) {
@@ -647,20 +648,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
           args.forEach(arg => visit(visitor, arg));
           visit(visitor, expr.dict.ann);
           wrapVisitAllowSMethod(visitor, expr.dict.body, false);
-          switch (expr.dict['_check-loc'].$name) {
-            case 'none': {
-              break;
-            }
-            case 'some': {
-              const l = expr.dict.l as TJ.Variant<A.Srcloc, 'srcloc'>;
-              const l2 = expr.dict['_check-loc'].dict.value as TJ.Variant<A.Srcloc, 'srcloc'>;
-              parentBlockLoc = uptoEnd(l2, l);
-              break;
-            }
-            default: {
-              throw new ExhaustiveSwitchError(expr.dict['_check-loc']);
-            }
-          }
+          setParentBlockLocToCheckBlock(expr.dict.l, expr.dict['_check-loc']);
           wrapRejectStandalonesInCheck(expr.dict._check as A.Option<TJ.Variant<A.Expr, 's-block'>>);
           wrapVisitCheck(visitor, expr.dict._check);
           parentBlockLoc = oldPbl;
@@ -725,6 +713,48 @@ import type { List, PFunction, Option } from './ts-impl-types';
           const withMembers = listToArray(expr.dict['with-members']);
           ensureUniqueIdsOrBindings(fieldsToBinds(withMembers), false);
           withMembers.forEach(wm => wrapVisitAllowSMethod(wellFormedVisitor, wm, true));
+        },
+        's-data': (visitor, expr: TJ.Variant<A.Expr, 's-data'>) => {
+          let oldPbl = parentBlockLoc;
+          parentBlockLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
+          const variants = listToArray(expr.dict.variants);
+          const shares = listToArray(expr.dict['shared-members']);
+          ensureUniqueVariantIds(variants, expr.dict.name, expr.dict.l);
+          checkUnderscoreName(variants, "a data variant name");
+          checkUnderscoreName(shares, "a shared field name");
+          checkUnderscoreName([{dict: {l: expr.dict.l, name: expr.dict.name}}], "a datatype name");
+          let theCurShared = curShared;
+          curShared = fieldsToBinds(shares);
+          listToArray(expr.dict.params).forEach(p => visit(wellFormedVisitor, p));
+          listToArray(expr.dict.mixins).forEach(m => wrapVisitAllowSMethod(wellFormedVisitor, m, false));
+          variants.forEach(v => visit(visitor, v));
+          shares.forEach(s => wrapVisitAllowSMethod(wellFormedVisitor, s, true));
+          curShared = theCurShared;
+          setParentBlockLocToCheckBlock(expr.dict.l, expr.dict['_check-loc']);
+          wrapRejectStandalonesInCheck(expr.dict._check as Option<TJ.Variant<A.Expr, 's-block'>>);
+          wrapVisitCheck(wellFormedVisitor, expr.dict._check);
+          parentBlockLoc = oldPbl;
+        },
+        's-data-expr': (visitor, expr: TJ.Variant<A.Expr, 's-data-expr'>) => {
+          let oldPbl = parentBlockLoc;
+          parentBlockLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
+          const variants = listToArray(expr.dict.variants);
+          const shares = listToArray(expr.dict['shared-members'])
+          ensureUniqueVariantIds(variants, expr.dict.name, expr.dict.l);
+          checkUnderscoreName(variants, "a data variant name");
+          checkUnderscoreName(shares, "a shared field name");
+          checkUnderscoreName([{dict: {l: expr.dict.l, name: expr.dict.name}}], "a datatype name");
+          let theCurShared = curShared;
+          curShared = fieldsToBinds(shares);
+          listToArray(expr.dict.params).forEach(p => visit(wellFormedVisitor, p));
+          listToArray(expr.dict.mixins).forEach(m => visit(wellFormedVisitor, m));
+          variants.forEach(v => visit(wellFormedVisitor, v));
+          shares.forEach(s => wrapVisitAllowSMethod(wellFormedVisitor, s, true));
+          curShared = theCurShared;
+          setParentBlockLocToCheckBlock(expr.dict.l, expr.dict['_check-loc']);
+          wrapRejectStandalonesInCheck(expr.dict._check as Option<TJ.Variant<A.Expr, 's-block'>>);
+          wrapVisitCheck(wellFormedVisitor, expr.dict._check);
+          parentBlockLoc = oldPbl;
         },
         's-block': (visitor, expr: TJ.Variant<A.Expr, 's-block'>) => {
           visit<A.Expr>(wellFormedVisitor, expr);
