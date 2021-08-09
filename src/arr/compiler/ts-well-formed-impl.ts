@@ -207,7 +207,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
         let isBlocky = false;
         let seenTemplate = false;
         listToArray(block.dict.stmts).forEach(stmt => {
-          if (A['is-s-template'].app(stmt)) {
+          if (stmt.$name === 's-template') {
             seenTemplate = true;
           } else if (seenNonLet) {
             isBlocky = true;
@@ -276,51 +276,43 @@ import type { List, PFunction, Option } from './ts-impl-types';
         }
       }
 
-      function ensureDistinctLines(loc: A.Srcloc, prevIsTemplate: boolean, stmts: List<A.Expr>): void {
-        switch (stmts.$name) {
-          case 'empty': {
-            return;
-          }
-          case 'link': {
-            const { first, rest } = stmts.dict;
-            switch (loc.$name) {
-              case 'builtin': {
-                ensureDistinctLines(first.dict.l, A['is-s-template'].app(first), rest);
-                break;
-              }
-              case 'srcloc': {
-                const endLine1 = loc.dict['end-line'];
-                switch (first.dict.l.$name) {
-                  case 'builtin': {
-                    ensureDistinctLines(loc, prevIsTemplate, rest);
-                    break;
-                  }
-                  case 'srcloc': {
-                    const startLine2 = first.dict.l.dict['start-line'];
-                    if (endLine1 === startLine2) {
-                      if (A['is-s-template'].app(first) && prevIsTemplate) {
-                        addError(C['template-same-line'].app(loc, first.dict.l));
-                      } else if (!A['is-s-template'].app(first) && !prevIsTemplate) {
-                        addError(C['same-line'].app(loc, first.dict.l, A['is-s-paren'].app(first)));
-                      }
-                    }
-                    ensureDistinctLines(first.dict.l, A['is-s-template'].app(first), rest);
-                    break;
-                  }
-                  default: {
-                    throw new ExhaustiveSwitchError(first.dict.l);
-                  }
-                }
-                break;
-              }
-              default: {
-                throw new ExhaustiveSwitchError(loc);
-              }
+      function ensureDistinctLines(loc: A.Srcloc, prevIsTemplate: boolean, stmts: A.Expr[]): void {
+        for (let i = 0; i < stmts.length; i++) {
+          const cur = stmts[i];
+          switch (loc.$name) {
+            case 'builtin': {
+              loc = cur.dict.l;
+              prevIsTemplate = cur.$name === 's-template';
+              break;
             }
-            break;
-          }
-          default: {
-            throw new ExhaustiveSwitchError(stmts);
+            case 'srcloc': {
+              const endLine1 = loc.dict['end-line'];
+              switch (cur.dict.l.$name) {
+                case 'builtin': {
+                  break;
+                }
+                case 'srcloc': {
+                  const startLine2 = cur.dict.l.dict['start-line'];
+                  if (endLine1 === startLine2) {
+                    if (cur.$name === 's-template' && prevIsTemplate) {
+                      addError(C['template-same-line'].app(loc, cur.dict.l));
+                    } else if (cur.$name !== 's-template' && !prevIsTemplate) {
+                      addError(C['same-line'].app(loc, cur.dict.l, A['is-s-paren'].app(cur)));
+                    }
+                  }
+                  loc = cur.dict.l;
+                  prevIsTemplate = cur.$name === 's-template';
+                  break;
+                }
+                default: {
+                  throw new ExhaustiveSwitchError(cur.dict.l);
+                }
+              }
+              break;
+            }
+            default: {
+              throw new ExhaustiveSwitchError(loc);
+            }
           }
         }
       }
@@ -388,74 +380,96 @@ import type { List, PFunction, Option } from './ts-impl-types';
 
       function rejectStandaloneExprs(stmts: A.Expr[], ignoreLast: boolean): void {
         function badStmt(l: A.Srcloc, stmt: A.Expr) {
-          if (stmt.$name === 's-op') {
-            if (stmt.dict.op === 'op==') {
-              const secondPara = inCheckBlock ?
-                ED.paragraph.app(runtime.ffi.makeList([
-                  ED.text.app("To write an example or test case, use the "),
-                  ED.code.app(ED.text.app("is")),
-                  ED.text.app(" operator; "),
-                  ED.text.app("to define a name, use the "),
-                  ED.code.app(ED.text.app("=")),
-                  ED.text.app(" operator instead.")
-                ])) :
-                ED.paragraph.app(runtime.ffi.makeList([
-                  ED.text.app("To define a name, use the "),
-                  ED.code.app(ED.text.app("=")),
-                  ED.text.app(" operator instead."),
-                ]));
+          switch (stmt.$name) {
+            case 's-op': {
+              switch (stmt.dict.op) {
+                case 'op==': {
+                  const secondPara = inCheckBlock ?
+                    ED.paragraph.app(runtime.ffi.makeList([
+                      ED.text.app("To write an example or test case, use the "),
+                      ED.code.app(ED.text.app("is")),
+                      ED.text.app(" operator; "),
+                      ED.text.app("to define a name, use the "),
+                      ED.code.app(ED.text.app("=")),
+                      ED.text.app(" operator instead.")
+                    ])) :
+                    ED.paragraph.app(runtime.ffi.makeList([
+                      ED.text.app("To define a name, use the "),
+                      ED.code.app(ED.text.app("=")),
+                      ED.text.app(" operator instead."),
+                    ]));
+                  wfError(runtime.ffi.makeList([
+                    ED.paragraph.app(runtime.ffi.makeList([
+                      ED.text.app("A standalone "),
+                      ED.highlight.app(ED.code.app(ED.text.app("==")), runtime.ffi.makeList([stmt.dict['op-l']]), 1),
+                      ED.text.app(" operator expression probably isn't intentional.")
+                    ])),
+                    secondPara
+                  ]),
+                    l);
+                  break;
+                }
+                default: {
+                  wfError(runtime.ffi.makeList([
+                    ED.paragraph.app(runtime.ffi.makeList([
+                      ED.text.app("A standalone "),
+                      ED.highlight.app(ED.code.app(ED.text.app(stmt.dict.op.substr(2))), runtime.ffi.makeList([stmt.dict['op-l']]), 1),
+                      ED.text.app(" operator expression probably isn't intentional.")
+                    ]))
+                  ]),
+                    l);
+                  break;
+                }
+              }
+              break;
+            }
+            case 's-id': {
               wfError(runtime.ffi.makeList([
                 ED.paragraph.app(runtime.ffi.makeList([
-                  ED.text.app("A standalone "),
-                  ED.highlight.app(ED.code.app(ED.text.app("==")), runtime.ffi.makeList([stmt.dict['op-l']]), 1),
-                  ED.text.app(" operator expression probably isn't intentional.")
-                ])),
-                secondPara
-              ]),
-                l);
-            } else {
-              wfError(runtime.ffi.makeList([
-                ED.paragraph.app(runtime.ffi.makeList([
-                  ED.text.app("A standalone "),
-                  ED.highlight.app(ED.code.app(ED.text.app(stmt.dict.op.substr(2))), runtime.ffi.makeList([stmt.dict['op-l']]), 1),
-                  ED.text.app(" operator expression probably isn't intentional.")
+                  ED.text.app("A standalone variable name probably isn't intentional.")
                 ]))
               ]),
                 l);
+              break;
             }
-          } else if (stmt.$name === 's-id') {
-            wfError(runtime.ffi.makeList([
-              ED.paragraph.app(runtime.ffi.makeList([
-                ED.text.app("A standalone variable name probably isn't intentional.")
-              ]))
-            ]),
-              l);
-          } else if (stmt.$name === 's-num' || stmt.$name === 's-frac' || stmt.$name === 's-rfrac' || stmt.$name === 's-bool' || stmt.$name === 's-str') {
-            wfError(runtime.ffi.makeList([
-              ED.paragraph.app(runtime.ffi.makeList([
-                ED.text.app("A standalone value probably isn't intentional.")
-              ]))
-            ]),
-              l);
-          } else if (stmt.$name === 's-dot') {
-            wfError(runtime.ffi.makeList([
-              ED.paragraph.app(runtime.ffi.makeList([
-                ED.text.app("A standalone field-lookup expression probably isn't intentional.")
-              ]))
-            ]),
-              l);
-          } else if (stmt.$name === 's-lam') {
-            wfError(runtime.ffi.makeList([
-              ED.paragraph.app(runtime.ffi.makeList([
-                ED.text.app("A standalone anonymous function expression probably isn't intentional.")
-              ]))
-            ]),
-              l)
-          } else if (stmt.$name === 's-paren') {
-            badStmt(l, stmt.dict.expr);
+            case 's-num':
+            case 's-frac':
+            case 's-rfrac':
+            case 's-bool':
+            case 's-str': {
+              wfError(runtime.ffi.makeList([
+                ED.paragraph.app(runtime.ffi.makeList([
+                  ED.text.app("A standalone value probably isn't intentional.")
+                ]))
+              ]),
+                l);
+              break;
+            }
+            case 's-dot': {
+              wfError(runtime.ffi.makeList([
+                ED.paragraph.app(runtime.ffi.makeList([
+                  ED.text.app("A standalone field-lookup expression probably isn't intentional.")
+                ]))
+              ]),
+                l);
+              break;
+            }
+            case 's-lam': {
+              wfError(runtime.ffi.makeList([
+                ED.paragraph.app(runtime.ffi.makeList([
+                  ED.text.app("A standalone anonymous function expression probably isn't intentional.")
+                ]))
+              ]),
+                l);
+              break;
+            }
+            case 's-paren': {
+              badStmt(l, stmt.dict.expr);
+              break;
+            }
           }
         }
-        if (stmts.find(stmt => A['is-s-template'].app(stmt)) !== undefined) {
+        if (stmts.find(stmt => stmt.$name === 's-template') !== undefined) {
           return;
         }
         const toExamineLength = ignoreLast ? stmts.length - 1 : stmts.length;
@@ -487,19 +501,20 @@ import type { List, PFunction, Option } from './ts-impl-types';
 
       function wfBlockStmts(visitor, l: A.Srcloc, stmts: A.Expr[], topLevel: boolean): void {
         function mapStmts(stmt: A.Expr): A.Bind | null {
-          if (A['is-s-var'].app(stmt)) {
-            return stmt.dict.name;
-          } else if (A['is-s-let'].app(stmt)) {
-            return stmt.dict.name;
-          } else if (A['is-s-rec'].app(stmt)) {
-            return stmt.dict.name;
-          } else {
-            return null;
+          switch (stmt.$name) {
+            case 's-var':
+            case 's-let':
+            case 's-rec': {
+              return stmt.dict.name;
+            }
+            default: {
+              return null;
+            }
           }
         }
         const bindStmts: A.Bind[] = stmts.map(mapStmts).filter(stmt => stmt);
         ensureUniqueIdsOrBindings(bindStmts, true);
-        ensureDistinctLines(A['dummy-loc'], false, runtime.ffi.makeList(stmts));
+        ensureDistinctLines(A['dummy-loc'], false, stmts);
         if (!inCheckBlock && !topLevel) {
           rejectStandaloneExprs(stmts, true);
         }
