@@ -325,6 +325,38 @@ import type { List, PFunction, Option } from './ts-impl-types';
         }
       }
 
+      function wfLastStmt(blockLoc: A.Srcloc, stmt: A.Expr) {
+        switch (stmt.$name) {
+          case 's-let': {
+            addError(C['block-ending'].app(stmt.dict.l, blockLoc, "let-binding"));
+            break;
+          }
+          case 's-var': {
+            addError(C['block-ending'].app(stmt.dict.l, blockLoc, "var-binding"));
+            break;
+          }
+          case 's-rec': {
+            addError(C['block-ending'].app(stmt.dict.l, blockLoc, "rec-binding"));
+            break;
+          }
+          case 's-fun': {
+            addError(C['block-ending'].app(stmt.dict.l, blockLoc, "fun-binding"));
+            break;
+          }
+          case 's-data': {
+            addError(C['block-ending'].app(stmt.dict.l, blockLoc, "data definition"));
+            break;
+          }
+          case 's-contract': {
+            addError(C['block-ending'].app(stmt.dict.l, blockLoc, "contract"));
+            break;
+          }
+          default: {
+            break;
+          }
+        }
+      }
+
       function fieldsToBinds(members: A.Member[]): A.Bind[] {
         return members.map(member => {
           return A['s-bind'].app(member.dict.l, false, A['s-name'].app(member.dict.l, member.dict.name), A['a-blank']);
@@ -453,7 +485,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
         inCheckBlock = curInCheck;
       }
 
-      function wfBlockStmts(visitor, l: A.Srcloc, stmts: List<A.Expr>, topLevel: boolean): void {
+      function wfBlockStmts(visitor, l: A.Srcloc, stmts: A.Expr[], topLevel: boolean): void {
         function mapStmts(stmt: A.Expr): A.Bind | null {
           if (A['is-s-var'].app(stmt)) {
             return stmt.dict.name;
@@ -465,13 +497,13 @@ import type { List, PFunction, Option } from './ts-impl-types';
             return null;
           }
         }
-        const bindStmts: A.Bind[] = listToArray(stmts).map(mapStmts).filter(stmt => stmt);
+        const bindStmts: A.Bind[] = stmts.map(mapStmts).filter(stmt => stmt);
         ensureUniqueIdsOrBindings(bindStmts, true);
-        ensureDistinctLines(A['dummy-loc'], false, stmts);
+        ensureDistinctLines(A['dummy-loc'], false, runtime.ffi.makeList(stmts));
         if (!inCheckBlock && !topLevel) {
-          rejectStandaloneExprs(listToArray(stmts), true);
+          rejectStandaloneExprs(stmts, true);
         }
-        listToArray(stmts).forEach(stmt => wrapVisitAllowSMethod(visitor, stmt, false));
+        stmts.forEach(stmt => wrapVisitAllowSMethod(visitor, stmt, false));
       }
 
       const wellFormedVisitor: TJ.Visitor<A.Ann | A.Expr | A.Member, void> = {
@@ -484,6 +516,15 @@ import type { List, PFunction, Option } from './ts-impl-types';
           const { l, 'op-l': opL, op, left, right } = expr.dict;
           reachableOps(visitor, l, opL, op, left);
           reachableOps(visitor, l, opL, op, right);
+        },
+        's-block': (visitor, expr: TJ.Variant<A.Expr, 's-block'>) => {
+          const stmts = listToArray(expr.dict.stmts);
+          if (stmts.length === 0) {
+            addError(C['wf-empty-block'].app(parentBlockLoc));
+          } else {
+            wfLastStmt(parentBlockLoc, stmts[stmts.length - 1]);
+            wfBlockStmts(visitor, parentBlockLoc, stmts, false);
+          }
         },
         's-check-test': (visitor, expr: TJ.Variant<A.Expr, 's-check-test'>) => {
           if (!inCheckBlock) {
@@ -552,6 +593,62 @@ import type { List, PFunction, Option } from './ts-impl-types';
           }
           sMethodHelper(visitor, expr);
           parentBlockLoc = oldPbl;
+        },
+        's-lam': (visitor, expr: TJ.Variant<A.Expr, 's-lam'>) => {
+          let oldPbl = parentBlockLoc;
+          switch (expr.dict['_check-loc'].$name) {
+            case 'none': {
+              parentBlockLoc = expr.dict.l;
+              break;
+            }
+            case 'some': {
+              const l = expr.dict.l as TJ.Variant<A.Srcloc, 'srcloc'>;
+              const l2 = expr.dict['_check-loc'].dict.value as TJ.Variant<A.Srcloc, 'srcloc'>;
+              parentBlockLoc = uptoEnd(l, l2);
+              break;
+            }
+            default: {
+              throw new ExhaustiveSwitchError(expr.dict['_check-loc']);
+            }
+          }
+          const args = listToArray(expr.dict.args);
+          ensureUniqueIdsOrBindings(args, false);
+          switch (expr.dict._check.$name) {
+            case 'none': {
+              break;
+            }
+            case 'some': {
+              ensureEmptyBlock(expr.dict.l, "anonymous functions", expr.dict._check.dict.value as TJ.Variant<A.Expr, 's-block'>);
+              break;
+            }
+            default: {
+              throw new ExhaustiveSwitchError(expr.dict._check);
+            }
+          }
+          if (!expr.dict.blocky && expr.dict.body.$name === 's-block') {
+            wfBlockyBlocks(expr.dict.l, [expr.dict.body]);
+          }
+          listToArray(expr.dict.params).forEach(param => visit(visitor, param));
+          args.forEach(arg => visit(visitor, arg));
+          visit(visitor, expr.dict.ann);
+          wrapVisitAllowSMethod(visitor, expr.dict.body, false);
+          switch (expr.dict['_check-loc'].$name) {
+            case 'none': {
+              break;
+            }
+            case 'some': {
+              const l = expr.dict.l as TJ.Variant<A.Srcloc, 'srcloc'>;
+              const l2 = expr.dict['_check-loc'].dict.value as TJ.Variant<A.Srcloc, 'srcloc'>;
+              parentBlockLoc = uptoEnd(l2, l);
+              break;
+            }
+            default: {
+              throw new ExhaustiveSwitchError(expr.dict['_check-loc']);
+            }
+          }
+          wrapRejectStandalonesInCheck(expr.dict._check as A.Option<TJ.Variant<A.Expr, 's-block'>>);
+          wrapVisitCheck(visitor, expr.dict._check);
+          parentBlockLoc = oldPbl;
         }
       }
 
@@ -559,7 +656,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
         's-program': (visitor, expr: TJ.Variant<A.Program, 's-program'>) => {
           const body = expr.dict.block;
           if (body.$name === 's-block') {
-            wfBlockStmts(visitor, body.dict.l, body.dict.stmts, true);
+            wfBlockStmts(visitor, body.dict.l, listToArray(body.dict.stmts), true);
           } else {
             visit(visitor, body);
           }
@@ -614,10 +711,16 @@ import type { List, PFunction, Option } from './ts-impl-types';
           ensureUniqueIdsOrBindings(fieldsToBinds(withMembers), false);
           withMembers.forEach(wm => wrapVisitAllowSMethod(wellFormedVisitor, wm, true));
         },
+        's-block': (visitor, expr: TJ.Variant<A.Expr, 's-block'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
+        },
         's-op': (visitor, expr: TJ.Variant<A.Expr, 's-op'>) => {
           visit<A.Expr>(wellFormedVisitor, expr);
         },
         's-check-test': (visitor, expr: TJ.Variant<A.Expr, 's-check-test'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
+        },
+        's-lam': (visitor, expr: TJ.Variant<A.Expr, 's-lam'>) => {
           visit<A.Expr>(wellFormedVisitor, expr);
         },
         's-method': (visitor, expr: TJ.Variant<A.Expr, 's-method'>) => {
