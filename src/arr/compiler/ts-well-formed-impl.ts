@@ -63,6 +63,50 @@ import type { List, PFunction, Option } from './ts-impl-types';
         }
       }
 
+      function atStart(l: TJ.Variant<A.Srcloc, 'srcloc'>): TJ.Variant<A.Srcloc, 'srcloc'> {
+        return S.srcloc.app(
+          l.dict.source,
+          l.dict['start-line'],
+          l.dict['start-column'],
+          l.dict['start-char'],
+          l.dict['start-line'],
+          l.dict['start-column'],
+          l.dict['start-char'],
+        );
+      }
+
+      function plus(l: TJ.Variant<A.Srcloc, 'srcloc'>, other: TJ.Variant<A.Srcloc, 'srcloc'>): A.Srcloc {
+        if (l.dict['start-char'] <= other.dict['start-char']) {
+          if (l.dict['end-char'] >= other.dict['end-char']) {
+            return l;
+          } else {
+            return S.srcloc.app(
+              l.dict.source,
+              l.dict['start-line'],
+              l.dict['start-column'],
+              l.dict['start-char'],
+              other.dict['end-line'],
+              other.dict['end-column'],
+              other.dict['end-char']
+            );
+          }
+        } else {
+          if (l.dict['end-char'] > other.dict['end-char']) {
+            return S.srcloc.app(
+              l.dict.source,
+              other.dict['start-line'],
+              other.dict['start-column'],
+              other.dict['start-char'],
+              l.dict['end-line'],
+              l.dict['end-column'],
+              l.dict['end-char']
+            );
+          } else {
+            return other;
+          }
+        }
+      }
+
       function getLocWithCheckBlock(l: A.Srcloc, checkLoc: Option<A.Srcloc>): A.Srcloc {
         switch (checkLoc.$name) {
           case 'none': {
@@ -138,6 +182,48 @@ import type { List, PFunction, Option } from './ts-impl-types';
         wrapVisitCheck(visitor, expr.dict._check);
       }
 
+      function bindHelper(visitor, l: A.Srcloc, bind: A.Bind, val: A.Expr, varOrRec: 'var' | 'rec') {
+        let pointless;
+        let str;
+        switch (varOrRec) {
+          case 'var': {
+            pointless = 'pointless-var';
+            str = "Variable";
+            break;
+          }
+          case 'rec': {
+            pointless = 'pointless-rec';
+            str = "Recursive";
+            break;
+          }
+          default: {
+            throw new ExhaustiveSwitchError(varOrRec);
+          }
+        }
+
+        switch (bind.$name) {
+          case 's-bind': {
+            if (A['is-s-underscore'].app(bind.dict.id)) {
+              const lRef = l as TJ.Variant<A.Srcloc, 'srcloc'>;
+              const bindL = bind.dict.l as TJ.Variant<A.Srcloc, 'srcloc'>;
+              addError(C[pointless].app(plus(atStart(lRef), bindL)));
+            }
+            wrapVisitAllowSMethod(visitor, bind, false);
+            wrapVisitAllowSMethod(visitor, val, false);
+            break;
+          }
+          case 's-tuple-bind': {
+            wfError(runtime.ffi.makeList([
+              ED.text.app(str + " bindings must be names and cannot be tuple bindings ")
+            ]), bind.dict.l);
+            break;
+          }
+          default: {
+            throw new ExhaustiveSwitchError(bind);
+          }
+        }
+      }
+
       const reservedNames = new Map<string, boolean>();
       reservedNames.set("function", true);
       reservedNames.set("break", true);
@@ -200,7 +286,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
         allowSMethod = curAllow;
       }
 
-      function wrapVisitAllowSMethod(visitor, target: A.Expr | A.Provide | A.Member, allow: boolean): void {
+      function wrapVisitAllowSMethod(visitor, target: A.Expr | A.Provide | A.Member | A.Bind | A.Name, allow: boolean): void {
         let curAllow = allowSMethod;
         allowSMethod = allow;
         visit(visitor, target);
@@ -564,7 +650,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
         stmts.forEach(stmt => wrapVisitAllowSMethod(visitor, stmt, false));
       }
 
-      const wellFormedVisitor: TJ.Visitor<A.Ann | A.Expr | A.Member, void> = {
+      const wellFormedVisitor: TJ.Visitor<A.Ann | A.Expr | A.Member | A.LetBind | A.Bind, void> = {
         'a-name': (visitor, expr: TJ.Variant<A.Ann, 'a-name'>) => {
           if (A['is-s-underscore'].app(expr.dict.id)) {
             addError(C['underscore-as-ann'].app(expr.dict.l));
@@ -575,6 +661,15 @@ import type { List, PFunction, Option } from './ts-impl-types';
           reachableOps(visitor, l, opL, op, left);
           reachableOps(visitor, l, opL, op, right);
         },
+        's-var': (visitor, expr: TJ.Variant<A.Expr, 's-var'>) => {
+          bindHelper(visitor, expr.dict.l, expr.dict.name, expr.dict.value, 'var');
+        },
+        's-rec': (visitor, expr: TJ.Variant<A.Expr, 's-rec'>) => {
+          bindHelper(visitor, expr.dict.l, expr.dict.name, expr.dict.value, 'rec');
+        },
+        's-var-bind': (visitor, expr: TJ.Variant<A.LetBind, 's-var-bind'>) => {
+          bindHelper(visitor, expr.dict.l, expr.dict.b, expr.dict.value, 'var');
+        },
         's-block': (visitor, expr: TJ.Variant<A.Expr, 's-block'>) => {
           const stmts = listToArray(expr.dict.stmts);
           if (stmts.length === 0) {
@@ -583,6 +678,17 @@ import type { List, PFunction, Option } from './ts-impl-types';
             wfLastStmt(parentBlockLoc, stmts[stmts.length - 1]);
             wfBlockStmts(visitor, parentBlockLoc, stmts, false);
           }
+        },
+        's-bind': (visitor, expr: TJ.Variant<A.Bind, 's-bind'>) => {
+          const nameStr = nameToSourceString(expr.dict.id);
+          if (reservedNames.has(nameStr)) {
+            reservedName(expr.dict.l, nameStr);
+          }
+          if (expr.dict.shadows && A['is-s-underscore'].app(expr.dict.id)) {
+            addError(C['pointless-shadow'].app(expr.dict.l));
+          }
+          wrapVisitAllowSMethod(visitor, expr.dict.id, false);
+          visit(visitor, expr.dict.ann);
         },
         's-check-test': (visitor, expr: TJ.Variant<A.Expr, 's-check-test'>) => {
           if (!inCheckBlock) {
@@ -655,7 +761,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
         }
       }
 
-      const topLevelVisitor: TJ.Visitor<A.Program | A.Expr | A.TypeLetBind | A.Variant | A.Member, void> = {
+      const topLevelVisitor: TJ.Visitor<A.Program | A.Expr | A.TypeLetBind | A.Variant | A.Member | A.Bind | A.LetBind, void> = {
         's-program': (visitor, expr: TJ.Variant<A.Program, 's-program'>) => {
           const body = expr.dict.block;
           if (body.$name === 's-block') {
@@ -756,7 +862,19 @@ import type { List, PFunction, Option } from './ts-impl-types';
           wrapVisitCheck(wellFormedVisitor, expr.dict._check);
           parentBlockLoc = oldPbl;
         },
+        's-bind': (visitor, expr: TJ.Variant<A.Bind, 's-bind'>) => {
+          visit<A.Bind>(wellFormedVisitor, expr);
+        },
+        's-var-bind': (visitor, expr: TJ.Variant<A.LetBind, 's-var-bind'>) => {
+          visit<A.LetBind>(wellFormedVisitor, expr);
+        },
         's-block': (visitor, expr: TJ.Variant<A.Expr, 's-block'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
+        },
+        's-var': (visitor, expr: TJ.Variant<A.Expr, 's-var'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
+        },
+        's-rec': (visitor, expr: TJ.Variant<A.Expr, 's-rec'>) => {
           visit<A.Expr>(wellFormedVisitor, expr);
         },
         's-op': (visitor, expr: TJ.Variant<A.Expr, 's-op'>) => {
