@@ -92,8 +92,8 @@ type DispatchProps = {
 function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
   return {
     compile: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Compile } }),
-    run: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Run } }),
-    runSession: () => dispatch({ type: 'runSession', key: 'runProgram' }),
+    run: () => dispatch({ type: 'run', key: 'runProgram' }),
+    runSession: () => dispatch({ type: 'run', key: 'runSegments' }),
     stop: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'stop' } }),
     stopSession: () => dispatch({ type: 'stopSession' }),
     setStopify: (stopify: boolean) => {

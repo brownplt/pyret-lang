@@ -105,7 +105,8 @@ export type Update =
   | { key: 'updater', value: (state : State) => State };
 
 export type Run =
-  | { key: 'runProgram' };
+  | { key: 'runProgram' }
+  | { key: 'runSegments' };
 
 export type UpdateKey = Update['key'];
 
@@ -122,7 +123,7 @@ export type Action =
   | { type: 'effectEnded' } & EffectEnded
   | { type: 'enqueueEffect' } & EnqueueEffect
   | { type: 'update' } & Update
-  | { type: 'runSession' } & Run
+  | { type: 'run' } & Run
   | { type: 'stopSession' };
 
 export type ActionType = Action['type'];

@@ -17,7 +17,7 @@ import {
 import SplitterLayout from 'react-splitter-layout';
 import { Chunk } from './chunk';
 import * as State from './state';
-import { BackendCmd, EditorMode, MessageTabIndex } from './state';
+import { EditorMode, MessageTabIndex } from './state';
 import RHS from './RHS';
 import RTMessageDisplay from './RTMessageDisplay';
 import { RTMessages } from './rtMessages';
@@ -87,7 +87,7 @@ function mapStateToProps(state: State.State): StateProps {
 }
 
 type DispatchProps = {
-  run: () => void,
+  runProgram: () => void,
   updateContents: (contents: string) => void,
   setEditorMode: (mode: EditorMode) => void,
   setMessageTabIndex: (index: number) => void,
@@ -95,7 +95,7 @@ type DispatchProps = {
 
 function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchProps {
   return {
-    run: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Run } }),
+    runProgram: () => dispatch({ type: 'run', key: 'runProgram' }),
     updateContents: (contents: string) => dispatch({
       type: 'update',
       key: 'currentFileContents',
@@ -145,7 +145,7 @@ export class Editor extends React.Component<EditorProps, any> {
       currentFileContents,
       updateContents,
       definitionsHighlights,
-      run,
+      runProgram: run,
     } = this.props;
 
     switch (editorMode) {

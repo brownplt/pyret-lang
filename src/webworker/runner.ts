@@ -272,15 +272,6 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
   return requireAsyncMain;
 };
 
-// TODO(luna): makeRequireAsync was the right abstraction (make a session with a
-// cache, then use it some number of times) and then it gets hidden by
-// runProgram2. Really, runProgram2 should be changed (or runProgram3 created
-// :P) to use that old style instead of this
-export const resetAsyncSession = () => {
-  // delete asyncCache['/compiled/builtin/runtime.js.stopped'];
-  // currentRunner = null;
-};
-
 export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => any) => {
   const cache : {[key:string]: any} = {};
   let cwd = basePath;

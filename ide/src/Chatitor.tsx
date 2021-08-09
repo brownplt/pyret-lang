@@ -41,7 +41,7 @@ function mapStateToProps(state: State): StateProps {
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     run() {
-      dispatch({ type: 'runSession', key: 'runProgram' });
+      dispatch({ type: 'run', key: 'runSegments' });
     },
     setChunks(chunks: ChunksUpdate) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });

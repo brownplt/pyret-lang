@@ -66,7 +66,6 @@ import { fs } from './browserfs-setup';
 import * as path from './path';
 import { bfsSetup, makeServerAPI } from './control';
 import { getLocs, Srcloc } from './failure';
-import { resetAsyncSession } from './runner';
 
 // Dependency cycle between store and reducer because we dispatch from
 // runSession. Our solution is to inject the store into this global variable
@@ -1098,7 +1097,6 @@ function segmentName(file: string, id: string): string {
   return `/projects/${base}-${id}`;
 }
 
-// TODO(luna): don't use index, check for id matches
 function handleRunSessionSuccess(state: State, id: string, result: any): State {
   const {
     chunks,
@@ -1251,8 +1249,88 @@ function handleCompileSessionFailure(
   };
 }
 
+const update = (value: (s: State) => State) => {
+  store.dispatch({
+    type: 'update',
+    key: 'updater',
+    value,
+  });
+};
+
+function handleCompileProgramFailure(state: State, errors: string[]) : State {
+  const failures = errors.map((e) => JSON.parse(e));
+  const places: Srcloc[] = failures.flatMap(getLocs);
+  const asHL = (place: Srcloc) => {
+    if (place.$name !== 'srcloc') {
+      throw new Error('how is a builtin a segment?');
+    }
+    // x:x-x:x (old data structure)
+    return [place['start-line'], place['start-column'], place['end-line'], place['end-column']];
+  };
+  return {
+    ...state,
+    // backendCmd: BackendCmd.None,
+    // compiling: false,
+    interactionErrors: errors,
+    definitionsHighlights: places.map(asHL),
+  };
+}
+
+function handleRunProgramFailure(state: State, error: string) {
+  // TODO(joe): get source locations from dynamic errors (source map, etc)
+  return {
+    ...state,
+    // backendCmd: BackendCmd.None,
+    // compiling: false,
+    interactionErrors: [error],
+    definitionsHighlights: [],
+  };
+}
+
+function handleRunProgramSuccess(state : State, result : any) {
+  const rhs = makeRHSObjects(result, `file://${state.currentFile}`);
+  return {
+    ...state,
+    interactionErrors: [],
+    definitionsHighlights: [],
+    rhs: {
+      objects: rhs.objects,
+      outdated: rhs.outdated,
+    },
+  };
+}
+
+async function runProgramAsync(state : State) : Promise<any> {
+  const { typeCheck, currentFile, currentFileContents } = state;
+  fs.writeFileSync(currentFile, currentFileContents);
+  const sessionId = 'text-session';
+  const { dir, base } = bfsSetup.path.parse(currentFile);
+  await serverAPI.filterSession(sessionId, 'builtin://');
+  const result = await serverAPI.compileAndRun({
+    baseDir: dir,
+    program: base,
+    builtinJSDir: path.compileBuiltinJS,
+    checks: 'none',
+    typeCheck,
+    recompileBuiltins: false,
+    session: sessionId,
+  }, state.runKind, {
+    spyMessgeHandler: ideRt.defaultSpyMessage,
+    spyExprHandler: ideRt.defaultSpyExpr,
+    imgUrlProxy: ideRt.defaultImageUrlProxy,
+    checkBlockFilter: ideRt.checkBlockFilter,
+  });
+  if (result.type === 'compile-failure') {
+    update((s: State) => handleCompileProgramFailure(s, result.errors));
+  } else if (result.type === 'run-failure') {
+    update((s: State) => handleRunProgramFailure(s, result.error));
+  } else {
+    update((s: State) => handleRunProgramSuccess(s, result.result));
+  }
+}
+
 let stopFlag = false;
-async function runSessionAsync(state : State) : Promise<any> {
+async function runSegmentsAsync(state : State) : Promise<any> {
   const { typeCheck, chunks } = state;
   const filenames: string[] = [];
   console.log('RUNNING THESE CHUNKS:');
@@ -1271,15 +1349,7 @@ async function runSessionAsync(state : State) : Promise<any> {
 
   const sessionId = 'chatidor-session';
   await serverAPI.filterSession(sessionId, 'builtin://');
-  resetAsyncSession();
 
-  const update = (value: (s: State) => State) => {
-    store.dispatch({
-      type: 'update',
-      key: 'updater',
-      value,
-    });
-  };
   for (let i = 0; i < chunks.length; i += 1) {
     const c = chunks[i];
     const filename = segmentName(state.currentFile, c.id);
@@ -1303,7 +1373,7 @@ async function runSessionAsync(state : State) : Promise<any> {
     if (result.type === 'compile-failure') {
       update((s: State) => handleCompileSessionFailure(s, c.id, result.errors));
       break;
-    } if (result.type === 'run-failure') {
+    } else if (result.type === 'run-failure') {
       update((s: State) => handleRunSessionFailure(s, c.id, result.error));
       break;
     }
@@ -1325,14 +1395,14 @@ async function runSessionAsync(state : State) : Promise<any> {
   return 'runSessionAsyncFinished';
 }
 
-function runSession(state : State) : State {
-  const result : Promise<any> = runSessionAsync(state);
+function runProgramOrSegments(state : State, runner : (s : State) => Promise<any>) : State {
+  const result : Promise<any> = runner(state);
   result.then(() => {
     store.dispatch(
       { type: 'update', key: 'updater', value: (s) => ({ ...s, running: false }) },
     );
   }).catch((e) => {
-    console.log('Running session failed', e);
+    console.log('Running segments failed', e);
   });
   return { ...state, running: true };
 }
@@ -1354,8 +1424,14 @@ function rootReducer(state: State, action: Action): State {
       return handleEffectEnded(state, action);
     case 'enqueueEffect':
       return handleEnqueueEffect(state, action);
-    case 'runSession':
-      return runSession(state);
+    case 'run':
+      if (action.key === 'runProgram') {
+        return runProgramOrSegments(state, runProgramAsync);
+      }
+      if (action.key === 'runSegments') {
+        return runProgramOrSegments(state, runSegmentsAsync);
+      }
+      throw new NeverError(action);
     case 'stopSession':
       return stopSession(state);
     case 'update':
