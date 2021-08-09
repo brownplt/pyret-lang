@@ -33,7 +33,7 @@ import * as control from './control';
 import * as action from './action';
 import 'react-tabs/style/react-tabs.css';
 import 'react-splitter-layout/lib/index.css';
-import EditorPlayground from './editor-playground/EditorPlayground';
+import Embeditor from './embeditor/Embeditor';
 import { NeverError } from './utils';
 import Chatitor from './Chatitor';
 import GlobalInteractions from './GlobalInteractions';
@@ -155,7 +155,7 @@ export class Editor extends React.Component<EditorProps, any> {
         );
       case EditorMode.Embeditor:
         return (
-          <EditorPlayground />
+          <Embeditor />
         );
       case EditorMode.Text:
         return (
