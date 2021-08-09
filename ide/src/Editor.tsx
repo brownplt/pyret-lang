@@ -21,7 +21,6 @@ import { EditorMode, MessageTabIndex } from './state';
 import RHS from './RHS';
 import RTMessageDisplay from './RTMessageDisplay';
 import { RTMessages } from './rtMessages';
-import DefChunks from './DefChunks';
 import SingleCodeMirrorDefinitions from './SingleCodeMirrorDefinitions';
 import Menu from './Menu';
 import MenuBar from './MenuBar';
@@ -135,10 +134,6 @@ control.loadBuiltins();
 type EditorProps = PropsFromRedux & DispatchProps & StateProps;
 
 export class Editor extends React.Component<EditorProps, any> {
-  componentDidMount() {
-    document.body.addEventListener('copy', this.makeCopyHandler());
-  }
-
   makeDefinitions() {
     const {
       editorMode,
@@ -166,71 +161,9 @@ export class Editor extends React.Component<EditorProps, any> {
             run={run}
           />
         );
-      case EditorMode.Chunks:
-        return (
-          <DefChunks />
-        );
       default:
         throw new NeverError(editorMode);
     }
-  }
-
-  /* Returns a function suitable as a callback to a copy (ctrl-c) event handler.
-     Ensures that highlighted text over multiple chunks is properly copied. Also
-     ensures that the 'get shareable link' button copies its link when clicked. */
-  makeCopyHandler() {
-    const that = this;
-
-    return (e: any) => {
-      const {
-        chunks,
-        editorMode,
-      } = that.props;
-
-      if (editorMode !== EditorMode.Chunks) {
-        // We can rely on the browser's native copy here, since there's only one CodeMirror.
-        // We also prefer native copy for Chatitor, because there are no
-        // selections across multiple chunks
-        return;
-      }
-
-      const shareableLink = document.getElementById('shareableLink');
-      if (shareableLink) {
-        // Rely on browser's native copy for the shareable link box. It should be autofocused.
-        return;
-      }
-
-      /* If we're not in text mode, and the shareable link box isn't visible,
-         then try to copy all of the highlighted text out of the chunks. */
-
-      let data = '';
-
-      chunks.forEach((chunk, i) => {
-        const { editor } = chunk;
-
-        if (!('getDoc' in editor)) {
-          // TODO(luna): CHUNKSTEXT
-          console.error('uninitialized editor makeCopyHandler(?)');
-          return;
-        }
-
-        const doc = editor.getDoc();
-        const selection = doc.getSelection();
-
-        if (selection === '') {
-          return;
-        }
-
-        data += selection;
-
-        if (i !== chunks.length - 1) {
-          data += '#.CHUNK#\n';
-        }
-      });
-
-      e.clipboardData.setData('text/plain', data);
-      e.preventDefault();
-    };
   }
 
   render() {

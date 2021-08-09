@@ -15,7 +15,6 @@ import * as control from './control';
 import { RHSObjects } from './rhsObject';
 
 export type EffectFailure =
-  (| { effectKey: 'createRepl' }
   | { effectKey: 'startEditTimer' }
   | { effectKey: 'editTimer' }
   | { effectKey: 'setup' }
@@ -24,10 +23,9 @@ export type EffectFailure =
   | { effectKey: 'saveFile', error: Error }
   | { effectKey: 'setupWorkerMessageHandler' }
   | { effectKey: 'initCmd' }
-  | BackendEffectFailure);
+  | BackendEffectFailure;
 
 export type EffectSuccess =
-  (| { effectKey: 'createRepl' }
   | { effectKey: 'startEditTimer', timer: NodeJS.Timer }
   | { effectKey: 'editTimer' }
   | { effectKey: 'setup' }
@@ -36,7 +34,7 @@ export type EffectSuccess =
   | { effectKey: 'saveFile' }
   | { effectKey: 'setupWorkerMessageHandler' }
   | { effectKey: 'initCmd' }
-  | BackendEffectSuccess);
+  | BackendEffectSuccess;
 
 export type BackendEffectFailure =
   (| { effectKey: 'initCmd', cmd: BackendCmd }

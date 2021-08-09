@@ -58,8 +58,7 @@ function handleLoadFile(
     case EditorMode.Text:
       dispatch({ type: 'update', key: 'currentFileContents', value: contents });
       break;
-    case EditorMode.Chatitor:
-    case EditorMode.Chunks: {
+    case EditorMode.Chatitor: {
       const chunks = makeChunksFromString(contents);
 
       dispatch({
@@ -85,119 +84,11 @@ function handleLoadFile(
 }
 
 function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
-  function handleLog(message: string): void {
-    console.log(message);
-  }
-
-  function handleSetupFinished(): void {
-    dispatch({
-      type: 'effectEnded',
-      status: 'succeeded',
-      effectKey: 'setup',
-    });
-  }
-
-  function handleCompileFailure(errors: string[]): void {
-    dispatch({
-      type: 'update',
-      key: 'messageTabIndex',
-      value: MessageTabIndex.ErrorMessages,
-    });
-
-    dispatch({
-      type: 'effectEnded',
-      status: 'failed',
-      effectKey: 'compile',
-      errors,
-    });
-  }
-
-  function handleRuntimeFailure(errors: string[]): void {
-    dispatch({
-      type: 'update',
-      key: 'messageTabIndex',
-      value: MessageTabIndex.ErrorMessages,
-    });
-
-    dispatch({
-      type: 'effectEnded',
-      status: 'failed',
-      effectKey: 'run',
-      errors,
-    });
-  }
-
-  function handleLintFailure(lintFailure: { name: string, errors: string[] }): void {
-    dispatch({
-      type: 'update',
-      key: 'messageTabIndex',
-      value: MessageTabIndex.ErrorMessages,
-    });
-
-    dispatch({
-      type: 'effectEnded',
-      status: 'failed',
-      effectKey: 'lint',
-      name: lintFailure.name,
-      errors: lintFailure.errors,
-    });
-  }
-
-  function handleLintSuccess(lintSuccess: { name: string }): void {
-    dispatch({
-      type: 'effectEnded',
-      status: 'succeeded',
-      effectKey: 'lint',
-      name: lintSuccess.name,
-    });
-  }
-
-  function handleCompileSuccess(): void {
-    dispatch({
-      type: 'effectEnded',
-      status: 'succeeded',
-      effectKey: 'compile',
-    });
-  }
-
-  function handleCreateReplSuccess(): void {
-    dispatch({
-      type: 'effectEnded',
-      status: 'succeeded',
-      effectKey: 'createRepl',
-    });
-  }
-
-  function handleCompileInteractionSuccess(): void {
-    console.log('compile interaction success (nyi)');
-  }
-
-  function handleCompileInteractionFailure(): void {
-    console.log('compile interaction failure (nyi)');
-  }
-
-  control.setupWorkerMessageHandler(
-    handleLog,
-    handleSetupFinished,
-    handleCompileFailure,
-    handleRuntimeFailure,
-    handleLintFailure,
-    handleLintSuccess,
-    handleCompileSuccess,
-    handleCreateReplSuccess,
-    handleCompileInteractionSuccess,
-    handleCompileInteractionFailure,
-  );
-
   dispatch({
     type: 'effectEnded',
     status: 'succeeded',
     effectKey: 'setupWorkerMessageHandler',
   });
-}
-
-function handleCreateRepl() {
-  control.createRepl();
 }
 
 function handleSaveFile(
@@ -230,7 +121,6 @@ function handleSaveFile(
       control.fs.writeFile(path, contents, saveCallback);
       break;
     case EditorMode.Chatitor:
-    case EditorMode.Chunks:
       // TODO(alex): Chunk file saving works by concating chunks together into a single buffer
       //   and writing it out.
       // If performance becomes bottlenecked here, consider:
@@ -402,18 +292,6 @@ function handleFirstActionableEffect(
           }
         }
         break;
-      case 'createRepl':
-        {
-          console.log('createRepl');
-          const { isReplReady } = state;
-          if (!isReplReady) {
-            return {
-              effect: i,
-              applyEffect: () => handleCreateRepl(),
-            };
-          }
-        }
-        break;
       case 'initCmd':
       {
         const currBackendCmd = state.backendCmd;
@@ -479,8 +357,7 @@ function handleFirstActionableEffect(
                 applyEffect: () => handleTextLint(currentFileContents),
               };
             }
-            case EditorMode.Chatitor:
-            case EditorMode.Chunks: {
+            case EditorMode.Chatitor: {
               const sendLintRequests = (): void => {
                 chunks.forEach(({ editor, errorState, id }) => {
                   if (errorState.status !== 'succeeded') {
@@ -513,27 +390,13 @@ function handleFirstActionableEffect(
             compiling,
             running,
             isFileSaved,
-            chunks,
-            editorMode,
           } = state;
-          let allLinted = true;
-
-          if (editorMode === EditorMode.Chunks) {
-            for (let j = 0; j < chunks.length; j += 1) {
-              if (chunks[j].errorState.status !== 'succeeded') {
-                allLinted = false;
-                console.log('Not all chunks linted');
-                break;
-              }
-            }
-          }
 
           if (isMessageHandlerReady
               && isSetupFinished
               && isFileSaved
               && compiling !== true
-              && !running
-              && allLinted) {
+              && !running) {
             return {
               effect: i,
               applyEffect: () => handleCompile(dispatch, currentFile, typeCheck),

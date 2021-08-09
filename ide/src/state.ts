@@ -172,7 +172,6 @@ export enum MessageTabIndex {
 }
 
 export enum EditorMode {
-  Chunks = 'Chunks',
   Text = 'Text',
   Embeditor = 'Embeditor',
   Chatitor = 'Chatitor',

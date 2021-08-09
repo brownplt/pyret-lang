@@ -14,8 +14,6 @@ type StateProps = {
   menuItems: MenuItems,
   menuTabVisible: false | number,
   enterNewline: boolean,
-  debugBorders: boolean,
-  displayResultsInline: boolean,
   editorMode: EditorMode,
   currentFileContents: string | undefined,
 };
@@ -25,8 +23,6 @@ function mapStateToProps(state: State): StateProps {
     menuItems,
     menuTabVisible,
     enterNewline,
-    debugBorders,
-    displayResultsInline,
     editorMode,
     currentFileContents,
   } = state;
@@ -35,8 +31,6 @@ function mapStateToProps(state: State): StateProps {
     menuItems,
     menuTabVisible,
     enterNewline,
-    debugBorders,
-    displayResultsInline,
     editorMode,
     currentFileContents,
   };
@@ -45,8 +39,6 @@ function mapStateToProps(state: State): StateProps {
 type DispatchProps = {
   update: (updater: (s: State) => State) => void,
   setEditorMode: (mode: EditorMode) => void,
-  setDebugBorders: (debugBorders: boolean) => void,
-  setDisplayResultsInline: (displayResultsInline: boolean) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
@@ -56,12 +48,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     },
     setEditorMode: (mode: EditorMode) => {
       dispatch({ type: 'update', key: 'editorMode', value: mode });
-    },
-    setDebugBorders: (debugBorders: boolean) => {
-      dispatch({ type: 'update', key: 'debugBorders', value: debugBorders });
-    },
-    setDisplayResultsInline: (displayResultsInline) => {
-      dispatch({ type: 'update', key: 'displayResultsInline', value: displayResultsInline });
     },
   };
 }
@@ -77,21 +63,14 @@ function Menu({
   update,
   setEditorMode,
   enterNewline,
-  debugBorders,
-  setDebugBorders,
-  displayResultsInline,
-  setDisplayResultsInline,
   editorMode,
-  currentFileContents,
 }: MenuProps) {
-  const [encodedUrl, setEncodedUrl] = React.useState<false | string>(false);
-
   function getTab() {
     if (menuTabVisible === false) {
       return false;
     }
 
-    const modes = [EditorMode.Chatitor, EditorMode.Embeditor, EditorMode.Text, EditorMode.Chunks];
+    const modes = [EditorMode.Chatitor, EditorMode.Embeditor, EditorMode.Text];
     switch (menuItems[menuTabVisible].name) {
       case 'Files':
         return (
@@ -142,83 +121,6 @@ function Menu({
                   'Enter can send chats (click to change)'
                 )}
               </button>
-            )}
-            {editorMode === EditorMode.Chunks && (
-              <button
-                onClick={() => setDebugBorders(!debugBorders)}
-                className="option"
-                key="debugBorders"
-                type="button"
-                style={{
-                  height: '2.7em',
-                }}
-              >
-                {debugBorders ? (
-                  'Turn off debug borders'
-                ) : (
-                  'Turn on debug borders'
-                )}
-              </button>
-            )}
-            {editorMode === EditorMode.Chunks && (
-              <button
-                onClick={() => setDisplayResultsInline(!displayResultsInline)}
-                className="option"
-                key="displayResultsInline"
-                type="button"
-                style={{
-                  height: '2.7em',
-                }}
-              >
-                {displayResultsInline ? (
-                  'Turn off inline results'
-                ) : (
-                  'Turn on inline results'
-                )}
-              </button>
-            )}
-            {editorMode === EditorMode.Chunks && (
-              <div
-                style={{
-                  width: '100%',
-                }}
-              >
-                <button
-                  onClick={() => {
-                    if (currentFileContents !== undefined) {
-                      setEncodedUrl(`${document.location.origin}${document.location.pathname}?program=${encodeURIComponent(currentFileContents)}`);
-                    }
-                  }}
-                  className="option"
-                  key="getShareableLink"
-                  type="button"
-                  style={{
-                    height: '2.7em',
-                    width: '100%',
-                  }}
-                >
-                  Get shareable link
-                </button>
-                {encodedUrl && (
-                  <input
-                    type="text"
-                    value={encodedUrl}
-                    readOnly
-                    id="shareableLink"
-                    className="option"
-                    // eslint-disable-next-line jsx-a11y/no-autofocus
-                    autoFocus
-                    onFocus={(e) => {
-                      e.target.select();
-                      document.execCommand('copy');
-                    }}
-                    style={{
-                      width: '100%',
-                      height: '2.7em',
-                    }}
-                  />
-                )}
-              </div>
             )}
           </div>
         );

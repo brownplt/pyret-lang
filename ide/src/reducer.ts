@@ -99,7 +99,7 @@ function handleEnter(state: State): State {
     editorMode,
   } = state;
 
-  if (!(editorMode === EditorMode.Chunks || editorMode === EditorMode.Chatitor)) {
+  if (!(editorMode === EditorMode.Chatitor)) {
     return state;
   }
 
@@ -175,12 +175,6 @@ function handleEffectStarted(state: State, action: EffectStarted): State {
   ];
 
   switch (oldEffectQueue[action.effect].effectKey) {
-    case 'createRepl':
-      return {
-        ...state,
-        creatingRepl: true,
-        effectQueue,
-      };
     case 'lint':
       return {
         ...state,
@@ -205,14 +199,6 @@ function handleEffectStarted(state: State, action: EffectStarted): State {
         effectQueue,
       };
   }
-}
-
-function handleCreateReplSuccess(state: State): State {
-  return {
-    ...state,
-    creatingRepl: false,
-    isReplReady: true,
-  };
 }
 
 function handleStartEditTimerSuccess(
@@ -275,8 +261,7 @@ function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): Stat
       };
     }
 
-    case EditorMode.Chatitor:
-    case EditorMode.Chunks: {
+    case EditorMode.Chatitor: {
       const {
         backendCmd,
         chunks,
@@ -499,8 +484,6 @@ function handleInitCmdSuccess(state: State): State {
 
 function handleEffectSucceeded(state: State, action: EffectSuccess): State {
   switch (action.effectKey) {
-    case 'createRepl':
-      return handleCreateReplSuccess(state);
     case 'startEditTimer':
       return handleStartEditTimerSuccess(state, action);
     case 'editTimer':
@@ -528,10 +511,6 @@ function handleEffectSucceeded(state: State, action: EffectSuccess): State {
   }
 }
 
-function handleCreateReplFailure(): State {
-  throw new Error('handleCreateReplFailure: failed to create a REPL');
-}
-
 function handleLintFailure(state: State, action: FailureForEffect<'lint'>): State {
   const { editorMode, focusedChunk, shouldAdvanceCursor } = state;
 
@@ -546,8 +525,7 @@ function handleLintFailure(state: State, action: FailureForEffect<'lint'>): Stat
         linting: false,
         interactionErrors: action.errors,
       };
-    case EditorMode.Chatitor:
-    case EditorMode.Chunks: {
+    case EditorMode.Chatitor: {
       const { chunks } = state;
 
       let allLinted = true;
@@ -660,8 +638,7 @@ function handleCompileFailure(
         interactionErrors: status.errors,
         definitionsHighlights: places,
       };
-    case EditorMode.Chatitor:
-    case EditorMode.Chunks: {
+    case EditorMode.Chatitor: {
       console.log('Compilation failure: chunks');
       if (places.length > 0) {
         const { chunks } = state;
@@ -730,8 +707,6 @@ function handleSaveFileFailure(state: State, action: FailureForEffect<'saveFile'
 
 function handleEffectFailed(state: State, action: EffectFailure): State {
   switch (action.effectKey) {
-    case 'createRepl':
-      return handleCreateReplFailure();
     case 'lint':
       return handleLintFailure(state, action);
     case 'compile':
@@ -777,8 +752,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         editorMode: newEditorMode,
       };
     }
-    case EditorMode.Chatitor:
-    case EditorMode.Chunks: {
+    case EditorMode.Chatitor: {
       // in text mode currentFileContents can be more up-to-date than chunks, so we
       // need to recreate the chunks.
 
@@ -799,7 +773,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
       let totalLines = 0;
       const chunks: Chunk[] = [];
 
-      if (currentFileContents !== '' || newEditorMode === EditorMode.Chunks) {
+      if (currentFileContents !== '') {
         currentFileContents.split(CHUNKSEP).forEach((chunkString) => {
           chunks.push(emptyChunk({
             // TODO(luna): CHUNKSTEXT this is where the fun happens
@@ -835,12 +809,7 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
   const {
     effectQueue,
     compiling,
-    editorMode,
   } = state;
-
-  if (editorMode === EditorMode.Chunks) {
-    throw new Error('handleSetCurrentFileContents: chunks mode should set chunks, not fileContents');
-  }
 
   return {
     ...state,
@@ -870,7 +839,7 @@ function handleSetCurrentFile(state: State, file: string): State {
 
 function handleSetChunks(state: State, update: ChunksUpdate): State {
   const { editorMode, isFileSaved } = state;
-  if (editorMode !== EditorMode.Chunks && editorMode !== EditorMode.Chatitor) {
+  if (editorMode !== EditorMode.Chatitor) {
     throw new Error('handleSetChunks: not in chunk mode');
   }
 

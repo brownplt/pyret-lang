@@ -2,7 +2,6 @@
    used when dispatching actions that enqueue effects. */
 
 export type EffectKey =
-  (| 'createRepl'
   | 'startEditTimer'
   | 'editTimer'
   | 'setup'
@@ -11,7 +10,7 @@ export type EffectKey =
   | 'saveFile'
   | 'setupWorkerMessageHandler'
   | 'initCmd'
-  | BackendEffectKey);
+  | BackendEffectKey;
 
 export type BackendEffectKey =
   (| 'lint'
@@ -20,7 +19,6 @@ export type BackendEffectKey =
   | 'stop');
 
 export type Effect =
-  (| { effectKey: 'createRepl' }
   | { effectKey: 'startEditTimer' }
   | { effectKey: 'editTimer' }
   | { effectKey: 'setup' }
@@ -29,7 +27,7 @@ export type Effect =
   | { effectKey: 'saveFile' }
   | { effectKey: 'initCmd', cmd: BackendCmd }
   | { effectKey: 'setupWorkerMessageHandler' }
-  | BackendEffect);
+  | BackendEffect;
 
 export type BackendEffect =
   (| { effectKey: 'lint' }
