@@ -6,7 +6,6 @@ import { IDE } from './ide';
 import {
   BackendCmd,
   EditorMode,
-  MessageTabIndex,
   State,
 } from './state';
 import {
@@ -15,10 +14,8 @@ import {
   CHUNKSEP,
 } from './chunk';
 import { Action } from './action';
-import { RunKind } from './backend';
 import { Effect } from './effect';
 import * as control from './control';
-import * as ideRt from './ide-rt-override';
 import { NeverError } from './utils';
 
 type Dispatch = (action: Action) => void;
@@ -137,64 +134,6 @@ function handleSaveFile(
   }
 }
 
-function handleCompile(dispatch: Dispatch, path: string, typeCheck: boolean) {
-  const { dir, base } = control.bfsSetup.path.parse(path);
-  control.compile(dir, base, typeCheck);
-}
-
-function handleRun(dispatch: Dispatch, currentFile: string, runKind: RunKind) {
-  const { base } = control.bfsSetup.path.parse(currentFile);
-  // TODO(alex): Maybe clear messages when compilation starts
-  dispatch({
-    type: 'update',
-    key: 'rhs',
-    value: 'reset-rt-messages',
-  });
-  control.run(
-    control.path.runBase,
-    `${base}.js`,
-    (runResult: any) => {
-      if (runResult.result.error === undefined) {
-        dispatch({
-          type: 'update',
-          key: 'messageTabIndex',
-          value: MessageTabIndex.RuntimeMessages,
-        });
-
-        dispatch({
-          type: 'effectEnded',
-          status: 'succeeded',
-          effectKey: 'run',
-          result: runResult,
-        });
-      } else {
-        dispatch({
-          type: 'update',
-          key: 'messageTabIndex',
-          value: MessageTabIndex.ErrorMessages,
-        });
-
-        dispatch({
-          type: 'effectEnded',
-          status: 'failed',
-          effectKey: 'run',
-          errors: runResult.result.result,
-        });
-      }
-    },
-    (runner: any) => {
-      currentRunner = runner;
-    },
-    runKind,
-    {
-      spyMessgeHandler: ideRt.defaultSpyMessage,
-      spyExprHandler: ideRt.defaultSpyExpr,
-      imgUrlProxy: ideRt.defaultImageUrlProxy,
-      checkBlockFilter: ideRt.checkBlockFilter,
-    },
-  );
-}
-
 function handleStop(dispatch: Dispatch) {
   currentRunner.pause((line: number) => {
     dispatch({
@@ -204,14 +143,6 @@ function handleStop(dispatch: Dispatch) {
       line,
     });
   });
-}
-
-function handleTextLint(currentFileContents: string): void {
-  control.lint(currentFileContents, 'text');
-}
-
-function handleChunkLint(text: string, id: string): void {
-  control.lint(text, id);
 }
 
 // Removes consecutive, duplicate effects, so we don't do extra work.
@@ -334,93 +265,6 @@ function handleFirstActionableEffect(
             });
           },
         };
-      }
-      case 'lint': {
-        const {
-          editorMode,
-          chunks,
-          currentFileContents,
-          isSetupFinished,
-          isFileSaved,
-        } = state;
-
-        console.log('Linting...');
-        if (isSetupFinished && isFileSaved) {
-          switch (editorMode) {
-            case EditorMode.Embeditor:
-            case EditorMode.Text: {
-              if (currentFileContents === undefined) {
-                break;
-              }
-              return {
-                effect: i,
-                applyEffect: () => handleTextLint(currentFileContents),
-              };
-            }
-            case EditorMode.Chatitor: {
-              const sendLintRequests = (): void => {
-                chunks.forEach(({ editor, errorState, id }) => {
-                  if (errorState.status !== 'succeeded') {
-                    console.log(`linting chunk ${id}`);
-                    handleChunkLint(editor.getValue(), id);
-                  }
-                });
-              };
-
-              return {
-                effect: i,
-                applyEffect: sendLintRequests,
-              };
-            }
-            default:
-              throw new NeverError(editorMode);
-          }
-        }
-
-        break;
-      }
-      case 'compile':
-        {
-          console.log('Compiling...');
-          const {
-            currentFile,
-            typeCheck,
-            isMessageHandlerReady,
-            isSetupFinished,
-            compiling,
-            running,
-            isFileSaved,
-          } = state;
-
-          if (isMessageHandlerReady
-              && isSetupFinished
-              && isFileSaved
-              && compiling !== true
-              && !running) {
-            return {
-              effect: i,
-              applyEffect: () => handleCompile(dispatch, currentFile, typeCheck),
-            };
-          }
-        }
-        break;
-      case 'run': {
-        console.log('run');
-        const {
-          currentFile,
-          runKind,
-          isMessageHandlerReady,
-          isSetupFinished,
-          compiling,
-          running,
-        } = state;
-        if (isMessageHandlerReady && isSetupFinished && !compiling && !running) {
-          return {
-            effect: i,
-            applyEffect: () => handleRun(dispatch, currentFile, runKind),
-          };
-        }
-        break;
       }
       case 'stop': {
         const { running } = state;

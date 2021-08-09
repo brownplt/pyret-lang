@@ -39,7 +39,6 @@ import {
   Chunk,
   CHUNKSEP,
   getStartLineForIndex,
-  findChunkFromSrcloc,
   emptyChunk,
   lintSuccessState,
   notLintedState,
@@ -175,24 +174,6 @@ function handleEffectStarted(state: State, action: EffectStarted): State {
   ];
 
   switch (oldEffectQueue[action.effect].effectKey) {
-    case 'lint':
-      return {
-        ...state,
-        linting: true,
-        effectQueue,
-      };
-    case 'compile':
-      return {
-        ...state,
-        compiling: true,
-        effectQueue,
-      };
-    case 'run':
-      return {
-        ...state,
-        running: true,
-        effectQueue,
-      };
     default:
       return {
         ...state,
@@ -234,160 +215,6 @@ function handleEditTimerSuccess(state: State): State {
   };
 }
 
-function handleLintSuccess(state: State, action: SuccessForEffect<'lint'>): State {
-  const { editorMode } = state;
-
-  console.log('Lint success');
-  switch (editorMode) {
-    case EditorMode.Embeditor:
-    case EditorMode.Text: {
-      const { effectQueue, backendCmd } = state;
-
-      if (backendCmd > BackendCmd.Lint) {
-        return {
-          ...state,
-          linting: false,
-          linted: true,
-          effectQueue: [...effectQueue, { effectKey: 'compile' }],
-        };
-      }
-
-      // Finished the Lint command
-      return {
-        ...state,
-        linting: false,
-        linted: true,
-        backendCmd: BackendCmd.None,
-      };
-    }
-
-    case EditorMode.Chatitor: {
-      const {
-        backendCmd,
-        chunks,
-        effectQueue,
-        compiling,
-        running,
-      } = state;
-
-      let allLinted = true;
-      const newChunks: Chunk[] = chunks.map((chunk) => {
-        if (chunk.id === action.name) {
-          return {
-            ...chunk,
-            errorState: { status: 'succeeded', effect: 'lint' },
-          };
-        }
-
-        if (chunk.errorState.status !== 'succeeded') {
-          allLinted = false;
-        }
-
-        return chunk;
-      });
-
-      const shouldCompile = allLinted && !compiling && !running && (backendCmd > BackendCmd.Lint);
-      console.log(`All linted: ${allLinted}\nShould compile: ${shouldCompile}`);
-
-      return handleEnter({
-        ...state,
-        chunks: newChunks,
-        linted: allLinted,
-        linting: !allLinted,
-        backendCmd: (backendCmd > BackendCmd.Lint) ? backendCmd : BackendCmd.None,
-        effectQueue: shouldCompile ? [...effectQueue, { effectKey: 'compile' }] : effectQueue,
-      });
-    }
-    default:
-      throw new NeverError(editorMode);
-  }
-}
-
-function handleCompileSuccess(state: State): State {
-  const { compiling, effectQueue, backendCmd } = state;
-
-  console.log('Successful compile...');
-  if (compiling === 'out-of-date') {
-    console.log('Out of date compile');
-    return {
-      ...state,
-      backendCmd: BackendCmd.None,
-      compiling: false,
-      effectQueue: [...effectQueue, { effectKey: 'initCmd', cmd: backendCmd }],
-    };
-  }
-
-  const autoRun = backendCmd === BackendCmd.Run;
-
-  return {
-    ...state,
-    backendCmd: autoRun ? backendCmd : BackendCmd.None,
-    compiling: false,
-    interactionErrors: [],
-    definitionsHighlights: [],
-    effectQueue: autoRun ? [...effectQueue, { effectKey: 'run' }] : effectQueue,
-  };
-}
-
-function handleRunSuccess(state: State, status: SuccessForEffect<'run'>): State {
-  const rhs = makeRHSObjects(status.result, `file://${state.currentFile}`);
-
-  const {
-    chunks,
-    currentFile,
-  } = state;
-
-  // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
-  //   resulting in a severe memory leak of 50+MB PER RUN
-  cleanStopify();
-
-  const newChunks = chunks.slice();
-  const locations = status.result.result.$locations;
-  const traces = status.result.result.$traces;
-
-  locations.forEach((loc: any) => {
-    const { name, srcloc } = loc;
-    const chunk = findChunkFromSrcloc(chunks, srcloc, currentFile);
-    if (chunk !== false) {
-      newChunks[chunk] = {
-        ...newChunks[chunk],
-        errorState: {
-          status: 'succeeded',
-          effect: 'run',
-          result: status.result.result[name],
-        },
-      };
-    }
-  });
-
-  traces.forEach((loc: any) => {
-    const { value, srcloc } = loc;
-    const chunk = findChunkFromSrcloc(chunks, srcloc, currentFile);
-    if (chunk !== false) {
-      newChunks[chunk] = {
-        ...newChunks[chunk],
-        errorState: {
-          status: 'succeeded',
-          effect: 'run',
-          result: value,
-        },
-      };
-    }
-  });
-
-  return handleEnter({
-    ...state,
-    backendCmd: BackendCmd.None,
-    currentRunner: undefined,
-    chunks: newChunks,
-    running: false,
-    rhs: {
-      objects: rhs.objects,
-      outdated: rhs.outdated,
-    },
-  });
-}
-
 function handleSetupSuccess(state: State): State {
   return {
     ...state,
@@ -413,61 +240,10 @@ function handleLoadFileSuccess(state: State): State {
 
 function handleSaveFileSuccess(state: State): State {
   console.log('saved a file successfully');
-  const {
-    effectQueue,
-    compiling,
-    running,
-    chunks,
-    backendCmd,
-  } = state;
-
-  let newEffectQueue = effectQueue;
-  let needsLint = false;
-  let shouldHandleEnter = false;
-
-  for (let i = 0; i < chunks.length; i += 1) {
-    if (chunks[i].errorState.status !== 'succeeded') {
-      needsLint = true;
-      break;
-    }
-  }
-
-  if (backendCmd > BackendCmd.None && !compiling && !running) {
-    if (needsLint) {
-      console.log('Linting after save');
-      newEffectQueue = [...effectQueue, { effectKey: 'lint' }];
-    } else if (backendCmd >= BackendCmd.Compile) {
-      // Chunks are inserted after a lint success. In this case, we aren't
-      // linting, but we still would like to possibly create a new chunk.
-      console.log('Compiling after save');
-      shouldHandleEnter = true;
-      newEffectQueue = [...effectQueue, { effectKey: 'compile' }];
-    }
-  }
-
-  if (shouldHandleEnter) {
-    // Make sure not to lint / compile if all of the following are true:
-    // 1. enter was pressed
-    // 2. the current chunk had no text in it
-    // 3. the current chunk was the last chunk in the file
-    const newState = handleEnter({
-      ...state,
-      isFileSaved: true,
-      effectQueue: newEffectQueue,
-      linted: true,
-    });
-    if (newState.chunks.length === state.chunks.length + 1
-      && newState.focusedChunk === newState.chunks.length - 1
-      && newState.chunks[newState.chunks.length - 2].editor.getValue() === '') {
-      return { ...newState, effectQueue };
-    }
-    return newState;
-  }
 
   return {
     ...state,
     isFileSaved: true,
-    effectQueue: newEffectQueue,
   };
 }
 
@@ -488,12 +264,6 @@ function handleEffectSucceeded(state: State, action: EffectSuccess): State {
       return handleStartEditTimerSuccess(state, action);
     case 'editTimer':
       return handleEditTimerSuccess(state);
-    case 'lint':
-      return handleLintSuccess(state, action);
-    case 'compile':
-      return handleCompileSuccess(state);
-    case 'run':
-      return handleRunSuccess(state, action);
     case 'setup':
       return handleSetupSuccess(state);
     case 'stop':
@@ -511,188 +281,6 @@ function handleEffectSucceeded(state: State, action: EffectSuccess): State {
   }
 }
 
-function handleLintFailure(state: State, action: FailureForEffect<'lint'>): State {
-  const { editorMode, focusedChunk, shouldAdvanceCursor } = state;
-
-  console.log('Lint failure');
-  switch (editorMode) {
-    case EditorMode.Embeditor:
-    case EditorMode.Text:
-      return {
-        ...state,
-        backendCmd: BackendCmd.None,
-        linted: true,
-        linting: false,
-        interactionErrors: action.errors,
-      };
-    case EditorMode.Chatitor: {
-      const { chunks } = state;
-
-      let allLinted = true;
-      let currentChunkFailed = false;
-      const newChunks: Chunk[] = chunks.map((chunk, chunkIndex) => {
-        if (chunk.id === action.name) {
-          const highlights: number[][] = [];
-          for (let i = 0; i < action.errors.length; i += 1) {
-            const matches = action.errors[i].match(/:\d+:\d+-\d+:\d+/g);
-            if (matches !== null) {
-              matches.forEach((m: any) => {
-                highlights.push(m.match(/\d+/g)!.map(Number));
-              });
-            }
-          }
-
-          if (chunkIndex === focusedChunk) {
-            currentChunkFailed = true;
-          }
-
-          return {
-            ...chunk,
-            errorState: {
-              status: 'failed',
-              effect: 'lint',
-              failures: action.errors.map((e) => JSON.parse(e)),
-              highlights,
-            },
-            needsJiggle: true,
-          };
-        }
-
-        if (chunk.errorState.status === 'notLinted') {
-          allLinted = false;
-        }
-
-        return chunk;
-      });
-
-      return handleEnter({
-        ...state,
-        backendCmd: BackendCmd.None,
-        chunks: newChunks,
-        linted: allLinted,
-        linting: !allLinted,
-        shouldAdvanceCursor: shouldAdvanceCursor && !currentChunkFailed,
-      });
-    }
-    default:
-      throw new NeverError(editorMode);
-  }
-}
-
-function handleCompileFailure(
-  state: State,
-  status: FailureForEffect<'compile'>,
-): State {
-  console.log('Compilation failure');
-  const { compiling } = state;
-  if (compiling === 'out-of-date') {
-    console.log('Compilation failure out of date');
-    const { backendCmd, effectQueue } = state;
-    return {
-      ...state,
-      compiling: false,
-      backendCmd: BackendCmd.None,
-      effectQueue: [...effectQueue, { effectKey: 'initCmd', cmd: backendCmd }],
-    };
-  }
-
-  const { editorMode } = state;
-
-  const places: number[][] = [];
-  for (let i = 0; i < status.errors.length; i += 1) {
-    const matches = status.errors[i].match(/:\d+:\d+-\d+:\d+/g);
-    if (matches !== null) {
-      matches.forEach((m: any) => {
-        places.push(m.match(/\d+/g)!.map(Number));
-      });
-    }
-  }
-
-  function findChunkFromSrclocResult([l1] : number[]): number | false {
-    const { chunks } = state;
-    for (let i = 0; i < chunks.length; i += 1) {
-      const end = chunks[i].startLine + chunks[i].editor.getValue().split('\n').length;
-      if (l1 >= chunks[i].startLine && l1 <= end) {
-        return i;
-      }
-    }
-    return false;
-  }
-
-  function getExistingHighlights(chunk : Chunk): number[][] | false {
-    if (chunk.errorState.status === 'failed') {
-      return chunk.errorState.highlights;
-    }
-
-    return false;
-  }
-
-  switch (editorMode) {
-    case EditorMode.Embeditor:
-    case EditorMode.Text:
-      console.log('Compilation failure: text mode');
-      return {
-        ...state,
-        backendCmd: BackendCmd.None,
-        compiling: false,
-        interactionErrors: status.errors,
-        definitionsHighlights: places,
-      };
-    case EditorMode.Chatitor: {
-      console.log('Compilation failure: chunks');
-      if (places.length > 0) {
-        const { chunks } = state;
-        const newChunks = [...chunks];
-        for (let i = 0; i < places.length; i += 1) {
-          const chunkIndex = findChunkFromSrclocResult(places[i]);
-          if (chunkIndex) {
-            const hl = getExistingHighlights(newChunks[chunkIndex]);
-            newChunks[chunkIndex] = {
-              ...newChunks[chunkIndex],
-              errorState: {
-                status: 'failed',
-                effect: 'compile',
-                failures: status.errors.map((e) => JSON.parse(e)),
-                highlights: hl ? [...hl, places[i]] : [places[i]],
-              },
-              needsJiggle: true,
-            };
-          }
-        }
-        return handleEnter({
-          ...state,
-          backendCmd: BackendCmd.None,
-          compiling: false,
-          chunks: newChunks,
-        });
-      }
-      return handleEnter({
-        ...state,
-        backendCmd: BackendCmd.None,
-        compiling: false,
-        interactionErrors: status.errors,
-        definitionsHighlights: places,
-      });
-    }
-    default:
-      throw new NeverError(editorMode);
-  }
-}
-
-function handleRunFailure(state: State, status: FailureForEffect<'run'>) {
-  console.log('handleFailure', status);
-  // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
-  //   resulting in a severe memory leak of 50+MB PER RUN
-  cleanStopify();
-  return handleEnter({
-    ...state,
-    backendCmd: BackendCmd.None,
-    currentRunner: undefined,
-    running: false,
-    interactionErrors: [JSON.stringify(status.errors)],
-  });
-}
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function handleInitCmdFailure(state: State, action: FailureForEffect<'initCmd'>): State {
   // TODO(alex): Do something here?
@@ -707,12 +295,6 @@ function handleSaveFileFailure(state: State, action: FailureForEffect<'saveFile'
 
 function handleEffectFailed(state: State, action: EffectFailure): State {
   switch (action.effectKey) {
-    case 'lint':
-      return handleLintFailure(state, action);
-    case 'compile':
-      return handleCompileFailure(state, action);
-    case 'run':
-      return handleRunFailure(state, action);
     case 'initCmd':
       return handleInitCmdFailure(state, action);
     case 'saveFile':

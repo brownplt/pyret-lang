@@ -9,14 +9,7 @@ export type EffectKey =
   | 'loadFile'
   | 'saveFile'
   | 'setupWorkerMessageHandler'
-  | 'initCmd'
-  | BackendEffectKey;
-
-export type BackendEffectKey =
-  (| 'lint'
-  | 'compile'
-  | 'run'
-  | 'stop');
+  | 'initCmd';
 
 export type Effect =
   | { effectKey: 'startEditTimer' }
@@ -26,14 +19,7 @@ export type Effect =
   | { effectKey: 'loadFile' }
   | { effectKey: 'saveFile' }
   | { effectKey: 'initCmd', cmd: BackendCmd }
-  | { effectKey: 'setupWorkerMessageHandler' }
-  | BackendEffect;
-
-export type BackendEffect =
-  (| { effectKey: 'lint' }
-  | { effectKey: 'compile' }
-  | { effectKey: 'run' }
-  | { effectKey: 'stop' });
+  | { effectKey: 'setupWorkerMessageHandler' };
 
 export enum BackendCmd {
   None = 0,
