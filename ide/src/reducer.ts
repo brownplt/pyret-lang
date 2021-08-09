@@ -215,14 +215,6 @@ function handleEditTimerSuccess(state: State): State {
   };
 }
 
-function handleSetupSuccess(state: State): State {
-  return {
-    ...state,
-    isSetupFinished: true,
-    settingUp: false,
-  };
-}
-
 function handleStopSuccess(state: State, action: SuccessForEffect<'stop'>): State {
   console.log('stop successful, paused on line', action.line);
   return {
@@ -264,8 +256,6 @@ function handleEffectSucceeded(state: State, action: EffectSuccess): State {
       return handleStartEditTimerSuccess(state, action);
     case 'editTimer':
       return handleEditTimerSuccess(state);
-    case 'setup':
-      return handleSetupSuccess(state);
     case 'stop':
       return handleStopSuccess(state, action);
     case 'loadFile':
@@ -378,13 +368,6 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
     default:
       throw new NeverError(newEditorMode);
   }
-}
-
-function handleSetCurrentRunner(state: State, runner: any): State {
-  return {
-    ...state,
-    currentRunner: runner,
-  };
 }
 
 function handleSetCurrentFileContents(state: State, contents: string): State {
@@ -520,42 +503,6 @@ function handleSetMenuTabVisible(state: State, tab: false | number) {
   return { ...state, menuTabVisible: tab };
 }
 
-function handleSetRHS(
-  state: State,
-  value: 'make-outdated' | 'reset-rt-messages',
-) {
-  const {
-    rhs,
-    rtMessages,
-  } = state;
-
-  if (value === 'reset-rt-messages') {
-    return {
-      ...state,
-      rtMessages: {
-        ...rtMessages,
-        messages: [],
-      },
-    };
-  }
-
-  if (value === 'make-outdated') {
-    return {
-      ...state,
-      rhs: {
-        ...rhs,
-        outdated: true,
-      },
-      rtMessages: {
-        ...rtMessages,
-        outdated: true,
-      },
-    };
-  }
-
-  throw new Error('handleSetRHS: unreachable point reached');
-}
-
 function handleRTMessage(state: State, message: RawRTMessage): State {
   const {
     rtMessages,
@@ -587,8 +534,6 @@ function handleUpdate(
   switch (action.key) {
     case 'editorMode':
       return handleSetEditorMode(state, action.value);
-    case 'currentRunner':
-      return handleSetCurrentRunner(state, action.value);
     case 'currentFileContents':
       return handleSetCurrentFileContents(state, action.value);
     case 'browsePath':
@@ -609,20 +554,10 @@ function handleUpdate(
       return { ...state, typeCheck: action.value };
     case 'dropdownVisible':
       return { ...state, dropdownVisible: action.value };
-    case 'shouldAdvanceCursor':
-      return { ...state, shouldAdvanceCursor: action.value };
     case 'menuTabVisible':
       return handleSetMenuTabVisible(state, action.value);
-    case 'rhs':
-      return handleSetRHS(state, action.value);
     case 'rt-message':
       return handleRTMessage(state, <RawRTMessage>action.value);
-    case 'firstSelectedChunkIndex':
-      return { ...state, firstSelectedChunkIndex: action.value };
-    case 'debugBorders':
-      return { ...state, debugBorders: action.value };
-    case 'displayResultsInline':
-      return { ...state, displayResultsInline: action.value };
     case 'messageTabIndex':
       return handleMessageIndexUpdate(state, action.value);
     case 'editorResponseLoop':

@@ -17,7 +17,6 @@ import { RHSObjects } from './rhsObject';
 export type EffectFailure =
   | { effectKey: 'startEditTimer' }
   | { effectKey: 'editTimer' }
-  | { effectKey: 'setup' }
   | { effectKey: 'stop' }
   | { effectKey: 'loadFile' }
   | { effectKey: 'saveFile', error: Error }
@@ -28,7 +27,6 @@ export type EffectFailure =
 export type EffectSuccess =
   | { effectKey: 'startEditTimer', timer: NodeJS.Timer }
   | { effectKey: 'editTimer' }
-  | { effectKey: 'setup' }
   | { effectKey: 'stop', line: number }
   | { effectKey: 'loadFile' }
   | { effectKey: 'saveFile' }
@@ -37,16 +35,10 @@ export type EffectSuccess =
   | BackendEffectSuccess;
 
 export type BackendEffectFailure =
-  (| { effectKey: 'initCmd', cmd: BackendCmd }
-  | { effectKey: 'lint', name: string, errors: string[] } // TODO: check errors type
-  | { effectKey: 'compile', errors: string[] }
-  | { effectKey: 'run', errors: any });
+  { effectKey: 'initCmd', cmd: BackendCmd };
 
 export type BackendEffectSuccess =
-  (| { effectKey: 'initCmd', cmd: BackendCmd }
-  | { effectKey: 'lint', name: string }
-  | { effectKey: 'compile' }
-  | { effectKey: 'run', result: any });
+  { effectKey: 'initCmd', cmd: BackendCmd };
 
 export type SuccessForEffect<E extends EffectKey> =
   Extract<EffectSuccess, { effectKey: E }>;
@@ -78,27 +70,27 @@ export function isSingleChunkUpdate(update: ChunksUpdate): update is SingleChunk
 // TODO(alex): Split editor updates into a separate type
 export type Update =
   | { key: 'editorMode', value: EditorMode }
-  | { key: 'currentRunner', value: any }
   | { key: 'currentFileContents', value: string }
   | { key: 'browsePath', value: string }
   | { key: 'currentFile', value: string }
   | { key: 'chunks', value: ChunksUpdate }
   | { key: 'chunkToRHS', value: Map<string, RHSObjects> }
+  // RHS, RTMessageDisplay, Run
+  // (these should probably go away, since it's never read now as far as i know!)
   | { key: 'focusedChunk', value: number | undefined }
   | { key: 'fontSize', value: number }
   | { key: 'runKind', value: control.backend.RunKind }
   | { key: 'typeCheck', value: boolean }
-  | { key: 'shouldAdvanceCursor', value: boolean }
   | { key: 'dropdownVisible', value: boolean }
   | { key: 'menuTabVisible', value: false | number }
-  | { key: 'firstSelectedChunkIndex', value: false | number }
-  | { key: 'debugBorders', value: boolean }
-  | { key: 'displayResultsInline', value: boolean }
-  | { key: 'rhs', value: 'make-outdated' | 'reset-rt-messages' }
+  // store.ts: ide
   | { key: 'rt-message', value: RawRTMessage }
+  // Editor.tsx
   | { key: 'messageTabIndex', value: MessageTabIndex }
+  // Run.tsx, almost certainly not read though
   | { key: 'editorResponseLoop', value: EditorResponseLoop }
   | { key: 'editorLoopDropdownVisible', value: boolean }
+  // store.ts, case 'initCmd'
   | { key: 'backendCmd', value: BackendCmd }
   | { key: 'updater', value: (state : State) => State };
 

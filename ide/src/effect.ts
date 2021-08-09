@@ -1,20 +1,26 @@
 /* Exports the Effect type; a type for representing side-effects. This type is
    used when dispatching actions that enqueue effects. */
 
+// Comments indicate who causes this effect and therefore cannot be deleted (yet)
 export type EffectKey =
+  // handleSetCurrentFileContents
   | 'startEditTimer'
+  // handleStartEditTimer
   | 'editTimer'
-  | 'setup'
+  // Run.tsx
   | 'stop'
+  // handleSetCurrentFile
   | 'loadFile'
+  // initCmd
   | 'saveFile'
+  // end of store.ts
   | 'setupWorkerMessageHandler'
+  // handleEditTimerSuccess, Run.tsx compile
   | 'initCmd';
 
 export type Effect =
   | { effectKey: 'startEditTimer' }
   | { effectKey: 'editTimer' }
-  | { effectKey: 'setup' }
   | { effectKey: 'stop' }
   | { effectKey: 'loadFile' }
   | { effectKey: 'saveFile' }
