@@ -65,7 +65,6 @@ type StateProps = {
   editorMode: EditorMode,
   chunks: Chunk[],
   compiling: boolean | 'out-of-date',
-  linting: boolean,
   messageTabIndex: MessageTabIndex,
 };
 
@@ -79,7 +78,6 @@ function mapStateToProps(state: State.State): StateProps {
     editorMode: state.editorMode,
     chunks: state.chunks,
     compiling: state.compiling,
-    linting: state.linting,
     rtMessages: state.rtMessages,
     messageTabIndex: state.messageTabIndex,
   };

@@ -6,19 +6,16 @@ import { connect, ConnectedProps } from 'react-redux';
 import { State } from './state';
 
 type StateProps = {
-  linting: boolean,
   compiling: boolean | 'out-of-date',
   running: boolean,
 };
 
 function mapStateToProps(state: State): StateProps {
   const {
-    linting,
     compiling,
     running,
   } = state;
   return {
-    linting,
     compiling,
     running,
   };
@@ -38,7 +35,6 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type FooterProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
 function Footer({
-  linting,
   compiling,
   running,
 }: FooterProps) {
@@ -58,14 +54,6 @@ function Footer({
         alignItems: 'center',
       }}
     >
-      <div
-        style={{
-          ...statusStyle,
-          color: linting ? activeColor : inactiveColor,
-        }}
-      >
-        Linting
-      </div>
       <div
         style={{
           ...statusStyle,

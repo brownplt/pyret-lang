@@ -39,7 +39,6 @@ type StateProps = {
   typeCheck: boolean,
   running: boolean,
   compiling: boolean | 'out-of-date',
-  linting: boolean,
   chunks: Chunk[],
   editorResponseLoop: EditorResponseLoop,
   editorMode: EditorMode,
@@ -53,7 +52,6 @@ function mapStateToProps(state: State): StateProps {
     typeCheck,
     running,
     compiling,
-    linting,
     chunks,
     editorResponseLoop,
     editorMode,
@@ -66,7 +64,6 @@ function mapStateToProps(state: State): StateProps {
     typeCheck,
     running,
     compiling,
-    linting,
     chunks,
     editorResponseLoop,
     editorMode,
@@ -143,8 +140,6 @@ function Run({
   typeCheck,
   running,
   compiling,
-  linting,
-  chunks,
   editorResponseLoop,
   editorMode,
 }: Props) {
@@ -207,20 +202,6 @@ function Run({
 
   let percent = '100%';
 
-  if (linting) {
-    let chunksToLint = 0;
-
-    chunks.forEach((chunk) => {
-      if (chunk.errorState.status === 'notLinted') {
-        chunksToLint += 1;
-      }
-    });
-
-    const n = (50 / chunks.length) * (chunks.length - chunksToLint);
-
-    percent = `${n}%`;
-  }
-
   if (compiling) {
     percent = '75%';
   }
@@ -237,7 +218,7 @@ function Run({
 
   let dropdownBackground = '#317bcf';
 
-  if (linting || compiling) {
+  if (compiling) {
     dropdownBackground = 'gray';
   }
 

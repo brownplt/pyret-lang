@@ -40,7 +40,7 @@ export type State = {
   /* The parsed module results of a Pyret program. */
   rhs: RHSObjects,
 
-  /* The parsed module results of a Pyret program, but associated to chunks. */
+  /* A map from chunk id to list of results for that chunk. */
   chunkToRHS: Map<string, RHSObjects>,
 
   /* Parsed messages from an executed/executing Pyret program */
@@ -80,10 +80,6 @@ export type State = {
   /* Text mode only. Tracks error highlight source location spans (if any). */
   definitionsHighlights: number[][],
 
-  /* Unused. Replaced with a file-local runner in store.ts. TODO(michael):
-     remove this. */
-  currentRunner: any,
-
   /* The list of chunks. In Chunk mode, these are parsed into HTML in DefChunk.ts. */
   chunks: Chunk[],
 
@@ -98,26 +94,8 @@ export type State = {
   /* True if the current file has been saved since the last edit, false otherwise. */
   isFileSaved: boolean,
 
-  /* True if the worker message handlers have been set up. See store.ts. */
-  isSetupFinished: boolean,
-
   /* This seems to be a redundant version of `isSetupFinished`. TODO(michael): remove this. */
   isMessageHandlerReady: boolean,
-
-  /* Unused */
-  isReplReady: boolean,
-
-  /* True if we are waiting for message handlers to be setup, false otherwise */
-  settingUp: boolean,
-
-  /* Unused */
-  creatingRepl: boolean,
-
-  /* True if the program is linting, false otherwise. */
-  linting: boolean,
-
-  /* True if the program has been linted since the last edit, false otherwise. */
-  linted: boolean,
 
   /* True if the program is compiling, false if it is not, and 'out-of-date' if
      the program has been edited during a compile. 'out-of-date' is used to
@@ -127,32 +105,15 @@ export type State = {
   /* True if the program is running, false otherwise. */
   running: boolean,
 
-  /* True if program is running through session */
-  runningSession: boolean,
-
   /* Names of the menus. These appear in the top left of the page. */
   menuItems: MenuItems,
 
   /* The menu tab that is open, or false of no tab is open. */
   menuTabVisible: false | number,
 
-  /* Chunk mode only. The chunk that was selected first in a click-and-drag
-     highlighting operation. This is used for determining how to highlight
-     chunks properly. See DefChunk.tsx. */
-  firstSelectedChunkIndex: false | number,
-
   /* Chatitor only. Enter always inserts a newline when true. Otherwise enter
    * sends one-line chats and complete multi-line blocks. */
   enterNewline: boolean,
-
-  /* Chunk mode only. True if the drag handles should be yellow / orange if
-     their corresponding chunks have not been linted yet, false otherwise. This
-     is useful for debugging issues where chunks are not linting properly. */
-  debugBorders: boolean,
-
-  /* Chunk mode only. True if results of a program should also be displayed
-     below each chunk, false otherwise. */
-  displayResultsInline: boolean,
 
   /* Current tab index of the messages tab panel */
   messageTabIndex: MessageTabIndex,
@@ -210,20 +171,12 @@ export const initialState: State = {
   editorMode: EditorMode.Chatitor,
   fontSize: 14,
   definitionsHighlights: [],
-  currentRunner: undefined,
   shouldAdvanceCursor: false,
   effectQueue: [],
   isFileSaved: false,
   isMessageHandlerReady: false,
-  isReplReady: false,
-  isSetupFinished: false,
-  settingUp: true,
-  creatingRepl: false,
-  linting: false,
-  linted: false,
   compiling: false,
   running: false,
-  runningSession: false,
   chunks: [],
   focusedChunk: undefined,
   menuTabVisible: false,
@@ -239,10 +192,7 @@ export const initialState: State = {
       icon: 'gearIcon.svg',
     },
   ],
-  firstSelectedChunkIndex: false,
   enterNewline: false,
-  debugBorders: false,
-  displayResultsInline: true,
   messageTabIndex: MessageTabIndex.RuntimeMessages,
   editorResponseLoop: EditorResponseLoop.Manual,
 };
