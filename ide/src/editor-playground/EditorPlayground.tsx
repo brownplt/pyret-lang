@@ -3,7 +3,7 @@ import { UnControlled as CodeMirror } from 'react-codemirror2';
 import CM from 'codemirror';
 import { connect } from 'react-redux';
 import Tooltip from './Tooltip';
-import { BackendCmd, State } from '../state';
+import { State } from '../state';
 import { Action } from '../action';
 import { getRow, RHSObjects } from '../rhsObject';
 import RVPortal from './RVPortal';
@@ -48,7 +48,7 @@ function mapStateToProps(state: State): StateProps {
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     run() {
-      return dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Run } });
+      return dispatch({ type: 'run', key: 'runProgram' });
     },
     save(contents: string) {
       dispatch({
