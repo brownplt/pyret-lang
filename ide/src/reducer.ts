@@ -154,13 +154,6 @@ function handleSaveFileSuccess(state: State): State {
   };
 }
 
-function handleSetupWorkerMessageHandlerSuccess(state: State): State {
-  return {
-    ...state,
-    isMessageHandlerReady: true,
-  };
-}
-
 function handleInitCmdSuccess(state: State): State {
   return state;
 }
@@ -177,8 +170,6 @@ function handleEffectSucceeded(state: State, action: EffectSuccess): State {
       return handleLoadFileSuccess(state);
     case 'saveFile':
       return handleSaveFileSuccess(state);
-    case 'setupWorkerMessageHandler':
-      return handleSetupWorkerMessageHandlerSuccess(state);
     case 'initCmd':
       return handleInitCmdSuccess(state);
     default:

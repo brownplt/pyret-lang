@@ -80,14 +80,6 @@ function handleLoadFile(
   });
 }
 
-function handleSetupWorkerMessageHandler(dispatch: Dispatch) {
-  dispatch({
-    type: 'effectEnded',
-    status: 'succeeded',
-    effectKey: 'setupWorkerMessageHandler',
-  });
-}
-
 function handleSaveFile(
   dispatch: Dispatch,
   mode: EditorMode,
@@ -207,18 +199,6 @@ function handleFirstActionableEffect(
                 currentFileContents,
                 chunks,
               ),
-            };
-          }
-        }
-        break;
-      case 'setupWorkerMessageHandler':
-        {
-          console.log('setupWorkerMessageHandler');
-          const { isMessageHandlerReady } = state;
-          if (!isMessageHandlerReady) {
-            return {
-              effect: i,
-              applyEffect: () => handleSetupWorkerMessageHandler(dispatch),
             };
           }
         }
@@ -366,8 +346,6 @@ store.subscribe(() => {
   dispatch({ type: 'effectStarted', effect });
   applyEffect();
 });
-
-store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'setupWorkerMessageHandler' } });
 
 /* Try to load a Chunk mode program from the URI component ?program=uri-encoded-program */
 

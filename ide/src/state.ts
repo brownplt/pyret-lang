@@ -37,7 +37,8 @@ export type State = {
   /* `true` if the compiler should be run with type checking, `false` otherwise. */
   typeCheck: boolean,
 
-  /* The parsed module results of a Pyret program. */
+  /* The parsed module results of a Pyret program. Not read by Chatitor, which
+   * prefers chunkToRHS */
   rhs: RHSObjects,
 
   /* A map from chunk id to list of results for that chunk. */
@@ -46,15 +47,11 @@ export type State = {
   /* Parsed messages from an executed/executing Pyret program */
   rtMessages: RTMessages,
 
-  /* In text mode: the errors (if any). In chunk mode: the runtime errors (if
-     any); lint and compile errors are tracked in the `chunks` array. */
+  /* In text mode: the errors (if any) */
   interactionErrors: string[],
 
   /* The type of run (whether we should run with Stopify [async mode] or not [sync mode]) */
   runKind: control.backend.RunKind,
-
-  /* `true` if the program should auto run upon edit in text mode. In chunk mode
-     this must always be `true` for the program to properly run.
 
   /* Text mode only. This timer is started when an edit is made to the text of a
      program. When the timer finishes and auto run is on, the program is run. If
@@ -70,7 +67,7 @@ export type State = {
   /* True if the nested dropdown within the dropdown is visible */
   editorLoopDropdownVisible: boolean,
 
-  /* Determines whether the editor is in Chunk mode or Text mode. */
+  /* Determines which kind of editor interface is shown, such as Text or Chatitor */
   editorMode: EditorMode,
 
   /* The current font size of the left hand side and right hand side of the
@@ -80,22 +77,19 @@ export type State = {
   /* Text mode only. Tracks error highlight source location spans (if any). */
   definitionsHighlights: number[][],
 
-  /* The list of chunks. In Chunk mode, these are parsed into HTML in DefChunk.ts. */
+  /* The list of chunks. */
   chunks: Chunk[],
 
-  /* Chunk mode only. Used for tracking whether or not to move the cursor into
-     the subsequent chunk after Enter is pressed. */
-  shouldAdvanceCursor: boolean,
-
   /* True if the current file has been saved since the last edit, false otherwise. */
+  /* Technically unused, but it actually looks pretty useful. Will keep around,
+   * but will need to updated to runSession. */
   isFileSaved: boolean,
-
-  /* This seems to be a redundant version of `isSetupFinished`. TODO(michael): remove this. */
-  isMessageHandlerReady: boolean,
 
   /* True if the program is compiling, false if it is not, and 'out-of-date' if
      the program has been edited during a compile. 'out-of-date' is used to
      trigger a recompile before the program is run. */
+  /* Rendered unused by the move to the promise-based API, but may be useful in
+    * the future, even if not by Chatitor mode */
   compiling: boolean | 'out-of-date',
 
   /* True if the program is running, false otherwise. */
@@ -114,6 +108,8 @@ export type State = {
   /* Current tab index of the messages tab panel */
   messageTabIndex: MessageTabIndex,
 
+  /* In text mode, whether the program is compiled/run after pauses to editing */
+  /* TODO(luna): Do we really want this? */
   editorResponseLoop: EditorResponseLoop,
 };
 
@@ -167,10 +163,8 @@ export const initialState: State = {
   editorMode: EditorMode.Chatitor,
   fontSize: 14,
   definitionsHighlights: [],
-  shouldAdvanceCursor: false,
   effectQueue: [],
   isFileSaved: false,
-  isMessageHandlerReady: false,
   compiling: false,
   running: false,
   chunks: [],

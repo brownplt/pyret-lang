@@ -13,8 +13,6 @@ export type EffectKey =
   | 'loadFile'
   // initCmd
   | 'saveFile'
-  // end of store.ts
-  | 'setupWorkerMessageHandler'
   // handleEditTimerSuccess, Run.tsx compile
   | 'initCmd';
 
@@ -24,8 +22,7 @@ export type Effect =
   | { effectKey: 'stop' }
   | { effectKey: 'loadFile' }
   | { effectKey: 'saveFile' }
-  | { effectKey: 'initCmd', cmd: BackendCmd }
-  | { effectKey: 'setupWorkerMessageHandler' };
+  | { effectKey: 'initCmd', cmd: BackendCmd };
 
 export enum BackendCmd {
   None = 0,
