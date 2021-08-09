@@ -17,50 +17,28 @@ import {
   RHSObjects,
   getRow,
 } from './rhsObject';
-import {
-  Chunk,
-  findChunkFromSrcloc,
-} from './chunk';
-import {
-  Action,
-} from './action';
 import RHSObjectComponent from './RHSObjectComponent';
 
 type StateProps = {
   rhs: RHSObjects,
   fontSize: number,
-  chunks: Chunk[],
-  currentFile: string,
-  focusedChunk: number | undefined,
 };
 
 function mapStateToProps(state: State): StateProps {
   const {
     rhs,
     fontSize,
-    chunks,
-    currentFile,
-    focusedChunk,
   } = state;
   return {
     rhs,
     fontSize,
-    chunks,
-    currentFile,
-    focusedChunk,
   };
 }
 
-type DispatchProps = {
-  setFocusedChunk: (index: number) => void,
-};
+type DispatchProps = {};
 
-function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
-  return {
-    setFocusedChunk(index: number) {
-      dispatch({ type: 'update', key: 'focusedChunk', value: index });
-    },
-  };
+function mapDispatchToProps(): DispatchProps {
+  return {};
 }
 
 const connector = connect(mapStateToProps, mapDispatchToProps);
@@ -71,10 +49,6 @@ type RHSProps = StateProps & PropsFromRedux & DispatchProps;
 function RHS({
   rhs,
   fontSize,
-  chunks,
-  currentFile,
-  focusedChunk,
-  setFocusedChunk,
 }: RHSProps) {
   function compareRHSObjects(a: RHSObject, b: RHSObject): number {
     return getRow(a) - getRow(b);
@@ -83,29 +57,14 @@ function RHS({
   const objects = rhs.objects.sort(compareRHSObjects);
 
   const elements = (
-    objects.map((rhsObject) => {
-      const row = getRow(rhsObject);
-      const chunk = findChunkFromSrcloc(
-        chunks,
-        [`file://${currentFile}`, row],
-        currentFile,
-      );
-      const isSelected = !rhs.outdated && focusedChunk !== undefined && chunk === focusedChunk;
-      function selectThisChunk() {
-        if (chunk !== false) {
-          setFocusedChunk(chunk);
-        }
-      }
-      return (
-        <RHSObjectComponent
-          isSelected={isSelected}
-          rhsObject={rhsObject}
-          onMouseEnter={selectThisChunk}
-          key={rhsObject.key}
-          className="chunks-rhs"
-        />
-      );
-    }));
+    objects.map((rhsObject) => (
+      <RHSObjectComponent
+        isSelected={false}
+        rhsObject={rhsObject}
+        key={rhsObject.key}
+        className="chunks-rhs"
+      />
+    )));
 
   /* Known issue: when the RHS is scrollable (because there are a lot of
      values), the gradient does not extend itself on scroll. */

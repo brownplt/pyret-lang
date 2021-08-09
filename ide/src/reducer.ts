@@ -38,9 +38,7 @@ import backendCmdFromState from './editor_loop';
 import {
   Chunk,
   CHUNKSEP,
-  getStartLineForIndex,
   emptyChunk,
-  lintSuccessState,
   notLintedState,
 } from './chunk';
 
@@ -73,89 +71,6 @@ let store: Store<State, Action>;
 // Call once, immediately after initializing the store, from store.ts
 export function setStore(theStore: Store<State, Action>) {
   store = theStore;
-}
-
-// TODO(alex): Handling enter needs to be changed
-//   With the current setup, you will need to call `handleEnter` at the end of
-//   every "entry point" in the reducer (i.e. almost everywhere).
-//   This is especially problematic if we have to ever change the way the IDE flows,
-//   as seen with the editor-response-loop rewrite.
-//
-//  Hitting the 'Enter' key in Chunk Mode will set the `shouldAdvanceCursor` flag
-//   and assumes the rest of the reducer will handle it...
-//  Ideally, we would just dispatch an "Insert Chunk" message that alters
-//   the state...
-//
-/* This is a chunk-mode only function. In chunk mode the Enter key is capable of
-   creating a new chunk under certain conditions. This function checks those
-   conditions and moves into the proper state. This should be used to wrap the
-   result of a reducer so that it can account for Enter presses. */
-function handleEnter(state: State): State {
-  const {
-    focusedChunk,
-    shouldAdvanceCursor,
-    chunks,
-    editorMode,
-  } = state;
-
-  if (!(editorMode === EditorMode.Chatitor)) {
-    return state;
-  }
-
-  if (focusedChunk !== undefined
-    && shouldAdvanceCursor
-    && chunks[focusedChunk] !== undefined
-    && chunks[focusedChunk].errorState.status !== 'failed') {
-    if (focusedChunk + 1 === chunks.length) {
-      const nextChunks: Chunk[] = [
-        ...chunks,
-        emptyChunk({
-          startLine: getStartLineForIndex(chunks, focusedChunk + 1),
-          errorState: lintSuccessState,
-        }),
-      ];
-      return {
-        ...state,
-        chunks: nextChunks,
-        focusedChunk: focusedChunk + 1,
-        shouldAdvanceCursor: false,
-      };
-    }
-
-    if (chunks[focusedChunk + 1].editor.getValue().trim() !== '') {
-      const nextChunks: Chunk[] = [
-        ...chunks.slice(0, focusedChunk + 1),
-        emptyChunk({
-          startLine: getStartLineForIndex(chunks, focusedChunk + 1),
-          errorState: lintSuccessState,
-        }),
-        ...chunks.slice(focusedChunk + 1),
-      ];
-      for (let i = focusedChunk + 1; i < nextChunks.length; i += 1) {
-        nextChunks[i] = {
-          ...nextChunks[i],
-          startLine: getStartLineForIndex(nextChunks, i),
-        };
-      }
-      return {
-        ...state,
-        chunks: nextChunks,
-        focusedChunk: focusedChunk + 1,
-        shouldAdvanceCursor: false,
-      };
-    }
-
-    if (chunks[focusedChunk + 1].editor.getValue().trim() === '') {
-      return {
-        ...state,
-        focusedChunk: focusedChunk + 1,
-        shouldAdvanceCursor: false,
-        chunks,
-      };
-    }
-  }
-
-  return state;
 }
 
 /* Tracks the state of side effects. This should only be called as a response to the
@@ -247,7 +162,7 @@ function handleSetupWorkerMessageHandlerSuccess(state: State): State {
 }
 
 function handleInitCmdSuccess(state: State): State {
-  return handleEnter(state);
+  return state;
 }
 
 function handleEffectSucceeded(state: State, action: EffectSuccess): State {
@@ -461,23 +376,6 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   throw new NeverError(update);
 }
 
-function handleSetFocusedChunk(state: State, index: number | undefined): State {
-  if (index !== undefined) {
-    const { effectQueue, isFileSaved, focusedChunk } = state;
-    const shouldStartEditTimer = !isFileSaved && focusedChunk !== index;
-    return {
-      ...state,
-      focusedChunk: index,
-      effectQueue: shouldStartEditTimer ? [...effectQueue, { effectKey: 'startEditTimer' }] : effectQueue,
-    };
-  }
-
-  return {
-    ...state,
-    focusedChunk: undefined,
-  };
-}
-
 function handleSetFontSize(state: State, fontSize: number): State {
   return { ...state, fontSize };
 }
@@ -539,8 +437,6 @@ function handleUpdate(
       return handleSetChunks(state, action.value);
     case 'chunkToRHS':
       return { ...state, chunkToRHS: action.value };
-    case 'focusedChunk':
-      return handleSetFocusedChunk(state, action.value);
     case 'fontSize':
       return handleSetFontSize(state, action.value);
     case 'runKind':

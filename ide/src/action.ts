@@ -75,9 +75,6 @@ export type Update =
   | { key: 'currentFile', value: string }
   | { key: 'chunks', value: ChunksUpdate }
   | { key: 'chunkToRHS', value: Map<string, RHSObjects> }
-  // RHS, RTMessageDisplay, Run
-  // (these should probably go away, since it's never read now as far as i know!)
-  | { key: 'focusedChunk', value: number | undefined }
   | { key: 'fontSize', value: number }
   | { key: 'runKind', value: control.backend.RunKind }
   | { key: 'typeCheck', value: boolean }

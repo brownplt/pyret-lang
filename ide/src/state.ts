@@ -83,10 +83,6 @@ export type State = {
   /* The list of chunks. In Chunk mode, these are parsed into HTML in DefChunk.ts. */
   chunks: Chunk[],
 
-  /* Chunk mode only. The currently focused chunk, i.e., the chunk that has a
-     cursor blinking inside of it. */
-  focusedChunk: number | undefined,
-
   /* Chunk mode only. Used for tracking whether or not to move the cursor into
      the subsequent chunk after Enter is pressed. */
   shouldAdvanceCursor: boolean,
@@ -178,7 +174,6 @@ export const initialState: State = {
   compiling: false,
   running: false,
   chunks: [],
-  focusedChunk: undefined,
   menuTabVisible: false,
   menuItems: [
     {

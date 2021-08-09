@@ -104,9 +104,6 @@ function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
       dispatch({ type: 'update', key: 'typeCheck', value: typeCheck });
     },
     setDropdownVisible: (dropdownVisible: boolean) => {
-      if (dropdownVisible) {
-        dispatch({ type: 'update', key: 'focusedChunk', value: undefined });
-      }
       dispatch({ type: 'update', key: 'dropdownVisible', value: dropdownVisible });
     },
     setEditorLoopDropdownVisible: (visible: boolean) => {

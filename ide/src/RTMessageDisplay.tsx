@@ -1,10 +1,8 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 
-import { Action } from './action';
 import { State } from './state';
 
-import { Chunk, findChunkFromSrcloc } from './chunk';
 import RenderedValue from './reps/RenderedValue';
 
 import {
@@ -13,57 +11,34 @@ import {
   RTMessages,
 } from './rtMessages';
 
-import { getRow } from './rhsObject';
-
 type StateProps = {
   rtMessages: RTMessages,
   fontSize: number,
-  chunks: Chunk[],
-  currentFile: string,
-  focusedChunk: number | undefined,
 };
 
 function mapStateToProps(state: State): StateProps {
   const {
     rtMessages,
     fontSize,
-    chunks,
-    currentFile,
-    focusedChunk,
   } = state;
   return {
     rtMessages,
     fontSize,
-    chunks,
-    currentFile,
-    focusedChunk,
   };
 }
 
-type DispatchProps = {
-  setFocusedChunk: (index: number) => void,
-};
-
-function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
-  return {
-    setFocusedChunk(index: number) {
-      dispatch({ type: 'update', key: 'focusedChunk', value: index });
-    },
-  };
+function mapDispatchToProps(): {} {
+  return {};
 }
 
 const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
-type RTProps = StateProps & PropsFromRedux & DispatchProps;
+type RTProps = StateProps & PropsFromRedux & {};
 
 function RTMessageDisplay({
   rtMessages,
   fontSize,
-  chunks,
-  currentFile,
-  focusedChunk,
-  setFocusedChunk,
 }: RTProps) {
   const objects = rtMessages.messages;
 
@@ -71,27 +46,14 @@ function RTMessageDisplay({
   //   with the chunk. Is this desired?
   const elements = (
     objects.map((rtMessage) => {
-      const row = getRow(rtMessage.data);
-      const chunk = findChunkFromSrcloc(
-        chunks,
-        [`file://${currentFile}`, row],
-        currentFile,
-      );
       // TODO(alex): need to take into account rtMessages.outdated
       // TODO(alex): probably want to extract into the overall property 'resultsOutdated'
-      const isSelected = focusedChunk !== undefined && chunk === focusedChunk;
       // TODO(alex): unify/centralize styles
       const selectedStyle = {
-        background: isSelected ? '#d7d4f0' : 'rgba(0, 0, 0, 0)',
-        borderTop: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
-        borderBottom: isSelected ? '2px solid #c8c8c8' : '2px solid rgba(0, 0, 0, 0)',
+        background: 'rgba(0, 0, 0, 0)',
+        borderTop: '2px solid rgba(0, 0, 0, 0)',
+        borderBottom: '2px solid rgba(0, 0, 0, 0)',
       };
-
-      function selectThisChunk() {
-        if (chunk !== false) {
-          setFocusedChunk(chunk);
-        }
-      }
 
       // TODO(alex): selected style not applying
       if (isSpyMessage(rtMessage.data)) {
@@ -102,7 +64,6 @@ function RTMessageDisplay({
               paddingLeft: '1em',
               ...selectedStyle,
             }}
-            onMouseEnter={selectThisChunk}
           >
             <RenderedValue value={rtMessage} />
           </pre>
@@ -117,7 +78,6 @@ function RTMessageDisplay({
               paddingLeft: '1em',
               ...selectedStyle,
             }}
-            onMouseEnter={selectThisChunk}
           >
             <RenderedValue value={rtMessage} />
           </pre>
