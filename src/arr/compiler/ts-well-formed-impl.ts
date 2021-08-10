@@ -721,6 +721,19 @@ import type { List, PFunction, Option } from './ts-impl-types';
           sMethodHelper(visitor, expr);
           parentBlockLoc = oldPbl;
         },
+        's-data-field': (visitor, expr: TJ.Variant<A.Member, 's-data-field'>) => {
+          if (reservedNames.has(expr.dict.name)) {
+            reservedName(expr.dict.l, expr.dict.name);
+          }
+          visit(visitor, expr.dict.value);
+        },
+        's-mutable-field': (visitor, expr: TJ.Variant<A.Member, 's-mutable-field'>) => {
+          if (reservedNames.has(expr.dict.name)) {
+            reservedName(expr.dict.l, expr.dict.name);
+          }
+          visit(visitor, expr.dict.value);
+          visit(visitor, expr.dict.ann);
+        },
         's-method': (visitor, expr: TJ.Variant<A.Expr, 's-method'>) => {
           if (!allowSMethod) {
             addError(C['wf-bad-method-expression'].app(expr.dict.l));
@@ -758,6 +771,32 @@ import type { List, PFunction, Option } from './ts-impl-types';
           wrapRejectStandalonesInCheck(expr.dict._check as A.Option<TJ.Variant<A.Expr, 's-block'>>);
           wrapVisitCheck(visitor, expr.dict._check);
           parentBlockLoc = oldPbl;
+        },
+        's-fun': (visitor, expr: TJ.Variant<A.Expr, 's-fun'>) => {
+          let oldPbl = parentBlockLoc;
+          parentBlockLoc =  getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
+          if (reservedNames.has(expr.dict.name)) {
+            reservedName(expr.dict.l, expr.dict.name);
+          }
+          if (!expr.dict.blocky && expr.dict.body.$name === 's-block') {
+            wfBlockyBlocks(expr.dict.l, [expr.dict.body]);
+          }
+          const args = listToArray(expr.dict.args);
+          ensureUniqueIdsOrBindings(args, false);
+          listToArray(expr.dict.params).forEach(p => visit(visitor, p));
+          args.forEach(a => visit(visitor, a));
+          visit(visitor, expr.dict.ann);
+          wrapVisitAllowSMethod(visitor, expr.dict.body, false);
+          setParentBlockLocToCheckBlock(expr.dict.l, expr.dict['_check-loc']);
+          wrapRejectStandalonesInCheck(expr.dict._check as Option<TJ.Variant<A.Expr, 's-block'>>);
+          wrapVisitCheck(visitor, expr.dict._check);
+          parentBlockLoc = oldPbl;
+        },
+        's-id': (visitor, expr: TJ.Variant<A.Expr, 's-id'>) => {
+          const id = nameToSourceString(expr.dict.id);
+          if (reservedNames.has(id)) {
+            reservedName(expr.dict.l, id);
+          }
         }
       }
 
@@ -871,6 +910,9 @@ import type { List, PFunction, Option } from './ts-impl-types';
         's-block': (visitor, expr: TJ.Variant<A.Expr, 's-block'>) => {
           visit<A.Expr>(wellFormedVisitor, expr);
         },
+        's-fun': (visitor, expr: TJ.Variant<A.Expr, 's-fun'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
+        },
         's-var': (visitor, expr: TJ.Variant<A.Expr, 's-var'>) => {
           visit<A.Expr>(wellFormedVisitor, expr);
         },
@@ -888,6 +930,15 @@ import type { List, PFunction, Option } from './ts-impl-types';
         },
         's-method': (visitor, expr: TJ.Variant<A.Expr, 's-method'>) => {
           visit<A.Expr>(wellFormedVisitor, expr);
+        },
+        's-id': (visitor, expr: TJ.Variant<A.Expr, 's-id'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
+        },
+        's-data-field': (visitor, expr: TJ.Variant<A.Member, 's-data-field'>) => {
+          visit<A.Member>(wellFormedVisitor, expr);
+        },
+        's-mutable-field': (visitor, expr: TJ.Variant<A.Member, 's-mutable-field'>) => {
+          visit<A.Member>(wellFormedVisitor, expr);
         },
         's-method-field': (visitor, expr: TJ.Variant<A.Member, 's-method-field'>) => {
           visit<A.Member>(wellFormedVisitor, expr);
