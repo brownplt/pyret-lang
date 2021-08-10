@@ -149,8 +149,8 @@ export type ExtraImport =
       {
         'dependency': Dependency,
         'as-name': string,
-        'values': List<String>,
-        'types': List<String>
+        'values': List<string>,
+        'types': List<string>
       }
   }
 
