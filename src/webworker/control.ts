@@ -217,7 +217,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
   let hasInit = false;
   type RunActions = {
     run: (callback: (value: any) => void) => void,
-    pause: () => void,
+    pause: (callback: (line: number) => void) => void,
     resume: () => void
   };
   let runActions: undefined | RunActions;
@@ -371,8 +371,21 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
       });
     });
   }
-  function apiStop() {
-    runActions?.pause();
+  // Resolves to whether runner was in fact running before stopped
+  function apiStop(): Promise<boolean> {
+    return new Promise((resolve) => {
+      console.log('in promise of apiStop');
+      if (runActions === undefined) {
+        console.log('resolve false (not running)');
+        resolve(false);
+      } else {
+        runActions.pause(() => {
+          console.log('pause callback');
+          runActions = undefined;
+          resolve(true);
+        });
+      }
+    });
   }
 
   async function compileAndRun(

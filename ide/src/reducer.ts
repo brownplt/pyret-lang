@@ -701,6 +701,7 @@ async function runProgramAsync(state : State) : Promise<any> {
 
 let stopFlag = false;
 async function runSegmentsAsync(state : State) : Promise<any> {
+  stopFlag = false;
   const { typeCheck, chunks } = state;
   const filenames: string[] = [];
   console.log('RUNNING THESE CHUNKS:');
@@ -778,13 +779,16 @@ function runProgramOrSegments(state : State, runner : (s : State) => Promise<any
   return { ...state, running: true };
 }
 function stopSession(state: State): State {
+  console.log('stopSession');
   console.assert(state.running);
-  stopFlag = true;
-  serverAPI.stop();
-  return {
-    ...state,
-    running: false,
-  };
+  serverAPI.stop().then((wasRunning) => {
+    console.log('serverAPI.stop().then(console.log)', wasRunning);
+    if (!wasRunning) {
+      stopFlag = true;
+    }
+    update((s: State) => ({ ...s, running: false }));
+  });
+  return state;
 }
 
 function rootReducer(state: State, action: Action): State {
