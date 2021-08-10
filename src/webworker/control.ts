@@ -363,11 +363,16 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
     : Promise<any> {
     return new Promise((resolve) => {
       runProgram2(runner, baseDir, program, runKind, rtCfg).then((r: RunActions) => {
-        runActions = r;
-        r.run((result) => {
-          runActions = undefined;
-          resolve(result);
-        });
+        if ('result' in r) {
+          resolve(r);
+        } else {
+          runActions = r;
+          console.log(runActions);
+          r.run((result) => {
+            runActions = undefined;
+            resolve(result);
+          });
+        }
       });
     });
   }

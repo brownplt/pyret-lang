@@ -65,6 +65,7 @@ export const runProgram2 = (
             });
           },
           pause: (callback: (line: number) => void): void => {
+            console.log('pause inside runProgram2 inside makeRA.then');
             asyncRunner.pause(callback);
           },
           resume: (): void => {

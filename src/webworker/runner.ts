@@ -272,8 +272,8 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
   return requireAsyncMain;
 };
 
+const syncCache : {[key:string]: any} = {};
 export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => any) => {
-  const cache : {[key:string]: any} = {};
   let cwd = basePath;
   let isRoot = true;
   let rootPath: string = "";
@@ -302,7 +302,9 @@ export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPa
     if (nextPath.slice(-3) !== ".js") {
       nextPath = nextPath + ".js";
     }
-    if (nextPath in cache) { return cache[nextPath]; }
+    if (nextPath in syncCache) {
+      delete syncCache[nextPath];
+    }
 
     if (isRoot) {
       isRoot = false;
@@ -329,7 +331,7 @@ export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPa
     const toReturn = module.exports ? module.exports : result;
     handleRuntimeConfig(nextPath, toReturn, rtCfg);
     cwd = oldWd;
-    cache[nextPath] = toReturn;
+    syncCache[nextPath] = toReturn;
 
     const endRequire = window.performance.now();
     timings[nextPath] = endRequire - startRequire;
