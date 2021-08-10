@@ -302,9 +302,6 @@ export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPa
     if (nextPath.slice(-3) !== ".js") {
       nextPath = nextPath + ".js";
     }
-    if (nextPath in syncCache) {
-      delete syncCache[nextPath];
-    }
 
     if (isRoot) {
       isRoot = false;
@@ -327,7 +324,12 @@ export const makeRequire = (basePath: string, rtCfg?: RuntimeConfig): ((importPa
         __pyretExports: nextPath,
       },
     };
-    const result = f(requireSync, module, module.exports);
+    const requireSyncWithCache = (importPath: string) => {
+      let nextPath = path.join(cwd, importPath);
+      if (nextPath in syncCache) { return syncCache[nextPath]; }
+      return requireSync(importPath);
+    }
+    const result = f(requireSyncWithCache, module, module.exports);
     const toReturn = module.exports ? module.exports : result;
     handleRuntimeConfig(nextPath, toReturn, rtCfg);
     cwd = oldWd;
