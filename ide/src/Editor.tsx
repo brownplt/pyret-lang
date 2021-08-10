@@ -36,6 +36,7 @@ import Embeditor from './embeditor/Embeditor';
 import { NeverError } from './utils';
 import Chatitor from './Chatitor';
 import GlobalInteractions from './GlobalInteractions';
+import FailureComponent from './FailureComponent';
 
 /*
 function compileAndRun(name : string, source : string) : Promise<RunResult> {
@@ -196,7 +197,15 @@ export class Editor extends React.Component<EditorProps, any> {
 
         <TabPanel className="interaction-error">
           <InteractionError fontSize={fontSize}>
-            {interactionErrors}
+            {interactionErrors.map((f) => {
+              let failure;
+              try {
+                failure = JSON.parse(f);
+              } catch (e) {
+                return f;
+              }
+              return <FailureComponent failure={failure} />;
+            })}
           </InteractionError>
         </TabPanel>
       </Tabs>

@@ -640,6 +640,7 @@ function handleCompileProgramFailure(state: State, errors: string[]) : State {
     // compiling: false,
     interactionErrors: errors,
     definitionsHighlights: places.map(asHL),
+    messageTabIndex: MessageTabIndex.ErrorMessages,
   };
 }
 
@@ -651,6 +652,7 @@ function handleRunProgramFailure(state: State, error: string) {
     // compiling: false,
     interactionErrors: [error],
     definitionsHighlights: [],
+    messageTabIndex: MessageTabIndex.ErrorMessages,
   };
 }
 
@@ -664,6 +666,7 @@ function handleRunProgramSuccess(state : State, result : any) {
       objects: rhs.objects,
       outdated: rhs.outdated,
     },
+    messageTabIndex: MessageTabIndex.RuntimeMessages,
   };
 }
 
@@ -763,6 +766,7 @@ async function runSegmentsAsync(state : State) : Promise<any> {
 }
 
 function runProgramOrSegments(state : State, runner : (s : State) => Promise<any>) : State {
+  // TODO(luna): reset rt messages?
   const result : Promise<any> = runner(state);
   result.then(() => {
     store.dispatch(

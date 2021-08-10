@@ -6,7 +6,7 @@ import { intersperse } from './utils';
 import Highlight from './Highlight';
 import RenderedValue from './reps/RenderedValue';
 
-type Props = { failure: Failure, editor: CM.Editor & CM.Doc };
+type Props = { failure: Failure, editor?: CM.Editor & CM.Doc };
 
 export default function FailureComponent({ failure, editor }: Props) {
   switch (failure.$name) {
@@ -61,16 +61,19 @@ export default function FailureComponent({ failure, editor }: Props) {
       if (failure.loc.$name !== 'srcloc') {
         throw new Error('Bad type of srcloc for a cmcode');
       }
-      return (
-        <UnControlledCM
-          value={editor.getRange({ line: failure.loc['start-line'] - 1, ch: 0 }, { line: failure.loc['end-line'], ch: 999999 })}
-          options={{ readOnly: true }}
-          editorDidMount={(newEditor) => {
-            newEditor.setSize(null, 'auto');
-          }}
-          className="failure-cmcode"
-        />
-      );
+      if (editor) {
+        return (
+          <UnControlledCM
+            value={editor.getRange({ line: failure.loc['start-line'] - 1, ch: 0 }, { line: failure.loc['end-line'], ch: 999999 })}
+            options={{ readOnly: true }}
+            editorDidMount={(newEditor) => {
+              newEditor.setSize(null, 'auto');
+            }}
+            className="failure-cmcode"
+          />
+        );
+      }
+      return <></>;
     }
     case 'highlight': {
       const rainbow = ['#fcc', '#fca', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
@@ -81,15 +84,18 @@ export default function FailureComponent({ failure, editor }: Props) {
         }
         const from = { line: loc['start-line'] - 1, ch: loc['start-column'] };
         const to = { line: loc['end-line'] - 1, ch: loc['end-column'] };
-        return (
-          <Highlight
-            editor={editor}
-            from={from}
-            to={to}
-            color={color}
-            key={to.line * 13 + to.ch}
-          />
-        );
+        if (editor) {
+          return (
+            <Highlight
+              editor={editor}
+              from={from}
+              to={to}
+              color={color}
+              key={to.line * 13 + to.ch}
+            />
+          );
+        }
+        return <></>;
       });
       return (
         <>
