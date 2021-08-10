@@ -42,7 +42,7 @@ export interface Exports {
   originByValueName: (ce: CS.CompileEnvironment, name: string) => Option<CS.BindOrigin>,
   originByTypeName: (ce: CS.CompileEnvironment, name: string) => Option<CS.BindOrigin>,
   originByModuleName: (ce: CS.CompileEnvironment, name: string) => Option<CS.BindOrigin>,
-  callMethod: <Name extends string, O extends {dict: {[n in Name]: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) => ReturnType<O["dict"][Name]["full_meth"]>,
+  callMethod: <Name extends string, O extends {dict: {[n in Name]?: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) => ReturnType<O["dict"][Name]["full_meth"]>,
   unwrap: <T>(opt: Option<T>, orElseMsg: string) => T,
 }
 
@@ -67,7 +67,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
 
     const { InternalCompilerError, ExhaustiveSwitchError, nameToName } = tj;
 
-    function callMethod<Name extends string, O extends {dict: {[n in Name]: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) : ReturnType<O["dict"][Name]["full_meth"]> {
+    function callMethod<Name extends string, O extends {dict: {[n in Name]?: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) : ReturnType<O["dict"][Name]["full_meth"]> {
       return obj.dict[name].full_meth(obj, ...args);
     }
 

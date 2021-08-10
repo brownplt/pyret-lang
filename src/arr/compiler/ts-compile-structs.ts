@@ -34,9 +34,19 @@ export type CompileMode =
 export type Dependency = 
   | {
     $name: "dependency",
-    dict: { 'protocol': string, 'arguments': List<string> }
+    dict: { 
+      'protocol': string,
+      'arguments': List<string>,
+      'key'?: PMethod<Dependency, () => string>,
+    }
   }
-  | { $name: "builtin", dict: { 'modname': string } }
+  | { 
+    $name: "builtin", 
+    dict: {
+      'modname': string,
+      'key'?: PMethod<Dependency, () => string>,
+    }
+  }
 
 export type NativeModule = | { $name: "requirejs", dict: { 'path': string } }
 
@@ -295,7 +305,7 @@ export type CompileError =
         'expected-args': any
       }
   }
-  | { $name: "no-arguments", dict: { 'expr': any } }
+  | { $name: "no-arguments", dict: { 'expr': Variant<A.Expr, "s-method"> | Variant<A.Member, "s-method-field"> } }
   | {
     $name: "non-toplevel",
     dict: { 'kind': any, 'l': A.Srcloc, 'parent-loc': A.Srcloc }
@@ -799,7 +809,7 @@ dict: {values: {dict: {
   >
 
 'no-arguments': 
-  PFunction< (expr: A.Expr) => Variant<CompileError, 'no-arguments'> >
+  PFunction< (expr: Variant<A.Expr, "s-method"> | Variant<A.Member, "s-method-field">) => Variant<CompileError, 'no-arguments'> >
 
 'non-toplevel': 
   PFunction<
