@@ -147,7 +147,7 @@ fun make-repl<a>(
       method uri(self): uri end,
       method name(self): "interactions" + num-to-string(this-interaction) end,
       method set-compiled(self, env, result): nothing end,
-      method get-compiled(self, options): none end,
+      method get-compiled(self, options): CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options)) end,
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
@@ -177,7 +177,7 @@ fun make-repl<a>(
       method uri(self): "definitions://" end,
       method name(self): "definitions" end,
       method set-compiled(self, env, result): nothing end,
-      method get-compiled(self, options): none end,
+      method get-compiled(self, options): CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options)) end,
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
@@ -322,7 +322,7 @@ fun make-chunky-repl<a>(
       method uri(self): uri end,
       method name(self): "interactions" + num-to-string(this-interaction) end,
       method set-compiled(self, env, result): nothing end,
-      method get-compiled(self, options): none end,
+      method get-compiled(self, options): CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options)) end,
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end
@@ -354,7 +354,7 @@ fun make-chunky-repl<a>(
       method uri(self): "definitions://" end,
       method name(self): "definitions" end,
       method set-compiled(self, env, result): nothing end,
-      method get-compiled(self, options): none end,
+      method get-compiled(self, options): CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options)) end,
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end

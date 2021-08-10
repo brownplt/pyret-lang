@@ -45,33 +45,42 @@ fun dfind(ctxt, dep):
   end
 end
 
+test-compile-options = CS.make-default-compile-options('./').{
+  compile-module: true,
+  builtin-js-dirs: [list: "./build/runtime"],
+  runtime-builtin-relative-path: some("./"),
+}
+
+our-test-context = CLI.default-test-context.{options: test-compile-options}
+
 fun run-to-result(program):
   floc = string-to-locator(program)
-  res = CL.compile-and-run-locator(floc, dfind, CLI.default-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CS.default-compile-options.{compile-module: true})
+  res = CL.compile-and-run-locator(floc, dfind, our-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], test-compile-options)
   res
 end
 
 fun run-to-result-named(program, name):
   floc = string-to-named-locator(program, name)
-  res = CL.compile-and-run-locator(floc, dfind, CLI.default-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CS.default-compile-options.{compile-module: true})
+  res = CL.compile-and-run-locator(floc, dfind, our-test-context, L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], test-compile-options)
   res
 end
 
 fun run-to-result-typed(loc, base-path):
-  res = CL.compile-and-run-locator(loc, CLI.module-finder, make-base-path-context(base-path), L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], CS.default-compile-options.{compile-module: true, type-check: true})
+  res = CL.compile-and-run-locator(loc, CLI.module-finder, make-base-path-context(base-path), L.empty-realm(), R.make-runtime(), [SD.mutable-string-dict:], test-compile-options.{type-check: true})
   res
 end
 
 fun make-base-path-context(base-path):
   {current-load-path: P.resolve(base-path),
    cache-base-dir: P.resolve("./tests/compiled"),
-   compiled-read-only-dirs: empty}
+   compiled-read-only-dirs: P.resolve("./tests/compiled"),
+   options: test-compile-options}
 end
 
 fun compile-str(program):
   loc = string-to-locator(program)
-  wlist = CL.compile-worklist(CLI.module-finder, loc, CLI.default-test-context)
-  result = CL.compile-program(wlist, CS.default-compile-options)
+  wlist = CL.compile-worklist(CLI.module-finder, loc, our-test-context)
+  result = CL.compile-program(wlist, test-compile-options)
   errors = result.loadables.filter(CL.is-error-compilation)
   cases(List) errors:
     | empty =>

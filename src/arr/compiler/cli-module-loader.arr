@@ -268,7 +268,7 @@ fun get-cached(basedir, uri, name, cache-type):
           datatypes: raw-array-to-list(raw.get-raw-datatype-provides()),
           modules: raw-array-to-list(raw.get-raw-module-provides())
         })
-      some(CL.module-as-string(provs, CS.no-builtins, CS.computed-none,
+      CL.already-done(CL.module-as-string(provs, CS.no-builtins, CS.computed-none,
           CS.ok(JSP.ccp-file(F.real-path(module-path + ".js")))))
     end,
 

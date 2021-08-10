@@ -1090,7 +1090,7 @@ data CompileError:
           ED.text(":")],
          ED.bulleted-sequence(self.expected-args.map(ED.text))]
     end
-  | no-arguments(expr :: A.Expr) with:
+  | no-arguments(expr #| :: A.Expr | A.Member%(is-s-method-field) |#) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:

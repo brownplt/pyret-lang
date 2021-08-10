@@ -93,7 +93,7 @@ fun make-fresh-module-testing-context():
       method uri(self): "file://" + name end,
       method name(self): name end,
       method set-compiled(self, ctxt, provs): nothing end,
-      method get-compiled(self): none end,
+      method get-compiled(self, options): CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options)) end,
       method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
     }
   end

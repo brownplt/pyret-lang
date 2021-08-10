@@ -1,15 +1,16 @@
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
-import render-error-display as RED
+import file("../../../src/arr/compiler/render-error-display.arr") as RED
 import file("../test-compile-helper.arr") as C
 
-run-str = C.run-str
+preamble = "include global\ninclude sets\ninclude lists\ninclude number\n"
+fun run-str(str): C.run-str(preamble + str) end
 compile-error = C.compile-error
 output = C.output
 
 sc = lam(test-str): string-contains(_, test-str) end
 
 fun c(str) block:
-  errs = C.get-compile-errs(str)
+  errs = C.get-compile-errs(preamble + str)
   when is-empty(errs):
     print-error("Expected at least one error for running \n\n " + str + "\n\n" + " but got none ")
   end
@@ -21,7 +22,7 @@ fun cwfs(str):
 end
   
 fun cok(str):
-  C.get-compile-errs(str)
+  C.get-compile-errs(preamble + str)
 end
 
 check "mixed ops":

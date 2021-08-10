@@ -172,7 +172,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
             aliases: raw-array-to-list(raw.get-raw-alias-provides()),
             datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
           })
-          some(CL.module-as-string(provs, CM.no-builtins, CM.computed-none, CM.ok(JSP.ccp-file(cpath))))
+          CL.already-done(CL.module-as-string(provs, CM.no-builtins, CM.computed-none, CM.ok(JSP.ccp-file(cpath))))
         else:
           none
         end

@@ -57,7 +57,7 @@ module-as-string = CS.module-as-string
 type Provides = CS.Provides
 
 data CompileTODO:
-  | already-done( result :: CS.CompileResult )
+  | already-done( result :: CS.Loadable )
   | arr-js-file( provides, header-file :: String, code-file :: String )
   | arr-file( mod :: PyretCode, libs :: CS.ExtraImports, options :: CS.CompileOptions )
 end
@@ -97,7 +97,7 @@ type Locator = {
   set-compiled :: (Loadable, SD.StringDict<Provides> -> Nothing),
 
   # Pre-compile if needs-compile is false
-  get-compiled :: ( -> CompileTODO ),
+  get-compiled :: (Any -> CompileTODO ),
 
   # _equals should compare uris for locators
   _equals :: Method
@@ -118,7 +118,7 @@ fun string-locator(uri :: URI, s :: String):
     method uri(self): uri end,
     method name(self): uri end,
     method set-compiled(self, _, _): nothing end,
-    method get-compiled(self): none end,
+    method get-compiled(self, options): arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options)) end,
     method _equals(self, other, rec-eq): rec-eq(other.uri(), self.uri()) end
   }
 end
