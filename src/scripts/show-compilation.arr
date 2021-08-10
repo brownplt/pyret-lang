@@ -12,7 +12,6 @@ import file("../../src/arr/compiler/compile-structs.arr") as CS
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../src/arr/compiler/compile-lib.arr") as CL
 import file("../../src/arr/compiler/resolve-scope.arr") as R
-import file("../../src/arr/compiler/ast-util.arr") as U
 import file("../../src/arr/compiler/js-of-pyret.arr") as JS
 import file as F
 
