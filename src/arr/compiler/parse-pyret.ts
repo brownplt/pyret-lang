@@ -1,3 +1,24 @@
+import { Program } from "./ts-ast";
+import { Either, PFunction } from "./ts-impl-types";
+
+type PyretError = {
+  dict: {
+    exn: any,
+    message: string,
+  }
+}
+
+export type Exports = {
+  dict: {
+    values: {
+      dict: {
+        'surface-parse': PFunction<(data: string, filename: string) => Program>,
+        'maybe-surface-parse': PFunction<(data: string, filename: string) => Either<PyretError, Program>>,
+      }
+    }
+  }
+}
+
 ({
   requires: [
     { "import-type": "builtin", name: "srcloc" },
@@ -137,7 +158,7 @@
 
       var pos = function(p) { return makePyretPos(fileName, p); };
       var pos2 = function(p1, p2) { return combinePyretPos(fileName, p1, p2); };
-      function makeListTr(arr, start, end, onto, f) {
+      function makeListTr(arr: any[], start?: number, end?: number, onto?: any[], f?: (node: any) => any) {
         var ret = onto || empty;
         start = start || 0;
         end = end || arr.length;
@@ -146,7 +167,7 @@
           ret = link.app(f(arr[i]), ret);
         return ret;
       }
-      function makeListComma(arr, start, end, f) {
+      function makeListComma(arr: any[], start?: number, end?: number, f?: (node: any) => any) {
         var ret = empty;
         start = start || 0;
         end = end || arr.length;
@@ -155,7 +176,7 @@
           ret = link.app(f(arr[i]), ret);
         return ret;
       }
-      function makeList(arr, start, end, onto) {
+      function makeList(arr: any[], start?: number, end?: number, onto?: any[]) {
         var ret = onto || empty;
         start = start || 0;
         end = end || arr.length;
@@ -1521,9 +1542,6 @@
         'comma-names': function(node) {
           return makeListComma(node.kids, 0, node.kids.length, name);
         },
-        'comma-binops': function(node) {
-          return makeListComma(node.kids);
-        },
         'pred-ann': function(node) {
           // (pred-ann ann PERCENT LPAREN exp RPAREN)
           return RUNTIME.getField(ast, 'a-pred')
@@ -1635,7 +1653,7 @@
       }
     }
 
-    function parsePyret(data, fileName) {
+    function parsePyret(data: string, fileName: string): Program {
       RUNTIME.ffi.checkArity(2, arguments, "surface-parse", false);
       RUNTIME.checkString(data);
       RUNTIME.checkString(fileName);
@@ -1653,16 +1671,17 @@
       });
     }
 
-    function maybeParsePyret(data, fileName) {
+    function maybeParsePyret(data: string, fileName: string): Either<PyretError, Program> {
       RUNTIME.ffi.checkArity(2, arguments, "maybe-surface-parse", false);
       RUNTIME.checkString(data);
       RUNTIME.checkString(fileName);
       return parseDataRaw(RUNTIME.unwrap(data), RUNTIME.unwrap(fileName));
     }
 
-    return RUNTIME.makeModuleReturn({
-          'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse"),
-          'maybe-surface-parse': RUNTIME.makeFunction(maybeParsePyret, "maybe-surface-parse"),
-        }, {});
+    const exports: Exports['dict']['values']['dict'] = {
+      'surface-parse': RUNTIME.makeFunction(parsePyret, "surface-parse"),
+      'maybe-surface-parse': RUNTIME.makeFunction(maybeParsePyret, "maybe-surface-parse"),
+      };
+    return RUNTIME.makeModuleReturn(exports, {});
   }
 })
