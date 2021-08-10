@@ -34,8 +34,8 @@ type SDExports = {
   }}}
 }
 
-export type Visitor<T extends PyretDataValue, Ret = any> = {
-  [method in T["$name"]]?: (self: Visitor<T, Ret>, val: Variant<T, method>) => Ret;
+export type Visitor<T extends PyretDataValue, Ret = any, E = any> = {
+  [method in T["$name"]]?: (self: Visitor<T, Ret, E>, val: Variant<T, method>, extra?: E) => Ret;
 };
 export interface Exports {
   ArrayExpression : (values : J.Expression[]) => J.ArrayExpression,
@@ -95,9 +95,11 @@ export interface Exports {
   map: <
       T extends PyretDataValue,
       Ret extends T = T,
+      E = never
     >(
-      v : Visitor<T>,
+      v : Visitor<T, any, E>,
       d : T,
+      extra?: E
     ) => Ret,
   callMethod: <Name extends string, O extends {dict: {[n in Name]: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) => ReturnType<O["dict"][Name]["full_meth"]>,
   mapFromStringDict: <T>(s : StringDict<T>) => Map<string, T>,
@@ -526,22 +528,35 @@ export interface Exports {
     }
 
     /**
-     * `map<T, R>` will traverse an entire data value of type `T`,
+     * `map<T, R, E>` will traverse an entire data value of type `T`,
      * and will call any matching visitor methods within the visitor.
      * The return value of type `R` is by default the same as type `A`, but can be different if needed.
      * Note that `R <: A` in order for any uniformly-transformed values to be type-correct:
      * if the visitor doesn't modify the values directly, the result will be the same type of
      * `PyretDataValue` as was given.
+     * If present, `E` describes any extra data that should be recursively passed down
+     * as context for each nested call.
+     * 
+     * @param `T` describes the input data being traversed, with enough detail to describe
+     *   all the constructors being examined (via visitor methods) and all the data
+     *   types to which the visitor is recursively applied (even if they are not examined explicitly).
+     * @param `R` describes the intended output type
+     * @param `E` optionally describes any context information being passed down through recursive calls.
+     * @param `v` is the visitor itself
+     * @param `d` is the initial data value being examined
+     * @param `extra` optionally provides context information.
      */
     function map<
       T extends PyretDataValue,
       Ret extends T = T,
+      E = any,
     >(
-      v : Visitor<T>,
+      v : Visitor<T, Ret, E>,
       d : T,
+      extra?: E,
     ) : Ret {
       if(typeof d !== "object" || !("$name" in d)) { throw new Error("Map failed: " + JSON.stringify(d)); }
-      if(d.$name in v) { return v[d.$name](v, d); }
+      if(d.$name in v) { return v[d.$name](v, d, extra); }
       else {
         const newObj : Ret = Object.create(Object.getPrototypeOf(d));
         for(const [k, meta] of Object.entries(d)) {
@@ -550,7 +565,7 @@ export interface Exports {
         newObj.dict = Object.create(Object.getPrototypeOf(d.dict));
         for(const [k, subd] of Object.entries(d.dict)) {
           if(typeof subd === 'object' && "$name" in subd) {
-            const result = map<T>(v, subd as any);
+            const result = map<T, Ret, E>(v, subd, extra);
             newObj.dict[k] = result;
           }
           else {

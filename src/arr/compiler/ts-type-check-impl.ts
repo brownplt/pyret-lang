@@ -6,24 +6,7 @@ import type * as TD from './ts-type-defaults';
 import type * as TJ from './ts-codegen-helpers';
 import type * as TCS from './ts-type-check-structs';
 import type * as TCSH from './ts-compile-structs-helpers';
-import type { List, MutableStringDict, PFunction, StringDict, Option, PTuple } from './ts-impl-types';
-
-type Runtime = {
-  makeTuple: (<T1, T2>(vals : [T1, T2]) => PTuple<[T1, T2]>) 
-           & (<T1, T2, T3>(vals : [T1, T2, T3]) => PTuple<[T1, T2, T3]>)
-           & (<T1, T2, T3, T4>(vals : [T1, T2, T3, T4]) => PTuple<[T1, T2, T3, T4]>)
-           & (<T1, T2, T3, T4, T5>(vals : [T1, T2, T3, T4, T5]) => PTuple<[T1, T2, T3, T4, T5]>),
-  makeFunction: <T extends Function>(func: T) => PFunction<T>,
-  makeModuleReturn: (values: Record<string, any>, types: Record<string, any>) => any,
-  makeObject: <T extends {}>(val : T) => { dict: T },
-  ffi: {
-    makeList: <T>(ts: T[]) => List<T>,
-    makeTreeSet: <T>(ts: T[]) => Set<T>,
-    makeSome: <T>(val: T) => Option<T>,
-    makeNone: <T>() => Option<T>,
-    throwMessageException: (msg: string) => any,
-  }
-}
+import type { Runtime, List, MutableStringDict, PFunction, StringDict, Option, PTuple } from './ts-impl-types';
 
 ({
   requires: [
@@ -110,18 +93,6 @@ type Runtime = {
         }
       }
 
-    }
-
-    function foldrFoldResult<X, Y>(f : (x: X, context: TCS.Context, acc: Y) => TCS.FoldResult<Y>, xs: X[], context: TCS.Context, base: Y): TCS.FoldResult<Y> {
-      return xs.reduceRight((prev: TCS.FoldResult<Y>, cur: X): TCS.FoldResult<Y> => {
-        switch(prev.$name) {
-          case 'fold-errors': return prev;
-          case 'fold-result': {
-            return f(cur, prev.dict.context, prev.dict.v);
-          }
-          default: throw new ExhaustiveSwitchError(prev);
-        }
-      }, foldResult.app(base, context));
     }
 
     function toType(inAnn : A.Ann, context : Context) : TS.Type | false {
@@ -1848,7 +1819,7 @@ type Runtime = {
 
     function removeRefinementAndForalls(typ : TS.Type): TS.Type {
       return map<TS.Type>({
-        't-forall': (visitor: TJ.Visitor<TS.Type>, forall : TJ.Variant<TS.Type, 't-forall'>) => {
+        't-forall': (visitor, forall : TJ.Variant<TS.Type, 't-forall'>) => {
           const { introduces, onto } = forall.dict;
           let ret = onto;
           for (const aVar of listToArray(introduces)) {
@@ -1856,7 +1827,7 @@ type Runtime = {
           }
           return map(visitor, ret);
         },
-        't-data-refinement': (visitor: TJ.Visitor<TS.Type>, dataRefinement: TJ.Variant<TS.Type, 't-data-refinement'>) => {
+        't-data-refinement': (visitor, dataRefinement: TJ.Variant<TS.Type, 't-data-refinement'>) => {
           return map(visitor, dataRefinement.dict['data-type']);
         },
         't-existential': (_, existential) => existential

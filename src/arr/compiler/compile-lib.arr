@@ -145,6 +145,7 @@ fun get-import-type(i):
 end
 
 fun get-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
+  # TCL.get-dependencies(p, uri)
   parsed = get-ast(p, uri)
   for map(s from lists.filter-map(get-import-type, parsed.imports)):
     AU.import-to-dep(s)
@@ -152,6 +153,7 @@ fun get-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
 end
 
 fun get-standard-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
+  # TCL.get-standard-dependencies(p, uri)
   mod-deps = get-dependencies(p, uri)
   mod-deps + CS.minimal-imports.imports.map(_.dependency)
 end
@@ -164,19 +166,15 @@ end
 
 type ToCompile = { locator :: Locator, dependency-map :: SD.MutableStringDict<Locator> }
 
-fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
-  for fold(sd2 from mtd, k from sd.keys-now().to-list()):
-    sd2.set(k, f(k, sd.get-value-now(k)))
-  end
-end
-
 dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
 fun compile-worklist<a>(dfind, locator, context):
+  # TCL.compile-worklist(dfind, locator, context)
   compile-worklist-known-modules(dfind, locator, context, SD.make-mutable-string-dict())
 end
 
 fun compile-worklist-known-modules<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a, current-modules :: SD.MutableStringDict<Provides>) -> List<ToCompile> block:
+  # TCL.compile-worklist-known-modules(dfind, locator, context, current-modules)
   temp-marked = SD.make-mutable-string-dict()
   var topo = empty
   fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<Locator>) block:
@@ -417,12 +415,12 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                 tc-ast := nothing
                 var cleaned = dp-ast
                 dp-ast := nothing
-                cleaned := cleaned.visit(AU.letrec-visitor)
-                            .visit(AU.inline-lams)
-                            .visit(AU.set-recursive-visitor)
-                            .visit(AU.set-tail-visitor)
+                cleaned := cleaned ^ AU.set-safe-letrec-binds
+                            ^ AU.inline-lams
+                            ^ AU.set-recursive
+                            ^ AU.set-tail-position
                 when not(options.user-annotations):
-                  cleaned := cleaned.visit(AU.strip-annotations-visitor)
+                  cleaned := cleaned ^ AU.strip-annotations
                 end
                 add-phase("Cleaned AST", cleaned)
                 when not(options.type-check) block:

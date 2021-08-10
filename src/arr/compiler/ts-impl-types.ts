@@ -78,3 +78,20 @@ export interface MutableStringDict<T> {
   },
   '$underlyingDict': Record<string, T>,
 }
+
+export type Runtime = {
+  makeTuple: (<T1, T2>(vals : [T1, T2]) => PTuple<[T1, T2]>) 
+           & (<T1, T2, T3>(vals : [T1, T2, T3]) => PTuple<[T1, T2, T3]>)
+           & (<T1, T2, T3, T4>(vals : [T1, T2, T3, T4]) => PTuple<[T1, T2, T3, T4]>)
+           & (<T1, T2, T3, T4, T5>(vals : [T1, T2, T3, T4, T5]) => PTuple<[T1, T2, T3, T4, T5]>),
+  makeFunction: <T extends Function>(func: T) => PFunction<T>,
+  makeModuleReturn: (values: Record<string, any>, types: Record<string, any>) => any,
+  makeObject: <T extends {}>(val : T) => { dict: T },
+  ffi: {
+    makeList: <T>(ts: T[]) => List<T>,
+    makeTreeSet: <T>(ts: T[]) => Set<T>,
+    makeSome: <T>(val: T) => Option<T>,
+    makeNone: <T>() => Option<T>,
+    throwMessageException: (msg: string) => any,
+  }
+}
