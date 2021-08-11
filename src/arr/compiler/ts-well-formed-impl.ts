@@ -38,6 +38,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
         nameToSourceString,
         formatSrcloc,
         ExhaustiveSwitchError,
+        InternalCompilerError,
       } = tj;
       let errors: C.CompileError[] = [];
       let inCheckBlock = false;
@@ -286,7 +287,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
         allowSMethod = curAllow;
       }
 
-      function wrapVisitAllowSMethod(visitor, target: A.Expr | A.Provide | A.Member | A.Bind | A.Name, allow: boolean): void {
+      function wrapVisitAllowSMethod(visitor, target: A.Expr | A.Provide | A.Member | A.Bind | A.Name | A.LetBind | A.LetrecBind, allow: boolean): void {
         let curAllow = allowSMethod;
         allowSMethod = allow;
         visit(visitor, target);
@@ -650,11 +651,80 @@ import type { List, PFunction, Option } from './ts-impl-types';
         stmts.forEach(stmt => wrapVisitAllowSMethod(visitor, stmt, false));
       }
 
-      const wellFormedVisitor: TJ.Visitor<A.Ann | A.Expr | A.Member | A.LetBind | A.Bind, void> = {
-        'a-name': (visitor, expr: TJ.Variant<A.Ann, 'a-name'>) => {
-          if (A['is-s-underscore'].app(expr.dict.id)) {
-            addError(C['underscore-as-ann'].app(expr.dict.l));
+      const wellFormedVisitor: TJ.Visitor<A.Program | A.ImportType | A.Ann | A.Expr | A.Member | A.LetBind | A.Bind | A.Import | A.Provide | A.ProvideTypes | A.LetrecBind, void> = {
+        's-program': (visitor, expr: TJ.Variant<A.Program, 's-program'>) => {
+          throw new InternalCompilerError("Impossible");
+        },
+        's-special-import': (visitor, expr: TJ.Variant<A.ImportType, 's-special-import'>) => {
+          const kind = expr.dict.kind;
+          const args = listToArray(expr.dict.args);
+          if (kind === 'my-gdrive' && args.length !== 1) {
+            addError(C['import-arity-mismatch'].app(expr.dict.l, kind, expr.dict.args, 2, runtime.ffi.makeList(["the name of the file"])));
+          } else if (kind === 'shared-gdrive' && args.length !== 2) {
+            addError(C['import-arity-mismatch'].app(expr.dict.l, kind, expr.dict.args, 2, runtime.ffi.makeList(["the name of the file", "the file's id, which you can get from the share URL"])));
+          } else if (kind === 'gdrive-js' && args.length !== 2) {
+            addError(C['import-arity-mismatch'].app(expr.dict.l, kind, expr.dict.args, 2, runtime.ffi.makeList(["the name of the file", "the file's id"])));
           }
+        },
+        's-data': (visitor, expr: TJ.Variant<A.Expr, 's-data'>) => {
+          addError(C['non-toplevel'].app("data declaration", expr.dict.l, parentBlockLoc));
+        },
+        's-data-expr': (visitor, expr: TJ.Variant<A.Expr, 's-data-expr'>) => {
+          addError(C['non-toplevel'].app("data declaration", expr.dict.l, parentBlockLoc));
+        },
+        's-type': (visitor, expr: TJ.Variant<A.Expr, 's-type'>) => {
+          addError(C['non-toplevel'].app("type alias", expr.dict.l, parentBlockLoc));
+        },
+        's-newtype': (visitor, expr: TJ.Variant<A.Expr, 's-newtype'>) => {
+          addError(C['non-toplevel'].app("newtype", expr.dict.l, parentBlockLoc));
+        },
+        's-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-let-expr'>) => {
+          let oldPbl = parentBlockLoc;
+          parentBlockLoc = expr.dict.l;
+          if (!expr.dict.blocky && expr.dict.body.$name === 's-block') {
+            wfBlockyBlocks(expr.dict.l, [expr.dict.body]);
+          }
+          listToArray(expr.dict.binds).forEach(b => wrapVisitAllowSMethod(visitor, b, false));
+          wrapVisitAllowSMethod(visitor, expr.dict.body, false);
+          parentBlockLoc = oldPbl;
+        },
+        's-contract': (visitor, expr: TJ.Variant<A.Expr, 's-contract'>) => {
+          addError(C['non-toplevel'].app("contract declaration", expr.dict.l, parentBlockLoc));
+        },
+        's-letrec-bind': (visitor, expr: TJ.Variant<A.LetrecBind, 's-letrec-bind'>) => {
+          let oldPbl = parentBlockLoc;
+          parentBlockLoc = expr.dict.l;
+          switch (expr.dict.b.$name) {
+            case 's-bind': {
+              break;
+            }
+            case 's-tuple-bind': {
+              wfError(runtime.ffi.makeList([
+                ED.text.app("Recursive bindings must be names and cannot be tuple bindings ")
+              ]),
+              expr.dict.b.dict.l);
+              break;
+            }
+            default: {
+              throw new ExhaustiveSwitchError(expr.dict.b);
+            }
+          }
+          visit(visitor, expr.dict.b);
+          wrapVisitAllowSMethod(visitor, expr.dict.value, false);
+          parentBlockLoc = oldPbl;
+        },
+        's-letrec': (visitor, expr: TJ.Variant<A.Expr, 's-letrec'>) => {
+          let oldPbl = parentBlockLoc;
+          parentBlockLoc = expr.dict.l;
+          if (!expr.dict.blocky && expr.dict.body.$name === 's-block') {
+            wfBlockyBlocks(expr.dict.l, [expr.dict.body]);
+          }
+          listToArray(expr.dict.binds).forEach(b => wrapVisitAllowSMethod(visitor, b, false));
+          wrapVisitAllowSMethod(visitor, expr.dict.body, false);
+          parentBlockLoc = oldPbl;
+        },
+        's-type-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-type-let-expr'>) => {
+          addError(C['non-toplevel'].app("type alias", expr.dict.l, parentBlockLoc));
         },
         's-op': (visitor, expr: TJ.Variant<A.Expr, 's-op'>) => {
           const { l, 'op-l': opL, op, left, right } = expr.dict;
@@ -797,10 +867,15 @@ import type { List, PFunction, Option } from './ts-impl-types';
           if (reservedNames.has(id)) {
             reservedName(expr.dict.l, id);
           }
+        },
+        'a-name': (visitor, expr: TJ.Variant<A.Ann, 'a-name'>) => {
+          if (A['is-s-underscore'].app(expr.dict.id)) {
+            addError(C['underscore-as-ann'].app(expr.dict.l));
+          }
         }
       }
 
-      const topLevelVisitor: TJ.Visitor<A.Program | A.Expr | A.TypeLetBind | A.Variant | A.Member | A.Bind | A.LetBind, void> = {
+      const topLevelVisitor: TJ.Visitor<A.Program | A.Expr | A.TypeLetBind | A.Variant | A.Member | A.Bind | A.LetBind | A.Import | A.Provide | A.ProvideTypes | A.LetrecBind, void> = {
         's-program': (visitor, expr: TJ.Variant<A.Program, 's-program'>) => {
           const body = expr.dict.block;
           if (body.$name === 's-block') {
@@ -901,11 +976,50 @@ import type { List, PFunction, Option } from './ts-impl-types';
           wrapVisitCheck(wellFormedVisitor, expr.dict._check);
           parentBlockLoc = oldPbl;
         },
+        's-import': (visitor, expr: TJ.Variant<A.Import, 's-import'>) => {
+          visit<A.Import>(wellFormedVisitor, expr);
+        },
+        's-include': (visitor, expr: TJ.Variant<A.Import, 's-include'>) => {
+          visit<A.Import>(wellFormedVisitor, expr);
+        },
+        's-import-types': (visitor, expr: TJ.Variant<A.Import, 's-import-types'>) => {
+          visit<A.Import>(wellFormedVisitor, expr);
+        },
+        's-import-fields': (visitor, expr: TJ.Variant<A.Import, 's-import-fields'>) => {
+          visit<A.Import>(wellFormedVisitor, expr);
+        },
+        's-provide': (visitor, expr: TJ.Variant<A.Provide, 's-provide'>) => {
+          visit<A.Provide>(wellFormedVisitor, expr);
+        },
+        's-provide-types': (visitor, expr: TJ.Variant<A.ProvideTypes, 's-provide-types'>) => {
+          visit<A.ProvideTypes>(wellFormedVisitor, expr);
+        },
         's-bind': (visitor, expr: TJ.Variant<A.Bind, 's-bind'>) => {
           visit<A.Bind>(wellFormedVisitor, expr);
         },
         's-var-bind': (visitor, expr: TJ.Variant<A.LetBind, 's-var-bind'>) => {
           visit<A.LetBind>(wellFormedVisitor, expr);
+        },
+        's-let-bind': (visitor, expr: TJ.Variant<A.LetBind, 's-let-bind'>) => {
+          visit<A.LetBind>(wellFormedVisitor, expr);
+        },
+        's-template': (visitor, expr: TJ.Variant<A.Expr, 's-template'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
+        },
+        's-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-let-expr'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
+        },
+        's-letrec-bind': (visitor, expr: TJ.Variant<A.LetrecBind, 's-letrec-bind'>) => {
+          visit<A.LetrecBind>(wellFormedVisitor, expr);
+        },
+        's-letrec': (visitor, expr: TJ.Variant<A.Expr, 's-letrec'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
+        },
+        's-hint-exp': (visitor, expr: TJ.Variant<A.Expr, 's-hint-exp'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
+        },
+        's-instantiate': (visitor, expr: TJ.Variant<A.Expr, 's-instantiate'>) => {
+          visit<A.Expr>(wellFormedVisitor, expr);
         },
         's-block': (visitor, expr: TJ.Variant<A.Expr, 's-block'>) => {
           visit<A.Expr>(wellFormedVisitor, expr);
