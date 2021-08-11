@@ -333,7 +333,6 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
       contents = newChunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
     }
 
-    console.log('singlechunkupdate', firstTechnicallyOutdatedSegment, chunkId);
     return {
       ...state,
       chunks: newChunks,

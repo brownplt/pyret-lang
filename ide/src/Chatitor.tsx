@@ -15,6 +15,7 @@ import {
 } from './chunk';
 import Chat from './Chat';
 import { isWrapFirst } from './utils';
+import KeepScrolled from './KeepScrolled';
 
 type StateProps = {
   chunks: Chunk[],
@@ -69,6 +70,9 @@ function Chatitor({
   const [isFocused, setIsFocused] = (
     React.useState<boolean>(false as boolean)
   );
+  // To force re-render whenever there might be a need to scroll for
+  // KeepScrolled
+  const [numLines, setNumLines] = React.useState<number>(0);
   // UnControlled continues to have stale closures for no reason, ref is an easy
   // solution
   const chunksRef = React.useRef(chunks);
@@ -113,11 +117,6 @@ function Chatitor({
 
   const allChunks = chunks.map(setupChunk);
 
-  const togetherStyle = {
-    width: '40em',
-    maxWidth: '70%',
-    margin: '2em auto',
-  };
   // Slightly different from in a chat! (Should it be the same?)
   const doesEnterKeySend = (
     editor: CodeMirror.Editor & CodeMirror.Doc,
@@ -130,12 +129,9 @@ function Chatitor({
   const shiftEnterStyle = { ...tooltipStyle, color: enterNewlineRef.current ? 'grey' : 'black' };
   return (
     <div className="chatitor-container">
-      <div style={{ gridRow: '1', width: '100%', overflowY: 'scroll' }}>
-        <div style={togetherStyle}>
-          {allChunks}
-          <div style={{ clear: 'both' }} />
-        </div>
-      </div>
+      <KeepScrolled numLines={numLines}>
+        {allChunks}
+      </KeepScrolled>
       <UnControlled
         className="new-expr"
         options={{
@@ -149,6 +145,7 @@ function Chatitor({
           setEditor(editor);
         }) as (editor: CodeMirror.Editor) => void}
         onChange={((editor: CodeMirror.Editor & CodeMirror.Doc) => {
+          setNumLines(editor.lineCount());
           setEnterSendRender(doesEnterKeySend(editor, editor.getCursor()));
         }) as any}
         onSelection={((

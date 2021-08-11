@@ -61,7 +61,6 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
   } = ownProps;
 
   const thisChunkRHSObjects = chunkToRHS.get(chunks[index].id) ?? { outdated: true, objects: [] };
-  console.log(firstTechnicallyOutdatedSegment, index, index >= firstTechnicallyOutdatedSegment);
   const technicallyOutdated = index >= firstTechnicallyOutdatedSegment;
 
   return {
@@ -104,14 +103,6 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type ChatProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
 class Chat extends React.Component<ChatProps, any> {
-  /* Used to autofocus this component when necessary */
-  private input: React.RefObject<ReactCM>;
-
-  constructor(props: ChatProps) {
-    super(props);
-    this.input = React.createRef();
-  }
-
   /* A React component updates every time its props change. Since each chunk
      receives, as props, all other chunks, this would cause a lot of redundant
      re-rendering. This function attempts to determine when such prop updates
@@ -461,7 +452,6 @@ class Chat extends React.Component<ChatProps, any> {
       let rhs;
       const rhsObjects = thisChunkRHSObjects.objects;
       const partiallyOutdated = technicallyOutdated && !thisChunkRHSObjects.outdated;
-      console.log(index, technicallyOutdated, !thisChunkRHSObjects.outdated, 'partiallyOutdated', partiallyOutdated);
       // TODO(luna): more principled
       // const isDataDefinition = rhsObjects.filter((r) => !isLocation(r)).length === 0
       //         && rhsObjects.filter((r) => isLocation(r) && r.name.startsWith('is-')).length > 0;
