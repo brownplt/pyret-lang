@@ -145,121 +145,87 @@ fun get-import-type(i):
 end
 
 fun get-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
-  # TCL.get-dependencies(p, uri)
-  parsed = get-ast(p, uri)
-  for map(s from lists.filter-map(get-import-type, parsed.imports)):
-    AU.import-to-dep(s)
-  end
+  TCL.get-dependencies(p, uri)
 end
 
 fun get-standard-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
-  # TCL.get-standard-dependencies(p, uri)
-  mod-deps = get-dependencies(p, uri)
-  mod-deps + CS.minimal-imports.imports.map(_.dependency)
-end
-
-fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
-  for fold(d from mtd, s from strs):
-    d.set(s, val)
-  end
+  TCL.get-standard-dependencies(p, uri)
 end
 
 type ToCompile = { locator :: Locator, dependency-map :: SD.MutableStringDict<Locator> }
 
 dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
-fun compile-worklist<a>(dfind, locator, context):
-  # TCL.compile-worklist(dfind, locator, context)
-  compile-worklist-known-modules(dfind, locator, context, SD.make-mutable-string-dict())
-end
+compile-worklist = TCL.compile-worklist
 
-fun compile-worklist-known-modules<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a, current-modules :: SD.MutableStringDict<Provides>) -> List<ToCompile> block:
-  # TCL.compile-worklist-known-modules(dfind, locator, context, current-modules)
-  temp-marked = SD.make-mutable-string-dict()
-  var topo = empty
-  fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<Locator>) block:
-    cases(Option) temp-marked.get-now(locator.uri()) block:
-      | some(mark) =>
-        when mark:
-          raise("Detected module cycle: " + curr-path.reverse().map(_.uri()).join-str(" => "))
-        end
-      | none =>
-        # mark current locator temporarily
-        temp-marked.set-now(locator.uri(), true)
-        pmap = SD.make-mutable-string-dict()
-        deps = locator.get-dependencies()
-        found-mods = for lists.filter-map(d from deps) block:
-          cases(CS.Dependency) d block:
-            | dependency(_, _) =>
-              found = dfind(context, d)
-              pmap.set-now(d.key(), found.locator.uri())
-              some(found)
-            | builtin(name) =>
-              cases (Option) current-modules.get-now("builtin://" + name) block:
-                | none =>
-                  found = dfind(context, d)
-                  pmap.set-now(d.key(), found.locator.uri())
-                  some(found)
-                | some(builtin-mod) =>
-                  pmap.set-now(d.key(), builtin-mod.provides.from-uri)
-                  none
-              end
-          end
-        end
-        # visit all dependents
-        for each(f from found-mods):
-          when not(current-modules.has-key-now(f.locator.uri())):
-            visit(f.locator, f.context, link(f.locator, curr-path))
-          end
-        end
-        # add current locator to head of topo sort
-        topo := {locator: locator, dependency-map: pmap} ^ link(_, topo)
-        # mark current locator permanently
-        temp-marked.set-now(locator.uri(), false)
-    end
-    topo
-  end
-  # our include edges are backwards to how the topological sort algorithm expects dependencies,
-  # so reverse the result
-  ans = visit(locator, context, [list: locator]).reverse()
-  ans
-end
+compile-worklist-known-modules = TCL.compile-worklist-known-modules
+  # temp-marked = SD.make-mutable-string-dict()
+  # var topo = empty
+  # fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<Locator>) block:
+  #   cases(Option) temp-marked.get-now(locator.uri()) block:
+  #     | some(mark) =>
+  #       when mark:
+  #         raise("Detected module cycle: " + curr-path.reverse().map(_.uri()).join-str(" => "))
+  #       end
+  #     | none =>
+  #       # mark current locator temporarily
+  #       temp-marked.set-now(locator.uri(), true)
+  #       pmap = SD.make-mutable-string-dict()
+  #       deps = locator.get-dependencies()
+  #       found-mods = for lists.filter-map(d from deps) block:
+  #         cases(CS.Dependency) d block:
+  #           | dependency(_, _) =>
+  #             found = dfind(context, d)
+  #             pmap.set-now(d.key(), found.locator.uri())
+  #             some(found)
+  #           | builtin(name) =>
+  #             cases (Option) current-modules.get-now("builtin://" + name) block:
+  #               | none =>
+  #                 found = dfind(context, d)
+  #                 pmap.set-now(d.key(), found.locator.uri())
+  #                 some(found)
+  #               | some(builtin-mod) =>
+  #                 pmap.set-now(d.key(), builtin-mod.provides.from-uri)
+  #                 none
+  #             end
+  #         end
+  #       end
+  #       # visit all dependents
+  #       for each(f from found-mods):
+  #         when not(current-modules.has-key-now(f.locator.uri())):
+  #           visit(f.locator, f.context, link(f.locator, curr-path))
+  #         end
+  #       end
+  #       # add current locator to head of topo sort
+  #       topo := {locator: locator, dependency-map: pmap} ^ link(_, topo)
+  #       # mark current locator permanently
+  #       temp-marked.set-now(locator.uri(), false)
+  #   end
+  #   topo
+  # end
+  # # our include edges are backwards to how the topological sort algorithm expects dependencies,
+  # # so reverse the result
+  # ans = visit(locator, context, [list: locator]).reverse()
+  # ans
 
-fun modules-from-worklist-known-modules(wl, modules, max-dep-times, get-loadable) block:
-  maybe-modules = for map(t from wl):
-    get-loadable(t, max-dep-times)
-  end
-  for each2(m from maybe-modules, t from wl):
-    cases(Option<Loadable>) m:
-      | none => nothing
-      | some(shadow m) =>
-        modules.set-now(t.locator.uri(), m)
-    end
-  end
-  modules
-end
+modules-from-worklist-known-modules = TCL.modules-from-worklist-known-modules
 
 # NOTE(joe): base-time is usually the time the *compiler* was last edited.
 # Other clients might have another “min” time after which they want to
 # make sure all modules are recompiled.
-fun dep-times-from-worklist(wl, base-time):
-  for fold(sd from [SD.string-dict:], shadow located from wl):
-    cur-mod-time = num-max(located.locator.get-modified-time(), base-time)
-    dm = located.dependency-map
-    max-dep-time = for SD.fold-keys-now(mdt from cur-mod-time, dep-key from dm):
-      dep-loc = dm.get-value-now(dep-key)
-      cases(Option) sd.get(dep-loc):
-        | none => mdt
-        | some(dependency-mod-time) => num-max(dependency-mod-time, mdt)
-      end
-    end
-    sd.set(located.locator.uri(), max-dep-time)
-  end
-end
+dep-times-from-worklist = TCL.dep-times-from-worklist
 
 type CompiledProgram = {loadables :: List<Loadable>, modules :: SD.MutableStringDict<Loadable>}
 
-fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> CompiledProgram block:
+fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> CompiledProgram:
+  if CS.is-pipeline-ts-anchor(options.pipeline) and options.pipeline.modules.member("compile-lib"):
+    TCL.compile-program-with(worklist, modules, options)
+  else:
+    internal-compile-program-with(worklist, modules, options)
+  end
+end
+
+fun internal-compile-program-with(worklist :: List<ToCompile>, modules, options) -> CompiledProgram block:
   cache = modules
   loadables = for map(w from worklist):
     uri = w.locator.uri()
@@ -284,13 +250,7 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
   { loadables: loadables, modules: cache }
 end
 
-fun compile-program(worklist, options):
-  compile-program-with(worklist, SD.make-mutable-string-dict(), options)
-end
-
-fun is-builtin-module(uri :: String) -> Boolean:
-  string-index-of(uri, "builtin://") == 0
-end
+rec compile-program = TCL.compile-program
 
 fun unique(lst):
   sets.list-to-list-set(lst).to-list()
@@ -426,7 +386,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
                 when not(options.type-check) block:
                   provides := AU.get-named-provides(named-result, locator.uri(), env)
                 end
-                {final-provides; cr} = JSP.trace-make-compiled-pyret(add-phase, cleaned, locator.uri(), env, named-result.env, provides, options)
+                {final-provides; cr} = JSP.make-compiled-pyret(cleaned, locator.uri(), env, named-result.env, provides, options)
                 cleaned := nothing
                 canonical-provides = AU.canonicalize-provides(final-provides, env)
                 #|

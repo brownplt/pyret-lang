@@ -317,7 +317,7 @@ sharing:
   end,
   method provides-by-uri-value(self, uri):
     cases(Option) self.provides-by-uri(uri):
-      | none => raise("Could not find module with uri: " + uri)
+      | none => raise("Could not find module with uri: " + uri + " in keys " + to-repr(self.all-modules.keys-list-now()))
       | some(shadow provides) => provides
     end
   end,
@@ -2932,6 +2932,7 @@ type CompileOptions = {
   collect-times :: Boolean,
   ignore-unbound :: Boolean,
   proper-tail-calls :: Boolean,
+  user-annotations :: Boolean,
   compiled-cache :: String,
   display-progress :: Boolean,
   standalone-file :: String,

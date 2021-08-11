@@ -4,6 +4,17 @@ import type * as ED from './error-display';
 import type * as TJ from './ts-codegen-helpers';
 import type * as S from './ts-srcloc';
 import type { List, PFunction, Option } from './ts-impl-types';
+import { CompileOptions } from './ts-compiler-lib-impl';
+
+export type Exports = {
+  dict: {
+    values: {
+      dict: {
+        'check-well-formed': PFunction<(ast: A.Program, options: CompileOptions) => C.CompileResult<A.Program>>,
+      }
+    }
+  }
+}
 
 ({
   requires: [
@@ -30,7 +41,7 @@ import type { List, PFunction, Option } from './ts-impl-types';
       logger.app(val, runtime.ffi.makeNone());
     }
 
-    function checkWellFormed(ast: A.Program, options): C.CompileResult<A.Program> {
+    function checkWellFormed(ast: A.Program, options: CompileOptions): C.CompileResult<A.Program> {
       const {
         visit,
         listToArray,
@@ -1065,8 +1076,9 @@ import type { List, PFunction, Option } from './ts-impl-types';
         return C.err.app(runtime.ffi.makeList(errors));
       }
     }
-    return runtime.makeModuleReturn({
+    const exports: Exports['dict']['values']['dict'] = {
       "check-well-formed": runtime.makeFunction(checkWellFormed)
-    }, {});
+    };
+    return runtime.makeModuleReturn(exports, {});
   }
 })

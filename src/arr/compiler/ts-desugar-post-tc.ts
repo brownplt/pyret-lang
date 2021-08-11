@@ -2,9 +2,16 @@ import type * as TJ from './ts-codegen-helpers';
 import type * as A from './ts-ast';
 import type * as C from './ts-compile-structs'
 import type { PFunction } from './ts-impl-types';
+import { CompileOptions } from './ts-compiler-lib-impl';
 
 export interface Exports {
-  'desugar-post-tc': PFunction<(prog: A.Program, compileEnv: C.CompileEnvironment, options) => A.Program>,
+  dict: {
+    values: {
+      dict: {
+        'desugar-post-tc': PFunction<(prog: A.Program, compileEnv: C.CompileEnvironment, options: CompileOptions) => A.Program>,
+      }
+    }
+  }
 }
 
 ({
@@ -56,7 +63,7 @@ export interface Exports {
         - in addition to preconditions,
           contains no s-cases, s-cases-else, s-instantiate
     */
-    function desugarPostTc(prog: A.Program, _compileEnv: C.CompileEnvironment, _options): A.Program {
+    function desugarPostTc(prog: A.Program, _compileEnv: C.CompileEnvironment, _options: CompileOptions): A.Program {
       return map<A.Program | A.Expr | A.Ann | A.CasesBranch, A.Program>({
         's-template': (_visitor, template) => {
           const l = template.dict.l;
@@ -109,7 +116,7 @@ export interface Exports {
       }, prog);
     }
 
-    const exports : Exports = {
+    const exports : Exports['dict']['values']['dict'] = {
       'desugar-post-tc': runtime.makeFunction(desugarPostTc),
     };
     return runtime.makeModuleReturn(exports, {});

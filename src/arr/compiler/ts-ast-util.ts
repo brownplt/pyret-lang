@@ -1,8 +1,9 @@
 import type * as A from './ts-ast'
-import { List, PFunction, Runtime, Option, StringDict } from './ts-impl-types';
+import { List, PFunction, Runtime, Option } from './ts-impl-types';
 import type * as TJ from './ts-codegen-helpers';
 import type * as TCSH from './ts-compile-structs-helpers';
 import type * as TCS from './ts-compile-structs';
+import type * as TTS from './ts-type-check-structs';
 
 export interface Exports {
   dict: {
@@ -18,6 +19,10 @@ export interface Exports {
         "wrap-extra-imports": PFunction<(prog: A.Program, env: TCS.ExtraImports) => A.Program>,
         "import-to-dep": PFunction<(imp: A.ImportType) => TCS.Dependency>,
         "strip-annotations": PFunction<(prog: A.Program) => A.Program>,
+        "localize-provides": PFunction<(provides: TCS.Provides, compileEnv: TCS.CompileEnvironment) => TCS.Provides>,
+        "canonicalize-provides": PFunction<(provides: TCS.Provides, compileEnv: TCS.CompileEnvironment) => TCS.Provides>,
+        "get-typed-provides": PFunction<(namedResult: TCS.NameResolution, program: TTS.Typed, uri: string, compileEnv: TCS.CompileEnvironment) => TCS.Provides>,
+        "get-named-provides": PFunction<(namedResult: TCS.NameResolution, uri: string, compileEnv: TCS.CompileEnvironment) => TCS.Provides>,
       }
     }
   }
@@ -626,6 +631,10 @@ export interface Exports {
       "wrap-extra-imports": runtime.makeFunction(wrapExtraImports),
       "import-to-dep": runtime.makeFunction(importToDep),
       "strip-annotations": runtime.makeFunction(stripAnnotations),
+      "localize-provides": null, // TODO!
+      "canonicalize-provides": null, // TODO!
+      "get-typed-provides": null, // TODO!
+      "get-named-provides": null, // TODO!
     };
     return runtime.makeModuleReturn(exports, {});
   }

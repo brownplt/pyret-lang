@@ -99,11 +99,6 @@ data CompiledCodePrinter:
     end
 end
 
-fun trace-make-compiled-pyret(add-phase, program-ast, uri, env, post-env, provides, options)
-  -> { C.Provides; C.CompileResult<CompiledCodePrinter> } block:
-  make-compiled-pyret(program-ast, uri, env, post-env, provides, options)
-end
-
 fun println(s) block:
   print(s + "\n")
 end

@@ -1,15 +1,11 @@
 provide *
 import js-file("../builtin-modules") as B
-import string-dict as SD
 import pathlib as P
 import js-file("../parse-pyret") as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CM
 import file("../file.arr") as F
-import file("../type-structs.arr") as T
 import file("../js-of-pyret.arr") as JSP
-
-mtd = [SD.string-dict:]
 
 # NOTE(joe): These conversions are done in Pyret-land because
 # "builtin-modules" in JS is as spartan as possible to make module load-order
@@ -19,15 +15,7 @@ mtd = [SD.string-dict:]
 
 make-dep = CM.make-dep
 
-fun convert-provides(uri, provides):
-  CM.provides-from-raw-provides(uri, provides)
-end
-
-fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
-  for fold(d from mtd, s from strs):
-    d.set(s, val)
-  end
-end
+convert-provides = CM.provides-from-raw-provides
 
 var _defunct-builtin-js-dirs = [list: "src/js/runtime"]
 var builtin-arr-dirs = [list:]

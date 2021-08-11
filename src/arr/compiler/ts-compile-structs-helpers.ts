@@ -65,7 +65,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
   nativeRequires: [],
   theModule: function(runtime, _, __, tj : TJ.Exports, TS : (TS.Exports), A : (A.Exports), CS : (CS.Exports), TCS : (TCS.Exports)) {
 
-    const { InternalCompilerError, ExhaustiveSwitchError, nameToName } = tj;
+    const { InternalCompilerError, ExhaustiveSwitchError, nameToName, mapFromMutableStringDict } = tj;
 
     function callMethod<Name extends string, O extends {dict: {[n in Name]?: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) : ReturnType<O["dict"][Name]["full_meth"]> {
       return obj.dict[name].full_meth(obj, ...args);
@@ -81,7 +81,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
 
     function valueByUri(ce : CS.CompileEnvironment, uri: CS.URI, name : string) : Option<NonAliasValueExport> {
       const moduleByUriOpt = callMethod(ce.dict['all-modules'], 'get-now', uri);
-      const moduleByUri = unwrap(moduleByUriOpt, `Could not find module with uri ${uri} in valueByUri`);
+      const moduleByUri = unwrap(moduleByUriOpt, `Could not find module with uri ${uri} in valueByUri in ${[...mapFromMutableStringDict(ce.dict['all-modules']).keys()].join(',')}`);
       const val = callMethod(moduleByUri.dict.provides.dict.values, 'get', name);
       switch(val.$name) {
         case 'none': return val;
@@ -249,7 +249,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
     }
 
     function providesByUriValue(ce : CS.CompileEnvironment, uri: CS.URI) : CS.Provides {
-      return unwrap(providesByUri(ce, uri), `Could not find module with uri ${uri}`);
+      return unwrap(providesByUri(ce, uri), `Could not find module with uri ${uri} among ${[...mapFromMutableStringDict(ce.dict['all-modules']).keys()].join(',')}`);
     }
 
     function providesByOrigin(ce : CS.CompileEnvironment, origin: CS.BindOrigin): Option<CS.Provides> {

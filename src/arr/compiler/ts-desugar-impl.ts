@@ -2,7 +2,18 @@ import type * as TS from './ts-type-structs';
 import type * as A from './ts-ast';
 import type * as CS from './ts-compile-structs';
 import type * as TJ from './ts-codegen-helpers';
-import type { List, MutableStringDict, PFunction, StringDict, PMethod } from './ts-impl-types';
+import type { List, MutableStringDict, PFunction, StringDict, PMethod, Runtime } from './ts-impl-types';
+import { CompileOptions } from './ts-compiler-lib-impl';
+
+export type Exports = {
+  dict: {
+    values: {
+      dict: {
+        desugar: PFunction<(program: A.Program, options: CompileOptions) => DesugarInfo>
+      }
+    }
+  }
+}
 
 type DesugarInfo = {
   dict: {
@@ -24,7 +35,7 @@ type DesugarInfo = {
       "desugar": "tany"
     }
   },
-  theModule: function(runtime, _, __, tj : TJ.Exports, TS : (TS.Exports), Ain : (A.Exports), CS : (CS.Exports)) {
+  theModule: function(runtime: Runtime, _, __, tj : TJ.Exports, TS : (TS.Exports), Ain : (A.Exports), CS : (CS.Exports)) {
     const A = Ain.dict.values.dict;
     const reactorOptionalFields = new Map<string, (l: A.Srcloc) => TJ.Variant<A.Ann, "a-name">>();
     reactorOptionalFields.set("last-image", l => A['a-name'].app(l, A['s-type-global'].app("Function")));
@@ -64,7 +75,7 @@ type DesugarInfo = {
         appear in binding positions as in s-let-bind, s-letrec-bind)
       - s-construct is not desugared
     */
-    function desugar(program: A.Program, options): DesugarInfo {
+    function desugar(program: A.Program, options: CompileOptions): DesugarInfo {
       const {
         listToArray,
         map,
@@ -259,7 +270,7 @@ type DesugarInfo = {
           }
         }
       }
-      const dsVisitor: TJ.Visitor<A.Program | A.Expr | A.Member | A.Bind | A.Ann> = {
+      const dsVisitor: TJ.Visitor<A.Program | A.Expr | A.Member | A.Bind | A.Ann, any, never> = {
         // s-module is uniform
         // s-instantiate is uniform
         // s-block is uniform
@@ -436,8 +447,10 @@ type DesugarInfo = {
         'new-binds': mutableStringDictFromMap(generatedBinds),
       });
     }
-    return runtime.makeModuleReturn({
+
+    const exports: Exports['dict']['values']['dict'] = {
       'desugar': runtime.makeFunction(desugar)
-    }, {});
+    };
+    return runtime.makeModuleReturn(exports, {});
   }
 })

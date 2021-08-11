@@ -673,9 +673,9 @@ fun build-program(path, options, stats) block:
   base-locator = get-base-locator(options, base)
   
 
-  clear-and-print("Found " + to-repr(starter-modules.keys-now()) + " as starter modules in-memory")
+  print-progress("Found " + to-repr(starter-modules.keys-now()) + " as starter modules in-memory")
   wl = CL.compile-worklist-known-modules(module-finder, base-locator, base.context, starter-modules)
-  clear-and-print("Found worklist of length: " + to-repr(wl.length()))
+  print-progress("Found worklist of length: " + to-repr(wl.length()))
   compiler-edited-time = if FS.exists(CMD.file-name): F.file-times(CMD.file-name).mtime else: 0 end
   max-dep-times = CL.dep-times-from-worklist(wl, compiler-edited-time)
   print-progress("Found max-dep-times: " + to-repr(max-dep-times) + "\n" + to-repr(compiler-edited-time))

@@ -7,6 +7,18 @@ import type * as TJ from './ts-codegen-helpers';
 import type * as TCS from './ts-type-check-structs';
 import type * as TCSH from './ts-compile-structs-helpers';
 import type { Runtime, List, MutableStringDict, PFunction, StringDict, Option, PTuple } from './ts-impl-types';
+import { CompileOptions } from './ts-compiler-lib-impl';
+
+export type Exports = {
+  dict: {
+    values: {
+      dict: {
+        'type-check': PFunction<(program: A.Program, compileEnv : CS.CompileEnvironment, postCompileEnv : CS.ComputedEnvironment, modules : MutableStringDict<CS.Loadable>, options: CompileOptions) => CS.CompileResult<TCS.Typed>>,
+        'empty-context': TCS.Context,
+      }
+    }
+  }
+}
 
 ({
   requires: [
@@ -3906,7 +3918,7 @@ import type { Runtime, List, MutableStringDict, PFunction, StringDict, Option, P
       new Map()
     );
 
-    function typeCheck(program: A.Program, compileEnv : CS.CompileEnvironment, postCompileEnv : CS.ComputedEnvironment, modules : MutableStringDict<CS.Loadable>, options) {
+    function typeCheck(program: A.Program, compileEnv : CS.CompileEnvironment, postCompileEnv : CS.ComputedEnvironment, modules : MutableStringDict<CS.Loadable>, options: CompileOptions): CS.CompileResult<TCS.Typed> {
       logger = options.dict.log;
 
       const provides = listToArray(program.dict.provides);
@@ -4091,9 +4103,11 @@ import type { Runtime, List, MutableStringDict, PFunction, StringDict, Option, P
       const info = gatherProvides(provides[0], contextFromModules);
       return CS.ok.app(typed.app(program, info));
     }
-    return runtime.makeModuleReturn({
+
+    const exports: Exports['dict']['values']['dict'] = {
       'type-check': runtime.makeFunction(typeCheck),
       'empty-context': emptyContext.toPyretContext(),
-    }, {});
+    }
+    return runtime.makeModuleReturn(exports, {});
   }
 })

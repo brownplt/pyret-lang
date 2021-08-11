@@ -79,7 +79,23 @@ export interface MutableStringDict<T> {
   '$underlyingDict': Record<string, T>,
 }
 
+export type PausePackage<A> = {
+  break: () => never,
+  error: (err: any) => never,
+  resume: (val: A) => never,
+}
+
+export type RunResult<T> = SuccessResult<T> | FailureResult<any>
+export type SuccessResult<T> = { result: T, stats: any }
+export type FailureResult<T> = { exn: T, stats: any }
+
 export type Runtime = {
+  pauseStack: <A>(thunk: (restarter: PausePackage<A>) => void) => A,
+  runThunk: <A, B>(thunk: () => A, then: (val: RunResult<A>) => B) => never,
+  safeCall: <A, B>(thunk: () => A, then: (val: A) => B, name?: string) => B,
+  isSuccessResult: <A>(val: any) => val is SuccessResult<A>,
+  isFailureResult: <A>(val: any) => val is FailureResult<A>,
+  raw_array_map: <A, B>(f: PFunction<(arg: A) => B>, arr: A[]) => B[],
   makeTuple: (<T1, T2>(vals : [T1, T2]) => PTuple<[T1, T2]>) 
            & (<T1, T2, T3>(vals : [T1, T2, T3]) => PTuple<[T1, T2, T3]>)
            & (<T1, T2, T3, T4>(vals : [T1, T2, T3, T4]) => PTuple<[T1, T2, T3, T4]>)
@@ -87,6 +103,7 @@ export type Runtime = {
   makeFunction: <T extends Function>(func: T) => PFunction<T>,
   makeModuleReturn: (values: Record<string, any>, types: Record<string, any>) => any,
   makeObject: <T extends {}>(val : T) => { dict: T },
+  nothing: unknown,
   ffi: {
     makeList: <T>(ts: T[]) => List<T>,
     makeTreeSet: <T>(ts: T[]) => Set<T>,

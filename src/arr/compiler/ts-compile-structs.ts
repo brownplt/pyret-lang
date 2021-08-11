@@ -7,25 +7,6 @@ import type { Variant } from './ts-codegen-helpers';
 
 export type URI = string;
 
-export type CompileOptions = {
-  'check-mode' : boolean,
-  'check-all' : boolean,
-  'type-check' : boolean,
-  'enable-spies' : boolean,
-  'allow-shadowed' : boolean,
-  'collect-all' : boolean,
-  'collect-times' : boolean,
-  'ignore-unbound' : boolean,
-  'proper-tail-calls' : boolean,
-  'compiled-cache' : string,
-  'display-progress' : boolean,
-  'standalone-file' : string,
-  log : PFunction<(string) => void>,
-  'on-compile' : Function, // NOTE: skipping types because the are in compile-lib
-  'before-compile' : Function,
-  pipeline : Pipeline
-}
-
 export type CompileMode = 
   | { $name: "cm-builtin-stage-1", dict: {} }
   | { $name: "cm-builtin-general", dict: {} }
@@ -135,7 +116,7 @@ export type NameResolution =
       {
         'ast': A.Program,
         'errors': List<CompileError>,
-        'env': ComputedEnvironment
+        'env': Variant<ComputedEnvironment, 'computed-env'>
       }
   }
 
@@ -537,6 +518,9 @@ export type Pipeline =
 
 export interface Exports {
 dict: {values: {dict: {
+'no-builtins': CompileEnvironment
+
+
 'cm-builtin-stage-1': Variant<CompileMode, 'cm-builtin-stage-1'>
 
 'cm-builtin-general': Variant<CompileMode, 'cm-builtin-general'>

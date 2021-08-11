@@ -1,19 +1,12 @@
 provide *
 import js-file("../builtin-modules") as B
-import string-dict as SD
 import pathlib as P
-import file("./builtin.arr") as BL
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CM
 import file("../file.arr") as F
-import file("../type-structs.arr") as T
-import file("../js-of-pyret.arr") as JSP
 
-mtd = [SD.string-dict:]
-
-make-dep = BL.make-dep
-convert-provides = BL.convert-provides
-const-dict = BL.const-dict
+make-dep = CM.make-dep
+convert-provides = CM.provides-from-raw-provides
 
 fun make-jsfile-locator(path):
   raw = B.builtin-raw-locator(path)
