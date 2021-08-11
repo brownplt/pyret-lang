@@ -111,6 +111,12 @@ export type State = {
   /* In text mode, whether the program is compiled/run after pauses to editing */
   /* TODO(luna): Do we really want this? */
   editorResponseLoop: EditorResponseLoop,
+
+  /* In Chatitor mode, when an edit has been made to any chunk, including
+   * deletion or insertion, all subsequent chunks are "partially outdated" or
+   * "technically outdated" - their values can mostly be believed, but may change
+   * due to changes in definitions in previous chats */
+  firstTechnicallyOutdatedSegment: number,
 };
 
 export enum EditorResponseLoop {
@@ -184,4 +190,5 @@ export const initialState: State = {
   enterNewline: false,
   messageTabIndex: MessageTabIndex.RuntimeMessages,
   editorResponseLoop: EditorResponseLoop.Manual,
+  firstTechnicallyOutdatedSegment: 0,
 };

@@ -310,8 +310,10 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   }
 
   const {
+    chunks,
     compiling,
     currentFileContents,
+    firstTechnicallyOutdatedSegment,
   } = state;
 
   function nextCompilingState(): boolean | 'out-of-date' {
@@ -329,6 +331,15 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   if (isMultipleChunkUpdate(update)) {
     let contents = currentFileContents;
 
+    let newOutdate = firstTechnicallyOutdatedSegment;
+    if (update.modifiesText) {
+      const firstDiffering = update.chunks
+        .findIndex((c, i) => chunks[i]?.editor.getValue() !== c.editor.getValue());
+      newOutdate = firstDiffering === -1
+        ? firstTechnicallyOutdatedSegment
+        : Math.min(firstTechnicallyOutdatedSegment, firstDiffering);
+    }
+
     if (update.modifiesText) {
       contents = update.chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
     }
@@ -339,12 +350,12 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
       currentFileContents: contents,
       isFileSaved: isFileSaved && update.modifiesText === false,
       compiling: nextCompilingState(),
+      firstTechnicallyOutdatedSegment: newOutdate,
     };
   }
 
   if (isSingleChunkUpdate(update)) {
-    const { chunks } = state;
-
+    const chunkId = chunks.findIndex((c) => c.id === update.chunk.id);
     const newChunks = chunks.map((chunk) => (
       chunk.id === update.chunk.id ? update.chunk : chunk
     ));
@@ -355,12 +366,14 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
       contents = newChunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
     }
 
+    console.log('singlechunkupdate', firstTechnicallyOutdatedSegment, chunkId);
     return {
       ...state,
       chunks: newChunks,
       currentFileContents: contents,
       isFileSaved: isFileSaved && update.modifiesText === false,
       compiling: nextCompilingState(),
+      firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, chunkId),
     };
   }
 
@@ -469,6 +482,7 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
   const {
     chunks,
     currentFile,
+    firstTechnicallyOutdatedSegment,
   } = state;
 
   const rhs = makeRHSObjects(result, `file://${segmentName(currentFile, id)}`);
@@ -499,6 +513,7 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
     };
   }
 
+  console.log('firstTechnicallyOutdatedSegment: ', firstTechnicallyOutdatedSegment, index + 1);
   return {
     ...state,
     backendCmd: BackendCmd.None,
@@ -508,6 +523,7 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
       outdated: rhs.outdated,
     },
     chunkToRHS,
+    firstTechnicallyOutdatedSegment: Math.max(firstTechnicallyOutdatedSegment, index + 1),
   };
 }
 
@@ -527,6 +543,7 @@ function handleRunSessionFailure(state: State, id: string, error: string) {
   return {
     ...state,
     chunks: newChunks,
+    firstTechnicallyOutdatedSegment: Math.max(state.firstTechnicallyOutdatedSegment, index + 1),
   };
 }
 
@@ -538,7 +555,7 @@ function handleCompileSessionFailure(
   const failures = errors.map((e) => JSON.parse(e));
   const places: Srcloc[] = failures.flatMap(getLocs);
 
-  const { chunks, currentFile } = state;
+  const { chunks, currentFile, firstTechnicallyOutdatedSegment } = state;
 
   function findChunkFromSrclocResult(loc: Srcloc): number | null {
     for (let i = 0; i < chunks.length; i += 1) {
@@ -566,9 +583,11 @@ function handleCompileSessionFailure(
 
   const newChunks = [...chunks];
   if (places.length > 0) {
+    let max = firstTechnicallyOutdatedSegment;
     places.forEach((place) => {
       const chunkIndex = findChunkFromSrclocResult(place);
       if (chunkIndex) {
+        max = Math.max(chunkIndex + 1, max);
         const hl = getExistingHighlights(newChunks[chunkIndex]);
         newChunks[chunkIndex] = {
           ...newChunks[chunkIndex],
@@ -586,6 +605,7 @@ function handleCompileSessionFailure(
     return {
       ...state,
       chunks: newChunks,
+      firstTechnicallyOutdatedSegment: max,
     };
   }
   const chunkIndex = newChunks.findIndex((c) => c.id === id);
@@ -613,6 +633,7 @@ function handleCompileSessionFailure(
   return {
     ...state,
     chunks: newChunks,
+    firstTechnicallyOutdatedSegment: Math.max(firstTechnicallyOutdatedSegment, chunkIndex + 1),
   };
 }
 

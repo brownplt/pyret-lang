@@ -8,10 +8,12 @@ import {
 type Props = {
   checks: RHSCheck[],
   outdated?: boolean,
+  className: string,
+  title?: string,
 };
 
 export default function RHSObjectComponent({
-  checks, outdated,
+  checks, outdated, className, title,
 }: Props) {
   const [success, failed] = checks.reduce(([s, f], check) => (
     check.success ? [s + 1, f] : [s, f + 1]
@@ -54,7 +56,7 @@ export default function RHSObjectComponent({
   const details = expanded ? checks.map((check) => <RenderedValue value={check} />) : '';
   const color = !expanded && !allPass ? '#fbbdaf' : '';
   return (
-    <pre className={`chatitor-rhs list-container${outdated ? ' outdated' : ''}`} style={{ backgroundColor: color }}>
+    <pre className={`chatitor-rhs list-container${outdated ? ' outdated' : ''} ${className}`} style={{ backgroundColor: color }} title={title}>
       <ExpandButton expanded={expanded} setExpanded={setExpanded} />
       {' '}
       {summary}

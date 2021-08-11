@@ -86,6 +86,15 @@
 .outdated {
   border: 1px dashed black;
 }
+.chatitor-rhs.partially-outdated::after {
+  content: " ";
+  position: absolute;
+  width: 1em;
+  height: 1em;
+  margin-left: 2.5em;
+  border-radius: 9999em;
+  background-color: #94877e;
+}
 
 .chunks-rhs {
   padding-left: 1em;

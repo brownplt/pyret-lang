@@ -11,11 +11,12 @@ type Props = {
   rhsObject: RHSObject,
   onMouseEnter?: () => void,
   className: string
+  title?: string,
   outdated?: boolean,
 };
 
 export default function RHSObjectComponent({
-  isSelected, rhsObject, onMouseEnter, className, outdated,
+  isSelected, rhsObject, onMouseEnter, className, outdated, title,
 }: Props) {
   const taggedClass = `${className} ${isSelected ? `${className}-selected` : ''} ${outdated ? ' outdated' : ''}`;
 
@@ -28,6 +29,7 @@ export default function RHSObjectComponent({
       <pre
         className={taggedClass}
         onMouseEnter={onMouseEnter}
+        title={title}
       >
         <RenderedValue value={rhsObject.value} />
       </pre>
@@ -39,6 +41,7 @@ export default function RHSObjectComponent({
       <pre
         className={taggedClass}
         onMouseEnter={onMouseEnter}
+        title={title}
       >
         {rhsObject.name}
         {' '}
@@ -54,6 +57,7 @@ export default function RHSObjectComponent({
       <pre
         className={taggedClass}
         onMouseEnter={onMouseEnter}
+        title={title}
       >
         <RenderedValue value={rhsObject} />
       </pre>

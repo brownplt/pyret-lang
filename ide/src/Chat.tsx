@@ -45,6 +45,7 @@ type StateProps = {
   chunkToRHS: Map<string, RHSObjects>,
   thisChunkRHSObjects: RHSObjects,
   enterNewline: boolean,
+  technicallyOutdated: boolean,
 };
 
 function mapStateToProps(state: State, ownProps: any): StateProps {
@@ -52,6 +53,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     chunks,
     enterNewline,
     chunkToRHS,
+    firstTechnicallyOutdatedSegment,
   } = state;
 
   const {
@@ -59,12 +61,15 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
   } = ownProps;
 
   const thisChunkRHSObjects = chunkToRHS.get(chunks[index].id) ?? { outdated: true, objects: [] };
+  console.log(firstTechnicallyOutdatedSegment, index, index >= firstTechnicallyOutdatedSegment);
+  const technicallyOutdated = index >= firstTechnicallyOutdatedSegment;
 
   return {
     chunks,
     thisChunkRHSObjects,
     enterNewline,
     chunkToRHS,
+    technicallyOutdated,
   };
 }
 
@@ -115,6 +120,10 @@ class Chat extends React.Component<ChatProps, any> {
   shouldComponentUpdate(newProps: ChatProps) {
     const n = newProps;
     const o = this.props;
+
+    if (n.technicallyOutdated !== o.technicallyOutdated) {
+      return true;
+    }
 
     if (n.thisChunkRHSObjects.outdated !== o.thisChunkRHSObjects.outdated) {
       return true;
@@ -412,7 +421,7 @@ class Chat extends React.Component<ChatProps, any> {
 
   render() {
     const {
-      chunks, index,
+      chunks, index, technicallyOutdated,
     } = this.props;
     const { editor: initialEditor } = chunks[index];
 
@@ -436,8 +445,13 @@ class Chat extends React.Component<ChatProps, any> {
           }}
         >
           {chunk.errorState.failures.map((failure, i) => (
-            // eslint-disable-next-line
-            <div className="chatitor-rhs" key={i} style={{border: '2px solid #dc4064'}}>
+            <div
+              // eslint-disable-next-line
+              key={i}
+              style={{ border: '2px solid #dc4064' }}
+              className={`chatitor-rhs ${technicallyOutdated ? 'partially-outdated' : ''}`}
+              title={technicallyOutdated ? 'value might be changed by earlier definition changes' : ''}
+            >
               <FailureComponent failure={failure} editor={chunkEditor} />
             </div>
           ))}
@@ -446,6 +460,8 @@ class Chat extends React.Component<ChatProps, any> {
     } else {
       let rhs;
       const rhsObjects = thisChunkRHSObjects.objects;
+      const partiallyOutdated = technicallyOutdated && !thisChunkRHSObjects.outdated;
+      console.log(index, technicallyOutdated, !thisChunkRHSObjects.outdated, 'partiallyOutdated', partiallyOutdated);
       // TODO(luna): more principled
       // const isDataDefinition = rhsObjects.filter((r) => !isLocation(r)).length === 0
       //         && rhsObjects.filter((r) => isLocation(r) && r.name.startsWith('is-')).length > 0;
@@ -469,7 +485,8 @@ class Chat extends React.Component<ChatProps, any> {
             key={val.key ?? 'no key for val?'}
             rhsObject={val}
             isSelected={false}
-            className="chatitor-rhs"
+            className={`chatitor-rhs ${partiallyOutdated ? 'partially-outdated' : ''}`}
+            title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
             outdated={thisChunkRHSObjects.outdated}
           />
         ));
@@ -479,6 +496,8 @@ class Chat extends React.Component<ChatProps, any> {
             // Would love to have TypeScript obviate this `as`
               checks={checks as RHSCheck[]}
               outdated={thisChunkRHSObjects.outdated}
+              className={`chatitor-rhs ${partiallyOutdated ? 'partially-outdated' : ''}`}
+              title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
             />
           ) : '';
         rhs = [...values, checkSummary];
