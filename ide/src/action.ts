@@ -6,7 +6,6 @@ import {
   EditorMode,
   MessageTabIndex,
   EditorResponseLoop,
-  BackendCmd,
   State,
 } from './state';
 import { Effect, EffectKey } from './effect';
@@ -19,24 +18,14 @@ export type EffectFailure =
   | { effectKey: 'editTimer' }
   | { effectKey: 'stop' }
   | { effectKey: 'loadFile' }
-  | { effectKey: 'saveFile', error: Error }
-  | { effectKey: 'initCmd' }
-  | BackendEffectFailure;
+  | { effectKey: 'saveFile', error: Error };
 
 export type EffectSuccess =
   | { effectKey: 'startEditTimer', timer: NodeJS.Timer }
   | { effectKey: 'editTimer' }
   | { effectKey: 'stop', line: number }
   | { effectKey: 'loadFile' }
-  | { effectKey: 'saveFile' }
-  | { effectKey: 'initCmd' }
-  | BackendEffectSuccess;
-
-export type BackendEffectFailure =
-  { effectKey: 'initCmd', cmd: BackendCmd };
-
-export type BackendEffectSuccess =
-  { effectKey: 'initCmd', cmd: BackendCmd };
+  | { effectKey: 'saveFile' };
 
 export type SuccessForEffect<E extends EffectKey> =
   Extract<EffectSuccess, { effectKey: E }>;
@@ -85,8 +74,6 @@ export type Update =
   // Run.tsx, almost certainly not read though
   | { key: 'editorResponseLoop', value: EditorResponseLoop }
   | { key: 'editorLoopDropdownVisible', value: boolean }
-  // store.ts, case 'initCmd'
-  | { key: 'backendCmd', value: BackendCmd }
   | { key: 'updater', value: (state : State) => State };
 
 export type Run =

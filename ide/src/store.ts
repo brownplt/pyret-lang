@@ -4,7 +4,6 @@ import { createStore } from 'redux';
 import ideApp, { setStore } from './reducer';
 import { IDE } from './ide';
 import {
-  BackendCmd,
   EditorMode,
   State,
 } from './state';
@@ -203,49 +202,6 @@ function handleFirstActionableEffect(
           }
         }
         break;
-      case 'initCmd':
-      {
-        const currBackendCmd = state.backendCmd;
-        const initBackendCmd = effect.cmd;
-
-        // Backend already busy
-        if (currBackendCmd !== BackendCmd.None) {
-          console.log(`Backend busy: failed to set current cmd ${currBackendCmd} to ${initBackendCmd}`);
-          return {
-            effect: i,
-            applyEffect: () => {
-              dispatch({
-                type: 'effectEnded',
-                status: 'failed',
-                effectKey: 'initCmd',
-              });
-            },
-          };
-        }
-
-        console.log(`Changing current cmd from ${currBackendCmd} to ${initBackendCmd}`);
-        return {
-          effect: i,
-          applyEffect: () => {
-            dispatch({
-              type: 'update',
-              key: 'backendCmd',
-              value: initBackendCmd,
-            });
-
-            dispatch({
-              type: 'enqueueEffect',
-              effect: { effectKey: 'saveFile' },
-            });
-
-            dispatch({
-              type: 'effectEnded',
-              status: 'succeeded',
-              effectKey: 'initCmd',
-            });
-          },
-        };
-      }
       case 'stop': {
         const { running } = state;
         if (running && currentRunner !== undefined) {

@@ -30,10 +30,7 @@ import {
   EditorMode,
   State,
   initialState,
-  BackendCmd,
 } from './state';
-
-import backendCmdFromState from './editor_loop';
 
 import {
   Chunk,
@@ -108,26 +105,10 @@ function handleStartEditTimerSuccess(
 }
 
 function handleEditTimerSuccess(state: State): State {
-  const {
-    editorResponseLoop,
-    effectQueue,
-  } = state;
-
-  const cmd = backendCmdFromState(editorResponseLoop);
-
-  if (cmd === BackendCmd.None) {
-    console.log('[EDITOR LOOP]: None');
-    return {
-      ...state,
-      effectQueue: [...effectQueue, { effectKey: 'saveFile' }],
-    };
-  }
-
-  console.log(`[EDITOR LOOP]: ${cmd}`);
-  return {
-    ...state,
-    effectQueue: [...effectQueue, { effectKey: 'initCmd', cmd }],
-  };
+  // NOTE(luna): Yeah you know i'm working around Redux's "reducers shouldn't
+  // dispatch" by wrapping it in a setTimeout, what's it to you, Redux is rude
+  setTimeout(() => store.dispatch({ type: 'run', key: 'runProgram' }), 0);
+  return state;
 }
 
 function handleStopSuccess(state: State, action: SuccessForEffect<'stop'>): State {
@@ -154,10 +135,6 @@ function handleSaveFileSuccess(state: State): State {
   };
 }
 
-function handleInitCmdSuccess(state: State): State {
-  return state;
-}
-
 function handleEffectSucceeded(state: State, action: EffectSuccess): State {
   switch (action.effectKey) {
     case 'startEditTimer':
@@ -170,17 +147,9 @@ function handleEffectSucceeded(state: State, action: EffectSuccess): State {
       return handleLoadFileSuccess(state);
     case 'saveFile':
       return handleSaveFileSuccess(state);
-    case 'initCmd':
-      return handleInitCmdSuccess(state);
     default:
       throw new Error(`handleEffectSucceeded: unknown process ${JSON.stringify(action)}`);
   }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function handleInitCmdFailure(state: State, action: FailureForEffect<'initCmd'>): State {
-  // TODO(alex): Do something here?
-  return state;
 }
 
 function handleSaveFileFailure(state: State, action: FailureForEffect<'saveFile'>): State {
@@ -191,8 +160,6 @@ function handleSaveFileFailure(state: State, action: FailureForEffect<'saveFile'
 
 function handleEffectFailed(state: State, action: EffectFailure): State {
   switch (action.effectKey) {
-    case 'initCmd':
-      return handleInitCmdFailure(state, action);
     case 'saveFile':
       return handleSaveFileFailure(state, action);
     default:
@@ -459,8 +426,6 @@ function handleUpdate(
       return { ...state, editorResponseLoop: action.value };
     case 'editorLoopDropdownVisible':
       return { ...state, editorLoopDropdownVisible: action.value };
-    case 'backendCmd':
-      return { ...state, backendCmd: action.value };
     case 'updater':
       return action.value(state);
     default:
@@ -516,7 +481,6 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
   console.log('firstTechnicallyOutdatedSegment: ', firstTechnicallyOutdatedSegment, index + 1);
   return {
     ...state,
-    backendCmd: BackendCmd.None,
     chunks: newChunks,
     rhs: {
       objects: rhs.objects,
@@ -657,7 +621,6 @@ function handleCompileProgramFailure(state: State, errors: string[]) : State {
   };
   return {
     ...state,
-    // backendCmd: BackendCmd.None,
     // compiling: false,
     interactionErrors: errors,
     definitionsHighlights: places.map(asHL),
@@ -669,7 +632,6 @@ function handleRunProgramFailure(state: State, error: string) {
   // TODO(joe): get source locations from dynamic errors (source map, etc)
   return {
     ...state,
-    // backendCmd: BackendCmd.None,
     // compiling: false,
     interactionErrors: [error],
     definitionsHighlights: [],

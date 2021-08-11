@@ -13,7 +13,6 @@ import {
 } from 'react-redux';
 
 import {
-  BackendCmd,
   EditorMode,
   EditorResponseLoop,
   State,
@@ -74,7 +73,6 @@ type PropsFromReact = {
 };
 
 type DispatchProps = {
-  compile: () => void,
   run: () => void,
   runSession: () => void,
   stop: () => void,
@@ -88,7 +86,6 @@ type DispatchProps = {
 
 function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
   return {
-    compile: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'initCmd', cmd: BackendCmd.Compile } }),
     run: () => dispatch({ type: 'run', key: 'runProgram' }),
     runSession: () => dispatch({ type: 'run', key: 'runSegments' }),
     stop: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'stop' } }),
@@ -121,7 +118,6 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type Props = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
 function Run({
-  compile,
   run,
   runSession,
   stop,
@@ -249,26 +245,23 @@ function Run({
       <div
         className="run-container"
       >
-        {editorMode !== EditorMode.Chatitor
-          ? (
-            <button
-              id="CompileButton"
-              className="compile-ready"
-              type="button"
-              onClick={compile}
-              style={{
-                background: buttonBackground,
-              }}
-            >
-              {
-              // TODO(alex): figure out button style/margins
-              // TODO(alex): compile button has a persisting black outline (unlike the run button)
-              // TODO(alex): figure out compilation/run-ready progress bar
-            }
-              Compile
-            </button>
-          )
-          : ''}
+        {/* TODO(luna): Compile-only in promise API */}
+        {/* <button
+          id="CompileButton"
+          className="compile-ready"
+          type="button"
+          onClick={compile}
+          style={{
+            background: buttonBackground,
+          }}
+        >
+          {
+          // TODO(alex): figure out button style/margins
+          // TODO(alex): compile button has a persisting black outline (unlike the run button)
+          // TODO(alex): figure out compilation/run-ready progress bar
+        }
+          Compile
+        </button> */}
         <button
           id="RunButton"
           className="run-ready"

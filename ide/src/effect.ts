@@ -12,21 +12,11 @@ export type EffectKey =
   // handleSetCurrentFile
   | 'loadFile'
   // initCmd
-  | 'saveFile'
-  // handleEditTimerSuccess, Run.tsx compile
-  | 'initCmd';
+  | 'saveFile';
 
 export type Effect =
   | { effectKey: 'startEditTimer' }
   | { effectKey: 'editTimer' }
   | { effectKey: 'stop' }
   | { effectKey: 'loadFile' }
-  | { effectKey: 'saveFile' }
-  | { effectKey: 'initCmd', cmd: BackendCmd };
-
-export enum BackendCmd {
-  None = 0,
-  Lint = 1,
-  Compile = 2,
-  Run = 3
-}
+  | { effectKey: 'saveFile' };
