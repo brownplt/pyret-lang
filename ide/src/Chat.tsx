@@ -444,7 +444,7 @@ class Chat extends React.Component<ChatProps, any> {
     } else {
       let rhs;
       const rhsObjects = thisChunkRHSObjects.objects;
-      const partiallyOutdated = technicallyOutdated && !thisChunkRHSObjects.outdated;
+      const partiallyOutdated = technicallyOutdated;
       // TODO(luna): more principled
       // const isDataDefinition = rhsObjects.filter((r) => !isLocation(r)).length === 0
       //         && rhsObjects.filter((r) => isLocation(r) && r.name.startsWith('is-')).length > 0;

@@ -1,4 +1,8 @@
-.chatitor-container,
+/* NOTE(joe): this file defines both the compact and normal modes for chatitor,
+the shared styles explicitly list both modes, and the styles specific to a
+mode just list that one. This avoids thinking too hard about rule specificity
+and overriding of rules. */
+
 .chatitor-container {
   display: grid;
   height: 100%;
@@ -80,9 +84,11 @@
 }
 
 .chat-layout-compact .chat-result {
+  position: relative;
   align-self: flex-start;
 }
 .chat-layout-normal .chat-result {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -150,17 +156,18 @@
   background-color: transparent;
   border: 1px dashed black;
 }
-.chat-layout-compact .outdated,
-.chat-layout-normal .outdated {
+.chat-layout-compact .partially-outdated,
+.chat-layout-normal .partially-outdated {
   border: 1px dashed black;
 }
-.chatitor-rhs.partially-outdated::after {
+.chatitor-rhs.outdated::before {
   content: " ";
   position: absolute;
+  margin-right: -2.5em;
+  right: 0;
+  border-radius: 9999em;
   width: 1em;
   height: 1em;
-  margin-left: 2.5em;
-  border-radius: 9999em;
   background-color: #94877e;
 }
 
