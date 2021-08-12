@@ -2,7 +2,7 @@ import load-lib as L
 import runtime-lib as RT
 import string-dict as SD
 import either as E
-import pathlib as P
+import js-file("../../../src/arr/compiler/ts-pathlib") as P
 import render-error-display as RED
 import file("../../../src/arr/compiler/locators/builtin.arr") as B
 import file("../../../src/arr/compiler/repl.arr") as R

@@ -1,7 +1,7 @@
 #lang pyret
 
 import either as E
-import pathlib as P
+import js-file("ts-pathlib") as P
 import render-error-display as RED
 import string-dict as D
 import system as SYS

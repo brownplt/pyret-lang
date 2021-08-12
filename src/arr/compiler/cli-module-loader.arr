@@ -8,7 +8,7 @@ import load-lib as L
 import either as E
 import json as JSON
 import file("ast.arr") as A
-import pathlib as P
+import js-file("ts-pathlib") as P
 import sha as crypto
 import string-dict as SD
 import error as ERR

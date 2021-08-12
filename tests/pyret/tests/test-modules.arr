@@ -4,7 +4,7 @@ import either as E
 import load-lib as L
 import string-dict as SD
 import runtime-lib as R
-import pathlib as P
+import js-file("../../../src/arr/compiler/ts-pathlib") as P
 import render-error-display as RED
 import file("../../../src/arr/compiler/js-of-pyret.arr") as JSP
 import file("../../../src/arr/compiler/compile-lib.arr") as CL

@@ -22,6 +22,9 @@ module.exports = {
   print: function(v) {
     process.stdout.write(String(v));
   },
+  'print-error': function(v) {
+    process.stderr.write(String(v));
+  },
   '_plus': runtime["_plus"],
   '_minus': runtime["_minus"],
   '_times': runtime["_times"],

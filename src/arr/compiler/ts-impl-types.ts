@@ -1,4 +1,3 @@
-
 export type EqualityResult = 
 | { $name: "Equal", dict: {} }
 | {
@@ -101,8 +100,14 @@ export type Runtime = {
            & (<T1, T2, T3, T4>(vals : [T1, T2, T3, T4]) => PTuple<[T1, T2, T3, T4]>)
            & (<T1, T2, T3, T4, T5>(vals : [T1, T2, T3, T4, T5]) => PTuple<[T1, T2, T3, T4, T5]>),
   makeFunction: <T extends Function>(func: T) => PFunction<T>,
+  makeMethod: <Self, T extends (...args: any[]) => any>(method: (self: Self) => T, fullMethod: (self: Self, ...args: Parameters<T>) => ReturnType<T>, name?: string) => PMethod<Self, T>,
   makeModuleReturn: (values: Record<string, any>, types: Record<string, any>) => any,
   makeObject: <T extends {}>(val : T) => { dict: T },
+  makeString: (s: string) => string,
+  checkString: (val: any) => void,
+  unwrap: (val: any) => any,
+  print: <A>(val: A) => A,
+  'print-error': <A>(val: A) => A,
   nothing: unknown,
   ffi: {
     makeList: <T>(ts: T[]) => List<T>,
@@ -110,5 +115,6 @@ export type Runtime = {
     makeSome: <T>(val: T) => Option<T>,
     makeNone: <T>() => Option<T>,
     throwMessageException: (msg: string) => any,
+    checkArity: (arity: number, args: IArguments, ... rest: any[]) => void,
   }
 }

@@ -5,7 +5,7 @@ import either as E
 import parse-pyret as P
 import string-dict as SD
 import pprint as PP
-import pathlib as PL
+import js-file("../../src/arr/compiler/ts-pathlib") as PL
 import js-file("../../src/arr/compiler/ts-desugar-impl") as D
 import file("../../src/arr/compiler/ast.arr") as A
 import file("../../src/arr/compiler/compile-structs.arr") as CS

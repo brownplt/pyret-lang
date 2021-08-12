@@ -1114,6 +1114,6 @@ dict: {values: {dict: {
 
 'pipeline-anchor': Variant<Pipeline, 'pipeline-anchor'>
 
-'pipeline-ts-anchor': Variant<Pipeline, 'pipeline-ts-anchor'>
+'pipeline-ts-anchor': PFunction<(modules: List<string>) => Variant<Pipeline, 'pipeline-ts-anchor'>>
 
 }}}}

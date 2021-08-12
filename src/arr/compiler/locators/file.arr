@@ -7,7 +7,7 @@ import file("../compile-structs.arr") as CS
 import file("../js-of-pyret.arr") as JSP
 import file("../file.arr") as F
 import js-file("./../filelib") as FL
-import pathlib as P
+import js-file("./../ts-pathlib") as P
 
 # Still unsure if just a path is the right input for this.
 #data FileLocator:

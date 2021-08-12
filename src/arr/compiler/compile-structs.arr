@@ -6,7 +6,7 @@ import file("ast.arr") as A
 import srcloc as SL
 import error-display as ED
 import string-dict as SD
-import pathlib as P
+import js-file("ts-pathlib") as P
 import file("type-structs.arr") as T
 
 t-nothing = T.t-nothing(A.dummy-loc)

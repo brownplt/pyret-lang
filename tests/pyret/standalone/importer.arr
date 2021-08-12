@@ -14,7 +14,7 @@ import load-lib as LL
 import world as W
 import runtime-lib as RL
 import particle as PART
-import pathlib as PATH
+import js-file("../../../src/arr/compiler/ts-pathlib") as PATH
 import plot as PLOT
 
 print("A dummy location: " + torepr(A.dummy-loc))

@@ -1,8 +1,11 @@
 provide *
 
-import pathlib as P
+import js-file("ts-pathlib") as P
+import js-file("./ts-compile-options") as TCO
 import file("./compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
+
+# populate-options = TCO.populate-options
 
 fun populate-options(dictionary, this-pyret-dir) block:
   compile-opts = CS.make-default-compile-options(this-pyret-dir)

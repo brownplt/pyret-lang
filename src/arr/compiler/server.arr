@@ -2,7 +2,7 @@ provide *
 
 import either as E
 import json as J
-import pathlib as P
+import js-file("ts-pathlib") as P
 import string-dict as SD
 import render-error-display as RED
 import js-file("server") as S

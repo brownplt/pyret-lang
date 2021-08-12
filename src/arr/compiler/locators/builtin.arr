@@ -1,6 +1,6 @@
 provide *
 import js-file("../builtin-modules") as B
-import pathlib as P
+import js-file("../ts-pathlib") as P
 import js-file("../parse-pyret") as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CM
