@@ -108,6 +108,8 @@ export type State = {
   /* TODO(luna): Do we really want this? */
   editorResponseLoop: EditorResponseLoop,
 
+  editorLayout: EditorLayout,
+
   /* In Chatitor mode, when an edit has been made to any chunk, including
    * deletion or insertion, all subsequent chunks are "partially outdated" or
    * "technically outdated" - their values can mostly be believed, but may change
@@ -130,6 +132,11 @@ export enum EditorMode {
   Text = 'Text',
   Embeditor = 'Embeditor',
   Chatitor = 'Chatitor',
+}
+
+export enum EditorLayout {
+  Compact = 'Compact',
+  Normal = 'Normal',
 }
 
 export type LintFailure = {
@@ -186,4 +193,5 @@ export const initialState: State = {
   messageTabIndex: MessageTabIndex.RuntimeMessages,
   editorResponseLoop: EditorResponseLoop.Manual,
   firstTechnicallyOutdatedSegment: 0,
+  editorLayout: EditorLayout.Compact,
 };

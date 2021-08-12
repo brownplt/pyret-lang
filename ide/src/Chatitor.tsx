@@ -8,6 +8,7 @@ import CodeMirror from 'codemirror';
 import { UnControlled } from 'react-codemirror2';
 import { Action, ChunksUpdate } from './action';
 import {
+  EditorLayout,
   State,
 } from './state';
 import {
@@ -15,11 +16,11 @@ import {
 } from './chunk';
 import Chat from './Chat';
 import { isWrapFirst } from './utils';
-import KeepScrolled from './KeepScrolled';
 
 type StateProps = {
   chunks: Chunk[],
   enterNewline: boolean,
+  editorLayout: EditorLayout
 };
 
 type DispatchProps = {
@@ -31,11 +32,13 @@ function mapStateToProps(state: State): StateProps {
   const {
     chunks,
     enterNewline,
+    editorLayout,
   } = state;
 
   return {
     chunks,
     enterNewline,
+    editorLayout,
   };
 }
 
@@ -60,6 +63,7 @@ function Chatitor({
   chunks,
   enterNewline,
   setChunks,
+  editorLayout,
 }: DefChunksProps) {
   const [mountedEditor, setEditor] = (
     React.useState<(CodeMirror.Editor & CodeMirror.Doc) | null>(null)
@@ -70,9 +74,6 @@ function Chatitor({
   const [isFocused, setIsFocused] = (
     React.useState<boolean>(false as boolean)
   );
-  // To force re-render whenever there might be a need to scroll for
-  // KeepScrolled
-  const [numLines, setNumLines] = React.useState<number>(0);
   // UnControlled continues to have stale closures for no reason, ref is an easy
   // solution
   const chunksRef = React.useRef(chunks);
@@ -127,11 +128,15 @@ function Chatitor({
   };
   const tooltipStyle = { margin: '0 0.5em' };
   const shiftEnterStyle = { ...tooltipStyle, color: enterNewlineRef.current ? 'grey' : 'black' };
+  const layout = editorLayout === EditorLayout.Compact ? 'chat-layout-compact' : 'chat-layout-normal';
   return (
-    <div className="chatitor-container">
-      <KeepScrolled numLines={numLines}>
-        {allChunks}
-      </KeepScrolled>
+    <div className={`${layout} chatitor-container`}>
+      <div className="chat-scroll">
+        <div className="chats">
+          {allChunks}
+          <div style={{ clear: 'both' }} />
+        </div>
+      </div>
       <UnControlled
         className="new-expr"
         options={{
@@ -145,7 +150,6 @@ function Chatitor({
           setEditor(editor);
         }) as (editor: CodeMirror.Editor) => void}
         onChange={((editor: CodeMirror.Editor & CodeMirror.Doc) => {
-          setNumLines(editor.lineCount());
           setEnterSendRender(doesEnterKeySend(editor, editor.getCursor()));
         }) as any}
         onSelection={((

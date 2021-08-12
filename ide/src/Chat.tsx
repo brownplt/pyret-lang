@@ -427,14 +427,7 @@ class Chat extends React.Component<ChatProps, any> {
 
     if (chunk.errorState.status === 'failed' && 'markText' in chunkEditor) {
       chunkResultsPart = (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-            marginBottom: '0.5em',
-          }}
-        >
+        <div className="chat-result">
           {chunk.errorState.failures.map((failure, i) => (
             <div
               // eslint-disable-next-line
@@ -494,20 +487,14 @@ class Chat extends React.Component<ChatProps, any> {
       }
 
       chunkResultsPart = (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-end',
-          }}
-        >
+        <div className="chat-result">
           {rhs}
         </div>
       );
     }
 
     const chunkEditorPart = (
-      <div style={{ width: '100%' }}>
+      <div className="chat-editor-wrapper">
         <ReactCM
           editorDidMount={(editor) => this.handleMount(editor as CMEditor, initialEditor)}
           options={{
@@ -552,8 +539,10 @@ class Chat extends React.Component<ChatProps, any> {
         <button className="insert-arrow" onClick={() => this.insertAbove()} type="button">
           &#10170;
         </button>
-        { chunkEditorPart }
-        { chunkResultsPart }
+        <div className="chat-and-result">
+          { chunkEditorPart }
+          { chunkResultsPart }
+        </div>
       </>
     );
   }

@@ -5,7 +5,7 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { MenuItems } from './menu-types';
-import { State, EditorMode } from './state';
+import { State, EditorMode, EditorLayout } from './state';
 import { Action } from './action';
 import FSBrowser from './FSBrowser';
 import FontSize from './FontSize';
@@ -16,6 +16,7 @@ type StateProps = {
   enterNewline: boolean,
   editorMode: EditorMode,
   currentFileContents: string | undefined,
+  editorLayout : EditorLayout,
 };
 
 function mapStateToProps(state: State): StateProps {
@@ -25,6 +26,7 @@ function mapStateToProps(state: State): StateProps {
     enterNewline,
     editorMode,
     currentFileContents,
+    editorLayout,
   } = state;
 
   return {
@@ -33,6 +35,7 @@ function mapStateToProps(state: State): StateProps {
     enterNewline,
     editorMode,
     currentFileContents,
+    editorLayout,
   };
 }
 
@@ -64,11 +67,16 @@ function Menu({
   setEditorMode,
   enterNewline,
   editorMode,
+  editorLayout,
 }: MenuProps) {
   function getTab() {
     if (menuTabVisible === false) {
       return false;
     }
+
+    const swapLayout = () => (
+      editorLayout === EditorLayout.Compact ? EditorLayout.Normal : EditorLayout.Compact
+    );
 
     const modes = [EditorMode.Chatitor, EditorMode.Embeditor, EditorMode.Text];
     switch (menuItems[menuTabVisible].name) {
@@ -105,6 +113,23 @@ function Menu({
               ))}
             </div>
             <FontSize key="FontSize" />
+            {editorMode === EditorMode.Chatitor && (
+              <button
+                onClick={() => update((s) => ({ ...s, editorLayout: swapLayout() }))}
+                className="option"
+                key="layout"
+                type="button"
+                style={{
+                  height: '2.7em',
+                }}
+              >
+                {editorLayout === EditorLayout.Compact ? (
+                  'Switch to normal layout'
+                ) : (
+                  'Switch to compact layout'
+                )}
+              </button>
+            )}
             {editorMode === EditorMode.Chatitor && (
               <button
                 onClick={() => update((s) => ({ ...s, enterNewline: !s.enterNewline }))}

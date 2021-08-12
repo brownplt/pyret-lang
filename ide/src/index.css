@@ -1,40 +1,109 @@
+.chatitor-container,
 .chatitor-container {
   display: grid;
   height: 100%;
   grid-template-rows: 1fr 0fr;
 }
 
-.chat .CodeMirror {
+.chat-scroll {
+  grid-row: 1;
+  width: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.chat-layout-compact .chats {
+  width: 60em;
+  max-width: 70%;
+  margin: 2em auto;
+}
+.chat-layout-normal .chats {
+  width: 40em;
+  max-width: 70%;
+  margin: 2em auto;
+}
+
+.chat-layout-compact .chat .CodeMirror,
+.chat-layout-normal .chat .CodeMirror {
   /* TODO(luna): !important because they're getting overridden by page styles, as
    * they should be, but why are there page styles, and how can i override
    * correctly? */
   display: inline-block;
   background-color: #d4f1ff !important;
   min-width: 0em;
-  border-radius: 0.9em !important;
-  border-bottom-left-radius: 0 !important;
   border: 1px solid transparent !important;
-  padding: 0.7em;
   cursor: pointer !important;
   transition: border-radius 0.1s, border-bottom-left-radius 0.1s, min-width 0.1s -0.05s !important;
 }
-.chat .CodeMirror-lines {
+
+.chat-layout-normal .chat .CodeMirror {
+  border-radius: 0.9em !important;
+  border-bottom-left-radius: 0 !important;
+  padding: 0.7em;
+}
+
+.chat-layout-compact .chat .CodeMirror {
+  border-radius: 0.3em !important;
+  border-bottom-left-radius: 0 !important;
+  padding: 0.1em;
+}
+
+.chat-layout-compact .chat .CodeMirror-lines,
+.chat-layout-normal .chat .CodeMirror-lines {
   cursor: pointer;
 }
-.chat .CodeMirror-focused {
+
+.chat-layout-compact .chat .CodeMirror-focused,
+.chat-layout-normal .chat .CodeMirror-focused {
   background-color: #f2fbff !important;
   min-width: 30em;
-  border-radius: 0.5em !important;
-  border-bottom-left-radius: 0.5em;
   border: 1px solid black !important;
 }
-.chat .CodeMirror-focused .CodeMirror-lines {
+.chat-layout-normal .chat .CodeMirror-focused {
+  border-radius: 0.5em !important;
+  border-bottom-left-radius: 0.5em;
+}
+.chat-layout-compact .chat .CodeMirror-focused {
+  border-radius: 0.1em !important;
+  border-bottom-left-radius: 0.1em;
+}
+
+.chat-layout-compact .chat-and-result {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+.chat-layout-normal .chat-and-result {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-layout-compact .chat-result {
+  align-self: flex-start;
+}
+.chat-layout-normal .chat-result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-bottom: 0.5em;
+}
+
+.chat-layout-compact .chat-editor-wrapper {
+  margin-bottom: 0.5em;
+}
+
+.chat-layout-normal .chat-editor-wrapper {
+  width: 100%;
+}
+
+.chat-layout-normal .chat .CodeMirror-focused .CodeMirror-lines {
   cursor: text;
 }
-.chat.checkmark .CodeMirror {
+.chat-layout-normal .chat.checkmark .CodeMirror {
   padding-right: 2em;
 }
-.chat.checkmark .CodeMirror::after {
+.chat-layout-normal .chat.checkmark .CodeMirror::after {
   content: "✓";
   display: block;
   position: relative;
@@ -68,7 +137,8 @@
   border-radius: 0.5em !important;
 }
 
-.chatitor-rhs {
+.chat-layout-compact .chatitor-rhs,
+.chat-layout-normal .chatitor-rhs {
   padding-left: 1em;
   border-radius: 0.5em;
   background-color: #eee;
@@ -79,11 +149,13 @@
   overflow: auto;
   max-width: 90%;
 }
-.chatitor-rhs.pending {
+.chat-layout-compact .chatitor-rhs.pending,
+.chat-layout-normal .chatitor-rhs.pending {
   background-color: transparent;
   border: 1px dashed black;
 }
-.outdated {
+.chat-layout-compact .outdated,
+.chat-layout-normal .outdated {
   border: 1px dashed black;
 }
 .chatitor-rhs.partially-outdated::after {
