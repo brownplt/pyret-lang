@@ -281,6 +281,7 @@ type ResolveScopeExports = {
         const PROCESSING = true;
         const FINISHED = false;
         function visit(locator: Locator, context: A): void {
+          runtime['RUNGAS'] = 500000000; // HACK! to make sure that compilation itself doesn't become asynchronous due to fuel-exhaustion
           const uri = callMethod(locator, "uri");
           const markStatus = tempMarked.get(uri);
           if (markStatus === PROCESSING) {
@@ -361,6 +362,7 @@ type ResolveScopeExports = {
         const wl = listToArray(worklist);
         runtime.runThunk(() => runtime.raw_array_map(runtime.makeFunction((t: ToCompile) => getLoadable.app(t, maxDepTimes)), wl),
         (maybeModulesResult) => {
+          runtime['RUNGAS'] = 500000000; // HACK! to make sure that compilation itself doesn't become asynchronous due to fuel-exhaustion
           if (runtime.isFailureResult(maybeModulesResult)) { return restarter.error(maybeModulesResult.exn); }
           const maybeModules = maybeModulesResult.result;
           for (let i = 0; i < wl.length; i++) {
@@ -385,6 +387,7 @@ type ResolveScopeExports = {
         runtime.runThunk(() => runtime.raw_array_map(runtime.makeFunction((l: ToCompile) => callMethod(l.dict.locator, 'get-modified-time')), wl),
         (modTimesResult) => { // Note(Ben): reorganizing the loop to do all the safeCalling in advance
           // so modTimes[i] = wl[i].locator.get-modified-time()
+          runtime['RUNGAS'] = 500000000; // HACK! to make sure that compilation itself doesn't become asynchronous due to fuel-exhaustion
           if (runtime.isFailureResult(modTimesResult)) { return restarter.error(modTimesResult.exn); }
           const modTimes = modTimesResult.result;
           const ret = new Map<string, number>();
@@ -411,6 +414,7 @@ type ResolveScopeExports = {
       
       return runtime.pauseStack((restarter) => {
         runtime.runThunk(() => runtime.raw_array_map(runtime.makeFunction((w: ToCompile) => {
+          runtime['RUNGAS'] = 500000000; // HACK! to make sure that compilation itself doesn't become asynchronous due to fuel-exhaustion
           const loadables: Loadable[] = [];
           const uri = callMethod(w.dict.locator, 'uri');
           if (callMethod(modules, 'has-key-now', uri)) {
@@ -458,11 +462,12 @@ type ResolveScopeExports = {
     function compileModule(locator: Locator, provideMap: StringDict<string>, modules: MutableStringDict<Loadable>, options: CompileOptions): PTuple<[Loadable, List<any>]> {
       G.reset.app();
       A['global-names'].dict.reset.app();
-
+      
       const env = CS['compile-env'].app(callMethod(locator, 'get-globals'), modules, provideMap);
       return runtime.pauseStack((restarter) => {
         runtime.runThunk(() => callMethod(locator, 'get-compiled', options),
         (todoResult) => {
+          runtime['RUNGAS'] = 500000000; // HACK! to make sure that compilation itself doesn't become asynchronous due to fuel-exhaustion
           if (runtime.isFailureResult(todoResult)) { return restarter.error(todoResult.exn); }
           const todo = todoResult.result;
           switch(todo.$name) {

@@ -1,1 +1,1 @@
-global._PYRET_PIPELINE = "ts-anchor:typecheck";
+global._PYRET_PIPELINE = "ts-anchor:typecheck:compile-lib";

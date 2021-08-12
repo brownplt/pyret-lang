@@ -1974,7 +1974,7 @@ export type Exports = {
     // FOR DEBUGGNG AID; this will be set within typeCheck using its `options` parameter
     let logger: PFunction<(val: any, _ignored: Option<any>) => void>;
     function LOG(val: any): void {
-      logger.app(val, runtime.ffi.makeNone());
+      //logger.app(val, runtime.ffi.makeNone());
     }
 
     // NOTE(joe/ben): This was called introduce-onto in the original Pyret implementation
