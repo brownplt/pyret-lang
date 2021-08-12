@@ -684,15 +684,19 @@ async function runProgramAsync(state : State) : Promise<any> {
 let stopFlag = false;
 async function runSegmentsAsync(state : State) : Promise<any> {
   stopFlag = false;
-  const { typeCheck, chunks } = state;
+  const { typeCheck, chunks, firstTechnicallyOutdatedSegment } = state;
+  const onlyLastSegmentChanged = firstTechnicallyOutdatedSegment === chunks.length - 1;
   const filenames: string[] = [];
   console.log('RUNNING THESE CHUNKS:');
-  chunks.forEach((c) => {
-    const filename = segmentName(state.currentFile, c.id);
-    filenames.push(filename);
-    const value = c.editor.getValue();
-    fs.writeFileSync(filename, value);
-    console.log(value);
+  chunks.forEach((c, i) => {
+    const isLastSegment = (i === chunks.length - 1);
+    if (!onlyLastSegmentChanged || isLastSegment) {
+      const filename = segmentName(state.currentFile, c.id);
+      filenames.push(filename);
+      const value = c.editor.getValue();
+      fs.writeFileSync(filename, value);
+      console.log(value);
+    }
   });
   console.log('Chunks were saved in:', JSON.stringify(filenames));
   fs.writeFileSync(
@@ -701,9 +705,14 @@ async function runSegmentsAsync(state : State) : Promise<any> {
   );
 
   const sessionId = 'chatidor-session';
-  await serverAPI.filterSession(sessionId, 'builtin://');
+  if (!onlyLastSegmentChanged) {
+    await serverAPI.filterSession(sessionId, 'builtin://');
+  }
 
   for (let i = 0; i < chunks.length; i += 1) {
+    const isLastSegment = (i === chunks.length - 1);
+    // eslint-disable-next-line
+    if (onlyLastSegmentChanged && !isLastSegment) { continue; }
     const c = chunks[i];
     const filename = segmentName(state.currentFile, c.id);
     const { dir, base } = bfsSetup.path.parse(filename);
@@ -750,12 +759,16 @@ async function runSegmentsAsync(state : State) : Promise<any> {
 
 function runProgramOrSegments(state : State, runner : (s : State) => Promise<any>) : State {
   // TODO(luna): reset rt messages?
+  if (state.running === true) { return state; }
   const result : Promise<any> = runner(state);
   result.then(() => {
     store.dispatch(
       { type: 'update', key: 'updater', value: (s) => ({ ...s, running: false }) },
     );
   }).catch((e) => {
+    store.dispatch(
+      { type: 'update', key: 'updater', value: (s) => ({ ...s, running: false }) },
+    );
     console.log('Running segments failed', e);
   });
   return { ...state, running: true };

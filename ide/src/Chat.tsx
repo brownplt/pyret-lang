@@ -534,10 +534,12 @@ class Chat extends React.Component<ChatProps, any> {
       </div>
     );
 
+    const addButtonTitle = 'Insert new chat here';
+
     return (
       <>
-        <button className="insert-arrow" onClick={() => this.insertAbove()} type="button">
-          &#10170;
+        <button title={addButtonTitle} className="insert-arrow" onClick={() => this.insertAbove()} type="button">
+          +
         </button>
         <div className="chat-and-result">
           { chunkEditorPart }

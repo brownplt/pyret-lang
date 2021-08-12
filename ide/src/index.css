@@ -17,15 +17,18 @@ and overriding of rules. */
   flex-direction: column-reverse;
 }
 
-.chat-layout-compact .chats {
-  width: 60em;
+.chat-layout-compact .chats,
+.chat-layout-normal .chats {
   max-width: 70%;
   margin: 2em auto;
+  flex-grow: 1;
+}
+
+.chat-layout-compact .chats {
+  width: 60em;
 }
 .chat-layout-normal .chats {
   width: 40em;
-  max-width: 70%;
-  margin: 2em auto;
 }
 
 .chat-layout-compact .chat .CodeMirror,
@@ -145,6 +148,7 @@ and overriding of rules. */
   border-radius: 0.5em;
   background-color: #eee;
   border-bottom-right-radius: 0;
+  border: 1px solid transparent;
   margin: 0.15em 0;
   padding: 0.7em;
   float: right;
@@ -196,8 +200,8 @@ and overriding of rules. */
   height: 0px;
   left: -1.3em;
   bottom: 0.8em;
-  font-size: 4em;
-  opacity: 10%;
+  font-size: 1em;
+  opacity: 50%;
   transition: opacity 0.2s;
   cursor: pointer;
   /* Button style reset */

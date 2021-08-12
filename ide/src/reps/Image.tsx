@@ -36,15 +36,13 @@ export default class ImageWidget extends React.Component<ImageWidgetProps, Image
   render() {
     const { image } = this.props;
     return (
-      <div>
-        <canvas
-          width={image.getWidth()}
-          height={image.getHeight()}
-          ref={(canvas) => {
-            this.canvas = canvas;
-          }}
-        />
-      </div>
+      <canvas
+        width={image.getWidth()}
+        height={image.getHeight()}
+        ref={(canvas) => {
+          this.canvas = canvas;
+        }}
+      />
     );
   }
 }
