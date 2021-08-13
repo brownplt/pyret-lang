@@ -4,7 +4,7 @@ import load-lib as L
 import string-dict as SD
 import runtime-lib as R
 import js-file("../../src/arr/compiler/ts-pathlib") as P
-import render-error-display as RED
+import js-file('../../src/arr/compiler/ts-render-error-display') as RED
 import file("../../src/arr/compiler/compile-lib.arr") as CL
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../src/arr/compiler/compile-structs.arr") as CS
@@ -17,11 +17,11 @@ fun string-to-named-locator(program :: String, name :: String):
     method get-options(self, options): options end,
     method get-module(self): CL.pyret-string(program) end,
     method get-native-modules(self): [list:] end,
-    method get-extra-imports(self): CS.standard-imports end,
+    method get-extra-imports(self): CS.minimal-imports end,
     method get-dependencies(self): CL.get-standard-dependencies(self.get-module(), self.uri()) end,
     method get-globals(self): CS.standard-globals end,
     method uri(self): "file://" + name end,
-    method name(self): name end,
+    method name(self): self.uri() end,
     method set-compiled(self, _, _): nothing end,
     method get-compiled(self, options): CL.arr-file(self.get-module(), self.get-extra-imports(), self.get-options(options)) end,
     method _equals(self, that, rec-eq): rec-eq(self.uri(), that.uri()) end
@@ -82,10 +82,6 @@ fun compile-str(program):
   loc = string-to-locator(program)
   wlist = CL.compile-worklist(CLI.module-finder, loc, our-test-context)
   result = CL.compile-program(wlist, test-compile-options)
-  spy "after compile-str":
-    wlist,
-    result
-  end
   errors = result.loadables.filter(CL.is-error-compilation)
   cases(List) errors:
     | empty =>

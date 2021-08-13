@@ -270,7 +270,7 @@ type DesugarInfo = {
           }
         }
       }
-      const dsVisitor: TJ.Visitor<A.Program | A.Expr | A.Member | A.Bind | A.Ann, any, never> = {
+      const dsVisitor: TJ.Visitor<A.Program | A.Expr | A.Member | A.Bind | A.Ann, any> = {
         // s-module is uniform
         // s-instantiate is uniform
         // s-block is uniform

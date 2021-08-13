@@ -91,16 +91,10 @@ export interface Exports {
   dummyLoc : A.Srcloc,
   compileSrcloc: (context: any, l : A.Srcloc) => J.Expression,
   formatSrcloc: (loc: A.Srcloc, showFile: boolean) => string,
-  visit: <T extends PyretDataValue>(v : Visitor<T>, d : PyretDataValue) => void,
-  map: <
-      T extends PyretDataValue,
-      Ret extends T = T,
-      E = never
-    >(
-      v : Visitor<T, any, E>,
-      d : T,
-      extra?: E
-    ) => Ret,
+  visit: (<T extends PyretDataValue, E = any>(v : Visitor<T, any, E>, d : PyretDataValue, extra: E) => void)
+       & (<T extends PyretDataValue>(v : Visitor<T, any, undefined>, d : PyretDataValue) => void),
+  map: (<T extends PyretDataValue, Ret extends T = T, E = any>(v : Visitor<T, any, E>, d : T, extra: E) => Ret)
+     & (<T extends PyretDataValue, Ret extends T = T>(v : Visitor<T, any, undefined>, d : T) => Ret),
   callMethod: <Name extends string, O extends {dict: {[n in Name]: PMethod<any, (...args: any[]) => any>}}>(obj : O, name: Name, ...args: DropFirst<Parameters<O["dict"][Name]["full_meth"]>>) => ReturnType<O["dict"][Name]["full_meth"]>,
   mapFromStringDict: <T>(s : StringDict<T>) => Map<string, T>,
   mapFromMutableStringDict: <T>(s : MutableStringDict<T>) => Map<string, T>,
@@ -515,13 +509,13 @@ export interface Exports {
      * any nested values whose `$name` fields indicate they overlap with type `T`,
      * and will call any matching visitor methods within the visitor object.
      */
-    function visit<T extends PyretDataValue>(v : Visitor<T>, d : PyretDataValue) {
+    function visit<T extends PyretDataValue, E = any>(v : Visitor<T, any, E>, d : PyretDataValue, extra: E) {
       if(typeof d !== "object" || !("$name" in d)) { throw new Error("Visit failed: " + JSON.stringify(d)); }
-      if(d.$name in v) { v[d.$name](v, d); }
+      if(d.$name in v) { v[d.$name](v, d, extra); }
       else {
         for(const [k, subd] of Object.entries(d.dict)) {
           if(typeof subd === 'object' && "$name" in subd) {
-            visit(v, subd as any);
+            visit(v, subd as any, extra);
           }
         }
       }

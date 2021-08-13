@@ -295,7 +295,7 @@ export interface Exports {
         },
         's-data-field': (visitor, dataField: TJ.Variant<A.Member, 's-data-field'>) => {
           const { l, name, value } = dataField.dict;
-          const ret = A['s-data-field'].app(l, name, map<A.Expr, A.Expr, Scope>(visitor, value, collectMethodName(name)));
+          const ret = A['s-data-field'].app(l, name, map(visitor, value, collectMethodName(name)));
           return ret;
         },
 

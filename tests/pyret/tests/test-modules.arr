@@ -59,15 +59,15 @@ fun make-fresh-module-testing-context():
             compiled.set-now(locuri, {
               get-monotonic-time();
               true;
-              ccp.pyret-to-js-static();
-              ccp.pyret-to-js-runnable();
+              JSP.pyret-to-js-static(ccp);
+              JSP.pyret-to-js-runnable(ccp);
             })
           | else =>
             compiled.set-now(locuri, {
               get-monotonic-time();
               false;
               "";
-              ccp.pyret-to-js-runnable();
+              JSP.pyret-to-js-runnable(ccp);
             })
         end
       | err(_) => ""
