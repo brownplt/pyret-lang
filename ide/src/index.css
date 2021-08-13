@@ -210,7 +210,7 @@ and overriding of rules. */
   left: -1.3em;
   bottom: 0.8em;
   font-size: 1em;
-  opacity: 50%;
+  opacity: 0.3;
   transition: opacity 0.2s;
   cursor: pointer;
   /* Button style reset */
@@ -221,5 +221,5 @@ and overriding of rules. */
   line-height: normal;
 }
 .insert-arrow:hover {
-  opacity: 100%;
+  opacity: 1;
 }
