@@ -59,8 +59,9 @@ export type Exports = {
       let parentBlockLoc: A.Srcloc | null = null;
 
       logger = options.dict.log;
-      // LOG(`In ts-well-formed impl for ${formatSrcloc(ast.dict.l, true)}\n`);
+      LOG(`In ts-well-formed impl for ${formatSrcloc(ast.dict.l, true)}\n`);
 
+      // TODO (manas) move this back to ts-srcloc
       function upTo(l: TJ.Variant<A.Srcloc, 'srcloc'>, l2: TJ.Variant<A.Srcloc, 'srcloc'>): TJ.Variant<A.Srcloc, 'srcloc'> {
         if (l.dict['start-char'] <= l2.dict['end-char']) {
           return S.srcloc.app(
@@ -134,7 +135,9 @@ export type Exports = {
           }
         }
       }
+      // end ts-srcloc
 
+      // TODO (manas) move to ts-compile-structs
       const reactorFields = new Map<string, (l: A.Srcloc) => TJ.Variant<A.Ann, "a-name" | "a-any">>();
       reactorFields.set("last-image", l => A['a-name'].app(l, A['s-type-global'].app("Function")));
       reactorFields.set("on-tick", l => A['a-name'].app(l, A['s-type-global'].app("Function")));

@@ -49,6 +49,7 @@ test-compile-options = CS.make-default-compile-options('./').{
   compile-module: true,
   builtin-js-dirs: [list: "./build/runtime"],
   runtime-builtin-relative-path: some("./"),
+  pipeline: CS.pipeline-ts-anchor([list: "well-formed"]),
 }
 
 our-test-context = CLI.default-test-context.{options: test-compile-options}
@@ -81,6 +82,10 @@ fun compile-str(program):
   loc = string-to-locator(program)
   wlist = CL.compile-worklist(CLI.module-finder, loc, our-test-context)
   result = CL.compile-program(wlist, test-compile-options)
+  spy "after compile-str":
+    wlist,
+    result
+  end
   errors = result.loadables.filter(CL.is-error-compilation)
   cases(List) errors:
     | empty =>
