@@ -9,7 +9,7 @@ import js-file("server") as S
 import file("./cli-module-loader.arr") as CLI
 import file("./compile-structs.arr") as CS
 import file("locators/builtin.arr") as B
-import file("compile-options.arr") as CO
+import js-file("./ts-compile-options") as CO
 
 fun compile(options):
   outfile = cases(Option) options.get("outfile"):

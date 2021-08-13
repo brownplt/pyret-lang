@@ -13,7 +13,7 @@ import file("compile-structs.arr") as CS
 import file("file.arr") as F
 import file("locators/builtin.arr") as B
 import file("server.arr") as S
-import file("compile-options.arr") as CO
+import js-file("./ts-compile-options") as CO
 
 # this value is the limit of number of steps that could be inlined in case body
 DEFAULT-COMPILE_MODE = "normal"

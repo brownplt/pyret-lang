@@ -8,7 +8,7 @@ import file("./ast-util.arr") as AU
 import file("./cli-module-loader.arr") as CLI
 import file("./compile-structs.arr") as CS
 import file("./compile-lib.arr") as CL
-import file("./compile-options.arr") as CO
+import js-file("./ts-compile-options") as CO
 import file("./file.arr") as F
 import file("./js-of-pyret.arr") as JSP
 import file("./locators/builtin.arr") as B
