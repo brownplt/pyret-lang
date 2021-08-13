@@ -4,6 +4,7 @@ import type * as T from './ts-type-structs';
 import { Option, List, StringDict, MutableStringDict, PFunction, PMethod } from './ts-impl-types';
 import type * as ED from './error-display'
 import type { Variant } from './ts-codegen-helpers';
+import type { CompiledCodePrinter } from './ts-js-of-pyret';
 
 export type URI = string;
 
@@ -134,12 +135,6 @@ export type ExtraImport =
         'types': List<string>
       }
   }
-
-export type CompiledCodePrinter = {
-  dict: {
-    'pyret-to-js-runnable': PMethod<CompiledCodePrinter, () => string>
-  }
-}
 
 export type Loadable = 
   | {

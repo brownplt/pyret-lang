@@ -71,7 +71,7 @@ fun pretty-result(result, show-ast):
     end
   end
   if A.is-Program(result): print-prog(result)
-  else if JS.is-CompiledCodePrinter(result): result.pyret-to-js-pretty()
+  else if JS.is-CompiledCodePrinter(result): JS.pyret-to-js-pretty(result)
   else if CS.is-NameResolution(result): print-prog(result.ast)
   else if CS.is-ScopeResolution(result): print-prog(result.ast)
   else if CS.is-CompileResult(result):

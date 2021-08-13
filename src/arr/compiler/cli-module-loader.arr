@@ -451,8 +451,8 @@ fun set-loadable(options, locator, loadable, max-dep-times) block:
           fs = F.output-file(save-static-path, false)
           fr = F.output-file(save-code-path, false)
 
-          fs.display(ccp.pyret-to-js-static())
-          fr.display(ccp.pyret-to-js-runnable())
+          fs.display(JSP.pyret-to-js-static(ccp))
+          fr.display(JSP.pyret-to-js-runnable(ccp))
         end
       end
 

@@ -691,7 +691,7 @@ type ResolveScopeExports = {
               switch(rp.$name) {
                 case 'ok': {
                   return Property(callMethod(w.dict.locator, 'uri'),
-                    Literal(callMethod(rp.dict.code, 'pyret-to-js-runnable')));
+                    Literal(JSP['pyret-to-js-runnable'].app(rp.dict.code)));
                 }
                 case 'err': {
                   allCompileProblems.push(...listToArray(rp.dict.problems));

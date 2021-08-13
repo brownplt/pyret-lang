@@ -1,8 +1,8 @@
-import { PFunction, PTuple } from "./ts-impl-types";
+import type { PFunction, PTuple } from "./ts-impl-types";
 import type * as TCH from './ts-codegen-helpers';
-import * as A from "./ts-ast";
-import * as CS from "./ts-compile-structs";
-import { CompileOptions } from "./ts-compiler-lib-impl";
+import type * as A from "./ts-ast";
+import type * as CS from "./ts-compile-structs";
+import type { CompileOptions } from "./ts-compiler-lib-impl";
 
 ///////////////////////////// OLD Types ///////////////////////////
 export type CCPDict = {
@@ -60,5 +60,7 @@ dict: {values: {dict: {
 'make-compiled-pyret':
   PFunction<(programAst: A.Program, uri: string, env: CS.CompileEnvironment, postEnv: CS.ComputedEnvironment, provides: CS.Provides, options: CompileOptions) =>
   PTuple<[CS.Provides, CS.CompileResult<CompiledCodePrinter>]>>,
+
+'pyret-to-js-runnable': PFunction<(ccp : CompiledCodePrinter) => string>,
 
 }}}}

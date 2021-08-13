@@ -30,81 +30,53 @@ end
 
 # TODO(joe): add methods for printing to module vs static information
 data CompiledCodePrinter:
-  | ccp-dict(dict :: CCPDict) with:
-    method pyret-to-js-static(self) -> String:
-      "{\n"
-        + "\"provides\": " + self.dict.provides + ",\n"
-        + "\"requires\": " + self.dict.requires + ",\n"
-        + "\"nativeRequires\": " + self.dict.nativeRequires + ",\n"
-        + "\"theMap\": " + self.dict.theMap + "\n"
-      + "}"
-    end,
-    method print-js-static(self, printer) block:
-      printer(self.pyret-to-js-static())
-    end,
-    method pyret-to-js-pretty(self) -> PP.PPrintDoc:
-      obj([list: 
-        field("provides", PP.str(self.dict.provides)),
-        field("requires", PP.str(self.dict.requires)),
-        field("nativeRequires", PP.str(self.dict.nativeRequires)),
-        field("theModule", PP.str(self.dict.theModule)),
-        field("theMap", PP.str(self.dict.theMap))
-      ])
-    end,
-    method pyret-to-js-runnable(self) -> String:
-      self.dict.theModule
-    end,
-    method print-js-runnable(self, printer):
-      printer(self.dict.theModule)
-    end,
-    method print-js-module(self, printer):
-      printer(self.dict.theModule)
-    end
-  | ccp-string(compiled :: String) with:
-    method pyret-to-js-pretty(self) -> PP.PPrintDoc:
-      PP.str(self.compiled)
-    end,
-    method pyret-to-js-runnable(self) -> String:
-      self.compiled
-    end,
-    method print-js-runnable(self, printer):
-      printer(self.compiled)
-    end
-  | ccp-two-files(static-path :: String, code-path :: String) with:
-    method pyret-to-js-static(self) -> String:
-      F.file-to-string(self.static-path)
-    end,
-    method pyret-to-js-pretty(self, width) -> String:
-      raise("Cannot generate pretty JS from code string")
-    end,
-    method print-js-static(self, printer):
-      printer(F.file-to-string(self.static-path))
-    end,
-    method print-js-runnable(self, printer):
-      printer(F.file-to-string(self.code-path))
-    end,
-    method pyret-to-js-runnable(self) -> String:
-      F.file-to-string(self.code-path)
-    end,
-
-  | ccp-file(path :: String) with:
-    method pyret-to-js-pretty(self, width) -> String:
-      raise("Cannot generate pretty JS from code string")
-    end,
-    method pyret-to-js-runnable(self) -> String block:
-      F.file-to-string(self.path)
-    end,
-    method print-js-runnable(self, printer):
-      printer(self.pyret-to-js-runnable())
-    end
+  | ccp-dict(dict :: CCPDict)
+  | ccp-string(compiled :: String)
+  | ccp-two-files(static-path :: String, code-path :: String)
+  | ccp-file(path :: String)
 end
 
-fun println(s) block:
-  print(s + "\n")
+fun pyret-to-js-static(ccp :: CompiledCodePrinter) -> String:
+  cases(CompiledCodePrinter) ccp:
+    | ccp-dict(dict) =>
+      "{\n"
+        + "\"provides\": " + dict.provides + ",\n"
+        + "\"requires\": " + dict.requires + ",\n"
+        + "\"nativeRequires\": " + dict.nativeRequires + ",\n"
+        + "\"theMap\": " + dict.theMap + "\n"
+      + "}"
+    | ccp-string(compiled) => raise("pyret-to-js-static not implemented for ccp-string")
+    | ccp-two-files(static-path, code-path) => F.file-to-string(static-path)
+    | ccp-file(path) => raise("pyret-to-js-static not implemented for ccp-file")
+  end
+end
+
+fun pyret-to-js-runnable(ccp :: CompiledCodePrinter) -> String:
+  cases(CompiledCodePrinter) ccp:
+    | ccp-dict(dict) => dict.theModule
+    | ccp-string(compiled) => compiled
+    | ccp-two-files(static-path, code-path) => F.file-to-string(code-path)
+    | ccp-file(path) => F.file-to-string(path)
+  end
+end
+ 
+fun pyret-to-js-pretty(ccp :: CompiledCodePrinter) -> PP.PPrintDoc:
+  cases(CompiledCodePrinter) ccp:
+    | ccp-dict(dict) =>
+      obj([list: 
+        field("provides", PP.str(dict.provides)),
+        field("requires", PP.str(dict.requires)),
+        field("nativeRequires", PP.str(dict.nativeRequires)),
+        field("theModule", PP.str(dict.theModule)),
+        field("theMap", PP.str(dict.theMap))
+      ])
+    | ccp-string(compiled) => PP.str(compiled)
+    | ccp-two-files(_, _) => raise("Cannot generate pretty JS from code string")
+    | ccp-file(_) => raise("Cannot generate pretty JS from code string")
+  end
 end
 
 fun make-compiled-pyret(program-ast, uri, env, post-env, provides, options) -> { C.Provides; C.CompileResult<CompiledCodePrinter>} block:
-#  each(println, program-ast.tosource().pretty(80))
   compiled = TD.compile-program(program-ast, uri, env, post-env, provides, options)
   {provides; C.ok(ccp-dict(compiled))}
 end
