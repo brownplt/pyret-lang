@@ -25,7 +25,8 @@ and overriding of rules. */
 }
 
 .chat-layout-compact .chats {
-  width: 60em;
+  width: 70em;
+  min-width: 40em;
 }
 .chat-layout-normal .chats {
   width: 40em;
@@ -53,7 +54,7 @@ and overriding of rules. */
 .chat-layout-compact .chat .CodeMirror {
   border-radius: 0.3em !important;
   border-bottom-left-radius: 0 !important;
-  padding: 0.1em;
+  width: 100%;
 }
 
 .chat-layout-compact .chat .CodeMirror-lines,
@@ -88,7 +89,10 @@ and overriding of rules. */
 
 .chat-layout-compact .chat-result {
   position: relative;
-  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  max-width: 30%;
 }
 .chat-layout-normal .chat-result {
   position: relative;
@@ -96,8 +100,13 @@ and overriding of rules. */
   flex-direction: column;
   align-items: flex-end;
   margin-bottom: 0.5em;
+  max-width: fit-content;
 }
 
+.chat-layout-compact .chat-editor-wrapper {
+  min-width: 30em;
+  max-width: 70%;
+}
 .chat-layout-normal .chat-editor-wrapper {
   width: 100%;
 }
