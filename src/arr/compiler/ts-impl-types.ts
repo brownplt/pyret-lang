@@ -1,3 +1,5 @@
+import type { WriteStream } from "fs"
+
 export type EqualityResult = 
 | { $name: "Equal", dict: {} }
 | {
@@ -106,8 +108,8 @@ export type Runtime = {
   makeString: (s: string) => string,
   checkString: (val: any) => void,
   unwrap: (val: any) => any,
-  print: <A>(val: A) => A,
-  'print-error': <A>(val: A) => A,
+  stdout: WriteStream['write'],
+  stderr: WriteStream['write'],
   nothing: unknown,
   ffi: {
     makeList: <T>(ts: T[]) => List<T>,

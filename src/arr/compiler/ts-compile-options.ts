@@ -84,25 +84,25 @@ type BExports = {
       'log': runtime.makeFunction(function(s: string, toClear: Option<number>) {
         switch (toClear.$name) {
           case "none": {
-            runtime.print(s);
+            runtime.stdout(s);
             break;
           }
           case "some": {
-            runtime.print("\r");
-            runtime.print(" ".repeat(toClear.dict.value));
-            runtime.print("\r");
-            runtime.print(s);
+            runtime.stdout("\r");
+            runtime.stdout(" ".repeat(toClear.dict.value));
+            runtime.stdout("\r");
+            runtime.stdout(s);
             break;
           }
         }
       }),
-      'log-error': runtime.makeFunction(runtime['print-error']),
+      'log-error': runtime.makeFunction((v) => { runtime.stderr(v); return v; }),
       'module-eval': true,
       'on-compile': runtime.makeMethod(((_) => (_, loadable, __) => loadable), ((_, __, loadable, ___) => loadable)),
       'pipeline': CS['pipeline-anchor'],
       'proper-tail-calls': true,
       'recompile-builtins': true,
-      'require-config': undefined,
+      'require-config': "MUST SET THIS VALUE",
       'runtime-annotations': true,
       'runtime-builtin-relative-path': runtime.ffi.makeNone(),
       'runtime-path': "../builtin/src/runtime",
@@ -110,9 +110,7 @@ type BExports = {
       'session-filter': runtime.ffi.makeNone(),
       'session': "empty",
       'should-profile': runtime.makeMethod(((_) => (_) => false), ((_ , __) => false)),
-      'source': "",
       'standalone-file': "src/js/base/handalone.js",
-      'tail-calls' : true,
       'this-pyret-dir': ".",
       'type-check': false,
       'user-annotations': true,
@@ -146,14 +144,14 @@ type BExports = {
         checks = "all";
       }
 
-      let builtinJsDirs: string[] = [];
+      let builtinJsDirs: string[] = listToArray(compileOpts['builtin-js-dirs']);
       if (dict.has("builtin-js-dir")) {
         const dir = dict.get("builtin-js-dir");
         if (typeof(dir) === "string") {
           builtinJsDirs.push(dir);
         }
         else {
-          builtinJsDirs = listToArray(dir);
+          builtinJsDirs.push(...listToArray(dir as List<string>));
         }
       }
 
@@ -192,7 +190,7 @@ type BExports = {
           throw new InternalCompilerError("Unknown compile mode: " + dict.get("compile-mode"));
       }
 
-      compileOpts["add-proifiling"] = dict.has("profile");
+      compileOpts["add-profiling"] = dict.has("profile");
       compileOpts["allow-shadowed"] = dict.has("allow-shadow");
       compileOpts["base-dir"] = dict.get('base-dir') ?? compileOpts['base-dir'];
       compileOpts["build-runnable"] = dict.get('build-runnable') ?? "none";
@@ -202,6 +200,7 @@ type BExports = {
       compileOpts["collect-all"] = dict.get('collect-all') ?? false;
       compileOpts["collect-times"] = dict.get('collect-times') ?? false;
       compileOpts["compile-mode"] = compileMode;
+      compileOpts["compiled-cache"] = dict.get('compiled-dir') ?? "compiled";
       compileOpts["compiled-dir"] = dict.get('compiled-dir') ?? "compiled";
       compileOpts["compiled-read-only"] = dict.get('compiled-read-only-dir') ?? runtime.ffi.makeList([]);
       compileOpts["deps-file"] = dict.get('deps-file') ?? compileOpts['deps-file'];
@@ -214,16 +213,15 @@ type BExports = {
       compileOpts["log"] = dict.get('log') ?? compileOpts.log;
       compileOpts["module-eval"] = !dict.has("no-module-eval");
       compileOpts["pipeline"] = pipeline;
+      compileOpts["proper-tail-calls"] = !dict.has("improper-tail-calls");
       compileOpts["recompile-builtins"] = dict.get('recompile-builtins') ?? true;
       compileOpts["require-config"] = dict.get('require-config') ?? P.resolve.app(P.join.app(thisPyretDir, "config.json"));
       compileOpts["runtime-annotations"] = !dict.has("no-runtime-annotations");
       compileOpts["runtime-builtin-relative-path"] = makeOpt(dict, "runtime-builtin-relative-path")
       compileOpts["session-delete"] = dict.has("session-delete");
       compileOpts["session-filter"] = makeOpt(dict, "session-filter");
-      compileOpts["session"] = dict.get('session') ?? runtime.ffi.makeList([]);
-      compileOpts["source"] = dict.get('program-source') ?? "";
+      compileOpts["session"] = dict.get('session') ?? "empty";
       compileOpts["standalone-file"] = dict.get('standalone-file') ?? compileOpts['standalone-file'];
-      compileOpts["tail-calls"] = !dict.has("improper-tail-calls");
       compileOpts["type-check"] = dict.get('type-check') ?? false;
       compileOpts["user-annotations"] = !dict.has('no-user-annotations');
 
