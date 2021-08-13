@@ -633,7 +633,7 @@ module.exports = function(webpackEnv) {
           formatter: isEnvProduction ? typescriptFormatter : undefined,
         }),
       new  CopyPlugin([
-        { from: '../build/worker/pyret.jarr', to: './' },
+        { from: '../build/worker/pyret.js', to: './' },
       ])
     ].filter(Boolean),
     // Some libraries import Node modules but don't use them in the browser.

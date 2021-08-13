@@ -10,4 +10,4 @@ export const uncompiled = path.join(root, 'uncompiled');
 export const compiled = path.join(root, 'compiled');
 export const compiledBuiltin = path.join(compiled, 'builtin');
 export const program = path.join(compileBase, compileProgram);
-export const pyretJarr = 'pyret.jarr';
+export const pyretJarr = 'pyret.js';
