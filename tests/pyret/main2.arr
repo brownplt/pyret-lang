@@ -60,3 +60,4 @@ import file("./tests/modules/test-provide-as-simple.arr") as _
 import file("./tests/modules/test-provide-type-as-simple.arr") as _
 
 import file("./tests/use/test-simple-use.arr") as _
+import file("./tests/use/test-essentials.arr") as _
