@@ -5622,6 +5622,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'has-field': makeFunction(hasField, "has-field"),
 
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
+      'raw-array-to-list': makeFunction(raw_array_to_list, "raw-array-to-list"),
       'raw-list-map': makeFunction(raw_list_map, "raw-list-map"),
       'raw-list-filter': makeFunction(raw_list_filter, "raw-list-filter"),
       'raw-list-fold': makeFunction(raw_list_fold, "raw-list-fold"),
@@ -5897,6 +5898,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     //Export the runtime
     //String keys should be used to prevent renaming
     var thisRuntime = {
+      'builtins': builtins,
       'run': run,
       'runThunk': runThunk,
       'execThunk': execThunk,
@@ -6128,6 +6130,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'string_indexOf': string_indexOf,
 
       'raw_array_of': raw_array_of,
+      'raw_array_build': raw_array_build,
       'raw_array_get': raw_array_get,
       'raw_array_obj_destructure': raw_array_obj_destructure,
       'raw_array_set': raw_array_set,

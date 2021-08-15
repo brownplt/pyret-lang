@@ -3,7 +3,9 @@
 */
 program: prelude block
 
-prelude: (provide-stmt|import-stmt)*
+prelude: [use-stmt] (provide-stmt|import-stmt)*
+
+use-stmt: USE NAME import-source
 
 import-stmt: INCLUDE import-source
 import-stmt: INCLUDE FROM module-ref COLON [include-spec (COMMA include-spec)* [COMMA]] END

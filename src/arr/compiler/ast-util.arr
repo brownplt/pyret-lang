@@ -35,23 +35,23 @@ fun ok-last(stmt):
   )
 end
 
-fun checkers(l): A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "current-checker"), [list: ]) end
+fun checkers(l): A.s-app(l, A.s-dot(l, A.s-prim-val(l, "builtins"), "current-checker"), [list: ]) end
 
 fun append-nothing-if-necessary(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
-    | s-program(l1, _provide, _provide-types, provides, imports, body) =>
+    | s-program(l1, _use, _provide, _provide-types, provides, imports, body) =>
       cases(A.Expr) body:
         | s-block(l2, stmts) =>
           cases(List) stmts:
             | empty =>
-              A.s-program(l1, _provide, _provide-types, provides, imports,
-                A.s-block(l2, [list: A.s-id(l2, A.s-name(l2, "nothing"))]))
+              A.s-program(l1, _use, _provide, _provide-types, provides, imports,
+                A.s-block(l2, [list: A.s-prim-val(l2, "nothing")]))
             | link(_, _) =>
               last-stmt = stmts.last()
               if ok-last(last-stmt): prog
               else:
-                A.s-program(l1, _provide, _provide-types, provides, imports,
-                  A.s-block(l2, stmts + [list: A.s-id(A.dummy-loc, A.s-name(l2, "nothing"))]))
+                A.s-program(l1, _use, _provide, _provide-types, provides, imports,
+                  A.s-block(l2, stmts + [list: A.s-prim-val(A.dummy-loc, "nothing")]))
               end
           end
         | else => prog
@@ -62,7 +62,7 @@ end
 fun wrap-if-needed(exp :: A.Expr) -> A.Expr:
   l = exp.l
   if ok-last(exp) and not(A.is-s-spy-block(exp)):
-    A.s-app(l, A.s-dot(l, A.s-id(l, A.s-name(l, "builtins")), "trace-value"),
+    A.s-app(l, A.s-dot(l, A.s-prim-val(l, "builtins"), "trace-value"),
       [list: A.s-srcloc(l, l), exp])
   else: exp
   end
@@ -70,12 +70,12 @@ end
 
 fun wrap-toplevels(prog :: A.Program) -> A.Program:
   cases(A.Program) prog:
-    | s-program(l1, _prov, _prov-types, provides, imps, body) =>
+    | s-program(l1, _use, _prov, _prov-types, provides, imps, body) =>
       new-body = cases(A.Expr) body:
         | s-block(l2, stmts) => A.s-block(l2, map(wrap-if-needed, stmts))
         | else => wrap-if-needed(body)
       end
-      A.s-program(l1, _prov, _prov-types, provides, imps, new-body)
+      A.s-program(l1, _use, _prov, _prov-types, provides, imps, new-body)
   end
 end
 
@@ -174,7 +174,8 @@ fun default-env-map-visitor<a, c>(
   A.default-map-visitor.{
     env: initial-env,
     type-env: initial-type-env,
-    method s-program(self, l, _provide, _provide-types, provides, imports, body):
+    method s-program(self, l, _use, _provide, _provide-types, provides, imports, body):
+      visit-use = self.option(_use)
       visit-provide = _provide.visit(self)
       visit-provide-types = _provide-types.visit(self)
       visit-imports = for map(i from imports):
@@ -186,7 +187,7 @@ fun default-env-map-visitor<a, c>(
       end
       visit-body = body.visit(self.{env: imported-envs.val-env, type-env: imported-envs.type-env })
       # MARK(joe/ben)
-      A.s-program(l, visit-provide, visit-provide-types, provides, visit-imports, visit-body)
+      A.s-program(l, visit-use, visit-provide, visit-provide-types, provides, visit-imports, visit-body)
     end,
     method s-type-let-expr(self, l, binds, body, blocky):
       new-envs = { val-env: self.env, type-env: self.type-env }
@@ -289,8 +290,8 @@ fun default-env-iter-visitor<a, c>(
     env: initial-env,
     type-env: initial-type-env,
 
-    method s-program(self, l, _provide, _provide-types, provides, imports, body):
-      if _provide.visit(self) and _provide-types.visit(self):
+    method s-program(self, l, _use, _provide, _provide-types, provides, imports, body):
+      if self.option.visit(_use) and _provide.visit(self) and _provide-types.visit(self):
         new-envs = { val-env: self.env, type-env: self.type-env }
         imported-envs = for fold(acc from new-envs, i from imports):
           bind-handlers.s-header(i, acc.val-env, acc.type-env)
@@ -912,41 +913,49 @@ end
 
 fun wrap-extra-imports(p :: A.Program, env :: CS.ExtraImports) -> A.Program:
   expr = p.block
-  cases(CS.ExtraImports) env:
-    | extra-imports(imports) =>
-      #|
-         NOTE(Ben): I've moved the existing p.imports *after* these generated imports,
-         so that any user-requested imports have to coexist in the global environment,
-         rather than globals having to coexist in the user's environment.
-         Additionally, this allows for better srcloc reporting: suppose the user's program says
-           `import some from option`
-         which is already existing in the global scope.  The global import will have
-         srcloc=A.dummy-loc, but the deliberate import will have srcloc within the file,
-         which will ensure the error message refers to that explicit location.
-         (I can't change how `resolve-scope:add-value-name` or `resolve-scope:make-import-atom-for`
-         handle this case, because we haven't finished resolving names to know whether the name
-         collision is acceptable or not.)
-      |#
-      l = A.dummy-loc
-      full-imports = for fold(lst from empty, i from imports):
-          name-to-use = if i.as-name == "_": A.global-names.make-atom("$extra-import") else: A.s-name(l, i.as-name) end
-          ast-dep = cases(CS.Dependency) i.dependency:
-            | builtin(name) => A.s-const-import(p.l, name)
-            | dependency(protocol, args) => A.s-special-import(p.l, protocol, args)
-          end
-          import-line = A.s-import(p.l, ast-dep, name-to-use)
-          include-line = 
-            A.s-include-from(p.l, [list: name-to-use],
-              i.values.map(lam(v):
-                A.s-include-name(l, A.s-module-ref(l, [list: A.s-name(l, v)], none))
-              end) +
-              i.types.map(lam(t):
-                A.s-include-type(l, A.s-module-ref(l, [list: A.s-name(l, t)], none))
-              end))
-          link(import-line, link(include-line, empty)) + lst
-        end + p.imports
-      A.s-program(p.l, p._provide, p.provided-types, p.provides, full-imports, p.block)
-  end
+  full-imports = cases(Option) p._use:
+    | some(_use) =>
+      link(A.s-include(A.dummy-loc, _use.mod), p.imports)
+    | none =>
+      # TODO(Joe/Ben Dec 2020) in the future we will desugar this case into
+      # `s-include(p.l, default-namespace)` instead of relying on ExtraImports,
+      # and let modules decide for themselves if they want something else
+      cases(CS.ExtraImports) env:
+        | extra-imports(imports) =>
+          #|
+            NOTE(Ben): I've moved the existing p.imports *after* these generated imports,
+            so that any user-requested imports have to coexist in the global environment,
+            rather than globals having to coexist in the user's environment.
+            Additionally, this allows for better srcloc reporting: suppose the user's program says
+              `import some from option`
+            which is already existing in the global scope.  The global import will have
+            srcloc=A.dummy-loc, but the deliberate import will have srcloc within the file,
+            which will ensure the error message refers to that explicit location.
+            (I can't change how `resolve-scope:add-value-name` or `resolve-scope:make-import-atom-for`
+            handle this case, because we haven't finished resolving names to know whether the name
+            collision is acceptable or not.)
+          |#
+          l = A.dummy-loc
+          for fold(lst from empty, i from imports):
+              name-to-use = if i.as-name == "_": A.global-names.make-atom("$extra-import") else: A.s-name(l, i.as-name) end
+              ast-dep = cases(CS.Dependency) i.dependency:
+                | builtin(name) => A.s-const-import(p.l, name)
+                | dependency(protocol, args) => A.s-special-import(p.l, protocol, args)
+              end
+              import-line = A.s-import(p.l, ast-dep, name-to-use)
+              include-line = 
+                A.s-include-from(p.l, [list: name-to-use],
+                  i.values.map(lam(v):
+                    A.s-include-name(l, A.s-module-ref(l, [list: A.s-name(l, v)], none))
+                  end) +
+                  i.types.map(lam(t):
+                    A.s-include-type(l, A.s-module-ref(l, [list: A.s-name(l, t)], none))
+                  end))
+              link(import-line, link(include-line, empty)) + lst
+            end + p.imports
+        end
+    end
+  A.s-program(p.l, p._use, p._provide, p.provided-types, p.provides, full-imports, p.block)
 end
 
 fun import-to-dep(imp):
@@ -1162,7 +1171,7 @@ fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env ::
     end
   end
   cases(A.Program) resolved.ast:
-    | s-program(_, _, _, provide-blocks, _, _) =>
+    | s-program(_, _, _, _, provide-blocks, _, _) =>
       cases(A.ProvideBlock) provide-blocks.first block:
           # NOTE(joe): assume the provide block is resolved
         | s-provide-block(_, _, provide-specs) =>
@@ -1455,7 +1464,7 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
   end
   c = canonicalize-names(_, uri, transformer)
   cases(A.Program) typed.ast block:
-    | s-program(_, _, _, provide-blocks, _, _) =>
+    | s-program(_, _, _, _, provide-blocks, _, _) =>
       cases(A.ProvideBlock) provide-blocks.first block:
         | s-provide-block(_, _, provide-specs) =>
 
