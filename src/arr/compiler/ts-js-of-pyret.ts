@@ -1,6 +1,5 @@
 import type { List, PFunction, PObject, PTuple, Runtime } from "./ts-impl-types";
 import type * as TCH from './ts-codegen-helpers';
-import type * as TPP from './ts-pprint';
 import type * as TDC from './ts-direct-codegen';
 import type * as A from "./ts-ast";
 import type * as TCS from "./ts-compile-structs";
@@ -38,7 +37,7 @@ dict: {values: {dict: {
 
 'pyret-to-js-static': PFunction<(ccp : CompiledCodePrinter) => string>,
 
-'pyret-to-js-pretty': PFunction<(ccp : CompiledCodePrinter) => TPP.PPrintDoc>,
+'pyret-to-js-pretty': PFunction<(ccp : CompiledCodePrinter) => string>,
 
 'ccp-has-static-info': PFunction<(ccp : CompiledCodePrinter) => boolean>,
 
@@ -52,7 +51,6 @@ dict: {values: {dict: {
   requires: [
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers'] },
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-direct-codegen'] },
-    { 'import-type': 'builtin', name: 'pprint' },
     { 'import-type': 'dependency', protocol: 'file', args: ['compile-structs.arr'] },
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-filelib'] },
   ],
@@ -71,9 +69,8 @@ dict: {values: {dict: {
       'ccp-has-static-info': 'tany',
     }
   },
-  theModule: function(runtime: Runtime, _, __, TCH: TCH.Exports, DCin: TDC.Exports, PPin: TPP.Exports, CSin: TCS.Exports, Fin: TF.Exports) {
+  theModule: function(runtime: Runtime, _, __, TCH: TCH.Exports, DCin: TDC.Exports, CSin: TCS.Exports, Fin: TF.Exports) {
     const DC = DCin.dict.values.dict;
-    const PP = PPin.dict.values.dict;
     const CS = CSin.dict.values.dict;
     const F = Fin.dict.values.dict;
 
@@ -108,22 +105,6 @@ dict: {values: {dict: {
         $name: 'ccp-string',
         compiled,
       };
-    }
-
-    const INDENT = 2;
-    function obj(fields: TPP.PPrintDoc[]): TPP.PPrintDoc {
-      return PP.parens.app(PP["surround-separate"].app(INDENT, 1, PP.str.app("{}"),
-        PP.lbrace, PP.commabreak, PP.rbrace, runtime.ffi.makeList(fields)));
-    }
-    function concat(docs: TPP.PPrintDoc[]): TPP.PPrintDoc {
-      let doc = docs[0];
-      for (let next of docs) {
-        doc = PP.concat.app(doc, next);
-      }
-      return doc;
-    }
-    function field(name: string, val: TPP.PPrintDoc): TPP.PPrintDoc {
-      return PP.nest.app(INDENT, PP.dquote.app(concat([PP.str.app(name), PP.str.app(": "), val])));
     }
 
 
@@ -163,16 +144,18 @@ dict: {values: {dict: {
       }
     }
 
-    function pyretToJsPretty(ccp: CompiledCodePrinter): TPP.PPrintDoc {
+    function pyretToJsPretty(ccp: CompiledCodePrinter): string {
       switch(ccp.$name) {
-        case 'ccp-dict': return obj([
-          field("provides", PP.str.app(ccp.dict.provides)),
-          field("requires", PP.str.app(ccp.dict.requires)),
-          field("nativeRequires", PP.str.app(ccp.dict.nativeRequires)),
-          field("theModule", PP.str.app(ccp.dict.theModule)),
-          field("theMap", PP.str.app(ccp.dict.theMap)),
-        ]);
-        case 'ccp-string': return PP.str.app(ccp.compiled);
+        case 'ccp-dict': return [
+          "{",
+          `  "provides": ${ccp.dict.provides},`,
+          `  "requires": ${ccp.dict.requires},`,
+          `  "nativeRequires": ${ccp.dict.nativeRequires},`,
+          `  "theModule": ${ccp.dict.theModule}`,
+          `  "theMap": ${ccp.dict.theMap}`,
+          "}"
+        ].join("\n");;
+        case 'ccp-string': return ccp.compiled;
         case 'ccp-file':
         case 'ccp-two-files': throw new TCH.InternalCompilerError(`cannot generate pretty JS for ${ccp.$name}`);
         default: throw new TCH.ExhaustiveSwitchError(ccp);
