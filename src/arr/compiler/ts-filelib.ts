@@ -1,3 +1,65 @@
+import { List, PFunction, PObject, Runtime } from "./ts-impl-types";
+import type {
+  readFile,
+  open,
+  writeFile,
+  fsync,
+  access,
+  lstat,
+  constants,
+  realpath,
+  close,
+  mkdir,
+  readdir,
+  symlink,
+} from 'fs';
+
+type FS = {
+  readFile: typeof readFile,
+  open: typeof open,
+  writeFile: typeof writeFile,
+  fsync: typeof fsync,
+  access: typeof access,
+  lstat: typeof lstat,
+  constants: typeof constants,
+  realpath: typeof realpath,
+  close: typeof close,
+  mkdir: typeof mkdir,
+  readdir: typeof readdir,
+  symlink: typeof symlink,
+};
+
+export type InputFile = {val: {
+  name: string,
+  fd: number | false,
+}};
+export type OutputFile = {val: {
+  name: string,
+  fd: number | false,
+}};
+export type Exports = {
+  dict: {
+    values: {
+      dict: {
+        'open-input-file': PFunction<(filename: string) => InputFile>,
+        'open-output-file': PFunction<(filename: string, append: boolean) => OutputFile>,
+        'read-file-path': PFunction<(file: string) => string>,
+        'read-file': PFunction<(file: InputFile) => string>,
+        'display': PFunction<(file: OutputFile, val: any) => Runtime['nothing']>,
+        'flush-output-file': PFunction<(file: OutputFile) => Runtime['nothing']>,
+        'mtimes': PFunction<(path: string) => PObject<{mtime: number, atime: number, ctime: number}>>,
+        'file-times': PFunction<(file: InputFile) => PObject<{mtime: number, atime: number, ctime: number}>>,
+        'real-path': PFunction<(path: string) => string>,
+        'exists': PFunction<(path: string) => boolean>,
+        'close-output-file': PFunction<(file: OutputFile) => Runtime['nothing']>,
+        'close-input-file': PFunction<(file: InputFile) => Runtime['nothing']>,
+        'create-dir': PFunction<(directory: string) => boolean>,
+        'list-files': PFunction<(directory: string) => List<string>>,
+        'symlink': PFunction<(target: string, path: string, fileOrDir: symlink.Type) => boolean>,
+      }
+    }
+  }
+}
 ({
   requires: [],
   provides: {
@@ -19,20 +81,20 @@
     }
   },
   nativeRequires: ["fs"],
-  theModule: function(RUNTIME, NAMESPACE, uri, fs) {
-    function InputFile(name, fd) {
+  theModule: function(RUNTIME: Runtime, NAMESPACE, uri, fs: FS) {
+    function InputFile(name: string, fd: number) {
       this.name = name;
       this.fd = fd;
     }
 
-    function OutputFile(name, fd) {
+    function OutputFile(name: string, fd: number) {
       this.name = name;
       this.fd = fd;
     }
 
     // Use ASYNC file operations with Pyret
     // HowTo: https://www.pyret.org/docs/latest/s_running.html#%28part._.Asynchronous_.J.S_and_.Pyret%29
-    var vals = {
+    const vals: Exports['dict']['values']['dict'] = {
       "open-input-file": RUNTIME.makeFunction(function(filename) {
           RUNTIME.ffi.checkArity(1, arguments, "open-input-file", false);
           RUNTIME.checkString(filename);
@@ -98,7 +160,7 @@
                 fs.writeFile(v.name, s, {
                   encoding: 'utf8', 
                   flag: 'a+'
-                }, function(err, bytesWritten, buffer) {
+                }, function() {
                   // NOTE(alex): ignore errors for now
                   restarter.resume(NAMESPACE.get('nothing'));
                 });
@@ -118,8 +180,9 @@
           var v = file.val;
           if(v instanceof OutputFile) {
             if (v.fd) {
+              const fd = v.fd;
               return RUNTIME.pauseStack(function(restarter) {
-                fs.fsync(v.fd, function(err) {
+                fs.fsync(fd, function(err) {
                   // NOTE(alex): ignore errors for now
                   restarter.resume(NAMESPACE.get('nothing'));
                 });
@@ -136,8 +199,8 @@
           RUNTIME.ffi.checkArity(1, arguments, "mtimes", false);
           RUNTIME.checkString(path);
           return RUNTIME.pauseStack(function(restarter) {
-            fs.exists(path, function(exists) {
-              if (!exists) {
+            fs.access(path, fs.constants.F_OK, function(err) {
+              if (err) {
                 restarter.error(
                   RUNTIME.ffi.makeMessageException("File " + path + " did not exist when getting file-times"));
               }
@@ -152,7 +215,7 @@
             })
           });
           
-        }, "file-times"),
+        }, "mtimes"),
       "file-times": RUNTIME.makeFunction(function(file) {
           RUNTIME.ffi.checkArity(1, arguments, "file-times", false);
           RUNTIME.checkOpaque(file);
@@ -161,8 +224,8 @@
             RUNTIME.ffi.throwMessageException("Expected a file, but got something else");
           }
           return RUNTIME.pauseStack(function(restarter) {
-            fs.exists(v.name, function(exists) {
-              if (!exists) {
+            fs.access(v.name, fs.constants.F_OK, function(err) {
+              if (err) {
                 restarter.error(
                   RUNTIME.ffi.makeMessageException("File " + v.name + " did not exist when getting file-times"));
               }
@@ -202,8 +265,8 @@
           RUNTIME.checkString(path);
           var s = RUNTIME.unwrap(path);
           return RUNTIME.pauseStack(function(restarter) {
-            fs.exists(s, function(exists) {
-              restarter.resume(RUNTIME.makeBoolean(exists));
+            fs.access(s, fs.constants.F_OK, function(err) {
+              restarter.resume(RUNTIME.makeBoolean(!err));
             });
           });
         }, "exists"),
@@ -213,8 +276,9 @@
           var v = file.val;
           if(v instanceof OutputFile) {
             if (v.fd) {
+              const fd = v.fd;
               return RUNTIME.pauseStack(function(restarter) {
-                fs.close(v.fd, function(err) {
+                fs.close(fd, function(err) {
                   // NOTE(alex): ignore errors for now
                   v.fd = false;
                   restarter.resume(NAMESPACE.get('nothing'));
@@ -234,8 +298,9 @@
           var v = file.val;
           if(v instanceof InputFile) {
             if (v.fd) {
+              const fd = v.fd;
               return RUNTIME.pauseStack(function(restarter) {
-                fs.close(v.fd, function(err) {
+                fs.close(fd, function(err) {
                   // NOTE(alex): ignore errors for now
                   v.fd = false;
                   restarter.resume(NAMESPACE.get('nothing'));
