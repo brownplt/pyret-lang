@@ -160,16 +160,13 @@ async function searchForErrOutput(driver, toSearch, timeout) {
   let cl = await driver.findElement({ id: "consoleList" });
 
   try {
+    let text = null;
     let result = await driver.wait(async () => {
       let innerHTML = await cl.getAttribute("innerHTML");
-      let runningIndex = innerHTML.search(/ERR/);
-
-      if (runningIndex !== -1) {
-        let includes = innerHTML.substring(runningIndex).includes(toSearch);
-        return includes;
-      } else {
-        return false;
-      }
+      let includes = innerHTML.includes(toSearch);
+      text = innerHTML;
+      if(includes) return true;
+      else { return false; }
     }, timeout);
 
     return result === null ? STATUS_ERR : STATUS_OK;

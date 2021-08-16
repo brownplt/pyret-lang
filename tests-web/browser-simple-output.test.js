@@ -3,6 +3,7 @@ const glob = require('glob');
 const fs = require('fs');
 const path = require('path');
 const tester = require("./test-util.js");
+const { fail } = require('assert');
 
 const TEST_TIMEOUT = 20000;
 const COMPILER_TIMEOUT = 10000; // ms, for each compiler run
@@ -111,13 +112,16 @@ describe("Testing browser simple-output programs", () => {
             expect(foundOutput).toEqual(tester.OK);
             expect(runtimeErrors).toBeFalsy();
           }
-          else if (firstLine.startsWith("!##")) {
+          else if (firstLine.startsWith("##!")) {
             let foundOutput =
               await tester.searchForErrOutput(driver, expectedOutput, COMPILER_TIMEOUT);
             let runtimeErrors =
               await tester.areRuntimeErrors(driver);
             expect(foundOutput).toEqual(tester.OK);
             expect(runtimeErrors).toBeTruthy();
+          }
+          else {
+            fail("Nothing to test");
           }
 
         } else {
