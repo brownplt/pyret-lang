@@ -193,5 +193,5 @@ export const initialState: State = {
   messageTabIndex: MessageTabIndex.RuntimeMessages,
   editorResponseLoop: EditorResponseLoop.Manual,
   firstTechnicallyOutdatedSegment: 0,
-  editorLayout: EditorLayout.Compact,
+  editorLayout: EditorLayout.Normal,
 };
