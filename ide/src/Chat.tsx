@@ -49,7 +49,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
   const {
     chunks,
     enterNewline,
-    firstTechnicallyOutdatedSegment,
+    firstOutdatedChunk: firstTechnicallyOutdatedSegment,
   } = state;
 
   const {

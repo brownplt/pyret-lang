@@ -31,6 +31,7 @@ import {
   EditorMode,
   State,
   initialState,
+  Outdates,
 } from './state';
 
 import {
@@ -277,7 +278,7 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   const {
     chunks,
     currentFileContents,
-    firstTechnicallyOutdatedSegment,
+    firstOutdatedChunk: firstTechnicallyOutdatedSegment,
   } = state;
 
   if (isMultipleChunkUpdate(update)) {
@@ -301,7 +302,7 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
       chunks: update.chunks,
       currentFileContents: contents,
       isFileSaved: isFileSaved && update.modifiesText === false,
-      firstTechnicallyOutdatedSegment: newOutdate,
+      firstOutdatedChunk: newOutdate,
     };
   }
 
@@ -322,7 +323,7 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
       chunks: newChunks,
       currentFileContents: contents,
       isFileSaved: isFileSaved && update.modifiesText === false,
-      firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, chunkId),
+      firstOutdatedChunk: Math.min(firstTechnicallyOutdatedSegment, chunkId),
     };
   }
 
@@ -330,147 +331,98 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
 }
 
 function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
-  const { chunks, past, firstTechnicallyOutdatedSegment } = state;
+  const { chunks, past, firstOutdatedChunk } = state;
+  let newChunks: Chunk[];
+  let outdates;
   switch (update.key) {
     case 'clear':
-      return {
-        ...state,
-        chunks: [],
-        past: [...past, { type: 'clear', chunks, firstTechnicallyOutdatedSegment }],
-        future: [],
-        firstTechnicallyOutdatedSegment: 0,
-      };
-    case 'delete': {
-      const newChunks = [
+      newChunks = [];
+      outdates = { type: 'initializes' as 'initializes', index: firstOutdatedChunk };
+      break;
+    case 'delete':
+      newChunks = [
         ...chunks.slice(0, update.index),
         ...chunks.slice(update.index + 1, chunks.length),
       ];
-      return {
-        ...state,
-        chunks: newChunks,
-        past: [...past, { type: 'delete', index: update.index, chunk: chunks[update.index] }],
-        future: [],
-        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, update.index),
-      };
-    }
-    case 'insert': {
-      const newChunk = emptyChunk({
-        editor: { getValue() { return update.text ?? ''; }, grabFocus: update.grabFocus },
-      });
-      const newChunks = [
+      outdates = { type: 'outdates' as 'outdates', index: update.index };
+      break;
+    case 'insert':
+      newChunks = [
         ...chunks.slice(0, update.index),
-        newChunk,
+        emptyChunk({
+          editor: { getValue() { return update.text ?? ''; } },
+        }),
         ...chunks.slice(update.index, chunks.length),
       ];
-      return {
-        ...state,
-        chunks: newChunks,
-        past: [...past, { type: 'insert', index: update.index, chunk: newChunk }],
-        future: [],
-        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, update.index),
-      };
-    }
+      outdates = { type: 'outdates' as 'outdates', index: update.index };
+      break;
     default:
       throw new NeverError(update);
   }
+  const undo = {
+    chunks,
+    outdates,
+  };
+  return {
+    ...state,
+    chunks: newChunks,
+    past: [...past, undo],
+    future: [],
+  };
+}
+
+function resolveOutdates(firstOutdatedChunk: number, outdates: Outdates): Outdates {
+  if (outdates.type === 'initializes') {
+    const { index } = outdates;
+    return { type: 'initializes', index };
+  } if (outdates.type === 'outdates') {
+    return { type: 'outdates', index: Math.min(firstOutdatedChunk, outdates.index) };
+  }
+  throw new NeverError(outdates);
 }
 
 function handleUndo(state: State): State {
   const {
-    chunks, past, future, firstTechnicallyOutdatedSegment,
+    chunks, past, future, firstOutdatedChunk,
   } = state;
   if (past.length === 0) {
     return state;
   }
   const event = past[past.length - 1];
-  switch (event.type) {
-    case 'clear':
-      return {
-        ...state,
-        chunks: event.chunks,
-        past: past.slice(0, -1),
-        future: [...future, event],
-        firstTechnicallyOutdatedSegment: event.firstTechnicallyOutdatedSegment,
-      };
-    case 'insert': {
-      const newChunks = [
-        ...chunks.slice(0, event.index),
-        ...chunks.slice(event.index + 1, chunks.length),
-      ];
-      return {
-        ...state,
-        chunks: newChunks,
-        past: past.slice(0, -1),
-        future: [...future, event],
-        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, event.index),
-      };
-    }
-    case 'delete': {
-      const newChunks = [
-        ...chunks.slice(0, event.index),
-        event.chunk,
-        ...chunks.slice(event.index, chunks.length),
-      ];
-      return {
-        ...state,
-        chunks: newChunks,
-        past: past.slice(0, -1),
-        future: [...future, event],
-        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, event.index),
-      };
-    }
-    default:
-      throw new NeverError(event);
-  }
+  const outdates = resolveOutdates(firstOutdatedChunk, event.outdates);
+  const undo = {
+    chunks,
+    outdates,
+  };
+  return {
+    ...state,
+    chunks: event.chunks,
+    firstOutdatedChunk: outdates.index,
+    past: past.slice(0, -1),
+    future: [...future, undo],
+  };
 }
 
 function handleRedo(state: State): State {
   const {
-    chunks, past, future, firstTechnicallyOutdatedSegment,
+    chunks, past, future, firstOutdatedChunk,
   } = state;
   if (future.length === 0) {
     return state;
   }
   const event = future[future.length - 1];
-  switch (event.type) {
-    case 'clear':
-      return {
-        ...state,
-        chunks: [],
-        past: [...past, event],
-        future: future.slice(0, -1),
-        firstTechnicallyOutdatedSegment: 0,
-      };
-    case 'insert': {
-      const newChunks = [
-        ...chunks.slice(0, event.index),
-        event.chunk,
-        ...chunks.slice(event.index, chunks.length),
-      ];
-      return {
-        ...state,
-        chunks: newChunks,
-        past: [...past, event],
-        future: future.slice(0, -1),
-        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, event.index),
-      };
-    }
-    case 'delete': {
-      const newChunks = [
-        ...chunks.slice(0, event.index),
-        ...chunks.slice(event.index + 1, chunks.length),
-      ];
-      return {
-        ...state,
-        chunks: newChunks,
-        past: [...past, event],
-        future: future.slice(0, -1),
-        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, event.index),
-      };
-    }
-    default:
-      throw new NeverError(event);
-  }
+  const outdates = resolveOutdates(firstOutdatedChunk, event.outdates);
+  const entry = {
+    chunks,
+    outdates,
+  };
+  return {
+    ...state,
+    chunks: event.chunks,
+    firstOutdatedChunk: outdates.index,
+    past: [...past, entry],
+    future: future.slice(0, -1),
+  };
 }
 
 function handleSetFontSize(state: State, fontSize: number): State {
@@ -571,7 +523,7 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
   const {
     chunks,
     currentFile,
-    firstTechnicallyOutdatedSegment,
+    firstOutdatedChunk: firstTechnicallyOutdatedSegment,
   } = state;
 
   const rhs = makeRHSObjects(result, `file://${segmentName(currentFile, id)}`);
@@ -596,7 +548,7 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
   return {
     ...state,
     chunks: newChunks,
-    firstTechnicallyOutdatedSegment: Math.max(firstTechnicallyOutdatedSegment, index + 1),
+    firstOutdatedChunk: Math.max(firstTechnicallyOutdatedSegment, index + 1),
   };
 }
 
@@ -616,7 +568,7 @@ function handleRunSessionFailure(state: State, id: string, error: string) {
   return {
     ...state,
     chunks: newChunks,
-    firstTechnicallyOutdatedSegment: Math.max(state.firstTechnicallyOutdatedSegment, index + 1),
+    firstTechnicallyOutdatedSegment: Math.max(state.firstOutdatedChunk, index + 1),
   };
 }
 
@@ -628,7 +580,7 @@ function handleCompileSessionFailure(
   const failures = errors.map((e) => JSON.parse(e));
   const places: Srcloc[] = failures.flatMap(getLocs);
 
-  const { chunks, currentFile, firstTechnicallyOutdatedSegment } = state;
+  const { chunks, currentFile, firstOutdatedChunk: firstTechnicallyOutdatedSegment } = state;
 
   function findChunkFromSrclocResult(loc: Srcloc): number | null {
     for (let i = 0; i < chunks.length; i += 1) {
@@ -676,7 +628,7 @@ function handleCompileSessionFailure(
     return {
       ...state,
       chunks: newChunks,
-      firstTechnicallyOutdatedSegment: max,
+      firstOutdatedChunk: max,
     };
   }
   const chunkIndex = newChunks.findIndex((c) => c.id === id);
@@ -702,7 +654,7 @@ function handleCompileSessionFailure(
   return {
     ...state,
     chunks: newChunks,
-    firstTechnicallyOutdatedSegment: Math.max(firstTechnicallyOutdatedSegment, chunkIndex + 1),
+    firstOutdatedChunk: Math.max(firstTechnicallyOutdatedSegment, chunkIndex + 1),
   };
 }
 
@@ -790,7 +742,7 @@ async function runProgramAsync(state : State) : Promise<any> {
 let stopFlag = false;
 async function runSegmentsAsync(state : State) : Promise<any> {
   stopFlag = false;
-  const { typeCheck, chunks, firstTechnicallyOutdatedSegment } = state;
+  const { typeCheck, chunks, firstOutdatedChunk: firstTechnicallyOutdatedSegment } = state;
   const onlyLastSegmentChanged = firstTechnicallyOutdatedSegment === chunks.length - 1;
   const filenames: string[] = [];
   console.log('RUNNING THESE CHUNKS:');

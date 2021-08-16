@@ -6,7 +6,25 @@ import { MenuItems } from './menu-types';
 import { RHSObjects } from './rhsObject';
 import { RTMessages } from './rtMessages';
 import * as control from './control';
-import { HistoryEvent } from './history';
+
+export type Outdates =
+  // Applying *or undoing* this change technically invalidates this chunk. If a
+  // lower-index chunk has been edited, firstOutdatedChunk may not change
+  // When undefined
+  | { type: 'outdates', index: number }
+  // Undoing this change sets firstOutdatedChunk to undoValidates
+  // (clear)
+  | { type: 'initializes', index: number };
+
+// Includes the actual state as-of-the-event, but *also* additional information
+// about how to reconstruct it as-needed
+// NOTE(luna): right now, only the firstTechnicallyInvalidatedChunk, which makes
+// me wonder if that should be a computed property! The trouble is if we, say,
+// delete a chunk, who holds the invalidation?)
+type UndoState = {
+  chunks: Chunk[],
+  outdates: Outdates,
+};
 
 export type State = {
 
@@ -74,9 +92,9 @@ export type State = {
   /* The list of chunks. */
   chunks: Chunk[],
 
-  /* Undo history */
-  past: HistoryEvent[],
-  future: HistoryEvent[],
+  /* Chunk undo history */
+  past: UndoState[],
+  future: UndoState[],
 
   /* True if the current file has been saved since the last edit, false otherwise. */
   /* Technically unused, but it actually looks pretty useful. Will keep around,
@@ -116,7 +134,7 @@ export type State = {
    * deletion or insertion, all subsequent chunks are "partially outdated" or
    * "technically outdated" - their values can mostly be believed, but may change
    * due to changes in definitions in previous chats */
-  firstTechnicallyOutdatedSegment: number,
+  firstOutdatedChunk: number,
 };
 
 export enum EditorResponseLoop {
@@ -195,6 +213,6 @@ export const initialState: State = {
   enterNewline: false,
   messageTabIndex: MessageTabIndex.RuntimeMessages,
   editorResponseLoop: EditorResponseLoop.Manual,
-  firstTechnicallyOutdatedSegment: 0,
+  firstOutdatedChunk: 0,
   editorLayout: EditorLayout.Normal,
 };
