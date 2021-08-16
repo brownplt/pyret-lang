@@ -150,6 +150,7 @@ cases (C.ParsedArguments) parsed-options block:
             traces.get-value-now(PL.basename(file, ""))
         end
 
+        println(comp.map(_.name).join-str(" => "))
         for each(phase from comp) block:
           println("\n")
           println(">>>>>>>>>>>>>>>>>>")

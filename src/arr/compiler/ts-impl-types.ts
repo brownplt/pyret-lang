@@ -17,6 +17,8 @@ export type PTuple<T extends any[]> = {
 
 export type PObject<T extends {}> = { dict: T }
 
+export type POpaque<T> = { val: T }
+
 export interface ImmutableMap<T> {
   get: (key: string, notSetValue: T) => T,
   set: (key: string, value: T) => ImmutableMap<T>,
@@ -109,7 +111,7 @@ export type Runtime = {
   makeObject: <T extends {}>(val : T) => { dict: T },
   makeString: (s: string) => string,
   makeBoolean: (b: boolean) => boolean,
-  makeOpaque: (val: any) => any,
+  makeOpaque: <T>(val: T) => POpaque<T>,
   checkString: (val: any) => void,
   checkBoolean: (val: any) => void,
   checkOpaque: (val: any) => void,

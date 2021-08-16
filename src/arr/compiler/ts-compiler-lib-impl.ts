@@ -657,6 +657,7 @@ type ResolveScopeExports = {
                 cleaned = undefined;
                 let canonicalProvides = AU['canonicalize-provides'].app(finalProvides, env);
                 let modResult = CS['module-as-string'].app(canonicalProvides, env, namedResult.dict.env, cr);
+                addPhase("Final output", cr);
                 return runtime.makeTuple([modResult, phasesToList(phases)]);
               }
               case 'err': {

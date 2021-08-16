@@ -1,4 +1,4 @@
-import type { List, PFunction, PObject, PTuple, Runtime } from "./ts-impl-types";
+import type { List, PFunction, PObject, POpaque, PTuple, Runtime } from "./ts-impl-types";
 import type * as TCH from './ts-codegen-helpers';
 import type * as TDC from './ts-direct-codegen';
 import type * as A from "./ts-ast";
@@ -15,14 +15,14 @@ export type CCPDict = {
   theModule : string,
   theMap : string
 }
-export type CompiledCodePrinter = 
-  | { $name: "ccp-dict", 'dict': CCPDict }
+export type CompiledCodePrinter = POpaque<
+    { $name: "ccp-dict", 'dict': CCPDict }
   | { $name: "ccp-string", 'compiled': string }
   | {
     $name: "ccp-two-files",
     staticPath: string, codePath: string
   }
-  | { $name: "ccp-file", 'path': string }
+  | { $name: "ccp-file", 'path': string }>
 
 /////////////////////////// Exports //////////////////////////
 export interface Exports {
@@ -75,36 +75,37 @@ dict: {values: {dict: {
     const F = Fin.dict.values.dict;
 
     function isCompiledCodePrinter(val: any): val is CompiledCodePrinter {
-      return (val.$name === 'ccp-dict' ||
-              val.$name === 'ccp-string' ||
-              val.$name === 'ccp-two-files' ||
-              val.$name === 'ccp-file');
+      const $name = val?.val?.$name;
+      return ($name === 'ccp-dict' ||
+              $name === 'ccp-string' ||
+              $name === 'ccp-two-files' ||
+              $name === 'ccp-file');
     }
 
-    function ccpDict(compiled): TCH.Variant<CompiledCodePrinter, 'ccp-dict'> {
-      return {
+    function ccpDict(compiled): CompiledCodePrinter {
+      return runtime.makeOpaque({
         $name: 'ccp-dict',
         dict: compiled,
-      };
+      });
     }
-    function ccpFile(path: string): TCH.Variant<CompiledCodePrinter, 'ccp-file'> {
-      return {
+    function ccpFile(path: string): CompiledCodePrinter {
+      return runtime.makeOpaque({
         $name: 'ccp-file',
         path,
-      };
+      });
     }
-    function ccpTwoFiles(staticPath: string, codePath: string): TCH.Variant<CompiledCodePrinter, 'ccp-two-files'> {
-      return {
+    function ccpTwoFiles(staticPath: string, codePath: string): CompiledCodePrinter {
+      return runtime.makeOpaque({
         $name: 'ccp-two-files',
         staticPath,
         codePath,
-      };
+      });
     }
-    function ccpString(compiled: string): TCH.Variant<CompiledCodePrinter, 'ccp-string'> {
-      return {
+    function ccpString(compiled: string): CompiledCodePrinter {
+      return runtime.makeOpaque({
         $name: 'ccp-string',
         compiled,
-      };
+      });
     }
 
 
@@ -114,10 +115,11 @@ dict: {values: {dict: {
     }
 
     function ccpHasStaticInfo(ccp: CompiledCodePrinter): boolean {
-      return ccp.$name === 'ccp-dict' || ccp.$name === 'ccp-two-files';
+      return ccp.val.$name === 'ccp-dict' || ccp.val.$name === 'ccp-two-files';
     }
 
-    function pyretToJsRunnable(ccp: CompiledCodePrinter): string {
+    function pyretToJsRunnable(ccpVal: CompiledCodePrinter): string {
+      const ccp = ccpVal.val;
       switch(ccp.$name) {
         case 'ccp-dict': return ccp.dict.theModule;
         case 'ccp-string': return ccp.compiled;
@@ -127,7 +129,8 @@ dict: {values: {dict: {
       }
     }
 
-    function pyretToJsStatic(ccp: CompiledCodePrinter): string {
+    function pyretToJsStatic(ccpVal: CompiledCodePrinter): string {
+      const ccp = ccpVal.val;
       switch(ccp.$name) {
         case 'ccp-dict': return [
           "{",
@@ -144,7 +147,8 @@ dict: {values: {dict: {
       }
     }
 
-    function pyretToJsPretty(ccp: CompiledCodePrinter): string {
+    function pyretToJsPretty(ccpVal: CompiledCodePrinter): string {
+      const ccp = ccpVal.val;
       switch(ccp.$name) {
         case 'ccp-dict': return [
           "{",
