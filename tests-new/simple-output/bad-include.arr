@@ -1,2 +1,2 @@
-##! Could not find builtin module nonsense-not-a-module
+##! Could not find builtin module bad-test
 include nonsense-not-a-module

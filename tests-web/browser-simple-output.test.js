@@ -103,21 +103,29 @@ describe("Testing browser simple-output programs", () => {
             }));
 
           // Does not work when in .then()
-          let foundOutput =
-            await tester.searchForRunningOutput(driver, expectedOutput, COMPILER_TIMEOUT);
-
-          let runtimeErrors =
-            await tester.areRuntimeErrors(driver);
-
-          expect(foundOutput).toEqual(tester.OK);
-          expect(runtimeErrors).toBeFalsy();
+          if(firstLine.startsWith("###")) {
+            let foundOutput =
+              await tester.searchForRunningOutput(driver, expectedOutput, COMPILER_TIMEOUT);
+            let runtimeErrors =
+              await tester.areRuntimeErrors(driver);
+            expect(foundOutput).toEqual(tester.OK);
+            expect(runtimeErrors).toBeFalsy();
+          }
+          else if (firstLine.startsWith("!##")) {
+            let foundOutput =
+              await tester.searchForErrOutput(driver, expectedOutput, COMPILER_TIMEOUT);
+            let runtimeErrors =
+              await tester.areRuntimeErrors(driver);
+            expect(foundOutput).toEqual(tester.OK);
+            expect(runtimeErrors).toBeTruthy();
+          }
 
         } else {
 
           const lines = contents.split("\n");
           let expected = [];
           lines.forEach((line) => {
-            if (line.startsWith("###")) {
+            if (line.startsWith("###") || line.startsWith("!##")) {
               const formatted = line.slice(line.indexOf(" ")).trim();
               expected.push(formatted);
             }
