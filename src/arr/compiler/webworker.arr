@@ -10,7 +10,7 @@ import file("./compile-structs.arr") as CS
 import file("./compile-lib.arr") as CL
 import js-file("./ts-compile-options") as CO
 import file("./file.arr") as F
-import file("./js-of-pyret.arr") as JSP
+import js-file("./ts-js-of-pyret") as JSP
 import file("./locators/builtin.arr") as B
 import file("locators/file.arr") as FL
 import file("./message.arr") as M

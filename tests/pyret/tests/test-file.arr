@@ -1,4 +1,4 @@
-import filelib as F
+import ts-filelib as F
 import pathlib as P
 
 check:

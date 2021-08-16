@@ -14,7 +14,7 @@ provide-types *
 
 import global as _
 import base as _
-import js-file("filelib") as F
+import js-file("ts-filelib") as F
 
 data File:
   | in-fd(inner-file :: Any) with:

@@ -7,7 +7,19 @@ import type * as CS from './ts-compile-structs';
 import type * as TJ from './ts-codegen-helpers';
 import type * as TCSH from './ts-compile-structs-helpers';
 import type * as PS from './provide-serialization';
-import type { Variant, PyretObject } from './ts-codegen-helpers';
+import type { Variant } from './ts-codegen-helpers';
+import type * as TJSP from './ts-js-of-pyret';
+import { CompileOptions } from './ts-compiler-lib-impl';
+
+export type Exports = {
+  dict: {
+    values: {
+      dict: {
+        'compile-program': T.PFunction<(prog : A.Program, uri : string, env : CS.CompileEnvironment, postEnv : CS.ComputedEnvironment, provides : CS.Provides, options : CompileOptions) => TJSP.CCPDict>,
+      }
+    }
+  }
+}
 
 ({ 
   requires: [
@@ -1810,7 +1822,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       'array-import': false,
       'reactor-import': false
     };
-    function compileProgram(prog : A.Program, uri : string, env : any, postEnv : any, provides : any, options : any) : PyretObject {
+    function compileProgram(prog : A.Program, uri : string, env : CS.CompileEnvironment, postEnv : CS.ComputedEnvironment, provides : CS.Provides, options : CompileOptions) : TJSP.CCPDict {
       const translatedDatatypeMap = new Map();   // TODO(joe) process from stringdict
       const fromUri = provides.dict['from-uri']; // TODO(joe) handle phases builtin-stage*
       const freeBindings = new Map<string, CS.ValueBind>();            // NOTE(joe) this starts empty in the mainline compiler
@@ -1851,7 +1863,7 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       const jsonOptions : Escodegen.GenerateOptions = {
         format: { json: true },
       };
-      return runtime.makeObject({
+      return ({
         requires: escodegen.generate(ArrayExpression(serializeRequires(env, options)), jsonOptions),
         provides: serializedProvides,
         nativeRequires: escodegen.generate(ArrayExpression([]), jsonOptions),
@@ -1860,9 +1872,10 @@ import type { Variant, PyretObject } from './ts-codegen-helpers';
       });
     }
 
-    return runtime.makeModuleReturn({
+    const exports : Exports['dict']['values']['dict'] = {
       'compile-program': runtime.makeFunction(compileProgram)
-    }, {});
+    };
+    return runtime.makeModuleReturn(exports, {});
 
   }
 })

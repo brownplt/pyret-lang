@@ -23,9 +23,9 @@ import file("file.arr") as F
 import file("locators/file.arr") as FL
 import file("locators/builtin.arr") as BL
 import file("locators/jsfile.arr") as JSF
-import file("js-of-pyret.arr") as JSP
+import js-file("ts-js-of-pyret") as JSP
 import js-file("dependency-tree") as DT
-import js-file("filelib") as FS
+import js-file("ts-filelib") as FS
 
 
 data Session:

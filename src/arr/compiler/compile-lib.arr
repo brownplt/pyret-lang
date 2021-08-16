@@ -9,7 +9,7 @@ import runtime-lib as R
 import string-dict as SD
 import file("compile-structs.arr") as CS
 import js-file("ts-gensym") as G
-import file("js-of-pyret.arr") as JSP
+import js-file("ts-js-of-pyret") as JSP
 import file("ast-util.arr") as AU
 import file("well-formed.arr") as W
 import js-file("ts-desugar-impl") as D

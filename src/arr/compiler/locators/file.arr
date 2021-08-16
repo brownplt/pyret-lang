@@ -4,9 +4,9 @@ import builtin-modules as B
 import js-file("../parse-pyret") as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CS
-import file("../js-of-pyret.arr") as JSP
+import js-file("../ts-js-of-pyret") as JSP
 import file("../file.arr") as F
-import js-file("./../filelib") as FL
+import js-file("./../ts-filelib") as FL
 import js-file("./../ts-pathlib") as P
 
 # Still unsure if just a path is the right input for this.

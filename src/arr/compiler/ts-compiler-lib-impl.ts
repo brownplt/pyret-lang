@@ -189,7 +189,7 @@ type ResolveScopeExports = {
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-desugar-impl'] },
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-desugar-post-tc'] },
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-type-check-impl'] },
-    { 'import-type': 'dependency', protocol: 'file', args: ['js-of-pyret.arr'] },
+    { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-js-of-pyret'] },
     { 'import-type': 'builtin', name: 'either' },
     { 'import-type': 'builtin', name: 'sha' },
   ],

@@ -6,7 +6,7 @@ import string-dict as SD
 import runtime-lib as R
 import js-file("../../../src/arr/compiler/ts-pathlib") as P
 import render-error-display as RED
-import file("../../../src/arr/compiler/js-of-pyret.arr") as JSP
+import js-file("../../../src/arr/compiler/ts-js-of-pyret") as JSP
 import file("../../../src/arr/compiler/compile-lib.arr") as CL
 import file("../../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../../src/arr/compiler/compile-structs.arr") as CS
@@ -54,21 +54,20 @@ fun make-fresh-module-testing-context():
     locuri = loadable.provides.from-uri
     cases(CS.CompileResult) loadable.result-printer block:
       | ok(ccp) =>
-        cases(JSP.CompiledCodePrinter) ccp block:
-          | ccp-dict(dict) =>
-            compiled.set-now(locuri, {
-              get-monotonic-time();
-              true;
-              JSP.pyret-to-js-static(ccp);
-              JSP.pyret-to-js-runnable(ccp);
-            })
-          | else =>
-            compiled.set-now(locuri, {
-              get-monotonic-time();
-              false;
-              "";
-              JSP.pyret-to-js-runnable(ccp);
-            })
+        if JSP.ccp-has-static-info(ccp):
+          compiled.set-now(locuri, {
+            get-monotonic-time();
+            true;
+            JSP.pyret-to-js-static(ccp);
+            JSP.pyret-to-js-runnable(ccp);
+          })
+        else:
+          compiled.set-now(locuri, {
+            get-monotonic-time();
+            false;
+            "";
+            JSP.pyret-to-js-runnable(ccp);
+          })
         end
       | err(_) => ""
     end

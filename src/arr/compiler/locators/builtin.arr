@@ -5,7 +5,7 @@ import js-file("../parse-pyret") as PP
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CM
 import file("../file.arr") as F
-import file("../js-of-pyret.arr") as JSP
+import js-file("../ts-js-of-pyret") as JSP
 
 # NOTE(joe): These conversions are done in Pyret-land because
 # "builtin-modules" in JS is as spartan as possible to make module load-order

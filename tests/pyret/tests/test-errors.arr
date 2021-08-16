@@ -6,7 +6,7 @@ import srcloc as S
 import format as F
 import parse-pyret as P
 import string-dict as D
-import filelib as FL
+import ts-filelib as FL
 import system as SYS
 
 data FreshData:

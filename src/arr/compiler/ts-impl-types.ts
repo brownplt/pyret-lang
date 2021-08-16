@@ -15,6 +15,8 @@ export type PTuple<T extends any[]> = {
   vals: T
 }
 
+export type PObject<T extends {}> = { dict: T }
+
 export interface ImmutableMap<T> {
   get: (key: string, notSetValue: T) => T,
   set: (key: string, value: T) => ImmutableMap<T>,
@@ -101,12 +103,16 @@ export type Runtime = {
            & (<T1, T2, T3>(vals : [T1, T2, T3]) => PTuple<[T1, T2, T3]>)
            & (<T1, T2, T3, T4>(vals : [T1, T2, T3, T4]) => PTuple<[T1, T2, T3, T4]>)
            & (<T1, T2, T3, T4, T5>(vals : [T1, T2, T3, T4, T5]) => PTuple<[T1, T2, T3, T4, T5]>),
-  makeFunction: <T extends Function>(func: T) => PFunction<T>,
+  makeFunction: <T extends Function>(func: T, name?: string) => PFunction<T>,
   makeMethod: <Self, T extends (...args: any[]) => any>(method: (self: Self) => T, fullMethod: (self: Self, ...args: Parameters<T>) => ReturnType<T>, name?: string) => PMethod<Self, T>,
   makeModuleReturn: (values: Record<string, any>, types: Record<string, any>) => any,
   makeObject: <T extends {}>(val : T) => { dict: T },
   makeString: (s: string) => string,
+  makeBoolean: (b: boolean) => boolean,
+  makeOpaque: (val: any) => any,
   checkString: (val: any) => void,
+  checkBoolean: (val: any) => void,
+  checkOpaque: (val: any) => void,
   unwrap: (val: any) => any,
   stdout: WriteStream['write'],
   stderr: WriteStream['write'],
@@ -116,6 +122,7 @@ export type Runtime = {
     makeTreeSet: <T>(ts: T[]) => Set<T>,
     makeSome: <T>(val: T) => Option<T>,
     makeNone: <T>() => Option<T>,
+    makeMessageException: (msg: string) => any,
     throwMessageException: (msg: string) => any,
     checkArity: (arity: number, args: IArguments, ... rest: any[]) => void,
   }

@@ -2,7 +2,7 @@
 
 import ast as A
 import either as E
-import filelib as FL
+import ts-filelib as FL
 import runtime-lib as R
 import load-lib as L
 import string-dict as SD
