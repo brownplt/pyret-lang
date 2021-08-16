@@ -11,7 +11,6 @@ import {
 import { Effect, EffectKey } from './effect';
 import { RawRTMessage } from './rtMessages';
 import * as control from './control';
-import { RHSObjects } from './rhsObject';
 
 export type EffectFailure =
   | { effectKey: 'startEditTimer' }
@@ -61,7 +60,6 @@ export type Update =
   | { key: 'browsePath', value: string }
   | { key: 'currentFile', value: string }
   | { key: 'chunks', value: ChunksUpdate }
-  | { key: 'chunkToRHS', value: Map<string, RHSObjects> }
   | { key: 'fontSize', value: number }
   | { key: 'runKind', value: control.backend.RunKind }
   | { key: 'typeCheck', value: boolean }
@@ -95,6 +93,7 @@ export type Action =
   | { type: 'effectEnded' } & EffectEnded
   | { type: 'enqueueEffect' } & EnqueueEffect
   | { type: 'update' } & Update
+  | { type: 'chunk', key: 'insert' | 'delete' | 'clear' }
   | { type: 'run' } & Run
   | { type: 'stopSession' };
 

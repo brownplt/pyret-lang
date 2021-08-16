@@ -107,7 +107,7 @@ export type RunResult = {
   },
 };
 
-export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObjects {
+export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObject[] {
   const {
     $checks,
     $locations,
@@ -163,8 +163,5 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObjects
     };
   });
 
-  return {
-    objects: withKeys,
-    outdated: false,
-  };
+  return withKeys;
 }

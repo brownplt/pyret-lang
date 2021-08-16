@@ -30,7 +30,6 @@ import {
 } from './action';
 
 import {
-  RHSObjects,
   isRHSCheck,
   RHSCheck,
   isLocation,
@@ -42,8 +41,6 @@ import CheckResults from './CheckResults';
 
 type StateProps = {
   chunks: Chunk[],
-  chunkToRHS: Map<string, RHSObjects>,
-  thisChunkRHSObjects: RHSObjects,
   enterNewline: boolean,
   technicallyOutdated: boolean,
 };
@@ -52,7 +49,6 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
   const {
     chunks,
     enterNewline,
-    chunkToRHS,
     firstTechnicallyOutdatedSegment,
   } = state;
 
@@ -60,14 +56,11 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     index,
   } = ownProps;
 
-  const thisChunkRHSObjects = chunkToRHS.get(chunks[index].id) ?? { outdated: true, objects: [] };
   const technicallyOutdated = index >= firstTechnicallyOutdatedSegment;
 
   return {
     chunks,
-    thisChunkRHSObjects,
     enterNewline,
-    chunkToRHS,
     technicallyOutdated,
   };
 }
@@ -80,7 +73,6 @@ type PropsFromReact = {
 type DispatchProps = {
   run: () => void,
   setChunks: (chunks: ChunksUpdate) => void,
-  setChunkToRHS: (chunkToRHS: Map<string, RHSObjects>) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
@@ -90,9 +82,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     },
     setChunks(chunks: ChunksUpdate) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });
-    },
-    setChunkToRHS(chunkToRHS: Map<string, RHSObjects>) {
-      dispatch({ type: 'update', key: 'chunkToRHS', value: chunkToRHS });
     },
   };
 }
@@ -116,29 +105,27 @@ class Chat extends React.Component<ChatProps, any> {
       return true;
     }
 
-    if (n.thisChunkRHSObjects.outdated !== o.thisChunkRHSObjects.outdated) {
+    const nChunk = n.chunks[n.index];
+    const oChunk = o.chunks[o.index];
+    const nResult = nChunk.results;
+    const oResult = oChunk.results;
+    if (nResult.status !== oResult.status) {
       return true;
     }
-
-    if (n.thisChunkRHSObjects.objects !== o.thisChunkRHSObjects.objects) {
+    if (nChunk.outdated !== oChunk.outdated) {
       return true;
     }
-
-    if (n.chunks[n.index].errorState !== o.chunks[o.index].errorState) {
-      return true;
-    }
-
-    if (n.chunks[n.index].selection !== o.chunks[o.index].selection) {
+    if (nResult.status === 'succeeded' && oResult.status === 'succeeded' && nResult.objects !== oResult.objects) {
       return true;
     }
 
     if (n.index === o.index
-      && n.chunks[n.index].editor.getValue() === o.chunks[o.index].editor.getValue()) {
+      && nChunk.editor.getValue() === oChunk.editor.getValue()) {
       return false;
     }
 
-    if (n.chunks[n.index].editor.getValue() === o.chunks[o.index].editor.getValue()
-        && n.chunks[n.index].errorState === o.chunks[o.index].errorState) {
+    if (nChunk.editor.getValue() === oChunk.editor.getValue()
+        && nResult.status === oResult.status) {
       return false;
     }
 
@@ -156,48 +143,33 @@ class Chat extends React.Component<ChatProps, any> {
 
     const {
       editor,
-      errorState,
+      results,
     } = chunks[index];
 
-    if ('getDoc' in editor && errorState.status === 'succeeded') {
+    if ('getDoc' in editor && results.status === 'succeeded') {
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
-    } else if ('getDoc' in editor && errorState.status === 'failed') {
-      const { highlights } = errorState;
+    } else if ('getDoc' in editor && results.status === 'failed') {
+      const { highlights } = results;
       const marks = editor.getDoc().getAllMarks();
       marks.forEach((m) => m.clear());
       if (highlights.length > 0) {
         for (let i = 0; i < highlights.length; i += 1) {
+          // NOTE(luna): Now, highlights are created by FailureComponent - is
+          // this rendering them twice? Is this working at all?
           const doc = editor.getDoc();
-          // lint errors are relative to the start of a chunk, compile errors
-          // are relative to the start of the program
-          if (errorState.effect === 'lint') {
-            const [l1, ch1, l2, ch2] = highlights[i];
-            doc.markText(
-              {
-                line: l1 - 1,
-                ch: ch1,
-              },
-              {
-                line: l2 - 1,
-                ch: ch2,
-              },
-              { className: 'styled-background-error' },
-            );
-          } else if (errorState.effect === 'compile') {
-            const [l1, ch1, l2, ch2] = highlights[i];
-            doc.markText(
-              {
-                line: l1 - 1,
-                ch: ch1,
-              },
-              {
-                line: l2 - 1,
-                ch: ch2,
-              },
-              { className: 'styled-background-error' },
-            );
-          }
+          const [l1, ch1, l2, ch2] = highlights[i];
+          doc.markText(
+            {
+              line: l1 - 1,
+              ch: ch1,
+            },
+            {
+              line: l2 - 1,
+              ch: ch2,
+            },
+            { className: 'styled-background-error' },
+          );
         }
       }
     }
@@ -211,11 +183,9 @@ class Chat extends React.Component<ChatProps, any> {
       chunks,
       index,
       setChunks,
-      chunkToRHS,
-      setChunkToRHS,
     } = this.props;
 
-    const { editor, id } = chunks[index];
+    const { editor } = chunks[index];
 
     if ('getDoc' in editor) {
       const marks = editor.getDoc().getAllMarks();
@@ -226,17 +196,10 @@ class Chat extends React.Component<ChatProps, any> {
       chunk: {
         ...chunks[index],
         editor,
-        errorState: { status: 'notLinted' },
+        outdated: true,
       },
       modifiesText: true,
     });
-
-    const withInvalidation = new Map(chunkToRHS);
-    withInvalidation.set(id, {
-      ...(withInvalidation.get(id) ?? { outdated: true, objects: [] }),
-      outdated: true,
-    });
-    setChunkToRHS(withInvalidation);
   }
 
   /* Called in response to an arrow up event. Checks if the cursor is on the top
@@ -414,26 +377,20 @@ class Chat extends React.Component<ChatProps, any> {
     const {
       chunks, index, technicallyOutdated,
     } = this.props;
-    const { editor: initialEditor } = chunks[index];
-
-    const {
-      thisChunkRHSObjects,
-    } = this.props;
-
     let chunkResultsPart = <></>;
     let displayCheckMark = false;
     const chunk = chunks[index];
-    const { editor: chunkEditor } = chunk;
+    const { editor: chunkEditor, results, outdated } = chunk;
 
-    if (chunk.errorState.status === 'failed' && 'markText' in chunkEditor) {
+    if (results.status === 'failed' && 'getDoc' in chunkEditor) {
       chunkResultsPart = (
         <div className="chat-result">
-          {chunk.errorState.failures.map((failure, i) => (
+          {results.failures.map((failure, i) => (
             <div
               // eslint-disable-next-line
               key={i}
-              style={{ border: '2px solid #dc4064' }}
-              className={`chatitor-rhs ${technicallyOutdated ? 'partially-outdated' : ''}`}
+              style={{ border: `2px ${technicallyOutdated ? 'dashed' : 'solid'} #dc4064` }}
+              className={`chatitor-rhs ${outdated ? 'outdated' : ''}`}
               title={technicallyOutdated ? 'value might be changed by earlier definition changes' : ''}
             >
               <FailureComponent failure={failure} editor={chunkEditor} />
@@ -441,9 +398,9 @@ class Chat extends React.Component<ChatProps, any> {
           ))}
         </div>
       );
-    } else {
+    } else if (results.status === 'succeeded') {
       let rhs;
-      const rhsObjects = thisChunkRHSObjects.objects;
+      const rhsObjects = results.objects;
       const partiallyOutdated = technicallyOutdated;
       // TODO(luna): more principled
       // const isDataDefinition = rhsObjects.filter((r) => !isLocation(r)).length === 0
@@ -457,8 +414,10 @@ class Chat extends React.Component<ChatProps, any> {
         && !(isTrace(r) && typeof r.value === 'undefined')));
       const checks = rhsObjects.filter((r) => isRHSCheck(r));
       if (shown.length + checks.length === 0) {
-        if (thisChunkRHSObjects.outdated) {
-          rhs = <div style={{ float: 'right' }} className="chatitor-rhs pending"> . . . </div>;
+        if (partiallyOutdated) {
+          // TODO(luna): This styling feels... wrong, even though it follows the
+          // rules of the other ones. Think about how it should look?
+          rhs = <div style={{ float: 'right' }} className={`chatitor-rhs pending partially-outdated ${outdated ? 'outdated' : ''}`}> . . . </div>;
         } else {
           displayCheckMark = true;
         }
@@ -470,7 +429,7 @@ class Chat extends React.Component<ChatProps, any> {
             isSelected={false}
             className={`chatitor-rhs ${partiallyOutdated ? 'partially-outdated' : ''}`}
             title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
-            outdated={thisChunkRHSObjects.outdated}
+            outdated={outdated}
           />
         ));
         const checkSummary = checks.length > 0
@@ -478,7 +437,7 @@ class Chat extends React.Component<ChatProps, any> {
             <CheckResults
             // Would love to have TypeScript obviate this `as`
               checks={checks as RHSCheck[]}
-              outdated={thisChunkRHSObjects.outdated}
+              outdated={outdated}
               className={`chatitor-rhs ${partiallyOutdated ? 'partially-outdated' : ''}`}
               title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
             />
@@ -496,7 +455,7 @@ class Chat extends React.Component<ChatProps, any> {
     const chunkEditorPart = (
       <div className="chat-editor-wrapper">
         <ReactCM
-          editorDidMount={(editor) => this.handleMount(editor as CMEditor, initialEditor)}
+          editorDidMount={(editor) => this.handleMount(editor as CMEditor, chunkEditor)}
           options={{
             mode: 'pyret',
             theme: 'default',

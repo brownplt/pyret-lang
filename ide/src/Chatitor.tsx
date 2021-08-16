@@ -12,7 +12,7 @@ import {
   State,
 } from './state';
 import {
-  Chunk, emptyChunk, getStartLineForIndex, lintSuccessState,
+  Chunk, emptyChunk, getStartLineForIndex,
 } from './chunk';
 import Chat from './Chat';
 import { isWrapFirst } from './utils';
@@ -178,7 +178,6 @@ function Chatitor({
                           chunksRef.current,
                           chunksRef.current.length,
                         ),
-                        errorState: lintSuccessState,
                         editor: { getValue: () => value },
                       }),
                     ];
@@ -223,7 +222,7 @@ function Chatitor({
         <span style={shiftEnterStyle}>Shift-Enter: new line</span>
         <span style={tooltipStyle}>Ctrl-Enter: send</span>
         <span style={{
-          ...tooltipStyle, display: 'inline-block', textAlign: 'left', width: '7em',
+          ...tooltipStyle, display: 'inline-block', textAlign: 'left', width: '8.2em',
         }}
         >
           Enter:

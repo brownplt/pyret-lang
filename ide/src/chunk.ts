@@ -1,8 +1,8 @@
 /* Exports types and functions for managing chunks. */
 
-import { Controlled as CodeMirror } from 'react-codemirror2';
 import { v4 as uuidv4 } from 'uuid';
 import { Failure } from './failure';
+import { RHSObject } from './rhsObject';
 
 export const CHUNKSEP = '#.CHUNK#\n';
 
@@ -13,19 +13,9 @@ export const CHUNKSEP = '#.CHUNK#\n';
 
    TODO(michael): this should probably just be called 'state' */
 export type ErrorState =
-  ({ status: 'failed', effect: 'lint' | 'compile', failures: Failure[], highlights: number[][] }
-  | { status: 'succeeded', effect: 'lint' | 'compile' }
-  | { status: 'succeeded', effect: 'run', result: any }
-  | { status: 'notLinted' });
+  { status: 'failed', failures: Failure[], highlights: number[][] };
 
-export const lintSuccessState: ErrorState = {
-  status: 'succeeded',
-  effect: 'lint',
-};
-
-export const notLintedState: ErrorState = {
-  status: 'notLinted',
-};
+export type ChunkResults = ErrorState | ({ status: 'succeeded', objects: RHSObject[] });
 
 export type LineAndCh = { line: number, ch: number };
 export type Selection = { anchor: LineAndCh, head: LineAndCh };
@@ -47,21 +37,15 @@ export type Chunk = {
   /* a unique id */
   id: string,
 
-  /* the current state of this chunk */
-  errorState: ErrorState,
-
   /* the underlying CodeMirror instance. Can be false if the chunk has not yet
      been rendered. */
   editor: UninitializedEditor | (CodeMirror.Editor & CodeMirror.Doc);
 
-  /* Chunks used to jiggle when they had errors, but they don't anymore.
-     TODO(michael): remove this field. */
-  needsJiggle: boolean,
+  /* Results for this chunk */
+  results: ChunkResults,
 
-  /* The highlighted text in this chunk. We manage this ourselves (instead of
-     letting CodeMirror do it) because it helps us re-render chunks properly; see
-     shouldComponentUpdate() in DefChunk.tsx. */
-  selection: Selection,
+  /* Whether this chunk has been changed since last run */
+  outdated: boolean,
 };
 
 export function getStartLineForIndex(chunks : Chunk[], index : number) {
@@ -104,10 +88,9 @@ export function emptyChunk(options?: Partial<Chunk>): Chunk {
   return {
     startLine: 0,
     id: newId(),
-    errorState: { status: 'notLinted' },
+    results: { status: 'succeeded', objects: [] },
     editor: { getValue: () => '' },
-    needsJiggle: false,
-    selection: emptySelection,
+    outdated: true,
     ...options,
   };
 }
@@ -123,7 +106,8 @@ export function makeChunksFromString(s: string): Chunk[] {
     const chunk: Chunk = emptyChunk({
       editor: { getValue: () => chunkString },
       startLine: totalLines,
-      errorState: notLintedState,
+      results: { status: 'succeeded', objects: [] },
+      outdated: true,
     });
 
     totalLines += chunkString.split('\n').length;
@@ -131,35 +115,6 @@ export function makeChunksFromString(s: string): Chunk[] {
     return chunk;
   });
   return chunks;
-}
-
-export function removeSelection(chunk: Chunk): Chunk {
-  return {
-    ...chunk,
-    selection: emptySelection,
-  };
-}
-
-export function removeAllSelections(chunks: Chunk[]): Chunk[] {
-  return chunks.map(removeSelection);
-}
-
-export function selectAll(chunk: Chunk): Chunk {
-  const anchor = { line: 0, ch: 0 };
-
-  const lines = chunk.editor.getValue().split('\n');
-
-  // TODO: Are lines, characters zero-indexed? There might be an off-by-one
-  // error here.
-  const head = {
-    line: lines.length - 1,
-    ch: lines[lines.length - 1].length,
-  };
-
-  return {
-    ...chunk,
-    selection: { anchor, head },
-  };
 }
 
 // Returns the number of characters from the start of `text` to the line and character
@@ -182,80 +137,6 @@ function getLineAndChIndex(text: string, lineAndCh: LineAndCh): number | false {
   }
 
   return false;
-}
-
-function getSelectedText(text: string, selection: Selection): string {
-  const anchorIndex = getLineAndChIndex(text, selection.anchor);
-  const headIndex = getLineAndChIndex(text, selection.head);
-
-  if (anchorIndex !== false && headIndex !== false) {
-    return text.substring(anchorIndex, headIndex);
-  }
-
-  return '';
-}
-
-export function getChunkSelectedText(chunk: Chunk): string {
-  const {
-    editor,
-    selection,
-  } = chunk;
-
-  const selectedText = getSelectedText(editor.getValue(), selection);
-
-  return selectedText;
-}
-
-export function isEmptySelection(selection: Selection): boolean {
-  return selection.anchor.line === 0
-      && selection.anchor.ch === 0
-      && selection.head.line === 0
-      && selection.head.ch === 0;
-}
-
-export function removeSelectedText(chunk: Chunk): Chunk {
-  const {
-    selection,
-    editor,
-  } = chunk;
-
-  if (isEmptySelection(selection) === false) {
-    const anchorIndex = getLineAndChIndex(editor.getValue(), selection.anchor);
-    const headIndex = getLineAndChIndex(editor.getValue(), selection.head);
-
-    if (anchorIndex !== false && headIndex !== false) {
-      let newEditor;
-      if ('replaceRange' in editor) {
-        const from = editor.posFromIndex(anchorIndex);
-        const to = editor.posFromIndex(headIndex);
-        editor.replaceRange('', from, to);
-        newEditor = editor;
-      } else {
-        // TODO(luna): CHUNKSTEXT
-        console.error('editor was not initialized when removedSelectedText called');
-        const text = editor.getValue();
-        newEditor = {
-          getValue: () => (
-            text.substring(0, anchorIndex) + text.substring(headIndex + 1, text.length)
-          ),
-        };
-      }
-
-      return {
-        ...chunk,
-        editor: newEditor,
-        selection: emptySelection,
-        errorState: notLintedState,
-      };
-    }
-
-    return {
-      ...chunk,
-      selection: emptySelection,
-    };
-  }
-
-  return chunk;
 }
 
 // Returns 1 when `a` is at a larger index than `b`, -1 when the opposite is

@@ -37,9 +37,6 @@ export type State = {
    * prefers chunkToRHS */
   rhs: RHSObjects,
 
-  /* A map from chunk id to list of results for that chunk. */
-  chunkToRHS: Map<string, RHSObjects>,
-
   /* Parsed messages from an executed/executing Pyret program */
   rtMessages: RTMessages,
 
@@ -75,6 +72,10 @@ export type State = {
 
   /* The list of chunks. */
   chunks: Chunk[],
+
+  /* Chunk undo history */
+  chunksPast: Chunk[][],
+  chunksFuture: Chunk[][],
 
   /* True if the current file has been saved since the last edit, false otherwise. */
   /* Technically unused, but it actually looks pretty useful. Will keep around,
@@ -158,7 +159,6 @@ export const initialState: State = {
     objects: [],
     outdated: false,
   },
-  chunkToRHS: new Map(),
   rtMessages: {
     messages: [],
     outdated: false,
@@ -176,6 +176,8 @@ export const initialState: State = {
   compiling: false,
   running: false,
   chunks: [],
+  chunksPast: [],
+  chunksFuture: [],
   menuTabVisible: false,
   menuItems: [
     {

@@ -36,12 +36,10 @@ import {
   Chunk,
   CHUNKSEP,
   emptyChunk,
-  notLintedState,
 } from './chunk';
 
 import {
   makeRHSObjects,
-  RHSObjects,
 } from './rhsObject';
 
 import {
@@ -220,7 +218,6 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
             // TODO(luna): CHUNKSTEXT this is where the fun happens
             editor: { getValue: () => chunkString },
             startLine: totalLines,
-            errorState: notLintedState,
           }));
 
           totalLines += chunkString.split('\n').length;
@@ -278,22 +275,9 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
 
   const {
     chunks,
-    compiling,
     currentFileContents,
     firstTechnicallyOutdatedSegment,
   } = state;
-
-  function nextCompilingState(): boolean | 'out-of-date' {
-    if (compiling === true) {
-      if (update.modifiesText) {
-        return 'out-of-date';
-      }
-
-      return true;
-    }
-
-    return false;
-  }
 
   if (isMultipleChunkUpdate(update)) {
     let contents = currentFileContents;
@@ -316,7 +300,6 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
       chunks: update.chunks,
       currentFileContents: contents,
       isFileSaved: isFileSaved && update.modifiesText === false,
-      compiling: nextCompilingState(),
       firstTechnicallyOutdatedSegment: newOutdate,
     };
   }
@@ -338,7 +321,6 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
       chunks: newChunks,
       currentFileContents: contents,
       isFileSaved: isFileSaved && update.modifiesText === false,
-      compiling: nextCompilingState(),
       firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, chunkId),
     };
   }
@@ -405,8 +387,6 @@ function handleUpdate(
       return handleSetCurrentFile(state, action.value);
     case 'chunks':
       return handleSetChunks(state, action.value);
-    case 'chunkToRHS':
-      return { ...state, chunkToRHS: action.value };
     case 'fontSize':
       return handleSetFontSize(state, action.value);
     case 'runKind':
@@ -451,41 +431,26 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
 
   const rhs = makeRHSObjects(result, `file://${segmentName(currentFile, id)}`);
 
-  // Associate rhs to chunks *now* before they're outdated. Then only chunk
-  // deletion / insertion needs to be tracked to correspond outdated RHSs
-  // through edits
-  const chunkToRHS: Map<string, RHSObjects> = new Map(state.chunkToRHS);
-  chunkToRHS.set(id, rhs);
-
   // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
   //   resulting in a severe memory leak of 50+MB PER RUN
   cleanStopify();
 
   const newChunks = chunks.slice();
-  const locations = result.result.$locations;
-  const traces = result.result.$traces;
-
   const index = newChunks.findIndex((c) => c.id === id);
-  if (locations.length > 0 || traces.length > 0) {
-    newChunks[index] = {
-      ...newChunks[index],
-      errorState: {
-        status: 'succeeded',
-        effect: 'run',
-        result: 'TODO(luna): is this ever read?',
-      },
-    };
-  }
+
+  newChunks[index] = {
+    ...newChunks[index],
+    results: {
+      status: 'succeeded',
+      objects: rhs,
+    },
+    outdated: false,
+  };
 
   console.log('firstTechnicallyOutdatedSegment: ', firstTechnicallyOutdatedSegment, index + 1);
   return {
     ...state,
     chunks: newChunks,
-    rhs: {
-      objects: rhs.objects,
-      outdated: rhs.outdated,
-    },
-    chunkToRHS,
     firstTechnicallyOutdatedSegment: Math.max(firstTechnicallyOutdatedSegment, index + 1),
   };
 }
@@ -498,10 +463,10 @@ function handleRunSessionFailure(state: State, id: string, error: string) {
   const index = newChunks.findIndex((c) => c.id === id);
   newChunks[index] = {
     ...newChunks[index],
-    errorState: {
-      // TODO(luna): obviously the effect is... run, not compile
-      status: 'failed', effect: 'compile', failures: [{ $name: 'text', str: error }], highlights: [],
+    results: {
+      status: 'failed', failures: [{ $name: 'text', str: error }], highlights: [],
     },
+    outdated: false,
   };
   return {
     ...state,
@@ -530,8 +495,8 @@ function handleCompileSessionFailure(
   }
 
   function getExistingHighlights(chunk : Chunk): number[][] | null {
-    if (chunk.errorState.status === 'failed') {
-      return chunk.errorState.highlights;
+    if (chunk.results.status === 'failed') {
+      return chunk.results.highlights;
     }
     return null;
   }
@@ -554,14 +519,12 @@ function handleCompileSessionFailure(
         const hl = getExistingHighlights(newChunks[chunkIndex]);
         newChunks[chunkIndex] = {
           ...newChunks[chunkIndex],
-          errorState: {
+          results: {
             status: 'failed',
             failures,
-            // These might not be used in chatitor atm
-            effect: 'compile',
             highlights: hl ? [...hl, asHL(place)] : [asHL(place)],
           },
-          needsJiggle: true,
+          outdated: false,
         };
       }
     });
@@ -574,11 +537,9 @@ function handleCompileSessionFailure(
   const chunkIndex = newChunks.findIndex((c) => c.id === id);
   newChunks[chunkIndex] = {
     ...newChunks[chunkIndex],
-    errorState: {
+    results: {
       status: 'failed',
       failures,
-      // These might not be used in chatitor atm
-      effect: 'compile',
       highlights: [asHL({
         $name: 'srcloc',
         source: 'dummy',
@@ -591,7 +552,7 @@ function handleCompileSessionFailure(
         asString: 'dummy',
       })],
     },
-    needsJiggle: true,
+    outdated: false,
   };
   return {
     ...state,
@@ -645,8 +606,8 @@ function handleRunProgramSuccess(state : State, result : any) {
     interactionErrors: [],
     definitionsHighlights: [],
     rhs: {
-      objects: rhs.objects,
-      outdated: rhs.outdated,
+      objects: rhs,
+      outdated: false,
     },
     messageTabIndex: MessageTabIndex.RuntimeMessages,
   };

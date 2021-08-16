@@ -100,7 +100,6 @@ and overriding of rules. */
   flex-direction: column;
   align-items: flex-end;
   margin-bottom: 0.5em;
-  max-width: fit-content;
 }
 
 .chat-layout-compact .chat-editor-wrapper {
@@ -167,7 +166,6 @@ and overriding of rules. */
 .chat-layout-compact .chatitor-rhs.pending,
 .chat-layout-normal .chatitor-rhs.pending {
   background-color: transparent;
-  border: 1px dashed black;
 }
 .chat-layout-compact .partially-outdated,
 .chat-layout-normal .partially-outdated {
