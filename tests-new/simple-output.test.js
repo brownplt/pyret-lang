@@ -29,16 +29,8 @@ describe("testing simple-output programs", () => {
       if(typeCheck) { typecheck = "typecheck"; }
       if(global._PYRET_PIPELINE && 
          global._PYRET_PIPELINE.startsWith("ts-anchor")) { pipeline = global._PYRET_PIPELINE; }
-      compileProcess = cp.spawnSync(
-        "node",
-        ["tests-new/run-pyret.js", f, typecheck, pipeline, "empty"],
-        {stdio: "pipe", timeout: COMPILER_TIMEOUT});
-
-      assert(compileProcess.status === 0, `${compileProcess.stdout}\n${compileProcess.stderr}`);
 
       const contents = String(fs.readFileSync(f));
-
-
       const lines = contents.split("\n");
       let expected = [];
       let stderrExpected = [];
@@ -54,6 +46,22 @@ describe("testing simple-output programs", () => {
       });
       if(expected.length === 0 && stderrExpected.length === 0) {
         throw new Error("Test file did not define any expected output");
+      }
+
+      compileProcess = cp.spawnSync(
+        "node",
+        ["tests-new/run-pyret.js", f, typecheck, pipeline, "empty"],
+        {stdio: "pipe", timeout: COMPILER_TIMEOUT});
+
+      if(compileProcess.status !== 0) {
+        let stderr = compileProcess.stderr;
+        stderrExpected.forEach((expect) => {
+          assert(stderr.indexOf(expect) !== -1, `=====EXPECTED STDERR TO CONTAIN THESE LINES IN ORDER=====\n${stderrExpected.join("\n")}\n=====ACTUAL STDERR=====\n${compileProcess.stderr} and stdout was\n${compileProcess.stdout}`);
+          stderr = stderr.slice(stderr.indexOf(expect) + expect.length);
+        });
+
+        assert(stderrExpected.length !== 0, `Compilation failed, which was not expected (there were no expected errors): ${compileProcess.stdout}\n${compileProcess.stderr}`);
+        return;
       }
 
       const basename = path.basename(f);
@@ -76,7 +84,7 @@ describe("testing simple-output programs", () => {
       let stderr = runProcess.stderr;
       stderrExpected.forEach((expect) => {
         assert(stderr.indexOf(expect) !== -1, `=====EXPECTED STDERR TO CONTAIN THESE LINES IN ORDER=====\n${stderrExpected.join("\n")}\n=====ACTUAL STDERR=====\n${runProcess.stderr} and stdout was\n${runProcess.stdout}`);
-        stderr = runProcess.stdout.slice(runProcess.stdout.indexOf(expect) + expect.length);
+        stderr = runProcess.stderr.slice(runProcess.stderr.indexOf(expect) + expect.length);
       });
     });
   });

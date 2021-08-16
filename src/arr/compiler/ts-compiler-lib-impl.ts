@@ -374,9 +374,16 @@ type ResolveScopeExports = {
         }
         currPath.push(locator);
         runtime.runThunk(() => visit(locator, context), 
-        () => {
-          // since our dependencies were added at the tail of the list, our topo sort is in the correct order
-          restarter.resume(runtime.ffi.makeList(topo.map((t) => runtime.makeObject({locator: t.locator, 'dependency-map': mutableStringDictFromMap(t.dependencyMap)}))));
+        (result) => {
+          if(runtime.isFailureResult(result)) {
+            restarter.error(result.exn);
+          }
+          else {
+            // NOTE(joe): assume we have had all the right effects, so as long as there
+            // isn't a failure, we can return the result of all of these updates.
+            // since our dependencies were added at the tail of the list, our topo sort is in the correct order
+            restarter.resume(runtime.ffi.makeList(topo.map((t) => runtime.makeObject({locator: t.locator, 'dependency-map': mutableStringDictFromMap(t.dependencyMap)}))));
+          }
         });
       });
     }
