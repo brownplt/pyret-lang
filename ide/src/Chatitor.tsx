@@ -193,6 +193,7 @@ function Chatitor({
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
         onKeyDown={((editor: CodeMirror.Editor & CodeMirror.Doc, event: KeyboardEvent) => {
+          event.stopPropagation();
           switch ((event as any).key) {
             case 'Enter': {
               const pos = editor.getCursor();

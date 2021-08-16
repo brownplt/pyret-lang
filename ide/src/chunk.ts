@@ -3,6 +3,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { Failure } from './failure';
 import { RHSObject } from './rhsObject';
+import { CMEditor } from './utils';
 
 export const CHUNKSEP = '#.CHUNK#\n';
 
@@ -30,6 +31,10 @@ export type UninitializedEditor = {
   grabFocus?: boolean,
 };
 
+export function isInitializedEditor(editor: CMEditor | UninitializedEditor): editor is CMEditor {
+  return 'getDoc' in editor;
+}
+
 export type Chunk = {
   /* the line number of the first line of this chunk */
   startLine: number,
@@ -39,7 +44,7 @@ export type Chunk = {
 
   /* the underlying CodeMirror instance. Can be false if the chunk has not yet
      been rendered. */
-  editor: UninitializedEditor | (CodeMirror.Editor & CodeMirror.Doc);
+  editor: UninitializedEditor | CMEditor;
 
   /* Results for this chunk */
   results: ChunkResults,

@@ -330,64 +330,147 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
 }
 
 function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
-  const { chunks, chunksPast } = state;
-  let newChunks: Chunk[];
+  const { chunks, past, firstTechnicallyOutdatedSegment } = state;
   switch (update.key) {
     case 'clear':
-      newChunks = [];
-      break;
-    case 'delete':
-      newChunks = [
+      return {
+        ...state,
+        chunks: [],
+        past: [...past, { type: 'clear', chunks, firstTechnicallyOutdatedSegment }],
+        future: [],
+        firstTechnicallyOutdatedSegment: 0,
+      };
+    case 'delete': {
+      const newChunks = [
         ...chunks.slice(0, update.index),
         ...chunks.slice(update.index + 1, chunks.length),
       ];
-      break;
-    case 'insert':
-      newChunks = [
+      return {
+        ...state,
+        chunks: newChunks,
+        past: [...past, { type: 'delete', index: update.index, chunk: chunks[update.index] }],
+        future: [],
+        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, update.index),
+      };
+    }
+    case 'insert': {
+      const newChunk = emptyChunk({
+        editor: { getValue() { return update.text ?? ''; }, grabFocus: update.grabFocus },
+      });
+      const newChunks = [
         ...chunks.slice(0, update.index),
-        emptyChunk({
-          editor: { getValue() { return update.text ?? ''; } },
-        }),
+        newChunk,
         ...chunks.slice(update.index, chunks.length),
       ];
-      break;
+      return {
+        ...state,
+        chunks: newChunks,
+        past: [...past, { type: 'insert', index: update.index, chunk: newChunk }],
+        future: [],
+        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, update.index),
+      };
+    }
     default:
       throw new NeverError(update);
   }
-  return {
-    ...state,
-    chunks: newChunks,
-    chunksPast: [...chunksPast, chunks],
-    chunksFuture: [],
-  };
 }
 
 function handleUndo(state: State): State {
-  const { chunks, chunksPast, chunksFuture } = state;
-  if (chunksPast.length === 0) {
+  const {
+    chunks, past, future, firstTechnicallyOutdatedSegment,
+  } = state;
+  if (past.length === 0) {
     return state;
   }
-  const newChunks = chunksPast[chunksPast.length - 1];
-  return {
-    ...state,
-    chunks: newChunks,
-    chunksPast: chunksPast.slice(0, -1),
-    chunksFuture: [...chunksFuture, chunks],
-  };
+  const event = past[past.length - 1];
+  switch (event.type) {
+    case 'clear':
+      return {
+        ...state,
+        chunks: event.chunks,
+        past: past.slice(0, -1),
+        future: [...future, event],
+        firstTechnicallyOutdatedSegment: event.firstTechnicallyOutdatedSegment,
+      };
+    case 'insert': {
+      const newChunks = [
+        ...chunks.slice(0, event.index),
+        ...chunks.slice(event.index + 1, chunks.length),
+      ];
+      return {
+        ...state,
+        chunks: newChunks,
+        past: past.slice(0, -1),
+        future: [...future, event],
+        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, event.index),
+      };
+    }
+    case 'delete': {
+      const newChunks = [
+        ...chunks.slice(0, event.index),
+        event.chunk,
+        ...chunks.slice(event.index, chunks.length),
+      ];
+      return {
+        ...state,
+        chunks: newChunks,
+        past: past.slice(0, -1),
+        future: [...future, event],
+        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, event.index),
+      };
+    }
+    default:
+      throw new NeverError(event);
+  }
 }
 
 function handleRedo(state: State): State {
-  const { chunks, chunksPast, chunksFuture } = state;
-  if (chunksFuture.length === 0) {
+  const {
+    chunks, past, future, firstTechnicallyOutdatedSegment,
+  } = state;
+  if (future.length === 0) {
     return state;
   }
-  const newChunks = chunksFuture[chunksFuture.length - 1];
-  return {
-    ...state,
-    chunks: newChunks,
-    chunksPast: [...chunksPast, chunks],
-    chunksFuture: chunksFuture.slice(0, -1),
-  };
+  const event = future[future.length - 1];
+  switch (event.type) {
+    case 'clear':
+      return {
+        ...state,
+        chunks: [],
+        past: [...past, event],
+        future: future.slice(0, -1),
+        firstTechnicallyOutdatedSegment: 0,
+      };
+    case 'insert': {
+      const newChunks = [
+        ...chunks.slice(0, event.index),
+        event.chunk,
+        ...chunks.slice(event.index, chunks.length),
+      ];
+      return {
+        ...state,
+        chunks: newChunks,
+        past: [...past, event],
+        future: future.slice(0, -1),
+        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, event.index),
+      };
+    }
+    case 'delete': {
+      const newChunks = [
+        ...chunks.slice(0, event.index),
+        ...chunks.slice(event.index + 1, chunks.length),
+      ];
+      return {
+        ...state,
+        chunks: newChunks,
+        past: [...past, event],
+        future: future.slice(0, -1),
+        firstTechnicallyOutdatedSegment: Math.min(firstTechnicallyOutdatedSegment, event.index),
+      };
+    }
+    default:
+      throw new NeverError(event);
+  }
 }
 
 function handleSetFontSize(state: State, fontSize: number): State {

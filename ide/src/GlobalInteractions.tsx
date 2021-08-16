@@ -23,7 +23,7 @@ type DispatchProps = {
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     clear() {
-      dispatch({ type: 'update', key: 'chunks', value: { chunks: [], modifiesText: true } });
+      dispatch({ type: 'chunk', key: 'clear' });
     },
   };
 }

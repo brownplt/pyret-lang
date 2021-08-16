@@ -6,6 +6,7 @@ import { MenuItems } from './menu-types';
 import { RHSObjects } from './rhsObject';
 import { RTMessages } from './rtMessages';
 import * as control from './control';
+import { HistoryEvent } from './history';
 
 export type State = {
 
@@ -73,9 +74,9 @@ export type State = {
   /* The list of chunks. */
   chunks: Chunk[],
 
-  /* Chunk undo history */
-  chunksPast: Chunk[][],
-  chunksFuture: Chunk[][],
+  /* Undo history */
+  past: HistoryEvent[],
+  future: HistoryEvent[],
 
   /* True if the current file has been saved since the last edit, false otherwise. */
   /* Technically unused, but it actually looks pretty useful. Will keep around,
@@ -176,8 +177,8 @@ export const initialState: State = {
   compiling: false,
   running: false,
   chunks: [],
-  chunksPast: [],
-  chunksFuture: [],
+  past: [],
+  future: [],
   menuTabVisible: false,
   menuItems: [
     {

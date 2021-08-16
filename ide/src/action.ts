@@ -28,7 +28,7 @@ export type EffectSuccess =
 
 // An undoable chunk update
 export type UIChunksUpdate =
-  | { key: 'insert', index: number, text?: string }
+  | { key: 'insert', index: number, grabFocus?: boolean, text?: string }
   | { key: 'delete', index: number }
   | { key: 'clear' };
 

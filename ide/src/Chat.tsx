@@ -20,7 +20,7 @@ import { CMEditor, isWrapFirst, isWrapLast } from './utils';
 
 import {
   Chunk,
-  emptyChunk,
+  isInitializedEditor,
   UninitializedEditor,
 } from './chunk';
 
@@ -73,6 +73,8 @@ type PropsFromReact = {
 type DispatchProps = {
   run: () => void,
   setChunks: (chunks: ChunksUpdate) => void,
+  deleteChunk: (index: number) => void,
+  insertChunk: (index: number) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
@@ -82,6 +84,14 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     },
     setChunks(chunks: ChunksUpdate) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });
+    },
+    deleteChunk(index: number) {
+      dispatch({ type: 'chunk', key: 'delete', index });
+    },
+    insertChunk(index: number) {
+      dispatch({
+        type: 'chunk', key: 'insert', index, grabFocus: true,
+      });
     },
   };
 }
@@ -269,48 +279,26 @@ class Chat extends React.Component<ChatProps, any> {
   }
 
   handleBlur(editor: CMEditor) {
-    const {
-      index,
-    } = this.props;
+    const { index } = this.props;
     if (editor.getValue().trim() === '') {
+      // Prepare chunk for reasonable state if restored by GLOBAL undo by doing
+      // a LOCAL undo (presumably undoing a backspace)
+      if (isInitializedEditor(editor)) {
+        editor.undo();
+      }
       this.deleteChunk(index);
     }
   }
 
   insertAbove() {
-    const {
-      chunks,
-      setChunks,
-      index,
-    } = this.props;
-    const newChunks = [
-      ...chunks.slice(0, index),
-      emptyChunk({
-        editor: { getValue: () => '', grabFocus: true },
-      }),
-      ...chunks.slice(index, chunks.length),
-    ];
-    setChunks({
-      chunks: newChunks,
-      modifiesText: true,
-    });
+    const { insertChunk: insert, index } = this.props;
+    insert(index);
   }
 
   /* Delete this chunk and move every chunk below it up by one */
   deleteChunk(index: number) {
-    const {
-      chunks,
-      setChunks,
-      run,
-    } = this.props;
-    const newChunks = [
-      ...chunks.slice(0, index),
-      ...chunks.slice(index + 1, chunks.length),
-    ];
-    setChunks({
-      chunks: newChunks,
-      modifiesText: true,
-    });
+    const { deleteChunk, run } = this.props;
+    deleteChunk(index);
     run();
   }
 
@@ -362,6 +350,10 @@ class Chat extends React.Component<ChatProps, any> {
     editor.setValue(initialEditor.getValue());
     if ('grabFocus' in initialEditor && initialEditor.grabFocus) {
       editor.getInputField().focus();
+    }
+
+    if (isInitializedEditor(initialEditor)) {
+      editor.setHistory(initialEditor.getHistory());
     }
 
     setChunks({
@@ -465,6 +457,8 @@ class Chat extends React.Component<ChatProps, any> {
             this.scheduleUpdate();
           }}
           onKeyDown={((editor: CMEditor, event: KeyboardEvent) => {
+            // Ctrl-Z, Ctrl-Y/Ctrl-Shift-Z should not occur on document/chunks
+            event.stopPropagation();
             switch ((event as any).key) {
               case 'Enter':
                 this.handleEnter(editor, event);
