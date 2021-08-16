@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@stopify/stopify": "^0.7.2",
-    "@types/node": "^12.0.2",
     "ascii-table": "~0.0.9",
     "benchmark": "^2.1.4",
     "browserfs": "^1.4.3",
@@ -42,6 +41,7 @@
     "@types/escodegen": "0.0.6",
     "@types/estree": "0.0.47",
     "@types/jest": "^26.0.19",
+    "@types/node": "^16.6.1",
     "chromedriver": "^91.0.0",
     "escodegen": "^2.0.0",
     "geckodriver": "^1.19.1",
