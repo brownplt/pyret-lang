@@ -26,6 +26,12 @@ export type EffectSuccess =
   | { effectKey: 'loadFile' }
   | { effectKey: 'saveFile' };
 
+// An undoable chunk update
+export type UIChunksUpdate =
+  | { key: 'insert', index: number, text?: string }
+  | { key: 'delete', index: number }
+  | { key: 'clear' };
+
 export type SuccessForEffect<E extends EffectKey> =
   Extract<EffectSuccess, { effectKey: E }>;
 
@@ -78,12 +84,6 @@ export type Run =
   | { key: 'runProgram' }
   | { key: 'runSegments' };
 
-export type UpdateKey = Update['key'];
-
-export type UpdateOfKey<K extends UpdateKey> = Extract<Update, { key: K }>;
-
-export type UpdateOfKeyValue<K extends UpdateKey> = UpdateOfKey<K>['value'];
-
 export type EffectStarted = { effect: number };
 
 export type EnqueueEffect = { effect: Effect };
@@ -93,17 +93,8 @@ export type Action =
   | { type: 'effectEnded' } & EffectEnded
   | { type: 'enqueueEffect' } & EnqueueEffect
   | { type: 'update' } & Update
-  | { type: 'chunk', key: 'insert' | 'delete' | 'clear' }
+  | { type: 'chunk' } & UIChunksUpdate
+  | { type: 'undo' }
+  | { type: 'redo' }
   | { type: 'run' } & Run
   | { type: 'stopSession' };
-
-export type ActionType = Action['type'];
-
-export type ActionOfType<T extends ActionType> = Extract<Action, { type: T }>;
-
-export function isActionType<K extends ActionType>(
-  actionType: K,
-  action: Action,
-): action is ActionOfType<K> {
-  return actionType === action.type;
-}

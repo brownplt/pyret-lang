@@ -12,7 +12,7 @@ import {
   State,
 } from './state';
 import {
-  Chunk, emptyChunk, getStartLineForIndex,
+  Chunk, emptyChunk,
 } from './chunk';
 import Chat from './Chat';
 import { isWrapFirst } from './utils';
@@ -26,6 +26,9 @@ type StateProps = {
 type DispatchProps = {
   run: () => void,
   setChunks: (chunks: ChunksUpdate) => void,
+  insertChunk: (index: number, text: string) => void,
+  undo: () => void,
+  redo: () => void,
 };
 
 function mapStateToProps(state: State): StateProps {
@@ -50,6 +53,17 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     setChunks(chunks: ChunksUpdate) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });
     },
+    undo() {
+      dispatch({ type: 'undo' });
+    },
+    redo() {
+      dispatch({ type: 'redo' });
+    },
+    insertChunk(index: number, text: string) {
+      dispatch({
+        type: 'chunk', key: 'insert', index, text,
+      });
+    },
   };
 }
 
@@ -64,6 +78,9 @@ function Chatitor({
   enterNewline,
   setChunks,
   editorLayout,
+  undo,
+  redo,
+  insertChunk,
 }: DefChunksProps) {
   const [mountedEditor, setEditor] = (
     React.useState<(CodeMirror.Editor & CodeMirror.Doc) | null>(null)
@@ -74,6 +91,21 @@ function Chatitor({
   const [isFocused, setIsFocused] = (
     React.useState<boolean>(false as boolean)
   );
+  function keyDown(event: KeyboardEvent) {
+    if (event.ctrlKey) {
+      if (event.key.toLowerCase() === 'y' || (event.shiftKey && event.key.toLowerCase() === 'z')) {
+        redo();
+      } else if (event.key.toLowerCase() === 'z') {
+        undo();
+      }
+    }
+  }
+  React.useEffect(() => {
+    document.addEventListener('keydown', keyDown);
+    return () => {
+      document.removeEventListener('keydown', keyDown);
+    };
+  });
   // UnControlled continues to have stale closures for no reason, ref is an easy
   // solution
   const chunksRef = React.useRef(chunks);
@@ -171,17 +203,7 @@ function Chatitor({
                 if (editor.getValue() !== '') {
                   const value = editor.getValue();
                   if (!mergeDesignRecipe(value)) {
-                    const nextChunks: Chunk[] = [
-                      ...chunksRef.current,
-                      emptyChunk({
-                        startLine: getStartLineForIndex(
-                          chunksRef.current,
-                          chunksRef.current.length,
-                        ),
-                        editor: { getValue: () => value },
-                      }),
-                    ];
-                    setChunks({ chunks: nextChunks, modifiesText: true });
+                    insertChunk(chunksRef.current.length, value);
                   }
                   editor.setValue('');
                   run();

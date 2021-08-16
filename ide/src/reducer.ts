@@ -23,6 +23,7 @@ import {
   ChunksUpdate,
   isMultipleChunkUpdate,
   isSingleChunkUpdate,
+  UIChunksUpdate,
 } from './action';
 
 import {
@@ -326,6 +327,67 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   }
 
   throw new NeverError(update);
+}
+
+function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
+  const { chunks, chunksPast } = state;
+  let newChunks: Chunk[];
+  switch (update.key) {
+    case 'clear':
+      newChunks = [];
+      break;
+    case 'delete':
+      newChunks = [
+        ...chunks.slice(0, update.index),
+        ...chunks.slice(update.index + 1, chunks.length),
+      ];
+      break;
+    case 'insert':
+      newChunks = [
+        ...chunks.slice(0, update.index),
+        emptyChunk({
+          editor: { getValue() { return update.text ?? ''; } },
+        }),
+        ...chunks.slice(update.index, chunks.length),
+      ];
+      break;
+    default:
+      throw new NeverError(update);
+  }
+  return {
+    ...state,
+    chunks: newChunks,
+    chunksPast: [...chunksPast, chunks],
+    chunksFuture: [],
+  };
+}
+
+function handleUndo(state: State): State {
+  const { chunks, chunksPast, chunksFuture } = state;
+  if (chunksPast.length === 0) {
+    return state;
+  }
+  const newChunks = chunksPast[chunksPast.length - 1];
+  return {
+    ...state,
+    chunks: newChunks,
+    chunksPast: chunksPast.slice(0, -1),
+    chunksFuture: [...chunksFuture, chunks],
+  };
+}
+
+function handleRedo(state: State): State {
+  const { chunks, chunksPast, chunksFuture } = state;
+  if (chunksFuture.length === 0) {
+    return state;
+  }
+  const newChunks = chunksFuture[chunksFuture.length - 1];
+  return {
+    ...state,
+    chunks: newChunks,
+    chunksPast: [...chunksPast, chunks],
+    chunksFuture: chunksFuture.slice(0, -1),
+  };
 }
 
 function handleSetFontSize(state: State, fontSize: number): State {
@@ -767,6 +829,12 @@ function rootReducer(state: State, action: Action): State {
       return stopSession(state);
     case 'update':
       return handleUpdate(state, action);
+    case 'chunk':
+      return handleUIChunkUpdate(state, action);
+    case 'undo':
+      return handleUndo(state);
+    case 'redo':
+      return handleRedo(state);
     default:
       return state;
   }
