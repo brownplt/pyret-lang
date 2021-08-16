@@ -4,9 +4,8 @@ import type {
   open,
   writeFile,
   fsync,
-  access,
+  exists,
   lstat,
-  constants,
   realpath,
   close,
   mkdir,
@@ -19,9 +18,8 @@ type FS = {
   open: typeof open,
   writeFile: typeof writeFile,
   fsync: typeof fsync,
-  access: typeof access,
+  exists: typeof exists,
   lstat: typeof lstat,
-  constants: typeof constants,
   realpath: typeof realpath,
   close: typeof close,
   mkdir: typeof mkdir,
@@ -199,8 +197,8 @@ export type Exports = {
           RUNTIME.ffi.checkArity(1, arguments, "mtimes", false);
           RUNTIME.checkString(path);
           return RUNTIME.pauseStack(function(restarter) {
-            fs.access(path, fs.constants.F_OK, function(err) {
-              if (err) {
+            fs.exists(path, function(exists) {
+              if (!exists) {
                 restarter.error(
                   RUNTIME.ffi.makeMessageException("File " + path + " did not exist when getting file-times"));
               }
@@ -224,8 +222,8 @@ export type Exports = {
             RUNTIME.ffi.throwMessageException("Expected a file, but got something else");
           }
           return RUNTIME.pauseStack(function(restarter) {
-            fs.access(v.name, fs.constants.F_OK, function(err) {
-              if (err) {
+            fs.exists(v.name, function(exists) {
+              if (!exists) {
                 restarter.error(
                   RUNTIME.ffi.makeMessageException("File " + v.name + " did not exist when getting file-times"));
               }
@@ -265,8 +263,8 @@ export type Exports = {
           RUNTIME.checkString(path);
           var s = RUNTIME.unwrap(path);
           return RUNTIME.pauseStack(function(restarter) {
-            fs.access(s, fs.constants.F_OK, function(err) {
-              restarter.resume(RUNTIME.makeBoolean(!err));
+            fs.exists(s, function(exists) {
+              restarter.resume(RUNTIME.makeBoolean(exists));
             });
           });
         }, "exists"),
