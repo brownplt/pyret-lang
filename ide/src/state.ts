@@ -18,7 +18,7 @@ export type Outdates =
 
 // Includes the actual state as-of-the-event, but *also* additional information
 // about how to reconstruct it as-needed
-// NOTE(luna): right now, only the firstTechnicallyInvalidatedChunk, which makes
+// NOTE(luna): right now, only the firstOutdatedChunk, which makes
 // me wonder if that should be a computed property! The trouble is if we, say,
 // delete a chunk, who holds the invalidation?)
 type UndoState = {

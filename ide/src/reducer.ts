@@ -278,19 +278,19 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   const {
     chunks,
     currentFileContents,
-    firstOutdatedChunk: firstTechnicallyOutdatedSegment,
+    firstOutdatedChunk,
   } = state;
 
   if (isMultipleChunkUpdate(update)) {
     let contents = currentFileContents;
 
-    let newOutdate = firstTechnicallyOutdatedSegment;
+    let newOutdate = firstOutdatedChunk;
     if (update.modifiesText) {
       const firstDiffering = update.chunks
         .findIndex((c, i) => chunks[i]?.editor.getValue() !== c.editor.getValue());
       newOutdate = firstDiffering === -1
-        ? firstTechnicallyOutdatedSegment
-        : Math.min(firstTechnicallyOutdatedSegment, firstDiffering);
+        ? firstOutdatedChunk
+        : Math.min(firstOutdatedChunk, firstDiffering);
     }
 
     if (update.modifiesText) {
@@ -323,7 +323,7 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
       chunks: newChunks,
       currentFileContents: contents,
       isFileSaved: isFileSaved && update.modifiesText === false,
-      firstOutdatedChunk: Math.min(firstTechnicallyOutdatedSegment, chunkId),
+      firstOutdatedChunk: Math.min(firstOutdatedChunk, chunkId),
     };
   }
 
@@ -350,7 +350,7 @@ function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
       newChunks = [
         ...chunks.slice(0, update.index),
         emptyChunk({
-          editor: { getValue() { return update.text ?? ''; } },
+          editor: { getValue() { return update.text ?? ''; }, grabFocus: update.grabFocus },
         }),
         ...chunks.slice(update.index, chunks.length),
       ];
@@ -523,7 +523,7 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
   const {
     chunks,
     currentFile,
-    firstOutdatedChunk: firstTechnicallyOutdatedSegment,
+    firstOutdatedChunk,
   } = state;
 
   const rhs = makeRHSObjects(result, `file://${segmentName(currentFile, id)}`);
@@ -544,11 +544,10 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
     outdated: false,
   };
 
-  console.log('firstTechnicallyOutdatedSegment: ', firstTechnicallyOutdatedSegment, index + 1);
   return {
     ...state,
     chunks: newChunks,
-    firstOutdatedChunk: Math.max(firstTechnicallyOutdatedSegment, index + 1),
+    firstOutdatedChunk: Math.max(firstOutdatedChunk, index + 1),
   };
 }
 
@@ -568,7 +567,7 @@ function handleRunSessionFailure(state: State, id: string, error: string) {
   return {
     ...state,
     chunks: newChunks,
-    firstTechnicallyOutdatedSegment: Math.max(state.firstOutdatedChunk, index + 1),
+    firstOutdatedChunk: Math.max(state.firstOutdatedChunk, index + 1),
   };
 }
 
@@ -580,7 +579,7 @@ function handleCompileSessionFailure(
   const failures = errors.map((e) => JSON.parse(e));
   const places: Srcloc[] = failures.flatMap(getLocs);
 
-  const { chunks, currentFile, firstOutdatedChunk: firstTechnicallyOutdatedSegment } = state;
+  const { chunks, currentFile, firstOutdatedChunk } = state;
 
   function findChunkFromSrclocResult(loc: Srcloc): number | null {
     for (let i = 0; i < chunks.length; i += 1) {
@@ -593,7 +592,7 @@ function handleCompileSessionFailure(
 
   const newChunks = [...chunks];
   if (places.length > 0) {
-    let max = firstTechnicallyOutdatedSegment;
+    let max = firstOutdatedChunk;
     places.forEach((place) => {
       const chunkIndex = findChunkFromSrclocResult(place);
       if (chunkIndex) {
@@ -626,7 +625,7 @@ function handleCompileSessionFailure(
   return {
     ...state,
     chunks: newChunks,
-    firstOutdatedChunk: Math.max(firstTechnicallyOutdatedSegment, chunkIndex + 1),
+    firstOutdatedChunk: Math.max(firstOutdatedChunk, chunkIndex + 1),
   };
 }
 
@@ -714,8 +713,15 @@ async function runProgramAsync(state : State) : Promise<any> {
 let stopFlag = false;
 async function runSegmentsAsync(state : State) : Promise<any> {
   stopFlag = false;
-  const { typeCheck, chunks, firstOutdatedChunk: firstTechnicallyOutdatedSegment } = state;
-  const onlyLastSegmentChanged = firstTechnicallyOutdatedSegment === chunks.length - 1;
+  const { typeCheck, chunks, firstOutdatedChunk } = state;
+  const onlyLastSegmentChanged = firstOutdatedChunk === chunks.length - 1
+      // If any non-outdated segment was an error, the final segment would not
+      // be non-outdated, with the exception of the last segment itself. We
+      // don't want to run this one in such a case because it would have been
+      // skipped by the "break on error" logic. Are we ever going to reconsider
+      // that logic?
+      && chunks[chunks.length - 2] !== undefined
+      && chunks[chunks.length - 2].results.status === 'succeeded';
   const filenames: string[] = [];
   console.log('RUNNING THESE CHUNKS:');
   chunks.forEach((c, i) => {

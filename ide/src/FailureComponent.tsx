@@ -14,18 +14,27 @@ export default function FailureComponent({ failure, id, editor }: Props) {
       return (
         <>
           {failure.contents.map((f, i) => (
-            // eslint-disable-next-line
+            // eslint-disable-next-line react/no-array-index-key
             <FailureComponent failure={f} key={i} id={id} editor={editor} />
           ))}
         </>
+      );
+    case 'bulleted-sequence':
+      return (
+        <ul>
+          {failure.contents.map((f, i) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <li key={i}><FailureComponent failure={f} id={id} editor={editor} /></li>
+          ))}
+        </ul>
       );
     case 'h-sequence':
       return (
         <>
           {intersperse(
             failure.contents.map((f, i) => (
-            // eslint-disable-next-line
-            <FailureComponent failure={f} key={i} id={id} editor={editor} />
+              // eslint-disable-next-line react/no-array-index-key
+              <FailureComponent failure={f} key={i} id={id} editor={editor} />
             )),
             <>{failure.sep === '\n' ? '' : failure.sep}</>,
           )}
@@ -36,7 +45,7 @@ export default function FailureComponent({ failure, id, editor }: Props) {
         <>
           {intersperse(
             failure.contents.map((f, i) => (
-              // eslint-disable-next-line
+              // eslint-disable-next-line react/no-array-index-key
               <FailureComponent failure={f} key={i} id={id} editor={editor} />
             )),
             <>{failure.sep === '\n' ? '' : failure.sep}</>,
@@ -80,7 +89,7 @@ export default function FailureComponent({ failure, id, editor }: Props) {
     }
     case 'highlight': {
       console.log('highlight: ', failure);
-      const rainbow = ['#fcc', '#fca', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
+      const rainbow = ['#fcc', '#fda', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
       const color = rainbow[failure.color.valueOf() % rainbow.length];
       const locs = failure.locs.map((loc) => {
         if (loc.$name === 'builtin' || !loc.source.includes(id ?? '') || failure.color.valueOf() === -1) {

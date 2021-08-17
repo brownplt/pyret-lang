@@ -49,14 +49,14 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
   const {
     chunks,
     enterNewline,
-    firstOutdatedChunk: firstTechnicallyOutdatedSegment,
+    firstOutdatedChunk,
   } = state;
 
   const {
     index,
   } = ownProps;
 
-  const technicallyOutdated = index >= firstTechnicallyOutdatedSegment;
+  const technicallyOutdated = index >= firstOutdatedChunk;
 
   return {
     chunks,
