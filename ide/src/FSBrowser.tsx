@@ -202,11 +202,14 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     value.preventDefault();
 
     const name = editValue;
-    const path = control.bfsSetup.path.join(browsePath, name);
 
     if (editType === EditType.CreateFile) {
+      const path = name.includes('.')
+        ? control.bfsSetup.path.join(browsePath, name)
+        : control.bfsSetup.path.join(browsePath, `${name}.arr`);
       control.createFile(path);
     } else {
+      const path = control.bfsSetup.path.join(browsePath, name);
       control.createDirectory(path);
     }
 
