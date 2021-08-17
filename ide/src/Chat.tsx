@@ -218,7 +218,7 @@ class Chat extends React.Component<ChatProps, any> {
     const singleLineEnter = editor.getValue().split('\n').length === 1 && lineEndToken.state.lineState.tokens.length === 0;
     const smartEnterCondition = singleLineEnter || token.state.lineState.tokens.length === 0;
     const smartEnter = smartEnterCondition && !enterNewline;
-    if ((smartEnter || event.ctrlKey) && !event.shiftKey) {
+    if ((smartEnter || event.ctrlKey || event.metaKey) && !event.shiftKey) {
       editor.getInputField().blur();
       run();
       event.preventDefault();

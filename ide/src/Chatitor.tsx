@@ -91,8 +91,8 @@ function Chatitor({
   const [isFocused, setIsFocused] = (
     React.useState<boolean>(false as boolean)
   );
-  function keyDown(event: KeyboardEvent) {
-    if (event.ctrlKey) {
+  function documentKeys(event: KeyboardEvent) {
+    if (event.ctrlKey || event.metaKey) {
       if (event.key.toLowerCase() === 'y' || (event.shiftKey && event.key.toLowerCase() === 'z')) {
         redo();
       } else if (event.key.toLowerCase() === 'z') {
@@ -101,9 +101,9 @@ function Chatitor({
     }
   }
   React.useEffect(() => {
-    document.addEventListener('keydown', keyDown);
+    document.addEventListener('keydown', documentKeys);
     return () => {
-      document.removeEventListener('keydown', keyDown);
+      document.removeEventListener('keydown', documentKeys);
     };
   });
   // UnControlled continues to have stale closures for no reason, ref is an easy
@@ -200,7 +200,7 @@ function Chatitor({
               const token = editor.getTokenAt(pos);
               const enterKeySend = token.state.lineState.tokens.length === 0
                 && !enterNewlineRef.current;
-              if ((enterKeySend || event.ctrlKey) && !event.shiftKey) {
+              if ((enterKeySend || event.ctrlKey || event.metaKey) && !event.shiftKey) {
                 if (editor.getValue() !== '') {
                   const value = editor.getValue();
                   if (!mergeDesignRecipe(value)) {
