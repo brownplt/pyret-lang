@@ -129,60 +129,12 @@ class Chat extends React.Component<ChatProps, any> {
       return true;
     }
 
-    if (n.index === o.index
-      && nChunk.editor.getValue() === oChunk.editor.getValue()) {
-      return false;
-    }
-
     if (nChunk.editor.getValue() === oChunk.editor.getValue()
-        && nResult.status === oResult.status) {
+        && nResult === oResult) {
       return false;
     }
 
     return true;
-  }
-
-  /* Fires imperitive updates at the underlying CodeMirror object to highlight
-     selected text and mark errors. Also focuses this component if is focused in
-     the Redux store. */
-  componentDidUpdate() {
-    const {
-      chunks,
-      index,
-    } = this.props;
-
-    const {
-      editor,
-      results,
-    } = chunks[index];
-
-    if ('getDoc' in editor && results.status === 'succeeded') {
-      const marks = editor.getDoc().getAllMarks();
-      marks.forEach((m) => m.clear());
-    } else if ('getDoc' in editor && results.status === 'failed') {
-      const { highlights } = results;
-      const marks = editor.getDoc().getAllMarks();
-      marks.forEach((m) => m.clear());
-      if (highlights.length > 0) {
-        for (let i = 0; i < highlights.length; i += 1) {
-          // NOTE(luna): Now, highlights are created by FailureComponent - is
-          // this rendering them twice? Is this working at all?
-          const doc = editor.getDoc();
-          const [l1, ch1, l2, ch2] = highlights[i];
-          doc.markText(
-            {
-              line: l1 - 1,
-              ch: ch1,
-            },
-            {
-              line: l2 - 1,
-              ch: ch2,
-            },
-            { className: 'styled-background-error' },
-          );
-        }
-      }
-    }
   }
 
   /* Called in response to an edit event, where `value` is the chunk's text
@@ -196,11 +148,6 @@ class Chat extends React.Component<ChatProps, any> {
     } = this.props;
 
     const { editor } = chunks[index];
-
-    if ('getDoc' in editor) {
-      const marks = editor.getDoc().getAllMarks();
-      marks.forEach((m) => m.clear());
-    }
 
     setChunks({
       chunk: {
@@ -342,8 +289,6 @@ class Chat extends React.Component<ChatProps, any> {
       index,
     } = this.props;
 
-    const marks = editor.getDoc().getAllMarks();
-    marks.forEach((m) => m.clear());
     editor.setSize(null, 'auto');
 
     // Use value of ghost UninitializedEditor in real editor
@@ -372,7 +317,9 @@ class Chat extends React.Component<ChatProps, any> {
     let chunkResultsPart = <></>;
     let displayCheckMark = false;
     const chunk = chunks[index];
-    const { editor: chunkEditor, results, outdated } = chunk;
+    const {
+      editor: chunkEditor, results, outdated, id,
+    } = chunk;
 
     if (results.status === 'failed' && 'getDoc' in chunkEditor) {
       chunkResultsPart = (
@@ -385,7 +332,7 @@ class Chat extends React.Component<ChatProps, any> {
               className={`chatitor-rhs ${outdated ? 'outdated' : ''}`}
               title={technicallyOutdated ? 'value might be changed by earlier definition changes' : ''}
             >
-              <FailureComponent failure={failure} editor={chunkEditor} />
+              <FailureComponent failure={failure} id={id} editor={chunkEditor} />
             </div>
           ))}
         </div>

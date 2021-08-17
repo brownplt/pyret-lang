@@ -6,16 +6,16 @@ import { intersperse } from './utils';
 import Highlight from './Highlight';
 import RenderedValue from './reps/RenderedValue';
 
-type Props = { failure: Failure, editor?: CM.Editor & CM.Doc };
+type Props = { failure: Failure, id?: string, editor?: CM.Editor & CM.Doc };
 
-export default function FailureComponent({ failure, editor }: Props) {
+export default function FailureComponent({ failure, id, editor }: Props) {
   switch (failure.$name) {
     case 'paragraph':
       return (
         <>
           {failure.contents.map((f, i) => (
             // eslint-disable-next-line
-            <FailureComponent failure={f} key={i} editor={editor} />
+            <FailureComponent failure={f} key={i} id={id} editor={editor} />
           ))}
         </>
       );
@@ -25,7 +25,7 @@ export default function FailureComponent({ failure, editor }: Props) {
           {intersperse(
             failure.contents.map((f, i) => (
             // eslint-disable-next-line
-            <FailureComponent failure={f} key={i} editor={editor} />
+            <FailureComponent failure={f} key={i} id={id} editor={editor} />
             )),
             <>{failure.sep === '\n' ? '' : failure.sep}</>,
           )}
@@ -36,8 +36,8 @@ export default function FailureComponent({ failure, editor }: Props) {
         <>
           {intersperse(
             failure.contents.map((f, i) => (
-            // eslint-disable-next-line
-            <FailureComponent failure={f} key={i} editor={editor} />
+              // eslint-disable-next-line
+              <FailureComponent failure={f} key={i} id={id} editor={editor} />
             )),
             <>{failure.sep === '\n' ? '' : failure.sep}</>,
             <>{failure.last}</>,
@@ -50,13 +50,16 @@ export default function FailureComponent({ failure, editor }: Props) {
       // completely wrong for a RHS, so we'll need to think about how properly
       // to special case this or if there are other mismatches between a
       // RenderedValue and an embed
+      if (typeof failure.val === 'string') {
+        return <>{failure.val}</>;
+      }
       return <RenderedValue value={failure.val} />;
     case 'text':
       return <>{failure.str}</>;
     case 'loc':
       return <>{failure.loc.asString}</>;
     case 'code':
-      return <code><FailureComponent failure={failure.contents} editor={editor} /></code>;
+      return <code><FailureComponent failure={failure.contents} id={id} editor={editor} /></code>;
     case 'cmcode': {
       if (failure.loc.$name !== 'srcloc') {
         throw new Error('Bad type of srcloc for a cmcode');
@@ -76,10 +79,11 @@ export default function FailureComponent({ failure, editor }: Props) {
       return <></>;
     }
     case 'highlight': {
+      console.log('highlight: ', failure);
       const rainbow = ['#fcc', '#fca', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
       const color = rainbow[failure.color.valueOf() % rainbow.length];
       const locs = failure.locs.map((loc) => {
-        if (loc.$name === 'builtin') {
+        if (loc.$name === 'builtin' || !loc.source.includes(id ?? '') || failure.color.valueOf() === -1) {
           return <></>;
         }
         const from = { line: loc['start-line'] - 1, ch: loc['start-column'] };
@@ -102,6 +106,7 @@ export default function FailureComponent({ failure, editor }: Props) {
           <span style={{ backgroundColor: color }}>
             <FailureComponent
               failure={failure.contents}
+              id={id}
               editor={editor}
               key={String(failure.color)}
             />

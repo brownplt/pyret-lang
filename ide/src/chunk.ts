@@ -14,7 +14,7 @@ export const CHUNKSEP = '#.CHUNK#\n';
 
    TODO(michael): this should probably just be called 'state' */
 export type ErrorState =
-  { status: 'failed', failures: Failure[], highlights: number[][] };
+  { status: 'failed', failures: Failure[] };
 
 export type ChunkResults = ErrorState | ({ status: 'succeeded', objects: RHSObject[] });
 

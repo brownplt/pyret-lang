@@ -561,7 +561,7 @@ function handleRunSessionFailure(state: State, id: string, error: string) {
   newChunks[index] = {
     ...newChunks[index],
     results: {
-      status: 'failed', failures: [{ $name: 'text', str: error }], highlights: [],
+      status: 'failed', failures: [{ $name: 'text', str: error }],
     },
     outdated: false,
   };
@@ -591,21 +591,6 @@ function handleCompileSessionFailure(
     return null;
   }
 
-  function getExistingHighlights(chunk : Chunk): number[][] | null {
-    if (chunk.results.status === 'failed') {
-      return chunk.results.highlights;
-    }
-    return null;
-  }
-
-  const asHL = (place: Srcloc) => {
-    if (place.$name !== 'srcloc') {
-      throw new Error('how is a builtin a segment?');
-    }
-    // x:x-x:x (old data structure)
-    return [place['start-line'], place['start-column'], place['end-line'], place['end-column']];
-  };
-
   const newChunks = [...chunks];
   if (places.length > 0) {
     let max = firstTechnicallyOutdatedSegment;
@@ -613,13 +598,11 @@ function handleCompileSessionFailure(
       const chunkIndex = findChunkFromSrclocResult(place);
       if (chunkIndex) {
         max = Math.max(chunkIndex + 1, max);
-        const hl = getExistingHighlights(newChunks[chunkIndex]);
         newChunks[chunkIndex] = {
           ...newChunks[chunkIndex],
           results: {
             status: 'failed',
             failures,
-            highlights: hl ? [...hl, asHL(place)] : [asHL(place)],
           },
           outdated: false,
         };
@@ -637,17 +620,6 @@ function handleCompileSessionFailure(
     results: {
       status: 'failed',
       failures,
-      highlights: [asHL({
-        $name: 'srcloc',
-        source: 'dummy',
-        'start-line': 1,
-        'start-column': 0,
-        'end-line': 999999,
-        'end-column': 9999,
-        'start-char': 0,
-        'end-char': 99999,
-        asString: 'dummy',
-      })],
     },
     outdated: false,
   };

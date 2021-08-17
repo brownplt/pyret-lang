@@ -14,6 +14,9 @@ export function isDataValue(x: any): x is DataValue {
 export function intersperse(array: Array<JSX.Element>,
   btwn: JSX.Element,
   last?: JSX.Element): Array<JSX.Element> {
+  if (array.length <= 1) {
+    return array;
+  }
   return [
     array[0],
     ...array.slice(1, -1).flatMap((comp) => [btwn, comp]),

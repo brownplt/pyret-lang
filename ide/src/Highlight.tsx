@@ -2,7 +2,7 @@ import React from 'react';
 import CM from 'codemirror';
 
 interface State {
-  mark: CM.TextMarker;
+  mark?: CM.TextMarker;
 }
 
 type Props = {
@@ -17,19 +17,13 @@ function posEq(a: CM.Position, b: CM.Position): boolean {
 }
 
 export default class Highlight extends React.PureComponent<Props, State> {
-  constructor(props: Props) {
-    super(props);
+  componentDidMount() {
     const {
       editor, from, to, color,
     } = this.props;
-    this.state = {
+    this.setState({
       mark: editor.markText(from, to, { css: `background-color: ${color}` }),
-    };
-  }
-
-  componentDidMount() {
-    const { mark } = this.state;
-    mark?.changed();
+    });
   }
 
   componentDidUpdate(oldProps: Props) {
@@ -37,6 +31,9 @@ export default class Highlight extends React.PureComponent<Props, State> {
       editor, from, to, color,
     } = this.props;
     const { mark } = this.state;
+    if (mark === undefined) {
+      throw new Error('mark should be created on mount');
+    }
     if (!posEq(oldProps.from, from) || !posEq(oldProps.to, to)) {
       mark.clear();
       // eslint-disable-next-line
@@ -44,12 +41,15 @@ export default class Highlight extends React.PureComponent<Props, State> {
         mark: editor.markText(from, to, { css: `background-color: ${color}` }),
       });
     } else {
-      mark?.changed();
+      mark.changed();
     }
   }
 
   componentWillUnmount() {
     const { mark } = this.state;
+    if (mark === undefined) {
+      throw new Error('mark should be created on mount');
+    }
     mark.clear();
   }
 
