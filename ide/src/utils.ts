@@ -59,3 +59,24 @@ export function isWrapLast(editor: CMEditor, pos: CodeMirror.Position): boolean 
   const lineBegin = { line: pos.line, ch: 9999999 };
   return editor.charCoords(pos).top === editor.charCoords(lineBegin).top;
 }
+
+// Returns true if enter should send / defocus a chat *including configuration,
+// modifier keys, and the text context (in smart mode)*
+export function enterShouldSend(
+  editor: CMEditor, enterNewline: boolean, event?: KeyboardEvent, pos?: CodeMirror.Position,
+): boolean {
+  const checkPos = pos ?? editor.getCursor();
+  // eslint-disable-next-line
+  const token = editor.getTokenAt(checkPos);
+  const lineEndToken = editor.getTokenAt({ line: checkPos.line, ch: 99999 });
+  // An enter anywhere on a single-line chat in which the ENTIRE chat is
+  // codemirror-parsible
+  // eslint-disable-next-line
+    const singleLineEnter = editor.getValue().split('\n').length === 1 && lineEndToken.state.lineState.tokens.length === 0;
+  const smartEnterCondition = singleLineEnter || token.state.lineState.tokens.length === 0;
+  const smartEnter = smartEnterCondition && !enterNewline;
+  if (event) {
+    return (smartEnter || event.ctrlKey || event.metaKey) && !event.shiftKey;
+  }
+  return smartEnter;
+}

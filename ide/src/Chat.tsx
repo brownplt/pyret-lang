@@ -16,7 +16,9 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { UnControlled as ReactCM } from 'react-codemirror2';
 import { State } from './state';
-import { CMEditor, isWrapFirst, isWrapLast } from './utils';
+import {
+  CMEditor, enterShouldSend, isWrapFirst, isWrapLast,
+} from './utils';
 
 import {
   Chunk,
@@ -204,21 +206,8 @@ class Chat extends React.Component<ChatProps, any> {
      lint success. If shift+enter is pressed, no new chunk will be made. In
      either case, a run is triggered by saving the file. */
   handleEnter(editor: CMEditor, event: KeyboardEvent) {
-    const {
-      enterNewline,
-      run,
-    } = this.props;
-    const pos = editor.getCursor();
-    // eslint-disable-next-line
-    const token = editor.getTokenAt(pos);
-    const lineEndToken = editor.getTokenAt({ line: pos.line, ch: 99999 });
-    // An enter anywhere on a single-line chat in which the ENTIRE chat is
-    // codemirror-parsible
-    // eslint-disable-next-line
-    const singleLineEnter = editor.getValue().split('\n').length === 1 && lineEndToken.state.lineState.tokens.length === 0;
-    const smartEnterCondition = singleLineEnter || token.state.lineState.tokens.length === 0;
-    const smartEnter = smartEnterCondition && !enterNewline;
-    if ((smartEnter || event.ctrlKey || event.metaKey) && !event.shiftKey) {
+    const { enterNewline, run } = this.props;
+    if (enterShouldSend(editor, enterNewline, event)) {
       editor.getInputField().blur();
       run();
       event.preventDefault();

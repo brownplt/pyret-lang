@@ -15,7 +15,7 @@ import {
   Chunk, emptyChunk,
 } from './chunk';
 import Chat from './Chat';
-import { isWrapFirst } from './utils';
+import { enterShouldSend, isWrapFirst } from './utils';
 
 type StateProps = {
   chunks: Chunk[],
@@ -91,6 +91,7 @@ function Chatitor({
   const [isFocused, setIsFocused] = (
     React.useState<boolean>(false as boolean)
   );
+  const [isEmpty, setIsEmpty] = React.useState<boolean>(true as boolean);
   function documentKeys(event: KeyboardEvent) {
     if (event.ctrlKey || event.metaKey) {
       if (event.key.toLowerCase() === 'y' || (event.shiftKey && event.key.toLowerCase() === 'z')) {
@@ -150,14 +151,6 @@ function Chatitor({
 
   const allChunks = chunks.map(setupChunk);
 
-  // Slightly different from in a chat! (Should it be the same?)
-  const doesEnterKeySend = (
-    editor: CodeMirror.Editor & CodeMirror.Doc,
-    pos: CodeMirror.Position,
-  ) => {
-    const token = editor.getTokenAt(pos);
-    return token.state.lineState.tokens.length === 0;
-  };
   const tooltipStyle = { margin: '0 0.5em' };
   const shiftEnterStyle = { ...tooltipStyle, color: enterNewlineRef.current ? 'grey' : 'black' };
   const layout = editorLayout === EditorLayout.Compact ? 'chat-layout-compact' : 'chat-layout-normal';
@@ -183,13 +176,16 @@ function Chatitor({
           setEditor(editor);
         }) as (editor: CodeMirror.Editor) => void}
         onChange={((editor: CodeMirror.Editor & CodeMirror.Doc) => {
-          setEnterSendRender(doesEnterKeySend(editor, editor.getCursor()));
+          setIsEmpty(editor.getValue() === '');
+          setEnterSendRender(enterShouldSend(editor, enterNewlineRef.current));
         }) as any}
         onSelection={((
           editor: CodeMirror.Editor & CodeMirror.Doc,
           { ranges }: {ranges: [{head: CodeMirror.Position, anchor: CodeMirror.Position}]},
         ) => {
-          setEnterSendRender(doesEnterKeySend(editor, ranges[0].head));
+          setEnterSendRender(
+            enterShouldSend(editor, enterNewlineRef.current, undefined, ranges[0].head),
+          );
         }) as any}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
@@ -239,8 +235,8 @@ function Chatitor({
         width: '48em',
         textAlign: 'right',
         margin: '0.3em auto',
-        transition: isFocused ? 'opacity 0.2s 2s ease-in' : 'opacity 0.2s ease-in',
-        opacity: isFocused ? '60%' : '0%',
+        transition: isFocused ? 'opacity 0.2s 1s ease-in' : 'opacity 0.2s ease-in',
+        opacity: isFocused && !isEmpty ? '60%' : '0%',
       }}
       >
         <span style={shiftEnterStyle}>Shift-Enter: new line</span>
@@ -251,7 +247,7 @@ function Chatitor({
         >
           Enter:
           {' '}
-          {enterSendRender && !enterNewlineRef.current ? 'send' : 'new line'}
+          {enterSendRender ? 'send' : 'new line'}
         </span>
       </div>
     </div>
