@@ -399,6 +399,7 @@ class Chat extends React.Component<ChatProps, any> {
             mode: 'pyret',
             theme: 'default',
             lineWrapping: true,
+            extraKeys: { Tab: 'indentAuto' },
           }}
           onBeforeChange={() => {
             this.scheduleUpdate();

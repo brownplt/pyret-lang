@@ -176,6 +176,7 @@ function Chatitor({
           theme: 'default',
           lineWrapping: true,
           autofocus: true,
+          extraKeys: { Tab: 'indentAuto' },
         }}
         editorDidMount={((editor: CodeMirror.Editor & CodeMirror.Doc) => {
           editor.setSize(null, 'auto');
