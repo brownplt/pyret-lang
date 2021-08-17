@@ -43,10 +43,12 @@ export default class SummaryValue extends React.Component<ValueSummaryProps, Val
       case 'list':
       case 'array':
       case 'check':
+      case 'data-value':
       case 'object':
       case 'spy-value':
       case 'spy-message':
       case 'reactor':
+      case 'string-dict':
         return `<${kind}>`;
       case 'image':
         return (

@@ -7,7 +7,6 @@ import { getRenderKind } from './RenderKind';
 /* eslint-disable-next-line */
 import TableWidget from './Table';
 import ListWidget, { ArrayWidget } from './List';
-import ObjectWidget from './Object';
 import ImageWidget from './Image';
 import ChartWidget from './Chart';
 import ReactorWidget from './Reactor';
@@ -68,6 +67,11 @@ export default class RenderedValue extends React.Component<RenderedValueProps, R
         return (
           <ReactorWidget reactor={value} RenderedValue={RenderedValue} />
         );
+      case 'string-dict':
+        const keys = value.$underlyingMap.keys();
+        const toRender = keys.flatMap((key: string) => [key, value.$underlyingMap.get(key)]);
+        const constructorName = value.$brand === 'mutable-string-dict' ? 'mutable-string-dict' : 'string-dict';
+        return <ArrayWidget value={toRender} begin={`[${constructorName}:`} end="]" RenderedValue={RenderedValue} />
       case 'template':
         return (
           <div>
@@ -101,8 +105,19 @@ export default class RenderedValue extends React.Component<RenderedValueProps, R
       }
       case 'check':
         return <Check value={value} RenderedValue={RenderedValue} />;
-      case 'object':
-        return <ObjectWidget value={value} RenderedValue={RenderedValue} />;
+      case 'data-value': {
+        // We will grab our properties and render those, which avoids $properties
+        // and any other metadata that may exist.
+        const keys = value.$brand.names;
+        const toRender = keys.map((key: string) => ({ renderKind: 'key-value', key, value: value[key] }));
+        return <ArrayWidget value={toRender} begin="{" end=" }" RenderedValue={RenderedValue} />;
+      }
+      case 'object': {
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/entries
+        const asArray = Object.entries(value).filter(([key]) => !key.startsWith('$')).sort((a, b) => b[0].localeCompare(a[0]));
+        const toRender = asArray.map(([key, v]) => ({ renderKind: 'key-value', key, value: v }));
+        return <ArrayWidget value={toRender} begin="{" end=" }" RenderedValue={RenderedValue} />;
+      }
       case 'range':
         return <RangeWidget value={value} RenderedValue={RenderedValue} />;
       case 'key-value':

@@ -8,7 +8,8 @@ export type DataValue = { $brand: { names: string[] }, [key: string]: any };
 export function isDataValue(x: any): x is DataValue {
   // https://eslint.org/docs/rules/no-prototype-builtins whoo that's a doozy
   // At some point, we should be more principled about this
-  return Object.prototype.hasOwnProperty.call(x, '$brand');
+  return Object.prototype.hasOwnProperty.call(x, '$brand')
+    && Object.prototype.hasOwnProperty.call(x.$brand, 'names');
 }
 
 export function intersperse(array: Array<JSX.Element>,

@@ -9,6 +9,7 @@ import {
   isRTMessage,
   RawRTMessage,
 } from '../rtMessages';
+import { isDataValue } from '../utils';
 import { ContainerRange } from './Range';
 
 function isList(value: any): boolean {
@@ -29,8 +30,10 @@ function isList(value: any): boolean {
 // paginate / render large values lazily
 export type RenderKind = 'undefined' | 'number' | 'string' | 'boolean' |
 'function' | 'table' | 'image' | 'chart' | 'reactor' | 'template' | 'list' |
-'object' | 'spy-value' | 'spy-message' | 'check' | 'array' | 'range' |
-'key-value' | 'exactnum';
+'object' | 'spy-value' | 'spy-message' | 'check' | 'array' | 'string-dict' |
+'exactnum' | 'data-value' |
+// non-Pyret-values
+'range' | 'key-value';
 
 // Why isn't there a PyretValue type?
 // The main reason is that object literals in Pyret are represented by JS
@@ -70,6 +73,9 @@ export function getRenderKind(value: any): RenderKind {
   if (value.$brand === 'reactor') {
     return 'reactor';
   }
+  if (value.$brand === 'immutable-string-dict' || value.$brand === 'mutable-string-dict') {
+    return 'string-dict';
+  }
   if (value['$template-not-finished'] !== undefined) {
     return 'template';
   }
@@ -101,6 +107,9 @@ export function getRenderKind(value: any): RenderKind {
     if (typeof value.n !== 'undefined' && typeof value.d !== 'undefined'
       && Object.keys(value).length === 2) {
       return 'exactnum';
+    }
+    if (isDataValue(value)) {
+      return 'data-value';
     }
     return 'object';
   }
