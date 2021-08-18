@@ -16,6 +16,14 @@ export type Exports = {
   }
 }
 
+type WFContext = {
+  parentBlockLoc: A.Srcloc,
+  inCheckBlock: boolean,
+  allowSMethod: boolean,
+  curShared: A.Bind[],
+  paramCurrentEverywhere: boolean,
+}
+
 ({
   requires: [
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-codegen-helpers'] },
@@ -52,10 +60,6 @@ export type Exports = {
         InternalCompilerError,
       } = tj;
       let errors: C.CompileError[] = [];
-      let inCheckBlock = false;
-      let allowSMethod = false;
-      let curShared = [];
-      let paramCurrentWhereEverywhere = false;
 
       logger = options.dict.log;
       // LOG(`In ts-well-formed impl for ${formatSrcloc(ast.dict.l, true)}\n`);
@@ -181,29 +185,29 @@ export type Exports = {
         }
       }
 
-      function sMethodHelper(visitor, expr: TJ.Variant<A.Expr, 's-method'> | TJ.Variant<A.Member, 's-method-field'>, parentBlockLoc: S.Srcloc) {
+      function sMethodHelper(visitor, expr: TJ.Variant<A.Expr, 's-method'> | TJ.Variant<A.Member, 's-method-field'>, wfContext: WFContext) {
         const args = listToArray(expr.dict.args);
         if (args.length === 0) {
           addError(C['no-arguments'].app(expr));
         }
         ensureUniqueBindings(args, false);
         if (expr.dict._check.$name === 'some') {
-          ensureEmptyBlock(expr.dict.l, "methods", expr.dict._check.dict.value as TJ.Variant<A.Expr, 's-block'>);
+          ensureEmptyBlock(expr.dict.l, "methods", expr.dict._check.dict.value as TJ.Variant<A.Expr, 's-block'>, wfContext.paramCurrentEverywhere);
         }
         if (!expr.dict.blocky && expr.dict.body.$name === 's-block') {
           wfBlockyBlocks(expr.dict.l, [expr.dict.body]);
         }
-        args.forEach(arg => visit(visitor, arg, parentBlockLoc));
-        visit(visitor, expr.dict.ann, parentBlockLoc);
-        wrapVisitAllowSMethod(visitor, expr.dict.body, false, parentBlockLoc);
+        args.forEach(arg => visit(visitor, arg, wfContext));
+        visit(visitor, expr.dict.ann, wfContext);
+        visit(visitor, expr.dict.body, {...wfContext, allowSMethod: false});
         const checkLoc = checkBlockLoc(expr.dict.l, expr.dict['_check-loc']) ?? expr.dict.l;
         wrapRejectStandalonesInCheck(expr.dict._check as A.Option<TJ.Variant<A.Expr, 's-block'>>);
-        wrapVisitCheck(visitor, expr.dict._check, checkLoc);
+        visit(visitor, expr.dict._check, {...wfContext, allowSMethod: false, inCheckBlock: true, parentBlockLoc: checkLoc});
       }
 
-      function bindHelper(visitor, l: A.Srcloc, bind: A.Bind, val: A.Expr, varOrRec: 'var' | 'rec', parentBlockLoc: S.Srcloc) {
-        let pointless;
-        let str;
+      function bindHelper(visitor, l: A.Srcloc, bind: A.Bind, val: A.Expr, varOrRec: 'var' | 'rec', wfContext: WFContext) {
+        let pointless: 'pointless-var' | 'pointless-rec';
+        let str: string;
         switch (varOrRec) {
           case 'var': {
             pointless = 'pointless-var';
@@ -227,8 +231,8 @@ export type Exports = {
               const bindL = bind.dict.l as TJ.Variant<A.Srcloc, 'srcloc'>;
               addError(C[pointless].app(plus(atStart(lRef), bindL)));
             }
-            wrapVisitAllowSMethod(visitor, bind, false, parentBlockLoc);
-            wrapVisitAllowSMethod(visitor, val, false, parentBlockLoc);
+            visit(visitor, bind, {...wfContext, allowSMethod: false});
+            visit(visitor, val, {...wfContext, allowSMethod: false});
             break;
           }
           case 's-tuple-bind': {
@@ -299,26 +303,9 @@ export type Exports = {
         addError(C['reserved-name'].app(loc, id));
       }
 
-      function wrapVisitCheck(visitor, target: Option<A.Expr>, parentBlockLoc: S.Srcloc) {
-        let curInCheck = inCheckBlock;
-        inCheckBlock = true;
-        let curAllow = allowSMethod;
-        allowSMethod = false;
-        visit(visitor, target, parentBlockLoc);
-        inCheckBlock = curInCheck;
-        allowSMethod = curAllow;
-      }
-
-      function wrapVisitAllowSMethod(visitor, target: A.Expr | A.Provide | A.Member | A.Bind | A.Name | A.LetBind | A.LetrecBind | A.IfBranch | A.IfPipeBranch | A.CasesBranch | A.ForBind | A.LoadTableSpec, allow: boolean, parentBlockLoc: S.Srcloc): void {
-        let curAllow = allowSMethod;
-        allowSMethod = allow;
-        visit(visitor, target, parentBlockLoc);
-        allowSMethod = curAllow;
-      }
-
-      function ensureEmptyBlock(loc: A.Srcloc, typ: string, block: TJ.Variant<A.Expr, 's-block'>) {
+      function ensureEmptyBlock(loc: A.Srcloc, typ: string, block: TJ.Variant<A.Expr, 's-block'>, currentWhereEverywhere: boolean) {
         const stmts = listToArray(block.dict.stmts);
-        if (!paramCurrentWhereEverywhere && stmts.length !== 0) {
+        if (!currentWhereEverywhere && stmts.length !== 0) {
           addError(C['unwelcome-where'].app(typ, loc, block.dict.l));
         }
       }
@@ -534,26 +521,26 @@ export type Exports = {
         return op.substr(2);
       }
 
-      function reachableOps(visitor, l: A.Srcloc, opL: A.Srcloc, op: string, expr: A.Expr, parentBlockLoc: S.Srcloc) {
+      function reachableOps(visitor, l: A.Srcloc, opL: A.Srcloc, op: string, expr: A.Expr, wfContext: WFContext) {
         switch (expr.$name) {
           case 's-op': {
             const { 'l': l2, 'op-l': opL2, 'op': op2, 'left': left2, 'right': right2 } = expr.dict;
             if (op === op2) {
-              reachableOps(visitor, l, opL, op, left2, parentBlockLoc);
-              reachableOps(visitor, l, opL, op, right2, parentBlockLoc);
+              reachableOps(visitor, l, opL, op, left2, wfContext);
+              reachableOps(visitor, l, opL, op, right2, wfContext);
             } else {
               addError(C['mixed-binops'].app(l, opname(op), opL, opname(op2), opL2));
             }
             break;
           }
           default: {
-            wrapVisitAllowSMethod(visitor, expr, false, parentBlockLoc);
+            visit(visitor, expr, {...wfContext, allowSMethod: false});
             break;
           }
         }
       }
 
-      function rejectStandaloneExprs(stmts: A.Expr[], ignoreLast: boolean): void {
+      function rejectStandaloneExprs(stmts: A.Expr[], ignoreLast: boolean, inCheckBlock: boolean): void {
         function badStmt(l: A.Srcloc, stmt: A.Expr) {
           switch (stmt.$name) {
             case 's-op': {
@@ -654,8 +641,6 @@ export type Exports = {
       }
 
       function wrapRejectStandalonesInCheck(target: A.Option<TJ.Variant<A.Expr, 's-block'>>) {
-        let curInCheck = inCheckBlock;
-        inCheckBlock = true;
         switch (target.$name) {
           case 'none': {
             break;
@@ -663,7 +648,7 @@ export type Exports = {
           case 'some': {
             const stmts = listToArray(target.dict.value.dict.stmts);
             if (stmts.length !== 0) {
-              rejectStandaloneExprs(stmts, true);
+              rejectStandaloneExprs(stmts, true, true);
             }
             break;
           }
@@ -671,10 +656,9 @@ export type Exports = {
             throw new ExhaustiveSwitchError(target);
           }
         }
-        inCheckBlock = curInCheck;
       }
 
-      function wfBlockStmts(visitor, stmts: A.Expr[], topLevel: boolean, parentBlockLoc: S.Srcloc): void {
+      function wfBlockStmts(visitor, stmts: A.Expr[], topLevel: boolean, wfContext: WFContext): void {
         function mapStmts(stmt: A.Expr): A.Bind | null {
           switch (stmt.$name) {
             case 's-var':
@@ -690,10 +674,11 @@ export type Exports = {
         const bindStmts: A.Bind[] = stmts.map(mapStmts).filter(stmt => stmt);
         ensureUniqueBindings(bindStmts, true);
         ensureDistinctLines(A['dummy-loc'], false, stmts);
-        if (!inCheckBlock && !topLevel) {
-          rejectStandaloneExprs(stmts, true);
+        if (!wfContext.inCheckBlock && !topLevel) {
+          rejectStandaloneExprs(stmts, true, wfContext.inCheckBlock);
         }
-        stmts.forEach(stmt => wrapVisitAllowSMethod(visitor, stmt, false, parentBlockLoc));
+        const contextStmt = {...wfContext, allowSMethod: false};
+        stmts.forEach(stmt => visit(visitor, stmt, contextStmt));
       }
 
       function wfExamplesBody(body: TJ.Variant<A.Expr, 's-block'>) {
@@ -730,7 +715,7 @@ export type Exports = {
       const wellFormedVisitor: TJ.Visitor<
         A.Program | A.ImportType | A.Ann | A.Expr | A.Member | A.LetBind | A.Bind | A.Import | A.Provide | A.ProvideTypes | A.LetrecBind | A.CasesBranch | A.IfBranch | A.IfPipeBranch | A.ForBind | A.VariantMember | A.AField, 
         void,
-        S.Srcloc
+        WFContext
       > = {
         's-program': (visitor, expr: TJ.Variant<A.Program, 's-program'>) => {
           throw new InternalCompilerError("Impossible");
@@ -746,30 +731,30 @@ export type Exports = {
             addError(C['import-arity-mismatch'].app(expr.dict.l, kind, expr.dict.args, 2, runtime.ffi.makeList(["the name of the file", "the file's id"])));
           }
         },
-        's-data': (visitor, expr: TJ.Variant<A.Expr, 's-data'>, parentBlockLoc) => {
-          addError(C['non-toplevel'].app("data declaration", expr.dict.l, parentBlockLoc));
+        's-data': (visitor, expr: TJ.Variant<A.Expr, 's-data'>, wfContext) => {
+          addError(C['non-toplevel'].app("data declaration", expr.dict.l, wfContext.parentBlockLoc));
         },
-        's-data-expr': (visitor, expr: TJ.Variant<A.Expr, 's-data-expr'>, parentBlockLoc) => {
-          addError(C['non-toplevel'].app("data declaration", expr.dict.l, parentBlockLoc));
+        's-data-expr': (visitor, expr: TJ.Variant<A.Expr, 's-data-expr'>, wfContext) => {
+          addError(C['non-toplevel'].app("data declaration", expr.dict.l, wfContext.parentBlockLoc));
         },
-        's-type': (visitor, expr: TJ.Variant<A.Expr, 's-type'>, parentBlockLoc) => {
-          addError(C['non-toplevel'].app("type alias", expr.dict.l, parentBlockLoc));
+        's-type': (visitor, expr: TJ.Variant<A.Expr, 's-type'>, wfContext) => {
+          addError(C['non-toplevel'].app("type alias", expr.dict.l, wfContext.parentBlockLoc));
         },
-        's-newtype': (visitor, expr: TJ.Variant<A.Expr, 's-newtype'>, parentBlockLoc) => {
-          addError(C['non-toplevel'].app("newtype", expr.dict.l, parentBlockLoc));
+        's-newtype': (visitor, expr: TJ.Variant<A.Expr, 's-newtype'>, wfContext) => {
+          addError(C['non-toplevel'].app("newtype", expr.dict.l, wfContext.parentBlockLoc));
         },
-        's-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-let-expr'>, _parentBlockLoc) => {
-          const parentBlockLoc = expr.dict.l;
+        's-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-let-expr'>, wfContext) => {
           if (!expr.dict.blocky && expr.dict.body.$name === 's-block') {
             wfBlockyBlocks(expr.dict.l, [expr.dict.body]);
           }
-          listToArray(expr.dict.binds).forEach(b => wrapVisitAllowSMethod(visitor, b, false, parentBlockLoc));
-          wrapVisitAllowSMethod(visitor, expr.dict.body, false, parentBlockLoc);
+          const contextBind = {...wfContext, allowSMethod: false, parentBlockLoc: expr.dict.l};
+          listToArray(expr.dict.binds).forEach(b => visit(visitor, b, contextBind));
+          visit(visitor, expr.dict.body, {...wfContext, allowSMethod: false, parentBlockLoc: expr.dict.l});
         },
-        's-contract': (visitor, expr: TJ.Variant<A.Expr, 's-contract'>, parentBlockLoc) => {
-          addError(C['non-toplevel'].app("contract declaration", expr.dict.l, parentBlockLoc));
+        's-contract': (visitor, expr: TJ.Variant<A.Expr, 's-contract'>, wfContext) => {
+          addError(C['non-toplevel'].app("contract declaration", expr.dict.l, wfContext.parentBlockLoc));
         },
-        's-letrec-bind': (visitor, expr: TJ.Variant<A.LetrecBind, 's-letrec-bind'>, _parentBlockLoc) => {
+        's-letrec-bind': (visitor, expr: TJ.Variant<A.LetrecBind, 's-letrec-bind'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           switch (expr.dict.b.$name) {
             case 's-bind': {
@@ -786,68 +771,70 @@ export type Exports = {
               throw new ExhaustiveSwitchError(expr.dict.b);
             }
           }
-          visit(visitor, expr.dict.b, parentBlockLoc);
-          wrapVisitAllowSMethod(visitor, expr.dict.value, false, parentBlockLoc);
+          visit(visitor, expr.dict.b, {...wfContext, parentBlockLoc});
+          visit(visitor, expr.dict.value, {...wfContext, allowSMethod: false, parentBlockLoc});
         },
-        's-letrec': (visitor, expr: TJ.Variant<A.Expr, 's-letrec'>, _parentBlockLoc) => {
+        's-letrec': (visitor, expr: TJ.Variant<A.Expr, 's-letrec'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           if (!expr.dict.blocky && expr.dict.body.$name === 's-block') {
             wfBlockyBlocks(expr.dict.l, [expr.dict.body]);
           }
-          listToArray(expr.dict.binds).forEach(b => wrapVisitAllowSMethod(visitor, b, false, parentBlockLoc));
-          wrapVisitAllowSMethod(visitor, expr.dict.body, false, parentBlockLoc);
+          const contextBind = {...wfContext, allowSMethod: false, parentBlockLoc};
+          listToArray(expr.dict.binds).forEach(b => visit(visitor, b, contextBind));
+          visit(visitor, expr.dict.body, {...wfContext, allowSMethod: false, parentBlockLoc});
         },
-        's-type-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-type-let-expr'>, parentBlockLoc) => {
-          addError(C['non-toplevel'].app("type alias", expr.dict.l, parentBlockLoc));
+        's-type-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-type-let-expr'>, wfContext) => {
+          addError(C['non-toplevel'].app("type alias", expr.dict.l, wfContext.parentBlockLoc));
         },
-        's-op': (visitor, expr: TJ.Variant<A.Expr, 's-op'>, parentBlockLoc) => {
+        's-op': (visitor, expr: TJ.Variant<A.Expr, 's-op'>, wfContext) => {
           const { l, 'op-l': opL, op, left, right } = expr.dict;
-          reachableOps(visitor, l, opL, op, left, parentBlockLoc);
-          reachableOps(visitor, l, opL, op, right, parentBlockLoc);
+          reachableOps(visitor, l, opL, op, left, wfContext);
+          reachableOps(visitor, l, opL, op, right, wfContext);
         },
-        's-cases-branch': (visitor, expr: TJ.Variant<A.CasesBranch, 's-cases-branch'>, _parentBlockLoc) => {
+        's-cases-branch': (visitor, expr: TJ.Variant<A.CasesBranch, 's-cases-branch'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           if (expr.dict.name === '_') {
             addError(C['underscore-as-pattern'].app(expr.dict['pat-loc']));
           }
           const args = listToArray(expr.dict.args);
           ensureUniqueBindings(args.map(a => a.dict.bind), false);
-          args.forEach(a => visit(visitor, a, parentBlockLoc));
-          wrapVisitAllowSMethod(visitor, expr.dict.body, false, parentBlockLoc);
+          const contextArg = {...wfContext, parentBlockLoc};
+          args.forEach(a => visit(visitor, a, contextArg));
+          visit(visitor, expr.dict.body, {...wfContext, allowSMethod: false, parentBlockLoc});
         },
-        's-singleton-cases-branch': (visitor, expr: TJ.Variant<A.CasesBranch, 's-singleton-cases-branch'>, _parentBlockLoc) => {
+        's-singleton-cases-branch': (visitor, expr: TJ.Variant<A.CasesBranch, 's-singleton-cases-branch'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           if (expr.dict.name === '_') {
             addError(C['underscore-as-pattern'].app(expr.dict['pat-loc']));
           }
-          wrapVisitAllowSMethod(visitor, expr.dict.body, false, parentBlockLoc);
+          visit(visitor, expr.dict.body, {...wfContext, allowSMethod: false, parentBlockLoc});
         },
-        's-var': (visitor, expr: TJ.Variant<A.Expr, 's-var'>, parentBlockLoc) => {
-          bindHelper(visitor, expr.dict.l, expr.dict.name, expr.dict.value, 'var', parentBlockLoc);
+        's-var': (visitor, expr: TJ.Variant<A.Expr, 's-var'>, wfContext) => {
+          bindHelper(visitor, expr.dict.l, expr.dict.name, expr.dict.value, 'var', wfContext);
         },
-        's-rec': (visitor, expr: TJ.Variant<A.Expr, 's-rec'>, parentBlockLoc) => {
-          bindHelper(visitor, expr.dict.l, expr.dict.name, expr.dict.value, 'rec', parentBlockLoc);
+        's-rec': (visitor, expr: TJ.Variant<A.Expr, 's-rec'>, wfContext) => {
+          bindHelper(visitor, expr.dict.l, expr.dict.name, expr.dict.value, 'rec', wfContext);
         },
-        's-var-bind': (visitor, expr: TJ.Variant<A.LetBind, 's-var-bind'>, parentBlockLoc) => {
-          bindHelper(visitor, expr.dict.l, expr.dict.b, expr.dict.value, 'var', parentBlockLoc);
+        's-var-bind': (visitor, expr: TJ.Variant<A.LetBind, 's-var-bind'>, wfContext) => {
+          bindHelper(visitor, expr.dict.l, expr.dict.b, expr.dict.value, 'var', wfContext);
         },
-        's-block': (visitor, expr: TJ.Variant<A.Expr, 's-block'>, parentBlockLoc) => {
+        's-block': (visitor, expr: TJ.Variant<A.Expr, 's-block'>, wfContext) => {
           const stmts = listToArray(expr.dict.stmts);
           if (stmts.length === 0) {
-            addError(C['wf-empty-block'].app(parentBlockLoc));
+            addError(C['wf-empty-block'].app(wfContext.parentBlockLoc));
           } else {
-            wfLastStmt(parentBlockLoc, stmts[stmts.length - 1]);
-            wfBlockStmts(visitor, stmts, false, parentBlockLoc);
+            wfLastStmt(wfContext.parentBlockLoc, stmts[stmts.length - 1]);
+            wfBlockStmts(visitor, stmts, false, wfContext);
           }
         },
-        's-user-block': (visitor, expr: TJ.Variant<A.Expr, 's-user-block'>, _parentBlockLoc) => {
+        's-user-block': (visitor, expr: TJ.Variant<A.Expr, 's-user-block'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
-          wrapVisitAllowSMethod(visitor, expr.dict.body, false, parentBlockLoc);
+          visit(visitor, expr.dict.body, {...wfContext, allowSMethod: false, parentBlockLoc});
         },
         's-tuple-bind': (visitor, expr: TJ.Variant<A.Bind, 's-tuple-bind'>) => {
           return;
         },
-        's-bind': (visitor, expr: TJ.Variant<A.Bind, 's-bind'>, parentBlockLoc) => {
+        's-bind': (visitor, expr: TJ.Variant<A.Bind, 's-bind'>, wfContext) => {
           const nameStr = nameToSourceString(expr.dict.id);
           if (reservedNames.has(nameStr)) {
             reservedName(expr.dict.l, nameStr);
@@ -855,11 +842,11 @@ export type Exports = {
           if (expr.dict.shadows && A['is-s-underscore'].app(expr.dict.id)) {
             addError(C['pointless-shadow'].app(expr.dict.l));
           }
-          wrapVisitAllowSMethod(visitor, expr.dict.id, false, parentBlockLoc);
-          visit(visitor, expr.dict.ann, parentBlockLoc);
+          visit(visitor, expr.dict.id, {...wfContext, allowSMethod: false});
+          visit(visitor, expr.dict.ann, wfContext);
         },
-        's-check-test': (visitor, expr: TJ.Variant<A.Expr, 's-check-test'>, parentBlockLoc) => {
-          if (!inCheckBlock) {
+        's-check-test': (visitor, expr: TJ.Variant<A.Expr, 's-check-test'>, wfContext) => {
+          if (!wfContext.inCheckBlock) {
             addError(C['unwelcome-test'].app(expr.dict.l));
           }
           if (expr.dict.refinement.$name === 'some') {
@@ -876,38 +863,38 @@ export type Exports = {
               }
             }
           }
-          wrapVisitAllowSMethod(visitor, expr.dict.left, false, parentBlockLoc)
-          visit(visitor, expr.dict.right, parentBlockLoc);
-          visit(visitor, expr.dict.cause, parentBlockLoc);
+          visit(visitor, expr.dict.left, {...wfContext, allowSMethod: false})
+          visit(visitor, expr.dict.right, wfContext);
+          visit(visitor, expr.dict.cause, wfContext);
         },
-        's-method-field': (visitor, expr: TJ.Variant<A.Member, 's-method-field'>, _parentBlockLoc) => {
+        's-method-field': (visitor, expr: TJ.Variant<A.Member, 's-method-field'>, wfContext) => {
           const parentBlockLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
           if (reservedNames.has(expr.dict.name)) {
             reservedName(expr.dict.l, expr.dict.name);
           }
-          sMethodHelper(visitor, expr, parentBlockLoc);
+          sMethodHelper(visitor, expr, {...wfContext, parentBlockLoc});
         },
-        's-data-field': (visitor, expr: TJ.Variant<A.Member, 's-data-field'>, parentBlockLoc) => {
+        's-data-field': (visitor, expr: TJ.Variant<A.Member, 's-data-field'>, wfContext) => {
           if (reservedNames.has(expr.dict.name)) {
             reservedName(expr.dict.l, expr.dict.name);
           }
-          visit(visitor, expr.dict.value, parentBlockLoc);
+          visit(visitor, expr.dict.value, wfContext);
         },
-        's-mutable-field': (visitor, expr: TJ.Variant<A.Member, 's-mutable-field'>, parentBlockLoc) => {
+        's-mutable-field': (visitor, expr: TJ.Variant<A.Member, 's-mutable-field'>, wfContext) => {
           if (reservedNames.has(expr.dict.name)) {
             reservedName(expr.dict.l, expr.dict.name);
           }
-          visit(visitor, expr.dict.value, parentBlockLoc);
-          visit(visitor, expr.dict.ann, parentBlockLoc);
+          visit(visitor, expr.dict.value, wfContext);
+          visit(visitor, expr.dict.ann, wfContext);
         },
-        's-method': (visitor, expr: TJ.Variant<A.Expr, 's-method'>, _parentBlockLoc) => {
-          if (!allowSMethod) {
+        's-method': (visitor, expr: TJ.Variant<A.Expr, 's-method'>, wfContext) => {
+          if (!wfContext.allowSMethod) {
             addError(C['wf-bad-method-expression'].app(expr.dict.l));
           }
           const parentBlockLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
-          sMethodHelper(visitor, expr, parentBlockLoc);
+          sMethodHelper(visitor, expr, {...wfContext, parentBlockLoc});
         },
-        's-lam': (visitor, expr: TJ.Variant<A.Expr, 's-lam'>, parentBlockLoc) => {
+        's-lam': (visitor, expr: TJ.Variant<A.Expr, 's-lam'>, wfContext) => {
           const exprThroughCheckLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
           const args = listToArray(expr.dict.args);
           ensureUniqueBindings(args, false);
@@ -916,7 +903,7 @@ export type Exports = {
               break;
             }
             case 'some': {
-              ensureEmptyBlock(expr.dict.l, "anonymous functions", expr.dict._check.dict.value as TJ.Variant<A.Expr, 's-block'>);
+              ensureEmptyBlock(expr.dict.l, "anonymous functions", expr.dict._check.dict.value as TJ.Variant<A.Expr, 's-block'>, wfContext.paramCurrentEverywhere);
               break;
             }
             default: {
@@ -926,15 +913,16 @@ export type Exports = {
           if (!expr.dict.blocky && expr.dict.body.$name === 's-block') {
             wfBlockyBlocks(expr.dict.l, [expr.dict.body]);
           }
-          listToArray(expr.dict.params).forEach(param => visit(visitor, param, exprThroughCheckLoc));
-          args.forEach(arg => visit(visitor, arg, exprThroughCheckLoc));
-          visit(visitor, expr.dict.ann, exprThroughCheckLoc);
-          wrapVisitAllowSMethod(visitor, expr.dict.body, false, exprThroughCheckLoc);
+          const contextHeader = {...wfContext, parentBlockLoc: exprThroughCheckLoc};
+          listToArray(expr.dict.params).forEach(param => visit(visitor, param, contextHeader));
+          args.forEach(arg => visit(visitor, arg, contextHeader));
+          visit(visitor, expr.dict.ann, contextHeader);
+          visit(visitor, expr.dict.body, {...wfContext, allowSMethod: false, parentBlockLoc: exprThroughCheckLoc});
           const checkLoc = checkBlockLoc(expr.dict.l, expr.dict['_check-loc']) ?? expr.dict.l;
           wrapRejectStandalonesInCheck(expr.dict._check as A.Option<TJ.Variant<A.Expr, 's-block'>>);
-          wrapVisitCheck(visitor, expr.dict._check, checkLoc);
+          visit(visitor, expr.dict._check, {...wfContext, inCheckBlock: true, allowSMethod: false, parentBlockLoc: checkLoc});
         },
-        's-fun': (visitor, expr: TJ.Variant<A.Expr, 's-fun'>, parentBlockLoc) => {
+        's-fun': (visitor, expr: TJ.Variant<A.Expr, 's-fun'>, wfContext) => {
           const exprThroughCheckLoc =  getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
           if (reservedNames.has(expr.dict.name)) {
             reservedName(expr.dict.l, expr.dict.name);
@@ -944,31 +932,34 @@ export type Exports = {
           }
           const args = listToArray(expr.dict.args);
           ensureUniqueBindings(args, false);
-          listToArray(expr.dict.params).forEach(p => visit(visitor, p, exprThroughCheckLoc));
-          args.forEach(a => visit(visitor, a, exprThroughCheckLoc));
-          visit(visitor, expr.dict.ann, exprThroughCheckLoc);
-          wrapVisitAllowSMethod(visitor, expr.dict.body, false, exprThroughCheckLoc);
+          const contextHeader = {...wfContext, parentBlockLoc: exprThroughCheckLoc};
+          listToArray(expr.dict.params).forEach(p => visit(visitor, p, contextHeader));
+          args.forEach(a => visit(visitor, a, contextHeader));
+          visit(visitor, expr.dict.ann, contextHeader);
+          visit(visitor, expr.dict.body, {...wfContext, allowSMethod: false, parentBlockLoc: exprThroughCheckLoc});
           const checkLoc = checkBlockLoc(expr.dict.l, expr.dict['_check-loc']) ?? expr.dict.l;
           wrapRejectStandalonesInCheck(expr.dict._check as Option<TJ.Variant<A.Expr, 's-block'>>);
-          wrapVisitCheck(visitor, expr.dict._check, checkLoc);
+          visit(visitor, expr.dict._check, {...wfContext, inCheckBlock: true, allowSMethod: false, parentBlockLoc: checkLoc});
         },
-        's-obj': (visitor, expr: TJ.Variant<A.Expr, 's-obj'>, parentBlockLoc) => {
+        's-obj': (visitor, expr: TJ.Variant<A.Expr, 's-obj'>, wfContext) => {
           const fields = listToArray(expr.dict.fields);
           ensureUniqueFields(fields);
           checkUnderscoreName(fields, "a field name");
-          fields.forEach(f => wrapVisitAllowSMethod(visitor, f, true, parentBlockLoc));
+          const fieldContext = {...wfContext, allowSMethod: true};
+          fields.forEach(f => visit(visitor, f, fieldContext));
         },
-        's-extend': (visitor, expr: TJ.Variant<A.Expr, 's-extend'>, parentBlockLoc) => {
+        's-extend': (visitor, expr: TJ.Variant<A.Expr, 's-extend'>, wfContext) => {
           const fields = listToArray(expr.dict.fields);
           ensureUniqueFields(fields);
           checkUnderscoreName(fields, "a field name");
-          fields.forEach(f => wrapVisitAllowSMethod(visitor, f, true, parentBlockLoc));
+          const fieldContext = {...wfContext, allowSMethod: true};
+          fields.forEach(f => visit(visitor, f, fieldContext));
         },
-        's-dot': (visitor, expr: TJ.Variant<A.Expr, 's-dot'>, parentBlockLoc) => {
+        's-dot': (visitor, expr: TJ.Variant<A.Expr, 's-dot'>, wfContext) => {
           if (expr.dict.field === '_') {
             addError(C['underscore-as'].app(expr.dict.l, "a field name"));
           }
-          wrapVisitAllowSMethod(visitor, expr.dict.obj, false, parentBlockLoc);
+          visit(visitor, expr.dict.obj, {...wfContext, allowSMethod: false});
         },
         's-tuple-get': (visitor, expr: TJ.Variant<A.Expr, 's-tuple-get'>) => {
           const {l, tup, index, "index-loc": indexLoc} = expr.dict;
@@ -976,27 +967,27 @@ export type Exports = {
             addError(C['tuple-get-bad-index'].app(l, tup, index, indexLoc));
           }
         },
-        's-check': (visitor, expr: TJ.Variant<A.Expr, 's-check'>, _parentBlockLoc) => {
+        's-check': (visitor, expr: TJ.Variant<A.Expr, 's-check'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           const body = expr.dict.body as TJ.Variant<A.Expr, 's-block'>;
           const optionBody: A.Option<TJ.Variant<A.Expr, 's-block'>> = {$name: 'some', dict: { value: body }};
           if (!expr.dict['keyword-check']) {
-            wrapVisitCheck(visitor, optionBody, parentBlockLoc);
+            visit(visitor, optionBody, {...wfContext, inCheckBlock: true, allowSMethod: false, parentBlockLoc});
             wfExamplesBody(body);
           } else {
-            wrapVisitCheck(visitor, optionBody, parentBlockLoc);
+            visit(visitor, optionBody, {...wfContext, inCheckBlock: true, allowSMethod: false, parentBlockLoc});
             wrapRejectStandalonesInCheck(optionBody);
           }
         },
-        's-when': (visitor, expr: TJ.Variant<A.Expr, 's-when'>, _parentBlockLoc) => {
+        's-when': (visitor, expr: TJ.Variant<A.Expr, 's-when'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           if (!expr.dict.blocky && expr.dict.block.$name === 's-block') {
             wfBlockyBlocks(expr.dict.l, [expr.dict.block]);
           }
-          wrapVisitAllowSMethod(visitor, expr.dict.test, false, parentBlockLoc);
-          wrapVisitAllowSMethod(visitor, expr.dict.block, false, parentBlockLoc);
+          visit(visitor, expr.dict.test, {...wfContext, allowSMethod: false, parentBlockLoc});
+          visit(visitor, expr.dict.block, {...wfContext, allowSMethod: false, parentBlockLoc});
         },
-        's-if': (visitor, expr: TJ.Variant<A.Expr, 's-if'>, parentBlockLoc) => {
+        's-if': (visitor, expr: TJ.Variant<A.Expr, 's-if'>, wfContext) => {
           const branches = listToArray(expr.dict.branches);
           if (branches.length === 1) {
             addError(C['single-branch-if'].app(expr));
@@ -1004,9 +995,10 @@ export type Exports = {
           if (!expr.dict.blocky) {
             wfBlockyBlocks(expr.dict.l, branches.map(b => b.dict.body as TJ.Variant<A.Expr, 's-block'>));
           }
-          branches.forEach(b => wrapVisitAllowSMethod(visitor, b, false, parentBlockLoc));
+          const branchContext = {...wfContext, allowSMethod: false};
+          branches.forEach(b => visit(visitor, b, branchContext));
         },
-        's-if-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-else'>, _parentBlockLoc) => {
+        's-if-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-else'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           const branches = listToArray(expr.dict.branches);
           if (!expr.dict.blocky && expr.dict._else.$name === 's-block') {
@@ -1014,18 +1006,20 @@ export type Exports = {
             branchesBody.unshift(expr.dict._else);
             wfBlockyBlocks(expr.dict.l, branchesBody);
           }
-          branches.forEach(b => wrapVisitAllowSMethod(visitor, b, false, parentBlockLoc));
-          wrapVisitAllowSMethod(visitor, expr.dict._else, false, parentBlockLoc);
+          const branchContext = {...wfContext, allowSMethod: false, parentBlockLoc};
+          branches.forEach(b => visit(visitor, b, branchContext));
+          visit(visitor, expr.dict._else, branchContext);
         },
-        's-if-pipe': (visitor, expr: TJ.Variant<A.Expr, 's-if-pipe'>, _parentBlockLoc) => {
+        's-if-pipe': (visitor, expr: TJ.Variant<A.Expr, 's-if-pipe'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           const branches = listToArray(expr.dict.branches);
           if (!expr.dict.blocky) {
             wfBlockyBlocks(expr.dict.l, branches.map(b => b.dict.body as TJ.Variant<A.Expr, 's-block'>));
           }
-          branches.forEach(b => wrapVisitAllowSMethod(visitor, b, false, parentBlockLoc));
+          const branchContext = {...wfContext, allowSMethod: false, parentBlockLoc};
+          branches.forEach(b => visit(visitor, b, branchContext));
         },
-        's-if-pipe-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-pipe-else'>, _parentBlockLoc) => {
+        's-if-pipe-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-pipe-else'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           const branches = listToArray(expr.dict.branches);
           if (!expr.dict.blocky && expr.dict._else.$name === 's-block') {
@@ -1033,21 +1027,23 @@ export type Exports = {
             branchesBody.unshift(expr.dict._else);
             wfBlockyBlocks(expr.dict.l, branchesBody);
           }
-          branches.forEach(b => wrapVisitAllowSMethod(visitor, b, false, parentBlockLoc));
-          wrapVisitAllowSMethod(visitor, expr.dict._else, false, parentBlockLoc);
+          const branchContext = {...wfContext, allowSMethod: false, parentBlockLoc};
+          branches.forEach(b => visit(visitor, b, branchContext));
+          visit(visitor, expr.dict._else, branchContext);
         },
-        's-cases': (visitor, expr: TJ.Variant<A.Expr, 's-cases'>, _parentBlockLoc) => {
+        's-cases': (visitor, expr: TJ.Variant<A.Expr, 's-cases'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           const branches = listToArray(expr.dict.branches);
           ensureUniqueCases(branches);
           if (!expr.dict.blocky) {
             wfBlockyBlocks(expr.dict.l, branches.map(b => b.dict.body as TJ.Variant<A.Expr, 's-block'>));
           }
-          visit(visitor, expr.dict.typ, parentBlockLoc);
-          wrapVisitAllowSMethod(visitor, expr.dict.val, false, parentBlockLoc);
-          branches.forEach(b => wrapVisitAllowSMethod(visitor, b, false, parentBlockLoc));
+          visit(visitor, expr.dict.typ, {...wfContext, parentBlockLoc});
+          visit(visitor, expr.dict.val, {...wfContext, allowSMethod: false, parentBlockLoc});
+          const branchContext = {...wfContext, allowSMethod: false, parentBlockLoc};
+          branches.forEach(b => visit(visitor, b, branchContext));
         },
-        's-cases-else': (visitor, expr: TJ.Variant<A.Expr, 's-cases-else'>, _parentBlockLoc) => {
+        's-cases-else': (visitor, expr: TJ.Variant<A.Expr, 's-cases-else'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           const branches = listToArray(expr.dict.branches);
           ensureUniqueCases(branches);
@@ -1056,20 +1052,22 @@ export type Exports = {
             branchesBody.unshift(expr.dict._else);
             wfBlockyBlocks(expr.dict.l, branchesBody);
           }
-          visit(visitor, expr.dict.typ, parentBlockLoc);
-          wrapVisitAllowSMethod(visitor, expr.dict.val, false, parentBlockLoc);
-          branches.forEach(b => wrapVisitAllowSMethod(visitor, b, false, parentBlockLoc));
-          wrapVisitAllowSMethod(visitor, expr.dict._else, false, parentBlockLoc);
+          visit(visitor, expr.dict.typ, {...wfContext, parentBlockLoc});
+          visit(visitor, expr.dict.val, {...wfContext, allowSMethod: false, parentBlockLoc});
+          const branchContext = {...wfContext, allowSMethod: false, parentBlockLoc};
+          branches.forEach(b => visit(visitor, b, branchContext));
+          visit(visitor, expr.dict._else, branchContext);
         },
-        's-for': (visitor, expr: TJ.Variant<A.Expr, 's-for'>, _parentBlockLoc) => {
+        's-for': (visitor, expr: TJ.Variant<A.Expr, 's-for'>, wfContext) => {
           const parentBlockLoc = expr.dict.l;
           if (!expr.dict.blocky && expr.dict.body.$name === 's-block') {
             wfBlockyBlocks(expr.dict.l, [expr.dict.body]);
           }
-          wrapVisitAllowSMethod(visitor, expr.dict.iterator, false, parentBlockLoc);
-          listToArray(expr.dict.bindings).forEach(b => wrapVisitAllowSMethod(visitor, b, false, parentBlockLoc));
-          visit(visitor, expr.dict.ann, parentBlockLoc);
-          wrapVisitAllowSMethod(visitor, expr.dict.body, false, parentBlockLoc);
+          visit(visitor, expr.dict.iterator, {...wfContext, allowSMethod: false, parentBlockLoc});
+          const bindContext = {...wfContext, allowSMethod: false, parentBlockLoc};
+          listToArray(expr.dict.bindings).forEach(b => visit(visitor, b, bindContext));
+          visit(visitor, expr.dict.ann, {...wfContext, parentBlockLoc});
+          visit(visitor, expr.dict.body, {...wfContext, allowSMethod: false, parentBlockLoc});
         },
         's-frac': (visitor, expr: TJ.Variant<A.Expr, 's-frac'>) => {
           if (expr.dict.den === 0) {
@@ -1092,7 +1090,7 @@ export type Exports = {
             addError(C['non-object-provide'].app(expr.dict.l));
           }
         },
-        's-reactor': (visitor, expr: TJ.Variant<A.Expr, 's-reactor'>, parentBlockLoc) => {
+        's-reactor': (visitor, expr: TJ.Variant<A.Expr, 's-reactor'>, wfContext) => {
           const fields = listToArray(expr.dict.fields);
           const methodFields = fields.filter(f => f.$name === 's-method-field');
           if (methodFields.length !== 0) {
@@ -1134,10 +1132,10 @@ export type Exports = {
             } else {
               fieldsDict.set(f.dict.name, f.dict.l);
             }
-            wrapVisitAllowSMethod(visitor, f, false, parentBlockLoc);
+            visit(visitor, f, {...wfContext, allowSMethod: false});
           })
         },
-        's-table': (visitor, expr: TJ.Variant<A.Expr, 's-table'>, parentBlockLoc) => {
+        's-table': (visitor, expr: TJ.Variant<A.Expr, 's-table'>, wfContext) => {
           const headers = listToArray(expr.dict.headers);
           wfTableHeaders(expr.dict.l, headers);
           if (headers.length === 0) {
@@ -1154,28 +1152,30 @@ export type Exports = {
                 headers[headers.length - 1].dict.l as TJ.Variant<A.Srcloc, 'srcloc'>);
               addError(C['table-row-wrong-size'].app(headerLoc, expr.dict.headers, row))
             }
-            elems.forEach(e => wrapVisitAllowSMethod(visitor, e, false, parentBlockLoc));
+            const elemContext = {...wfContext, allowSMethod: false};
+            elems.forEach(e => visit(visitor, e, elemContext));
           });
         },
-        's-table-extend': (visitor, expr: TJ.Variant<A.Expr, 's-table-extend'>, parentBlockLoc) => {
+        's-table-extend': (visitor, expr: TJ.Variant<A.Expr, 's-table-extend'>, wfContext) => {
           const boundNames = new Set<string>();
           listToArray(expr.dict['column-binds'].dict.binds).forEach(b => {
             let bBind = b as TJ.Variant<A.Bind, 's-bind'>;
             boundNames.add(nameToName(bBind.dict.id));
           });
+          const eContext = {...wfContext, allowSMethod: false};
           listToArray(expr.dict.extensions).forEach(e => {
             switch (e.$name) {
               case 's-table-extend-field': {
-                wrapVisitAllowSMethod(visitor, e.dict.value, false, parentBlockLoc);
-                visit(visitor, e.dict.ann, parentBlockLoc);
+                visit(visitor, e.dict.value, eContext);
+                visit(visitor, e.dict.ann, wfContext);
                 break;
               }
               case 's-table-extend-reducer': {
                 if (!boundNames.has(nameToName(e.dict.col))) {
                   addError(C['table-reducer-bad-column'].app(e, expr.dict['column-binds'].dict.l));
                 }
-                wrapVisitAllowSMethod(visitor, e.dict.reducer, false, parentBlockLoc);
-                visit(visitor, e.dict.ann, parentBlockLoc);
+                visit(visitor, e.dict.reducer, eContext);
+                visit(visitor, e.dict.ann, wfContext);
                 break;
               }
               default: {
@@ -1184,7 +1184,7 @@ export type Exports = {
             }
           });
         },
-        's-load-table': (visitor, expr: TJ.Variant<A.Expr, 's-load-table'>, parentBlockLoc) => {
+        's-load-table': (visitor, expr: TJ.Variant<A.Expr, 's-load-table'>, wfContext) => {
           const headers = listToArray(expr.dict.headers);
           const spec = listToArray(expr.dict.spec);
           wfTableHeaders(expr.dict.l, headers);
@@ -1228,7 +1228,8 @@ export type Exports = {
           if (numSrcs !== 1) {
             addError(C['load-table-bad-number-srcs'].app(expr, numSrcs));
           }
-          spec.forEach(s => wrapVisitAllowSMethod(visitor, s, false, parentBlockLoc));
+          const specContext = {...wfContext, allowSMethod: false};
+          spec.forEach(s => visit(visitor, s, specContext));
         },
         'a-name': (visitor, expr: TJ.Variant<A.Ann, 'a-name'>) => {
           if (A['is-s-underscore'].app(expr.dict.id)) {
@@ -1240,39 +1241,40 @@ export type Exports = {
       const topLevelVisitor: TJ.Visitor<
         A.Program | A.Expr | A.TypeLetBind | A.Variant | A.Member | A.Bind | A.LetBind | A.Import | A.Provide | A.ProvideTypes | A.LetrecBind | A.IfBranch | A.IfPipeBranch | A.CasesBranch | A.ForBind | A.VariantMember | A.Ann | A.AField, 
         void,
-        S.Srcloc
+        WFContext
       > = {
-        's-program': (visitor, expr: TJ.Variant<A.Program, 's-program'>) => {
+        's-program': (visitor, expr: TJ.Variant<A.Program, 's-program'>, wfContext: WFContext) => {
           const body = expr.dict.block;
           if (body.$name === 's-block') {
-            wfBlockStmts(visitor, listToArray(body.dict.stmts), true, body.dict.l);
+            wfBlockStmts(visitor, listToArray(body.dict.stmts), true, {...wfContext, parentBlockLoc: body.dict.l});
           } else {
-            visit(visitor, body, body.dict.l);
+            visit(visitor, body, {...wfContext, parentBlockLoc: body.dict.l});
           }
-          wrapVisitAllowSMethod(visitor, expr.dict._provide, false, body.dict.l);
-          visit(visitor, expr.dict['provided-types'], body.dict.l);
-          listToArray(expr.dict.imports).forEach(i => visit(visitor, i, body.dict.l));
+          visit(visitor, expr.dict._provide, {...wfContext, allowSMethod: false, parentBlockLoc: body.dict.l});
+          visit(visitor, expr.dict['provided-types'], {...wfContext, parentBlockLoc: body.dict.l});
+          const importContext = {...wfContext, parentBlockLoc: body.dict.l};
+          listToArray(expr.dict.imports).forEach(i => visit(visitor, i, importContext));
         },
-        's-type': (visitor, expr: TJ.Variant<A.Expr, 's-type'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr.dict.ann, parentBlockLoc);
+        's-type': (visitor, expr: TJ.Variant<A.Expr, 's-type'>, wfContext: WFContext) => {
+          visit(wellFormedVisitor, expr.dict.ann, wfContext);
         },
         's-newtype': (visitor, expr: TJ.Variant<A.Expr, 's-newtype'>) => {
           return;
         },
-        's-type-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-type-let-expr'>, parentBlockLoc) => {
+        's-type-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-type-let-expr'>, wfContext) => {
           if (!expr.dict.blocky && A['is-s-block'].app(expr.dict.body)) {
             wfBlockyBlocks(expr.dict.l, [expr.dict.body]);
           }
-          listToArray(expr.dict.binds).forEach(b => visit(visitor, b, parentBlockLoc));
-          wrapVisitAllowSMethod(wellFormedVisitor, expr.dict.body, false, parentBlockLoc);
+          listToArray(expr.dict.binds).forEach(b => visit(visitor, b, wfContext));
+          visit(wellFormedVisitor, expr.dict.body, {...wfContext, allowSMethod: false});
         },
-        's-type-bind': (visitor, expr: TJ.Variant<A.TypeLetBind, 's-type-bind'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr.dict.ann, parentBlockLoc);
+        's-type-bind': (visitor, expr: TJ.Variant<A.TypeLetBind, 's-type-bind'>, wfContext) => {
+          visit(wellFormedVisitor, expr.dict.ann, wfContext);
         },
         's-newtype-bind': (visitor, expr: TJ.Variant<A.TypeLetBind, 's-newtype-bind'>) => {
           return;
         },
-        's-variant': (visitor, expr: TJ.Variant<A.Variant, 's-variant'>, parentBlockLoc) => {
+        's-variant': (visitor, expr: TJ.Variant<A.Variant, 's-variant'>, wfContext) => {
           const members = listToArray(expr.dict.members);
           const withMembers = listToArray(expr.dict['with-members']);
           const memberBinds = members.map(m => m.dict.bind);
@@ -1292,15 +1294,17 @@ export type Exports = {
             addError(C['underscore-as'].app(underscores[0].dict.l, "a data variant name"));
           }
           checkUnderscoreName(withMembers, "a field name");
-          members.forEach(m => visit(wellFormedVisitor, m, parentBlockLoc));
-          withMembers.forEach(wm => wrapVisitAllowSMethod(wellFormedVisitor, wm, true, parentBlockLoc));
+          members.forEach(m => visit(wellFormedVisitor, m, wfContext));
+          const wmContext = {...wfContext, allowSMethod: true};
+          withMembers.forEach(wm => visit(wellFormedVisitor, wm, wmContext));
         },
-        's-singleton-variant': (visitor, expr: TJ.Variant<A.Variant, 's-singleton-variant'>, parentBlockLoc) => {
+        's-singleton-variant': (visitor, expr: TJ.Variant<A.Variant, 's-singleton-variant'>, wfContext) => {
           const withMembers = listToArray(expr.dict['with-members']);
           ensureUniqueBindings(fieldsToBinds(withMembers), false);
-          withMembers.forEach(wm => wrapVisitAllowSMethod(wellFormedVisitor, wm, true, parentBlockLoc));
+          const wmContext = {...wfContext, allowSMethod: true};
+          withMembers.forEach(wm => visit(wellFormedVisitor, wm, wmContext));
         },
-        's-data': (visitor, expr: TJ.Variant<A.Expr, 's-data'>, parentBlockLoc) => {
+        's-data': (visitor, expr: TJ.Variant<A.Expr, 's-data'>, wfContext) => {
           const exprThroughCheckLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
           const variants = listToArray(expr.dict.variants);
           const shares = listToArray(expr.dict['shared-members']);
@@ -1308,18 +1312,20 @@ export type Exports = {
           checkUnderscoreName(variants, "a data variant name");
           checkUnderscoreName(shares, "a shared field name");
           checkUnderscoreName([{dict: {l: expr.dict.l, name: expr.dict.name}}], "a datatype name");
-          let theCurShared = curShared;
-          curShared = fieldsToBinds(shares);
-          listToArray(expr.dict.params).forEach(p => visit(wellFormedVisitor, p, exprThroughCheckLoc));
-          listToArray(expr.dict.mixins).forEach(m => wrapVisitAllowSMethod(wellFormedVisitor, m, false, exprThroughCheckLoc));
-          variants.forEach(v => visit(visitor, v, exprThroughCheckLoc));
-          shares.forEach(s => wrapVisitAllowSMethod(wellFormedVisitor, s, true, exprThroughCheckLoc));
-          curShared = theCurShared;
+          const binds = fieldsToBinds(shares);
+          const paramContext = {...wfContext, parentBlockLoc: exprThroughCheckLoc, curShared: binds};
+          listToArray(expr.dict.params).forEach(p => visit(wellFormedVisitor, p, paramContext));
+          const mixinContext = {...wfContext, allowSMethod: false, parentBlockLoc: exprThroughCheckLoc, curShared: binds};
+          listToArray(expr.dict.mixins).forEach(m => visit(wellFormedVisitor, m, mixinContext));
+          const variantContext = {...wfContext, parentBlockLoc: exprThroughCheckLoc, curShared: binds};
+          variants.forEach(v => visit(visitor, v, variantContext));
+          const shareContext = {...wfContext, allowSMethod: true, parentBlockLoc: exprThroughCheckLoc, curShared: binds};
+          shares.forEach(s => visit(wellFormedVisitor, s, shareContext));
           const checkLoc = checkBlockLoc(expr.dict.l, expr.dict['_check-loc']) ?? expr.dict.l;
           wrapRejectStandalonesInCheck(expr.dict._check as Option<TJ.Variant<A.Expr, 's-block'>>);
-          wrapVisitCheck(wellFormedVisitor, expr.dict._check, checkLoc);
+          visit(wellFormedVisitor, expr.dict._check, {...wfContext, allowSMethod: false, inCheckBlock: true, parentBlockLoc: checkLoc});
         },
-        's-data-expr': (visitor, expr: TJ.Variant<A.Expr, 's-data-expr'>, parentBlockLoc) => {
+        's-data-expr': (visitor, expr: TJ.Variant<A.Expr, 's-data-expr'>, wfContext) => {
           const exprThroughCheckLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
           const variants = listToArray(expr.dict.variants);
           const shares = listToArray(expr.dict['shared-members'])
@@ -1327,215 +1333,217 @@ export type Exports = {
           checkUnderscoreName(variants, "a data variant name");
           checkUnderscoreName(shares, "a shared field name");
           checkUnderscoreName([{dict: {l: expr.dict.l, name: expr.dict.name}}], "a datatype name");
-          let theCurShared = curShared;
-          curShared = fieldsToBinds(shares);
-          listToArray(expr.dict.params).forEach(p => visit(wellFormedVisitor, p, exprThroughCheckLoc));
-          listToArray(expr.dict.mixins).forEach(m => visit(wellFormedVisitor, m, exprThroughCheckLoc));
-          variants.forEach(v => visit(wellFormedVisitor, v, exprThroughCheckLoc));
-          shares.forEach(s => wrapVisitAllowSMethod(wellFormedVisitor, s, true, exprThroughCheckLoc));
-          curShared = theCurShared;
+          const binds = fieldsToBinds(shares);
+          const paramMixinContext = {...wfContext, parentBlockLoc: exprThroughCheckLoc, curShared: binds};
+          listToArray(expr.dict.params).forEach(p => visit(wellFormedVisitor, p, paramMixinContext));
+          listToArray(expr.dict.mixins).forEach(m => visit(wellFormedVisitor, m, paramMixinContext));
+          const variantContext = {...wfContext, parentBlockLoc: exprThroughCheckLoc, curShared: binds};
+          variants.forEach(v => visit(wellFormedVisitor, v, variantContext));
+          const shareContext = {...wfContext, allowSMethod: true, parentBlockLoc: exprThroughCheckLoc, curShared: binds};
+          shares.forEach(s => visit(wellFormedVisitor, s, shareContext));
           const checkLoc = checkBlockLoc(expr.dict.l, expr.dict['_check-loc']) ?? expr.dict.l;
           wrapRejectStandalonesInCheck(expr.dict._check as Option<TJ.Variant<A.Expr, 's-block'>>);
-          wrapVisitCheck(wellFormedVisitor, expr.dict._check, checkLoc);
+          visit(wellFormedVisitor, expr.dict._check, {...wfContext, allowSMethod: false, inCheckBlock: true, parentBlockLoc: checkLoc});
         },
-        's-import': (visitor, expr: TJ.Variant<A.Import, 's-import'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-import': (visitor, expr: TJ.Variant<A.Import, 's-import'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-include': (visitor, expr: TJ.Variant<A.Import, 's-include'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-include': (visitor, expr: TJ.Variant<A.Import, 's-include'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-import-types': (visitor, expr: TJ.Variant<A.Import, 's-import-types'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-import-types': (visitor, expr: TJ.Variant<A.Import, 's-import-types'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-import-fields': (visitor, expr: TJ.Variant<A.Import, 's-import-fields'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-import-fields': (visitor, expr: TJ.Variant<A.Import, 's-import-fields'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-provide': (visitor, expr: TJ.Variant<A.Provide, 's-provide'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-provide': (visitor, expr: TJ.Variant<A.Provide, 's-provide'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-provide-types': (visitor, expr: TJ.Variant<A.ProvideTypes, 's-provide-types'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-provide-types': (visitor, expr: TJ.Variant<A.ProvideTypes, 's-provide-types'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-bind': (visitor, expr: TJ.Variant<A.Bind, 's-bind'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-bind': (visitor, expr: TJ.Variant<A.Bind, 's-bind'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-var-bind': (visitor, expr: TJ.Variant<A.LetBind, 's-var-bind'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-var-bind': (visitor, expr: TJ.Variant<A.LetBind, 's-var-bind'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-let-bind': (visitor, expr: TJ.Variant<A.LetBind, 's-let-bind'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-let-bind': (visitor, expr: TJ.Variant<A.LetBind, 's-let-bind'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-template': (visitor, expr: TJ.Variant<A.Expr, 's-template'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-template': (visitor, expr: TJ.Variant<A.Expr, 's-template'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-let-expr'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-let-expr': (visitor, expr: TJ.Variant<A.Expr, 's-let-expr'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-letrec-bind': (visitor, expr: TJ.Variant<A.LetrecBind, 's-letrec-bind'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-letrec-bind': (visitor, expr: TJ.Variant<A.LetrecBind, 's-letrec-bind'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-letrec': (visitor, expr: TJ.Variant<A.Expr, 's-letrec'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-letrec': (visitor, expr: TJ.Variant<A.Expr, 's-letrec'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-hint-exp': (visitor, expr: TJ.Variant<A.Expr, 's-hint-exp'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-hint-exp': (visitor, expr: TJ.Variant<A.Expr, 's-hint-exp'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-instantiate': (visitor, expr: TJ.Variant<A.Expr, 's-instantiate'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-instantiate': (visitor, expr: TJ.Variant<A.Expr, 's-instantiate'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-block': (visitor, expr: TJ.Variant<A.Expr, 's-block'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-block': (visitor, expr: TJ.Variant<A.Expr, 's-block'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-user-block': (visitor, expr: TJ.Variant<A.Expr, 's-user-block'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-user-block': (visitor, expr: TJ.Variant<A.Expr, 's-user-block'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-fun': (visitor, expr: TJ.Variant<A.Expr, 's-fun'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-fun': (visitor, expr: TJ.Variant<A.Expr, 's-fun'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-var': (visitor, expr: TJ.Variant<A.Expr, 's-var'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-var': (visitor, expr: TJ.Variant<A.Expr, 's-var'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-rec': (visitor, expr: TJ.Variant<A.Expr, 's-rec'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-rec': (visitor, expr: TJ.Variant<A.Expr, 's-rec'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-let': (visitor, expr: TJ.Variant<A.Expr, 's-let'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-let': (visitor, expr: TJ.Variant<A.Expr, 's-let'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-ref': (visitor, expr: TJ.Variant<A.Expr, 's-ref'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-ref': (visitor, expr: TJ.Variant<A.Expr, 's-ref'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-when': (visitor, expr: TJ.Variant<A.Expr, 's-when'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-when': (visitor, expr: TJ.Variant<A.Expr, 's-when'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-contract': (visitor, expr: TJ.Variant<A.Expr, 's-contract'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-contract': (visitor, expr: TJ.Variant<A.Expr, 's-contract'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-assign': (visitor, expr: TJ.Variant<A.Expr, 's-assign'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-assign': (visitor, expr: TJ.Variant<A.Expr, 's-assign'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-if-branch': (visitor, expr: TJ.Variant<A.IfBranch, 's-if-branch'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-if-branch': (visitor, expr: TJ.Variant<A.IfBranch, 's-if-branch'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-if-pipe-branch': (visitor, expr: TJ.Variant<A.IfPipeBranch, 's-if-pipe-branch'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-if-pipe-branch': (visitor, expr: TJ.Variant<A.IfPipeBranch, 's-if-pipe-branch'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-if': (visitor, expr: TJ.Variant<A.Expr, 's-if'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-if': (visitor, expr: TJ.Variant<A.Expr, 's-if'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-if-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-else'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-if-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-else'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-if-pipe': (visitor, expr: TJ.Variant<A.Expr, 's-if-pipe'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-if-pipe': (visitor, expr: TJ.Variant<A.Expr, 's-if-pipe'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-if-pipe-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-pipe-else'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-if-pipe-else': (visitor, expr: TJ.Variant<A.Expr, 's-if-pipe-else'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-cases-branch': (visitor, expr: TJ.Variant<A.CasesBranch, 's-cases-branch'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-cases-branch': (visitor, expr: TJ.Variant<A.CasesBranch, 's-cases-branch'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-singleton-cases-branch': (visitor, expr: TJ.Variant<A.CasesBranch, 's-singleton-cases-branch'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-singleton-cases-branch': (visitor, expr: TJ.Variant<A.CasesBranch, 's-singleton-cases-branch'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-cases': (visitor, expr: TJ.Variant<A.Expr, 's-cases'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-cases': (visitor, expr: TJ.Variant<A.Expr, 's-cases'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-cases-else': (visitor, expr: TJ.Variant<A.Expr, 's-cases-else'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-cases-else': (visitor, expr: TJ.Variant<A.Expr, 's-cases-else'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-op': (visitor, expr: TJ.Variant<A.Expr, 's-op'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-op': (visitor, expr: TJ.Variant<A.Expr, 's-op'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-check-test': (visitor, expr: TJ.Variant<A.Expr, 's-check-test'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-check-test': (visitor, expr: TJ.Variant<A.Expr, 's-check-test'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-paren': (visitor, expr: TJ.Variant<A.Expr, 's-paren'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-paren': (visitor, expr: TJ.Variant<A.Expr, 's-paren'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-lam': (visitor, expr: TJ.Variant<A.Expr, 's-lam'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-lam': (visitor, expr: TJ.Variant<A.Expr, 's-lam'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-method': (visitor, expr: TJ.Variant<A.Expr, 's-method'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-method': (visitor, expr: TJ.Variant<A.Expr, 's-method'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-extend': (visitor, expr: TJ.Variant<A.Expr, 's-extend'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-extend': (visitor, expr: TJ.Variant<A.Expr, 's-extend'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-update': (visitor, expr: TJ.Variant<A.Expr, 's-update'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-update': (visitor, expr: TJ.Variant<A.Expr, 's-update'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-tuple-get': (visitor, expr: TJ.Variant<A.Expr, 's-tuple-get'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-tuple-get': (visitor, expr: TJ.Variant<A.Expr, 's-tuple-get'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-obj': (visitor, expr: TJ.Variant<A.Expr, 's-obj'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-obj': (visitor, expr: TJ.Variant<A.Expr, 's-obj'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-array': (visitor, expr: TJ.Variant<A.Expr, 's-array'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-array': (visitor, expr: TJ.Variant<A.Expr, 's-array'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-construct': (visitor, expr: TJ.Variant<A.Expr, 's-construct'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-construct': (visitor, expr: TJ.Variant<A.Expr, 's-construct'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-app': (visitor, expr: TJ.Variant<A.Expr, 's-app'>, parentBlockLoc) => {
+        's-app': (visitor, expr: TJ.Variant<A.Expr, 's-app'>, wfContext) => {
           if (expr.dict._fun.$name === 's-dot' && expr.dict._fun.dict.obj.$name === 's-id' && nameToName(expr.dict._fun.dict.obj.dict.id) === 'builtins' && expr.dict._fun.dict.field === 'trace-value') {
-            wrapVisitAllowSMethod(visitor, expr.dict._fun, false, parentBlockLoc);
-            listToArray(expr.dict.args).forEach(a => wrapVisitAllowSMethod(visitor, a, false, parentBlockLoc))
+            visit(visitor, expr.dict._fun, {...wfContext, allowSMethod: false});
+            const argContext = {...wfContext, allowSMethod: false};
+            listToArray(expr.dict.args).forEach(a => visit(visitor, a, argContext))
           } else {
-            visit(wellFormedVisitor, expr, parentBlockLoc);
+            visit(wellFormedVisitor, expr, wfContext);
           }
         },
-        's-prim-app': (visitor, expr: TJ.Variant<A.Expr, 's-prim-app'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-prim-app': (visitor, expr: TJ.Variant<A.Expr, 's-prim-app'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-frac': (visitor, expr: TJ.Variant<A.Expr, 's-frac'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-frac': (visitor, expr: TJ.Variant<A.Expr, 's-frac'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-reactor': (visitor, expr: TJ.Variant<A.Expr, 's-reactor'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-reactor': (visitor, expr: TJ.Variant<A.Expr, 's-reactor'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-rfrac': (visitor, expr: TJ.Variant<A.Expr, 's-rfrac'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-rfrac': (visitor, expr: TJ.Variant<A.Expr, 's-rfrac'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-id': (visitor, expr: TJ.Variant<A.Expr, 's-id'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-id': (visitor, expr: TJ.Variant<A.Expr, 's-id'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-id-var': (visitor, expr: TJ.Variant<A.Expr, 's-id-var'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-id-var': (visitor, expr: TJ.Variant<A.Expr, 's-id-var'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-id-letrec': (visitor, expr: TJ.Variant<A.Expr, 's-id-letrec'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-id-letrec': (visitor, expr: TJ.Variant<A.Expr, 's-id-letrec'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-dot': (visitor, expr: TJ.Variant<A.Expr, 's-dot'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-dot': (visitor, expr: TJ.Variant<A.Expr, 's-dot'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-get-bang': (visitor, expr: TJ.Variant<A.Expr, 's-get-bang'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-get-bang': (visitor, expr: TJ.Variant<A.Expr, 's-get-bang'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-bracket': (visitor, expr: TJ.Variant<A.Expr, 's-bracket'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-bracket': (visitor, expr: TJ.Variant<A.Expr, 's-bracket'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-for': (visitor, expr: TJ.Variant<A.Expr, 's-for'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-for': (visitor, expr: TJ.Variant<A.Expr, 's-for'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-check': (visitor, expr: TJ.Variant<A.Expr, 's-check'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-check': (visitor, expr: TJ.Variant<A.Expr, 's-check'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-data-field': (visitor, expr: TJ.Variant<A.Member, 's-data-field'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-data-field': (visitor, expr: TJ.Variant<A.Member, 's-data-field'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-mutable-field': (visitor, expr: TJ.Variant<A.Member, 's-mutable-field'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-mutable-field': (visitor, expr: TJ.Variant<A.Member, 's-mutable-field'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-method-field': (visitor, expr: TJ.Variant<A.Member, 's-method-field'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-method-field': (visitor, expr: TJ.Variant<A.Member, 's-method-field'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-for-bind': (visitor, expr: TJ.Variant<A.ForBind, 's-for-bind'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-for-bind': (visitor, expr: TJ.Variant<A.ForBind, 's-for-bind'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-variant-member': (visitor, expr: TJ.Variant<A.VariantMember, 's-variant-member'>, parentBlockLoc) => {
+        's-variant-member': (visitor, expr: TJ.Variant<A.VariantMember, 's-variant-member'>, wfContext) => {
           switch (expr.dict.bind.$name) {
             case 's-bind': {
-              visit(wellFormedVisitor, expr, parentBlockLoc);
+              visit(wellFormedVisitor, expr, wfContext);
               break;
             }
             case 's-tuple-bind': {
@@ -1550,41 +1558,48 @@ export type Exports = {
             }
           }
         },
-        's-table': (visitor, expr: TJ.Variant<A.Expr, 's-table'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-table': (visitor, expr: TJ.Variant<A.Expr, 's-table'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-load-table': (visitor, expr: TJ.Variant<A.Expr, 's-load-table'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-load-table': (visitor, expr: TJ.Variant<A.Expr, 's-load-table'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        's-table-extend': (visitor, expr: TJ.Variant<A.Expr, 's-table-extend'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        's-table-extend': (visitor, expr: TJ.Variant<A.Expr, 's-table-extend'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        'a-arrow': (visitor, expr: TJ.Variant<A.Ann, 'a-arrow'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        'a-arrow': (visitor, expr: TJ.Variant<A.Ann, 'a-arrow'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        'a-arrow-argnames': (visitor, expr: TJ.Variant<A.Ann, 'a-arrow-argnames'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        'a-arrow-argnames': (visitor, expr: TJ.Variant<A.Ann, 'a-arrow-argnames'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        'a-method': (visitor, expr: TJ.Variant<A.Ann, 'a-method'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        'a-method': (visitor, expr: TJ.Variant<A.Ann, 'a-method'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        'a-record': (visitor, expr: TJ.Variant<A.Ann, 'a-record'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        'a-record': (visitor, expr: TJ.Variant<A.Ann, 'a-record'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        'a-app': (visitor, expr: TJ.Variant<A.Ann, 'a-app'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        'a-app': (visitor, expr: TJ.Variant<A.Ann, 'a-app'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        'a-pred': (visitor, expr: TJ.Variant<A.Ann, 'a-pred'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        'a-pred': (visitor, expr: TJ.Variant<A.Ann, 'a-pred'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        'a-dot': (visitor, expr: TJ.Variant<A.Ann, 'a-dot'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        'a-dot': (visitor, expr: TJ.Variant<A.Ann, 'a-dot'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
-        'a-field': (visitor, expr: TJ.Variant<A.AField, 'a-field'>, parentBlockLoc) => {
-          visit(wellFormedVisitor, expr, parentBlockLoc);
+        'a-field': (visitor, expr: TJ.Variant<A.AField, 'a-field'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
       };
-      visit(topLevelVisitor, ast, ast.dict.l);
+      const initialWFContext: WFContext = {
+        parentBlockLoc: ast.dict.l,
+        inCheckBlock: false,
+        allowSMethod: false,
+        curShared: [],
+        paramCurrentEverywhere: false,
+      };
+      visit(topLevelVisitor, ast, initialWFContext);
       if (errors.length === 0) {
         return C.ok.app(ast);
       } else {
