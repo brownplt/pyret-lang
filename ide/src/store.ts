@@ -5,6 +5,7 @@ import ideApp, { setStore } from './reducer';
 import { IDE } from './ide';
 import {
   EditorMode,
+  initialState,
   State,
 } from './state';
 import {
@@ -224,10 +225,60 @@ function handleFirstActionableEffect(
   return false;
 }
 
+const LOCALSTORAGE_STATE_NAME = 'anchor-settings';
+const serializedState = localStorage.getItem(LOCALSTORAGE_STATE_NAME);
+let loadedState = initialState;
+if (serializedState) {
+  loadedState = {
+    ...initialState,
+    ...JSON.parse(serializedState),
+  };
+}
+
 const store = createStore(
   ideApp,
+  loadedState,
   (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__(),
 );
+type SerializedOptions = {[key: string]: (string | number | boolean)};
+let lastStorage: SerializedOptions;
+store.subscribe(() => {
+  const s = store.getState();
+  const storage: SerializedOptions = {
+    // effectQueue: shouldn't even exist
+    browsePath: s.browsePath,
+    browseRoot: s.browseRoot,
+    currentFile: s.currentFile,
+    // currentFileContents: saved to disk routinely
+    typeCheck: s.typeCheck,
+    // rhs / rtMessages / interactionErrors / definitionsHighlights: can/should
+    // be gotten by running
+    runKind: s.runKind,
+    // editTimer: ~infinity between pageloads
+    // *dropdownVisible / menuTabVisible / menuTabIndex: should be false on
+    // load, visually
+    editorMode: s.editorMode,
+    fontSize: s.fontSize,
+    // chunks: serialized into current file with #.CHUNK#
+    // past/future: not serializable, and hard to remember across loads
+    // isFileSaved: always true on load
+    // compiling / running: always false on load
+    // menuItems: shouldn't be in state probably
+    enterNewline: s.enterNewline,
+    editorResponseLoop: s.editorResponseLoop,
+    editorLayout: s.editorLayout,
+  };
+  const keys = Object.keys(storage);
+  for (let i = 0; i < keys.length; i += 1) {
+    const key = keys[i];
+    if (lastStorage === undefined || storage[key] !== lastStorage[key]) {
+      localStorage.setItem(LOCALSTORAGE_STATE_NAME, JSON.stringify(storage));
+      lastStorage = storage;
+      return;
+    }
+  }
+});
+
 setStore(store);
 
 const ide: IDE = {
