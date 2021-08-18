@@ -235,35 +235,17 @@ class Chat extends React.Component<ChatProps, any> {
     run();
   }
 
-  /* Called in response to a Delete key event. Deletes chunks in different ways
-     depending on where the cursor is and which chunks (if any) are selected.
-
-     This is a whole lot like handleBackspace, but with slightly different
-     functionality to mimic the differences between deleting something with Delete
-     versus deleting something with Backspace */
-  handleDelete(event: Event) {
-    const {
-      chunks,
-      index,
-    } = this.props;
-    if (chunks[index].editor.getValue().trim() === '') {
-      this.deleteChunk(index);
-      event.preventDefault();
-    }
-  }
-
-  /* Called in response to a Backspace key event. Deletes chunks in different ways
-     depending on where the cursor is and which chunks (if any) are selected.
-
-     This is a whole lot like handleDelete, but with slightly different
-     functionality to mimic the differences between deleting something with Delete
-     versus deleting something with Backspace */
+  /* Called in response to a Backspace or Delete key event. Deletes empty chunks */
   handleBackspace(event: Event) {
     const {
       chunks, index,
     } = this.props;
-    if (chunks[index].editor.getValue().trim() === '') {
-      this.deleteChunk(index);
+    const ed = chunks[index].editor;
+    if (ed.getValue().trim() === '') {
+      if (!isInitializedEditor(ed)) {
+        throw new Error('backspace on uninitialized editor');
+      }
+      ed.getInputField().blur();
       event.preventDefault();
     }
   }
@@ -398,10 +380,8 @@ class Chat extends React.Component<ChatProps, any> {
                 this.handleEnter(editor, event);
                 break;
               case 'Backspace':
-                this.handleBackspace(event);
-                break;
               case 'Delete':
-                this.handleDelete(event);
+                this.handleBackspace(event);
                 break;
               case 'ArrowUp':
                 this.handleArrowUp(editor, event);
