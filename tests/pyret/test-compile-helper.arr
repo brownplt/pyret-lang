@@ -49,7 +49,6 @@ test-compile-options = CS.make-default-compile-options('./').{
   compile-module: true,
   builtin-js-dirs: [list: "./build/runtime"],
   runtime-builtin-relative-path: some("./"),
-  pipeline: CS.pipeline-ts-anchor([list: "well-formed"]),
 }
 
 our-test-context = CLI.default-test-context.{options: test-compile-options}

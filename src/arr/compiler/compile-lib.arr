@@ -11,7 +11,7 @@ import file("compile-structs.arr") as CS
 import js-file("ts-gensym") as G
 import js-file("ts-js-of-pyret") as JSP
 import file("ast-util.arr") as AU
-import file("well-formed.arr") as W
+import js-file("ts-well-formed-impl") as W
 import js-file("ts-desugar-impl") as D
 import js-file("ts-desugar-post-tc") as DP
 import file("type-check.arr") as T

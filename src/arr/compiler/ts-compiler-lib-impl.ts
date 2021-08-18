@@ -184,7 +184,7 @@ type ResolveScopeExports = {
     { 'import-type': 'dependency', protocol: 'file', args: ['ast-util.arr'] },
     { 'import-type': 'dependency', protocol: 'file', args: ['compile-structs.arr'] },
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-gensym'] },
-    { 'import-type': 'dependency', protocol: 'file', args: ['well-formed.arr'] },
+    { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-well-formed-impl'] },
     { 'import-type': 'dependency', protocol: 'file', args: ['resolve-scope.arr'] },
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-desugar-impl'] },
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-desugar-post-tc'] },

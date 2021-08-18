@@ -15,7 +15,7 @@ import error as ERR
 import system as SYS
 import js-file("./parse-pyret") as PP
 import file("ast-util.arr") as AU
-import file("well-formed.arr") as W
+import js-file("ts-well-formed-impl") as W
 import file("cmdline.arr") as CMD
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
