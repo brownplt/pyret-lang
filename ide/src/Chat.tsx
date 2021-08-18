@@ -171,7 +171,7 @@ class Chat extends React.Component<ChatProps, any> {
     const pos = editor.getCursor();
     if (pos.line === 0 && isWrapFirst(editor, pos) && index > 0) {
       const newEditor = chunks[index - 1].editor;
-      if ('focus' in newEditor) {
+      if (isInitializedEditor(newEditor)) {
         newEditor.focus();
       }
       event.preventDefault();
@@ -190,7 +190,7 @@ class Chat extends React.Component<ChatProps, any> {
     if (pos.line === chunks[index].editor.getValue().split('\n').length - 1 && isWrapLast(editor, pos)) {
       if (index < chunks.length - 1) {
         const newEditor = chunks[index + 1].editor;
-        if ('focus' in newEditor) {
+        if (isInitializedEditor(newEditor)) {
           newEditor.focus();
         }
       } else {
@@ -310,7 +310,7 @@ class Chat extends React.Component<ChatProps, any> {
       editor: chunkEditor, results, outdated, id,
     } = chunk;
 
-    if (results.status === 'failed' && 'getDoc' in chunkEditor) {
+    if (results.status === 'failed' && isInitializedEditor(chunkEditor)) {
       chunkResultsPart = (
         <div className="chat-result">
           {results.failures.map((failure, i) => (

@@ -12,7 +12,7 @@ import {
   State,
 } from './state';
 import {
-  Chunk, emptyChunk,
+  Chunk, emptyChunk, isInitializedEditor,
 } from './chunk';
 import Chat from './Chat';
 import { enterShouldSend, isWrapFirst } from './utils';
@@ -216,7 +216,7 @@ function Chatitor({
               const pos = editor.getCursor();
               if (pos.line === 0 && isWrapFirst(editor, pos)) {
                 const lastEditor = chunksRef.current[chunksRef.current.length - 1].editor;
-                if ('getInputField' in lastEditor) {
+                if (isInitializedEditor(lastEditor)) {
                   lastEditor.getInputField().focus();
                 }
                 event.preventDefault();
