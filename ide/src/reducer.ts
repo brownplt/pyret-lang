@@ -45,8 +45,10 @@ import {
 } from './rhsObject';
 
 import {
+  CHATITOR_SESSION,
   cleanStopify,
   NeverError,
+  TEXT_SESSION,
 } from './utils';
 
 import * as ideRt from './ide-rt-override';
@@ -59,8 +61,9 @@ import {
 
 import { fs } from './browserfs-setup';
 import * as path from './path';
-import { bfsSetup, makeServerAPI } from './control';
+import { bfsSetup, makeServerAPI, CompileAndRunResult } from './control';
 import { getLocs, Srcloc } from './failure';
+import { RunKind } from './backend';
 
 // Dependency cycle between store and reducer because we dispatch from
 // runSession. Our solution is to inject the store into this global variable
@@ -505,7 +508,7 @@ function handleUpdate(
   }
 }
 
-const serverAPI = makeServerAPI(
+export const serverAPI = makeServerAPI(
   (msg) => console.log('Server: ', msg),
   () => console.log('Setup finished from server API'),
 );
@@ -677,11 +680,12 @@ function handleRunProgramSuccess(state : State, result : any) {
   };
 }
 
-async function runProgramAsync(state : State) : Promise<any> {
-  const { typeCheck, currentFile, currentFileContents } = state;
-  fs.writeFileSync(currentFile, currentFileContents);
-  const sessionId = 'text-session';
-  const { dir, base } = bfsSetup.path.parse(currentFile);
+async function runTextProgram(
+  typeCheck: boolean, runKind: RunKind, saveFile: string, programText: string,
+) : Promise<CompileAndRunResult> {
+  fs.writeFileSync(saveFile, programText);
+  const sessionId = TEXT_SESSION;
+  const { dir, base } = bfsSetup.path.parse(saveFile);
   await serverAPI.filterSession(sessionId, 'builtin://');
   const result = await serverAPI.compileAndRun({
     baseDir: dir,
@@ -691,12 +695,20 @@ async function runProgramAsync(state : State) : Promise<any> {
     typeCheck,
     recompileBuiltins: false,
     session: sessionId,
-  }, state.runKind, {
+  }, runKind, {
     spyMessgeHandler: ideRt.defaultSpyMessage,
     spyExprHandler: ideRt.defaultSpyExpr,
     imgUrlProxy: ideRt.defaultImageUrlProxy,
     checkBlockFilter: ideRt.checkBlockFilter,
   });
+  return result;
+}
+
+async function runProgramAsync(state: State) : Promise<void> {
+  const {
+    typeCheck, runKind, currentFile, currentFileContents,
+  } = state;
+  const result = await runTextProgram(typeCheck, runKind, currentFile, currentFileContents ?? '');
   if (result.type === 'compile-failure') {
     update((s: State) => handleCompileProgramFailure(s, result.errors));
   } else if (result.type === 'run-failure') {
@@ -736,7 +748,7 @@ async function runSegmentsAsync(state : State) : Promise<any> {
     chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
   );
 
-  const sessionId = 'chatidor-session';
+  const sessionId = CHATITOR_SESSION;
   if (!onlyLastSegmentChanged) {
     await serverAPI.filterSession(sessionId, 'builtin://');
   }

@@ -1,7 +1,7 @@
 /* Handles side effects. */
 
 import { createStore } from 'redux';
-import ideApp, { setStore } from './reducer';
+import ideApp, { setStore, serverAPI } from './reducer';
 import { IDE } from './ide';
 import {
   EditorMode,
@@ -16,7 +16,9 @@ import {
 import { Action } from './action';
 import { Effect } from './effect';
 import * as control from './control';
-import { NeverError } from './utils';
+import { CHATITOR_SESSION, NeverError, TEXT_SESSION } from './utils';
+import { bfsSetup, fs } from './control';
+import * as ideRt from './ide-rt-override';
 
 type Dispatch = (action: Action) => void;
 
@@ -364,7 +366,31 @@ if (maybeEncodedProgram !== null) {
   store.dispatch({ type: 'update', key: 'chunks', value: { chunks, modifiesText: true } });
   store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile' } });
 }
-
-store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
+// Run `import cpo` at the very beginning to make first-time run more bearable
+{
+  store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
+  const saveFile = '/tmp/include-cpo.arr';
+  const programText = 'import cpo as __UNUSED_NAME';
+  const { runKind } = store.getState();
+  fs.writeFileSync(saveFile, programText);
+  const sessionId = store.getState().editorMode === 'Chatitor' ? CHATITOR_SESSION : TEXT_SESSION;
+  const { dir, base } = bfsSetup.path.parse(saveFile);
+  serverAPI.compileAndRun({
+    baseDir: dir,
+    program: base,
+    builtinJSDir: control.path.compileBuiltinJS,
+    checks: 'none',
+    typeCheck: false,
+    recompileBuiltins: false,
+    session: sessionId,
+  }, runKind, {
+    spyMessgeHandler: ideRt.defaultSpyMessage,
+    spyExprHandler: ideRt.defaultSpyExpr,
+    imgUrlProxy: ideRt.defaultImageUrlProxy,
+    checkBlockFilter: ideRt.checkBlockFilter,
+  }).then(() => {
+    console.log('compiled and run `include cpo`');
+  });
+}
 
 export default store;

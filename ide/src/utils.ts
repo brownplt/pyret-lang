@@ -91,3 +91,6 @@ export function cleanStopify() {
   // @ts-ignore
   window.$top = undefined;
 }
+
+export const CHATITOR_SESSION = 'chatidor-session';
+export const TEXT_SESSION = 'text-session';

@@ -206,7 +206,7 @@ type ServerAPIEvent =
   | { type: 'delete-session', action: () => void, resolve: (a : any) => void, reject: (message : string) => void}
   | { type: 'filter-session', action: () => void, resolve: (a : any) => void, reject: (message : string) => void};
 
-type CompileAndRunResult =
+export type CompileAndRunResult =
   | { type: 'compile-failure', errors: string[] }
   | { type: 'run-failure', error: string }
   | { type: 'run-result', result: any };
