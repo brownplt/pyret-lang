@@ -229,11 +229,6 @@ button::-moz-focus-inner {
     width: 100%;
 }
 
-.CodeMirror {
-    min-height: 100% !important;
-    border: none !important;
-}
-
 .CodeMirror-linenumber {
     user-select: none;
 }

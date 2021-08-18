@@ -296,8 +296,7 @@ class Chat extends React.Component<ChatProps, any> {
             <div
               // eslint-disable-next-line
               key={i}
-              style={{ border: `2px ${technicallyOutdated ? 'dashed' : 'solid'} #dc4064` }}
-              className={`chatitor-rhs ${outdated ? 'outdated' : ''}`}
+              className="chatitor-rhs"
               title={technicallyOutdated ? 'value might be changed by earlier definition changes' : ''}
             >
               <FailureComponent failure={failure} id={id} editor={chunkEditor} />
@@ -321,11 +320,7 @@ class Chat extends React.Component<ChatProps, any> {
         && !(isTrace(r) && typeof r.value === 'undefined')));
       const checks = rhsObjects.filter((r) => isRHSCheck(r));
       if (shown.length + checks.length === 0) {
-        if (partiallyOutdated) {
-          // TODO(luna): This styling feels... wrong, even though it follows the
-          // rules of the other ones. Think about how it should look?
-          rhs = <div style={{ float: 'right' }} className={`chatitor-rhs pending partially-outdated ${outdated ? 'outdated' : ''}`}> . . . </div>;
-        } else {
+        if (!partiallyOutdated) {
           displayCheckMark = true;
         }
       } else {
@@ -334,9 +329,8 @@ class Chat extends React.Component<ChatProps, any> {
             key={val.key ?? 'no key for val?'}
             rhsObject={val}
             isSelected={false}
-            className={`chatitor-rhs ${partiallyOutdated ? 'partially-outdated' : ''}`}
+            className="chatitor-rhs"
             title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
-            outdated={outdated}
           />
         ));
         const checkSummary = checks.length > 0
@@ -344,8 +338,7 @@ class Chat extends React.Component<ChatProps, any> {
             <CheckResults
             // Would love to have TypeScript obviate this `as`
               checks={checks as RHSCheck[]}
-              outdated={outdated}
-              className={`chatitor-rhs ${partiallyOutdated ? 'partially-outdated' : ''}`}
+              className="chatitor-rhs"
               title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
             />
           ) : '';
@@ -403,12 +396,15 @@ class Chat extends React.Component<ChatProps, any> {
 
     const addButtonTitle = 'Insert new chat here';
 
+    const outdatedClass = outdated ? 'outdated' : '';
+    const pendingRerunClass = technicallyOutdated ? 'partially-outdated' : '';
+
     return (
       <>
         <button title={addButtonTitle} className="insert-arrow" onClick={() => this.insertAbove()} type="button">
           +
         </button>
-        <div className="chat-and-result">
+        <div className={`chat-and-result ${outdatedClass} ${pendingRerunClass}`}>
           { chunkEditorPart }
           { chunkResultsPart }
         </div>

@@ -37,10 +37,10 @@ and overriding of rules. */
   /* TODO(luna): !important because they're getting overridden by page styles, as
    * they should be, but why are there page styles, and how can i override
    * correctly? */
+  border: 1px solid transparent;
   display: inline-block;
   background-color: #d4f1ff !important;
   min-width: 0em;
-  border: 1px solid transparent !important;
   cursor: pointer !important;
   transition: border-radius 0.1s, border-bottom-left-radius 0.1s, min-width 0.1s -0.05s !important;
 }
@@ -66,7 +66,7 @@ and overriding of rules. */
 .chat-layout-normal .chat .CodeMirror-focused {
   background-color: #f2fbff !important;
   min-width: 30em;
-  border: 1px solid black !important;
+  border: 1px solid black;
 }
 .chat-layout-normal .chat .CodeMirror-focused {
   border-radius: 0.5em !important;
@@ -158,28 +158,28 @@ and overriding of rules. */
   border-bottom-right-radius: 0;
   border: 1px solid transparent;
   margin: 0.15em 0;
-  padding: 0.7em;
   float: right;
   overflow: auto;
   max-width: 90%;
 }
+.chat-layout-compact .chatitor-rhs {
+  padding: 0.1em;
+}
+.chat-layout-normal .chatitor-rhs {
+  padding: 0.7em;
+}
+
 .chat-layout-compact .chatitor-rhs.pending,
 .chat-layout-normal .chatitor-rhs.pending {
   background-color: transparent;
 }
-.chat-layout-compact .partially-outdated,
-.chat-layout-normal .partially-outdated {
+.chat-layout-compact .partially-outdated .chatitor-rhs,
+.chat-layout-normal .partially-outdated .chatitor-rhs {
   border: 1px dashed black;
 }
-.chatitor-rhs.outdated::before {
-  content: " ";
-  position: absolute;
-  margin-right: -2.5em;
-  right: 0;
-  border-radius: 9999em;
-  width: 1em;
-  height: 1em;
-  background-color: #94877e;
+.chat-layout-compact .outdated .CodeMirror,
+.chat-layout-normal .outdated .CodeMirror {
+  border: 1px dashed black;
 }
 
 .chunks-rhs {

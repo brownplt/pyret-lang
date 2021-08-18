@@ -12,13 +12,12 @@ type Props = {
   onMouseEnter?: () => void,
   className: string
   title?: string,
-  outdated?: boolean,
 };
 
 export default function RHSObjectComponent({
-  isSelected, rhsObject, onMouseEnter, className, outdated, title,
+  isSelected, rhsObject, onMouseEnter, className, title,
 }: Props) {
-  const taggedClass = `${className} ${isSelected ? `${className}-selected` : ''} ${outdated ? ' outdated' : ''}`;
+  const taggedClass = `${className} ${isSelected ? `${className}-selected` : ''}`;
 
   if (isTrace(rhsObject)) {
     // NOTE(luna): i don't think there are any undefined's we want to display, right?
