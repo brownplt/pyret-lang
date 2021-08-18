@@ -3,7 +3,7 @@
 
 import { ContainerRange } from './Range';
 
-export const RANGE_SPLIT_THRESHOLD = 50;
+const RANGE_SPLIT_THRESHOLD = 50;
 const TARGET_LEAF_ELTS = 75;
 
 const ln = Math.log;
@@ -28,7 +28,7 @@ function targetNumSubRanges(
   return targetSubrangeDepth > 0 ? (N / y) ** (1 / targetSubrangeDepth) : N / y;
 }
 
-export function splitIndexRange<T>(
+export default function splitIndexRange<T>(
   rangeDescriptor: ContainerRange<T>,
   minBinSize: number = 10,
   rangeSplitThreshold: number = RANGE_SPLIT_THRESHOLD,

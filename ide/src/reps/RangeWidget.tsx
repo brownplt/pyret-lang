@@ -3,7 +3,7 @@
 import React from 'react';
 import ExpandButton from './ExpandButton';
 import { ContainerRange } from './Range';
-import { splitIndexRange } from './split-index-range';
+import splitIndexRange from './split-index-range';
 
 type RangeWidgetProps<T> = {
   value: ContainerRange<T>;

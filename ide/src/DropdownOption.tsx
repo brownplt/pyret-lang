@@ -8,7 +8,7 @@
 
 import React from 'react';
 
-export type DropdownOptionProps = {
+type DropdownOptionProps = {
   id?: string,
   enabled: boolean,
   onClick: () => void,

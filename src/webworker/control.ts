@@ -21,7 +21,6 @@ export const loadBuiltins = (): void => {
   load(bfsSetup.fs, bfsSetup.path, path.compileBuiltinJS, path.uncompiled, runtimeFiles);
 };
 
-export const { runProgram } = backend;
 export const { compileProgram } = backend;
 export const { fs } = bfsSetup;
 

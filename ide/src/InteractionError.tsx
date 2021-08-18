@@ -4,7 +4,7 @@
 
 import React from 'react';
 
-export type InteractionErrorProps = {
+type InteractionErrorProps = {
   fontSize: number,
   children: React.ReactNode,
 };

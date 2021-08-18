@@ -149,12 +149,9 @@ class Chat extends React.Component<ChatProps, any> {
       setChunks,
     } = this.props;
 
-    const { editor } = chunks[index];
-
     setChunks({
       chunk: {
         ...chunks[index],
-        editor,
         outdated: true,
       },
       modifiesText: true,
@@ -390,7 +387,7 @@ class Chat extends React.Component<ChatProps, any> {
             lineWrapping: true,
             extraKeys: { Tab: 'indentAuto' },
           }}
-          onBeforeChange={() => {
+          onChange={() => {
             this.scheduleUpdate();
           }}
           onKeyDown={((editor: CMEditor, event: KeyboardEvent) => {

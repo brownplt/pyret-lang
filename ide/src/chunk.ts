@@ -18,14 +18,6 @@ export type ErrorState =
 
 export type ChunkResults = ErrorState | ({ status: 'succeeded', objects: RHSObject[] });
 
-export type LineAndCh = { line: number, ch: number };
-export type Selection = { anchor: LineAndCh, head: LineAndCh };
-
-export const emptySelection = {
-  anchor: { line: 0, ch: 0 },
-  head: { line: 0, ch: 0 },
-};
-
 export type UninitializedEditor = {
   getValue: () => string,
   grabFocus?: boolean,
@@ -36,9 +28,6 @@ export function isInitializedEditor(editor: CMEditor | UninitializedEditor): edi
 }
 
 export type Chunk = {
-  /* the line number of the first line of this chunk */
-  startLine: number,
-
   /* a unique id */
   id: string,
 
@@ -53,35 +42,8 @@ export type Chunk = {
   outdated: boolean,
 };
 
-export function getStartLineForIndex(chunks : Chunk[], index : number) {
-  if (index === 0) { return 0; }
-
-  return chunks[index - 1].startLine + chunks[index - 1].editor.getValue().split('\n').length;
-}
-
-export function newId() {
+function newId() {
   return uuidv4();
-}
-
-/* Returns the chunk index of the chunk containing the specified source
-   location, or false if none could be found. */
-export function findChunkFromSrcloc(
-  chunks: Chunk[],
-  [file, l1] : [string, number],
-  currentFile: string,
-): number | false {
-  if (file !== `file://${currentFile}`) {
-    return false;
-  }
-
-  for (let i = 0; i < chunks.length; i += 1) {
-    const end = chunks[i].startLine + chunks[i].editor.getValue().split('\n').length;
-    if (l1 >= chunks[i].startLine && l1 <= end) {
-      return i;
-    }
-  }
-
-  return false;
 }
 
 /* The function for creating chunks.
@@ -91,7 +53,6 @@ export function findChunkFromSrcloc(
               filled with defaults. */
 export function emptyChunk(options?: Partial<Chunk>): Chunk {
   return {
-    startLine: 0,
     id: newId(),
     results: { status: 'succeeded', objects: [] },
     editor: { getValue: () => '' },
@@ -106,61 +67,14 @@ export function makeChunksFromString(s: string): Chunk[] {
     return [];
   }
   const chunkStrings = s.split(CHUNKSEP);
-  let totalLines = 0;
   const chunks = chunkStrings.map((chunkString) => {
     const chunk: Chunk = emptyChunk({
       editor: { getValue: () => chunkString },
-      startLine: totalLines,
       results: { status: 'succeeded', objects: [] },
       outdated: true,
     });
 
-    totalLines += chunkString.split('\n').length;
-
     return chunk;
   });
   return chunks;
-}
-
-// Returns the number of characters from the start of `text` to the line and character
-// location, `lineAndCh`, or `false` if `lineAndCh` isn't inside the text.
-function getLineAndChIndex(text: string, lineAndCh: LineAndCh): number | false {
-  const lines = text.split('\n');
-
-  let characters = 0;
-
-  for (let i = 0; i < lines.length; i += 1) {
-    if (i === lineAndCh.line) {
-      if (lines[i].length >= lineAndCh.ch) {
-        return characters + lineAndCh.ch;
-      }
-
-      return false;
-    }
-
-    characters += lines[i].length + 1; // 1 for the newline character
-  }
-
-  return false;
-}
-
-// Returns 1 when `a` is at a larger index than `b`, -1 when the opposite is
-// true, and 0 when they are at the same index.
-export function compareLineAndCh(text: string, a: LineAndCh, b: LineAndCh): number {
-  const aIndex = getLineAndChIndex(text, a);
-  const bIndex = getLineAndChIndex(text, b);
-
-  if (aIndex > bIndex) {
-    return 1;
-  }
-
-  if (aIndex === bIndex) {
-    return 0;
-  }
-
-  if (aIndex < bIndex) {
-    return -1;
-  }
-
-  throw new Error('Error comparing srclocs');
 }

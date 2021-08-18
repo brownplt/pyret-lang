@@ -132,7 +132,7 @@ control.loadBuiltins();
 
 type EditorProps = PropsFromRedux & DispatchProps & StateProps;
 
-export class Editor extends React.Component<EditorProps, any> {
+class Editor extends React.Component<EditorProps, any> {
   makeDefinitions() {
     const {
       editorMode,

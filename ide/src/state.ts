@@ -159,15 +159,6 @@ export enum EditorLayout {
   Normal = 'Normal',
 }
 
-export type LintFailure = {
-  name: string,
-  errors: string[]
-};
-
-export type LintFailures = {
-  [name : string]: LintFailure
-};
-
 export const initialState: State = {
   browseRoot: '/',
   browsePath: '/projects',

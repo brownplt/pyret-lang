@@ -204,39 +204,3 @@ export const compileInteraction = (
 
   compilerWorker.postMessage(message);
 };
-
-export const runProgram = (
-  runner: any,
-  baseDir: string,
-  program: string,
-  runKind: RunKind,
-): Promise<RunResult> => {
-  runner.resetTimings();
-  if (runKind === RunKind.Sync) {
-    const result = runner.makeRequire(baseDir)(program);
-
-    return Promise.resolve({
-      perfResults: runner.getTimingResults(),
-      result,
-    });
-  } if (runKind === RunKind.Async) {
-    const entry = runner.makeRequireAsync(baseDir);
-    const resultP = entry(program);
-
-    const wrapper = new Promise<RunResult>((resolve) => {
-      resultP.then((asyncRunner: any) => {
-        console.log('asyncRunner', asyncRunner);
-
-        asyncRunner.run((result: any) => {
-          resolve({
-            perfResults: runner.getTimingResults(),
-            result,
-          });
-        });
-      });
-    });
-
-    return wrapper;
-  }
-  throw new NeverError(runKind);
-};
