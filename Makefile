@@ -196,6 +196,11 @@ lsp/lsp.js: build/lsp/pyret-grammar.js src/arr/compiler/pyret-parser.js $(PYRET_
 lsp/lsp-server.mjs: lsp/lsp.js lsp/lsp-server.ts
 	npx tsc --target "esnext" --module "es2015" --moduleResolution "node" lsp/lsp-server.ts
 	mv lsp/lsp-server.js lsp/lsp-server.mjs
+	`npm bin`/tsc --target "esnext" --module "es2015" --listFilesOnly lsp/lsp-server.ts \
+		| sed s/.ts$$/.js/ | xargs -n1 -I{} realpath --relative-to="src" '{}' | grep -v "\.\." \
+		| xargs -n1 -I{} realpath --relative-to="." 'src/{}' \
+		| xargs -n1 -I{} perl -0777 -p -i -e 's/(?:;|\A)(\n*)(export \{\}(\n*);?)?\Z/\1/m' '{}'
+
 
 web: build/worker/pyret.js build/worker/page.html build/worker/main.js
 
