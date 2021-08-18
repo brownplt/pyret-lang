@@ -26,9 +26,6 @@ data Request:
       recompile-builtins :: Boolean,
       pipeline :: String,
       session :: String)
-  | create-repl
-  | compile-interaction(
-      program :: String)
   | session-filter(session :: String, keeping :: String)
   | session-delete(session :: String)
 sharing:
@@ -221,19 +218,6 @@ fun parse-compile-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-com
     end)
 end
 
-fun parse-create-repl-dict(dict :: SD.StringDict<Any>) -> O.Option<Request % (is-create-repl)>:
-  some(create-repl)
-end
-
-fun parse-compile-interaction-dict(dict :: SD.StringDict<Any>)
-  -> O.Option<Request % (is-compile-interaction)>:
-  bind-option(
-    dict.get("program"),
-    lam(program):
-      some(compile-interaction(program))
-    end)
-end
-
 # Creates a Request out of a string dict, returning none when the dict could not be parsed.
 fun parse-dict(dict :: SD.StringDict<Any>) -> O.Option<Request>:
   cases(Option) dict.get("request"):
@@ -243,10 +227,6 @@ fun parse-dict(dict :: SD.StringDict<Any>) -> O.Option<Request>:
         parse-lint-dict(dict)
       else if request == "compile-program":
         parse-compile-dict(dict)
-      else if request == "create-repl":
-        parse-create-repl-dict(dict)
-      else if request == "compile-interaction":
-        parse-compile-interaction-dict(dict)
       else if request == "session-filter":
         parse-session-filter(dict)
       else if request == "session-delete":

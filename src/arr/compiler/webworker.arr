@@ -14,7 +14,6 @@ import js-file("./ts-js-of-pyret") as JSP
 import file("./locators/builtin.arr") as B
 import file("locators/file.arr") as FL
 import file("./message.arr") as M
-import file("./repl.arr") as R
 import js-file("webworker") as W
 
 pyret-dir = "."
@@ -32,8 +31,6 @@ fun compile(options, this-pyret-dir):
     compile-opts
     )
 end
-
-var repl :: Option<R.ChunkyRepl> = none
 
 compile-handler = lam(msg, send-message) block:
   cases(O.Option) M.parse-request(msg):
@@ -109,63 +106,6 @@ compile-handler = lam(msg, send-message) block:
                   nothing
               end
           end
-        | compile-interaction(program) =>
-          cases(O.Option) repl block:
-            | none =>
-              M.compile-interaction-failure(program).send-using(send-message)
-              nothing
-            | some(the-repl) =>
-              the-locator = FL.file-locator(program, CS.standard-globals)
-              the-repl.compile-interaction(the-locator)
-              M.compile-interaction-success(program).send-using(send-message)
-          end
-        | create-repl =>
-          builtin-js-dir = "/compiled/builtin"
-
-          fun make-find-module() -> (String, CS.Dependency -> CL.Located<String>):
-            locator-cache = [SD.mutable-string-dict: ]
-            fun find-module(unused-context, dependency):
-              uri :: String = cases(CS.Dependency) dependency:
-                | builtin(modname) =>
-                  "builtin://" + modname
-                | dependency(protocol, arguments) =>
-                  #raise("non-builtin dependencies not yet implemented")
-                  #arr = array-from-list(arguments)
-                  #if protocol == "my-gdrive":
-                  #  "my-gdrive://" + arr.get-now(0)
-                  #else if protocol == "shared-gdrive":
-                  #  "shared-gdrive://" + arr.get-now(0) + ":" + arr.get-now(1)
-                  #else if protocol == "gdrive-js":
-                  #  "gdrive-js://" + arr.get-now(1)
-                  #else:
-                  #  print("Unknown import: " + dependency + "\n")
-                  protocol + "://" + arguments.join-str(":")
-                  #end
-              end
-              if locator-cache.has-key-now(uri) block:
-                CL.located(locator-cache.get-now(uri), nothing)
-              else:
-                l = cases(CS.Dependency) dependency:
-                  | builtin(name) =>
-                    B.make-builtin-js-locator(builtin-js-dir, name)
-                  | dependency(protocol, args) =>
-                    # TODO(michael): don't assume that this is a file locator
-                    FL.file-locator(args.join-str("/"), CS.standard-globals)
-                    #raise("non-builtin dependencies not yet implemented")
-                end
-                locator-cache.set-now(uri, l)
-                CL.located(l, nothing)
-              end
-            end
-            find-module
-          end
-          
-          #modules = get-builtin-modules()
-          modules = [SD.mutable-string-dict: ]
-          compile-context = "anchor-context-currently-unused"
-          make-finder = make-find-module
-          repl := some(R.make-chunky-repl(modules, compile-context, make-finder))
-          M.create-repl-success.send-using(send-message)
       end
   end
 end
