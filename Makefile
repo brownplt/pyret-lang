@@ -183,8 +183,19 @@ WORKER_BUILD_DIR := build/worker
 $(WORKER_BUILD_DIR):
 	mkdir -p $(WORKER_BUILD_DIR)
 
-build/worker/pyret.js : build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js $(WORKER_BUILD_DIR) $(PYRET_JARR_DEPS)
+build/worker/pyret.js: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js $(WORKER_BUILD_DIR) $(PYRET_JARR_DEPS)
 	npx pyret --checks none --standalone-file "$(shell pwd)/src/webworker/worker-standalone.js" --deps-file "$(shell pwd)/build/worker/bundled-node-compile-deps.js" -c src/arr/compiler/webworker.arr -o build/worker/pyret.js
+
+lsp/lsp.js: build/lsp/pyret-grammar.js src/arr/compiler/pyret-parser.js $(PYRET_JARR_DEPS)
+	mkdir -p build/lsp/
+	npx pyret --checks none --standalone-file "$(shell pwd)/lsp/lsp-standalone.js" -c lsp/lsp-main.arr -o lsp/lsp.js
+
+# NOTE(joe): after this run with node --experimental-specifier-resolution=node lsp/lsp-server.mjs
+# Alternatively, never forget to add .js after an import's name!
+# https://github.com/microsoft/TypeScript/issues/18442#issuecomment-581738714
+lsp/lsp-server.mjs: lsp/lsp.js lsp/lsp-server.ts
+	npx tsc --target "esnext" --module "es2015" --moduleResolution "node" lsp/lsp-server.ts
+	mv lsp/lsp-server.js lsp/lsp-server.mjs
 
 web: build/worker/pyret.js build/worker/page.html build/worker/main.js
 
@@ -204,6 +215,9 @@ src/arr/compiler/pyret-parser.js: build/phaseA/pyret-grammar.js
 	node build/phaseA/pyret-grammar.js src/arr/compiler/pyret-parser.js
 
 build/worker/pyret-grammar.js: build/phaseA/pyret-grammar.js
+	cp build/phaseA/pyret-grammar.js build/worker/pyret-grammar.js
+
+build/lsp/pyret-grammar.js: build/phaseA/pyret-grammar.js
 	cp build/phaseA/pyret-grammar.js build/worker/pyret-grammar.js
 
 parser: src/arr/compiler/pyret-parser.js

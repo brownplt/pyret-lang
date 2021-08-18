@@ -75,3 +75,7 @@ compiled/
 
 .pyret-parley.*.pid
 .pyret-parley.*.lock
+
+lsp/lsp.js
+lsp/lsp-server.js
+lsp/lsp-server.mjs
