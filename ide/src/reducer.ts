@@ -119,7 +119,7 @@ function handleStopSuccess(state: State, action: SuccessForEffect<'stop'>): Stat
   console.log('stop successful, paused on line', action.line);
   return {
     ...state,
-    running: false,
+    running: { type: 'idle' },
   };
 }
 
@@ -710,6 +710,7 @@ async function runProgramAsync(state: State) : Promise<void> {
   const {
     typeCheck, runKind, currentFile, currentFileContents,
   } = state;
+  setTimeout(() => (update((s: State) => ({ ...s, running: { type: 'text' } }))), 0);
   const result = await runTextProgram(typeCheck, runKind, currentFile, currentFileContents ?? '');
   if (result.type === 'compile-failure') {
     update((s: State) => handleCompileProgramFailure(s, result.errors));
@@ -744,6 +745,7 @@ async function runSegmentsAsync(state : State) : Promise<any> {
       console.log(value);
     }
   });
+  setTimeout(() => (update((s: State) => ({ ...s, running: { type: 'segments', total: filenames.length, done: 0 } }))), 0);
   console.log('Chunks were saved in:', JSON.stringify(filenames));
   fs.writeFileSync(
     state.currentFile,
@@ -795,7 +797,10 @@ async function runSegmentsAsync(state : State) : Promise<any> {
       stopFlag = false;
       break;
     }
-    update((s: State) => handleRunSessionSuccess(s, c.id, result.result));
+    update((s: State) => ({
+      ...handleRunSessionSuccess(s, c.id, result.result),
+      running: { ...s.running, done: i + 1 },
+    }));
   }
   filenames.forEach((f) => {
     fs.unlinkSync(f);
@@ -803,21 +808,22 @@ async function runSegmentsAsync(state : State) : Promise<any> {
   return 'runSessionAsyncFinished';
 }
 
+// runner is responsible for setting running!
 function runProgramOrSegments(state : State, runner : (s : State) => Promise<any>) : State {
   // TODO(luna): reset rt messages?
-  if (state.running === true) { return state; }
+  if (state.running.type !== 'idle') { return state; }
   const result : Promise<any> = runner(state);
   result.then(() => {
     store.dispatch(
-      { type: 'update', key: 'updater', value: (s) => ({ ...s, running: false }) },
+      { type: 'update', key: 'updater', value: (s) => ({ ...s, running: { type: 'idle' } }) },
     );
   }).catch((e) => {
     store.dispatch(
-      { type: 'update', key: 'updater', value: (s) => ({ ...s, running: false }) },
+      { type: 'update', key: 'updater', value: (s) => ({ ...s, running: { type: 'idle' } }) },
     );
     console.log('Running segments failed', e);
   });
-  return { ...state, running: true };
+  return state;
 }
 function stopSession(state: State): State {
   console.log('stopSession');
@@ -827,7 +833,7 @@ function stopSession(state: State): State {
     if (!wasRunning) {
       stopFlag = true;
     }
-    update((s: State) => ({ ...s, running: false }));
+    update((s: State) => ({ ...s, running: { type: 'idle' } }));
   });
   return state;
 }

@@ -3,11 +3,12 @@
 
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { State } from './state';
+import { RunningState, State } from './state';
+import { NeverError } from './utils';
 
 type StateProps = {
   footerMessage: string,
-  running : boolean,
+  running : RunningState,
 };
 
 function mapStateToProps(state: State): StateProps {
@@ -35,6 +36,20 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type FooterProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
 function Footer({ footerMessage, running }: FooterProps) {
+  let runMessage;
+  switch (running.type) {
+    case 'idle':
+      runMessage = '';
+      break;
+    case 'segments':
+      runMessage = `Running ${running.done + 1}/${running.total}`;
+      break;
+    case 'text':
+      runMessage = 'Running';
+      break;
+    default:
+      throw new NeverError(running);
+  }
   return (
     <div
       style={{
@@ -49,7 +64,7 @@ function Footer({ footerMessage, running }: FooterProps) {
     >
       {footerMessage}
       <span style={{ padding: '0em 1em' }}>
-        {running ? 'Running' : ''}
+        {runMessage}
       </span>
     </div>
   );

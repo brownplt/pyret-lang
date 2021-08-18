@@ -26,6 +26,11 @@ type UndoState = {
   outdates: Outdates,
 };
 
+export type RunningState =
+  | { type: 'idle' }
+  | { type: 'text' }
+  | { type: 'segments', total: number, done: number };
+
 export type State = {
 
   /* Since Redux doesn't handle side effects for us we need to keep a queue of
@@ -108,8 +113,8 @@ export type State = {
     * the future, even if not by Chatitor mode */
   compiling: boolean | 'out-of-date',
 
-  /* True if the program is running, false otherwise. */
-  running: boolean,
+  /* Reflects whether anything is being run, AND its progress */
+  running: RunningState,
 
   /* Message to display at bottom of page */
   footerMessage: string,
@@ -187,7 +192,7 @@ export const initialState: State = {
   effectQueue: [],
   isFileSaved: false,
   compiling: false,
-  running: false,
+  running: { type: 'idle' },
   footerMessage: 'Setting up (run may be slow)',
   chunks: [],
   past: [],
