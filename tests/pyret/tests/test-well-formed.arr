@@ -88,10 +88,12 @@ check "bad-checks":
   run-str("check: 5 raises%(5) 5 end") is%(output) compile-error(CS.is-unwelcome-test-refinement)
   run-str("check: 5 raises-satisfies%(5) 5 end") is%(output) compile-error(CS.is-unwelcome-test-refinement)
   run-str("check: 5 raises-violates%(5) 5 end") is%(output) compile-error(CS.is-unwelcome-test-refinement)
+  run-str("examples: f() end") is%(output) compile-error(CS.is-non-example)
 end
 
 check "bad objects":
   run-str("{__proto__: 42}") is%(output) compile-error(CS.is-reserved-name)
+  run-str("{ f: 1, f: 2 }") is%(output) compile-error(CS.is-duplicate-field)
 end
 
 check "malformed blocks":
@@ -160,6 +162,7 @@ check "malformed blocks":
   run-str("lam(): true where: 5 end") is%(output) compile-error(CS.is-unwelcome-where)
   run-str("method(self): nothing where: 5 end") is%(output) compile-error(CS.is-unwelcome-where)
   run-str("{method m(self): nothing where: 5 end}") is%(output) compile-error(CS.is-unwelcome-where)
+  run-str("fun f() block:\n  data hi: | f(n) end\n  2\nend") is%(output) compile-error(CS.is-non-toplevel)
 end
 
 check "table row sizes, non-top-level":
@@ -274,6 +277,15 @@ check "standalone expressions":
   run-str("block: 1 + 2\n1 + 3 end") is%(output) compile-error(CS.is-wf-err)
   run-str("block: x\ny end") is%(output) compile-error(CS.is-wf-err)
   run-str("block: x = 10\nx\nx + 1 end") is%(output) compile-error(CS.is-wf-err)
+end
+
+check "malformed cases":
+  run-str("cases(List) [list: ]:\n  | empty => 1\n  | empty => 2\nend") is%(output) compile-error(CS.is-duplicate-branch)
+  run-str("cases(List) [list: ]:\n  | empty => 1\n  | link(bad, bad) => 2\nend") is%(output) compile-error(CS.is-duplicate-id)
+end
+
+check "bad numbers":
+  run-str("1/0") is%(output) compile-error(CS.is-zero-fraction)
 end
 
 
