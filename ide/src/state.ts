@@ -111,6 +111,9 @@ export type State = {
   /* True if the program is running, false otherwise. */
   running: boolean,
 
+  /* Message to display at bottom of page */
+  footerMessage: string,
+
   /* Names of the menus. These appear in the top left of the page. */
   menuItems: MenuItems,
 
@@ -185,6 +188,7 @@ export const initialState: State = {
   isFileSaved: false,
   compiling: false,
   running: false,
+  footerMessage: 'Setting up (run may be slow)',
   chunks: [],
   past: [],
   future: [],

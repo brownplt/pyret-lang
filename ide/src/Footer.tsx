@@ -6,17 +6,17 @@ import { connect, ConnectedProps } from 'react-redux';
 import { State } from './state';
 
 type StateProps = {
-  compiling: boolean | 'out-of-date',
-  running: boolean,
+  footerMessage: string,
+  running : boolean,
 };
 
 function mapStateToProps(state: State): StateProps {
   const {
-    compiling,
+    footerMessage,
     running,
   } = state;
   return {
-    compiling,
+    footerMessage,
     running,
   };
 }
@@ -34,15 +34,7 @@ const connector = connect(mapStateToProps, mapDispatchToProps);
 type PropsFromRedux = ConnectedProps<typeof connector>;
 type FooterProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
-function Footer({
-  compiling,
-  running,
-}: FooterProps) {
-  const statusStyle = {
-    marginLeft: '1em',
-  };
-  const activeColor = 'white';
-  const inactiveColor = 'gray';
+function Footer({ footerMessage, running }: FooterProps) {
   return (
     <div
       style={{
@@ -52,24 +44,13 @@ function Footer({
         flex: 'none',
         color: '#fff',
         alignItems: 'center',
+        padding: '0em 1em',
       }}
     >
-      <div
-        style={{
-          ...statusStyle,
-          color: compiling ? activeColor : inactiveColor,
-        }}
-      >
-        Compiling
-      </div>
-      <div
-        style={{
-          ...statusStyle,
-          color: running ? activeColor : inactiveColor,
-        }}
-      >
-        Running
-      </div>
+      {footerMessage}
+      <span style={{ padding: '0em 1em' }}>
+        {running ? 'Running' : ''}
+      </span>
     </div>
   );
 }

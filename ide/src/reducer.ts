@@ -329,21 +329,23 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   throw new NeverError(update);
 }
 
+// TODO(luna): outdating is done wrong. for example, delete the last chunk and
+// firstOutdatedChunk becomes 0, which is wrong(?)
 function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
   const { chunks, past, firstOutdatedChunk } = state;
   let newChunks: Chunk[];
-  let outdates;
+  let outdates: Outdates;
   switch (update.key) {
     case 'clear':
       newChunks = [];
-      outdates = { type: 'initializes' as 'initializes', index: firstOutdatedChunk };
+      outdates = { type: 'initializes', index: firstOutdatedChunk };
       break;
     case 'delete':
       newChunks = [
         ...chunks.slice(0, update.index),
         ...chunks.slice(update.index + 1, chunks.length),
       ];
-      outdates = { type: 'outdates' as 'outdates', index: update.index };
+      outdates = { type: 'outdates', index: update.index };
       break;
     case 'insert':
       newChunks = [
@@ -353,7 +355,7 @@ function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
         }),
         ...chunks.slice(update.index, chunks.length),
       ];
-      outdates = { type: 'outdates' as 'outdates', index: update.index };
+      outdates = { type: 'outdates', index: update.index };
       break;
     default:
       throw new NeverError(update);

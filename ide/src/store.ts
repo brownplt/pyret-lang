@@ -372,6 +372,10 @@ if (maybeEncodedProgram !== null) {
   const saveFile = '/tmp/include-cpo.arr';
   const programText = 'import cpo as __UNUSED_NAME';
   const { runKind } = store.getState();
+  // We aren't going to lock running, because we don't want any interface
+  // changes that may continue to be associated with it as this happens "in the
+  // background" - this *is* safe, though it might not seem it because we are
+  // saving to a special file in /tmp which runSegments won't unlink
   fs.writeFileSync(saveFile, programText);
   const sessionId = store.getState().editorMode === 'Chatitor' ? CHATITOR_SESSION : TEXT_SESSION;
   const { dir, base } = bfsSetup.path.parse(saveFile);
@@ -390,6 +394,7 @@ if (maybeEncodedProgram !== null) {
     checkBlockFilter: ideRt.checkBlockFilter,
   }).then(() => {
     console.log('compiled and run `include cpo`');
+    store.dispatch({ type: 'update', key: 'updater', value: (s: State) => ({ ...s, footerMessage: '' }) });
   });
 }
 
