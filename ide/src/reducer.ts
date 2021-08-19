@@ -725,6 +725,9 @@ let stopFlag = false;
 async function runSegmentsAsync(state : State) : Promise<any> {
   stopFlag = false;
   const { typeCheck, chunks, firstOutdatedChunk } = state;
+  if (firstOutdatedChunk === chunks.length) {
+    return;
+  }
   const onlyLastSegmentChanged = firstOutdatedChunk === chunks.length - 1
       // If any non-outdated segment was an error, the final segment would not
       // be non-outdated, with the exception of the last segment itself. We
@@ -805,7 +808,6 @@ async function runSegmentsAsync(state : State) : Promise<any> {
   filenames.forEach((f) => {
     fs.unlinkSync(f);
   });
-  return 'runSessionAsyncFinished';
 }
 
 // runner is responsible for setting running!

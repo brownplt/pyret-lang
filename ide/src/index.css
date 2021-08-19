@@ -9,8 +9,19 @@ and overriding of rules. */
   grid-template-rows: 1fr 0fr;
 }
 
+.progress-bar {
+  background-color: rgb(67 236 150);
+  transition: width 0.5s linear;
+  width: 0;
+  height: 0;
+  position: absolute;
+  /* Above chats but below header */
+  z-index: 5;
+  box-shadow: 0px 1px 2px rgb(67 236 150 / 50%);
+  will-change: width;
+}
+
 .chat-scroll {
-  grid-row: 1;
   width: 100%;
   overflow: auto;
   display: flex;
@@ -133,9 +144,6 @@ and overriding of rules. */
   background-color: transparent !important;
 }
 
-.new-expr {
-  grid-row: 2;
-}
 .new-expr .CodeMirror {
   background-color: white !important;
   border-radius: 1em !important;

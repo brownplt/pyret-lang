@@ -9,6 +9,7 @@ import { UnControlled } from 'react-codemirror2';
 import { Action, ChunksUpdate } from './action';
 import {
   EditorLayout,
+  RunningState,
   State,
 } from './state';
 import {
@@ -21,6 +22,7 @@ type StateProps = {
   chunks: Chunk[],
   enterNewline: boolean,
   editorLayout: EditorLayout
+  running: RunningState,
 };
 
 type DispatchProps = {
@@ -36,12 +38,14 @@ function mapStateToProps(state: State): StateProps {
     chunks,
     enterNewline,
     editorLayout,
+    running,
   } = state;
 
   return {
     chunks,
     enterNewline,
     editorLayout,
+    running,
   };
 }
 
@@ -81,6 +85,7 @@ function Chatitor({
   undo,
   redo,
   insertChunk,
+  running,
 }: DefChunksProps) {
   const [mountedEditor, setEditor] = (
     React.useState<(CodeMirror.Editor & CodeMirror.Doc) | null>(null)
@@ -154,8 +159,14 @@ function Chatitor({
   const tooltipStyle = { margin: '0 0.5em' };
   const shiftEnterStyle = { ...tooltipStyle, color: enterNewlineRef.current ? 'grey' : 'black' };
   const layout = editorLayout === EditorLayout.Compact ? 'chat-layout-compact' : 'chat-layout-normal';
+  // Why plus one? Surely you want zero on zero and 1 on done? No, because of
+  // the transition, we want the bar to move *towards* the state it's next going
+  // to be in to look good
+  const runWidth = running.type === 'segments' ? `${(100 * (running.done + 1)) / running.total}%` : '0%';
+  const height = running.type === 'segments' ? '0.8em' : '0';
   return (
     <div className={`${layout} chatitor-container`}>
+      <div className="progress-bar" style={{ width: runWidth, height }} />
       <div className="chat-scroll">
         <div className="chats">
           {allChunks}
