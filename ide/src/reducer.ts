@@ -306,7 +306,8 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   }
 
   if (isSingleChunkUpdate(update)) {
-    const chunkId = chunks.findIndex((c) => c.id === update.chunk.id);
+    const chunkIdOrNeg1 = chunks.findIndex((c) => c.id === update.chunk.id);
+    const chunkId = chunkIdOrNeg1 === -1 ? firstOutdatedChunk : chunkIdOrNeg1;
     const newChunks = chunks.map((chunk) => (
       chunk.id === update.chunk.id ? update.chunk : chunk
     ));
@@ -329,16 +330,28 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
   throw new NeverError(update);
 }
 
+function resolveOutdates(firstOutdatedChunk: number, outdates: Outdates): Outdates {
+  if (outdates.type === 'initializes') {
+    const { index } = outdates;
+    return { type: 'initializes', index };
+  } if (outdates.type === 'outdates') {
+    return { type: 'outdates', index: Math.min(firstOutdatedChunk, outdates.index) };
+  }
+  throw new NeverError(outdates);
+}
+
 // TODO(luna): outdating is done wrong. for example, delete the last chunk and
 // firstOutdatedChunk becomes 0, which is wrong(?)
 function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
   const { chunks, past, firstOutdatedChunk } = state;
   let newChunks: Chunk[];
   let outdates: Outdates;
+  let nowOutdated;
   switch (update.key) {
     case 'clear':
       newChunks = [];
       outdates = { type: 'initializes', index: firstOutdatedChunk };
+      nowOutdated = 0;
       break;
     case 'delete':
       newChunks = [
@@ -346,6 +359,8 @@ function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
         ...chunks.slice(update.index + 1, chunks.length),
       ];
       outdates = { type: 'outdates', index: update.index };
+      // If it's the last chunk, the result goes away and that's it
+      nowOutdated = update.index === chunks.length - 1 ? firstOutdatedChunk : update.index;
       break;
     case 'insert':
       newChunks = [
@@ -356,6 +371,7 @@ function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
         ...chunks.slice(update.index, chunks.length),
       ];
       outdates = { type: 'outdates', index: update.index };
+      nowOutdated = update.text ? update.index : firstOutdatedChunk;
       break;
     default:
       throw new NeverError(update);
@@ -369,17 +385,8 @@ function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
     chunks: newChunks,
     past: [...past, undo],
     future: [],
+    firstOutdatedChunk: Math.min(firstOutdatedChunk, nowOutdated),
   };
-}
-
-function resolveOutdates(firstOutdatedChunk: number, outdates: Outdates): Outdates {
-  if (outdates.type === 'initializes') {
-    const { index } = outdates;
-    return { type: 'initializes', index };
-  } if (outdates.type === 'outdates') {
-    return { type: 'outdates', index: Math.min(firstOutdatedChunk, outdates.index) };
-  }
-  throw new NeverError(outdates);
 }
 
 function handleUndo(state: State): State {

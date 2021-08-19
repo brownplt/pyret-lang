@@ -240,7 +240,8 @@ if (serializedState) {
 const store = createStore(
   ideApp,
   loadedState,
-  (window as any).__REDUX_DEVTOOLS_EXTENSION__ && (window as any).__REDUX_DEVTOOLS_EXTENSION__(),
+  (window as any).__REDUX_DEVTOOLS_EXTENSION__
+    && (window as any).__REDUX_DEVTOOLS_EXTENSION__({ trace: true, traceLimit: 25 }),
 );
 type SerializedOptions = {[key: string]: (string | number | boolean)};
 let lastStorage: SerializedOptions;
