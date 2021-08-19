@@ -1415,7 +1415,7 @@ type WFContext = {
           visit(wellFormedVisitor, expr, wfContext);
         },
         's-contract': (visitor, expr: TJ.Variant<A.Expr, 's-contract'>, wfContext) => {
-          visit(wellFormedVisitor, expr, wfContext);
+          return;
         },
         's-assign': (visitor, expr: TJ.Variant<A.Expr, 's-assign'>, wfContext) => {
           visit(wellFormedVisitor, expr, wfContext);
