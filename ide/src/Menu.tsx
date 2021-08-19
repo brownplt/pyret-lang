@@ -124,7 +124,7 @@ function Menu({
                 }}
               >
                 {editorLayout === EditorLayout.Compact ? (
-                  'Switch to normal layout'
+                  'Switch to chat layout'
                 ) : (
                   'Switch to compact layout'
                 )}

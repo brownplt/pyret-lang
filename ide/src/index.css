@@ -81,10 +81,12 @@ and overriding of rules. */
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  position: relative;
 }
 .chat-layout-normal .chat-and-result {
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .chat-layout-compact .chat-result {
@@ -160,13 +162,14 @@ and overriding of rules. */
   margin: 0.15em 0;
   float: right;
   overflow: auto;
-  max-width: 90%;
 }
 .chat-layout-compact .chatitor-rhs {
-  padding: 0.1em;
+  padding: 0.3em;
+  max-width: 100%;
 }
 .chat-layout-normal .chatitor-rhs {
   padding: 0.7em;
+  max-width: 90%;
 }
 
 .chat-layout-compact .chatitor-rhs.pending,
@@ -202,21 +205,26 @@ and overriding of rules. */
   background: darkgrey !important;
 }
 
+.chat-layout-compact .insert-arrow {
+  top: -0.5em;
+}
+.chat-layout-normal .insert-arrow {
+  top: -1em;
+}
 .insert-arrow {
-  position: relative;
-  height: 0px;
+  position: absolute;
   left: -1.3em;
-  bottom: 0.8em;
   font-size: 1em;
   opacity: 0.3;
   transition: opacity 0.2s;
   cursor: pointer;
   /* Button style reset */
-  display: block;
+  display: inline-block;
   border: none;
   margin: 0;
   padding: 0;
   line-height: normal;
+  background-color: transparent;
 }
 .insert-arrow:hover {
   opacity: 1;

@@ -401,10 +401,10 @@ class Chat extends React.Component<ChatProps, any> {
 
     return (
       <>
-        <button title={addButtonTitle} className="insert-arrow" onClick={() => this.insertAbove()} type="button">
-          +
-        </button>
         <div className={`chat-and-result ${outdatedClass} ${pendingRerunClass}`}>
+          <button title={addButtonTitle} className="insert-arrow" onClick={() => this.insertAbove()} type="button">
+            +
+          </button>
           { chunkEditorPart }
           { chunkResultsPart }
         </div>
