@@ -1,6 +1,7 @@
 import file("./tests/test-strings.arr") as _
 import file("./tests/test-format.arr") as _
 import file("./tests/test-numbers.arr") as _
+import file("./tests/test-rounding.arr") as _
 import file("./tests/test-errors.arr") as _
 import file("./tests/test-error-rendering.arr") as _
 import file("./tests/test-import.arr") as _
@@ -57,3 +58,6 @@ import file("./tests/modules/import-datatype-as-type-alias.arr") as _
 import file("./tests/modules/test-import-data-from-data-star.arr") as _
 import file("./tests/modules/test-provide-as-simple.arr") as _
 import file("./tests/modules/test-provide-type-as-simple.arr") as _
+
+import file("./tests/use/test-simple-use.arr") as _
+import file("./tests/use/test-essentials.arr") as _

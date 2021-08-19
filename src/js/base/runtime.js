@@ -5058,16 +5058,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.makeNumberBig(jsnums.remainder(n, m, NumberErrbacks));
     }
 
-    var num_truncate = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate"], 1, $a, false); }
-      thisRuntime.checkArgsInternal1("Numbers", "num-truncate",
-        n, thisRuntime.Number);
-      if (jsnums.greaterThanOrEqual(n, 0, NumberErrbacks)) {
-        return thisRuntime.makeNumberBig(jsnums.floor(n, NumberErrbacks));
-      } else {
-        return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));
-      }
-    }
     var num_sqrt = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqrt"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-sqrt",
@@ -5080,9 +5070,19 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         n, thisRuntime.Number);
       return thisRuntime.makeNumberBig(jsnums.sqr(n, NumberErrbacks));
     }
+    var num_truncate = function(n) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate"], 1, $a, false); }
+      thisRuntime.checkArgsInternal1("Numbers", "num-truncate",
+        n, thisRuntime.Number);
+      if (jsnums.greaterThanOrEqual(n, 0, NumberErrbacks)) {
+        return thisRuntime.makeNumberBig(jsnums.floor(n, NumberErrbacks));
+      } else {
+        return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));
+      }
+    }
     var num_ceiling = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-ceiling"], 1, $a, false); }
-      thisRuntime.checkArgsInternal1("Numbers", "num-celing",
+      thisRuntime.checkArgsInternal1("Numbers", "num-ceiling",
         n, thisRuntime.Number);
       return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));
     }
@@ -5103,6 +5103,76 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal1("Numbers", "num-round-even",
         n, thisRuntime.Number);
       return thisRuntime.makeNumberBig(jsnums.roundEven(n, NumberErrbacks));
+    }
+    var num_truncate_digits = function(n, digits) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate-digits"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-truncate-digits",
+                                     n, thisRuntime.Number, digits, thisRuntime.NumInteger);
+      var tenDigits = jsnums.expt(10, digits, NumberErrbacks);
+      return jsnums.divide(num_truncate(jsnums.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    }
+    var num_ceiling_digits = function(n, digits) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-ceiling"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-ceiling-digits",
+                                     n, thisRuntime.Number, digits, thisRuntime.NumInteger);
+      var tenDigits = jsnums.expt(10, digits, NumberErrbacks);
+      return jsnums.divide(num_ceiling(jsnums.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    }
+    var num_floor_digits = function(n, digits) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-floor"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-floor-digits",
+                                     n, thisRuntime.Number, digits, thisRuntime.NumInteger);
+      var tenDigits = jsnums.expt(10, digits, NumberErrbacks);
+      return jsnums.divide(num_floor(jsnums.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    }
+    var num_round_digits = function(n, digits) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-round-digits",
+                                     n, thisRuntime.Number, digits, thisRuntime.NumInteger);
+      var tenDigits = jsnums.expt(10, digits, NumberErrbacks);
+      return jsnums.divide(num_round(jsnums.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    }
+    var num_round_even_digits = function(n, digits) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round-even"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-round-even-digits",
+                                     n, thisRuntime.Number, digits, thisRuntime.NumInteger);
+      var tenDigits = jsnums.expt(10, digits, NumberErrbacks);
+      return jsnums.divide(num_round_even(jsnums.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    }
+    var num_truncate_place = function(n, place) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate-place"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-truncate-place",
+                                     n, thisRuntime.Number, place, thisRuntime.NumInteger);
+      var tenPlace = jsnums.expt(10, place, NumberErrbacks);
+      return jsnums.multiply(num_truncate(jsnums.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    }
+    var num_ceiling_place = function(n, place) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-ceiling"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-ceiling-place",
+                                     n, thisRuntime.Number, place, thisRuntime.NumInteger);
+      var tenPlace = jsnums.expt(10, place, NumberErrbacks);
+      return jsnums.multiply(num_ceiling(jsnums.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    }
+    var num_floor_place = function(n, place) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-floor"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-floor-place",
+                                     n, thisRuntime.Number, place, thisRuntime.NumInteger);
+      var tenPlace = jsnums.expt(10, place, NumberErrbacks);
+      return jsnums.multiply(num_floor(jsnums.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    }
+    var num_round_place = function(n, place) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-round-place",
+                                     n, thisRuntime.Number, place, thisRuntime.NumInteger);
+      var tenPlace = jsnums.expt(10, place, NumberErrbacks);
+      return jsnums.multiply(num_round(jsnums.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    }
+    var num_round_even_place = function(n, place) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round-even"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-round-even-place",
+                                     n, thisRuntime.Number, place, thisRuntime.NumInteger);
+      var tenPlace = jsnums.expt(10, place, NumberErrbacks);
+      return jsnums.multiply(num_round_even(jsnums.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
     }
     var num_log = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-log"], 1, $a, false); }
@@ -5552,6 +5622,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'has-field': makeFunction(hasField, "has-field"),
 
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
+      'raw-array-to-list': makeFunction(raw_array_to_list, "raw-array-to-list"),
       'raw-list-map': makeFunction(raw_list_map, "raw-list-map"),
       'raw-list-filter': makeFunction(raw_list_filter, "raw-list-filter"),
       'raw-list-fold': makeFunction(raw_list_fold, "raw-list-fold"),
@@ -5701,13 +5772,23 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num-atan2': makeFunction(num_atan2, "num-atan2"),
       'num-modulo': makeFunction(num_modulo, "num-modulo"),
       'num-remainder': makeFunction(num_remainder, "num-remainder"),
-      'num-truncate': makeFunction(num_truncate, "num-truncate"),
       'num-sqrt': makeFunction(num_sqrt, "num-sqrt"),
       'num-sqr': makeFunction(num_sqr, "num-sqr"),
+      'num-truncate': makeFunction(num_truncate, "num-truncate"),
       'num-ceiling': makeFunction(num_ceiling, "num-ceiling"),
       'num-floor': makeFunction(num_floor, "num-floor"),
       'num-round': makeFunction(num_round, "num-round"),
       'num-round-even': makeFunction(num_round_even, "num-round-even"),
+      'num-truncate-digits': makeFunction(num_truncate_digits, "num-truncate"),
+      'num-ceiling-digits': makeFunction(num_ceiling_digits, "num-ceiling-digits"),
+      'num-floor-digits': makeFunction(num_floor_digits, "num-floor-digits"),
+      'num-round-digits': makeFunction(num_round_digits, "num-round-digits"),
+      'num-round-even-digits': makeFunction(num_round_even_digits, "num-round-even-digits"),
+      'num-truncate-place': makeFunction(num_truncate_place, "num-truncate"),
+      'num-ceiling-place': makeFunction(num_ceiling_place, "num-ceiling-place"),
+      'num-floor-place': makeFunction(num_floor_place, "num-floor-place"),
+      'num-round-place': makeFunction(num_round_place, "num-round-place"),
+      'num-round-even-place': makeFunction(num_round_even_place, "num-round-even-place"),
       'num-log': makeFunction(num_log, "num-log"),
       'num-exp': makeFunction(num_exp, "num-exp"),
       'num-exact': makeFunction(num_exact, "num-exact"),
@@ -5817,6 +5898,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     //Export the runtime
     //String keys should be used to prevent renaming
     var thisRuntime = {
+      'builtins': builtins,
       'run': run,
       'runThunk': runThunk,
       'execThunk': execThunk,
@@ -6048,6 +6130,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'string_indexOf': string_indexOf,
 
       'raw_array_of': raw_array_of,
+      'raw_array_build': raw_array_build,
       'raw_array_get': raw_array_get,
       'raw_array_obj_destructure': raw_array_obj_destructure,
       'raw_array_set': raw_array_set,

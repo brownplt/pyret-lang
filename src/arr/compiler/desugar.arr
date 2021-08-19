@@ -26,7 +26,7 @@ var generated-binds = SD.make-mutable-string-dict()
 
 fun g(id): A.s-global(id) end
 fun gid(l, id): A.s-id(l, g(id)) end
-fun bid(l, name): A.s-dot(l, A.s-id(l, g("builtins")), name) end
+fun bid(l, name): A.s-dot(l, A.s-prim-val(l, "builtins"), name) end
 
 flat-prim-app = A.prim-app-info-c(false)
 
@@ -130,9 +130,9 @@ fun desugar(program :: A.Program):
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
   cases(A.Program) program block:
-    | s-program(l, _provide, provided-types, provides, imports, body) =>
+    | s-program(l, _use, _provide, provided-types, provides, imports, body) =>
       generated-binds := SD.make-mutable-string-dict()
-      {ast: A.s-program(l, _provide, provided-types, provides, imports, desugar-expr(body)), new-binds: generated-binds}
+      {ast: A.s-program(l, _use, _provide, provided-types, provides, imports, desugar-expr(body)), new-binds: generated-binds}
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end
@@ -621,7 +621,7 @@ fun desugar-expr(expr :: A.Expr):
         cases(A.LoadTableSpec) s:
           | s-sanitize(_, name, sanitizer) =>
             # Convert to loader option
-            as-option = A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "as-loader-option"),
+            as-option = A.s-app(l, bid(l, "as-loader-option"),
               [list:
                 A.s-str(dummy, "sanitizer"),
                 A.s-str(dummy, name.toname()),
@@ -645,7 +645,7 @@ fun desugar-expr(expr :: A.Expr):
           A.s-array(dummy, headers.map(lam(h): A.s-str(l, h.name) end)),
           A.s-array(dummy, sanitizers)])
 
-      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "open-table"), [list: loaded])
+      A.s-app(l, bid(l, "open-table"), [list: loaded])
 
     | s-table-extend(l, column-binds, extensions) =>
       # NOTE(philip): I am fairly certain that this will need to be moved
@@ -946,9 +946,11 @@ fun desugar-expr(expr :: A.Expr):
           ds-content.{2} ^ link(_, acc.{2})
         }
       end
-      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "spy"),
+      A.s-app(l, bid(l, "spy"),
         [list: A.s-srcloc(l, l), ds-message,
           A.s-array(l, ds-contents.{0}), A.s-array(l, ds-contents.{1}), A.s-array(l, ds-contents.{2})])
+    | s-prim-val(l, name) => expr
+    | s-array(l, vals) => A.s-array(l, vals.map(desugar-expr))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

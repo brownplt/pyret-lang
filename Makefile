@@ -130,7 +130,7 @@ showpath:
 	@echo `which browserify`
 
 $(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
-	browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
+	npx browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
