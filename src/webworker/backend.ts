@@ -64,6 +64,16 @@ export const runProgram2 = (
               });
             });
           },
+          stop: () => new Promise((resolve2) => {
+            asyncRunner.pause((line : number) => {
+              asyncRunner.onEnd({
+                type: 'exception',
+                value: 'Program stopped by user',
+                stack: [],
+              });
+              resolve2(line);
+            });
+          }),
           pause: (callback: (line: number) => void): void => {
             console.log('pause inside runProgram2 inside makeRA.then');
             asyncRunner.pause(callback);

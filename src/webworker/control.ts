@@ -217,7 +217,8 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
   type RunActions = {
     run: (callback: (value: any) => void) => void,
     pause: (callback: (line: number) => void) => void,
-    resume: () => void
+    resume: () => void,
+    stop: () => Promise<number>
   };
   let runActions: undefined | RunActions;
 
@@ -383,8 +384,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
         console.log('resolve false (not running)');
         resolve(false);
       } else {
-        runActions.pause(() => {
-          console.log('pause callback');
+        runActions.stop().then(() => {
           runActions = undefined;
           resolve(true);
         });

@@ -85,6 +85,8 @@ function wrapContent(content: string): string {
 
 let asyncCache : {[key:string]: any} = {};
 let currentRunner: any = null;
+currentRunner = stopify.stopifyLocally("", { newMethod: 'direct' });
+currentRunner.run(() => { console.log("initialized stopify runner")});
 
 export function runStopify<A>(f : () => A) {
   return new Promise((resolve, reject) => {
@@ -102,8 +104,6 @@ export function runStopify<A>(f : () => A) {
 
 export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => Promise<any>
   ) => {
-  currentRunner = stopify.stopifyLocally("", { newMethod: 'direct' });
-  currentRunner.run(() => { console.log("initialized stopify runner")});
   const requireAsyncMain = (importPath: string) => new Promise(((resolve, reject) => {
     const startRootRequires = window.performance.now();
     if (importPath in nodeModules) {
@@ -190,6 +190,9 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
             resolve(toReturn);
           }
         };
+        currentRunner.runInit(cb);
+        currentRunner.onYieldFlag = { kind: 'resume' };
+        currentRunner.mayYieldFlag = { kind: 'resume' };
         currentRunner.evalCompiled(toWrite, cb);
       }),
       pause: (callback: (line: number) => void): void => {
@@ -197,6 +200,9 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
       },
       resume: (): void => {
         currentRunner.resume();
+      },
+      onEnd: (result : any): void => {
+        currentRunner.onEnd(result);
       },
     });
   }));
