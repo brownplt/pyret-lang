@@ -6,6 +6,7 @@ import { MenuItems } from './menu-types';
 import { RHSObjects } from './rhsObject';
 import { RTMessages } from './rtMessages';
 import * as control from './control';
+import { program } from './path';
 
 export type Outdates =
   // Applying *or undoing* this change technically invalidates this chunk. If a
@@ -170,7 +171,7 @@ export enum EditorLayout {
 export const initialState: State = {
   browseRoot: '/',
   browsePath: '/projects',
-  currentFile: '/projects/program.arr',
+  currentFile: program,
   currentFileContents: undefined,
   typeCheck: true,
   rhs: {

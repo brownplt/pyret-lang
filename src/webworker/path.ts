@@ -1,13 +1,15 @@
-import { path } from './browserfs-setup';
+export const BrowserFS = require('browserfs'); // eslint-disable-line global-require
+
+export const path = BrowserFS.BFSRequire('path');
 
 export const root = '/';
 export const compileBase = path.join(root, 'projects');
 export const compileBuiltinJS = path.join(root, 'prewritten');
-export const compileProgram = 'program.arr';
+export const defaultFile = 'program.arr';
 export const runBase = path.join(root, 'compiled', 'project');
 export const runProgram = 'program.arr.js';
 export const uncompiled = path.join(root, 'uncompiled');
 export const compiled = path.join(root, 'compiled');
 export const compiledBuiltin = path.join(compiled, 'builtin');
-export const program = path.join(compileBase, compileProgram);
+export const program = path.join(compileBase, defaultFile);
 export const pyretJarr = 'pyret.js';

@@ -204,10 +204,16 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     const name = editValue;
 
     if (editType === EditType.CreateFile) {
-      const path = name.includes('.')
-        ? control.bfsSetup.path.join(browsePath, name)
-        : control.bfsSetup.path.join(browsePath, `${name}.arr`);
+      const fullName = name.includes('.') ? name : `${name}.arr`;
+      const path = control.bfsSetup.path.join(browsePath, fullName);
       control.createFile(path);
+      // TODO(luna): Should have existence check, otherwise new file with same
+      // name => truncate
+      if (fullName.endsWith('.arr')) {
+        control.fs.writeFileSync(path, 'include cpo');
+      } else {
+        control.createFile(path);
+      }
     } else {
       const path = control.bfsSetup.path.join(browsePath, name);
       control.createDirectory(path);

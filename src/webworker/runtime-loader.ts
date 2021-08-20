@@ -1,4 +1,4 @@
-import { compiled, compiledBuiltin } from './path';
+import { compiled, compiledBuiltin, program } from './path';
 
 export default function load(
   fs: any,
@@ -21,6 +21,12 @@ export default function load(
 
   if (!fs.existsSync('/tmp')) {
     fs.mkdirSync('/tmp');
+  }
+
+  console.log('checking for existance of', program);
+  if (!fs.existsSync(program)) {
+    console.log('writing include cpo to', program);
+    fs.writeFileSync(program, 'include cpo');
   }
 
   runtimeFiles.forEach((item: any) => {

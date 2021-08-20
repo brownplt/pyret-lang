@@ -351,7 +351,9 @@ function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
   let nowOutdated;
   switch (update.key) {
     case 'clear':
-      newChunks = [];
+      newChunks = [emptyChunk({
+        editor: { getValue() { return 'include cpo'; } },
+      })];
       outdates = { type: 'initializes', index: firstOutdatedChunk };
       nowOutdated = 0;
       break;

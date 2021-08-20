@@ -282,6 +282,9 @@ store.subscribe(() => {
   }
 });
 
+control.installFileSystem();
+control.loadBuiltins();
+
 setStore(store);
 
 const ide: IDE = {

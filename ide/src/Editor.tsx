@@ -28,7 +28,6 @@ import Footer from './Footer';
 import Header from './Header';
 import InteractionError from './InteractionError';
 import Run from './Run';
-import * as control from './control';
 import * as action from './action';
 import 'react-tabs/style/react-tabs.css';
 import 'react-splitter-layout/lib/index.css';
@@ -125,10 +124,6 @@ function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchP
 const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
-
-/* TODO(michael): these two lines would probably fit better in store.ts */
-control.installFileSystem();
-control.loadBuiltins();
 
 type EditorProps = PropsFromRedux & DispatchProps & StateProps;
 
