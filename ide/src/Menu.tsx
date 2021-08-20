@@ -67,6 +67,7 @@ function Menu({
   setEditorMode,
   enterNewline,
   editorMode,
+  currentFileContents,
   editorLayout,
 }: MenuProps) {
   function getTab() {
@@ -145,6 +146,25 @@ function Menu({
                 ) : (
                   'Enter can send chats (click to change)'
                 )}
+              </button>
+            )}
+            {editorMode === EditorMode.Chatitor && (
+              <button
+                onClick={() => {
+                  if (currentFileContents !== undefined) {
+                    const url = `${document.location.origin}${document.location.pathname}?program=${encodeURIComponent(currentFileContents)}`;
+                    navigator.clipboard.writeText(url);
+                  }
+                }}
+                className="option"
+                key="getShareableLink"
+                type="button"
+                style={{
+                  height: '2.7em',
+                  width: '100%',
+                }}
+              >
+                Get shareable link
               </button>
             )}
           </div>
