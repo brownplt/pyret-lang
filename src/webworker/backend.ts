@@ -42,11 +42,19 @@ export const runProgram2 = (
 ): Promise<any> => {
   runner.resetTimings();
   if (runKind === RunKind.Sync) {
-    const result = runner.makeRequire(baseDir, rtCfg)(program);
-    return Promise.resolve({
-      perfResults: runner.getTimingResults(),
-      result,
-    });
+    try {
+      const result = runner.makeRequire(baseDir, rtCfg)(program);
+      return Promise.resolve({
+        perfResults: runner.getTimingResults(),
+        result,
+      });
+    } catch (e) {
+      // eslint-disable-next-line prefer-promise-reject-errors
+      return Promise.reject({
+        perfResults: runner.getTimingResults(),
+        result: { error: String(e) },
+      });
+    }
   } if (runKind === RunKind.Async) {
     return new Promise<any>((resolve) => {
       runner.makeRequireAsync(baseDir, rtCfg)(program).then((asyncRunner: any) => {

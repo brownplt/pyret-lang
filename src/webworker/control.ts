@@ -373,6 +373,8 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
             resolve(result);
           });
         }
+      }).catch((e) => {
+        resolve(e);
       });
     });
   }
