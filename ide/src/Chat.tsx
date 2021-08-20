@@ -297,6 +297,7 @@ class Chat extends React.Component<ChatProps, any> {
               // eslint-disable-next-line
               key={i}
               className="chatitor-rhs"
+              style={{ border: `2px ${technicallyOutdated ? 'dashed' : 'solid'} #dc4064` }}
               title={technicallyOutdated ? 'value might be changed by earlier definition changes' : ''}
             >
               <FailureComponent failure={failure} id={id} editor={chunkEditor} />
@@ -336,7 +337,7 @@ class Chat extends React.Component<ChatProps, any> {
         const checkSummary = checks.length > 0
           ? (
             <CheckResults
-            // Would love to have TypeScript obviate this `as`
+              // Would love to have TypeScript obviate this `as`
               checks={checks as RHSCheck[]}
               className="chatitor-rhs"
               title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}

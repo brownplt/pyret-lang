@@ -142,6 +142,7 @@ and overriding of rules. */
 
 .failure-cmcode .CodeMirror {
   background-color: transparent !important;
+  border: transparent !important;
 }
 
 .new-expr .CodeMirror {
