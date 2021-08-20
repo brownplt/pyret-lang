@@ -87,6 +87,7 @@ function Embeditor(props: Props) {
   // react-codemirror2 design decision. The workarounds, however, are
   // essentially the same (except that restructuring the code isn't possible).
   function editorDidMount(editor: CM.Editor & CM.Doc) {
+    editor.setSize(null, 'auto');
     setEditor(editor);
     forceUpdate();
   }
@@ -130,7 +131,7 @@ function Embeditor(props: Props) {
     stateEditor.setValue(text);
   }
   const rvs = stateEditor?.operation(() => {
-    const barriers = Array.from(text.matchAll(/\n\n/g));
+    const barriers = Array.from(text.matchAll(/(\n\n)|#.CHUNK#/g));
     // Why +1? Because we want to put the widget immediately after the first
     // newline but not the second (leaving a blank space *after* rather than
     // before a segment
@@ -162,7 +163,6 @@ function Embeditor(props: Props) {
   return (
     <>
       <CodeMirror
-        className="sms-codemirror"
         onChange={((_editor: CM.Editor & CM.Doc, _data, value) => {
           if (stateEditor !== null) {
             props.save(value);

@@ -194,11 +194,13 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
   switch (newEditorMode) {
     case EditorMode.Embeditor:
     case EditorMode.Text: {
-      // we already keep currentFileContents in sync with chunk contents while
-      // in chunk mode, since we need it to save the file contents.
+      // Ensure that currentFileContents is up-to-date with chunks
+      const { chunks } = state;
+      const currentFileContents = chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
       return {
         ...state,
         editorMode: newEditorMode,
+        currentFileContents,
       };
     }
     case EditorMode.Chatitor: {
