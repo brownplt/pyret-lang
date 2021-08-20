@@ -607,7 +607,7 @@ function handleCompileSessionFailure(
     let max = firstOutdatedChunk;
     places.forEach((place) => {
       const chunkIndex = findChunkFromSrclocResult(place);
-      if (chunkIndex) {
+      if (chunkIndex !== null) {
         max = Math.max(chunkIndex + 1, max);
         newChunks[chunkIndex] = {
           ...newChunks[chunkIndex],
