@@ -204,11 +204,7 @@ function Chatitor({
           event.stopPropagation();
           switch ((event as any).key) {
             case 'Enter': {
-              const pos = editor.getCursor();
-              const token = editor.getTokenAt(pos);
-              const enterKeySend = token.state.lineState.tokens.length === 0
-                && !enterNewlineRef.current;
-              if ((enterKeySend || event.ctrlKey || event.metaKey) && !event.shiftKey) {
+              if (enterShouldSend(editor, enterNewlineRef.current, event)) {
                 if (editor.getValue() !== '') {
                   const value = editor.getValue();
                   if (!mergeDesignRecipe(value)) {
