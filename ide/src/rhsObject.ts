@@ -163,5 +163,7 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObject[
     };
   });
 
+  withKeys.sort((a, b) => getRow(a) - getRow(b));
+
   return withKeys;
 }

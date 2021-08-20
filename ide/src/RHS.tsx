@@ -12,11 +12,7 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { State } from './state';
-import {
-  RHSObject,
-  RHSObjects,
-  getRow,
-} from './rhsObject';
+import { RHSObjects } from './rhsObject';
 import RHSObjectComponent from './RHSObjectComponent';
 
 type StateProps = {
@@ -50,11 +46,7 @@ function RHS({
   rhs,
   fontSize,
 }: RHSProps) {
-  function compareRHSObjects(a: RHSObject, b: RHSObject): number {
-    return getRow(a) - getRow(b);
-  }
-
-  const objects = rhs.objects.sort(compareRHSObjects);
+  const { objects } = rhs;
 
   const elements = (
     objects.map((rhsObject) => (
