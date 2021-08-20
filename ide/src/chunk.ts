@@ -40,6 +40,10 @@ export type Chunk = {
 
   /* Whether this chunk has been changed since last run */
   outdated: boolean,
+
+  /* Errors might reference prior chunks. This error might have results we want
+   * to keep (or not), but we might want to link back to them */
+  referencedFrom: string[],
 };
 
 function newId() {
@@ -57,6 +61,7 @@ export function emptyChunk(options?: Partial<Chunk>): Chunk {
     results: { status: 'succeeded', objects: [] },
     editor: { getValue: () => '' },
     outdated: true,
+    referencedFrom: [],
     ...options,
   };
 }

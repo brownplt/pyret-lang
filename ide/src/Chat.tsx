@@ -112,31 +112,18 @@ class Chat extends React.Component<ChatProps, any> {
   shouldComponentUpdate(newProps: ChatProps) {
     const n = newProps;
     const o = this.props;
-
+    if (n.enterNewline !== o.enterNewline) {
+      return true;
+    }
     if (n.technicallyOutdated !== o.technicallyOutdated) {
       return true;
     }
-
     const nChunk = n.chunks[n.index];
     const oChunk = o.chunks[o.index];
-    const nResult = nChunk.results;
-    const oResult = oChunk.results;
-    if (nResult.status !== oResult.status) {
+    if (nChunk !== oChunk) {
       return true;
     }
-    if (nChunk.outdated !== oChunk.outdated) {
-      return true;
-    }
-    if (nResult.status === 'succeeded' && oResult.status === 'succeeded' && nResult.objects !== oResult.objects) {
-      return true;
-    }
-
-    if (nChunk.editor.getValue() === oChunk.editor.getValue()
-        && nResult === oResult) {
-      return false;
-    }
-
-    return true;
+    return false;
   }
 
   /* Called in response to an edit event, where `value` is the chunk's text
@@ -286,7 +273,7 @@ class Chat extends React.Component<ChatProps, any> {
     let displayCheckMark = false;
     const chunk = chunks[index];
     const {
-      editor: chunkEditor, results, outdated, id,
+      editor: chunkEditor, results, outdated, id, referencedFrom,
     } = chunk;
 
     if (results.status === 'failed' && isInitializedEditor(chunkEditor)) {
@@ -403,9 +390,24 @@ class Chat extends React.Component<ChatProps, any> {
     return (
       <>
         <div className={`chat-and-result ${outdatedClass} ${pendingRerunClass}`}>
-          <button title={addButtonTitle} className="insert-arrow" onClick={() => this.insertAbove()} type="button">
+          <button title={addButtonTitle} className="text-button insert-arrow" onClick={() => this.insertAbove()} type="button">
             +
           </button>
+          {referencedFrom.map((from) => (
+            <button
+              onClick={() => {
+                const ed = chunks.find((c) => c.id === from)?.editor;
+                if (ed && isInitializedEditor(ed)) {
+                  ed.scrollIntoView({ line: 9999, ch: 999 });
+                }
+              }}
+              className="text-button referenced-by-error"
+              title="An error references this chat, click to focus"
+              type="button"
+            >
+              <span role="img" aria-label="reference">📨</span>
+            </button>
+          ))}
           { chunkEditorPart }
           { chunkResultsPart }
         </div>

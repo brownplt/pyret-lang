@@ -1,5 +1,19 @@
 import CodeMirror from 'codemirror';
 
+export type Srcloc =
+  | { $name: 'builtin', 'module-name': string, 'asString': string, }
+  | {
+    $name: 'srcloc',
+    'source': string,
+    'start-line': number,
+    'start-column': number,
+    'start-char': number,
+    'end-line': number,
+    'end-column': number,
+    'end-char': number
+    'asString': string,
+  };
+
 export type List<T> = { $name: 'empty' } | { $name: 'link', first: T, rest: List<T> };
 
 // TODO(luna): These two no longer describe data values. This will cause
@@ -94,3 +108,15 @@ export function cleanStopify() {
 
 export const CHATITOR_SESSION = 'chatidor-session';
 export const TEXT_SESSION = 'text-session';
+
+// Precondition, srcloc is not a builtin
+export function srclocToCodeMirrorPosition(
+  loc: Srcloc,
+): {from: CodeMirror.Position, to: CodeMirror.Position} {
+  if (loc.$name === 'builtin') {
+    throw new Error('builtin srcloc has no position');
+  }
+  const from = { line: loc['start-line'] - 1, ch: loc['start-column'] };
+  const to = { line: loc['end-line'] - 1, ch: loc['end-column'] };
+  return { from, to };
+}

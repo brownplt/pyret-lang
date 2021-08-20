@@ -48,6 +48,7 @@ import {
   CHATITOR_SESSION,
   cleanStopify,
   NeverError,
+  Srcloc,
   TEXT_SESSION,
 } from './utils';
 
@@ -62,7 +63,7 @@ import {
 import { fs } from './browserfs-setup';
 import * as path from './path';
 import { bfsSetup, makeServerAPI, CompileAndRunResult } from './control';
-import { getLocs, Srcloc } from './failure';
+import { getLocs } from './failure';
 import { RunKind } from './backend';
 
 // Dependency cycle between store and reducer because we dispatch from
@@ -589,7 +590,7 @@ function handleCompileSessionFailure(
   errors: string[],
 ): State {
   const failures = errors.map((e) => JSON.parse(e));
-  const places: Srcloc[] = failures.flatMap(getLocs);
+  const places = failures.flatMap(getLocs);
 
   const { chunks, currentFile, firstOutdatedChunk } = state;
 
@@ -603,29 +604,22 @@ function handleCompileSessionFailure(
   }
 
   const newChunks = [...chunks];
-  if (places.length > 0) {
-    let max = firstOutdatedChunk;
-    places.forEach((place) => {
-      const chunkIndex = findChunkFromSrclocResult(place);
-      if (chunkIndex !== null) {
-        max = Math.max(chunkIndex + 1, max);
-        newChunks[chunkIndex] = {
-          ...newChunks[chunkIndex],
-          results: {
-            status: 'failed',
-            failures,
-          },
-          outdated: false,
+  const chunkIndex = newChunks.findIndex((c) => c.id === id);
+  places.forEach((place) => {
+    const referencing = findChunkFromSrclocResult(place);
+    if (referencing !== null && referencing !== chunkIndex) {
+      const refs = newChunks[referencing].referencedFrom;
+      if (refs[refs.length - 1] !== id) {
+        newChunks[referencing] = {
+          ...newChunks[referencing],
+          referencedFrom: [
+            ...newChunks[referencing].referencedFrom,
+            id,
+          ],
         };
       }
-    });
-    return {
-      ...state,
-      chunks: newChunks,
-      firstOutdatedChunk: max,
-    };
-  }
-  const chunkIndex = newChunks.findIndex((c) => c.id === id);
+    }
+  });
   newChunks[chunkIndex] = {
     ...newChunks[chunkIndex],
     results: {
@@ -651,7 +645,7 @@ const update = (value: (s: State) => State) => {
 
 function handleCompileProgramFailure(state: State, errors: string[]) : State {
   const failures = errors.map((e) => JSON.parse(e));
-  const places: Srcloc[] = failures.flatMap(getLocs);
+  const places = failures.flatMap(getLocs);
   const asHL = (place: Srcloc) => {
     if (place.$name !== 'srcloc') {
       throw new Error('how is a builtin a segment?');

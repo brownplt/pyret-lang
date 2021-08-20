@@ -1,18 +1,4 @@
-import { NeverError } from './utils';
-
-export type Srcloc =
-  | { $name: 'builtin', 'module-name': string, 'asString': string, }
-  | {
-    $name: 'srcloc',
-    'source': string,
-    'start-line': number,
-    'start-column': number,
-    'start-char': number,
-    'end-line': number,
-    'end-column': number,
-    'end-char': number
-    'asString': string,
-  };
+import { NeverError, Srcloc } from './utils';
 
 export type Failure =
   | { $name: 'paragraph', 'contents': Array<Failure> }

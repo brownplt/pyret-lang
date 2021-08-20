@@ -1,14 +1,32 @@
 import React from 'react';
 import CM from 'codemirror';
 import { UnControlled as UnControlledCM } from 'react-codemirror2';
+import { connect } from 'react-redux';
 import { Failure } from './failure';
-import { intersperse } from './utils';
+import { intersperse, srclocToCodeMirrorPosition } from './utils';
 import Highlight from './Highlight';
 import RenderedValue from './reps/RenderedValue';
+import { State } from './state';
+import { Chunk, isInitializedEditor } from './chunk';
 
-type Props = { failure: Failure, id?: string, editor?: CM.Editor & CM.Doc };
+type Props = {
+  failure: Failure,
+  id?: string,
+  editor?: CM.Editor & CM.Doc,
+  highlightsOnly?: boolean
+};
+type StateProps = {
+  chunks: Chunk[],
+};
+function mapStateToProps(state: State): StateProps {
+  const { chunks } = state;
+  return { chunks };
+}
+const connector = connect(mapStateToProps, () => {});
 
-export default function FailureComponent({ failure, id, editor }: Props) {
+function FailureComponentUnconnected({
+  failure, id, editor, chunks,
+}: StateProps & Props) {
   switch (failure.$name) {
     case 'paragraph':
       return (
@@ -109,35 +127,58 @@ export default function FailureComponent({ failure, id, editor }: Props) {
       console.log('highlight: ', failure);
       const rainbow = ['#fcc', '#fda', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
       const color = rainbow[failure.color.valueOf() % rainbow.length];
-      const locs = failure.locs.map((loc) => {
-        if (loc.$name === 'builtin' || !loc.source.includes(id ?? '') || failure.color.valueOf() === -1) {
+      const calculated = failure.locs.map((loc) => {
+        if (loc.$name === 'builtin' || failure.color.valueOf() === -1) {
+          return undefined;
+        }
+        const { from, to } = srclocToCodeMirrorPosition(loc);
+        const chunk = chunks.find((c) => loc.source.includes(c.id));
+        if (chunk !== undefined && isInitializedEditor(chunk.editor)) {
+          return { from, to, editor: chunk.editor };
+        }
+        return undefined;
+      });
+      const locs = calculated.map((attributes) => {
+        if (attributes === undefined) {
           return <></>;
         }
-        const from = { line: loc['start-line'] - 1, ch: loc['start-column'] };
-        const to = { line: loc['end-line'] - 1, ch: loc['end-column'] };
-        if (editor) {
-          return (
-            <Highlight
-              editor={editor}
-              from={from}
-              to={to}
-              color={color}
-              key={to.line * 13 + to.ch}
-            />
-          );
-        }
-        return <></>;
+        const { editor: ed, from, to } = attributes;
+        return (
+          <Highlight
+            editor={ed}
+            from={from}
+            to={to}
+            color={color}
+            key={to.line * 13 + to.ch}
+          />
+        );
       });
+      // It's only *now* that i realize it makes no sense for a single highlight
+      // to have multiple locs... that would be two highlights so you can tell
+      // them apart! Two highlights with the same loc, sure makes perfect sense.
+      // So the data structure here is probably wrong... are there any of these?
+      // For now i won't think hard about how to handle properly until it comes
+      // up
+      const focusRelevant = () => {
+        // Scroll the one or zero (or more? in which case last) into view
+        calculated.forEach((attributes) => {
+          if (attributes === undefined) {
+            return;
+          }
+          // We're def scrolling up
+          attributes.editor.scrollIntoView(attributes.from);
+        });
+      };
       return (
         <>
-          <span style={{ backgroundColor: color }}>
+          <button className="text-button" style={{ backgroundColor: color }} onClick={focusRelevant} type="button">
             <FailureComponent
               failure={failure.contents}
               id={id}
               editor={editor}
               key={String(failure.color)}
             />
-          </span>
+          </button>
           {locs}
         </>
       );
@@ -146,3 +187,6 @@ export default function FailureComponent({ failure, id, editor }: Props) {
       return <>{JSON.stringify(failure)}</>;
   }
 }
+
+const FailureComponent = connector(FailureComponentUnconnected);
+export default FailureComponent;
