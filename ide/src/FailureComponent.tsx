@@ -66,7 +66,25 @@ export default function FailureComponent({ failure, id, editor }: Props) {
     case 'text':
       return <>{failure.str}</>;
     case 'loc':
-      return <>{failure.loc.asString}</>;
+      if (failure.loc.$name === 'builtin') {
+        return (
+          <>
+            builtin
+            {' '}
+            {failure.loc['module-name']}
+          </>
+        );
+      }
+      if (id && failure.loc.source.includes(id)) {
+        return <>this chat</>;
+      }
+      return (
+        <>
+          {failure.loc.source}
+          :
+          {failure.loc['start-line']}
+        </>
+      );
     case 'code':
       return <code><FailureComponent failure={failure.contents} id={id} editor={editor} /></code>;
     case 'cmcode': {
