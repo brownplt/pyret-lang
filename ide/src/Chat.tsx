@@ -293,7 +293,6 @@ class Chat extends React.Component<ChatProps, any> {
         </div>
       );
     } else if (results.status === 'succeeded') {
-      let rhs;
       const rhsObjects = results.objects;
       const partiallyOutdated = technicallyOutdated;
       // TODO(luna): more principled
@@ -330,14 +329,12 @@ class Chat extends React.Component<ChatProps, any> {
               title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
             />
           ) : '';
-        rhs = [...values, checkSummary];
+        chunkResultsPart = (
+          <div className="chat-result">
+            {[...values, checkSummary]}
+          </div>
+        );
       }
-
-      chunkResultsPart = (
-        <div className="chat-result">
-          {rhs}
-        </div>
-      );
     }
 
     const chunkEditorPart = (
