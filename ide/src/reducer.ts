@@ -532,6 +532,17 @@ function segmentName(file: string, id: string): string {
   return `/projects/${base}-${id}`;
 }
 
+// Yeah... this is like O(n_chunks*n_references) and runs on every run result,
+// *and* it reconstructs every chunk, but it's very important to not mutate
+// because of undo/redo and we do have to invalidate each one. And JS Set
+// doesn't have immutable remove! If it becomes a problem we can rethink
+function removeReferencesFrom(chunks: Chunk[], id: string): Chunk[] {
+  return chunks.map((c) => ({
+    ...c,
+    referencedFrom: c.referencedFrom.filter((from) => from !== id),
+  }));
+}
+
 function handleRunSessionSuccess(state: State, id: string, result: any): State {
   const {
     chunks,
@@ -545,7 +556,7 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
   //   resulting in a severe memory leak of 50+MB PER RUN
   cleanStopify();
 
-  const newChunks = chunks.slice();
+  const newChunks = removeReferencesFrom(chunks, id);
   const index = newChunks.findIndex((c) => c.id === id);
 
   newChunks[index] = {
@@ -568,7 +579,7 @@ function handleRunSessionFailure(state: State, id: string, error: string) {
   // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
   //   resulting in a severe memory leak of 50+MB PER RUN
   cleanStopify();
-  const newChunks: Chunk[] = [...state.chunks];
+  const newChunks = removeReferencesFrom(state.chunks, id);
   const index = newChunks.findIndex((c) => c.id === id);
   newChunks[index] = {
     ...newChunks[index],
@@ -603,12 +614,15 @@ function handleCompileSessionFailure(
     return null;
   }
 
-  const newChunks = [...chunks];
+  // Because it's not a set, we don't want to add ourselves to it twice
+  const newChunks = removeReferencesFrom(chunks, id);
   const chunkIndex = newChunks.findIndex((c) => c.id === id);
   places.forEach((place) => {
     const referencing = findChunkFromSrclocResult(place);
     if (referencing !== null && referencing !== chunkIndex) {
       const refs = newChunks[referencing].referencedFrom;
+      // This is okay despite other refs because these would be ones *just added
+      // by us*
       if (refs[refs.length - 1] !== id) {
         newChunks[referencing] = {
           ...newChunks[referencing],
