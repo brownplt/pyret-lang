@@ -12,7 +12,9 @@ provide {
   list-to-tree-set: list-to-tree-set,
   fold: set-fold,
   all: set-all,
-  any: set-any
+  any: set-any,
+  map: set-map,
+  filter: set-filter
 } end
 provide-types *
 
@@ -353,6 +355,14 @@ data Set:
 
     method any(self, f) -> Boolean:
       self.elems.any(f)
+    end,
+
+    method map(self, f) -> Set:
+      self.fold(lam(acc, x): acc.add(f(x)) end, list-set(empty))
+    end,
+
+    method filter(self, f) -> Set:
+      list-set(self.to-list().filter(f))
     end
     
   | tree-set(elems :: AVLTree) with:
@@ -422,6 +432,22 @@ data Set:
 
     method any(self, f) -> Boolean:
       self.elems.any(f)
+    end,
+
+    method map(self, f) -> Set:
+      list-to-tree-set(self.elems.fold-preorder(
+      lam(acc, ele): link(f(ele), acc) end, empty))
+    end,
+
+    method filter(self, f) -> Set:
+      list-to-tree-set(self.elems.fold-preorder(
+        lam(acc, ele):
+          if f(ele):
+            link(ele, acc)
+          else:
+            acc
+          end
+        end, empty))
     end
     
 sharing:
@@ -573,6 +599,14 @@ fun list-to-tree(lst :: List):
   for fold(tree from leaf, elt from lst):
     tree.insert(elt)
   end
+end
+
+fun set-map<T, U>(s :: Set<T>, f :: (T -> U)) -> Set<U>:
+  s.map(f)
+end
+
+fun set-filter<T>(f :: (T -> Boolean), s :: Set<T>) -> Set<T>:
+  s.filter(f)
 end
 
 fun arr-to-list-set(arr :: RawArray) -> Set:
