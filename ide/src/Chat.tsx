@@ -302,7 +302,7 @@ class Chat extends React.Component<ChatProps, any> {
         // location for function is mostly noise
         !(isLocation(r) && typeof r.value === 'function')
         // location for constant variant of datatype
-        && !(isLocation(r) && '$name' in r.value && r.value.$name === r.name)
+        && !(isLocation(r) && typeof r.value === 'object' && '$name' in r.value && r.value.$name === r.name)
         // checks handled separately and grouped
         && !isRHSCheck(r)
         // undefined shows up sometimes go figure
