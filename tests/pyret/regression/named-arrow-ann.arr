@@ -7,7 +7,7 @@ compile-error = C.compile-error
 
 check "desugaring of named arrow annotations works":
   ans = C.get-compile-errs(```
-func1 :: ((var1 :: Number) -> Number) = lambda(var1): 5 end 
+func1 :: ((var1 :: Number) -> Number) = lam(var1): 5 end 
 ```)
 
   ans.length() is 0
