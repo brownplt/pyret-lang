@@ -3,6 +3,17 @@ the shared styles explicitly list both modes, and the styles specific to a
 mode just list that one. This avoids thinking too hard about rule specificity
 and overriding of rules. */
 
+/* Button style reset */
+.text-button {
+  display: inline-block;
+  border: none;
+  margin: 0;
+  padding: 0;
+  line-height: normal;
+  background-color: transparent;
+  cursor: pointer;
+}
+
 .chatitor-container {
   display: grid;
   height: 100%;
@@ -145,6 +156,21 @@ and overriding of rules. */
   border: transparent !important;
 }
 
+.prompt {
+  width: 45em;
+  margin: 0 auto;
+  position: relative;
+}
+.send-button {
+  font-size: 3em;
+  position: absolute;
+  right: 0;
+  z-index: 3;
+  padding: .2em .3em;
+  bottom: 0;
+  line-height: 1em;
+}
+
 .new-expr .CodeMirror {
   background-color: white !important;
   border-radius: 1em !important;
@@ -153,8 +179,6 @@ and overriding of rules. */
    * breaks non-inline positioned elements, but this !important override fixes it */
   min-height: 0 !important;
   padding: 1em;
-  width: 45em;
-  margin: 0 auto;
   transition: border-radius 0.1s;
 }
 .new-expr .CodeMirror-focused {
@@ -236,15 +260,4 @@ and overriding of rules. */
   font-size: 1.5em;
   top: 1em;
   left: -1.4em;
-}
-
-/* Button style reset */
-.text-button {
-  display: inline-block;
-  border: none;
-  margin: 0;
-  padding: 0;
-  line-height: normal;
-  background-color: transparent;
-  cursor: pointer;
 }

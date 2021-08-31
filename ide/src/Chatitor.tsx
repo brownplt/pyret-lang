@@ -16,7 +16,7 @@ import {
   Chunk, emptyChunk, isInitializedEditor,
 } from './chunk';
 import Chat from './Chat';
-import { enterShouldSend, isWrapFirst } from './utils';
+import { CMEditor, enterShouldSend, isWrapFirst } from './utils';
 
 type StateProps = {
   chunks: Chunk[],
@@ -88,7 +88,7 @@ function Chatitor({
   running,
 }: DefChunksProps) {
   const [mountedEditor, setEditor] = (
-    React.useState<(CodeMirror.Editor & CodeMirror.Doc) | null>(null)
+    React.useState<(CMEditor) | null>(null)
   );
   const [enterSendRender, setEnterSendRender] = (
     React.useState<boolean>(false as boolean)
@@ -154,6 +154,18 @@ function Chatitor({
     );
   }
 
+  // Sends the prompt chat
+  function send(editor: CMEditor) {
+    if (editor.getValue() !== '') {
+      const value = editor.getValue();
+      if (!mergeDesignRecipe(value)) {
+        insertChunk(chunksRef.current.length, value);
+      }
+      editor.setValue('');
+      run();
+    }
+  }
+
   const allChunks = chunks.map(setupChunk);
 
   const tooltipStyle = { margin: '0 0.5em' };
@@ -173,71 +185,81 @@ function Chatitor({
           <div style={{ clear: 'both' }} />
         </div>
       </div>
-      <UnControlled
-        className="new-expr"
-        options={{
-          mode: 'pyret',
-          theme: 'default',
-          lineWrapping: true,
-          autofocus: true,
-          extraKeys: { Tab: 'indentAuto' },
-        }}
-        editorDidMount={((editor: CodeMirror.Editor & CodeMirror.Doc) => {
-          editor.setSize(null, 'auto');
-          setEditor(editor);
-        }) as (editor: CodeMirror.Editor) => void}
-        onChange={((editor: CodeMirror.Editor & CodeMirror.Doc) => {
-          setIsEmpty(editor.getValue() === '');
-          setEnterSendRender(enterShouldSend(editor, enterNewlineRef.current));
-        }) as any}
-        onSelection={((
-          editor: CodeMirror.Editor & CodeMirror.Doc,
-          { ranges }: {ranges: [{head: CodeMirror.Position, anchor: CodeMirror.Position}]},
-        ) => {
-          setEnterSendRender(
-            enterShouldSend(editor, enterNewlineRef.current, undefined, ranges[0].head),
-          );
-        }) as any}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        onKeyDown={((editor: CodeMirror.Editor & CodeMirror.Doc, event: KeyboardEvent) => {
-          event.stopPropagation();
-          switch ((event as any).key) {
-            case 'Enter': {
-              if (enterShouldSend(editor, enterNewlineRef.current, event)) {
-                if (editor.getValue() !== '') {
-                  const value = editor.getValue();
-                  if (!mergeDesignRecipe(value)) {
-                    insertChunk(chunksRef.current.length, value);
+      <div className="prompt">
+        <UnControlled
+          className="new-expr"
+          options={{
+            mode: 'pyret',
+            theme: 'default',
+            lineWrapping: true,
+            autofocus: true,
+            extraKeys: { Tab: 'indentAuto' },
+          }}
+          editorDidMount={((editor: CMEditor) => {
+            editor.setSize(null, 'auto');
+            setEditor(editor);
+          }) as (editor: CodeMirror.Editor) => void}
+          onChange={((editor: CMEditor) => {
+            setIsEmpty(editor.getValue() === '');
+            setEnterSendRender(enterShouldSend(editor, enterNewlineRef.current));
+          }) as any}
+          onSelection={((
+            editor: CMEditor,
+            { ranges }: {ranges: [{head: CodeMirror.Position, anchor: CodeMirror.Position}]},
+          ) => {
+            setEnterSendRender(
+              enterShouldSend(editor, enterNewlineRef.current, undefined, ranges[0].head),
+            );
+          }) as any}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          onKeyDown={((editor: CMEditor, event: KeyboardEvent) => {
+            event.stopPropagation();
+            switch ((event as any).key) {
+              case 'Enter': {
+                if (enterShouldSend(editor, enterNewlineRef.current, event)) {
+                  send(editor);
+                  event.preventDefault();
+                }
+                break;
+              }
+              case 'ArrowUp': {
+                const pos = editor.getCursor();
+                if (pos.line === 0 && isWrapFirst(editor, pos)) {
+                  const lastEditor = chunksRef.current[chunksRef.current.length - 1].editor;
+                  if (isInitializedEditor(lastEditor)) {
+                    lastEditor.getInputField().focus();
                   }
-                  editor.setValue('');
-                  run();
-                  event.preventDefault();
-                } else {
                   event.preventDefault();
                 }
+                break;
               }
-              break;
+              case 'Escape':
+                editor.getInputField().blur();
+                break;
+              default:
             }
-            case 'ArrowUp': {
-              const pos = editor.getCursor();
-              if (pos.line === 0 && isWrapFirst(editor, pos)) {
-                const lastEditor = chunksRef.current[chunksRef.current.length - 1].editor;
-                if (isInitializedEditor(lastEditor)) {
-                  lastEditor.getInputField().focus();
-                }
-                event.preventDefault();
-              }
-              break;
+          }) as any}
+          autoCursor
+        />
+        <button
+          className="text-button send-button"
+          type="button"
+          onClick={() => {
+            if (mountedEditor === null) {
+              throw new Error('cannot send before editor mounts');
             }
-            case 'Escape':
-              editor.getInputField().blur();
-              break;
-            default:
-          }
-        }) as any}
-        autoCursor
-      />
+            const value = mountedEditor.getValue();
+            if (!mergeDesignRecipe(value)) {
+              insertChunk(chunksRef.current.length, value);
+            }
+            mountedEditor.setValue('');
+            run();
+          }}
+        >
+          ⮚
+        </button>
+      </div>
       <div style={{
         width: '48em',
         textAlign: 'right',
