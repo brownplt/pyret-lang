@@ -729,7 +729,6 @@ async function runProgramAsync(state: State) : Promise<void> {
   const {
     typeCheck, runKind, currentFile, currentFileContents,
   } = state;
-  setTimeout(() => (update((s: State) => ({ ...s, running: { type: 'text' } }))), 0);
   const result = await runTextProgram(typeCheck, runKind, currentFile, currentFileContents ?? '');
   if (result.type === 'compile-failure') {
     update((s: State) => handleCompileProgramFailure(s, result.errors));
@@ -738,6 +737,10 @@ async function runProgramAsync(state: State) : Promise<void> {
   } else {
     update((s: State) => handleRunProgramSuccess(s, result.result));
   }
+}
+
+function setupRunProgramAsync(state: State) : State {
+  return { ...state, running: { type: 'text' } };
 }
 
 let stopFlag = false;
@@ -764,7 +767,6 @@ async function runSegmentsAsync(state : State) : Promise<any> {
       console.log(value);
     }
   });
-  setTimeout(() => (update((s: State) => ({ ...s, running: { type: 'segments', total: filenames.length, done: 0 } }))), 0);
   console.log('Chunks were saved in:', JSON.stringify(filenames));
   fs.writeFileSync(
     state.currentFile,
@@ -826,22 +828,35 @@ async function runSegmentsAsync(state : State) : Promise<any> {
   });
 }
 
+function setupRunSegmentsAsync(s : State) : State {
+  const { chunks, firstOutdatedChunk } = s;
+  const onlyLastSegmentChanged = firstOutdatedChunk === chunks.length - 1
+      // If any non-outdated segment was an error, the final segment would not
+      // be non-outdated, with the exception of the last segment itself. We
+      // don't want to run this one in such a case because it would have been
+      // skipped by the "break on error" logic. Are we ever going to reconsider
+      // that logic?
+      && chunks[chunks.length - 2] !== undefined
+      && chunks[chunks.length - 2].results.status === 'succeeded';
+  const count = onlyLastSegmentChanged ? 1 : chunks.length;
+  return { ...s, running: { type: 'segments', total: count, done: 0 } };
+}
+
 // runner is responsible for setting running!
-function runProgramOrSegments(state : State, runner : (s : State) => Promise<any>) : State {
+function runProgramOrSegments(
+  state : State,
+  runner : (s : State) => Promise<any>,
+  updater : (s : State) => State,
+) : State {
   // TODO(luna): reset rt messages?
   if (state.running.type !== 'idle') { return state; }
   const result : Promise<any> = runner(state);
-  result.then(() => {
+  result.finally(() => {
     store.dispatch(
       { type: 'update', key: 'updater', value: (s) => ({ ...s, running: { type: 'idle' } }) },
     );
-  }).catch((e) => {
-    store.dispatch(
-      { type: 'update', key: 'updater', value: (s) => ({ ...s, running: { type: 'idle' } }) },
-    );
-    console.log('Running segments failed', e);
   });
-  return state;
+  return updater(state);
 }
 function stopSession(state: State): State {
   console.log('stopSession');
@@ -866,10 +881,10 @@ function rootReducer(state: State, action: Action): State {
       return handleEnqueueEffect(state, action);
     case 'run':
       if (action.key === 'runProgram') {
-        return runProgramOrSegments(state, runProgramAsync);
+        return runProgramOrSegments(state, runProgramAsync, setupRunProgramAsync);
       }
       if (action.key === 'runSegments') {
-        return runProgramOrSegments(state, runSegmentsAsync);
+        return runProgramOrSegments(state, runSegmentsAsync, setupRunSegmentsAsync);
       }
       throw new NeverError(action);
     case 'stopSession':
