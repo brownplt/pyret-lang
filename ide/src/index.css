@@ -162,13 +162,19 @@ and overriding of rules. */
   position: relative;
 }
 .send-button {
-  font-size: 3em;
+  font-size: 1em;
   position: absolute;
   right: 0;
   z-index: 3;
-  padding: .2em .3em;
+  margin: 0.5em 0.5em 0.5em 0.5em;
   bottom: 0;
   line-height: 1em;
+  border-radius: 1000em;
+  background-color: rgb(49, 123, 207);
+  height: 2em;
+  width: 2em;
+  color: white;
+  font-weight: bold;
 }
 
 .new-expr .CodeMirror {

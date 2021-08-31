@@ -257,7 +257,7 @@ function Chatitor({
             run();
           }}
         >
-          ⮚
+          ➤
         </button>
       </div>
       <div style={{
