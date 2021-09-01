@@ -162,11 +162,11 @@ and overriding of rules. */
   position: relative;
 }
 .send-button {
-  font-size: 1em;
+  font-size: 1.3em;
   position: absolute;
   right: 0;
   z-index: 3;
-  margin: 0.5em 0.5em 0.5em 0.5em;
+  margin: 0.6em;
   bottom: 0;
   line-height: 1em;
   border-radius: 1000em;
