@@ -1,20 +1,19 @@
-#lang pyret/library
-
-provide {
-  set: list-set,
-  list-set: list-set,
-  tree-set: tree-set,
-  empty-set: empty-list-set,
-  empty-list-set: empty-list-set,
-  empty-tree-set: empty-tree-set,
-  list-to-set: list-to-list-set,
-  list-to-list-set: list-to-list-set,
-  list-to-tree-set: list-to-tree-set,
-  fold: set-fold,
-  all: set-all,
-  any: set-any
-} end
-provide-types *
+provide:
+  list-set as set,
+  list-set as list-set,
+  tree-set as tree-set,
+  empty-list-set as empty-set,
+  empty-list-set as empty-list-set,
+  empty-tree-set as empty-tree-set,
+  list-to-list-set as list-to-set,
+  list-to-list-set as list-to-list-set,
+  list-to-tree-set as list-to-tree-set,
+  set-fold as fold,
+  set-all as all,
+  set-any as any,
+  data Set,
+  data AVLTree
+end
 
 import global as _
 include pick
@@ -254,7 +253,6 @@ check:
   tree1.revpreorder() is  [list: 5, 6, 3, 1, 2, 4]
   tree1.revpostorder() is [list: 4, 6, 5, 2, 3, 1]
 end
-
 
 data Set:
   | list-set(elems :: List) with:

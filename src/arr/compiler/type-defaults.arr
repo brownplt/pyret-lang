@@ -61,6 +61,7 @@ t-value-skeleton = t-name(module-uri("builtin://valueskeleton"), A.s-type-global
 t-list = t-name(module-uri("builtin://lists"), A.s-type-global("List"))
 t-big-array = t-name(module-uri("builtin://arrays"), A.s-type-global("Array"))
 t-set = t-name(module-uri("builtin://sets"), A.s-type-global("Set"))
+t-avl = t-name(module-uri("builtin://sets"), A.s-type-global("AVLTree"))
 t-runtime-error = t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError"))
 t-parse-error = t-name(module-uri("builtin://error"), A.s-type-global("ParseError"))
 t-either = t-name(module-uri("builtin://either"), A.s-type-global("Either"))
@@ -293,11 +294,20 @@ module-const-sets = t-module("builtin://sets",
     "list-to-set", t-list-to-set,
     "list-to-list-set", t-list-to-set,
     "list-to-tree-set", t-list-to-set,
+    "is-tree-set", t-arrow([list: t-set], t-boolean),
+    "is-list-set", t-arrow([list: t-set], t-boolean),
+    "is-leaf", t-arrow([list: t-avl], t-boolean),
+    "is-branch", t-arrow([list: t-avl], t-boolean),
+    "is-AVLTree", t-arrow([list: t-top], t-boolean),
+    "is-Set", t-arrow([list: t-top], t-boolean),
+    "leaf", t-avl,
+    "branch", t-arrow([list: t-top, t-number, t-avl, t-avl], t-avl),
     "fold", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tvb, tva], tvb), tvb, t-set-app(tva)], tvb)),
     "all", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-set-app(tva)], t-boolean)),
     "any", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-set-app(tva)], t-boolean))
   ]),
   SD.make-string-dict()
+    .set("AVLTree", t-data("AVLTree", [list:], [list:], [string-dict:]))
     .set("Set", t-data(
       "Set",
       [list: tva],
@@ -317,6 +327,7 @@ module-const-sets = t-module("builtin://sets",
       ])),
   SD.make-string-dict()
     .set("Set", t-set)
+    .set("AVLTree", t-avl)
     .set("List", t-list)
     .set("Pick", t-pick))
 
