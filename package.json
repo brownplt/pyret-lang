@@ -42,7 +42,7 @@
     "@types/estree": "0.0.47",
     "@types/jest": "^27",
     "@types/node": "^16.6.1",
-    "chromedriver": "^91.0.0",
+    "chromedriver": "^93.0.0",
     "escodegen": "^2.0.0",
     "geckodriver": "^1.19.1",
     "http-server": "^0.12.3",
