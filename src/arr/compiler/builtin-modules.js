@@ -146,17 +146,11 @@
         }
         const arrjs = pathlib.resolve(path + ".arr.js");
         const arrjson = pathlib.resolve(path + ".arr.json");
-        fs.exists(arrjs, function(exists) {
-          if (!exists) { return restarter.error(`File ${arrjs} does not exist`); }
-          fs.exists(arrjson, function(exists) {
-            if (!exists) { return restarter.error(`File ${arrjson} does not exist`); }
-            fs.readFile(arrjs, function(err3, arrjsbuf) {
-              fs.readFile(arrjson, function(err3, arrjsonbuf) {
-                var codeContent = String(arrjsbuf);
-                var headerContent = String(arrjsonbuf);
-                return restarter.resume(builtinLocatorFromString(codeContent, headerContent));
-              });
-            });
+        fs.readFile(arrjs, function(err3, arrjsbuf) {
+          fs.readFile(arrjson, function(err3, arrjsonbuf) {
+            var codeContent = String(arrjsbuf);
+            var headerContent = String(arrjsonbuf);
+            return restarter.resume(builtinLocatorFromString(codeContent, headerContent));
           });
         });
       });
