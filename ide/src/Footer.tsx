@@ -59,12 +59,16 @@ function Footer({ footerMessage, running }: FooterProps) {
         flex: 'none',
         color: '#fff',
         alignItems: 'center',
+        justifyContent: 'space-between',
         padding: '0em 1em',
       }}
     >
       {footerMessage}
       <span style={{ padding: '0em 1em' }}>
         {runMessage}
+      </span>
+      <span style={{ float: 'right' }}>
+        <a style={{ color: 'white' }} target="_blank" rel="noreferrer" href="https://docs.google.com/forms/d/e/1FAIpQLSe-V7yOimO599_EYlmlL_IYrSlyjOLu7EaSOYCpmD2_iFDKfA/viewform">Report an issue or give feedback here.</a>
       </span>
     </div>
   );
