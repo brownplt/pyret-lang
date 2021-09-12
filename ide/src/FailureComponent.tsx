@@ -94,7 +94,7 @@ function FailureComponentUnconnected({
         );
       }
       if (id && failure.loc.source.includes(id)) {
-        return <>this chat</>;
+        return <>this message</>;
       }
       return (
         <>

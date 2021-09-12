@@ -381,7 +381,7 @@ class Chat extends React.Component<ChatProps, any> {
       </div>
     );
 
-    const addButtonTitle = 'Insert new chat here';
+    const addButtonTitle = 'Insert new message here';
 
     const outdatedClass = outdated ? 'outdated' : '';
     const pendingRerunClass = technicallyOutdated ? 'partially-outdated' : '';
