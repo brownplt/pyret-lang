@@ -271,7 +271,7 @@ function Run({
             background: buttonBackground,
           }}
         >
-          Run
+          Update responses
         </button>
         <button
           type="button"
