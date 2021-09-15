@@ -1,0 +1,76 @@
+{
+	"name": "pyret-vscode-extension",
+	"description": "VSCode extension providing Pyret language features",
+	"version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/brownplt/pyret-lang"
+  },
+	"engines": {
+		"vscode": "^1.43.0"
+	},
+	"activationEvents": [
+		"onLanguage:pyret"
+	],
+	"main": "./client/out/extension",
+	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "Example configuration",
+			"properties": {
+				"languageServerExample.trace.server": {
+					"scope": "window",
+					"type": "string",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"default": "off",
+					"description": "Traces the communication between VS Code and the language server."
+				}
+			}
+		},
+		"languages": [
+			{
+				"id": "pyret",
+				"aliases": ["Pyret", "pyret"],
+				"extensions": [".arr"]
+			}
+		],
+		"semanticTokenTypes": [
+      {
+        "id": "data",
+        "superType": "type",
+        "description": "A data definition"
+      },
+			{
+				"id": "variant",
+				"superType": "type",
+				"description": "A variant of a union data type"
+			}
+    ],
+		"semanticTokenScopes": [
+      {
+				"language": "Pyret",
+        "scopes": {
+          "data": ["entity.name.type.data"],
+					"variant": ["entity.name.type.variant"]
+        }
+      }
+    ]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -b",
+		"watch": "tsc -b -w",
+		"postinstall": "cd client && npm install && cd ../server && npm install && cd .."
+	},
+	"devDependencies": {
+		"@types/node": "^12.12.0",
+		"@typescript-eslint/eslint-plugin": "^4.23.0",
+		"@typescript-eslint/parser": "^4.23.0",
+		"eslint": "^7.26.0",
+		"typescript": "^4.3.5"
+	}
+}

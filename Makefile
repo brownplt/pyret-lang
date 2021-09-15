@@ -186,21 +186,10 @@ $(WORKER_BUILD_DIR):
 build/worker/pyret.js: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js $(WORKER_BUILD_DIR) $(PYRET_JARR_DEPS)
 	npx pyret --checks none --standalone-file "$(shell pwd)/src/webworker/worker-standalone.js" --deps-file "$(shell pwd)/build/worker/bundled-node-compile-deps.js" -c src/arr/compiler/webworker.arr -o build/worker/pyret.js
 
-lsp/lsp.js: build/lsp/pyret-grammar.js src/arr/compiler/pyret-parser.js $(PYRET_JARR_DEPS)
+lsp/server/external/lsp.js: build/lsp/pyret-grammar.js src/arr/compiler/pyret-parser.js $(PYRET_JARR_DEPS)
 	mkdir -p build/lsp/
-	npx pyret --checks none --standalone-file "$(shell pwd)/lsp/lsp-standalone.js" -c lsp/lsp-main.arr -o lsp/lsp.js
-
-# NOTE(joe): after this run with node --experimental-specifier-resolution=node lsp/lsp-server.mjs
-# Alternatively, never forget to add .js after an import's name!
-# https://github.com/microsoft/TypeScript/issues/18442#issuecomment-581738714
-lsp/lsp-server.mjs: lsp/lsp.js lsp/lsp-server.ts
-	npx tsc --target "esnext" --module "es2015" --moduleResolution "node" lsp/lsp-server.ts
-	mv lsp/lsp-server.js lsp/lsp-server.mjs
-	`npm bin`/tsc --target "esnext" --module "es2015" --listFilesOnly lsp/lsp-server.ts \
-		| sed s/.ts$$/.js/ | xargs -n1 -I{} realpath --relative-to="src" '{}' | grep -v "\.\." \
-		| xargs -n1 -I{} realpath --relative-to="." 'src/{}' \
-		| xargs -n1 -I{} perl -0777 -p -i -e 's/(?:;|\A)(\n*)(export \{\}(\n*);?)?\Z/\1/m' '{}'
-
+	npx pyret --checks none --standalone-file "$(shell pwd)/lsp/server/external/lsp-standalone.js" -c lsp/server/external/lsp-main.arr -o lsp/server/external/lsp.js
+	sed -e 's|\(file://\)$(realpath ..)/|\1|g' -i "" lsp/server/external/lsp.js
 
 web: build/worker/pyret.js build/worker/page.html build/worker/main.js
 

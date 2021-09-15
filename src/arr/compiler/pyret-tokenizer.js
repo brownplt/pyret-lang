@@ -96,24 +96,27 @@
     return ans;
   }
 
-  var keywords = makeTrie([
+  var keywordsRaw = [
     {name: "AND", val: "and", parenIsForExp: true},
     {name: "AS", val: "as"},
     {name: "ASCENDING", val: "ascending"},
     {name: "ASK", val: "ask", parenIsForExp: true},
+    {name: "BECAUSE", val: "because", parenIsForExp: true},
+    {name: "BLOCK", val: "block:", parenIsForExp: true},
     {name: "BY", val: "by"},
     {name: "CASES", val: "cases"},
     {name: "CHECK", val: "check"},
+    {name: "CHECKCOLON", val: "check:", parenIsForExp: true},
     {name: "DATA", val: "data"},
     {name: "DESCENDING", val: "descending"},
     {name: "DO", val: "do"},
-    {name: "RAISESNOT", val: "does-not-raise", parenIsForExp: true},
+    {name: "DOC", val: "doc:", parenIsForExp: true},
     {name: "ELSE", val: "else"},
+    {name: "ELSECOLON", val: "else:", parenIsForExp: true},
     {name: "ELSEIF", val: "else if"},
     {name: "END", val: "end"},
     {name: "EXAMPLES", val: "examples", parenIsForExp: true},
-    {name: "TABLE-EXTEND", val: "extend"},
-    {name: "TABLE-EXTRACT", val: "extract"},
+    {name: "EXAMPLESCOLON", val: "examples:", parenIsForExp: true},
     {name: "FALSE", val: "false"},
     {name: "FOR", val: "for"},
     {name: "FROM", val: "from"},
@@ -131,7 +134,6 @@
     {name: "ISNOTSPACESHIP", val: "is-not<=>", parenIsForExp: true},
     {name: "ISROUGHLY", val: "is-roughly", parenIsForExp: true},
     {name: "ISSPACESHIP", val: "is<=>", parenIsForExp: true},
-    {name: "BECAUSE", val: "because", parenIsForExp: true},
     {name: "LAM", val: "lam"},
     {name: "LAZY", val: "lazy"},
     {name: "LET", val: "let"},
@@ -142,31 +144,44 @@
     {name: "NEWTYPE", val: "newtype"},
     {name: "OF", val: "of"},
     {name: "OR", val: "or", parenIsForExp: true},
-    {name: "PROVIDE", val: "provide"},
+    {name: "OTHERWISECOLON", val: "otherwise:", parenIsForExp: true},
     {name: "PROVIDE-TYPES", val: "provide-types"},
+    {name: "PROVIDE", val: "provide"},
+    {name: "PROVIDECOLON", val: "provide:", parenIsForExp: true},
     {name: "RAISES", val: "raises", parenIsForExp: true},
+    {name: "RAISESNOT", val: "does-not-raise", parenIsForExp: true},
     {name: "RAISESOTHER", val: "raises-other-than", parenIsForExp: true},
     {name: "RAISESSATISFIES", val: "raises-satisfies", parenIsForExp: true},
     {name: "RAISESVIOLATES", val: "raises-violates", parenIsForExp: true},
     {name: "REACTOR", val: "reactor"},
     {name: "REC", val: "rec"},
     {name: "REF", val: "ref"},
+    {name: "ROW", val: "row:"},
     {name: "SANITIZE", val: "sanitize"},
     {name: "SATISFIES", val: "satisfies", parenIsForExp: true},
-    {name: "TABLE-SELECT", val: "select"},
+    {name: "SATISFIESNOT", val: "violates", parenIsForExp: true},
     {name: "SHADOW", val: "shadow"},
-    {name: "TABLE-FILTER", val: "sieve"},
+    {name: "SHARING", val: "sharing:", parenIsForExp: true},
+    {name: "SOURCECOLON", val: "source:"},
     {name: "SPY", val: "spy"},
+    {name: "TABLE-EXTEND", val: "extend"},
+    {name: "TABLE-EXTRACT", val: "extract"},
+    {name: "TABLE-FILTER", val: "sieve"},
     {name: "TABLE-ORDER", val: "order"},
+    {name: "TABLE-SELECT", val: "select"},
     {name: "TABLE-UPDATE", val: "transform"},
+    {name: "TABLE", val: "table:"},
+    {name: "THENCOLON", val: "then:", parenIsForExp: true},
     {name: "TRUE", val: "true"},
-    {name: "TYPE", val: "type"},
     {name: "TYPE-LET", val: "type-let"},
+    {name: "TYPE", val: "type"},
     {name: "USING", val: "using"},
     {name: "VAR", val: "var"},
-    {name: "SATISFIESNOT", val: "violates", parenIsForExp: true},
-    {name: "WHEN", val: "when", parenIsForExp: true}
-  ]);
+    {name: "WHEN", val: "when", parenIsForExp: true},
+    {name: "WHERE", val: "where:", parenIsForExp: true},
+    {name: "WITH", val: "with:", parenIsForExp: true},
+  ];
+  const keywords = makeTrie(keywordsRaw);
   const keywordsNoFollow = new Set("-_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890");
 
   const wsString = " \f\n\r\t\v\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff";
@@ -222,20 +237,6 @@
   const hexit = makeDict("0123456789abcdefABCDEF");
   
   var symbols = makeTrie([
-    {name: "BLOCK", val: "block:", parenIsForExp: true},
-    {name: "CHECKCOLON", val: "check:", parenIsForExp: true},
-    {name: "DOC", val: "doc:", parenIsForExp: true},
-    {name: "ELSECOLON", val: "else:", parenIsForExp: true},
-    {name: "EXAMPLESCOLON", val: "examples:", parenIsForExp: true},
-    {name: "OTHERWISECOLON", val: "otherwise:", parenIsForExp: true},
-    {name: "PROVIDECOLON", val: "provide:", parenIsForExp: true},
-    {name: "ROW", val: "row:"},
-    {name: "SHARING", val: "sharing:", parenIsForExp: true},
-    {name: "SOURCECOLON", val: "source:"},
-    {name: "TABLE", val: "table:"},
-    {name: "THENCOLON", val: "then:", parenIsForExp: true},
-    {name: "WHERE", val: "where:", parenIsForExp: true},
-    {name: "WITH", val: "with:", parenIsForExp: true},
     {name: "LBRACK", val: "[", parenIsForExp: true},
     {name: "RBRACK", val: "]"},
     {name: "LBRACE", val: "{", parenIsForExp: "PARENAFTERBRACE"},
@@ -549,10 +550,11 @@
             this.curCol++;
           }
         }
+        var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
         if (nestingDepth === 0) {
-          return this.makeWSToken(line, col, pos);
+          this.makeWSToken(line, col, pos); // calling for side effects
+          return this.makeToken("COMMENT", this.str.slice(pos, this.pos), ws_loc, tok_spec);
         } else {
-          var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
           return this.makeToken("UNTERMINATED-BLOCK-COMMENT", this.str.slice(pos, this.pos), ws_loc, tok_spec);
         }
       }},
@@ -563,7 +565,8 @@
           this.pos++;
           this.curCol++;
         }
-        return this.makeToken("COMMENT", ""/*this.str.slice(pos, this.pos)*/, line, col, pos);
+        var ws_loc = SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos);
+        return this.makeToken("COMMENT", this.str.slice(pos, this.pos), ws_loc, tok_spec);
       }}
   ]);
   
@@ -576,9 +579,19 @@
     ignore: new Set(["WS", "COMMENT"])
   };
 
+  const commentSpec = {
+    keywords,
+    keywordsNoFollow,
+    symbols,
+    whitespace,
+    comments,
+    ignore: new Set()
+  }
 
   return runtime.makeModuleReturn({
-    'Tokenizer': new Tokenizer(spec)
+    'Tokenizer': new Tokenizer(spec),
+    'CommentTokenizer': new Tokenizer(commentSpec),
+    'keywords': keywordsRaw
   }, {}); 
   }
 })

@@ -1,0 +1,19 @@
+{
+	"name": "pyret-vscode-client",
+	"description": "VSCode client for the Pyret language server",
+	"version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/brownplt/pyret-lang"
+  },
+	"engines": {
+		"vscode": "^1.52.0"
+	},
+	"dependencies": {
+		"vscode-languageclient": "^7.0.0"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.52.0",
+		"@vscode/test-electron": "^1.6.1"
+	}
+}
