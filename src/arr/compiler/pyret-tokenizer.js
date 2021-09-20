@@ -585,7 +585,7 @@
     symbols,
     whitespace,
     comments,
-    ignore: new Set()
+    ignore: new Set(["WS"])
   }
 
   return runtime.makeModuleReturn({

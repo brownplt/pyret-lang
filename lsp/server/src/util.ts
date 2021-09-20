@@ -1,3 +1,5 @@
+import { tokenModifiers, tokenTypes } from './lsp-server';
+
 interface SrcLoc {
 	startCol: number;
 	startRow: number;
@@ -20,12 +22,9 @@ interface Nonterm {
 	toString: () => string;
 }
 
-type ParserCST = Token|Nonterm;
+type ParserCST = Token | Nonterm;
 
 export { SrcLoc, Token, Nonterm, ParserCST }
-
-export const tokenTypes = ['function', 'type', 'typeParameter', 'keyword', 'number', 'variable', 'data', 'variant', 'string', 'property', 'namespace', 'comment'];
-export const tokenModifiers = ['readonly']
 
 export function unpackModule(module: any): any {
 	return module.dict["provide-plus-types"].dict.values.dict;
@@ -50,20 +49,20 @@ interface PathMatch {
 	type: string,
 	modifiers: string[]
 }
-export interface SemTok { 
-	type: string, 
-	modifiers: string[], 
+export interface SemTok {
+	type: string,
+	modifiers: string[],
 	tok: Token
 }
 
 export function matchPath(tok: Token, path: Nonterm[], spec: PathMatch[]): SemTok | null {
 	let npath = path.map((v) => v.name);
-	for(const rule of spec) {
-		for(const optionString of rule.paths) {
+	for (const rule of spec) {
+		for (const optionString of rule.paths) {
 			let option = optionString.split("/");
 			let match = true;
-			let i = npath.length-1;
-			while(option.length > 0 && i >= 0) {
+			let i = npath.length - 1;
+			while (option.length > 0 && i >= 0) {
 				let next = option.pop();
 				if (next === "*") {
 					next = option.pop();
@@ -110,7 +109,7 @@ export function merge(list1: SemTok[], list2: SemTok[]): SemTok[] {
 	}
 	if (i1 < list1.length) {
 		out = out.concat(list1.slice(i1));
-	} 
+	}
 	else if (i2 < list2.length) {
 		out = out.concat(list2.slice(i2));
 	}
@@ -122,54 +121,96 @@ export function mergeAll(lists: SemTok[][]): SemTok[] {
 }
 
 export function toDataArray(toks: SemTok[], allowMultiline: boolean): number[] {
-		let lastline = 1; // LSP starts from 0, parser starts from 1
-		let lastcol = 0;
-		return toks.flatMap((stok) => {
-			let deltaline: number;
-			let deltacol: number;
-			const pos = stok.tok.pos;
-			if (pos.startRow == lastline) {
-				deltaline = 0;
-				deltacol = pos.startCol - lastcol;
-			} else {
-				deltaline = pos.startRow - lastline;
-				deltacol = pos.startCol;
-			}
+	let lastline = 1; // LSP starts from 0, parser starts from 1
+	let lastcol = 0;
+	return toks.flatMap((stok) => {
+		let deltaline: number;
+		let deltacol: number;
+		const pos = stok.tok.pos;
+		if (pos.startRow == lastline) {
+			deltaline = 0;
+			deltacol = pos.startCol - lastcol;
+		} else {
+			deltaline = pos.startRow - lastline;
+			deltacol = pos.startCol;
+		}
 
-			let type = tokenTypes.indexOf(stok.type);
-			let modifiers = 0;
-			for (let i = 0; i < tokenModifiers.length; i++) {
-				if (stok.modifiers.includes(tokenModifiers[i])) {
-					modifiers |= (1 << i);
-				}
+		let type = tokenTypes.indexOf(stok.type);
+		let modifiers = 0;
+		for (let i = 0; i < tokenModifiers.length; i++) {
+			if (stok.modifiers.includes(tokenModifiers[i])) {
+				modifiers |= (1 << i);
 			}
+		}
 
-			if (!allowMultiline && pos.startRow !== pos.endRow) {
-				lastline = pos.endRow;
-				lastcol = 0;
-				return stok.tok.value.split("\n").flatMap((line, i) => {
-					if (i == 0) {
-						return [deltaline, deltacol, line.length, type, modifiers];
-					} else {
-						return [1, 0, line.length, type, modifiers];
-					}
-				});
-			} else {
-				let length = pos.endCol - pos.startCol;
-				// some keyword tokens (e.g. CHECKCOLON) include the colon. 
-				// We don't want to highlight it in some places and not in others, so remove it if it is present
-				if (stok.type === 'keyword' && stok.tok.value.endsWith(':')) {
-					length --;
+		if (!allowMultiline && pos.startRow !== pos.endRow) {
+			lastline = pos.endRow;
+			lastcol = 0;
+			return stok.tok.value.split("\n").flatMap((line, i) => {
+				if (i == 0) {
+					return [deltaline, deltacol, line.length, type, modifiers];
+				} else {
+					return [1, 0, line.length, type, modifiers];
 				}
-				lastline = pos.startRow;
-				lastcol = pos.startCol;
-				return [
-					deltaline,
-					deltacol,
-					length,
-					type,
-					modifiers
-				];
+			});
+		} else {
+			let length = pos.endCol - pos.startCol;
+			// some keyword tokens (e.g. CHECKCOLON) include the colon. 
+			// We don't want to highlight it in some places and not in others, so remove it if it is present
+			if (stok.type === 'keyword' && stok.tok.value.endsWith(':')) {
+				length--;
 			}
-		})
+			lastline = pos.startRow;
+			lastcol = pos.startCol;
+			return [
+				deltaline,
+				deltacol,
+				length,
+				type,
+				modifiers
+			];
+		}
+	})
+}
+
+export function splitMultilineToken(tok: Token): Token[] {
+	if (tok.pos.startRow !== tok.pos.endRow) {
+		return tok.value.split("\n").map((val, i, arr) => {
+			let name = tok.name + (i == 0 ? "-START" : i == arr.length-1 ? "-END" : "");
+			let asString = "'" + name;
+			let startChar = tok.value.indexOf(val) + tok.pos.startChar;
+			let startRow = tok.pos.startRow + i;
+			let pos: SrcLoc = {
+				startChar: startChar,
+				startCol: i == 0 ? tok.pos.startCol : 0,
+				startRow: startRow,
+				endChar: startChar + val.length,
+				endCol: i == 0 ? tok.pos.endCol : val.length,
+				endRow: startRow
+			}
+			return {
+				name: name,
+				value: val,
+				key: asString + ":" + val,
+				asString: asString,
+				pos: pos
+			}
+		});
+	} else {
+		return [tok];
 	}
+}
+
+export function peek<A>(arr: A[]): A { return arr[arr.length - 1]; }
+export function hasTop<A>(arr: A[], wanted: A | A[]): boolean {
+  if (wanted instanceof Array) {
+    for (let i = 0; i < wanted.length; i++) {
+      if (arr[arr.length - 1 - i] !== wanted[i]) {
+        return false;
+      }
+    }
+    return true;
+  } else {
+    return arr[arr.length - 1] === wanted;
+  }
+}

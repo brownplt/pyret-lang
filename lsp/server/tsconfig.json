@@ -4,7 +4,7 @@
 		"lib": ["ES2019"],
 		"module": "commonjs",
 		"moduleResolution": "node",
-		"sourceMap": true,
+		//"sourceMap": true,
 		"strict": true,
 	},
 	"include": ["src", "external/pyret-mode.js"],

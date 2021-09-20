@@ -1,8 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.toDataArray = exports.mergeAll = exports.merge = exports.matchPath = exports.cstWalk = exports.unpackModule = exports.tokenModifiers = exports.tokenTypes = void 0;
-exports.tokenTypes = ['function', 'type', 'typeParameter', 'keyword', 'number', 'variable', 'data', 'variant', 'string', 'property', 'namespace', 'comment'];
-exports.tokenModifiers = ['readonly'];
+exports.hasTop = exports.peek = exports.splitMultilineToken = exports.toDataArray = exports.mergeAll = exports.merge = exports.matchPath = exports.cstWalk = exports.unpackModule = void 0;
+const lsp_server_1 = require("./lsp-server");
 function unpackModule(module) {
     return module.dict["provide-plus-types"].dict.values.dict;
 }
@@ -103,10 +102,10 @@ function toDataArray(toks, allowMultiline) {
             deltaline = pos.startRow - lastline;
             deltacol = pos.startCol;
         }
-        let type = exports.tokenTypes.indexOf(stok.type);
+        let type = lsp_server_1.tokenTypes.indexOf(stok.type);
         let modifiers = 0;
-        for (let i = 0; i < exports.tokenModifiers.length; i++) {
-            if (stok.modifiers.includes(exports.tokenModifiers[i])) {
+        for (let i = 0; i < lsp_server_1.tokenModifiers.length; i++) {
+            if (stok.modifiers.includes(lsp_server_1.tokenModifiers[i])) {
                 modifiers |= (1 << i);
             }
         }
@@ -142,4 +141,48 @@ function toDataArray(toks, allowMultiline) {
     });
 }
 exports.toDataArray = toDataArray;
-//# sourceMappingURL=util.js.map
+function splitMultilineToken(tok) {
+    if (tok.pos.startRow !== tok.pos.endRow) {
+        return tok.value.split("\n").map((val, i, arr) => {
+            let name = tok.name + (i == 0 ? "-START" : i == arr.length - 1 ? "-END" : "");
+            let asString = "'" + name;
+            let startChar = tok.value.indexOf(val) + tok.pos.startChar;
+            let startRow = tok.pos.startRow + i;
+            let pos = {
+                startChar: startChar,
+                startCol: i == 0 ? tok.pos.startCol : 0,
+                startRow: startRow,
+                endChar: startChar + val.length,
+                endCol: i == 0 ? tok.pos.endCol : val.length,
+                endRow: startRow
+            };
+            return {
+                name: name,
+                value: val,
+                key: asString + ":" + val,
+                asString: asString,
+                pos: pos
+            };
+        });
+    }
+    else {
+        return [tok];
+    }
+}
+exports.splitMultilineToken = splitMultilineToken;
+function peek(arr) { return arr[arr.length - 1]; }
+exports.peek = peek;
+function hasTop(arr, wanted) {
+    if (wanted instanceof Array) {
+        for (let i = 0; i < wanted.length; i++) {
+            if (arr[arr.length - 1 - i] !== wanted[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    else {
+        return arr[arr.length - 1] === wanted;
+    }
+}
+exports.hasTop = hasTop;

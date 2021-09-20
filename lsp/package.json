@@ -50,13 +50,22 @@
 				"description": "A variant of a union data type"
 			}
     ],
+		"semanticTokenModifiers": [
+      {
+        "id": "invalid",
+        "description": "Annotates a symbol that is semantically invalid"
+      }
+    ],
 		"semanticTokenScopes": [
       {
 				"language": "Pyret",
         "scopes": {
           "data": ["entity.name.type.data"],
 					"variant": ["entity.name.type.variant"]
-        }
+        },
+				"modifiers": {
+					"invalid": ["invalid.illegal"]
+				}
       }
     ]
 	},
