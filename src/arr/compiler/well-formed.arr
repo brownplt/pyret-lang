@@ -815,10 +815,14 @@ well-formed-visitor = A.default-iter-visitor.{
     when is-link(branches) and is-empty(branches.rest):
       add-error(C.single-branch-if(A.s-if(l, branches, blocky)))
     end
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))
     end
-    lists.all(_.visit(self), branches)
+    ans = lists.all(_.visit(self), branches)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-if-else(self, l, branches, _else, blocky) block:
     old-pbl = parent-block-loc

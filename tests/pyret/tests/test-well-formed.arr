@@ -276,6 +276,12 @@ check "standalone expressions":
   run-str("block: x = 10\nx\nx + 1 end") is%(output) compile-error(CS.is-wf-err)
 end
 
+check "empty if blocks":
+  run-str("if true: else if false: 4 end") is%(output) compile-error(CS.is-wf-empty-block)
+  run-str("if true: 4 else if false: end") is%(output) compile-error(CS.is-wf-empty-block)
+  run-str("if true: end") is%(output) compile-error(CS.is-single-branch-if)
+end
+
 
 #|
       it("should notice empty blocks", function(done) {
