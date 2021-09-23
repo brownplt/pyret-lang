@@ -28,3 +28,4 @@ import file("./regression/empty-check-block.arr") as _
 import file("./regression/weave-tuple.arr") as _
 import file("./regression/get-assignments-var-as-expr.arr") as _
 import file("./regression/named-arrow-ann.arr") as _
+import file("./regression/tc-internal-err.arr") as _
