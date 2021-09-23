@@ -416,6 +416,6 @@ j = 50
 end
 
 check "TC error regression https://github.com/brownplt/pyret-lang/issues/1619":
-  result = restart(```o = { m: {(): raise("something") } }\n"hi"```, true)
-  val(result) is "success"
+  result = restart(```o = { m: {(): raise("something") } }\n"success"```, true)
+  val(result) is some("success")
 end
