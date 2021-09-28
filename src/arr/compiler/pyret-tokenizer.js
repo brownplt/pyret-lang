@@ -231,7 +231,7 @@
                "|\\\\[\\\\nrt\"\']" +
                "|[^\\\\\'\n\r])*\'", "g");
 
-  const unterminated_string = new RegExp("(?:[\"\']|```).*", "g");
+  const unterminated_string = new RegExp("[\"\'].*|```[^]*", "g");
   const octit = makeDict("01234567");
   const digit = makeDict("0123456789");
   const hexit = makeDict("0123456789abcdefABCDEF");
@@ -394,7 +394,7 @@
         var line = this.curLine, col = this.curCol, pos = this.pos;
         var tok_type = "";
         badNumber.lastIndex = this.pos;
-        if ((match = badNumber.exec(this.str))) {
+        if ((match = badNumber.exec(this.str)) && match.index === this.pos) {
           tok_type = "BAD-NUMBER";
         } else {
           return undefined;
@@ -435,13 +435,13 @@
         var line = this.curLine, col = this.curCol, pos = this.pos;
         dquot_str.lastIndex = this.pos;
         unterminated_string.lastIndex = this.pos;
-        if ((match = dquot_str.exec(this.str))) {
+        if ((match = dquot_str.exec(this.str)) && match.index === this.pos) {
           this.pos += match[0].length;
           this.curCol += match[0].length;
           return this.makeToken("STRING", fixEscapes(this.str.slice(pos, this.pos)),
                                 SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
                                 tok_spec);
-        } else if ((match = unterminated_string.exec(this.str))) {
+        } else if ((match = unterminated_string.exec(this.str)) && match.index === this.pos) {
           this.pos += match[0].length;
           this.curCol += match[0].length;
           return this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
@@ -454,12 +454,12 @@
         var line = this.curLine, col = this.curCol, pos = this.pos;
         squot_str.lastIndex = this.pos;
         unterminated_string.lastIndex = this.pos;
-        if ((match = squot_str.exec(this.str))) {
+        if ((match = squot_str.exec(this.str)) && match.index === this.pos) {
           this.pos += match[0].length;
           this.curCol += match[0].length;
           return this.makeToken("STRING", fixEscapes(this.str.slice(pos, this.pos)),
                                 SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos));
-        } else if ((match = unterminated_string.exec(this.str))) {
+        } else if ((match = unterminated_string.exec(this.str)) && match.index === this.pos) {
           this.pos += match[0].length;
           this.curCol += match[0].length;
           return this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
@@ -469,23 +469,25 @@
       }},
     { name: "STRING", val: "```",
       process: function tokenizeTQString(tok_spec) {
+        function updatePosition(obj, match) {
+          obj.pos += match[0].length;
+          var lines = match[0].split("\n"); // From jsPerf, this is UNBELIEVABLY much faster than the prior implementation
+          obj.curLine += lines.length - 1;
+          if (lines.length === 1)
+            obj.curCol += match[0].length;
+          else
+            obj.curCol = lines[lines.length - 1].length;
+        }
         var line = this.curLine, col = this.curCol, pos = this.pos;
         tquot_str.lastIndex = this.pos;
         unterminated_string.lastIndex = this.pos;
-        if ((match = tquot_str.exec(this.str))) {
-          this.pos += match[0].length;
-          var lines = match[0].split("\n"); // From jsPerf, this is UNBELIEVABLY much faster than the prior implementation
-          this.curLine += lines.length - 1;
-          if (lines.length === 1)
-            this.curCol += match[0].length;
-          else
-            this.curCol = lines[lines.length - 1].length;
+        if ((match = tquot_str.exec(this.str)) && match.index === this.pos) {
+          updatePosition(this, match);
           return this.makeToken("STRING", fixEscapes(this.str.slice(pos, this.pos)),
                                 SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
                                 tok_spec);
-        } else if ((match = unterminated_string.exec(this.str))) {
-          this.pos += match[0].length;
-          this.curCol += match[0].length;
+        } else if ((match = unterminated_string.exec(this.str)) && match.index === this.pos) {
+          updatePosition(this, match);
           return this.makeToken("UNTERMINATED-STRING", this.str.slice(pos, this.pos), // no escaping
                                 SrcLoc.make(line, col, pos, this.curLine, this.curCol, this.pos),
                                 tok_spec);
@@ -511,7 +513,7 @@
         var line = this.curLine, col = this.curCol, pos = this.pos;
         badOp.lastIndex = this.pos;
         var match;
-        if ((match = badOp.exec(this.str))) {
+        if ((match = badOp.exec(this.str)) && match.index === this.pos) {
           this.pos += match[0].length;
           this.curCol += match[0].length;
           this.parenIsForExp = false;

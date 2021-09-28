@@ -28,7 +28,7 @@ var pyret_delimiter_type;
 })(pyret_delimiter_type || (pyret_delimiter_type = {}));
 ; // Extension of opening keyword (acts like OPEN_CONTD *when folding*)
 class Indent {
-    constructor(funs = 0, cases = 0, data = 0, shared = 0, trys = 0, except = 0, graph = 0, parens = 0, objects = 0, vars = 0, fields = 0, initial = 0, comments = 0) {
+    constructor(funs = 0, cases = 0, data = 0, shared = 0, trys = 0, except = 0, graph = 0, parens = 0, objects = 0, vars = 0, fields = 0, initial = 0, comments = 0, inString = false) {
         this.fn = funs;
         this.c = cases;
         this.d = data;
@@ -42,6 +42,7 @@ class Indent {
         this.f = fields;
         this.i = initial;
         this.com = comments;
+        this.inString = inString;
     }
     set funs(n) { this.fn = Math.max(n, 0); }
     set cases(n) { this.c = Math.max(n, 0); }
@@ -76,7 +77,7 @@ class Indent {
             + ", Comment depth " + this.com);
     }
     copy() {
-        return new Indent(this.fn, this.c, this.d, this.s, this.t, this.e, this.g, this.p, this.o, this.v, this.f, this.i, this.com);
+        return new Indent(this.fn, this.c, this.d, this.s, this.t, this.e, this.g, this.p, this.o, this.v, this.f, this.i, this.com, this.inString);
     }
     zeroOut() {
         this.fn = this.c = this.d = this.s = this.t = this.e = this.g = this.p = this.o = this.v = this.f = this.i = this.com = 0;
@@ -144,16 +145,15 @@ class LineState {
 }
 exports.LineState = LineState;
 class State {
-    constructor(lineState, inString, maybeShorthandLanbda) {
+    constructor(lineState, maybeShorthandLanbda) {
         this.lineState = lineState;
-        this.inString = inString;
         this.maybeShorthandLambda = maybeShorthandLanbda;
     }
     copy() {
-        return new State(this.lineState.copy(), this.inString, this.maybeShorthandLambda);
+        return new State(this.lineState.copy(), this.maybeShorthandLambda);
     }
     static startState() {
-        return new State(new LineState([], new Indent(), new Indent(), new Indent(), new Indent(), new Indent(), new Indent(), pyret_delimiter_type.NONE), false, false);
+        return new State(new LineState([], new Indent(), new Indent(), new Indent(), new Indent(), new Indent(), new Indent(), pyret_delimiter_type.NONE), false);
     }
 }
 exports.State = State;
@@ -189,6 +189,12 @@ function parse(state, prevToken, curToken, nextToken) {
     }
     else if (curToken.name === "COMMENT") {
         // nothing to do
+    }
+    else if (curToken.name === "STRING-START") {
+        state.lineState.nestingsAtLineEnd.inString = curToken.pos.startCol;
+    }
+    else if (curToken.name === "STRING-END") {
+        state.lineState.nestingsAtLineEnd.inString = false;
     }
     else if (util_1.hasTop(ls.tokens, "NEEDSOMETHING")) {
         ls.tokens.pop();
@@ -806,7 +812,7 @@ function parse(state, prevToken, curToken, nextToken) {
             top = util_1.peek(ls.tokens);
         }
     }
-    else if (curToken.name === "*" && util_1.hasTop(ls.tokens, ["PROVIDE"])) {
+    else if (curToken.name === "STAR" && util_1.hasTop(ls.tokens, ["PROVIDE"])) {
         ls.deferedClosed.shared++;
         ls.delimType = pyret_delimiter_type.CLOSING;
         ls.tokens.pop();
@@ -832,29 +838,41 @@ function parse(state, prevToken, curToken, nextToken) {
     // ls.print();
 }
 exports.parse = parse;
-const INDENTATION = new Indent(1, 2, 2, 1, 1, 1, 1 /*could be 0*/, 1, 1, 1, 1, 1, 1.5);
-function indent(fullLine, state, indentUnit) {
+const COMMENT = 3;
+const BAR = 2;
+// Note (Eli): I'm not a huge fan of this solution, but it does work
+function indent(fullLine, state, useSpaces, indentUnit) {
     var _a, _b;
     let indentSpec = state.lineState.nestingsAtLineStart;
-    var indent = 0;
-    for (var key in INDENTATION) {
-        if (INDENTATION.hasOwnProperty(key))
-            indent += (indentSpec[key] || 0) * INDENTATION[key];
+    let indent = 0;
+    let spaces = 0;
+    for (let key of ["funs", "cases", "data", "shared", "trys", "except", "graph", "parens", "objects", "vars", "fields", "initial"]) {
+        let count = indentSpec[key];
+        indent += count;
+        if (["cases", "data"].includes(key)) {
+            spaces += BAR * count;
+        }
     }
-    if ((indentSpec.comments > 0) || (state.inString !== false)) {
-        var spaces = (_b = (_a = fullLine.match(/\s*/)) === null || _a === void 0 ? void 0 : _a[0].length) !== null && _b !== void 0 ? _b : 0;
-        if (spaces > 0)
-            return spaces;
-        else if (state.inString !== false)
-            return state.inString;
-        else
-            return indent * indentUnit;
+    if ((indentSpec.comments > 0) || (indentSpec.inString !== false)) {
+        let curSpaces = (_b = (_a = fullLine.match(/\s*/)) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : "";
+        if (curSpaces.length > 0) { // there's already indentation; don't do anything
+            return curSpaces;
+        }
+        else if (indentSpec.inString !== false) { // use string indent
+            spaces = indentSpec.inString;
+            indent = 0;
+        }
+        else { // use comment indent
+            spaces += COMMENT * indentSpec.comments;
+        }
     }
     else if (/^\s*\|([^#]|$)/.test(fullLine)) {
-        return (indent - 1) * indentUnit;
+        spaces -= BAR;
     }
-    else {
-        return indent * indentUnit;
+    while (spaces >= indentUnit) {
+        spaces -= indentUnit;
+        indent++;
     }
+    return (useSpaces ? " ".repeat(indent * indentUnit) : "\t".repeat(indent)) + " ".repeat(Math.max(spaces, 0));
 }
 exports.indent = indent;

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.hasTop = exports.peek = exports.splitMultilineToken = exports.toDataArray = exports.mergeAll = exports.merge = exports.matchPath = exports.cstWalk = exports.unpackModule = void 0;
+exports.lineTokenizerFrom = exports.hasTop = exports.peek = exports.splitMultilineToken = exports.toDataArray = exports.mergeAll = exports.merge = exports.matchPath = exports.cstWalk = exports.unpackModule = void 0;
 const lsp_server_1 = require("./lsp-server");
 function unpackModule(module) {
     return module.dict["provide-plus-types"].dict.values.dict;
@@ -110,6 +110,7 @@ function toDataArray(toks, allowMultiline) {
             }
         }
         if (!allowMultiline && pos.startRow !== pos.endRow) {
+            //console.log(stok);
             lastline = pos.endRow;
             lastcol = 0;
             return stok.tok.value.split("\n").flatMap((line, i) => {
@@ -153,7 +154,7 @@ function splitMultilineToken(tok) {
                 startCol: i == 0 ? tok.pos.startCol : 0,
                 startRow: startRow,
                 endChar: startChar + val.length,
-                endCol: i == 0 ? tok.pos.endCol : val.length,
+                endCol: i == 0 ? tok.pos.startCol + val.length : val.length,
                 endRow: startRow
             };
             return {
@@ -186,3 +187,23 @@ function hasTop(arr, wanted) {
     }
 }
 exports.hasTop = hasTop;
+function* lineTokenizerFrom(tokenizer) {
+    let multilineTok;
+    let line = [];
+    let lineNum = 0;
+    while (tokenizer.hasNext()) {
+        multilineTok = tokenizer.next();
+        for (let singleTok of splitMultilineToken(multilineTok)) {
+            while (lineNum < singleTok.pos.startRow - 1) {
+                yield [line, lineNum];
+                line = [];
+                lineNum++;
+            }
+            if (multilineTok.name !== "EOF") {
+                line.push(singleTok);
+            }
+        }
+    }
+    yield [line, lineNum];
+}
+exports.lineTokenizerFrom = lineTokenizerFrom;

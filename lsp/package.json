@@ -16,9 +16,9 @@
 	"contributes": {
 		"configuration": {
 			"type": "object",
-			"title": "Example configuration",
+			"title": "Pyret",
 			"properties": {
-				"languageServerExample.trace.server": {
+				"pyret.trace.server": {
 					"scope": "window",
 					"type": "string",
 					"enum": [
