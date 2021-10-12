@@ -246,6 +246,15 @@ check "duplicated names in data defintiions":
   run-str("data Foo: bar | bar end") is%(output) compile-error(CS.is-duplicate-variant)
 end
 
+check "duplicated names in record type":
+  run-str("type foo = {x :: Number, x :: Number}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {y :: Number, y :: Boolean}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {x :: Number, y :: Number, x :: Number}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {x :: Number, y :: Number, x :: Boolean}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {x :: Number, y :: Number, y :: Boolean}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {bar :: Number, bar :: Boolean, bar :: List}") is%(output) compile-error(CS.is-duplicate-field)
+end
+
 check "underscores":
   run-str("cases(List) _: | empty => 5 end") is%(output) compile-error(CS.is-underscore-as-expr)
   run-str("cases(List) _: | empty => 5 | else => 6 end") is%(output) compile-error(CS.is-underscore-as-expr)

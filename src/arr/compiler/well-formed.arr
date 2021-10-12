@@ -1018,6 +1018,10 @@ well-formed-visitor = A.default-iter-visitor.{
       add-error(C.underscore-as-ann(l))
     end
     true
+  end,
+  method a-record(self, l, fields) block:
+    ensure-unique-fields(fields.reverse())
+    true
   end
 }
 
