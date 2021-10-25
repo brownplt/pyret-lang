@@ -4601,7 +4601,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           var res = f.app(currentFst);
           if(isContinuation(res)) { return res; }
-          if(res) {
+          if(!(isBoolean(res))) {
+            return thisRuntime.ffi.throwNonBooleanCondition(["raw-list-filter"], "Boolean", res);
+          }
+          if(isPyretTrue(res)){
             currentAcc.push(currentFst);
           }
         }
