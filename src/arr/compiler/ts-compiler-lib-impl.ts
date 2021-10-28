@@ -1,7 +1,7 @@
 import * as J from 'estree';
 import type * as A from './ts-ast'
 import { NativeModule, Loadable, URI, Provides, CompileResult, Dependency, ExtraImports, Globals } from './ts-compile-structs';
-import { List, PFunction, MutableStringDict, StringDict, Either, PMethod, Runtime, Option, PausePackage, PTuple } from './ts-impl-types';
+import { List, PFunction, MutableStringDict, StringDict, Either, PMethod, Runtime, Option, PTuple, PObject } from './ts-impl-types';
 import type * as TAU from './ts-ast-util';
 import type * as TJ from './ts-codegen-helpers';
 import type * as TCSH from './ts-compile-structs-helpers';
@@ -46,6 +46,22 @@ export type CompileTODO =
 export type Located<a> = 
   | { $name: "located", dict: { 'locator': Locator, 'context': a } }
 
+export type PhaseInfo<A> = {
+  result?: A,
+  time?: number,
+};
+
+export type PhaseTuple = [
+  PObject<PhaseInfo<A.Program>>,
+  PObject<PhaseInfo<CompileResult<A.Program>>>,
+  PObject<PhaseInfo<A.Program>>,
+  PObject<PhaseInfo<TCS.ScopeResolution>>,
+  PObject<PhaseInfo<TCS.NameResolution>>,
+  PObject<PhaseInfo<D.DesugarInfo>>,
+  PObject<PhaseInfo<CompileResult<A.Program>>>,
+  PObject<PhaseInfo<A.Program>>,
+  PObject<PhaseInfo<CompileResult<JSP.CompiledCodePrinter>>>
+]
 
 export type Locator = {
   dict: {
@@ -111,7 +127,7 @@ export type CompileOptions = {
 }
 
 
-type ToCompile = {
+export type ToCompile = {
   dict: {
     locator: Locator,
     'dependency-map': MutableStringDict<string>,
@@ -125,6 +141,14 @@ type CompiledProgram = {
   }
 }
 
+type CompileFunc = (
+  todo: TJ.Variant<CompileTODO, 'arr-file'>,
+  locator: Locator,
+  provideMap: StringDict<string>,
+  modules: MutableStringDict<Loadable>,
+  env: TCS.CompileEnvironment,
+  options: CompileOptions,
+) => PTuple<[Loadable, List<any>]>;
 
 export interface Exports {
   dict: { values: { dict: {
@@ -139,6 +163,8 @@ export interface Exports {
     'dep-times-from-worklist': PFunction<(worklist: List<ToCompile>, baseTime: number) => StringDict<number>>,
     'compile-program-with': PFunction<(worklist: List<ToCompile>, modules: MutableStringDict<Loadable>, options: CompileOptions) => CompiledProgram>
     'compile-program': PFunction<(worklist: List<ToCompile>, options: CompileOptions) => CompiledProgram>
+    'compile-module': PFunction<(compileFunc: PFunction<CompileFunc>, locator: Locator, provideMap: StringDict<string>, modules: MutableStringDict<Loadable>, options: CompileOptions) => PTuple<[Loadable, List<any>]>>
+    'analyze-arr-file': PFunction<CompileFunc>,
   }}}
 }
 
@@ -205,6 +231,8 @@ type ResolveScopeExports = {
       'dep-times-from-worklist': "tany",
       "compile-program-with": "tany",
       "compile-program": "tany",
+      "compile-module": "tany",
+      "analyze-arr-file": "tany",
     },
   },
   theModule: function(runtime: Runtime, _, __, 
@@ -454,7 +482,7 @@ type ResolveScopeExports = {
             const provideMap = callMethod(w.dict['dependency-map'], 'freeze');
             return runtime.safeCall(() => callMethod(options, 'before-compile', w.dict.locator),
             () => {
-              return runtime.safeCall(() => compileModule(w.dict.locator, provideMap, modules, options),
+              return runtime.safeCall(() => compileModule(runtime.makeFunction(compileArrFile), w.dict.locator, provideMap, modules, options),
               (compiledModule) => {
                 const [loadable, trace]= compiledModule.vals;
                 // I feel like here we want to generate two copies of the loadable:
@@ -490,7 +518,7 @@ type ResolveScopeExports = {
      * @param modules 
      * @param options 
      */
-    function compileModule(locator: Locator, provideMap: StringDict<string>, modules: MutableStringDict<Loadable>, options: CompileOptions): PTuple<[Loadable, List<any>]> {
+    function compileModule(compileFunc: PFunction<CompileFunc>, locator: Locator, provideMap: StringDict<string>, modules: MutableStringDict<Loadable>, options: CompileOptions): PTuple<[Loadable, List<any>]> {
       G.reset.app();
       A['global-names'].dict.reset.app();
       
@@ -518,7 +546,7 @@ type ResolveScopeExports = {
               ]));
             }
             case 'arr-file': {
-              return restarter.resume(compileArrFile(todo, locator, provideMap, modules, env, options));
+              return restarter.resume(compileFunc.app(todo, locator, provideMap, modules, env, options));
             }
             default: throw new ExhaustiveSwitchError(todo);
           }
@@ -526,22 +554,73 @@ type ResolveScopeExports = {
       });
     }
 
-    type PhaseInfo = {
-      name: string,
-      result: any,
-      time: number,
-    }
-    function phasesToList(phases: PhaseInfo[]): List<{dict: PhaseInfo}> {
-      const ret: {dict: PhaseInfo}[] = [];
-      for (let i = 1; i < phases.length; i++) {
-        const { name, result, time } = phases[i];
-        ret.push(runtime.makeObject({
-          name,
-          result,
-          time: time - phases[i-1].time,
-        }));
+    class PhasesInfo {
+      collectAll: boolean;
+      collectTimes: boolean;
+
+      //phases
+      start: PhaseInfo<null> = null;
+      addNothing: PhaseInfo<A.Program> = null;
+      wellFormed: PhaseInfo<CompileResult<A.Program>> = null;
+      addImports: PhaseInfo<A.Program> = null;
+      desugarScope: PhaseInfo<TCS.ScopeResolution> = null;
+      nameResolved: PhaseInfo<TCS.NameResolution> = null;
+      fullyDesugared: PhaseInfo<D.DesugarInfo> = null;
+      typeChecked: PhaseInfo<CompileResult<A.Program>> = null;
+      cleanedAST: PhaseInfo<A.Program> = null;
+      finalOutput: PhaseInfo<CompileResult<JSP.CompiledCodePrinter>> = null;
+
+      setStart() { this.start = this.makePhase(null) };
+      setAddNothing(result: A.Program) { this.addNothing = this.makePhase(result); }
+      setWellFormed(result: CompileResult<A.Program>) { this.wellFormed = this.makePhase(result); }
+      setAddImports(result: A.Program) { this.addImports = this.makePhase(result); }
+      setDesugarScope(result: TCS.ScopeResolution) { this.desugarScope = this.makePhase(result); }
+      setNameResolved(result: TCS.NameResolution) { this.nameResolved = this.makePhase(result); }
+      setFullyDesugared(result: D.DesugarInfo) { this.fullyDesugared = this.makePhase(result); }
+      setTypeChecked(result: CompileResult<A.Program>) { this.typeChecked = this.makePhase(result); }
+      setCleanedAST(result: A.Program) { this.cleanedAST = this.makePhase(result); }
+      setFinalOutput(result: CompileResult<JSP.CompiledCodePrinter>) { this.finalOutput = this.makePhase(result); }
+
+      constructor(collectAll: boolean = false, collectTimes: boolean = false) {
+        this.collectAll = collectAll;
+        this.collectTimes = collectTimes;
       }
-      return runtime.ffi.makeList(ret);
+
+      private makePhase<A>(result: A): PhaseInfo<A> {
+        if (this.collectAll) {
+          return { result, time: Date.now() };
+        } else if (this.collectTimes) {
+          return { result: null, time: Date.now() };
+        } else {
+          return null;
+        }
+      }
+    
+      toList(): List<PObject<PhaseInfo<any>>> {
+        const phases = [
+          this.start,
+          this.addNothing,
+          this.wellFormed,
+          this.addImports,
+          this.desugarScope,
+          this.nameResolved,
+          this.fullyDesugared,
+          this.typeChecked,
+          this.cleanedAST,
+          this.finalOutput
+        ];
+        const ret: { dict: PhaseInfo<any>; }[] = []
+        for (let i = 1; i < phases.length; i++) {
+          if (phases[i]) {
+            const { result, time } = phases[i];
+            ret.push(runtime.makeObject({
+              result,
+              time: time - phases[i - 1].time,
+            }));
+          }
+        }
+        return runtime.ffi.makeList(ret);
+      }
     }
     function dummyProvides(uri: string) {
       const mtSd = stringDictFromMap(new Map());
@@ -551,25 +630,68 @@ type ResolveScopeExports = {
       return errs; // TODO: Figure out how to remove duplicates?
     }
 
-    function compileArrFile(todo: TJ.Variant<CompileTODO, 'arr-file'>, locator: Locator, provideMap: StringDict<string>, modules: MutableStringDict<Loadable>, env: TCS.CompileEnvironment, options: CompileOptions): PTuple<[Loadable, List<any>]> {
-      const phases: PhaseInfo[] = [];
-      const uri = callMethod(locator, 'uri');
-      function addPhase<A>(name: string, result: A): A {
-        if (options.dict['collect-all']) {
-          phases.push({name, result, time: Date.now() });
-        } else if (options.dict['collect-times']) {
-          phases.push({name, result: runtime.nothing, time: Date.now() });
-        }
-        return result;
+    function analyzeArrFile(
+      todo: TJ.Variant<CompileTODO, 'arr-file'>,
+      locator: Locator,
+      provideMap: StringDict<string>,
+      modules: MutableStringDict<Loadable>,
+      env: TCS.CompileEnvironment,
+      options: CompileOptions,
+    ): PTuple<[Loadable, List<any>]> {
+      const phases = new PhasesInfo(true);
+      let result = compileArrFileFrontend(phases, todo, locator, provideMap, modules, env, options);
+      let provides = result.provides ?? dummyProvides(callMethod(locator, 'uri'));
+      provides = AU['canonicalize-provides'].app(provides, env);
+      let namedResult = result.namedResult ? result.namedResult.dict.env : CS['computed-none'];
+      return runtime.makeTuple([
+        CS['module-as-string'].app(provides, env, namedResult, result.result),
+        phases.toList()
+      ]);
+    }
+
+    function compileArrFile(
+      todo: TJ.Variant<CompileTODO, 'arr-file'>,
+      locator: Locator,
+      provideMap: StringDict<string>,
+      modules: MutableStringDict<Loadable>,
+      env: TCS.CompileEnvironment,
+      options: CompileOptions,
+    ): PTuple<[Loadable, List<any>]> {
+      let phases = new PhasesInfo(options.dict['collect-all'], options.dict['collect-times']);
+      let frontendResult = compileArrFileFrontend(phases, todo, locator, provideMap, modules, env, options);
+      if (frontendResult.$name === 'ok') {
+        return compileArrFileBackend(phases, frontendResult, locator, env, options);
+      } else {
+        return runtime.makeTuple([
+          CS['module-as-string'].app(dummyProvides(callMethod(locator, 'uri')), env, CS['computed-none'], frontendResult.result),
+          phases.toList()
+        ]);
       }
+    }
+    
+    // record for all frontend results
+    type CompileArrFileFrontendResult = {
+      $name: 'ok'
+      result: TJ.Variant<CompileResult<A.Program>, 'ok'>,
+      namedResult: TCS.NameResolution,
+      provides: TCS.Provides,
+    } | {
+      $name: 'err'
+      result: TJ.Variant<CompileResult<A.Program>, 'err'>,
+      namedResult?: TCS.NameResolution,
+      provides?: TCS.Provides,
+    }
+
+    function compileArrFileFrontend(phases: PhasesInfo, todo: TJ.Variant<CompileTODO, 'arr-file'>, locator: Locator, provideMap: StringDict<string>, modules: MutableStringDict<Loadable>, env: TCS.CompileEnvironment, options: CompileOptions): CompileArrFileFrontendResult {
+      const uri = callMethod(locator, 'uri');
       let ast = getAst(todo.dict.mod, callMethod(locator, 'uri'));
-      phases.push({name: "start", result: null, time: Date.now()});
+      phases.setStart();
       let astEnded = AU['append-nothing-if-necessary'].app(ast);
       ast = undefined;
-      addPhase("Added nothing", astEnded);
+      phases.setAddNothing(astEnded);
       let wf = W['check-well-formed'].app(astEnded, options);
       astEnded = undefined;
-      addPhase("Checked well-formedness", wf);
+      phases.setWellFormed(wf);
       switch(wf.$name) {
         case 'ok': {
           let wfAst = AU['wrap-toplevels'].app(wf.dict.code);
@@ -577,21 +699,21 @@ type ResolveScopeExports = {
           // NOTE(Joe, #anchor): no desugaring of check blocks happens here
           let imported = AU['wrap-extra-imports'].app(wfAst, todo.dict.libs);
           wfAst = undefined;
-          addPhase("Added imports", imported);
+          phases.setAddImports(imported);
           let scoped = RS['desugar-scope'].app(imported, env);
           imported = undefined;
-          addPhase("Desugared scope", scoped);
+          phases.setDesugarScope(scoped);
           let namedResult = RS['resolve-names'].app(scoped.dict.ast, uri, env);
           let anyErrors = [...listToArray(scoped.dict.errors), ...listToArray(namedResult.dict.errors)];
           scoped = undefined;
+          phases.setNameResolved(namedResult);
           if (anyErrors.length > 0) {
-            addPhase("Result", namedResult.dict.ast);
-            return runtime.makeTuple([
-              CS['module-as-string'].app(dummyProvides(uri), env, CS['computed-none'], CS.err.app(runtime.ffi.makeList(unique(anyErrors)))),
-              phasesToList(phases)
-            ]);
+            return {
+              $name: 'err',
+              result: CS.err.app(runtime.ffi.makeList(unique(anyErrors))),
+              namedResult
+            };
           } else {
-            addPhase("Resolved named", namedResult);
             let spied = namedResult.dict.ast;
             if (!options.dict['enable-spies']) {
               spied = map<A.Program | A.Expr, A.Program>({
@@ -607,18 +729,18 @@ type ResolveScopeExports = {
                 }
               }, spied);
             }
-            var provides = dummyProvides(uri);
+            let provides = dummyProvides(uri);
             // Once name resolution has happened, any newly-created s-binds must be added to bindings...
             // var desugared = named-result.ast
 
             // NOTE(joe, anchor): removed this to see what un-desugared output looks like
             // and changed desugared.ast to desugared below
-            var desugared = D.desugar.app(namedResult.dict.ast, options);
+            let desugared = D.desugar.app(namedResult.dict.ast, options);
             callMethod(namedResult.dict.env.dict.bindings, 'merge-now', desugared.dict['new-binds']);
 
             // ...in order to be checked for bad assignments here
             anyErrors = listToArray(RS['check-unbound-ids-bad-assignments'].app(desugared.dict.ast, namedResult, env));
-            addPhase("Fully desugared", desugared);
+            phases.setFullyDesugared(desugared);
             let typeChecked: TCS.CompileResult<A.Program>;
             if (anyErrors.length > 0) {
               typeChecked = CS.err.app(runtime.ffi.makeList(unique(anyErrors)));
@@ -632,54 +754,62 @@ type ResolveScopeExports = {
               }
             } else {
               typeChecked = CS.ok.app(desugared.dict.ast);
+              provides = AU['get-named-provides'].app(namedResult, uri, env);
             }
             desugared = undefined;
-            addPhase("Type Checked", typeChecked);
-            switch(typeChecked.$name) {
-              case 'ok': {
-                let tcAst = typeChecked.dict.code;
-                let dpAst = DP['desugar-post-tc'].app(tcAst, env, options);
-                tcAst = undefined;
-                let cleaned = dpAst;
-                dpAst = undefined;
-                cleaned = AU['set-safe-letrec-binds'].app(cleaned);
-                cleaned = AU['inline-lams'].app(cleaned);
-                cleaned = AU['set-recursive'].app(cleaned);
-                cleaned = AU['set-tail-position'].app(cleaned);
-                if (!options.dict['user-annotations']) {
-                  cleaned = AU['strip-annotations'].app(cleaned);
-                }
-                addPhase("Cleaned AST", cleaned);
-                if (!options.dict['type-check']) {
-                  provides = AU['get-named-provides'].app(namedResult, uri, env);
-                }
-                let [finalProvides, cr] = JSP['make-compiled-pyret'].app(cleaned, uri, env, namedResult.dict.env, provides, options).vals
-                cleaned = undefined;
-                let canonicalProvides = AU['canonicalize-provides'].app(finalProvides, env);
-                let modResult = CS['module-as-string'].app(canonicalProvides, env, namedResult.dict.env, cr);
-                addPhase("Final output", cr);
-                return runtime.makeTuple([modResult, phasesToList(phases)]);
-              }
-              case 'err': {
-                addPhase("Result", typeChecked);
-                return runtime.makeTuple([
-                  CS['module-as-string'].app(dummyProvides(uri), env, CS['computed-none'], typeChecked),
-                  phasesToList(phases)
-                ]);
-              }
+            phases.setTypeChecked(typeChecked);
+            switch (typeChecked.$name) {
+              case 'ok':
+                return {
+                  $name: 'ok',
+                  result: typeChecked,
+                  namedResult,
+                  provides
+                };
+              case 'err':
+                return {
+                  $name: 'err',
+                  result: typeChecked,
+                  namedResult,
+                  provides,
+                };
               default: throw new ExhaustiveSwitchError(typeChecked);
             }
           }
         }
         case 'err': {
-          addPhase("Result", wf);
-          return runtime.makeTuple([
-            CS['module-as-string'].app(dummyProvides(uri), env, CS['computed-none'], wf),
-            phasesToList(phases)
-          ]);
+          return {
+            $name: 'err',
+            result: wf
+          };;
         }
         default: throw new ExhaustiveSwitchError(wf);
       }
+    }
+
+    function compileArrFileBackend(phases: PhasesInfo, frontendResult: TJ.Variant<CompileArrFileFrontendResult, 'ok'>, locator: Locator, env: TCS.CompileEnvironment, options: CompileOptions): PTuple<[Loadable, List<any>]> {
+      const uri = callMethod(locator, 'uri');
+      let tcAst = frontendResult.result.dict.code;
+      let namedResult = frontendResult.namedResult;
+      let provides = frontendResult.provides;
+      let dpAst = DP['desugar-post-tc'].app(tcAst, env, options);
+      tcAst = undefined;
+      let cleaned = dpAst;
+      dpAst = undefined;
+      cleaned = AU['set-safe-letrec-binds'].app(cleaned);
+      cleaned = AU['inline-lams'].app(cleaned);
+      cleaned = AU['set-recursive'].app(cleaned);
+      cleaned = AU['set-tail-position'].app(cleaned);
+      if (!options.dict['user-annotations']) {
+        cleaned = AU['strip-annotations'].app(cleaned);
+      }
+      phases.setCleanedAST(cleaned);
+      let [finalProvides, cr] = JSP['make-compiled-pyret'].app(cleaned, uri, env, namedResult.dict.env, provides, options).vals
+      cleaned = undefined;
+      let canonicalProvides = AU['canonicalize-provides'].app(finalProvides, env);
+      let modResult = CS['module-as-string'].app(canonicalProvides, env, namedResult.dict.env, cr);
+      phases.setFinalOutput(cr);
+      return runtime.makeTuple([modResult, phases.toList()]); 
     }
 
     function makeStandalone(worklist: List<ToCompile>, compiled: CompiledProgram, options): Either<List<any>, {dict: {'js-ast': J.ObjectExpression, natives: string[]}}> {
@@ -761,6 +891,8 @@ type ResolveScopeExports = {
       'dep-times-from-worklist': runtime.makeFunction(depTimesFromWorklist),
       'compile-program-with': runtime.makeFunction(compileProgramWith),
       'compile-program': runtime.makeFunction(compileProgram),
+      'compile-module': runtime.makeFunction(compileModule),
+      'analyze-arr-file': runtime.makeFunction(analyzeArrFile),
     };
     return runtime.makeModuleReturn(exports, {});
   }

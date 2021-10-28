@@ -1,0 +1,129 @@
+{
+  "requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    },
+    {
+        "import-type": "builtin",
+        "name": "tables"
+    },
+    {
+        "import-type": "builtin",
+        "name": "equality"
+    },
+    {
+        "import-type": "builtin",
+        "name": "lists"
+    }
+  ],
+  "provides": {
+    "shorthands": {
+      "rOfA": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://primitive-types" },
+                "name": "RawArray" }, [["tid", "a"]]],
+      "rOfN": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://primitive-types" },
+                "name": "RawArray" }, ["Number"]],
+      "lOfA": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://lists" },
+                "name": "List" }, [["tid", "a"]]],
+      "tva": ["tid", "a"],
+      "tvb": ["tid", "b"],
+      "EqualityResult": { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://equality" },
+                "name": "EqualityResult"
+      }
+    },
+    "values": {
+      "display-string": ["arrow", ["String"], "Nothing"],
+      "js-to-string": ["arrow", ["Any"], "String"],
+      "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
+      "print-error": ["forall", "a", ["arrow", ["tva"], "tva"]],
+      "time-now": ["arrow", [], "Number"],
+      "console-log": ["arrow", ["tany"], "Nothing"],
+      "assert": ["forall", ["a"], ["arrow", ["tva", "tva", "String"], "Nothing"]],
+      "_plus":   {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Any"]},
+      "_minus":  {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Any"]},
+      "_times":  {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Any"]},
+      "_divide": {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Any"]},
+      "_lessthan": {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Boolean"]},
+      "_lessequal": {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Boolean"]},
+      "_greaterthan": {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Boolean"]},
+      "_greaterequal": {"bind": "fun",
+                  "flatness": false,
+                  "name": "_plus",
+                  "typ": ["arrow", ["Any", "Any"], "Boolean"]},
+
+      "raise": ["arrow", ["Any"], "tbot"],
+
+      "equal-now": ["arrow", ["Any", "Any"], "Boolean"],
+      "equal-now3": ["arrow", ["Any", "Any"], "EqualityResult"],
+      "equal-always": ["arrow", ["Any", "Any"], "Boolean"],
+      "equal-always3": ["arrow", ["Any", "Any"], "EqualityResult"],
+      "identical": ["arrow", ["Any", "Any"], "Boolean"],
+      "identical3": ["arrow", ["Any", "Any"], "EqualityResult"],
+      "not": ["arrow", ["Boolean"], "Boolean"]
+    },
+    "aliases": {
+      "Any": "tany",
+      "Method": "tany",
+      "Object": "tany",
+      "NumNonNegative": "Number",
+      "NumNonPositive": "Number",
+      "NumNegative": "Number",
+      "NumPositive": "Number",
+      "NumRational": "Number",
+      "NumInteger": "Number",
+      "Roughnum": "Number",
+      "Exactnum": "Number",
+      "RawArray": { "tag": "name",
+                    "origin": { "import-type": "uri", "uri": "builtin://primitive-types" },
+                    "name": "RawArray" },
+      "Row": { "tag": "name",
+                    "origin": { "import-type": "uri", "uri": "builtin://tables" },
+                    "name": "Row" },
+      "Table": { "tag": "name",
+                    "origin": { "import-type": "uri", "uri": "builtin://tables" },
+                    "name": "Table" },
+      "List": { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://lists" },
+                "name": "List" },
+      "Nothing": { "tag": "name",
+               "origin": { "import-type": "uri", "uri": "builtin://primitive-types" },
+                "name": "Nothing" },
+      "Boolean": { "tag": "name",
+               "origin": { "import-type": "uri", "uri": "builtin://primitive-types" },
+                "name": "Boolean" },
+      "String": { "tag": "name",
+               "origin": { "import-type": "uri", "uri": "builtin://primitive-types" },
+                "name": "String" },
+      "Number": { "tag": "name",
+               "origin": { "import-type": "uri", "uri": "builtin://primitive-types" },
+                "name": "Number" }
+    },
+    "datatypes": { }
+  }
+}
+

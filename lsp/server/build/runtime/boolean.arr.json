@@ -1,0 +1,17 @@
+{
+  "requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    }
+  ],
+  "provides": {
+
+    "shorthands": {},
+    "values": {},
+    "aliases": {
+    },
+    "datatypes": {
+    }
+  }
+}

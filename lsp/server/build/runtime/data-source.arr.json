@@ -1,0 +1,1635 @@
+{
+"provides": {
+    "modules": {},
+    "values": {
+        "is-c-empty": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#30"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#30"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "num-sanitizer": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#68"],
+                [
+                    "arrow",
+                    [
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#68"
+                                ]]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }
+                    ],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    }
+                ]
+            ]
+        },
+        "c-empty": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#30"],
+                [
+                    "data%",
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "CellContent"
+                        },
+                        [[
+                                "tid",
+                                "atom#A#30"
+                            ]]
+                    ],
+                    "c-empty"
+                ]
+            ]
+        },
+        "is-c-str": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#30"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#30"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "bool-sanitizer": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#78"],
+                [
+                    "arrow",
+                    [
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#78"
+                                ]]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }
+                    ],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "c-str": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#30"],
+                [
+                    "arrow",
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "String"
+                        }],
+                    [
+                        "data%",
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#30"
+                                ]]
+                        ],
+                        "c-str"
+                    ]
+                ]
+            ]
+        },
+        "empty-only": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#130"],
+                [
+                    "arrow",
+                    [
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#130"
+                                ]]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }
+                    ],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/option"
+                            },
+                            "name": "Option"
+                        },
+                        [[
+                                "tid",
+                                "atom#A#130"
+                            ]]
+                    ]
+                ]
+            ]
+        },
+        "string-sanitizer": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#60"],
+                [
+                    "arrow",
+                    [
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#60"
+                                ]]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }
+                    ],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "String"
+                    }
+                ]
+            ]
+        },
+        "booleans-only": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#119"],
+                [
+                    "arrow",
+                    [
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#119"
+                                ]]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }
+                    ],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "numbers-only": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#108"],
+                [
+                    "arrow",
+                    [
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#108"
+                                ]]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }
+                    ],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    }
+                ]
+            ]
+        },
+        "is-DataSourceLoaderOption": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                [
+                    "atom#A#40",
+                    "atom#B#41"
+                ],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "DataSourceLoaderOption"
+                            },
+                            [
+                                [
+                                    "tid",
+                                    "atom#A#40"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#B#41"
+                                ]
+                            ]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "option-sanitizer": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                [
+                    "atom#A#54",
+                    "atom#B#55"
+                ],
+                [
+                    "arrow",
+                    [[
+                            "arrow",
+                            [
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "CellContent"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#A#54"
+                                        ]]
+                                ],
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "Number"
+                                },
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "Number"
+                                }
+                            ],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "CellContent"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#B#55"
+                                    ]]
+                            ]
+                        ]],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "CellContent"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#A#54"
+                                    ]]
+                            ],
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            },
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }
+                        ],
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/option"
+                                },
+                                "name": "Option"
+                            },
+                            [[
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "CellContent"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#B#55"
+                                        ]]
+                                ]]
+                        ]
+                    ]
+                ]
+            ]
+        },
+        "is-CellContent": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#30"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#30"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "c-bool": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#30"],
+                [
+                    "arrow",
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Boolean"
+                        }],
+                    [
+                        "data%",
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#30"
+                                ]]
+                        ],
+                        "c-bool"
+                    ]
+                ]
+            ]
+        },
+        "is-c-bool": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#30"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#30"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "strings-only": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#97"],
+                [
+                    "arrow",
+                    [
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#97"
+                                ]]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }
+                    ],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "String"
+                    }
+                ]
+            ]
+        },
+        "is-c-num": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#30"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#30"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "c-custom": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#30"],
+                [
+                    "arrow",
+                    [[
+                            "tid",
+                            "atom#A#30"
+                        ]],
+                    [
+                        "data%",
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#30"
+                                ]]
+                        ],
+                        "c-custom"
+                    ]
+                ]
+            ]
+        },
+        "sanitize-col": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                [
+                    "atom#A#40",
+                    "atom#B#41"
+                ],
+                [
+                    "arrow",
+                    [
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "String"
+                        },
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "CellContent"
+                                    },
+                                    ["tany"]
+                                ],
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "String"
+                                },
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "Number"
+                                }
+                            ],
+                            "tany"
+                        ]
+                    ],
+                    [
+                        "data%",
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "DataSourceLoaderOption"
+                            },
+                            [
+                                [
+                                    "tid",
+                                    "atom#A#40"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#B#41"
+                                ]
+                            ]
+                        ],
+                        "sanitize-col"
+                    ]
+                ]
+            ]
+        },
+        "c-num": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#30"],
+                [
+                    "arrow",
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }],
+                    [
+                        "data%",
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#30"
+                                ]]
+                        ],
+                        "c-num"
+                    ]
+                ]
+            ]
+        },
+        "is-c-custom": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#30"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#30"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "strict-num-sanitizer": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                ["atom#A#87"],
+                [
+                    "arrow",
+                    [
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#A#87"
+                                ]]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }
+                    ],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    }
+                ]
+            ]
+        },
+        "is-sanitize-col": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "typ": [
+                "forall",
+                [
+                    "atom#A#40",
+                    "atom#B#41"
+                ],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "DataSourceLoaderOption"
+                            },
+                            [
+                                [
+                                    "tid",
+                                    "atom#A#40"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#B#41"
+                                ]
+                            ]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        }
+    },
+    "datatypes": {
+        "CellContent": [
+            "data",
+            {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "CellContent",
+            ["atom#A#30"],
+            [
+                [
+                    "c-empty",
+                    {}
+                ],
+                [
+                    "c-str",
+                    [[
+                            "s",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "String"
+                            }
+                        ]],
+                    {}
+                ],
+                [
+                    "c-num",
+                    [[
+                            "n",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }
+                        ]],
+                    {}
+                ],
+                [
+                    "c-bool",
+                    [[
+                            "b",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Boolean"
+                            }
+                        ]],
+                    {}
+                ],
+                [
+                    "c-custom",
+                    [[
+                            "datum",
+                            [
+                                "tid",
+                                "atom#A#30"
+                            ]
+                        ]],
+                    {}
+                ]
+            ],
+            {}
+        ],
+        "DataSourceLoaderOption": [
+            "data",
+            {
+                "local-bind-site": ["builtin:\/\/data-source"],
+                "definition-bind-site": ["builtin:\/\/data-source"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/data-source"
+            },
+            "DataSourceLoaderOption",
+            [
+                "atom#A#40",
+                "atom#B#41"
+            ],
+            [[
+                    "sanitize-col",
+                    [
+                        [
+                            "col",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "String"
+                            }
+                        ],
+                        [
+                            "sanitizer",
+                            [
+                                "arrow",
+                                [
+                                    [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": { "import-type": "$ELF" },
+                                            "name": "CellContent"
+                                        },
+                                        ["tany"]
+                                    ],
+                                    {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "String"
+                                    },
+                                    {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "Number"
+                                    }
+                                ],
+                                "tany"
+                            ]
+                        ]
+                    ],
+                    {}
+                ]],
+            {
+                "sanitizer": [
+                    "arrow",
+                    [
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "CellContent"
+                            },
+                            ["tany"]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "String"
+                        },
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }
+                    ],
+                    "tany"
+                ],
+                "col": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "String"
+                }
+            }
+        ]
+    },
+    "aliases": {
+        "CellContent": {
+            "tag": "name",
+            "origin": { "import-type": "$ELF" },
+            "name": "CellContent"
+        },
+        "DataSourceLoaderOption": {
+            "tag": "name",
+            "origin": { "import-type": "$ELF" },
+            "name": "DataSourceLoaderOption"
+        },
+        "Sanitizer": [
+            "arrow",
+            [
+                [
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "CellContent"
+                    },
+                    ["tany"]
+                ],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "String"
+                },
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                }
+            ],
+            "tany"
+        ],
+        "LoadedTable": [
+            "tuple",
+            [
+                [
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "RawArray"
+                    },
+                    [[
+                            "tuple",
+                            [
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "String"
+                                },
+                                [
+                                    "arrow",
+                                    [
+                                        [
+                                            "tyapp",
+                                            {
+                                                "tag": "name",
+                                                "origin": { "import-type": "$ELF" },
+                                                "name": "CellContent"
+                                            },
+                                            ["tany"]
+                                        ],
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/primitive-types"
+                                            },
+                                            "name": "String"
+                                        },
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/primitive-types"
+                                            },
+                                            "name": "Number"
+                                        }
+                                    ],
+                                    "tany"
+                                ]
+                            ]
+                        ]]
+                ],
+                [
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "RawArray"
+                    },
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "RawArray"
+                            },
+                            [[
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "CellContent"
+                                    },
+                                    ["tany"]
+                                ]]
+                        ]]
+                ]
+            ]
+        ],
+        "DataSourceLoader": [
+            "record",
+            {
+                "load": [
+                    "arrow",
+                    [
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "RawArray"
+                            },
+                            [{
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "String"
+                                }]
+                        ],
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "RawArray"
+                            },
+                            [{
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "DataSourceLoaderOption"
+                                }]
+                        ]
+                    ],
+                    [
+                        "tuple",
+                        [
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "RawArray"
+                                },
+                                [[
+                                        "tuple",
+                                        [
+                                            {
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "String"
+                                            },
+                                            [
+                                                "arrow",
+                                                [
+                                                    [
+                                                        "tyapp",
+                                                        {
+                                                            "tag": "name",
+                                                            "origin": { "import-type": "$ELF" },
+                                                            "name": "CellContent"
+                                                        },
+                                                        ["tany"]
+                                                    ],
+                                                    {
+                                                        "tag": "name",
+                                                        "origin": {
+                                                            "import-type": "uri",
+                                                            "uri": "builtin:\/\/primitive-types"
+                                                        },
+                                                        "name": "String"
+                                                    },
+                                                    {
+                                                        "tag": "name",
+                                                        "origin": {
+                                                            "import-type": "uri",
+                                                            "uri": "builtin:\/\/primitive-types"
+                                                        },
+                                                        "name": "Number"
+                                                    }
+                                                ],
+                                                "tany"
+                                            ]
+                                        ]
+                                    ]]
+                            ],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "RawArray"
+                                },
+                                [[
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/primitive-types"
+                                            },
+                                            "name": "RawArray"
+                                        },
+                                        [[
+                                                "tyapp",
+                                                {
+                                                    "tag": "name",
+                                                    "origin": { "import-type": "$ELF" },
+                                                    "name": "CellContent"
+                                                },
+                                                ["tany"]
+                                            ]]
+                                    ]]
+                            ]
+                        ]
+                    ]
+                ]
+            }
+        ]
+    }
+},
+"requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    },
+    {
+        "import-type": "builtin",
+        "name": "runtime-global"
+    },
+    {
+        "import-type": "builtin",
+        "name": "option"
+    },
+    {
+        "import-type": "builtin",
+        "name": "either"
+    },
+    {
+        "import-type": "builtin",
+        "name": "equality"
+    },
+    {
+        "import-type": "builtin",
+        "name": "raw-array"
+    },
+    {
+        "import-type": "builtin",
+        "name": "number"
+    },
+    {
+        "import-type": "builtin",
+        "name": "list-perf"
+    },
+    {
+        "import-type": "builtin",
+        "name": "lists"
+    },
+    {
+        "import-type": "builtin",
+        "name": "string"
+    }
+],
+"nativeRequires": [],
+"theMap": ""
+}

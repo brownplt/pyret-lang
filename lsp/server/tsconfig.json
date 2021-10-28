@@ -6,6 +6,9 @@
 		"moduleResolution": "node",
 		//"sourceMap": true,
 		"strict": true,
+		"noImplicitAny": false,
+		"strictNullChecks": false,
+		"noImplicitThis": false,
 	},
 	"include": ["src", "external/pyret-mode.js"],
 	"exclude": ["node_modules"]

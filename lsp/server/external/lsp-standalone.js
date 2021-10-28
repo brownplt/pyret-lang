@@ -25,8 +25,8 @@ module.exports = {
       var main = toLoad[toLoad.length - 1];
 
       var runtime = runtimeLib.makeRuntime({
-        stdout: function(s) { process.stdout.write(s); },
-        stderr: function(s) { process.stderr.write(s); }
+        stdout: function(s) { console.log(s); },
+        stderr: function(s) { console.error(s); }
       });
 
       var EXIT_SUCCESS = 0;

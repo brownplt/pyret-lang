@@ -1,0 +1,87 @@
+{
+"provides": {
+    "modules": {},
+    "values": {
+        "list": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "list",
+            "typ": false
+        },
+        "tree-set": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "original-name": "tree-set",
+            "typ": false
+        }
+    },
+    "datatypes": {},
+    "aliases": {}
+},
+"requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    },
+    {
+        "import-type": "builtin",
+        "name": "tables"
+    },
+    {
+        "import-type": "builtin",
+        "name": "equality"
+    },
+    {
+        "import-type": "builtin",
+        "name": "runtime-global"
+    },
+    {
+        "import-type": "builtin",
+        "name": "option"
+    },
+    {
+        "import-type": "builtin",
+        "name": "either"
+    },
+    {
+        "import-type": "builtin",
+        "name": "raw-array"
+    },
+    {
+        "import-type": "builtin",
+        "name": "number"
+    },
+    {
+        "import-type": "builtin",
+        "name": "list-perf"
+    },
+    {
+        "import-type": "builtin",
+        "name": "lists"
+    },
+    {
+        "import-type": "builtin",
+        "name": "global"
+    },
+    {
+        "import-type": "builtin",
+        "name": "pick"
+    },
+    {
+        "import-type": "builtin",
+        "name": "sets"
+    }
+],
+"nativeRequires": [],
+"theMap": ""
+}

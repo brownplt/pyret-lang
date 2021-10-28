@@ -1,0 +1,2587 @@
+{
+"provides": {
+    "modules": {},
+    "values": {
+        "fold": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                [
+                    "atom#a#566",
+                    "atom#b#567"
+                ],
+                [
+                    "arrow",
+                    [
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#b#567"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#a#566"
+                                ]
+                            ],
+                            [
+                                "tid",
+                                "atom#b#567"
+                            ]
+                        ],
+                        [
+                            "tid",
+                            "atom#b#567"
+                        ],
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "Set"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#566"
+                                ]]
+                        ]
+                    ],
+                    [
+                        "tid",
+                        "atom#b#567"
+                    ]
+                ]
+            ]
+        },
+        "all": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#%tyvar#1494"],
+                [
+                    "forall",
+                    ["atom#a#560"],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "arrow",
+                                [[
+                                        "tid",
+                                        "atom#%tyvar#1494"
+                                    ]],
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "Boolean"
+                                }
+                            ],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "Set"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#a#560"
+                                    ]]
+                            ]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Boolean"
+                        }
+                    ]
+                ]
+            ]
+        },
+        "is-leaf": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#a#176"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "AVLTree"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#176"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "record",
+                {
+                    "make5": [
+                        "forall",
+                        ["atom#x#629"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#629"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#629"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#629"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#629"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#629"
+                                ]
+                            ],
+                            [
+                                "data%",
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "Set"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#x#629"
+                                        ]]
+                                ],
+                                "list-set"
+                            ]
+                        ]
+                    ],
+                    "make4": [
+                        "forall",
+                        ["atom#x#624"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#624"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#624"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#624"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#624"
+                                ]
+                            ],
+                            [
+                                "data%",
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "Set"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#x#624"
+                                        ]]
+                                ],
+                                "list-set"
+                            ]
+                        ]
+                    ],
+                    "make3": [
+                        "forall",
+                        ["atom#x#620"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#620"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#620"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#620"
+                                ]
+                            ],
+                            [
+                                "data%",
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "Set"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#x#620"
+                                        ]]
+                                ],
+                                "list-set"
+                            ]
+                        ]
+                    ],
+                    "make2": [
+                        "forall",
+                        ["atom#x#617"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#617"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#617"
+                                ]
+                            ],
+                            [
+                                "data%",
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "Set"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#x#617"
+                                        ]]
+                                ],
+                                "list-set"
+                            ]
+                        ]
+                    ],
+                    "make1": [
+                        "forall",
+                        ["atom#x#615"],
+                        [
+                            "arrow",
+                            [[
+                                    "tid",
+                                    "atom#x#615"
+                                ]],
+                            [
+                                "data%",
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "Set"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#x#615"
+                                        ]]
+                                ],
+                                "list-set"
+                            ]
+                        ]
+                    ],
+                    "make0": [
+                        "forall",
+                        ["atom#x#614"],
+                        [
+                            "arrow",
+                            [],
+                            [
+                                "forall",
+                                ["atom#%tyvar#1553"],
+                                [
+                                    "data%",
+                                    [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": { "import-type": "$ELF" },
+                                            "name": "Set"
+                                        },
+                                        [[
+                                                "tid",
+                                                "atom#%tyvar#1553"
+                                            ]]
+                                    ],
+                                    "list-set"
+                                ]
+                            ]
+                        ]
+                    ],
+                    "make": [
+                        "forall",
+                        ["atom#a#584"],
+                        [
+                            "arrow",
+                            [[
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "RawArray"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#a#584"
+                                        ]]
+                                ]],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "Set"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#a#584"
+                                    ]]
+                            ]
+                        ]
+                    ]
+                }
+            ]
+        },
+        "branch": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#a#176"],
+                [
+                    "arrow",
+                    [
+                        [
+                            "tid",
+                            "atom#a#176"
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "AVLTree"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#176"
+                                ]]
+                        ],
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "AVLTree"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#176"
+                                ]]
+                        ]
+                    ],
+                    [
+                        "data%",
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "AVLTree"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#176"
+                                ]]
+                        ],
+                        "branch"
+                    ]
+                ]
+            ]
+        },
+        "empty-set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#%tyvar#1553"],
+                [
+                    "data%",
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#%tyvar#1553"
+                            ]]
+                    ],
+                    "list-set"
+                ]
+            ]
+        },
+        "is-branch": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#a#176"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "AVLTree"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#176"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "any": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#%tyvar#1500"],
+                [
+                    "forall",
+                    ["atom#a#563"],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "arrow",
+                                [[
+                                        "tid",
+                                        "atom#%tyvar#1500"
+                                    ]],
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "Boolean"
+                                }
+                            ],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "Set"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#a#563"
+                                    ]]
+                            ]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Boolean"
+                        }
+                    ]
+                ]
+            ]
+        },
+        "is-AVLTree": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#a#176"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "AVLTree"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#176"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "tree-set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "record",
+                {
+                    "make5": [
+                        "forall",
+                        ["atom#x#651"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#651"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#651"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#651"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#651"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#651"
+                                ]
+                            ],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "Set"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#x#651"
+                                    ]]
+                            ]
+                        ]
+                    ],
+                    "make4": [
+                        "forall",
+                        ["atom#x#646"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#646"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#646"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#646"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#646"
+                                ]
+                            ],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "Set"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#x#646"
+                                    ]]
+                            ]
+                        ]
+                    ],
+                    "make3": [
+                        "forall",
+                        ["atom#x#642"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#642"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#642"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#642"
+                                ]
+                            ],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "Set"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#x#642"
+                                    ]]
+                            ]
+                        ]
+                    ],
+                    "make2": [
+                        "forall",
+                        ["atom#x#639"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#639"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#639"
+                                ]
+                            ],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "Set"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#x#639"
+                                    ]]
+                            ]
+                        ]
+                    ],
+                    "make1": [
+                        "forall",
+                        ["atom#x#637"],
+                        [
+                            "arrow",
+                            [[
+                                    "tid",
+                                    "atom#x#637"
+                                ]],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "Set"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#x#637"
+                                    ]]
+                            ]
+                        ]
+                    ],
+                    "make0": [
+                        "forall",
+                        ["atom#x#636"],
+                        [
+                            "arrow",
+                            [],
+                            [
+                                "forall",
+                                ["atom#%tyvar#1558"],
+                                [
+                                    "data%",
+                                    [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": { "import-type": "$ELF" },
+                                            "name": "Set"
+                                        },
+                                        [[
+                                                "tid",
+                                                "atom#%tyvar#1558"
+                                            ]]
+                                    ],
+                                    "tree-set"
+                                ]
+                            ]
+                        ]
+                    ],
+                    "make": [
+                        "forall",
+                        ["atom#a#588"],
+                        [
+                            "arrow",
+                            [[
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "RawArray"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#a#588"
+                                        ]]
+                                ]],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "Set"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#a#588"
+                                    ]]
+                            ]
+                        ]
+                    ]
+                }
+            ]
+        },
+        "empty-tree-set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#%tyvar#1558"],
+                [
+                    "data%",
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#%tyvar#1558"
+                            ]]
+                    ],
+                    "tree-set"
+                ]
+            ]
+        },
+        "list-set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "record",
+                {
+                    "make5": [
+                        "forall",
+                        ["atom#x#629"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#629"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#629"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#629"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#629"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#629"
+                                ]
+                            ],
+                            [
+                                "data%",
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "Set"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#x#629"
+                                        ]]
+                                ],
+                                "list-set"
+                            ]
+                        ]
+                    ],
+                    "make4": [
+                        "forall",
+                        ["atom#x#624"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#624"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#624"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#624"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#624"
+                                ]
+                            ],
+                            [
+                                "data%",
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "Set"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#x#624"
+                                        ]]
+                                ],
+                                "list-set"
+                            ]
+                        ]
+                    ],
+                    "make3": [
+                        "forall",
+                        ["atom#x#620"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#620"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#620"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#620"
+                                ]
+                            ],
+                            [
+                                "data%",
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "Set"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#x#620"
+                                        ]]
+                                ],
+                                "list-set"
+                            ]
+                        ]
+                    ],
+                    "make2": [
+                        "forall",
+                        ["atom#x#617"],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#x#617"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#x#617"
+                                ]
+                            ],
+                            [
+                                "data%",
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "Set"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#x#617"
+                                        ]]
+                                ],
+                                "list-set"
+                            ]
+                        ]
+                    ],
+                    "make1": [
+                        "forall",
+                        ["atom#x#615"],
+                        [
+                            "arrow",
+                            [[
+                                    "tid",
+                                    "atom#x#615"
+                                ]],
+                            [
+                                "data%",
+                                [
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "Set"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#x#615"
+                                        ]]
+                                ],
+                                "list-set"
+                            ]
+                        ]
+                    ],
+                    "make0": [
+                        "forall",
+                        ["atom#x#614"],
+                        [
+                            "arrow",
+                            [],
+                            [
+                                "forall",
+                                ["atom#%tyvar#1553"],
+                                [
+                                    "data%",
+                                    [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": { "import-type": "$ELF" },
+                                            "name": "Set"
+                                        },
+                                        [[
+                                                "tid",
+                                                "atom#%tyvar#1553"
+                                            ]]
+                                    ],
+                                    "list-set"
+                                ]
+                            ]
+                        ]
+                    ],
+                    "make": [
+                        "forall",
+                        ["atom#a#584"],
+                        [
+                            "arrow",
+                            [[
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "RawArray"
+                                    },
+                                    [[
+                                            "tid",
+                                            "atom#a#584"
+                                        ]]
+                                ]],
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "Set"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#a#584"
+                                    ]]
+                            ]
+                        ]
+                    ]
+                }
+            ]
+        },
+        "empty-list-set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#%tyvar#1553"],
+                [
+                    "data%",
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#%tyvar#1553"
+                            ]]
+                    ],
+                    "list-set"
+                ]
+            ]
+        },
+        "list-to-tree-set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#a#578"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/lists"
+                                },
+                                "name": "List"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#578"
+                                ]]
+                        ]],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#578"
+                            ]]
+                    ]
+                ]
+            ]
+        },
+        "is-tree-set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#a#431"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "Set"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#431"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "list-to-list-set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#a#576"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/lists"
+                                },
+                                "name": "List"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#576"
+                                ]]
+                        ]],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#576"
+                            ]]
+                    ]
+                ]
+            ]
+        },
+        "is-list-set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#a#431"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "Set"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#431"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "leaf": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#a#176"],
+                [
+                    "data%",
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "AVLTree"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#176"
+                            ]]
+                    ],
+                    "leaf"
+                ]
+            ]
+        },
+        "is-Set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#a#431"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "Set"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#431"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            ]
+        },
+        "list-to-set": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "typ": [
+                "forall",
+                ["atom#a#576"],
+                [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/lists"
+                                },
+                                "name": "List"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#576"
+                                ]]
+                        ]],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#576"
+                            ]]
+                    ]
+                ]
+            ]
+        }
+    },
+    "datatypes": {
+        "AVLTree": [
+            "data",
+            {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "AVLTree",
+            ["atom#a#176"],
+            [
+                [
+                    "leaf",
+                    {}
+                ],
+                [
+                    "branch",
+                    [
+                        [
+                            "value",
+                            [
+                                "tid",
+                                "atom#a#176"
+                            ]
+                        ],
+                        [
+                            "h",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }
+                        ],
+                        [
+                            "left",
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "AVLTree"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#a#176"
+                                    ]]
+                            ]
+                        ],
+                        [
+                            "right",
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "AVLTree"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#a#176"
+                                    ]]
+                            ]
+                        ]
+                    ],
+                    {}
+                ]
+            ],
+            {
+                "all": [
+                    "arrow",
+                    [[
+                            "arrow",
+                            [[
+                                    "tid",
+                                    "atom#a#176"
+                                ]],
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Boolean"
+                            }
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ],
+                "fold-revpreorder": [
+                    "forall",
+                    ["atom#b#252"],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "arrow",
+                                [
+                                    [
+                                        "tid",
+                                        "atom#b#252"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#a#176"
+                                    ]
+                                ],
+                                [
+                                    "tid",
+                                    "atom#b#252"
+                                ]
+                            ],
+                            [
+                                "tid",
+                                "atom#b#252"
+                            ]
+                        ],
+                        [
+                            "tid",
+                            "atom#b#252"
+                        ]
+                    ]
+                ],
+                "fold-postorder": [
+                    "forall",
+                    ["atom#b#244"],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "arrow",
+                                [
+                                    [
+                                        "tid",
+                                        "atom#b#244"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#a#176"
+                                    ]
+                                ],
+                                [
+                                    "tid",
+                                    "atom#b#244"
+                                ]
+                            ],
+                            [
+                                "tid",
+                                "atom#b#244"
+                            ]
+                        ],
+                        [
+                            "tid",
+                            "atom#b#244"
+                        ]
+                    ]
+                ],
+                "remove": [
+                    "arrow",
+                    [[
+                            "tid",
+                            "atom#a#176"
+                        ]],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "AVLTree"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#176"
+                            ]]
+                    ]
+                ],
+                "revinorder": [
+                    "arrow",
+                    [],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#176"
+                            ]]
+                    ]
+                ],
+                "height": [
+                    "arrow",
+                    [],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    }
+                ],
+                "inorder": [
+                    "arrow",
+                    [],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#176"
+                            ]]
+                    ]
+                ],
+                "revpostorder": [
+                    "arrow",
+                    [],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#176"
+                            ]]
+                    ]
+                ],
+                "preorder": [
+                    "arrow",
+                    [],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#176"
+                            ]]
+                    ]
+                ],
+                "any": [
+                    "arrow",
+                    [[
+                            "arrow",
+                            [[
+                                    "tid",
+                                    "atom#a#176"
+                                ]],
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Boolean"
+                            }
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ],
+                "revpreorder": [
+                    "arrow",
+                    [],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#176"
+                            ]]
+                    ]
+                ],
+                "postorder": [
+                    "arrow",
+                    [],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#176"
+                            ]]
+                    ]
+                ],
+                "count": [
+                    "arrow",
+                    [],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    }
+                ],
+                "to-list": [
+                    "arrow",
+                    [],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#176"
+                            ]]
+                    ]
+                ],
+                "fold-revinorder": [
+                    "forall",
+                    ["atom#b#260"],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "arrow",
+                                [
+                                    [
+                                        "tid",
+                                        "atom#b#260"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#a#176"
+                                    ]
+                                ],
+                                [
+                                    "tid",
+                                    "atom#b#260"
+                                ]
+                            ],
+                            [
+                                "tid",
+                                "atom#b#260"
+                            ]
+                        ],
+                        [
+                            "tid",
+                            "atom#b#260"
+                        ]
+                    ]
+                ],
+                "fold-preorder": [
+                    "forall",
+                    ["atom#b#228"],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "arrow",
+                                [
+                                    [
+                                        "tid",
+                                        "atom#b#228"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#a#176"
+                                    ]
+                                ],
+                                [
+                                    "tid",
+                                    "atom#b#228"
+                                ]
+                            ],
+                            [
+                                "tid",
+                                "atom#b#228"
+                            ]
+                        ],
+                        [
+                            "tid",
+                            "atom#b#228"
+                        ]
+                    ]
+                ],
+                "fold-revpostorder": [
+                    "forall",
+                    ["atom#b#268"],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "arrow",
+                                [
+                                    [
+                                        "tid",
+                                        "atom#b#268"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#a#176"
+                                    ]
+                                ],
+                                [
+                                    "tid",
+                                    "atom#b#268"
+                                ]
+                            ],
+                            [
+                                "tid",
+                                "atom#b#268"
+                            ]
+                        ],
+                        [
+                            "tid",
+                            "atom#b#268"
+                        ]
+                    ]
+                ],
+                "insert": [
+                    "arrow",
+                    [[
+                            "tid",
+                            "atom#a#176"
+                        ]],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "AVLTree"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#176"
+                            ]]
+                    ]
+                ],
+                "fold-inorder": [
+                    "forall",
+                    ["atom#b#236"],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "arrow",
+                                [
+                                    [
+                                        "tid",
+                                        "atom#b#236"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#a#176"
+                                    ]
+                                ],
+                                [
+                                    "tid",
+                                    "atom#b#236"
+                                ]
+                            ],
+                            [
+                                "tid",
+                                "atom#b#236"
+                            ]
+                        ],
+                        [
+                            "tid",
+                            "atom#b#236"
+                        ]
+                    ]
+                ],
+                "_equals": [
+                    "forall",
+                    ["atom#%tyvar#891"],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "AVLTree"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#%tyvar#891"
+                                    ]]
+                            ],
+                            [
+                                "arrow",
+                                [
+                                    [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/lists"
+                                            },
+                                            "name": "List"
+                                        },
+                                        [[
+                                                "tid",
+                                                "atom#a#176"
+                                            ]]
+                                    ],
+                                    [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/lists"
+                                            },
+                                            "name": "List"
+                                        },
+                                        [[
+                                                "tid",
+                                                "atom#%tyvar#891"
+                                            ]]
+                                    ]
+                                ],
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/equality"
+                                    },
+                                    "name": "EqualityResult"
+                                }
+                            ]
+                        ],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/equality"
+                            },
+                            "name": "EqualityResult"
+                        }
+                    ]
+                ],
+                "contains": [
+                    "arrow",
+                    [[
+                            "tid",
+                            "atom#a#176"
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ]
+            }
+        ],
+        "Set": [
+            "data",
+            {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "Set",
+            ["atom#a#431"],
+            [
+                [
+                    "list-set",
+                    [[
+                            "elems",
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/lists"
+                                    },
+                                    "name": "List"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#a#431"
+                                    ]]
+                            ]
+                        ]],
+                    {}
+                ],
+                [
+                    "tree-set",
+                    [[
+                            "elems",
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "AVLTree"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#a#431"
+                                    ]]
+                            ]
+                        ]],
+                    {}
+                ]
+            ],
+            {
+                "fold": [
+                    "forall",
+                    ["atom#b#447"],
+                    [
+                        "arrow",
+                        [
+                            [
+                                "arrow",
+                                [
+                                    [
+                                        "tid",
+                                        "atom#b#447"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#a#431"
+                                    ]
+                                ],
+                                [
+                                    "tid",
+                                    "atom#b#447"
+                                ]
+                            ],
+                            [
+                                "tid",
+                                "atom#b#447"
+                            ]
+                        ],
+                        [
+                            "tid",
+                            "atom#b#447"
+                        ]
+                    ]
+                ],
+                "size": [
+                    "arrow",
+                    [],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    }
+                ],
+                "pick": [
+                    "arrow",
+                    [],
+                    [
+                        "forall",
+                        [
+                            "atom#atom#a#10#5",
+                            "atom#atom#b#11#6"
+                        ],
+                        [
+                            "data%",
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/pick"
+                                    },
+                                    "name": "Pick"
+                                },
+                                [
+                                    [
+                                        "tid",
+                                        "atom#atom#a#10#5"
+                                    ],
+                                    [
+                                        "tid",
+                                        "atom#atom#b#11#6"
+                                    ]
+                                ]
+                            ],
+                            "pick-none"
+                        ]
+                    ]
+                ],
+                "add": [
+                    "arrow",
+                    [[
+                            "tid",
+                            "atom#a#431"
+                        ]],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#431"
+                            ]]
+                    ]
+                ],
+                "all": [
+                    "arrow",
+                    [[
+                            "arrow",
+                            [[
+                                    "tid",
+                                    "atom#a#431"
+                                ]],
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Boolean"
+                            }
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ],
+                "remove": [
+                    "arrow",
+                    [[
+                            "tid",
+                            "atom#a#431"
+                        ]],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#431"
+                            ]]
+                    ]
+                ],
+                "is-empty": [
+                    "arrow",
+                    [],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ],
+                "overlaps": [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "Set"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#431"
+                                ]]
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ],
+                "any": [
+                    "arrow",
+                    [[
+                            "arrow",
+                            [[
+                                    "tid",
+                                    "atom#a#431"
+                                ]],
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Boolean"
+                            }
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ],
+                "union": [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "Set"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#431"
+                                ]]
+                        ]],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#431"
+                            ]]
+                    ]
+                ],
+                "to-list": [
+                    "arrow",
+                    [],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#431"
+                            ]]
+                    ]
+                ],
+                "symmetric-difference": [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "Set"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#431"
+                                ]]
+                        ]],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#431"
+                            ]]
+                    ]
+                ],
+                "member": [
+                    "arrow",
+                    [[
+                            "tid",
+                            "atom#a#431"
+                        ]],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    }
+                ],
+                "difference": [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "Set"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#431"
+                                ]]
+                        ]],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#431"
+                            ]]
+                    ]
+                ],
+                "_equals": [
+                    "arrow",
+                    [
+                        [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "Set"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#431"
+                                ]]
+                        ],
+                        [
+                            "arrow",
+                            [
+                                [
+                                    "tid",
+                                    "atom#a#431"
+                                ],
+                                [
+                                    "tid",
+                                    "atom#a#431"
+                                ]
+                            ],
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/equality"
+                                },
+                                "name": "EqualityResult"
+                            }
+                        ]
+                    ],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/equality"
+                        },
+                        "name": "EqualityResult"
+                    }
+                ],
+                "intersect": [
+                    "arrow",
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "Set"
+                            },
+                            [[
+                                    "tid",
+                                    "atom#a#431"
+                                ]]
+                        ]],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "Set"
+                        },
+                        [[
+                                "tid",
+                                "atom#a#431"
+                            ]]
+                    ]
+                ]
+            }
+        ]
+    },
+    "aliases": {
+        "AVLTree": {
+            "tag": "name",
+            "origin": { "import-type": "$ELF" },
+            "name": "AVLTree"
+        },
+        "Set": {
+            "tag": "name",
+            "origin": { "import-type": "$ELF" },
+            "name": "Set"
+        }
+    }
+},
+"requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    },
+    {
+        "import-type": "builtin",
+        "name": "runtime-global"
+    },
+    {
+        "import-type": "builtin",
+        "name": "pick"
+    },
+    {
+        "import-type": "builtin",
+        "name": "option"
+    },
+    {
+        "import-type": "builtin",
+        "name": "either"
+    },
+    {
+        "import-type": "builtin",
+        "name": "equality"
+    },
+    {
+        "import-type": "builtin",
+        "name": "raw-array"
+    },
+    {
+        "import-type": "builtin",
+        "name": "number"
+    },
+    {
+        "import-type": "builtin",
+        "name": "list-perf"
+    },
+    {
+        "import-type": "builtin",
+        "name": "lists"
+    }
+],
+"nativeRequires": [],
+"theMap": ""
+}

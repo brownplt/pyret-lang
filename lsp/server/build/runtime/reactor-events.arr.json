@@ -1,0 +1,294 @@
+{
+"provides": {
+    "modules": {},
+    "values": {
+        "is-Event": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/reactor-events"],
+                "definition-bind-site": ["builtin:\/\/reactor-events"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/reactor-events"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "Event"
+                    }],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                }
+            ]
+        },
+        "is-time-tick": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/reactor-events"],
+                "definition-bind-site": ["builtin:\/\/reactor-events"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/reactor-events"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "Event"
+                    }],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                }
+            ]
+        },
+        "time-tick": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/reactor-events"],
+                "definition-bind-site": ["builtin:\/\/reactor-events"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/reactor-events"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Event"
+                },
+                "time-tick"
+            ]
+        },
+        "is-mouse": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/reactor-events"],
+                "definition-bind-site": ["builtin:\/\/reactor-events"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/reactor-events"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "Event"
+                    }],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                }
+            ]
+        },
+        "mouse": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/reactor-events"],
+                "definition-bind-site": ["builtin:\/\/reactor-events"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/reactor-events"
+            },
+            "typ": [
+                "arrow",
+                [
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "String"
+                    }
+                ],
+                [
+                    "data%",
+                    {
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "Event"
+                    },
+                    "mouse"
+                ]
+            ]
+        },
+        "is-keypress": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/reactor-events"],
+                "definition-bind-site": ["builtin:\/\/reactor-events"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/reactor-events"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "Event"
+                    }],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                }
+            ]
+        },
+        "keypress": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/reactor-events"],
+                "definition-bind-site": ["builtin:\/\/reactor-events"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/reactor-events"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "String"
+                    }],
+                [
+                    "data%",
+                    {
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "Event"
+                    },
+                    "keypress"
+                ]
+            ]
+        }
+    },
+    "datatypes": {
+        "Event": [
+            "data",
+            {
+                "local-bind-site": ["builtin:\/\/reactor-events"],
+                "definition-bind-site": ["builtin:\/\/reactor-events"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/reactor-events"
+            },
+            "Event",
+            [],
+            [
+                [
+                    "time-tick",
+                    {}
+                ],
+                [
+                    "mouse",
+                    [
+                        [
+                            "x",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }
+                        ],
+                        [
+                            "y",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }
+                        ],
+                        [
+                            "kind",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "String"
+                            }
+                        ]
+                    ],
+                    {}
+                ],
+                [
+                    "keypress",
+                    [[
+                            "key",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "String"
+                            }
+                        ]],
+                    {}
+                ]
+            ],
+            {}
+        ]
+    },
+    "aliases": {
+        "Event": {
+            "tag": "name",
+            "origin": { "import-type": "$ELF" },
+            "name": "Event"
+        }
+    }
+},
+"requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    },
+    {
+        "import-type": "builtin",
+        "name": "runtime-global"
+    }
+],
+"nativeRequires": [],
+"theMap": ""
+}

@@ -1,4 +1,5 @@
-import { hasTop, peek, Token } from './util';
+import { Token } from './external-types';
+import { hasTop, peek } from './util';
 
 const initial_operators = new Set([
   "DASH", "PLUS", "TIMES", "SLASH", "LT", "LEQ",
@@ -27,8 +28,20 @@ enum pyret_delimiter_type {
 }; // Extension of opening keyword (acts like OPEN_CONTD *when folding*)
 
 export class Indent {
-  private fn; private c; private d; private s; private t; private e; private g; private p; private o; private v; private f; private i; private com;
-  inString;
+  private fn: number;
+  private c: number;
+  private d: number;
+  private s: number;
+  private t: number;
+  private e: number;
+  private g: number;
+  private p: number;
+  private o: number;
+  private v: number;
+  private f: number;
+  private i: number;
+  private com: number;
+  inString: number | false;
 
   constructor(funs: number = 0, cases: number = 0, data: number = 0, shared: number = 0,
     trys: number = 0, except: number = 0, graph: number = 0, parens: number = 0,
@@ -107,7 +120,14 @@ export class Indent {
 }
 
 export class LineState {
-  tokens; nestingsAtLineStart; nestingsAtLineEnd; deferedOpened; curOpened; deferedClosed; curClosed; delimType;
+  tokens: string[];
+  nestingsAtLineStart: Indent;
+  nestingsAtLineEnd: Indent;
+  deferedOpened: Indent;
+  curOpened: Indent;
+  deferedClosed: Indent;
+  curClosed: Indent;
+  delimType: pyret_delimiter_type;
 
   constructor(tokens: string[], nestingsAtLineStart: Indent, nestingsAtLineEnd: Indent,
     deferedOpened: Indent, curOpened: Indent, deferedClosed: Indent, curClosed: Indent, delimType: pyret_delimiter_type) {
@@ -139,8 +159,8 @@ export class LineState {
 }
 
 export class State {
-  lineState; 
-  maybeShorthandLambda;
+  lineState: LineState; 
+  maybeShorthandLambda: boolean;
 
   constructor(lineState: LineState, maybeShorthandLanbda: boolean) {
     this.lineState = lineState;

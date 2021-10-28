@@ -118,6 +118,7 @@ export type Runtime = {
   unwrap: (val: any) => any,
   stdout: WriteStream['write'],
   stderr: WriteStream['write'],
+  modules: Record<string, any>,
   nothing: unknown,
   ffi: {
     makeList: <T>(ts: T[]) => List<T>,

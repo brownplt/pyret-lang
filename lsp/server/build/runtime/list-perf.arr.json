@@ -1,0 +1,66 @@
+{
+  "requires": [
+  ],
+  "provides": {
+    "shorthands": {
+      "tva": ["tid", "a"],
+      "tvb": ["tid", "b"],
+      "rOfA": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://primitive-types" },
+                "name": "RawArray" }, [["tid", "a"]]],
+      "lOfA": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://lists" },
+                "name": "List" }, [["tid", "a"]]],
+      "lOfB": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://lists" },
+                "name": "List" }, [["tid", "b"]]],
+      "oOfB": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://option" },
+                "name": "Option"}, [["tid", "b"]]]
+    },
+    "values": {
+      "setup": ["arrow", [["record", {
+        "is-empty": "tany",
+        "is-link": "tany",
+        "link": "tany",
+        "empty": "tany"
+      }]], "Nothing"],
+      "perf-filter": ["forall", ["a"],
+        ["arrow",
+          [["arrow", ["tva"], "Boolean"],"lOfA"],
+          "lOfA"
+        ]
+      ],
+      "perf-filter-map": ["forall", ["a", "b"],
+        ["arrow",
+          [["arrow", ["tva"], "oOfB"],"oOfB"],
+          "lOfB"
+        ]
+      ],
+      "perf-array-to-list": ["forall", ["a"],
+        ["arrow",
+          ["rOfA"],
+          "lOfA"
+        ]
+      ],
+      "perf-map": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], "lOfA"], "lOfB"]],
+      "perf-foldl": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "lOfA"], "tvb"]],
+      "perf-foldr": ["forall", ["a", "b"], ["arrow", [["arrow", ["tvb", "tva"], "tvb"], "tvb", "lOfA"], "tvb"]],
+      "perf-map": ["forall", ["a", "b"],
+          ["arrow",
+              [
+                  ["arrow", ["tva"], "tvb"],
+                  "lOfA"
+              ],
+              "lOfB"
+          ]
+      ],
+
+      "perf-length": ["forall", ["a"], ["arrow", ["lOfA"], "Number"]],
+      "perf-same-length": ["forall", ["a"], ["arrow", ["lOfA", "lOfA"], "Boolean"]]
+    },
+    "aliases": { },
+    "datatypes": { }
+  }
+}
+

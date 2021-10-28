@@ -1,8 +1,7 @@
-import * as lsp from '../external/lsp.js';
+import * as lsp from '../external/lsp';
 
 import {
   createConnection,
-  TextDocuments,
   ProposedFeatures,
   InitializeParams,
   TextDocumentSyncKind,
@@ -12,14 +11,17 @@ import {
   TextDocumentIdentifier,
   Range,
   FormattingOptions,
-} from 'vscode-languageserver/node.js';
+} from 'vscode-languageserver/node';
 
-import {
-  TextDocument
-} from 'vscode-languageserver-textdocument';
+import { cstWalk, deleteStart, locationFromSrcloc, slocContains, slocLte, unpackModule } from './components/util';
+import { indent } from './components/pyret-mode';
+import { matchPath, mergeAll, SemTok, toDataArray } from './components/semantic-tokens';
+import { DocumentManager } from './components/document-manager';
+import { analyzeFile } from './components/compile-pipeline';
 
-import { cstWalk, lineTokenizerFrom, matchPath, mergeAll, SemTok, toDataArray, unpackModule } from './util.js';
-import { indent, parse, State } from './pyret-mode.js';
+import type * as TCH from '../../../src/arr/compiler/ts-codegen-helpers';
+import type * as A from '../../../src/arr/compiler/ts-ast';
+import { getNames } from './components/name-resolution';
 
 export const tokenTypes = ['function', 'type', 'typeParameter', 'keyword', 'number', 'variable', 'data', 'variant', 'string', 'property', 'namespace', 'comment'];
 export const tokenModifiers = ['readonly', 'invalid'];
@@ -28,8 +30,7 @@ export const tokenModifiers = ['readonly', 'invalid'];
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
 
-// Create a simple text document manager.
-//const documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
+const documents = new Map<string, DocumentManager>();
 
 let capabilities: ClientCapabilities;
 
@@ -40,13 +41,13 @@ connection.onInitialize((params: InitializeParams) => {
   const result: InitializeResult = {
     capabilities: {
       textDocumentSync: TextDocumentSyncKind.Incremental,
-      hoverProvider: true,
       documentFormattingProvider: true,
       documentRangeFormattingProvider: true,
       documentOnTypeFormattingProvider: {
         firstTriggerCharacter: '\n',
         moreTriggerCharacter: ['|', '}', ']', '+', '-', '*', '/', '=', '<', '>', 's', 'e', 'n', 'd', 'f', 't', 'y', ':', '.', '^', '`']
       },
+      definitionProvider: true,
       semanticTokensProvider: {
         legend: {
           tokenTypes: tokenTypes,
@@ -67,99 +68,32 @@ connection.onInitialized(() => {
   // empty for now.
 });
 
-connection.onHover((params, _, __, ___) => {
-  return { contents: "hello world!" };
-});
-
-class FormatCache {
-  static CACHE_INTERVAL = 20;
-  files: Map<string, State[]> = new Map();
-
-  add(uri: string) {
-    this.files.set(uri, [State.startState()]);
-  }
-
-  remove(uri: string) {
-    this.files.delete(uri);
-  }
-
-  invalidateLines(uri: string, afterLine: number) {
-    if (!this.files.has(uri)) { this.add(uri); }
-    this.files.get(uri)?.splice(Math.floor(afterLine / FormatCache.CACHE_INTERVAL) + 1);
-  }
-
-  async forEachLine(uri: string, start: number, end: number, proc: (state: State, lineNum: number) => void) {
-    const runtime = await (lsp.result) as any;
-    const tokLib = unpackModule(runtime.modules["jsfile://pyret-lang/src/arr/compiler/pyret-tokenizer.js"]);
-    const tokenizer = tokLib.CommentTokenizer;
-
-    if (!this.files.has(uri)) { this.add(uri); }
-    const states = this.files.get(uri) as State[];
-    const startIdx = Math.min(states.length-1, Math.floor(start / FormatCache.CACHE_INTERVAL));
-    const state = states[startIdx].copy();
-    const startLine = startIdx * FormatCache.CACHE_INTERVAL;
-
-    const doc = documents.get(uri)?.getText({ start: { line: startLine, character: 0 }, end: { line: end + 1, character: 0 } }) ?? "";
-    tokenizer.tokenizeFrom(doc);
-    let lineTokenizer = lineTokenizerFrom(tokenizer);
-
-    for (let [tokLine, lineNum] of lineTokenizer) {
-      const curLine = lineNum + startLine;
-      // cache state if needed
-      if (curLine % FormatCache.CACHE_INTERVAL === 0 && curLine / FormatCache.CACHE_INTERVAL >= states.length) {
-        states.push(state.copy());
-      }
-
-      // process the line of tokens
-      if (tokLine.length === 0) {
-        state.lineState.nestingsAtLineStart = state.lineState.nestingsAtLineEnd.copy();
-      } else {
-        tokLine.forEach((tok, i, arr) => {
-          parse(state, arr[i - 1], tok, arr[i + 1]);
-        });
-      }
-      
-      // if in range, call procedure
-      if (curLine >= start && curLine <= end) {
-        proc(state, curLine);
-      }
-    }
-  }
-}
-
-const formatCache = new FormatCache();
-
-const documents: Map<string, TextDocument> = new Map();
-
 connection.onDidOpenTextDocument((params) => {
-  const doc = TextDocument.create(
-    params.textDocument.uri,
-    params.textDocument.languageId,
-    params.textDocument.version,
-    params.textDocument.text,
-  );
+  const doc = new DocumentManager(params.textDocument);
   documents.set(params.textDocument.uri, doc);
-  formatCache.add(doc.uri);
 });
 
 connection.onDidCloseTextDocument((params) => {
   documents.delete(params.textDocument.uri);
-  formatCache.remove(params.textDocument.uri);
 });
 
 connection.onDidChangeTextDocument((params) => {
   const doc = documents.get(params.textDocument.uri);
   if (!doc) return;
-  TextDocument.update(doc, params.contentChanges, params.textDocument.version);
-  let minLine = params.contentChanges.map((a) => 'range' in a ? a.range.start.line : 0).reduce((a, b) => Math.min(a, b));
-  formatCache.invalidateLines(doc.uri, minLine);
+  doc.update(params);
+  const minLine =
+    params.contentChanges
+    .map((a) => 'range' in a ? a.range.start.line : 0)
+    .reduce((a, b) => Math.min(a, b));
+  doc.formatCache.invalidateLinesAfter(minLine);
 });
 
 async function formatRange(document: TextDocumentIdentifier, range: Range, options: FormattingOptions) {
-  const doc = documents.get(document.uri)?.getText() ?? "";
-  const lines = doc.split("\n");
+  const doc = documents.get(document.uri);
+  if (!doc) return;
+  const lines = doc.document.getText().split("\n");
   const edits: TextEdit[] = [];
-  formatCache.forEachLine(document.uri, range.start.line, range.end.line, (state, lineNum) => {
+  doc.formatCache.forEachLine(range.start.line, range.end.line, (state, lineNum) => {
     //compare the calculated indentation to the current one
     let calcIndentation = indent(lines[lineNum], state, options.insertSpaces, options.tabSize);
     let currIndentation = lines[lineNum].match(/^\s*/)?.[0];
@@ -179,7 +113,7 @@ async function formatRange(document: TextDocumentIdentifier, range: Range, optio
   return edits;
 }
 
-connection.onDocumentFormatting(async (params, token, workDoneProgress, resultProgress) => {
+connection.onDocumentFormatting(async (params, _, __, ___) => {
   const fullRange: Range = {
     start: { line: 0, character: 0 },
     end: { line: Infinity, character: 0 }
@@ -187,7 +121,7 @@ connection.onDocumentFormatting(async (params, token, workDoneProgress, resultPr
   return formatRange(params.textDocument, fullRange, params.options);
 });
 
-connection.onDocumentRangeFormatting(async (params, token, workDoneProgress, resultProgress) => {
+connection.onDocumentRangeFormatting(async (params, _, __, ___) => {
   return formatRange(params.textDocument, params.range, params.options);
 });
 
@@ -198,22 +132,58 @@ connection.onDocumentOnTypeFormatting(async (params) => {
     start: { line: params.position.line, character: 0 },
     end: { line: params.position.line, character: params.position.character }
   };
-  let line = documents.get(params.textDocument.uri)?.getText(lineRange) ?? "";
+  let line = documents.get(params.textDocument.uri)?.document.getText(lineRange) ?? "";
   if (params.ch === "\n" || line.match(electricChars)) {
     return (formatRange(params.textDocument, lineRange, params.options));
   }
   return;
 });
 
+// go to definition request
+connection.onDefinition(async (params, _, __, ___) => {
+  const runtime = await lsp.result;
+	const TCH: TCH.Exports = runtime.modules['jsfile://pyret-lang/src/arr/compiler/ts-codegen-helpers.js'].jsmod;
+
+  const filename = deleteStart(params.textDocument.uri, 'file://');
+  const wlist = await analyzeFile(filename, documents, runtime);
+  const trace = wlist.pop()[1];
+  if (trace.length === 0) return [];
+  const nameResolution = trace[4].dict.result;
+  const names = getNames(runtime, nameResolution);
+  
+  let match: TCH.Variant<A.Srcloc, 'srcloc'>;
+  let ans: string;
+  for (let [name, uses] of names.entries()) {
+    for (let loc of uses) {
+      if (loc.$name === 'srcloc' && slocContains(loc, params.position) && slocLte(loc, match)) {
+        match = loc;
+        ans = name;
+      }
+    }
+  }
+
+  const env = nameResolution.dict.env.dict;
+  const bindings = TCH.mapFromMutableStringDict(env.bindings);
+  const modBindings = TCH.mapFromMutableStringDict(env['module-bindings']);
+  const srcloc = bindings.get(ans) ?? modBindings.get(ans);
+  if (!srcloc) return [];
+  return [
+    srcloc.dict.origin.dict['local-bind-site'],
+    srcloc.dict.origin.dict['definition-bind-site']
+  ]
+    .filter((v): v is TCH.Variant<A.Srcloc, 'srcloc'> => v.$name === 'srcloc') 
+    .map((v) => locationFromSrcloc(v));
+});
+
 connection.languages.semanticTokens.on(async (params, _, __, ___) => {
-  const runtime = await (lsp.result) as any;
-  const tokLib = unpackModule(runtime.modules["jsfile://pyret-lang/src/arr/compiler/pyret-tokenizer.js"]);
-  const parseLib = unpackModule(runtime.modules["jsfile://pyret-lang/src/arr/compiler/pyret-parser.js"]);
-  const tokenizer = tokLib.Tokenizer;
-  const commentTokenizer = tokLib.CommentTokenizer;
-  const keywords = tokLib.keywords ?? [];
-  const parser = parseLib.PyretGrammar;
-  const doc = documents.get(params.textDocument.uri)?.getText() ?? "";
+  const runtime = await lsp.result;
+  const PT: any = unpackModule(runtime.modules["jsfile://pyret-lang/src/arr/compiler/pyret-tokenizer.js"]);
+  const PP: any = unpackModule(runtime.modules["jsfile://pyret-lang/src/arr/compiler/pyret-parser.js"]);
+  const tokenizer = PT.Tokenizer;
+  const commentTokenizer = PT.CommentTokenizer;
+  const keywords = PT.keywords ?? [];
+  const parser = PP.PyretGrammar;
+  const doc = documents.get(params.textDocument.uri)?.document.getText() ?? "";
 
   const toks: SemTok[] = [];
   commentTokenizer.tokenizeFrom(doc);
@@ -317,8 +287,5 @@ connection.languages.semanticTokens.on(async (params, _, __, ___) => {
   return { data: data };
 });
 
-// Make the text document manager listen on the connection
-// for open, change and close text document events
-//documents.listen(connection);
 // Listen on the connection
 connection.listen();

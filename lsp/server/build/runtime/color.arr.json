@@ -1,0 +1,2814 @@
+{
+"provides": {
+    "modules": {},
+    "values": {
+        "gold": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "is-Color": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "Color"
+                    }],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                }
+            ]
+        },
+        "is-color": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "Color"
+                    }],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                }
+            ]
+        },
+        "misty-rose": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "pale-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "royal-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "olive-drab": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "turquoise": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "seashell": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "peach-puff": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "tan": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "lawn-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "khaki": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "orchid": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "snow": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "violet-red": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "gray": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "cyan": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "spring-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "color": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "arrow",
+                [
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    }
+                ],
+                [
+                    "data%",
+                    {
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "Color"
+                    },
+                    "color"
+                ]
+            ]
+        },
+        "cornflower-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "beige": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "sea-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-orange": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-salmon": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-slate-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-salmon": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "pale-violet-red": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "medium-slate-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "sky-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "medium-goldenrod": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "deep-sky-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "lavender": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-goldenrod": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "wheat": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "alice-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dim-gray": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "white": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "lemon-chiffon": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "magenta": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "ivory": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "medium-turquoise": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "tomato": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "yellow-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-turquoise": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "fire-brick": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "medium-forest-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-yellow": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-khaki": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "white-smoke": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "lime-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "ghost-white": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "rosy-brown": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dodger-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "silver": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "medium-sea-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-pink": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-sea-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "slate-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-slate-gray": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "orange": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-sea-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "salmon": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "powder-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-slate-gray": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "thistle": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "azure": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "floral-white": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "maroon": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "saddle-brown": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "coral": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "red": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "cadet-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "orange-red": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "blue-violet": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-magenta": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "transparent": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "indigo": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "sienna": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "medium-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-steel-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "forest-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "yellow": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "medium-purple": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "plum": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "blanched-almond": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "bisque": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "lime": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "medium-aquamarine": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "brown": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "chartreuse": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "pink": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-violet": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "hot-pink": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "navy": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "midnight-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "deep-pink": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "slate-gray": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "fuchsia": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "mint-cream": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "peru": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "burlywood": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "moccasin": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-olive-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-gray": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-coral": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-goldenrod-yellow": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "lavender-blush": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-cyan": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-red": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-gray": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-orchid": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "linen": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "dark-cyan": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "antique-white": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "pale-goldenrod": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "papaya-whip": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "olive": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "medium-orchid": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "medium-spring-green": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "honeydew": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "medium-violet-red": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "indian-red": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "chocolate": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "teal": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "aqua": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "steel-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "purple": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "light-sky-blue": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "old-lace": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "cornsilk": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "goldenrod": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "pale-turquoise": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "sandy-brown": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "gainsboro": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "green-yellow": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "aquamarine": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "violet": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "crimson": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "navajo-white": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        },
+        "black": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "typ": [
+                "data%",
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "Color"
+                },
+                "color"
+            ]
+        }
+    },
+    "datatypes": {
+        "Color": [
+            "data",
+            {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "Color",
+            [],
+            [[
+                    "color",
+                    [
+                        [
+                            "red",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }
+                        ],
+                        [
+                            "green",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }
+                        ],
+                        [
+                            "blue",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }
+                        ],
+                        [
+                            "alpha",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }
+                        ]
+                    ],
+                    {}
+                ]],
+            {
+                "alpha": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                },
+                "blue": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                },
+                "green": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                },
+                "red": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                }
+            }
+        ]
+    },
+    "aliases": {
+        "Color": {
+            "tag": "name",
+            "origin": { "import-type": "$ELF" },
+            "name": "Color"
+        }
+    }
+},
+"requires": [{
+        "import-type": "builtin",
+        "name": "primitive-types"
+    }],
+"nativeRequires": [],
+"theMap": ""
+}

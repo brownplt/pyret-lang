@@ -1,4 +1,4 @@
-import type { List, PFunction, PTuple, StringDict } from './ts-impl-types';
+import type { List, PFunction, PMethod, PTuple, StringDict } from './ts-impl-types';
 import type * as TCH from './ts-codegen-helpers';
 import type { Srcloc } from './ts-srcloc';
 
@@ -19,7 +19,14 @@ export type Name =
   | { $name: "s-global", dict: { 's': string } }
   | { $name: "s-module-global", dict: { 's': string } }
   | { $name: "s-type-global", dict: { 's': string } }
-  | { $name: "s-atom", dict: { 'base': string, 'serial': number } }
+  | {
+    $name: "s-atom",
+    dict: {
+      'base': string,
+      'serial': number,
+      'key': PMethod<Name, () => string>,
+    };
+  }
 
 export type AppInfo =
   | {

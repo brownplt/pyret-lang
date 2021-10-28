@@ -1,0 +1,1658 @@
+{
+"provides": {
+    "modules": {},
+    "values": {
+        "gold": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "gold",
+            "typ": false
+        },
+        "is-Color": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "is-Color",
+            "typ": false
+        },
+        "is-color": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "is-color",
+            "typ": false
+        },
+        "misty-rose": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "misty-rose",
+            "typ": false
+        },
+        "pale-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "pale-green",
+            "typ": false
+        },
+        "royal-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "royal-blue",
+            "typ": false
+        },
+        "olive-drab": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "olive-drab",
+            "typ": false
+        },
+        "turquoise": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "turquoise",
+            "typ": false
+        },
+        "seashell": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "seashell",
+            "typ": false
+        },
+        "peach-puff": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "peach-puff",
+            "typ": false
+        },
+        "tan": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "tan",
+            "typ": false
+        },
+        "lawn-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "lawn-green",
+            "typ": false
+        },
+        "khaki": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "khaki",
+            "typ": false
+        },
+        "orchid": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "orchid",
+            "typ": false
+        },
+        "snow": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "snow",
+            "typ": false
+        },
+        "violet-red": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "violet-red",
+            "typ": false
+        },
+        "gray": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "gray",
+            "typ": false
+        },
+        "green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "green",
+            "typ": false
+        },
+        "cyan": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "cyan",
+            "typ": false
+        },
+        "spring-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "spring-green",
+            "typ": false
+        },
+        "color": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "color",
+            "typ": false
+        },
+        "cornflower-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "cornflower-blue",
+            "typ": false
+        },
+        "beige": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "beige",
+            "typ": false
+        },
+        "sea-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "sea-green",
+            "typ": false
+        },
+        "dark-orange": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-orange",
+            "typ": false
+        },
+        "dark-salmon": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-salmon",
+            "typ": false
+        },
+        "dark-slate-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-slate-blue",
+            "typ": false
+        },
+        "light-salmon": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-salmon",
+            "typ": false
+        },
+        "pale-violet-red": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "pale-violet-red",
+            "typ": false
+        },
+        "medium-slate-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "medium-slate-blue",
+            "typ": false
+        },
+        "sky-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "sky-blue",
+            "typ": false
+        },
+        "medium-goldenrod": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "medium-goldenrod",
+            "typ": false
+        },
+        "deep-sky-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "deep-sky-blue",
+            "typ": false
+        },
+        "lavender": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "lavender",
+            "typ": false
+        },
+        "dark-goldenrod": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-goldenrod",
+            "typ": false
+        },
+        "wheat": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "wheat",
+            "typ": false
+        },
+        "alice-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "alice-blue",
+            "typ": false
+        },
+        "dim-gray": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dim-gray",
+            "typ": false
+        },
+        "white": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "white",
+            "typ": false
+        },
+        "lemon-chiffon": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "lemon-chiffon",
+            "typ": false
+        },
+        "magenta": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "magenta",
+            "typ": false
+        },
+        "ivory": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "ivory",
+            "typ": false
+        },
+        "medium-turquoise": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "medium-turquoise",
+            "typ": false
+        },
+        "tomato": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "tomato",
+            "typ": false
+        },
+        "yellow-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "yellow-green",
+            "typ": false
+        },
+        "dark-turquoise": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-turquoise",
+            "typ": false
+        },
+        "fire-brick": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "fire-brick",
+            "typ": false
+        },
+        "medium-forest-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "medium-forest-green",
+            "typ": false
+        },
+        "light-yellow": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-yellow",
+            "typ": false
+        },
+        "dark-khaki": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-khaki",
+            "typ": false
+        },
+        "white-smoke": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "white-smoke",
+            "typ": false
+        },
+        "lime-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "lime-green",
+            "typ": false
+        },
+        "ghost-white": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "ghost-white",
+            "typ": false
+        },
+        "rosy-brown": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "rosy-brown",
+            "typ": false
+        },
+        "dark-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-green",
+            "typ": false
+        },
+        "dodger-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dodger-blue",
+            "typ": false
+        },
+        "light-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-green",
+            "typ": false
+        },
+        "silver": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "silver",
+            "typ": false
+        },
+        "medium-sea-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "medium-sea-green",
+            "typ": false
+        },
+        "light-pink": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-pink",
+            "typ": false
+        },
+        "light-sea-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-sea-green",
+            "typ": false
+        },
+        "slate-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "slate-blue",
+            "typ": false
+        },
+        "dark-slate-gray": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-slate-gray",
+            "typ": false
+        },
+        "orange": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "orange",
+            "typ": false
+        },
+        "dark-sea-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-sea-green",
+            "typ": false
+        },
+        "salmon": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "salmon",
+            "typ": false
+        },
+        "powder-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "powder-blue",
+            "typ": false
+        },
+        "light-slate-gray": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-slate-gray",
+            "typ": false
+        },
+        "thistle": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "thistle",
+            "typ": false
+        },
+        "azure": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "azure",
+            "typ": false
+        },
+        "floral-white": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "floral-white",
+            "typ": false
+        },
+        "maroon": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "maroon",
+            "typ": false
+        },
+        "saddle-brown": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "saddle-brown",
+            "typ": false
+        },
+        "coral": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "coral",
+            "typ": false
+        },
+        "dark-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-blue",
+            "typ": false
+        },
+        "red": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "red",
+            "typ": false
+        },
+        "light-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-blue",
+            "typ": false
+        },
+        "cadet-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "cadet-blue",
+            "typ": false
+        },
+        "orange-red": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "orange-red",
+            "typ": false
+        },
+        "blue-violet": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "blue-violet",
+            "typ": false
+        },
+        "dark-magenta": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-magenta",
+            "typ": false
+        },
+        "transparent": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "transparent",
+            "typ": false
+        },
+        "indigo": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "indigo",
+            "typ": false
+        },
+        "sienna": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "sienna",
+            "typ": false
+        },
+        "medium-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "medium-blue",
+            "typ": false
+        },
+        "light-steel-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-steel-blue",
+            "typ": false
+        },
+        "forest-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "forest-green",
+            "typ": false
+        },
+        "yellow": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "yellow",
+            "typ": false
+        },
+        "medium-purple": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "medium-purple",
+            "typ": false
+        },
+        "plum": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "plum",
+            "typ": false
+        },
+        "blanched-almond": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "blanched-almond",
+            "typ": false
+        },
+        "bisque": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "bisque",
+            "typ": false
+        },
+        "lime": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "lime",
+            "typ": false
+        },
+        "medium-aquamarine": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "medium-aquamarine",
+            "typ": false
+        },
+        "brown": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "brown",
+            "typ": false
+        },
+        "chartreuse": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "chartreuse",
+            "typ": false
+        },
+        "pink": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "pink",
+            "typ": false
+        },
+        "dark-violet": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-violet",
+            "typ": false
+        },
+        "hot-pink": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "hot-pink",
+            "typ": false
+        },
+        "navy": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "navy",
+            "typ": false
+        },
+        "midnight-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "midnight-blue",
+            "typ": false
+        },
+        "deep-pink": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "deep-pink",
+            "typ": false
+        },
+        "slate-gray": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "slate-gray",
+            "typ": false
+        },
+        "fuchsia": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "fuchsia",
+            "typ": false
+        },
+        "mint-cream": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "mint-cream",
+            "typ": false
+        },
+        "peru": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "peru",
+            "typ": false
+        },
+        "burlywood": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "burlywood",
+            "typ": false
+        },
+        "moccasin": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "moccasin",
+            "typ": false
+        },
+        "blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "blue",
+            "typ": false
+        },
+        "dark-olive-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-olive-green",
+            "typ": false
+        },
+        "light-gray": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-gray",
+            "typ": false
+        },
+        "light-coral": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-coral",
+            "typ": false
+        },
+        "light-goldenrod-yellow": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-goldenrod-yellow",
+            "typ": false
+        },
+        "lavender-blush": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "lavender-blush",
+            "typ": false
+        },
+        "light-cyan": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-cyan",
+            "typ": false
+        },
+        "dark-red": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-red",
+            "typ": false
+        },
+        "dark-gray": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-gray",
+            "typ": false
+        },
+        "dark-orchid": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-orchid",
+            "typ": false
+        },
+        "linen": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "linen",
+            "typ": false
+        },
+        "dark-cyan": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "dark-cyan",
+            "typ": false
+        },
+        "antique-white": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "antique-white",
+            "typ": false
+        },
+        "pale-goldenrod": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "pale-goldenrod",
+            "typ": false
+        },
+        "papaya-whip": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "papaya-whip",
+            "typ": false
+        },
+        "olive": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "olive",
+            "typ": false
+        },
+        "medium-orchid": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "medium-orchid",
+            "typ": false
+        },
+        "medium-spring-green": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "medium-spring-green",
+            "typ": false
+        },
+        "honeydew": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "honeydew",
+            "typ": false
+        },
+        "medium-violet-red": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "medium-violet-red",
+            "typ": false
+        },
+        "indian-red": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "indian-red",
+            "typ": false
+        },
+        "chocolate": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "chocolate",
+            "typ": false
+        },
+        "teal": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "teal",
+            "typ": false
+        },
+        "aqua": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "aqua",
+            "typ": false
+        },
+        "steel-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "steel-blue",
+            "typ": false
+        },
+        "purple": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "purple",
+            "typ": false
+        },
+        "light-sky-blue": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "light-sky-blue",
+            "typ": false
+        },
+        "old-lace": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "old-lace",
+            "typ": false
+        },
+        "cornsilk": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "cornsilk",
+            "typ": false
+        },
+        "goldenrod": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "goldenrod",
+            "typ": false
+        },
+        "pale-turquoise": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "pale-turquoise",
+            "typ": false
+        },
+        "sandy-brown": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "sandy-brown",
+            "typ": false
+        },
+        "gainsboro": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "gainsboro",
+            "typ": false
+        },
+        "green-yellow": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "green-yellow",
+            "typ": false
+        },
+        "aquamarine": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "aquamarine",
+            "typ": false
+        },
+        "violet": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "violet",
+            "typ": false
+        },
+        "crimson": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "crimson",
+            "typ": false
+        },
+        "navajo-white": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "navajo-white",
+            "typ": false
+        },
+        "black": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "original-name": "black",
+            "typ": false
+        }
+    },
+    "datatypes": {
+        "Color": [
+            "data-alias",
+            {
+                "local-bind-site": ["builtin:\/\/color"],
+                "definition-bind-site": ["builtin:\/\/color"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/color"
+            },
+            "Color"
+        ]
+    },
+    "aliases": {
+        "Color": {
+            "tag": "name",
+            "origin": {
+                "import-type": "uri",
+                "uri": "builtin:\/\/color"
+            },
+            "name": "Color"
+        }
+    }
+},
+"requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    },
+    {
+        "import-type": "builtin",
+        "name": "color"
+    }
+],
+"nativeRequires": [],
+"theMap": ""
+}

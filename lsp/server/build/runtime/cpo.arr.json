@@ -1,0 +1,1792 @@
+{
+"provides": {
+    "modules": {
+        "lists": { "uri": "builtin:\/\/lists" },
+        "option": { "uri": "builtin:\/\/option" },
+        "sets": { "uri": "builtin:\/\/sets" }
+    },
+    "values": {
+        "within-rel-now": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within-rel-now",
+            "typ": false
+        },
+        "each2_n": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "each2_n",
+            "typ": false
+        },
+        "num-round-even": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-round-even",
+            "typ": false
+        },
+        "num-cos": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-cos",
+            "typ": false
+        },
+        "string-tonumber": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-to-number",
+            "typ": false
+        },
+        "fold": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "fold",
+            "typ": false
+        },
+        "each3_n": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "each3_n",
+            "typ": false
+        },
+        "each": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "each",
+            "typ": false
+        },
+        "is-List": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "is-List",
+            "typ": false
+        },
+        "string-length": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-length",
+            "typ": false
+        },
+        "num-is-integer": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-is-integer",
+            "typ": false
+        },
+        "each4_n": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "each4_n",
+            "typ": false
+        },
+        "empty-set": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "original-name": "empty-set",
+            "typ": false
+        },
+        "raw-array-map": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array-map",
+            "typ": false
+        },
+        "within-abs3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within-abs3",
+            "typ": false
+        },
+        "map2_n": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "map2_n",
+            "typ": false
+        },
+        "array-to-list-now": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "raw-array-to-list",
+            "typ": false
+        },
+        "num-floor": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-floor",
+            "typ": false
+        },
+        "string-explode": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-explode",
+            "typ": false
+        },
+        "map3_n": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "map3_n",
+            "typ": false
+        },
+        "string-to-code-point": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-to-code-point",
+            "typ": false
+        },
+        "split-at": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "split-at",
+            "typ": false
+        },
+        "map4_n": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "map4_n",
+            "typ": false
+        },
+        "num-round": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-round",
+            "typ": false
+        },
+        "num-atan": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-atan",
+            "typ": false
+        },
+        "_times": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "_times",
+            "typ": false
+        },
+        "range-by": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "range-by",
+            "typ": false
+        },
+        "num-sqrt": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-sqrt",
+            "typ": false
+        },
+        "within3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within-rel3",
+            "typ": false
+        },
+        "equal-always": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "equal-always",
+            "typ": false
+        },
+        "num-is-roughnum": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-is-roughnum",
+            "typ": false
+        },
+        "raw-array-set": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array-set",
+            "typ": false
+        },
+        "num-is-rational": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-is-rational",
+            "typ": false
+        },
+        "partition": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "partition",
+            "typ": false
+        },
+        "is-empty": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "is-empty",
+            "typ": false
+        },
+        "string-tolower": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-tolower",
+            "typ": false
+        },
+        "array-get-now": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array-get",
+            "typ": false
+        },
+        "within": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within",
+            "typ": false
+        },
+        "string-toupper": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-toupper",
+            "typ": false
+        },
+        "num-abs": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-abs",
+            "typ": false
+        },
+        "array-of": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array-of",
+            "typ": false
+        },
+        "map_n": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "map_n",
+            "typ": false
+        },
+        "equal-always3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "equal-always3",
+            "typ": false
+        },
+        "string-to-lower": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-to-lower",
+            "typ": false
+        },
+        "num-min": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-min",
+            "typ": false
+        },
+        "num-atan2": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-atan2",
+            "typ": false
+        },
+        "string-to-upper": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-to-upper",
+            "typ": false
+        },
+        "any": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "any",
+            "typ": false
+        },
+        "raise": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "raise",
+            "typ": false
+        },
+        "empty": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "empty",
+            "typ": false
+        },
+        "string-to-code-points": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-to-code-points",
+            "typ": false
+        },
+        "num-equal": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-equal",
+            "typ": false
+        },
+        "array-from-list": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "to-raw-array",
+            "typ": false
+        },
+        "print": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "print",
+            "typ": false
+        },
+        "num-sqr": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-sqr",
+            "typ": false
+        },
+        "num-acos": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-acos",
+            "typ": false
+        },
+        "num-is-fixnum": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-is-fixnum",
+            "typ": false
+        },
+        "num-truncate": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-truncate",
+            "typ": false
+        },
+        "string-char-at": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-char-at",
+            "typ": false
+        },
+        "string-index-of": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-index-of",
+            "typ": false
+        },
+        "within-abs": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within-abs",
+            "typ": false
+        },
+        "each_n": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "each_n",
+            "typ": false
+        },
+        "raw-array-of": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array-of",
+            "typ": false
+        },
+        "fold2": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "fold2",
+            "typ": false
+        },
+        "num-is-negative": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-is-negative",
+            "typ": false
+        },
+        "num-sin": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-sin",
+            "typ": false
+        },
+        "each2": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "each2",
+            "typ": false
+        },
+        "num-is-non-negative": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-is-non-negative",
+            "typ": false
+        },
+        "_minus": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "_minus",
+            "typ": false
+        },
+        "fold3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "fold3",
+            "typ": false
+        },
+        "num-within": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-within-rel",
+            "typ": false
+        },
+        "string-split-all": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-split-all",
+            "typ": false
+        },
+        "each3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "each3",
+            "typ": false
+        },
+        "fold4": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "fold4",
+            "typ": false
+        },
+        "num-tostring": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-to-string",
+            "typ": false
+        },
+        "tree-set": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "original-name": "tree-set",
+            "typ": false
+        },
+        "empty-tree-set": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "original-name": "empty-tree-set",
+            "typ": false
+        },
+        "each4": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "each4",
+            "typ": false
+        },
+        "list-set": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "original-name": "list-set",
+            "typ": false
+        },
+        "not": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "not",
+            "typ": false
+        },
+        "empty-list-set": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "original-name": "empty-list-set",
+            "typ": false
+        },
+        "within-rel-now3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within-rel-now3",
+            "typ": false
+        },
+        "raw-array": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array",
+            "typ": false
+        },
+        "some": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/option"],
+                "definition-bind-site": ["builtin:\/\/option"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/option"
+            },
+            "original-name": "some",
+            "typ": false
+        },
+        "within-now": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within-rel-now",
+            "typ": false
+        },
+        "num-is-non-positive": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-is-non-positive",
+            "typ": false
+        },
+        "identical": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "identical",
+            "typ": false
+        },
+        "num-is-positive": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-is-positive",
+            "typ": false
+        },
+        "string-substring": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-substring",
+            "typ": false
+        },
+        "raw-array-build": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array-build",
+            "typ": false
+        },
+        "string-append": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-append",
+            "typ": false
+        },
+        "num-ceiling": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-ceiling",
+            "typ": false
+        },
+        "list-to-tree-set": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "original-name": "list-to-tree-set",
+            "typ": false
+        },
+        "map2": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "map2",
+            "typ": false
+        },
+        "list-to-list-set": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "original-name": "list-to-list-set",
+            "typ": false
+        },
+        "equal-now3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "equal-now3",
+            "typ": false
+        },
+        "num-exp": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-exp",
+            "typ": false
+        },
+        "time-now": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "time-now",
+            "typ": false
+        },
+        "is-array": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "is-raw-array",
+            "typ": false
+        },
+        "within-rel": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within-rel",
+            "typ": false
+        },
+        "num-within-abs": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-within-abs",
+            "typ": false
+        },
+        "num-to-string-digits": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-to-string-digits",
+            "typ": false
+        },
+        "string-from-code-point": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-from-code-point",
+            "typ": false
+        },
+        "map3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "map3",
+            "typ": false
+        },
+        "string-repeat": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-repeat",
+            "typ": false
+        },
+        "array-set-now": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array-set",
+            "typ": false
+        },
+        "is-some": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/option"],
+                "definition-bind-site": ["builtin:\/\/option"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/option"
+            },
+            "original-name": "is-some",
+            "typ": false
+        },
+        "string-replace": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-replace",
+            "typ": false
+        },
+        "_divide": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "_divide",
+            "typ": false
+        },
+        "num-exact": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-exact",
+            "typ": false
+        },
+        "map4": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "map4",
+            "typ": false
+        },
+        "string-equal": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-equal",
+            "typ": false
+        },
+        "is-Option": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/option"],
+                "definition-bind-site": ["builtin:\/\/option"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/option"
+            },
+            "original-name": "is-Option",
+            "typ": false
+        },
+        "none": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/option"],
+                "definition-bind-site": ["builtin:\/\/option"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/option"
+            },
+            "original-name": "none",
+            "typ": false
+        },
+        "num-to-roughnum": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-to-roughnum",
+            "typ": false
+        },
+        "filter": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "filter",
+            "typ": false
+        },
+        "_lessthan": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "_lessthan",
+            "typ": false
+        },
+        "num-to-rational": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-to-rational",
+            "typ": false
+        },
+        "_greaterequal": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "_greaterequal",
+            "typ": false
+        },
+        "find": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "find",
+            "typ": false
+        },
+        "array": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array",
+            "typ": false
+        },
+        "_plus": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "_plus",
+            "typ": false
+        },
+        "within-abs-now": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within-abs-now",
+            "typ": false
+        },
+        "array-length": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array-length",
+            "typ": false
+        },
+        "num-tan": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-tan",
+            "typ": false
+        },
+        "raw-array-fold": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array-fold",
+            "typ": false
+        },
+        "within-abs-now3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within-abs-now3",
+            "typ": false
+        },
+        "link": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "link",
+            "typ": false
+        },
+        "string-contains": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-contains",
+            "typ": false
+        },
+        "repeat": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "repeat",
+            "typ": false
+        },
+        "is-none": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/option"],
+                "definition-bind-site": ["builtin:\/\/option"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/option"
+            },
+            "original-name": "is-none",
+            "typ": false
+        },
+        "map": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "map",
+            "typ": false
+        },
+        "string-from-code-points": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-from-code-points",
+            "typ": false
+        },
+        "num-to-string": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-to-string",
+            "typ": false
+        },
+        "_greaterthan": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "_greaterthan",
+            "typ": false
+        },
+        "within-rel3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within-rel3",
+            "typ": false
+        },
+        "_lessequal": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "_lessequal",
+            "typ": false
+        },
+        "num-log": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-log",
+            "typ": false
+        },
+        "equal-now": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "equal-now",
+            "typ": false
+        },
+        "range": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "range",
+            "typ": false
+        },
+        "raw-array-get": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array-get",
+            "typ": false
+        },
+        "num-modulo": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-modulo",
+            "typ": false
+        },
+        "num-max": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-max",
+            "typ": false
+        },
+        "is-link": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "is-link",
+            "typ": false
+        },
+        "list": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/lists"],
+                "definition-bind-site": ["builtin:\/\/lists"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/lists"
+            },
+            "original-name": "list",
+            "typ": false
+        },
+        "num-within-rel": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-within-rel",
+            "typ": false
+        },
+        "identical3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/global"],
+                "definition-bind-site": ["builtin:\/\/global"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/global"
+            },
+            "original-name": "identical3",
+            "typ": false
+        },
+        "string-split": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-split",
+            "typ": false
+        },
+        "num-asin": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-asin",
+            "typ": false
+        },
+        "num-expt": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "num-expt",
+            "typ": false
+        },
+        "string-to-number": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/string"],
+                "definition-bind-site": ["builtin:\/\/string"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/string"
+            },
+            "original-name": "string-to-number",
+            "typ": false
+        },
+        "within-now3": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/number"],
+                "definition-bind-site": ["builtin:\/\/number"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/number"
+            },
+            "original-name": "within-rel-now3",
+            "typ": false
+        },
+        "list-to-set": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/sets"],
+                "definition-bind-site": ["builtin:\/\/sets"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/sets"
+            },
+            "original-name": "list-to-set",
+            "typ": false
+        },
+        "raw-array-length": {
+            "bind": "alias",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/raw-array"],
+                "definition-bind-site": ["builtin:\/\/raw-array"],
+                "new-definition": false,
+                "uri-of-definition": "builtin:\/\/raw-array"
+            },
+            "original-name": "raw-array-length",
+            "typ": false
+        }
+    },
+    "datatypes": {},
+    "aliases": {
+        "List": {
+            "tag": "name",
+            "origin": {
+                "import-type": "uri",
+                "uri": "builtin:\/\/lists"
+            },
+            "name": "List"
+        },
+        "Option": {
+            "tag": "name",
+            "origin": {
+                "import-type": "uri",
+                "uri": "builtin:\/\/option"
+            },
+            "name": "Option"
+        },
+        "Set": {
+            "tag": "name",
+            "origin": {
+                "import-type": "uri",
+                "uri": "builtin:\/\/sets"
+            },
+            "name": "Set"
+        }
+    }
+},
+"requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    },
+    {
+        "import-type": "builtin",
+        "name": "raw-array"
+    },
+    {
+        "import-type": "builtin",
+        "name": "runtime-global"
+    },
+    {
+        "import-type": "builtin",
+        "name": "option"
+    },
+    {
+        "import-type": "builtin",
+        "name": "either"
+    },
+    {
+        "import-type": "builtin",
+        "name": "equality"
+    },
+    {
+        "import-type": "builtin",
+        "name": "number"
+    },
+    {
+        "import-type": "builtin",
+        "name": "list-perf"
+    },
+    {
+        "import-type": "builtin",
+        "name": "lists"
+    },
+    {
+        "import-type": "builtin",
+        "name": "pick"
+    },
+    {
+        "import-type": "builtin",
+        "name": "sets"
+    },
+    {
+        "import-type": "builtin",
+        "name": "tables"
+    },
+    {
+        "import-type": "builtin",
+        "name": "global"
+    },
+    {
+        "import-type": "builtin",
+        "name": "string"
+    }
+],
+"nativeRequires": [],
+"theMap": ""
+}

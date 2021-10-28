@@ -1,0 +1,2346 @@
+{
+"provides": {
+    "modules": {},
+    "values": {
+        "bar-chart-series": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [[
+                        "record",
+                        {
+                            "has-legend": {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Boolean"
+                            },
+                            "legends": [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "RawArray"
+                                },
+                                [{
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "String"
+                                    }]
+                            ],
+                            "tab": [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "RawArray"
+                                },
+                                [[
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/primitive-types"
+                                            },
+                                            "name": "RawArray"
+                                        },
+                                        ["tany"]
+                                    ]]
+                            ]
+                        }
+                    ]],
+                [
+                    "data%",
+                    {
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "DataSeries"
+                    },
+                    "bar-chart-series"
+                ]
+            ]
+        },
+        "default-chart-window-object": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "record",
+                {
+                    "render": [
+                        "arrow",
+                        [],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/image"
+                            },
+                            "name": "Image"
+                        }
+                    ],
+                    "height": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    "width": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    "title": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "String"
+                    }
+                }
+            ]
+        },
+        "is-bar-chart-series": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "DataSeries"
+                    }],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                }
+            ]
+        },
+        "check-chart-window": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [[
+                        "record",
+                        {
+                            "render": [
+                                "arrow",
+                                [],
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/image"
+                                    },
+                                    "name": "Image"
+                                }
+                            ],
+                            "height": {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            },
+                            "width": {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            },
+                            "title": {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "String"
+                            }
+                        }
+                    ]],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Nothing"
+                }
+            ]
+        },
+        "is-DataSeries": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "DataSeries"
+                    }],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                }
+            ]
+        },
+        "render-chart": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "DataSeries"
+                    }],
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "ChartWindow"
+                }
+            ]
+        },
+        "default-bar-chart-window-object": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "record",
+                {
+                    "render": [
+                        "arrow",
+                        [],
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/image"
+                            },
+                            "name": "Image"
+                        }
+                    ],
+                    "height": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    "width": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    "title": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "String"
+                    },
+                    "y-max": [
+                        "forall",
+                        ["atom#atom#a#10#5"],
+                        [
+                            "data%",
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/option"
+                                    },
+                                    "name": "Option"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#atom#a#10#5"
+                                    ]]
+                            ],
+                            "none"
+                        ]
+                    ],
+                    "y-min": [
+                        "forall",
+                        ["atom#atom#a#10#5"],
+                        [
+                            "data%",
+                            [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/option"
+                                    },
+                                    "name": "Option"
+                                },
+                                [[
+                                        "tid",
+                                        "atom#atom#a#10#5"
+                                    ]]
+                            ],
+                            "none"
+                        ]
+                    ],
+                    "y-axis": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "String"
+                    },
+                    "x-axis": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "String"
+                    }
+                }
+            ]
+        },
+        "raw-array-from-list": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [[
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        ["tany"]
+                    ]],
+                [
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "RawArray"
+                    },
+                    ["tany"]
+                ]
+            ]
+        },
+        "is-ChartWindow": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "ChartWindow"
+                    }],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                }
+            ]
+        },
+        "default-bar-chart-series": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "record",
+                {}
+            ]
+        },
+        "default-bounding-box": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "record",
+                {
+                    "is-valid": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Boolean"
+                    },
+                    "y-max": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    "y-min": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    "x-max": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    "x-min": {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    }
+                }
+            ]
+        },
+        "compute-max": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [[
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "RawArray"
+                        },
+                        [{
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }]
+                    ]],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                }
+            ]
+        },
+        "to-table2": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        ["tany"]
+                    ],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        ["tany"]
+                    ]
+                ],
+                [
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "RawArray"
+                    },
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "RawArray"
+                            },
+                            ["tany"]
+                        ]]
+                ]
+            ]
+        },
+        "map2": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        ["tany"]
+                    ],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        ["tany"]
+                    ]
+                ],
+                [
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/lists"
+                        },
+                        "name": "List"
+                    },
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "RawArray"
+                            },
+                            ["tany"]
+                        ]]
+                ]
+            ]
+        },
+        "bar-chart-from-list": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        [{
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "String"
+                            }]
+                    ],
+                    [
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        [{
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }]
+                    ]
+                ],
+                {
+                    "tag": "name",
+                    "origin": { "import-type": "$ELF" },
+                    "name": "DataSeries"
+                }
+            ]
+        },
+        "bar-chart-window": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [[
+                        "record",
+                        {
+                            "y-max": [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/option"
+                                    },
+                                    "name": "Option"
+                                },
+                                [{
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "Number"
+                                    }]
+                            ],
+                            "y-min": [
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/option"
+                                    },
+                                    "name": "Option"
+                                },
+                                [{
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "Number"
+                                    }]
+                            ],
+                            "y-axis": {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "String"
+                            },
+                            "x-axis": {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "String"
+                            },
+                            "render": [
+                                "arrow",
+                                [],
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/image"
+                                    },
+                                    "name": "Image"
+                                }
+                            ],
+                            "height": {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            },
+                            "width": {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            },
+                            "title": {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "String"
+                            }
+                        }
+                    ]],
+                [
+                    "data%",
+                    {
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "ChartWindow"
+                    },
+                    "bar-chart-window"
+                ]
+            ]
+        },
+        "get-bounding-box": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [[
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/lists"
+                            },
+                            "name": "List"
+                        },
+                        [[
+                                "tyapp",
+                                {
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "RawArray"
+                                },
+                                [{
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "Number"
+                                    }]
+                            ]]
+                    ]],
+                [
+                    "record",
+                    {
+                        "is-valid": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Boolean"
+                        },
+                        "y-max": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        "y-min": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        "x-max": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        "x-min": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }
+                    }
+                ]
+            ]
+        },
+        "posn": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    },
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "Number"
+                    }
+                ],
+                [
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "RawArray"
+                    },
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }]
+                ]
+            ]
+        },
+        "is-bar-chart-window": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [{
+                        "tag": "name",
+                        "origin": { "import-type": "$ELF" },
+                        "name": "ChartWindow"
+                    }],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                }
+            ]
+        },
+        "compute-min": {
+            "bind": "let",
+            "origin": {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "typ": [
+                "arrow",
+                [[
+                        "tyapp",
+                        {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "RawArray"
+                        },
+                        [{
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "Number"
+                            }]
+                    ]],
+                {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                }
+            ]
+        }
+    },
+    "datatypes": {
+        "DataSeries": [
+            "data",
+            {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "DataSeries",
+            [],
+            [[
+                    "bar-chart-series",
+                    [[
+                            "obj",
+                            [
+                                "record",
+                                {
+                                    "has-legend": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "Boolean"
+                                    },
+                                    "legends": [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/primitive-types"
+                                            },
+                                            "name": "RawArray"
+                                        },
+                                        [{
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "String"
+                                            }]
+                                    ],
+                                    "tab": [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/primitive-types"
+                                            },
+                                            "name": "RawArray"
+                                        },
+                                        [[
+                                                "tyapp",
+                                                {
+                                                    "tag": "name",
+                                                    "origin": {
+                                                        "import-type": "uri",
+                                                        "uri": "builtin:\/\/primitive-types"
+                                                    },
+                                                    "name": "RawArray"
+                                                },
+                                                ["tany"]
+                                            ]]
+                                    ]
+                                }
+                            ]
+                        ]],
+                    {
+                        "constr": [
+                            "arrow",
+                            [],
+                            [
+                                "arrow",
+                                [[
+                                        "record",
+                                        {
+                                            "has-legend": {
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "Boolean"
+                                            },
+                                            "legends": [
+                                                "tyapp",
+                                                {
+                                                    "tag": "name",
+                                                    "origin": {
+                                                        "import-type": "uri",
+                                                        "uri": "builtin:\/\/primitive-types"
+                                                    },
+                                                    "name": "RawArray"
+                                                },
+                                                [{
+                                                        "tag": "name",
+                                                        "origin": {
+                                                            "import-type": "uri",
+                                                            "uri": "builtin:\/\/primitive-types"
+                                                        },
+                                                        "name": "String"
+                                                    }]
+                                            ],
+                                            "tab": [
+                                                "tyapp",
+                                                {
+                                                    "tag": "name",
+                                                    "origin": {
+                                                        "import-type": "uri",
+                                                        "uri": "builtin:\/\/primitive-types"
+                                                    },
+                                                    "name": "RawArray"
+                                                },
+                                                [[
+                                                        "tyapp",
+                                                        {
+                                                            "tag": "name",
+                                                            "origin": {
+                                                                "import-type": "uri",
+                                                                "uri": "builtin:\/\/primitive-types"
+                                                            },
+                                                            "name": "RawArray"
+                                                        },
+                                                        ["tany"]
+                                                    ]]
+                                            ]
+                                        }
+                                    ]],
+                                [
+                                    "data%",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "DataSeries"
+                                    },
+                                    "bar-chart-series"
+                                ]
+                            ]
+                        ],
+                        "is-single": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Boolean"
+                        }
+                    }
+                ]],
+            {
+                "constr": [
+                    "arrow",
+                    [],
+                    [
+                        "arrow",
+                        [[
+                                "record",
+                                {
+                                    "has-legend": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "Boolean"
+                                    },
+                                    "legends": [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/primitive-types"
+                                            },
+                                            "name": "RawArray"
+                                        },
+                                        [{
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "String"
+                                            }]
+                                    ],
+                                    "tab": [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/primitive-types"
+                                            },
+                                            "name": "RawArray"
+                                        },
+                                        [[
+                                                "tyapp",
+                                                {
+                                                    "tag": "name",
+                                                    "origin": {
+                                                        "import-type": "uri",
+                                                        "uri": "builtin:\/\/primitive-types"
+                                                    },
+                                                    "name": "RawArray"
+                                                },
+                                                ["tany"]
+                                            ]]
+                                    ]
+                                }
+                            ]],
+                        [
+                            "data%",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "DataSeries"
+                            },
+                            "bar-chart-series"
+                        ]
+                    ]
+                ],
+                "is-single": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                },
+                "obj": [
+                    "record",
+                    {
+                        "has-legend": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Boolean"
+                        },
+                        "legends": [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "RawArray"
+                            },
+                            [{
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "String"
+                                }]
+                        ],
+                        "tab": [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "RawArray"
+                            },
+                            [[
+                                    "tyapp",
+                                    {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "RawArray"
+                                    },
+                                    ["tany"]
+                                ]]
+                        ]
+                    }
+                ]
+            }
+        ],
+        "ChartWindow": [
+            "data",
+            {
+                "local-bind-site": ["builtin:\/\/chart"],
+                "definition-bind-site": ["builtin:\/\/chart"],
+                "new-definition": true,
+                "uri-of-definition": "builtin:\/\/chart"
+            },
+            "ChartWindow",
+            [],
+            [[
+                    "bar-chart-window",
+                    [[
+                            "obj",
+                            [
+                                "record",
+                                {
+                                    "y-max": [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/option"
+                                            },
+                                            "name": "Option"
+                                        },
+                                        [{
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "Number"
+                                            }]
+                                    ],
+                                    "y-min": [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/option"
+                                            },
+                                            "name": "Option"
+                                        },
+                                        [{
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "Number"
+                                            }]
+                                    ],
+                                    "y-axis": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "String"
+                                    },
+                                    "x-axis": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "String"
+                                    },
+                                    "render": [
+                                        "arrow",
+                                        [],
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/image"
+                                            },
+                                            "name": "Image"
+                                        }
+                                    ],
+                                    "height": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "Number"
+                                    },
+                                    "width": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "Number"
+                                    },
+                                    "title": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "String"
+                                    }
+                                }
+                            ]
+                        ]],
+                    {
+                        "y-max": [
+                            "arrow",
+                            [{
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "Number"
+                                }],
+                            [
+                                "data%",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "ChartWindow"
+                                },
+                                "bar-chart-window"
+                            ]
+                        ],
+                        "y-min": [
+                            "arrow",
+                            [{
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "Number"
+                                }],
+                            [
+                                "data%",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "ChartWindow"
+                                },
+                                "bar-chart-window"
+                            ]
+                        ],
+                        "y-axis": [
+                            "arrow",
+                            [{
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "String"
+                                }],
+                            [
+                                "data%",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "ChartWindow"
+                                },
+                                "bar-chart-window"
+                            ]
+                        ],
+                        "x-axis": [
+                            "arrow",
+                            [{
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "String"
+                                }],
+                            [
+                                "data%",
+                                {
+                                    "tag": "name",
+                                    "origin": { "import-type": "$ELF" },
+                                    "name": "ChartWindow"
+                                },
+                                "bar-chart-window"
+                            ]
+                        ],
+                        "constr": [
+                            "arrow",
+                            [],
+                            [
+                                "arrow",
+                                [[
+                                        "record",
+                                        {
+                                            "y-max": [
+                                                "tyapp",
+                                                {
+                                                    "tag": "name",
+                                                    "origin": {
+                                                        "import-type": "uri",
+                                                        "uri": "builtin:\/\/option"
+                                                    },
+                                                    "name": "Option"
+                                                },
+                                                [{
+                                                        "tag": "name",
+                                                        "origin": {
+                                                            "import-type": "uri",
+                                                            "uri": "builtin:\/\/primitive-types"
+                                                        },
+                                                        "name": "Number"
+                                                    }]
+                                            ],
+                                            "y-min": [
+                                                "tyapp",
+                                                {
+                                                    "tag": "name",
+                                                    "origin": {
+                                                        "import-type": "uri",
+                                                        "uri": "builtin:\/\/option"
+                                                    },
+                                                    "name": "Option"
+                                                },
+                                                [{
+                                                        "tag": "name",
+                                                        "origin": {
+                                                            "import-type": "uri",
+                                                            "uri": "builtin:\/\/primitive-types"
+                                                        },
+                                                        "name": "Number"
+                                                    }]
+                                            ],
+                                            "y-axis": {
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "String"
+                                            },
+                                            "x-axis": {
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "String"
+                                            },
+                                            "render": [
+                                                "arrow",
+                                                [],
+                                                {
+                                                    "tag": "name",
+                                                    "origin": {
+                                                        "import-type": "uri",
+                                                        "uri": "builtin:\/\/image"
+                                                    },
+                                                    "name": "Image"
+                                                }
+                                            ],
+                                            "height": {
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "Number"
+                                            },
+                                            "width": {
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "Number"
+                                            },
+                                            "title": {
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "String"
+                                            }
+                                        }
+                                    ]],
+                                [
+                                    "data%",
+                                    {
+                                        "tag": "name",
+                                        "origin": { "import-type": "$ELF" },
+                                        "name": "ChartWindow"
+                                    },
+                                    "bar-chart-window"
+                                ]
+                            ]
+                        ]
+                    }
+                ]],
+            {
+                "display": [
+                    "arrow",
+                    [],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/image"
+                        },
+                        "name": "Image"
+                    }
+                ],
+                "get-image": [
+                    "arrow",
+                    [],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/image"
+                        },
+                        "name": "Image"
+                    }
+                ],
+                "width": [
+                    "arrow",
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }],
+                    [
+                        "data%",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "ChartWindow"
+                        },
+                        "bar-chart-window"
+                    ]
+                ],
+                "height": [
+                    "arrow",
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }],
+                    [
+                        "data%",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "ChartWindow"
+                        },
+                        "bar-chart-window"
+                    ]
+                ],
+                "constr": [
+                    "arrow",
+                    [],
+                    [
+                        "arrow",
+                        [[
+                                "record",
+                                {
+                                    "y-max": [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/option"
+                                            },
+                                            "name": "Option"
+                                        },
+                                        [{
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "Number"
+                                            }]
+                                    ],
+                                    "y-min": [
+                                        "tyapp",
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/option"
+                                            },
+                                            "name": "Option"
+                                        },
+                                        [{
+                                                "tag": "name",
+                                                "origin": {
+                                                    "import-type": "uri",
+                                                    "uri": "builtin:\/\/primitive-types"
+                                                },
+                                                "name": "Number"
+                                            }]
+                                    ],
+                                    "y-axis": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "String"
+                                    },
+                                    "x-axis": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "String"
+                                    },
+                                    "render": [
+                                        "arrow",
+                                        [],
+                                        {
+                                            "tag": "name",
+                                            "origin": {
+                                                "import-type": "uri",
+                                                "uri": "builtin:\/\/image"
+                                            },
+                                            "name": "Image"
+                                        }
+                                    ],
+                                    "height": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "Number"
+                                    },
+                                    "width": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "Number"
+                                    },
+                                    "title": {
+                                        "tag": "name",
+                                        "origin": {
+                                            "import-type": "uri",
+                                            "uri": "builtin:\/\/primitive-types"
+                                        },
+                                        "name": "String"
+                                    }
+                                }
+                            ]],
+                        [
+                            "data%",
+                            {
+                                "tag": "name",
+                                "origin": { "import-type": "$ELF" },
+                                "name": "ChartWindow"
+                            },
+                            "bar-chart-window"
+                        ]
+                    ]
+                ],
+                "y-max": [
+                    "arrow",
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }],
+                    [
+                        "data%",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "ChartWindow"
+                        },
+                        "bar-chart-window"
+                    ]
+                ],
+                "y-axis": [
+                    "arrow",
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "String"
+                        }],
+                    [
+                        "data%",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "ChartWindow"
+                        },
+                        "bar-chart-window"
+                    ]
+                ],
+                "x-axis": [
+                    "arrow",
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "String"
+                        }],
+                    [
+                        "data%",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "ChartWindow"
+                        },
+                        "bar-chart-window"
+                    ]
+                ],
+                "obj": [
+                    "record",
+                    {
+                        "y-max": [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/option"
+                                },
+                                "name": "Option"
+                            },
+                            [{
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "Number"
+                                }]
+                        ],
+                        "y-min": [
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/option"
+                                },
+                                "name": "Option"
+                            },
+                            [{
+                                    "tag": "name",
+                                    "origin": {
+                                        "import-type": "uri",
+                                        "uri": "builtin:\/\/primitive-types"
+                                    },
+                                    "name": "Number"
+                                }]
+                        ],
+                        "y-axis": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "String"
+                        },
+                        "x-axis": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "String"
+                        },
+                        "render": [
+                            "arrow",
+                            [],
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/image"
+                                },
+                                "name": "Image"
+                            }
+                        ],
+                        "height": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        "width": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        },
+                        "title": {
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "String"
+                        }
+                    }
+                ],
+                "title": [
+                    "arrow",
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "String"
+                        }],
+                    [
+                        "data%",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "ChartWindow"
+                        },
+                        "bar-chart-window"
+                    ]
+                ],
+                "y-min": [
+                    "arrow",
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }],
+                    [
+                        "data%",
+                        {
+                            "tag": "name",
+                            "origin": { "import-type": "$ELF" },
+                            "name": "ChartWindow"
+                        },
+                        "bar-chart-window"
+                    ]
+                ]
+            }
+        ]
+    },
+    "aliases": {
+        "DataSeries": {
+            "tag": "name",
+            "origin": { "import-type": "$ELF" },
+            "name": "DataSeries"
+        },
+        "ChartWindow": {
+            "tag": "name",
+            "origin": { "import-type": "$ELF" },
+            "name": "ChartWindow"
+        },
+        "TableIntern": [
+            "tyapp",
+            {
+                "tag": "name",
+                "origin": {
+                    "import-type": "uri",
+                    "uri": "builtin:\/\/primitive-types"
+                },
+                "name": "RawArray"
+            },
+            [[
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "RawArray"
+                    },
+                    ["tany"]
+                ]]
+        ],
+        "BarChartSeries": [
+            "record",
+            {
+                "has-legend": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                },
+                "legends": [
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "RawArray"
+                    },
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "String"
+                        }]
+                ],
+                "tab": [
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/primitive-types"
+                        },
+                        "name": "RawArray"
+                    },
+                    [[
+                            "tyapp",
+                            {
+                                "tag": "name",
+                                "origin": {
+                                    "import-type": "uri",
+                                    "uri": "builtin:\/\/primitive-types"
+                                },
+                                "name": "RawArray"
+                            },
+                            ["tany"]
+                        ]]
+                ]
+            }
+        ],
+        "BoundingBox": [
+            "record",
+            {
+                "is-valid": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Boolean"
+                },
+                "y-max": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                },
+                "y-min": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                },
+                "x-max": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                },
+                "x-min": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                }
+            }
+        ],
+        "ChartWindowObject": [
+            "record",
+            {
+                "render": [
+                    "arrow",
+                    [],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/image"
+                        },
+                        "name": "Image"
+                    }
+                ],
+                "height": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                },
+                "width": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                },
+                "title": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "String"
+                }
+            }
+        ],
+        "Posn": [
+            "tyapp",
+            {
+                "tag": "name",
+                "origin": {
+                    "import-type": "uri",
+                    "uri": "builtin:\/\/primitive-types"
+                },
+                "name": "RawArray"
+            },
+            [{
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                }]
+        ],
+        "BarChartWindowObject": [
+            "record",
+            {
+                "y-max": [
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/option"
+                        },
+                        "name": "Option"
+                    },
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }]
+                ],
+                "y-min": [
+                    "tyapp",
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/option"
+                        },
+                        "name": "Option"
+                    },
+                    [{
+                            "tag": "name",
+                            "origin": {
+                                "import-type": "uri",
+                                "uri": "builtin:\/\/primitive-types"
+                            },
+                            "name": "Number"
+                        }]
+                ],
+                "y-axis": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "String"
+                },
+                "x-axis": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "String"
+                },
+                "render": [
+                    "arrow",
+                    [],
+                    {
+                        "tag": "name",
+                        "origin": {
+                            "import-type": "uri",
+                            "uri": "builtin:\/\/image"
+                        },
+                        "name": "Image"
+                    }
+                ],
+                "height": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                },
+                "width": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "Number"
+                },
+                "title": {
+                    "tag": "name",
+                    "origin": {
+                        "import-type": "uri",
+                        "uri": "builtin:\/\/primitive-types"
+                    },
+                    "name": "String"
+                }
+            }
+        ]
+    }
+},
+"requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    },
+    {
+        "import-type": "builtin",
+        "name": "runtime-global"
+    },
+    {
+        "import-type": "builtin",
+        "name": "raw-array"
+    },
+    {
+        "import-type": "builtin",
+        "name": "chart-lib"
+    },
+    {
+        "import-type": "builtin",
+        "name": "either"
+    },
+    {
+        "import-type": "builtin",
+        "name": "option"
+    },
+    {
+        "import-type": "builtin",
+        "name": "equality"
+    },
+    {
+        "import-type": "builtin",
+        "name": "number"
+    },
+    {
+        "import-type": "builtin",
+        "name": "list-perf"
+    },
+    {
+        "import-type": "builtin",
+        "name": "lists"
+    },
+    {
+        "import-type": "builtin",
+        "name": "image"
+    }
+],
+"nativeRequires": [],
+"theMap": ""
+}

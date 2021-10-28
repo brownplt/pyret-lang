@@ -1,0 +1,53 @@
+{
+  "requires": [
+    {
+        "import-type": "builtin",
+        "name": "primitive-types"
+    },
+    {
+        "import-type": "builtin",
+        "name": "lists"
+    }
+  ],
+  "provides": {
+
+    "shorthands": {
+        "oOfN": ["tyapp", { "tag": "name",
+            "origin": { "import-type": "uri", "uri": "builtin://option" },
+            "name": "Option" }, ["Number"]],
+        "lOfS": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://lists" },
+                "name": "List" }, ["String"]],
+        "lOfN": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://lists" },
+                "name": "List" }, ["Number"]]
+    },
+    "values": {
+        "string-equal": ["arrow", ["String", "String"], "Boolean"],
+        "string-contains": ["arrow", ["String", "String"], "Boolean"],
+        "string-append": ["arrow", ["String", "String"], "String"],
+        "string-length": ["arrow", ["String"], "Number"],
+        "string-to-number": ["arrow", ["String"], "oOfN"],
+        "string-repeat": ["arrow", ["String", "Number"], "String"],
+        "string-substring": ["arrow", ["String", "Number", "Number"], "String"],
+        "string-index-of": ["arrow", ["String", "String"], "Number"],
+        "string-replace": ["arrow", ["String", "String", "String"], "String"],
+        "string-split": ["arrow", ["String", "String"], "lOfS"],
+        "string-split-all": ["arrow", ["String", "String"], "lOfS"],
+        "string-explode": ["arrow", ["String"], "lOfS"],
+        "string-char-at": ["arrow", ["String", "Number"], "String"],
+        "string-toupper": ["arrow", ["String"], "String"],
+        "string-to-upper": ["arrow", ["String"], "String"],
+        "string-tolower": ["arrow", ["String"], "String"],
+        "string-to-lower": ["arrow", ["String"], "String"],
+        "string-to-code-point": ["arrow", ["String"], "Number"],
+        "string-to-code-points": ["arrow", ["String"], "lOfN"],
+        "string-from-code-point": ["arrow", ["Number"], "String"],
+        "string-from-code-points": ["arrow", ["lOfN"], "String"]
+    },
+    "aliases": {
+    },
+    "datatypes": {
+    }
+  }
+}

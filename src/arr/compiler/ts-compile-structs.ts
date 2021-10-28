@@ -5,6 +5,7 @@ import { Option, List, StringDict, MutableStringDict, PFunction, PMethod } from 
 import type * as ED from './error-display'
 import type { Variant } from './ts-codegen-helpers';
 import type { CompiledCodePrinter } from './ts-js-of-pyret';
+import { CompileOptions } from './ts-compiler-lib-impl';
 
 export type URI = string;
 
@@ -1111,4 +1112,5 @@ dict: {values: {dict: {
 
 'pipeline-ts-anchor': PFunction<(modules: List<string>) => Variant<Pipeline, 'pipeline-ts-anchor'>>
 
+'default-compile-options': CompileOptions
 }}}}
