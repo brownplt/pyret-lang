@@ -11,9 +11,10 @@ import {
   TextDocumentIdentifier,
   Range,
   FormattingOptions,
+  Position,
 } from 'vscode-languageserver/node';
 
-import { cstWalk, deleteStart, locationFromSrcloc, slocContains, slocLte, unpackModule } from './components/util';
+import { cstWalk, deleteStart, locationFromSrcloc, unpackModule } from './components/util';
 import { indent } from './components/pyret-mode';
 import { matchPath, mergeAll, SemTok, toDataArray } from './components/semantic-tokens';
 import { DocumentManager } from './components/document-manager';
@@ -21,7 +22,9 @@ import { analyzeFile } from './components/compile-pipeline';
 
 import type * as TCH from '../../../src/arr/compiler/ts-codegen-helpers';
 import type * as A from '../../../src/arr/compiler/ts-ast';
-import { getNames } from './components/name-resolution';
+import { getBindOrigin, getKeyAtPos } from './components/name-resolution';
+import { Runtime } from '../../../src/arr/compiler/ts-impl-types';
+import { ComputedEnvironment, BindOrigin } from '../../../src/arr/compiler/ts-compile-structs';
 
 export const tokenTypes = ['function', 'type', 'typeParameter', 'keyword', 'number', 'variable', 'data', 'variant', 'string', 'property', 'namespace', 'comment'];
 export const tokenModifiers = ['readonly', 'invalid'];
@@ -48,6 +51,7 @@ connection.onInitialize((params: InitializeParams) => {
         moreTriggerCharacter: ['|', '}', ']', '+', '-', '*', '/', '=', '<', '>', 's', 'e', 'n', 'd', 'f', 't', 'y', ':', '.', '^', '`']
       },
       definitionProvider: true,
+      typeDefinitionProvider: true,
       semanticTokensProvider: {
         legend: {
           tokenTypes: tokenTypes,
@@ -139,40 +143,32 @@ connection.onDocumentOnTypeFormatting(async (params) => {
   return;
 });
 
-// go to definition request
-connection.onDefinition(async (params, _, __, ___) => {
-  const runtime = await lsp.result;
-	const TCH: TCH.Exports = runtime.modules['jsfile://pyret-lang/src/arr/compiler/ts-codegen-helpers.js'].jsmod;
-
-  const filename = deleteStart(params.textDocument.uri, 'file://');
+async function goToDefinition(runtime: Runtime, uri: string, pos: Position) {
+  const filename = deleteStart(uri, 'file://');
   const wlist = await analyzeFile(filename, documents, runtime);
   const trace = wlist.pop()[1];
   if (trace.length === 0) return [];
   const nameResolution = trace[4].dict.result;
-  const names = getNames(runtime, nameResolution);
-  
-  let match: TCH.Variant<A.Srcloc, 'srcloc'>;
-  let ans: string;
-  for (let [name, uses] of names.entries()) {
-    for (let loc of uses) {
-      if (loc.$name === 'srcloc' && slocContains(loc, params.position) && slocLte(loc, match)) {
-        match = loc;
-        ans = name;
-      }
-    }
-  }
-
-  const env = nameResolution.dict.env.dict;
-  const bindings = TCH.mapFromMutableStringDict(env.bindings);
-  const modBindings = TCH.mapFromMutableStringDict(env['module-bindings']);
-  const srcloc = bindings.get(ans) ?? modBindings.get(ans);
-  if (!srcloc) return [];
+  const key = getKeyAtPos(runtime, nameResolution, documents.get(uri).document, pos);
+  const origin = getBindOrigin(runtime, nameResolution, key);
+  if (!origin) return [];
   return [
-    srcloc.dict.origin.dict['local-bind-site'],
-    srcloc.dict.origin.dict['definition-bind-site']
+    origin.dict['local-bind-site'],
+    origin.dict['definition-bind-site']
   ]
     .filter((v): v is TCH.Variant<A.Srcloc, 'srcloc'> => v.$name === 'srcloc') 
     .map((v) => locationFromSrcloc(v));
+}
+
+// go to definition request
+connection.onDefinition(async (params, _, __, ___) => {
+  const runtime = await lsp.result;
+  return goToDefinition(runtime, params.textDocument.uri, params.position);
+});
+
+connection.onTypeDefinition(async (params, _, __, ___) => {
+  const runtime = await lsp.result;
+  return goToDefinition(runtime, params.textDocument.uri, params.position);
 });
 
 connection.languages.semanticTokens.on(async (params, _, __, ___) => {

@@ -703,8 +703,20 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
   # Maps from keys to data expressions
   datatypes = SD.make-mutable-string-dict()
 
-  fun make-anon-import-for(l, s, env, shadow bindings, b) block:
+  locations = SD.make-mutable-string-dict()
+
+  fun record-location(l, atom) block:
+    locations.set-now(atom.key(), link(l, locations.get-now(atom.key()).or-else(empty)))
+  end
+
+  fun make-atom-record-location(l, s) block:
     atom = names.make-atom(s)
+    record-location(l, atom)
+    atom
+  end
+
+  fun make-anon-import-for(l, s, env, shadow bindings, b) block:
+    atom = make-atom-record-location(l, s)
     bindings.set-now(atom.key(), b(atom))
     { atom: atom, env: env }
   end
@@ -738,7 +750,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
         #     origin: env.get-value(s)
         #   end
         # end
-        atom = names.make-atom(s)
+        atom = make-atom-record-location(l, s)
         binding = make-binding(atom)
         bindings.set-now(atom.key(), binding)
         { atom: atom, env: env.set(s, binding) }
@@ -853,24 +865,29 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
     }
   end
   fun handle-id(env, l, id):
-    cases(A.Name) id:
+    cases(A.Name) id block:
       | s-name(l2, s) =>
-        if env.has-key(s):
-          env.get-value(s).atom
+        if env.has-key(s) block:
+          atom = env.get-value(s).atom
+          record-location(l2, atom)
+          atom
         else:
           names.s-global(s)
         end
-      | s-atom(_, _) => id
+      | s-atom(_, _) => 
+        record-location(l, id)
+        id
       | s-underscore(_) => id
       | else => raise("Wasn't expecting a non-s-name in resolve-names id: " + torepr(id))
     end
   end
   fun handle-ann(l, type-env, id):
     cases(A.Name) id:
-      | s-name(_, s) =>
-        if type-env.has-key(s):
+      | s-name(l2, s) =>
+        if type-env.has-key(s) block:
           vb = type-env.get-value(s)
           name = vb.atom
+          record-location(l2, name)
           cases(C.TypeBinder) vb.binder block:
             | tb-type-let => A.a-name(l, name)
             | tb-type-var => A.a-type-var(l, name)
@@ -1075,14 +1092,14 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
         new-header = A.s-import(l, file, atom-env-m.atom)
         { imp-e; imp-te; atom-env-m.env; link(new-header, imp-imps) }
       | s-import-fields(l, fields, file) =>
-        synth-include-name = names.make-atom(include-name())
+        synth-include-name = make-atom-record-location(l, include-name())
         updated = add-import(acc, A.s-import(l, file, synth-include-name))
         add-import(updated, A.s-include-from(l, [list: synth-include-name],
           fields.map(lam(f):
             A.s-include-name(l, A.s-module-ref(l, [list: f], none))
           end)))
       | s-include(l, file) =>
-        synth-include-name = names.make-atom(include-name())
+        synth-include-name = make-atom-record-location(l, include-name())
         updated = add-import(acc, A.s-import(l, file, synth-include-name))
         add-import(updated, A.s-include-from(l, [list: synth-include-name],
           [list:
@@ -1667,8 +1684,9 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
     method s-assign(self, l, id, expr):
       cases(A.Name) id:
         | s-name(l2, s) =>
-          if self.env.has-key(s):
+          if self.env.has-key(s) block:
             bind = self.env.get-value(s)
+            record-location(l2, bind.atom)
             A.s-assign(l, bind.atom, expr.visit(self))
             # This used to examine bind in more detail, and raise an error if it wasn't a var-bind
             # but that's better suited for a later pass
@@ -1684,7 +1702,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
       cases(A.Expr) obj:
         | s-id(l2, id) =>
           cases(A.Name) id block:
-            | s-name(_, s) =>
+            | s-name(l3, s) =>
               # NOTE(joe): This gives an ordering to names. If somehow we end up with
               # import foo as C
               #
@@ -1693,8 +1711,9 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
               #
               # and we _don't_ count it as a shadowing error, then the above
               # would be field-not-found
-              if not(self.env.has-key(s)) and self.module-env.has-key(s):
+              if not(self.env.has-key(s)) and self.module-env.has-key(s) block:
                 mod-bind = self.module-env.get-value(s)
+                record-location(l3, mod-bind.atom)
                 cases(Option) initial-env.value-by-uri(mod-bind.uri, name) block:
                   | none =>
                     name-errors := link(C.wf-err-split("The module " + s + " (" + mod-bind.uri + ") has no provided member " + name, [list: l, l2]), name-errors)
@@ -1726,6 +1745,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
               end
               A.s-id(l2, names.s-global(s))
             | some(vb) =>
+              record-location(l2, vb.atom)
               cases (C.ValueBinder) vb.binder:
                 | vb-let => A.s-id(l2, vb.atom)
                 | vb-letrec => A.s-id-letrec(l2, vb.atom, false)
@@ -1769,9 +1789,10 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
     method a-dot(self, l, obj, field) block:
       cases(A.Name) obj block:
         | s-name(nameloc, s) =>
-          cases(Option) self.module-env.get(s):
+          cases(Option) self.module-env.get(s) block:
             | none => A.a-dot(l, obj, field) # NOTE(joe): Should this be error?
             | some(mb) =>
+              record-location(nameloc, mb.atom)
               A.a-dot(l, mb.atom, field)
           end
         | else =>
@@ -1802,7 +1823,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
       A.s-table-order(l, table.visit(self), ordering)
     end,
   }
-  C.resolved-names(p.visit(names-visitor), name-errors, C.computed-env(module-bindings, bindings, type-bindings, datatypes, final-visitor.module-env, final-visitor.env, final-visitor.type-env))
+  C.resolved-names(p.visit(names-visitor), name-errors, C.computed-env(module-bindings, bindings, type-bindings, datatypes, final-visitor.module-env, final-visitor.env, final-visitor.type-env, locations))
 end
 
 

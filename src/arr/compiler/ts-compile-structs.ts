@@ -107,7 +107,8 @@ export type ComputedEnvironment =
         'datatypes': MutableStringDict<A.Expr>,
         'module-env': StringDict<ModuleBind>,
         'env': StringDict<ValueBind>,
-        'type-env': StringDict<TypeBind>
+        'type-env': StringDict<TypeBind>,
+        'locations': MutableStringDict<List<Loc>>,
       }
   }
 

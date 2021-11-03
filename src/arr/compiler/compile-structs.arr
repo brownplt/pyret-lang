@@ -143,7 +143,9 @@ data ComputedEnvironment:
       datatypes :: SD.MutableStringDict<A.Expr>,
       module-env :: SD.StringDict<ModuleBind>,
       env :: SD.StringDict<ValueBind>,
-      type-env :: SD.StringDict<TypeBind>)
+      type-env :: SD.StringDict<TypeBind>,
+      # maps all atoms (as keys) to list of locations where they appear
+      locations :: SD.MutableStringDict<List<Loc>>)
 end
 
 data NameResolution:
