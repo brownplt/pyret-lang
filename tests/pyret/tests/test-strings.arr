@@ -44,6 +44,7 @@ check:
   string-length("a") is 1
   string-length("\n\r \t") is 4
   string-length("λjs") is 3
+	string-length("𢡊") is 2
   
   string-tonumber("45") is 45
   # TODO(joe): some string-to-number parsing issue on the number below
