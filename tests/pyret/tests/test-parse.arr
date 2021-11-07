@@ -389,7 +389,7 @@ check "should parse block comments":
   does-parse('lam(x #| stuff |#, y): x + y end') is true
   does-parse('lam(x #| two |##| comments|#, y): x + y end') is true
   does-parse('#| |# |#') is false
-	does-parse('#|क़ string length changes on normalize|#') is true
+  does-parse('#|क़ string length changes on normalize|#') is true
 end
 
 check "should not ignore the line after an empty hash comment":
