@@ -14,17 +14,15 @@ import {
   Position,
 } from 'vscode-languageserver/node';
 
-import { cstWalk, deleteStart, locationFromSrcloc, unpackModule } from './components/util';
+import { cstWalk, locationFromSrcloc, unpackModule } from './components/util';
 import { indent } from './components/pyret-mode';
 import { matchPath, mergeAll, SemTok, toDataArray } from './components/semantic-tokens';
-import { DocumentManager } from './components/document-manager';
-import { analyzeFile } from './components/compile-pipeline';
+import { Documents } from './components/document-manager';
 
 import type * as TCH from '../../../src/arr/compiler/ts-codegen-helpers';
 import type * as A from '../../../src/arr/compiler/ts-ast';
-import { getBindOrigin, getKeyAtPos } from './components/name-resolution';
 import { Runtime } from '../../../src/arr/compiler/ts-impl-types';
-import { ComputedEnvironment, BindOrigin } from '../../../src/arr/compiler/ts-compile-structs';
+import console = require('console');
 
 export const tokenTypes = ['function', 'type', 'typeParameter', 'keyword', 'number', 'variable', 'data', 'variant', 'string', 'property', 'namespace', 'comment'];
 export const tokenModifiers = ['readonly', 'invalid'];
@@ -33,7 +31,7 @@ export const tokenModifiers = ['readonly', 'invalid'];
 // Also include all preview / proposed LSP features.
 const connection = createConnection(ProposedFeatures.all);
 
-const documents = new Map<string, DocumentManager>();
+const documents: Documents = new Documents();
 
 let capabilities: ClientCapabilities;
 
@@ -73,23 +71,16 @@ connection.onInitialized(() => {
 });
 
 connection.onDidOpenTextDocument((params) => {
-  const doc = new DocumentManager(params.textDocument);
-  documents.set(params.textDocument.uri, doc);
+  documents.add(params.textDocument);
 });
 
 connection.onDidCloseTextDocument((params) => {
-  documents.delete(params.textDocument.uri);
+  documents.remove(params.textDocument.uri);
 });
 
 connection.onDidChangeTextDocument((params) => {
   const doc = documents.get(params.textDocument.uri);
-  if (!doc) return;
-  doc.update(params);
-  const minLine =
-    params.contentChanges
-    .map((a) => 'range' in a ? a.range.start.line : 0)
-    .reduce((a, b) => Math.min(a, b));
-  doc.formatCache.invalidateLinesAfter(minLine);
+  doc?.update(params);
 });
 
 async function formatRange(document: TextDocumentIdentifier, range: Range, options: FormattingOptions) {
@@ -144,13 +135,21 @@ connection.onDocumentOnTypeFormatting(async (params) => {
 });
 
 async function goToDefinition(runtime: Runtime, uri: string, pos: Position) {
-  const filename = deleteStart(uri, 'file://');
-  const wlist = await analyzeFile(filename, documents, runtime);
-  const trace = wlist.pop()[1];
-  if (trace.length === 0) return [];
-  const nameResolution = trace[4].dict.result;
-  const key = getKeyAtPos(runtime, nameResolution, documents.get(uri).document, pos);
-  const origin = getBindOrigin(runtime, nameResolution, key);
+  const tree = await documents.getIntervalTree(runtime, uri);
+	const ranges = tree.search(pos);
+	const key = ranges
+		.map(([key, loc]): [string, number] => [key, loc.dict['end-char'] - loc.dict['start-char']])
+		.reduce((prev, curr) => prev[1] < curr[1] ? prev : curr, ["", Infinity])[0];
+  const TCH: TCH.Exports = runtime.modules['jsfile://pyret-lang/src/arr/compiler/ts-codegen-helpers.js'].jsmod;
+  
+  const nameResolution = (await documents.getTrace(runtime, uri))[4].dict.result
+	const env = nameResolution.dict.env;
+  const bindings = TCH.mapFromMutableStringDict(env.dict.bindings);
+  const modBindings = TCH.mapFromMutableStringDict(env.dict['module-bindings']);
+  const typeBindings = TCH.mapFromMutableStringDict(env.dict['type-bindings']);
+  const bind = bindings.get(key) ?? modBindings.get(key) ?? typeBindings.get(key);
+
+  const origin = bind?.dict.origin;
   if (!origin) return [];
   return [
     origin.dict['local-bind-site'],
@@ -282,6 +281,11 @@ connection.languages.semanticTokens.on(async (params, _, __, ___) => {
   //console.log(data);
   return { data: data };
 });
+
+process.on('unhandledRejection', (error, promise) => {
+  console.log(error);
+  console.log(promise);
+})
 
 // Listen on the connection
 connection.listen();

@@ -91,7 +91,7 @@ export interface Exports {
   dummyLoc : A.Srcloc,
   compileSrcloc: (context: any, l : A.Srcloc) => J.Expression,
   formatSrcloc: (loc: A.Srcloc, showFile: boolean) => string,
-  visit: (<T extends PyretDataValue, E = any>(v : Visitor<T, any, E>, d : PyretDataValue, extra: E, extractExtra ?: (d: PyretDataValue, extra: E) => E) => void)
+  visit: (<T extends PyretDataValue, E = any>(v : Visitor<T, any, E>, d : PyretDataValue, extra: E) => void)
        & (<T extends PyretDataValue>(v : Visitor<T, any, undefined>, d : PyretDataValue) => void),
   map: (<T extends PyretDataValue, Ret extends T = T, E = any>(v : Visitor<T, any, E>, d : T, extra: E) => Ret)
      & (<T extends PyretDataValue, Ret extends T = T>(v : Visitor<T, any, undefined>, d : T) => Ret),
@@ -509,14 +509,13 @@ export interface Exports {
      * any nested values whose `$name` fields indicate they overlap with type `T`,
      * and will call any matching visitor methods within the visitor object.
      */
-    function visit<T extends PyretDataValue, E = any>(v : Visitor<T, any, E>, d : PyretDataValue, extra: E, extractExtra?: (d: PyretDataValue, extra: E) => E) {
+    function visit<T extends PyretDataValue, E = any>(v : Visitor<T, any, E>, d : PyretDataValue, extra: E) {
       if(typeof d !== "object" || !("$name" in d)) { throw new Error("Visit failed: " + JSON.stringify(d)); }
       if(d.$name in v) { v[d.$name](v, d, extra); }
       else {
         for(const [k, subd] of Object.entries(d.dict)) {
           if (typeof subd === 'object' && "$name" in subd) {
-            const newExtra = extractExtra ? extractExtra(d, extra) : extra;
-            visit(v, subd as any, newExtra, extractExtra);
+            visit(v, subd as any, extra);
           }
         }
       }

@@ -105,10 +105,10 @@ export class IntervalTree<P, T> {
   }
 
   search(low: P, high?: P): T[] {
-    return this.tree.search(this.map(low), this.map(high ? high : low));
+    return this.tree.search(this.map(low), this.map(high ?? low));
   }
 
   inOrder() { return this.tree.inOrder() }
-  preOrder() { return this.tree.inOrder() }
+  preOrder() { return this.tree.preOrder() }
   get count() { return this.tree.count }
 }
