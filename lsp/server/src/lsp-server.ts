@@ -12,17 +12,21 @@ import {
   Range,
   FormattingOptions,
   Position,
+  DocumentHighlightKind,
+  WorkspaceEdit,
 } from 'vscode-languageserver/node';
 
-import { cstWalk, locationFromSrcloc, unpackModule } from './components/util';
+import { cstWalk, listToArray, locationFromSrcloc, rangeFromSrcloc, remove, unpackModule } from './components/util';
 import { indent } from './components/pyret-mode';
 import { matchPath, mergeAll, SemTok, toDataArray } from './components/semantic-tokens';
 import { Documents } from './components/document-manager';
 
 import type * as TCH from '../../../src/arr/compiler/ts-codegen-helpers';
-import type * as A from '../../../src/arr/compiler/ts-ast';
 import { Runtime } from '../../../src/arr/compiler/ts-impl-types';
 import console = require('console');
+import { bestKey, getBindings, getLocations } from './components/name-resolution';
+import { Name, Srcloc } from '../../../src/arr/compiler/ts-ast';
+import { Variant } from '../../../src/arr/compiler/ts-codegen-helpers';
 
 export const tokenTypes = ['function', 'type', 'typeParameter', 'keyword', 'number', 'variable', 'data', 'variant', 'string', 'property', 'namespace', 'comment'];
 export const tokenModifiers = ['readonly', 'invalid'];
@@ -49,7 +53,10 @@ connection.onInitialize((params: InitializeParams) => {
         moreTriggerCharacter: ['|', '}', ']', '+', '-', '*', '/', '=', '<', '>', 's', 'e', 'n', 'd', 'f', 't', 'y', ':', '.', '^', '`']
       },
       definitionProvider: true,
-      typeDefinitionProvider: true,
+      //typeDefinitionProvider: true,
+      referencesProvider: true,
+      //documentHighlightProvider: true,
+      renameProvider: true, // can also set prepare here
       semanticTokensProvider: {
         legend: {
           tokenTypes: tokenTypes,
@@ -135,27 +142,15 @@ connection.onDocumentOnTypeFormatting(async (params) => {
 });
 
 async function goToDefinition(runtime: Runtime, uri: string, pos: Position) {
-  const tree = await documents.getIntervalTree(runtime, uri);
-	const ranges = tree.search(pos);
-	const key = ranges
-		.map(([key, loc]): [string, number] => [key, loc.dict['end-char'] - loc.dict['start-char']])
-		.reduce((prev, curr) => prev[1] < curr[1] ? prev : curr, ["", Infinity])[0];
-  const TCH: TCH.Exports = runtime.modules['jsfile://pyret-lang/src/arr/compiler/ts-codegen-helpers.js'].jsmod;
-  
-  const nameResolution = (await documents.getTrace(runtime, uri))[4].dict.result
-	const env = nameResolution.dict.env;
-  const bindings = TCH.mapFromMutableStringDict(env.dict.bindings);
-  const modBindings = TCH.mapFromMutableStringDict(env.dict['module-bindings']);
-  const typeBindings = TCH.mapFromMutableStringDict(env.dict['type-bindings']);
-  const bind = bindings.get(key) ?? modBindings.get(key) ?? typeBindings.get(key);
-
+  const key = await bestKey(runtime, documents, uri, pos);
+  const bind = await getBindings(runtime, documents, key, uri);
   const origin = bind?.dict.origin;
   if (!origin) return [];
   return [
     origin.dict['local-bind-site'],
     origin.dict['definition-bind-site']
   ]
-    .filter((v): v is TCH.Variant<A.Srcloc, 'srcloc'> => v.$name === 'srcloc') 
+    .filter((v): v is TCH.Variant<Srcloc, 'srcloc'> => v.$name === 'srcloc') 
     .map((v) => locationFromSrcloc(v));
 }
 
@@ -169,6 +164,55 @@ connection.onTypeDefinition(async (params, _, __, ___) => {
   const runtime = await lsp.result;
   return goToDefinition(runtime, params.textDocument.uri, params.position);
 });
+
+async function getFileReferences<A>(uri: string, position: Position, mapping: (src: Variant<Srcloc, 'srcloc'>) => A): Promise<A[]> {
+  const runtime = await lsp.result
+  const TCH: TCH.Exports = runtime.modules['jsfile://pyret-lang/src/arr/compiler/ts-codegen-helpers.js'].jsmod;;
+  const locations = await getLocations(runtime, documents, uri);
+  const key = await bestKey(runtime, documents, uri, position);
+  if (key === '') return [];
+  return TCH.listToArray(locations.get(key))
+    .filter((s): s is Variant<Srcloc, 'srcloc'> => s.$name === 'srcloc')
+    .map(mapping) 
+}
+
+connection.onReferences(async (params, _, __, ___) => {
+  return getFileReferences(params.textDocument.uri, params.position, locationFromSrcloc);
+})
+
+connection.onDocumentHighlight(async (params, _, __, ___) => {
+  // TODO: this command supports distinguishing betweeen 'read' and 'write' usages, but right now that's not something we can do
+  return getFileReferences(params.textDocument.uri, params.position, (s) => ({range: rangeFromSrcloc(s), kind: DocumentHighlightKind.Text}));
+})
+
+connection.onRenameRequest(async (params, _, __, ___) => {
+  const runtime = await lsp.result;
+  const TCH: TCH.Exports = runtime.modules['jsfile://pyret-lang/src/arr/compiler/ts-codegen-helpers.js'].jsmod;
+  const uri = params.textDocument.uri;
+
+  const key = await bestKey(runtime, documents, uri, params.position);
+  const locations = await getLocations(runtime, documents, uri);
+  const uses = TCH.listToArray(locations.get(key));
+
+  const nameResolution = (await documents.getTrace(runtime, uri))[4].dict.result.dict;
+  console.log(nameResolution);
+  const imports = TCH.listToArray(nameResolution.ast.dict.imports);
+  const provides = TCH.listToArray(nameResolution.ast.dict.provides);
+
+  const edit: WorkspaceEdit = { changes: {} }
+  edit.changes[uri] = [];
+
+  // detect import/provide as here
+
+  edit.changes[uri].push(
+    ...uses.filter((v): v is Variant<Srcloc, 'srcloc'> => v.$name === 'srcloc')
+    .map((use) => ({
+      range: rangeFromSrcloc(use),
+      newText: params.newName
+    })))
+
+  return edit;
+})
 
 connection.languages.semanticTokens.on(async (params, _, __, ___) => {
   const runtime = await lsp.result;

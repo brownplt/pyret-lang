@@ -3,7 +3,6 @@ import { Variant } from '../../../../src/arr/compiler/ts-codegen-helpers';
 import { List, Runtime } from '../../../../src/arr/compiler/ts-impl-types';
 import { Srcloc } from '../../../../src/arr/compiler/ts-srcloc';
 import { Nonterm, ParserCST, Token } from './external-types';
-import NumberTree from 'node-interval-tree';
 
 export type Module<T> = { dict: { 'provide-plus-types': T; }; };
 export function unpackModule<T>(module: Module<{ dict: { values: { dict: T; }; }; }>): T {
@@ -88,27 +87,7 @@ export function rangeFromSrcloc(s: Variant<Srcloc, 'srcloc'>): Range {
   };
 }
 
-export class IntervalTree<P, T> {
-  tree: NumberTree<T>;
-  map: (p: P) => number;
-  constructor(map: (p: P) => number) {
-    this.tree = new NumberTree();
-    this.map = map;
-  }
-  
-  insert(low: P, high: P, data: T): boolean {
-    return this.tree.insert(this.map(low), this.map(high), data);
-  }
-
-  remove(low: P, high: P, data: T): boolean {
-    return this.tree.remove(this.map(low), this.map(high), data);
-  }
-
-  search(low: P, high?: P): T[] {
-    return this.tree.search(this.map(low), this.map(high ?? low));
-  }
-
-  inOrder() { return this.tree.inOrder() }
-  preOrder() { return this.tree.preOrder() }
-  get count() { return this.tree.count }
+export function remove<T>(arr: T[], elem: T) {
+  const i = arr.indexOf(elem);
+  if (i > 0) arr.splice(i, 1);
 }

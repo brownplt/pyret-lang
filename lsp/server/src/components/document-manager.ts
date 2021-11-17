@@ -5,10 +5,10 @@ import { PhaseTuple } from '../../../../src/arr/compiler/ts-compiler-lib-impl';
 import { Runtime } from '../../../../src/arr/compiler/ts-impl-types';
 import { analyzeWorklist, makeOptions, makeWorklist, needsRecompile } from './compile-pipeline';
 import { FormatCache } from './format-cache';
-import { deleteStart, IntervalTree } from './util';
+import { deleteStart } from './util';
 import type * as TCH from '../../../../src/arr/compiler/ts-codegen-helpers';
 import { Srcloc } from '../../../../src/arr/compiler/ts-ast';
-import { makeIntervalTree } from './name-resolution';
+import { IntervalTree, makeIntervalTree } from './name-resolution';
 
 export class DocumentManager {
 	document: TextDocument;
