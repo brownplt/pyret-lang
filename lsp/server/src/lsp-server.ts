@@ -14,18 +14,20 @@ import {
   Position,
   DocumentHighlightKind,
   WorkspaceEdit,
+  SignatureInformation,
 } from 'vscode-languageserver/node';
 
-import { cstWalk, listToArray, locationFromSrcloc, rangeFromSrcloc, remove, unpackModule } from './components/util';
+import { cstWalk, listToArray, locationFromSrcloc, pyretCall, rangeFromSrcloc, unpackModule } from './components/util';
 import { indent } from './components/pyret-mode';
 import { matchPath, mergeAll, SemTok, toDataArray } from './components/semantic-tokens';
 import { Documents } from './components/document-manager';
 
 import type * as TCH from '../../../src/arr/compiler/ts-codegen-helpers';
+import type * as TCSH from '../../../src/arr/compiler/ts-compile-structs-helpers';
 import { Runtime } from '../../../src/arr/compiler/ts-impl-types';
 import console = require('console');
 import { bestKey, getBindings, getLocations } from './components/name-resolution';
-import { Name, Srcloc } from '../../../src/arr/compiler/ts-ast';
+import { Expr, Srcloc } from '../../../src/arr/compiler/ts-ast';
 import { Variant } from '../../../src/arr/compiler/ts-codegen-helpers';
 
 export const tokenTypes = ['function', 'type', 'typeParameter', 'keyword', 'number', 'variable', 'data', 'variant', 'string', 'property', 'namespace', 'comment'];
@@ -53,10 +55,9 @@ connection.onInitialize((params: InitializeParams) => {
         moreTriggerCharacter: ['|', '}', ']', '+', '-', '*', '/', '=', '<', '>', 's', 'e', 'n', 'd', 'f', 't', 'y', ':', '.', '^', '`']
       },
       definitionProvider: true,
-      //typeDefinitionProvider: true,
       referencesProvider: true,
-      //documentHighlightProvider: true,
-      renameProvider: true, // can also set prepare here
+      // development is on hold for now - multiple changes/decisions need to happen first
+      //renameProvider: true,
       semanticTokensProvider: {
         legend: {
           tokenTypes: tokenTypes,
@@ -67,6 +68,10 @@ connection.onInitialize((params: InitializeParams) => {
         full: {
           delta: false
         }
+      },
+      signatureHelpProvider: {
+        triggerCharacters: ['('],
+        retriggerCharacters: [','],
       }
     }
   };
@@ -97,7 +102,7 @@ async function formatRange(document: TextDocumentIdentifier, range: Range, optio
   const edits: TextEdit[] = [];
   doc.formatCache.forEachLine(range.start.line, range.end.line, (state, lineNum) => {
     //compare the calculated indentation to the current one
-    let calcIndentation = indent(lines[lineNum], state, options.insertSpaces, options.tabSize);
+    let calcIndentation = indent(lines[lineNum], state, true, options.tabSize);
     let currIndentation = lines[lineNum].match(/^\s*/)?.[0];
     // push edit if needed
     if (currIndentation !== calcIndentation) {
@@ -172,6 +177,7 @@ async function getFileReferences<A>(uri: string, position: Position, mapping: (s
   const key = await bestKey(runtime, documents, uri, position);
   if (key === '') return [];
   return TCH.listToArray(locations.get(key))
+    .map((b) => b.dict.loc)
     .filter((s): s is Variant<Srcloc, 'srcloc'> => s.$name === 'srcloc')
     .map(mapping) 
 }
@@ -183,6 +189,46 @@ connection.onReferences(async (params, _, __, ___) => {
 connection.onDocumentHighlight(async (params, _, __, ___) => {
   // TODO: this command supports distinguishing betweeen 'read' and 'write' usages, but right now that's not something we can do
   return getFileReferences(params.textDocument.uri, params.position, (s) => ({range: rangeFromSrcloc(s), kind: DocumentHighlightKind.Text}));
+})
+
+connection.onSignatureHelp(async (params, _, __, ___) => {
+  const runtime = await lsp.result;
+  const TCSH: TCSH.Exports = runtime.modules['jsfile://pyret-lang/src/arr/compiler/ts-compile-structs-helpers.js'].jsmod;
+
+  //FIXME: find this value somehow
+  let key = await bestKey(runtime, documents, params.textDocument.uri, params.position);
+  let bind = await getBindings(runtime, documents, key, params.textDocument.uri);
+  if (!bind || bind.$name !== 'value-bind' || bind.dict.binder.dict.e.$name !== 'some' || bind.dict.binder.dict.e.dict.value.$name !== 's-lam') {
+    return null;
+  }
+  let origin: Variant<Expr, 's-lam'> = bind.dict.binder.dict.e.dict.value;
+
+  async function pretty(arg: any, lineLength: number = Infinity): Promise<string> {
+    return listToArray(await pyretCall(runtime, () => TCSH.callMethod(TCSH.callMethod(arg, 'tosource'), 'pretty', lineLength))).join('\n')
+  }
+
+  // this isn't just a call to .map() because that would start multiple async calls simultaneously, leading to 'run called while already running' errors
+  let args: string[] = [];
+  for (let arg of listToArray(origin.dict.args)) {
+    args.push(await pretty(arg));
+  }
+
+  let fullLabel = `${origin.dict.name}(${args.join(', ')})`;
+  if (origin.dict.ann.$name != 'a-blank') {
+    fullLabel += ` -> ${await pretty(origin.dict.ann)}`
+  }
+
+  let signature: SignatureInformation = {
+    label: fullLabel,
+    documentation: origin.dict.doc,
+    parameters: args.map((argLabel) => ({ label: argLabel }))
+  };
+
+  return {
+    signatures: [signature],
+    activeSignature: 0,
+    activeParameter: 0, //TODO: determine the active parameter
+  };
 })
 
 connection.onRenameRequest(async (params, _, __, ___) => {
@@ -205,11 +251,13 @@ connection.onRenameRequest(async (params, _, __, ___) => {
   // detect import/provide as here
 
   edit.changes[uri].push(
-    ...uses.filter((v): v is Variant<Srcloc, 'srcloc'> => v.$name === 'srcloc')
-    .map((use) => ({
-      range: rangeFromSrcloc(use),
-      newText: params.newName
-    })))
+    ...uses
+      .map((b) => b.dict.loc)
+      .filter((v): v is Variant<Srcloc, 'srcloc'> => v.$name === 'srcloc')
+      .map((use) => ({
+        range: rangeFromSrcloc(use),
+        newText: params.newName
+      })))
 
   return edit;
 })

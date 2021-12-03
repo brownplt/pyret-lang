@@ -1,5 +1,6 @@
-import type { List, PFunction, PMethod, PTuple, StringDict } from './ts-impl-types';
+import type { List, PFunction, PMethod } from './ts-impl-types';
 import type * as TCH from './ts-codegen-helpers';
+import type { PPrintDoc } from './ts-pprint';
 import type { Srcloc } from './ts-srcloc';
 
 export { Srcloc }
@@ -515,11 +516,17 @@ export type ConstructModifier =
 export type Bind =
   | {
     $name: "s-bind",
-    dict: { 'l': Loc, 'shadows': boolean, 'id': Name, 'ann': Ann }
+    dict: {
+      'l': Loc, 'shadows': boolean, 'id': Name, 'ann': Ann,
+      'tosource': PMethod<Bind, () => PPrintDoc>;
+    }
   }
   | {
     $name: "s-tuple-bind",
-    dict: { 'l': Loc, 'fields': List<Bind>, 'as-name': Option<Bind> }
+    dict: {
+      'l': Loc, 'fields': List<Bind>, 'as-name': Option<Bind>,
+      'tosource': PMethod<Bind, () => PPrintDoc>
+    }
   }
 
 export type Member =

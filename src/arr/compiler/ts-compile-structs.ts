@@ -47,9 +47,9 @@ export type BindOrigin =
   }
 
 export type ValueBinder = 
-  | { $name: "vb-letrec", dict: {} }
-  | { $name: "vb-let", dict: {} }
-  | { $name: "vb-var", dict: {} }
+  | { $name: "vb-letrec", dict: { e: Option<A.Expr> } }
+  | { $name: "vb-let", dict: { e: Option<A.Expr> } }
+  | { $name: "vb-var", dict: { e: Option<A.Expr> } }
 
 export type ValueBind = 
   | {
@@ -108,9 +108,41 @@ export type ComputedEnvironment =
         'module-env': StringDict<ModuleBind>,
         'env': StringDict<ValueBind>,
         'type-env': StringDict<TypeBind>,
-        'locations': MutableStringDict<List<Loc>>,
+        'lsp-binding-info': MutableStringDict<List<BindInfo>>,
       }
   }
+
+export type BindInfo =
+  | {
+    $name: "bind-info"
+    dict: {
+      loc: Loc,
+      bind: Option<BindType>
+    }
+  }
+
+export type BindType =
+  | {
+    $name: 'def'
+    dict: {
+      bind: Option<A.Expr>
+    }
+  }
+  | { $name: 'use' }
+  | {
+    $name: 'imp',
+    dict: {
+      'as-name': A.Name
+    }
+  }
+  | {
+    $name: 'prov',
+    dict: {
+      'as-name': A.Name
+    }
+  }
+  | { $name: 'imp-as' }
+  | { $name: 'prov-as' }
 
 export type NameResolution = 
   | {
@@ -544,11 +576,11 @@ dict: {values: {dict: {
       ) => Variant<BindOrigin, 'bind-origin'>
   >
 
-'vb-letrec': Variant<ValueBinder, 'vb-letrec'>
+'vb-letrec': PFunction<(e: Option<A.Expr>) => Variant<ValueBinder, 'vb-letrec'>>
 
-'vb-let': Variant<ValueBinder, 'vb-let'>
+'vb-let': PFunction<(e: Option<A.Expr>) => Variant<ValueBinder, 'vb-let'>>
 
-'vb-var': Variant<ValueBinder, 'vb-var'>
+'vb-var': PFunction<(e: Option<A.Expr>) => Variant<ValueBinder, 'vb-var'>>
 
 'value-bind': 
   PFunction<

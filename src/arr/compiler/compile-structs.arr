@@ -92,9 +92,9 @@ fun bo-global(opt-origin, uri, original-name):
 end
 
 data ValueBinder:
-  | vb-letrec
-  | vb-let
-  | vb-var
+  | vb-letrec(e :: Option<A.Expr>)
+  | vb-let(e :: Option<A.Expr>)
+  | vb-var(e :: Option<A.Expr>)
 end
 
 data ValueBind:
@@ -144,8 +144,24 @@ data ComputedEnvironment:
       module-env :: SD.StringDict<ModuleBind>,
       env :: SD.StringDict<ValueBind>,
       type-env :: SD.StringDict<TypeBind>,
-      # maps all atoms (as keys) to list of locations where they appear
-      locations :: SD.MutableStringDict<List<Loc>>)
+      # maps atoms (as keys) to locations and the containing expression
+      lsp-binding-info :: SD.MutableStringDict<List<BindInfo>>)
+end
+
+data BindInfo:
+  | bind-info(
+      loc :: Loc,
+      bind :: Option<BindType>
+    )
+end
+
+data BindType:
+  | def(ref bind :: Option<A.Expr>)
+  | use 
+  | imp(as-name :: A.Name)
+  | prov(as-name :: A.Name)
+  | imp-as
+  | prov-as
 end
 
 data NameResolution:

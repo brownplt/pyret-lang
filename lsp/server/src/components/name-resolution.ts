@@ -6,14 +6,15 @@ import { Documents } from './document-manager';
 import { Runtime } from '../../../../src/arr/compiler/ts-impl-types';
 import type * as TCH from '../../../../src/arr/compiler/ts-codegen-helpers';
 import NumberTree from 'node-interval-tree';
+import { BindInfo } from '../../../../src/arr/compiler/ts-compile-structs';
 
-export function makeIntervalTree(doc: TextDocument, names: [string, Srcloc[]][]) {
-	const tree = new IntervalTree<Position, [string, Srcloc]>((pos) => doc.offsetAt(pos));
+export function makeIntervalTree(doc: TextDocument, names: [string, BindInfo[]][]) {
+	const tree = new IntervalTree<Position, [string, BindInfo]>((pos) => doc.offsetAt(pos));
 
 	for (const [name, locs] of names) {
 		for (const loc of locs) {
-			if (loc.$name !== 'srcloc') continue;
-			const range = rangeFromSrcloc(loc);
+			if (loc.dict.loc.$name !== 'srcloc') continue;
+			const range = rangeFromSrcloc(loc.dict.loc);
 			tree.insert(range.start, range.end, [name, loc]);
 		}
 	}
@@ -39,7 +40,7 @@ export async function getBindings(runtime: Runtime, documents: Documents, key: s
 export async function getLocations(runtime:Runtime, documents: Documents, uri: string) {
   const TCH: TCH.Exports = runtime.modules['jsfile://pyret-lang/src/arr/compiler/ts-codegen-helpers.js'].jsmod;
   const trace = await documents.getTrace(runtime, uri);
-  return TCH.mapFromMutableStringDict(trace[4].dict.result.dict.env.dict.locations);
+  return TCH.mapFromMutableStringDict(trace[4].dict.result.dict.env.dict['lsp-binding-info']);
 }
 
 export class IntervalTree<P, T> {

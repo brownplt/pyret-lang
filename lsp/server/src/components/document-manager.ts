@@ -9,6 +9,7 @@ import { deleteStart } from './util';
 import type * as TCH from '../../../../src/arr/compiler/ts-codegen-helpers';
 import { Srcloc } from '../../../../src/arr/compiler/ts-ast';
 import { IntervalTree, makeIntervalTree } from './name-resolution';
+import { BindInfo } from '../../../../src/arr/compiler/ts-compile-structs';
 
 export class DocumentManager {
 	document: TextDocument;
@@ -42,7 +43,7 @@ export class DocumentManager {
 
 class PipelineCache {
 	trace: PhaseTuple;
-	names: IntervalTree<Position, [string, Srcloc]>;
+	names: IntervalTree<Position, [string, BindInfo]>;
 	mtime: number;
 
 	constructor() {
@@ -99,7 +100,7 @@ export class Documents {
 			const nameResolution = (await this.getTrace(runtime, uri))[4].dict.result;
 			// so when we do this test, we know wether we need to make a new tree
 			if (!doc.pipelineCache.names) {
-				const locations = Array.from(TCH.mapFromMutableStringDict(nameResolution.dict.env.dict.locations), ([k, v]): [string, Srcloc[]] => [k, TCH.listToArray(v)]);
+				const locations = Array.from(TCH.mapFromMutableStringDict(nameResolution.dict.env.dict['lsp-binding-info']), ([k, v]): [string, BindInfo[]] => [k, TCH.listToArray(v)]);
 				doc.pipelineCache.names = makeIntervalTree(this.get(uri).document, locations);
 			}
 			return doc.pipelineCache.names;

@@ -119,7 +119,7 @@ export type DesugarInfo = {
         const bindingLocal = boLocal(l, a);
         const value = CS.dict.values.dict['value-bind'].app(
           bindingLocal,
-          CS.dict.values.dict['vb-let'],
+          CS.dict.values.dict['vb-let'].app(runtime.ffi.makeNone()),
           a,
           ann
         );
