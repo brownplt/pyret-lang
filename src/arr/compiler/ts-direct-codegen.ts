@@ -1495,7 +1495,6 @@ export type Exports = {
 
         case 's-get-bang': throw new TODOError(expr.$name);
         case 's-update': throw new TODOError(expr.$name);
-        case 's-ref': throw new TODOError(expr.$name);
         case 's-id-var-modref': throw new TODOError(expr.$name);
         
 

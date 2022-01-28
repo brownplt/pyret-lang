@@ -372,7 +372,6 @@ type DesugarInfo = {
         // s-obj is uniform
         // s-tuple is uniform
         // s-tuple-get is uniform
-        // s-ref is uniform
         // s-construct in uniform
         's-reactor': (visitor, expr: TJ.Variant<A.Expr, 's-reactor'>) => {
           const fieldsByName = new Map<string, A.Expr>();

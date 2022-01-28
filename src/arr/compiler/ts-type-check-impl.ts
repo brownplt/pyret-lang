@@ -2366,14 +2366,14 @@ export type Exports = {
         case 's-if-pipe-else':
         case 's-if':
           throw new InternalCompilerError(`${e.$name} should already have been desugared`);
-        case 's-data-expr':
-          throw new InternalCompilerError("s-data-expr should have been handled by s-letrec");
-        case 's-prim-val': // Needs to be implemented
-        case 's-bracket':  // Needs to be implemented
         case 's-type':
         case 's-newtype':
         case 's-rec':
-        case 's-ref':
+          throw new InternalCompilerError(`${e.$name} should be removed by resolve-scope`);
+        case 's-data-expr':
+          throw new InternalCompilerError("s-data-expr should have been handled by s-letrec");
+        case 's-prim-val': // NOTE(joe Jan22) Needs to be implemented
+        case 's-bracket':  // NOTE(joe Jan22) Needs to be implemented
         case 's-contract':
         case 's-method':
           throw new InternalCompilerError(`checking for ${e.$name} not implemented`);
@@ -3559,7 +3559,6 @@ export type Exports = {
         case 's-type':
         case 's-newtype':
         case 's-rec':
-        case 's-ref':
         case 's-contract':
         case 's-method':
           throw new InternalCompilerError(`_synthesis for ${e.$name} not implemented`);

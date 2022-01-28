@@ -1405,9 +1405,6 @@ type WFContext = {
         's-let': (visitor, expr: TJ.Variant<A.Expr, 's-let'>, wfContext) => {
           visit(wellFormedVisitor, expr, wfContext);
         },
-        's-ref': (visitor, expr: TJ.Variant<A.Expr, 's-ref'>, wfContext) => {
-          visit(wellFormedVisitor, expr, wfContext);
-        },
         's-when': (visitor, expr: TJ.Variant<A.Expr, 's-when'>, wfContext) => {
           visit(wellFormedVisitor, expr, wfContext);
         },

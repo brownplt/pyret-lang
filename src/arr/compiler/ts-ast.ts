@@ -225,7 +225,6 @@ export type Expr =
     $name: "s-let",
     dict: { 'l': Loc, 'name': Bind, 'value': Expr, 'keyword-val': boolean }
   }
-  | { $name: "s-ref", dict: { 'l': Loc, 'ann': Option<Ann> } }
   | {
     $name: "s-contract",
     dict: { 'l': Loc, 'name': Name, 'params': List<Name>, 'ann': Ann }
@@ -1175,9 +1174,6 @@ dict: {values: {dict: {
     (l: Loc, name: Bind, value: Expr, keyword_val: boolean) => TCH.Variant<Expr, 's-let'>
   >
 
-'is-s-ref': PFunction<(val: any) => val is TCH.Variant<Expr, 's-ref'>>
-
-'s-ref': PFunction< (l: Loc, ann: Option<Ann>) => TCH.Variant<Expr, 's-ref'> >
 
 'is-s-contract': PFunction<(val: any) => val is TCH.Variant<Expr, 's-contract'>>
 
