@@ -193,10 +193,6 @@ export type Expr =
     { 'l': Loc, 'binds': List<LetrecBind>, 'body': Expr, 'blocky': boolean }
   }
   | {
-    $name: "s-hint-exp",
-    dict: { 'l': Loc, 'hints': List<Hint>, 'exp': Expr }
-  }
-  | {
     $name: "s-instantiate",
     dict: { 'l': Loc, 'expr': Expr, 'params': List<Ann> }
   }
@@ -1113,13 +1109,6 @@ dict: {values: {dict: {
 's-letrec': 
   PFunction<
     (l: Loc, binds: List<LetrecBind>, body: Expr, blocky: boolean) => TCH.Variant<Expr, 's-letrec'>
-  >
-
-'is-s-hint-exp': PFunction<(val: any) => val is TCH.Variant<Expr, 's-hint-exp'>>
-
-'s-hint-exp': 
-  PFunction<
-    (l: Loc, hints: List<Hint>, exp: Expr) => TCH.Variant<Expr, 's-hint-exp'>
   >
 
 'is-s-instantiate': 

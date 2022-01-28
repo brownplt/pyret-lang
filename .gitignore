@@ -70,6 +70,9 @@ tests/pyret/standalone/importer-require.js
 tests/pyret/standalone/importer.jarr
 
 src/arr/compiler/ts-*.js
+src/arr/compiler/error-display.js
+src/arr/compiler/parse-pyret.js
+src/arr/compiler/provide-serialization.js
 
 compiled/
 

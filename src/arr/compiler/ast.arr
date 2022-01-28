@@ -490,15 +490,6 @@ sharing:
   end
 end
 
-data Hint:
-  | h-use-loc(l :: Loc) with:
-    method tosource(self): str-use-loc + PP.parens(PP.str(tostring(self.l))) end
-sharing:
-  method visit(self, visitor):
-    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
-  end
-end
-
 data LetBind:
   | s-let-bind(l :: Loc, b :: Bind, value :: Expr) with:
     method tosource(self):
@@ -634,12 +625,6 @@ data Expr:
           self.binds.map(_.tosource()))
           + blocky-colon(self.blocky)
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
-    end
-  | s-hint-exp(l :: Loc, hints :: List<Hint>, exp :: Expr) with:
-    method label(self): "s-hint-exp" end,
-    method tosource(self):
-      PP.flow-map(PP.hardline, lam(h): str-comment + h.tosource() end, self.hints) + PP.hardline
-        + self.e.tosource()
     end
   | s-instantiate(l :: Loc, expr :: Expr, params :: List<Ann>) with:
     method label(self): "s-instantiate" end,
@@ -2014,10 +1999,6 @@ default-map-visitor = {
     s-letrec(l, binds.map(_.visit(self)), body.visit(self), blocky)
   end,
 
-  method s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
-    s-hint-exp(l, hints, exp.visit(self))
-  end,
-
   method s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
     s-instantiate(l, expr.visit(self), params.map(_.visit(self)))
   end,
@@ -2621,10 +2602,6 @@ default-iter-visitor = {
     all(_.visit(self), binds) and body.visit(self)
   end,
 
-  method s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
-    exp.visit(self)
-  end,
-
   method s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
     expr.visit(self) and all(_.visit(self), params)
   end,
@@ -3197,10 +3174,6 @@ dummy-loc-visitor = {
 
   method s-letrec(self, l, binds, body, blocky):
     s-letrec(dummy-loc, binds.map(_.visit(self)), body.visit(self), blocky)
-  end,
-
-  method s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
-    s-hint-exp(dummy-loc, hints, exp.visit(self))
   end,
 
   method s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):

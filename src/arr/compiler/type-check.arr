@@ -503,8 +503,6 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
             checking(body, expect-type, top-level, context)
               .map-expr(A.s-letrec(l, new-binds, _, blocky))
           end)
-        | s-hint-exp(l, hints, exp) =>
-          raise("checking for s-hint-exp not implemented")
         | s-instantiate(l, expr, params) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-block(l, stmts) =>
@@ -786,8 +784,6 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
               .map-expr(A.s-letrec(l, new-binds, _, blocky))
               .map-type(_.set-loc(l))
           end)
-        | s-hint-exp(l, hints, exp) =>
-          raise("synthesis for s-hint-exp not implemented")
         | s-instantiate(l, expr, params) =>
           synthesis-instantiation(l, expr, params, top-level, context)
         | s-block(l, stmts) =>

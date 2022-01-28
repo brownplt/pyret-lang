@@ -1493,10 +1493,6 @@ export type Exports = {
         
         case 's-spy-block': return compileSpy(context, expr);
 
-        case 's-hint-exp': {
-          return compileExpr(context, expr.dict.exp);
-        }
-
         case 's-get-bang': throw new TODOError(expr.$name);
         case 's-update': throw new TODOError(expr.$name);
         case 's-ref': throw new TODOError(expr.$name);
