@@ -678,8 +678,6 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           check-synthesis(e, expect-type, top-level, context)
         | s-id-letrec(l, id, safe) =>
           check-synthesis(e, expect-type, top-level, context)
-        | s-undefined(l) =>
-          raise("checking for s-undefined not implemented")
         | s-srcloc(l, loc) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-num(l, n) =>
@@ -1010,8 +1008,6 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           lookup-id(l, id.key(), e, context).typing-bind(lam(id-type, shadow context):
             typing-result(e, id-type, context)
           end)
-        | s-undefined(l) =>
-          raise("synthesis for s-undefined not implemented")
         | s-dot(l, obj, field) =>
           synthesis(obj, top-level, context).bind(lam(new-ast, new-type, shadow context):
             synthesis-field(l, new-ast, new-type, field, A.s-dot, context)

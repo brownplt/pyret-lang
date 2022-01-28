@@ -382,7 +382,6 @@ export type Expr =
     $name: "s-id-modref",
     dict: { 'l': Loc, 'id': Name, 'uri': string, 'name': string }
   }
-  | { $name: "s-undefined", dict: { 'l': Loc } }
   | { $name: "s-srcloc", dict: { 'l': Loc, 'loc': Loc } }
   | { $name: "s-num", dict: { 'l': Loc, 'n': PyretNumber } }
   | {
@@ -1417,10 +1416,6 @@ dict: {values: {dict: {
   PFunction<
     (l: Loc, id: Name, uri: string, name: string) => TCH.Variant<Expr, 's-id-modref'>
   >
-
-'is-s-undefined': PFunction<(val: any) => val is TCH.Variant<Expr, 's-undefined'>>
-
-'s-undefined': PFunction< (l: Loc) => TCH.Variant<Expr, 's-undefined'> >
 
 'is-s-srcloc': PFunction<(val: any) => val is TCH.Variant<Expr, 's-srcloc'>>
 

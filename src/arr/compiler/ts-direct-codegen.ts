@@ -1320,9 +1320,6 @@ export type Exports = {
         case 's-prim-val': {
           return [rtField(expr.dict.name), []];
         }
-        case 's-undefined': {
-          return [UNDEFINED, []];
-        }
           
         case 's-id': {
           const b = context.postEnv.dict.bindings;

@@ -2369,7 +2369,6 @@ export type Exports = {
         case 's-data-expr':
           throw new InternalCompilerError("s-data-expr should have been handled by s-letrec");
         case 's-prim-val':
-        case 's-undefined':
         case 's-bracket':
         case 's-hint-exp':
         case 's-type':
@@ -3558,8 +3557,7 @@ export type Exports = {
           throw new InternalCompilerError("s-data-expr should have been handled by s-letrec");
         case 's-hint-exp':
         case 's-prim-val':
-        case 's-undefined':
-        case 's-bracket':
+        case 's-bracket': // s-bracket needs to be implemented by looking up/checking .get-value
         case 's-type':
         case 's-newtype':
         case 's-rec':

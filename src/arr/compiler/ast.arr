@@ -1029,9 +1029,6 @@ data Expr:
   | s-id-modref(l :: Loc, id :: Name, uri :: String, name :: String) with:
     method label(self): "s-id-modref" end,
     method tosource(self): self.id.tosource() + PP.str("@") + PP.parens(PP.str(self.uri)) + PP.str("." + self.name) end
-  | s-undefined(l :: Loc) with:
-    method label(self): "s-undefined" end,
-    method tosource(self): PP.str("undefined") end
   | s-srcloc(l :: Loc, loc :: Loc) with:
     method label(self): "s-srcloc" end,
     method tosource(self): PP.str(torepr(self.loc)) end
@@ -2222,9 +2219,6 @@ default-map-visitor = {
   method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
     s-id-modref(l, id.visit(self), uri, name)
   end,
-  method s-undefined(self, l :: Loc):
-    s-undefined(self)
-  end,
   method s-srcloc(self, l, shadow loc):
     s-srcloc(l, loc)
   end,
@@ -2834,9 +2828,6 @@ default-iter-visitor = {
   method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
     id.visit(self)
   end,
-  method s-undefined(self, l :: Loc):
-    true
-  end,
   method s-srcloc(self, l, shadow loc):
     true
   end,
@@ -3402,9 +3393,6 @@ dummy-loc-visitor = {
   end,
   method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
     s-id-modref(dummy-loc, id.visit(self), uri, name)
-  end,
-  method s-undefined(self, l :: Loc):
-    s-undefined(self)
   end,
   method s-srcloc(self, l, shadow loc):
     s-srcloc(dummy-loc, loc)
