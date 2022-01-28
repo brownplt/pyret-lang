@@ -281,7 +281,7 @@ export type CompileError =
         'expected-args': any
       }
   }
-  | { $name: "no-arguments", dict: { 'expr': Variant<A.Expr, "s-method"> | Variant<A.Member, "s-method-field"> } }
+  | { $name: "no-arguments", dict: { 'expr': Variant<A.Member, "s-method-field"> } }
   | {
     $name: "non-toplevel",
     dict: { 'kind': any, 'l': A.Srcloc, 'parent-loc': A.Srcloc }
@@ -788,7 +788,7 @@ dict: {values: {dict: {
   >
 
 'no-arguments': 
-  PFunction< (expr: Variant<A.Expr, "s-method"> | Variant<A.Member, "s-method-field">) => Variant<CompileError, 'no-arguments'> >
+  PFunction< (expr: Variant<A.Member, "s-method-field">) => Variant<CompileError, 'no-arguments'> >
 
 'non-toplevel': 
   PFunction<

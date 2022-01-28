@@ -1423,8 +1423,6 @@ export type Exports = {
           return compileExpr(context, expr.dict.body);
         case 's-template': 
           return [rtMethod("throwUnfinishedTemplate", [compileSrcloc(context, expr.dict.l)]), []];
-        case 's-method': 
-          throw new ShouldHaveDesugared(expr.dict.l, expr.$name);
         case 's-type': 
           throw new ShouldHaveDesugared(expr.dict.l, expr.$name);
         case 's-newtype': throw new TODOError(expr.$name);

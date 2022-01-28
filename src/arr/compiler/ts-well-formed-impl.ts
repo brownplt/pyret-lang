@@ -185,7 +185,7 @@ type WFContext = {
         }
       }
 
-      function sMethodHelper(visitor, expr: TJ.Variant<A.Expr, 's-method'> | TJ.Variant<A.Member, 's-method-field'>, wfContext: WFContext) {
+      function sMethodHelper(visitor, expr: TJ.Variant<A.Member, 's-method-field'>, wfContext: WFContext) {
         const args = listToArray(expr.dict.args);
         if (args.length === 0) {
           addError(C['no-arguments'].app(expr));
@@ -887,13 +887,6 @@ type WFContext = {
           visit(visitor, expr.dict.value, wfContext);
           visit(visitor, expr.dict.ann, wfContext);
         },
-        's-method': (visitor, expr: TJ.Variant<A.Expr, 's-method'>, wfContext) => {
-          if (!wfContext.allowSMethod) {
-            addError(C['wf-bad-method-expression'].app(expr.dict.l));
-          }
-          const parentBlockLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
-          sMethodHelper(visitor, expr, {...wfContext, parentBlockLoc});
-        },
         's-lam': (visitor, expr: TJ.Variant<A.Expr, 's-lam'>, wfContext) => {
           const exprThroughCheckLoc = getLocWithCheckBlock(expr.dict.l, expr.dict['_check-loc']);
           const args = listToArray(expr.dict.args);
@@ -1454,9 +1447,6 @@ type WFContext = {
           visit(wellFormedVisitor, expr, wfContext);
         },
         's-lam': (visitor, expr: TJ.Variant<A.Expr, 's-lam'>, wfContext) => {
-          visit(wellFormedVisitor, expr, wfContext);
-        },
-        's-method': (visitor, expr: TJ.Variant<A.Expr, 's-method'>, wfContext) => {
           visit(wellFormedVisitor, expr, wfContext);
         },
         's-extend': (visitor, expr: TJ.Variant<A.Expr, 's-extend'>, wfContext) => {

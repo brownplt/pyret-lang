@@ -580,9 +580,6 @@ desugar-scope-visitor = A.default-map-visitor.{
   method s-lam(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
     rebuild-fun(A.s-lam, self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
   end,
-  method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
-    rebuild-fun(A.s-method, self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
-  end,
   method s-method-field(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
     rebuild-fun(A.s-method-field, self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky)
   end
@@ -1618,29 +1615,6 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
       # so the programmer will see those errors, not the ones from here.)
       name-errors := saved-name-errors
       A.s-lam(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, _check-loc, new-check, blocky)
-    end,
-    method s-method(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
-      {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):
-        {env; atoms} = acc
-        atom-env = make-atom-for(param, false, env, type-bindings,
-          C.type-bind(C.bo-local(param.l, param), C.tb-type-var, _, C.tb-none))
-        { atom-env.env; link(atom-env.atom, atoms) }
-      end
-      with-params = self.{type-env: ty-env}
-      {env; atoms} = for fold(acc from { with-params.env; empty }, a from args):
-        {env; atoms} = acc
-        atom-env = make-atom-for(a.id, a.shadows, env, bindings,
-          C.value-bind(C.bo-local(a.l, a.id), C.vb-let, _, a.ann.visit(with-params)))
-        { atom-env.env; link(atom-env.atom, atoms) }
-      end
-      new-args = for map2(a from args, at from atoms.reverse()):
-        cases(A.Bind) a:
-          | s-bind(l2, shadows, id, ann2) => A.s-bind(l2, shadows, at, ann2.visit(with-params))
-        end
-      end
-      new-body = body.visit(with-params.{env: env})
-      new-check = with-params.option(_check)
-      A.s-method(l, name, ty-atoms.reverse(), new-args, ann.visit(with-params), doc, new-body, _check-loc, new-check, blocky)
     end,
     method s-method-field(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
       {ty-env; ty-atoms} = for fold(acc from {self.type-env; empty }, param from params):

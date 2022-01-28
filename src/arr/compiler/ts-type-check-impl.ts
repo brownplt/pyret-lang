@@ -2365,6 +2365,7 @@ export type Exports = {
         case 's-if-pipe':
         case 's-if-pipe-else':
         case 's-if':
+        case 's-reactor':
           throw new InternalCompilerError(`${e.$name} should already have been desugared`);
         case 's-type':
         case 's-newtype':
@@ -2375,10 +2376,9 @@ export type Exports = {
         case 's-prim-val': // NOTE(joe Jan22) Needs to be implemented
         case 's-bracket':  // NOTE(joe Jan22) Needs to be implemented
         case 's-contract':
-        case 's-method':
           throw new InternalCompilerError(`checking for ${e.$name} not implemented`);
         case 's-app-enriched':
-        case 's-reactor':
+          throw new InternalCompilerError(`checking for ${e.$name} should not happen; should be introduced after tc`);
         case 's-table':
         case 's-table-extend':
         case 's-table-extract':
@@ -2900,13 +2900,6 @@ export type Exports = {
         case 's-data-field': {
           const { value } = member.dict;
           switch(value.$name) {
-            case 's-method': {
-              const { l, name, params, args, ann, doc, body, "_check-loc": checkLoc, _check, blocky } = value.dict;
-              const newType = addSelfType(typ, selfType);
-              const fieldAsMethod = A['s-method'].app(l, name, params, args, ann, doc, body, checkLoc, _check, blocky);
-              const checkedType = checkFun(l, body, params, args, ann, newType, fieldAsMethod, context);
-              return removeSelfType(checkedType);
-            }
             case 's-lam': {
               if (typeCheckFunctions) {
                 checking(value, typ, false, context);
@@ -2921,8 +2914,8 @@ export type Exports = {
           //   See tests-new/simple-output/custom-equal-always.arr for details
           const { l, name, params, args, ann, doc, body, "_check-loc": checkLoc, _check, blocky } = member.dict;
           const newType = addSelfType(typ, selfType);
-          const fieldAsMethod = A['s-method'].app(l, name, params, args, ann, doc, body, checkLoc, _check, blocky);
-          const checkedType = checkFun(l, body, params, args, ann, newType, fieldAsMethod, context);
+          const methodAsLam = A['s-lam'].app(l, name, params, args, ann, doc, body, checkLoc, _check, blocky);
+          const checkedType = checkFun(l, body, params, args, ann, newType, methodAsLam, context);
           return removeSelfType(checkedType);
         }
         case 's-mutable-field': throw new InternalCompilerError(`toTypeMember: mutable fields not handled yet (field name is ${member.dict.name})`);
@@ -3032,16 +3025,6 @@ export type Exports = {
         case 's-data-field': {
           const { value } = member.dict;
           switch(value.$name) {
-            case 's-method': {
-              const { l, params, args, ann } = value.dict;
-              if (args.$name === 'empty') {
-                throw new TypeCheckFailure(CS['method-missing-self'].app(value));
-              } else {
-                const argsArray = listToArray(args.dict.rest as List<TJ.Variant<A.Bind, 's-bind'>>);
-                const bindings = collectBindings(argsArray, context);
-                return lamToType(bindings, l, params, argsArray, ann, !collectFunctions, context).arrow;    
-              }
-            }
             case 's-lam': {
               const { l, params, args, ann } = value.dict;
               const argsArray = listToArray(args as List<TJ.Variant<A.Bind, 's-bind'>>);
@@ -3560,7 +3543,6 @@ export type Exports = {
         case 's-newtype':
         case 's-rec':
         case 's-contract':
-        case 's-method':
           throw new InternalCompilerError(`_synthesis for ${e.$name} not implemented`);
         case 's-app-enriched':
         case 's-reactor':

@@ -867,23 +867,6 @@ data Expr:
       funlam-tosource(str-lam,
         PP.mt-doc, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
     end
-  | s-method(
-      l :: Loc,
-      name :: String, # Declared method name, or "" if anonymous method
-      params :: List<Name>, # Type parameters
-      args :: List<Bind>, # Value parameters
-      ann :: Ann, # return type
-      doc :: String,
-      body :: Expr,
-      _check-loc :: Option<Loc>,
-      _check :: Option<Expr>,
-      blocky :: Boolean
-    ) with:
-    method label(self): "s-method" end,
-    method tosource(self):
-      funlam-tosource(str-method,
-        PP.mt-doc, self.params, self.args, self.ann, self.doc, self.body, self._check, self.blocky)
-    end
   | s-extend(l :: Loc, supe :: Expr, fields :: List<Member>) with:
     method label(self): "s-extend" end,
     method tosource(self):
@@ -2109,21 +2092,6 @@ default-map-visitor = {
     ):
     s-lam(l, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), _check-loc, self.option(_check), blocky)
   end,
-  method s-method(
-      self,
-      l :: Loc,
-      name :: String,
-      params :: List<Name>,
-      args :: List<Bind>, # Value parameters
-      ann :: Ann, # return type
-      doc :: String,
-      body :: Expr,
-      _check-loc :: Option<Loc>,
-      _check :: Option<Expr>,
-      blocky :: Boolean
-    ):
-    s-method(l, name, params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), _check-loc, self.option(_check), blocky)
-  end,
   method s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-extend(l, supe.visit(self), fields.map(_.visit(self)))
   end,
@@ -2710,21 +2678,6 @@ default-iter-visitor = {
     all(_.visit(self), params)
     and all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
-  method s-method(
-      self,
-      l :: Loc,
-      name :: String,
-      params :: List<Name>,
-      args :: List<Bind>, # Value parameters
-      ann :: Ann, # return type
-      doc :: String,
-      body :: Expr,
-      _check-loc :: Option<Loc>,
-      _check :: Option<Expr>,
-      blocky :: Boolean
-      ):
-    all(_.visit(self), params) and all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
-  end,
   method s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     supe.visit(self) and all(_.visit(self), fields)
   end,
@@ -3273,21 +3226,6 @@ dummy-loc-visitor = {
       blocky :: Boolean
     ):
     s-lam(dummy-loc, "", params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), if is-none(_check): none else: some(dummy-loc) end, self.option(_check), blocky)
-  end,
-  method s-method(
-      self,
-      l :: Loc,
-      name :: String,
-      params :: List<Name>,
-      args :: List<Bind>, # Value parameters
-      ann :: Ann, # return type
-      doc :: String,
-      body :: Expr,
-      _check-loc :: Option<Loc>,
-      _check :: Option<Expr>,
-      blocky :: Boolean
-    ):
-    s-method(dummy-loc, "", params.map(_.visit(self)), args.map(_.visit(self)), ann.visit(self), doc, body.visit(self), if is-none(_check-loc): none else: some(dummy-loc) end, self.option(_check), blocky)
   end,
   method s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
     s-extend(dummy-loc, supe.visit(self), fields.map(_.visit(self)))

@@ -873,8 +873,21 @@ export type Exports = {
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), tr(node.kids[5]));
           } else if (node.kids.length === 3) {
             // (obj-field key COLON value)
-            return RUNTIME.getField(ast, 's-data-field')
-              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+            if(node.kids[2].name === 's-method') {
+              var methodNode = node.kids[2];
+              var header = tr(methodNode.kids[1]);
+              if (header.lparenPos) {
+                RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(methodNode.kids[0].pos, methodNode.kids[2].pos), header.lparenPos);
+              }
+              var checkRes = tr(methodNode.kids[5]);
+              return RUNTIME.getField(ast, 's-method-field')
+                .app(pos(node.pos), tr(node.kids[0]), header.tyParams, header.args, header.returnAnn,
+                    tr(methodNode.kids[3]), tr(methodNode.kids[4]), checkRes[0], checkRes[1], isBlock);
+            }
+            else {
+              return RUNTIME.getField(ast, 's-data-field')
+                .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
+            }
           } else {
             // (obj-field METHOD key fun-header COLON doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
@@ -1306,18 +1319,6 @@ export type Exports = {
           }
           var checkRes = tr(node.kids[5]);
           return RUNTIME.getField(ast, 's-lam')
-            .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
-                 tr(node.kids[3]), tr(node.kids[4]), checkRes[0], checkRes[1], isBlock);
-        },
-        'method-expr': function(node) {
-          // (method-expr METHOD fun-header COLON doc body check END)
-          var isBlock = (node.kids[2].name === "BLOCK");
-          var header = tr(node.kids[1]);
-          if (header.lparenPos) {
-            RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[2].pos), header.lparenPos);
-          }
-          var checkRes = tr(node.kids[5]);
-          return RUNTIME.getField(ast, 's-method')
             .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
                  tr(node.kids[3]), tr(node.kids[4]), checkRes[0], checkRes[1], isBlock);
         },

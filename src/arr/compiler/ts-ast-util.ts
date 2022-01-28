@@ -267,23 +267,6 @@ export interface Exports {
             blocky
           );
         },
-        's-method': (visitor, method: TJ.Variant<A.Expr, 's-method'>, scope) => {
-          const { l, name, ann, doc, body, "_check-loc": checkLoc, _check, blocky } = method.dict;
-          const params = listToArray(method.dict.params);
-          const args = listToArray(method.dict.args);
-          return A['s-method'].app(
-            l,
-            name,
-            runtime.ffi.makeList(params.map((p) => map(visitor, p, clearScope))),
-            runtime.ffi.makeList(args.map((a) => map(visitor, a, clearScope))),
-            map(visitor, ann, clearScope),
-            doc,
-            map(visitor, body, collectMethodSelf(scope, args[0])),
-            checkLoc,
-            map(visitor, _check, clearScope),
-            blocky
-          );
-        },
         's-letrec': (visitor, letrec: TJ.Variant<A.Expr, 's-letrec'>, scope) => {
           const { l, body, blocky } = letrec.dict;
           const binds = listToArray(letrec.dict.binds);
@@ -421,20 +404,6 @@ export interface Exports {
             lam.dict.blocky,
           );
         },
-        's-method': (visitor, method: TJ.Variant<A.Expr, 's-method'>, isTail) => {
-          return A['s-method'].app(
-            method.dict.l,
-            method.dict.name,
-            runtime.ffi.makeList(listToArray(method.dict.params).map((p) => map(visitor, p, false))),
-            runtime.ffi.makeList(listToArray(method.dict.args).map((a) => map(visitor, a, false))),
-            map(visitor, method.dict.ann, false),
-            method.dict.doc,
-            map(visitor, method.dict.body, !isStatefulAnn(method.dict.ann)),
-            method.dict['_check-loc'],
-            map(visitor, method.dict._check, false),
-            method.dict.blocky,
-          );
-        },
         's-array': (visitor, array: TJ.Variant<A.Expr, 's-array'>, isTail) => {
           return A['s-array'].app(
             array.dict.l,
@@ -503,7 +472,7 @@ export interface Exports {
           for (let i = 0; i < binds.length; i++) {
             const newEnv = new Map<string, boolean>(env);
             const value = binds[i].dict.value;
-            const rhsIsDelayed = (value.$name === 's-lam' || value.$name === 's-method');
+            const rhsIsDelayed = (value.$name === 's-lam');
             for (let j = 0; j < binds.length; j++) {
               const b2 = binds[j].dict.b as TJ.Variant<A.Bind, 's-bind'>;
               const key = nameToKey(b2.dict.id);

@@ -584,8 +584,6 @@ fun _checking(e :: Expr, expect-type :: Type, top-level :: Boolean, context :: C
           check-synthesis(expr, expect-type, top-level, context)
         | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
           check-fun(l, body, params, args, ann, expect-type, A.s-lam(l, name, params, _, _, doc, _, _check-loc, _check, b), context)
-        | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
-          raise("checking for s-method not implemented")
         | s-extend(l, supe, fields) =>
           check-synthesis(e, expect-type, top-level, context)
         | s-update(l, obj, fields) =>
@@ -899,8 +897,6 @@ fun _synthesis(e :: Expr, top-level :: Boolean, context :: Context) -> TypingRes
           synthesis(expr, false, context)
         | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
           synthesis-fun(l, body, params, args, ann, A.s-lam(l, name, params, _, _, doc, _, _check-loc, _check, b), top-level, context)
-        | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, b) =>
-          raise("synthesis for s-method not implemented")
         | s-extend(l, supe, fields) =>
           synthesis(supe, top-level, context).bind(synthesis-extend(l, _, _, fields, _))
             .map-type(_.set-loc(l))
@@ -1262,12 +1258,6 @@ fun to-type-member(member :: A.Member, typ :: Type, self-type :: Type, type-chec
   cases(A.Member) member:
     | s-data-field(l, name, value) =>
       cases(Expr) value:
-        | s-method(m-l, m-name, params, args, ann, doc, body, _check-loc, _check, b) =>
-          new-type = add-self-type(typ)
-          check-fun(m-l, body, params, args, ann, new-type, A.s-method(m-l, m-name, params, _, _, doc, _, _check-loc, _check, b), context)
-            .fold-bind(lam(_, out-type, shadow context):
-              fold-result(remove-self-type(out-type), context)
-            end)
         | s-lam(l-l, _, params, args, ann, doc, body, _check-loc, _check, b) =>
           if type-check-functions:
             checking(value, typ, false, context)
@@ -1284,7 +1274,7 @@ fun to-type-member(member :: A.Member, typ :: Type, self-type :: Type, type-chec
       # TODO(alex): TC limitations means cannot implement _equality() as a with-member
       #   See tests-new/simple-output/custom-equal-always.arr for details
       new-type = add-self-type(typ)
-      check-fun(m-l, body, params, args, ann, new-type, A.s-method(m-l, name, params, _, _, doc, _, _check-loc, _check, b), context)
+      check-fun(m-l, body, params, args, ann, new-type, A.s-lam(m-l, name, params, _, _, doc, _, _check-loc, _check, b), context)
         .fold-bind(lam(_, out-type, shadow context):
           fold-result(remove-self-type(out-type), context)
         end)
@@ -1403,15 +1393,6 @@ fun collect-member(member :: A.Member, collect-functions :: Boolean, context :: 
   cases(A.Member) member:
     | s-data-field(l, name, value) =>
       cases(Expr) value:
-        | s-method(m-l, _, params, args, ann, _, _, _, _, _) =>
-          cases(List<A.Bind>) args:
-            | empty =>
-              fold-errors([list: C.method-missing-self(value)])
-            | link(self, rest) =>
-              collect-bindings(rest, context).bind(lam(bindings, shadow context):
-                lam-to-type(bindings, m-l, params, args.rest, ann, not(collect-functions), context)
-              end)
-          end
         | s-lam(l-l, _, params, args, ann, _, _, _, _, _) =>
           if collect-functions:
             collect-bindings(args, context).bind(lam(bindings, shadow context):

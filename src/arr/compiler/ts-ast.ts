@@ -315,22 +315,6 @@ export type Expr =
     }
   }
   | {
-    $name: "s-method",
-    dict:
-    {
-      'l': Loc,
-      'name': string,
-      'params': List<Name>,
-      'args': List<Bind>,
-      'ann': Ann,
-      'doc': string,
-      'body': Expr,
-      '_check-loc': Option<Loc>,
-      '_check': Option<Expr>,
-      'blocky': boolean
-    }
-  }
-  | {
     $name: "s-extend",
     dict: { 'l': Loc, 'supe': Expr, 'fields': List<Member> }
   }
@@ -1290,24 +1274,6 @@ dict: {values: {dict: {
         _check: Option<Expr>,
         blocky: boolean
       ) => TCH.Variant<Expr, 's-lam'>
-  >
-
-'is-s-method': PFunction<(val: any) => val is TCH.Variant<Expr, 's-method'>>
-
-'s-method': 
-  PFunction<
-    (
-        l: Loc,
-        name: string,
-        params: List<Name>,
-        args: List<Bind>,
-        ann: Ann,
-        doc: string,
-        body: Expr,
-        _check_loc: Option<Loc>,
-        _check: Option<Expr>,
-        blocky: boolean
-      ) => TCH.Variant<Expr, 's-method'>
   >
 
 'is-s-extend': PFunction<(val: any) => val is TCH.Variant<Expr, 's-extend'>>
