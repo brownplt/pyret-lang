@@ -2354,7 +2354,6 @@ export type Exports = {
           }
         }
         case 's-check-test':
-        case 's-module':
           throw new InternalCompilerError(`TODO: _checking switch ${e.$name}`);
         case 's-data':
         case 's-user-block':
@@ -2379,6 +2378,8 @@ export type Exports = {
           throw new InternalCompilerError(`checking for ${e.$name} not implemented`);
         case 's-app-enriched':
           throw new InternalCompilerError(`checking for ${e.$name} should not happen; should be introduced after tc`);
+        case 's-module':
+          throw new InternalCompilerError(`checking for ${e.$name} should not happen; should only by synthed`);
         case 's-table':
         case 's-table-extend':
         case 's-table-extract':
