@@ -3260,6 +3260,35 @@ export type Exports = {
       return newType;
     }
 
+    function synthesisCheckTest(e: TJ.Variant<A.Expr,"s-check-test">, context: Context): TS.Type {
+      function createResult() {
+        const resultType = newExistential(e.dict.l, false);
+        context.addVariable(resultType);
+        return resultType;
+      }
+      function synthesisEquivalent() {
+        switch(e.dict.right.$name) {
+          case 'some': {
+            const leftTyp = synthesis(e.dict.left, false, context);
+            const rightTyp = synthesis(e.dict.right.dict.value, false, context);
+            context.addConstraint(leftTyp, rightTyp);
+            return createResult();
+          }
+          case 'none': {
+            throw new InternalCompilerError("Expected test to have a right-hand side");
+          }
+        }
+      }
+
+      // TODO(refinement, predicate, etc)
+      switch(e.dict.op.$name) {
+        case 's-op-is': return synthesisEquivalent(); // NOTE(joe): only works for plain is, skips refinement
+        default: {
+          throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI`);
+        }
+      }
+    }
+
     function synthesisSpine(funType : TS.Type, original: TJ.Variant<A.Expr, 's-app'>, args : A.Expr[], appLoc : SL.Srcloc, context : Context) : TS.Type {
       context.addLevel(`synthesisSpine(${original.$name}) at ${formatSrcloc(original.dict.l, false)}`);
       function wrapReturn(t : TS.Type) {
@@ -3517,15 +3546,22 @@ export type Exports = {
           }
           return tNothing(e.dict.l);
         }
+        case 's-check': {
+          synthesis(e.dict.body, false, context);
+          const resultType = newExistential(e.dict.l, false);
+          context.addVariable(resultType);
+          return resultType;
+        }
+        case 's-check-test': {
+          return synthesisCheckTest(e, context);
+        }
         case 's-update': {
           //const objType = synthesis(e.dict.supe, topLevel, context);
           //return synthesisUpdate();
         }
         case 's-instantiate':
-        case 's-check-test':
         case 's-check-expr':
         case 's-get-bang':
-        case 's-check':
           throw new InternalCompilerError(`TODO: _synthesis switch ${e.$name}`);
         case 's-data':
         case 's-fun':
