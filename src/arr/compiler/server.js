@@ -81,8 +81,9 @@
               }, function(result) {
                 if(runtime.isFailureResult(result)) {
                   error("Failed: ", result.exn.exn, result.exn.stack, result.exn.pyretStack);
-                  respondJSON({type: "echo-err", contents: "There was an internal error, please report this as a bug"});
+                  respondJSON({type: "echo-err", contents: "There was an internal error, please report this as a bug\n"});
                   respondJSON({type: "echo-err", contents: require('util').inspect(result.exn.exn, {depth: null}) });
+                  respondJSON({type: "compile-failure", data: "Internal error, compile task failed" });
                   connection.close();
                   // restarter.error(result.exn);
                 }
