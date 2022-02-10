@@ -1,5 +1,6 @@
 ### Looks shipshape
 include global
+include string
 check:
   2 + 2 is 4
   s = "ac"
@@ -11,5 +12,12 @@ check:
   s is=~ s
   "a" + "b" is-not== "c"
   s is-not=~ "banana"
+
+  fun samelength(a :: String, b :: String) block:
+    string-length(a) == string-length(b)
+  end
+
+  "a" is%(samelength) "b"
+  "a" is-not%(samelength) "bc"
 
 end

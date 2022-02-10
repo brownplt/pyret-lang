@@ -3280,18 +3280,51 @@ export type Exports = {
         }
       }
       function synthesisRefinement() {
-        return synthesisEquivalent();
+        switch(e.dict.refinement.$name) {
+          case 'none': return synthesisEquivalent();
+          case 'some': {
+            switch(e.dict.right.$name) {
+              case 'none': throw new InternalCompilerError("is/is-not tests must have a right-hand side");
+              case 'some': {
+                const leftTyp = synthesis(e.dict.left, false, context);
+                const rightTyp = synthesis(e.dict.right.dict.value, false, context);
+                const refinementTyp = synthesis(e.dict.refinement.dict.value, false, context);
+                const arrowArgs = runtime.ffi.makeList([leftTyp, rightTyp]);
+                context.addConstraint(refinementTyp, TS['t-arrow'].app(arrowArgs, tBoolean(e.dict.l), e.dict.l, false));
+                return createResult();
+              }
+            }
+          }
+        }
+      }
+      function synthesisPredicate() : TS.Type {
+        throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI`);
+      }
+      function synthesisString() : TS.Type {
+        throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI`);
+      }
+      function synthesisException() : TS.Type {
+        throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI`);
       }
 
-      // TODO(refinement, predicate, etc)
       switch(e.dict.op.$name) {
         case 's-op-is': return synthesisRefinement();
         case 's-op-is-roughly': return synthesisEquivalent();
         case 's-op-is-op': return synthesisEquivalent();
         case 's-op-is-not': return synthesisRefinement();
         case 's-op-is-not-op': return synthesisEquivalent();
+        case 's-op-satisfies': return synthesisPredicate();
+        case 's-op-satisfies-not': return synthesisPredicate();
+        case 's-op-raises': return synthesisString();
+        case 's-op-raises-not': {
+          synthesis(e.dict.left, false, context);
+          return createResult();
+        }
+        case 's-op-raises-other': return synthesisString();
+        case 's-op-raises-satisfies': return synthesisException();
+        case 's-op-raises-violates': return synthesisException();
         default: {
-          throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI`);
+          throw new ExhaustiveSwitchError(e.dict.op);
         }
       }
     }

@@ -1655,7 +1655,7 @@ export type Exports = {
       const tableImport =  importBuiltin(TABLE, "tables.arr.js");
       const reactorImport =  importBuiltin(RUNTIME, "reactor.arr.js");
 
-      const manualImports = [runtimeImport];
+      const manualImports = [];
       if(importFlags["table-import"]) { manualImports.push(tableImport); }
       if(importFlags["reactor-import"]) {
         throw new TODOError("reactor.arr.js not implemented via flags");
@@ -1732,11 +1732,13 @@ export type Exports = {
       });
 
       const setupRuntime = [
+        runtimeImport,
+        ExpressionStatement(rtMethod("$claimMainIfLoadedFirst", [Literal(provides.dict['from-uri'])])),
         ExpressionStatement(rtMethod("$clearTraces", [Literal(provides.dict['from-uri'])])),
         ExpressionStatement(rtMethod("$clearChecks", [Literal(provides.dict['from-uri'])]))
       ];
 
-      return [...importStmts, ...setupRuntime, ...fromModules];
+      return [...setupRuntime, ...importStmts, ...fromModules];
     }
 
     /**

@@ -81,9 +81,9 @@ var _globalCheckResults: { [uri : string]: CheckResult[] } = {};
 // TODO: Add check test override
 // TODO: Need to expose an check runner test API to the IDE
 var $checkBlockExecutor = eagerCheckBlockRunner;
-var $checkBlockFilter: (srcloc: string, name: string) => boolean | null = null;
+var $checkBlockFilter: (uri: string, name?: string) => boolean | null = null;
 
-export function $setCheckBlockFilter(filter: (srcloc: string, name: string) => boolean): void {
+export function $setCheckBlockFilter(filter: (uri: string, name?: string) => boolean): void {
   $checkBlockFilter = filter;
 }
 
@@ -99,9 +99,29 @@ function getCheckResults(uri : string): CheckResult[] {
   return _globalCheckResults[uri].slice();
 }
 
+let currentMainURI = false;
+function claimMainIfLoadedFirst(uri) {
+  if(currentMainURI === false) {
+    currentMainURI = uri;
+    // The runtime can initialize filter if it wants to, to something other than null
+    // Then, wrapping contexts, like an IDE, could call setCheckBlockFilter
+    //
+    // Then, a main program (usually run with node), can set it via claimMain, BUT
+    // this is a no-op if the filter has already been managed/set by, say, the IDE
+    // or an overriding command-line option.
+    if($checkBlockFilter === null) {
+      $setCheckBlockFilter((uriOfTester, _) => {
+        return uri === uriOfTester;
+      });
+    }
+  }
+}
 function clearChecks(uri) { _globalCheckResults[uri] = []; }
 function checkResults(uri : string): CheckResult[] {
   let errorCount = 0;
+  if($checkBlockFilter && !$checkBlockFilter(uri)) {
+    return getCheckResults(uri);
+  }
   _globalCheckResults[uri].forEach((result) => {
     if (!result.success) {
       errorCount += 1;
@@ -189,8 +209,8 @@ function eagerCheckTest(lhs: () => any,  rhs: () => any,
 }
 
 // TODO(alex): Common URI object that's not a string
-function eagerCheckBlockRunner(uri: string, name: string, checkBlock: () => void): void {
-  if ($checkBlockFilter && !$checkBlockFilter(uri, name)) {
+function eagerCheckBlockRunner(srcloc: string, name: string, checkBlock: () => void): void {
+  if ($checkBlockFilter && !$checkBlockFilter(getUriForCheckLoc(srcloc), name)) {
     return;
   }
 
@@ -424,6 +444,8 @@ module.exports["$installMethod"] = installMethod;
 module.exports["$setupMethodGetters"] = setupMethodGetters;
 module.exports["$makeDataValue"] = _PRIMITIVES.makeDataValue;
 module.exports["$createVariant"] = _PRIMITIVES.createVariant;
+
+module.exports["$claimMainIfLoadedFirst"] = claimMainIfLoadedFirst;
 
 module.exports["$checkTest"] = eagerCheckTest;
 module.exports["$checkBlock"] = checkBlockHandler;
