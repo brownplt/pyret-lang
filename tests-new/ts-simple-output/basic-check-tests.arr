@@ -6,7 +6,10 @@ check:
   2 + 2 is-roughly 4
 
   "a" + "b" is== "ab"
-  #s is<=> s
-  #s is=~ s
-  #"a" + "b" is== "c"
+  s is<=> "ac"
+  2 is-not<=> 3
+  s is=~ s
+  "a" + "b" is-not== "c"
+  s is-not=~ "banana"
+
 end

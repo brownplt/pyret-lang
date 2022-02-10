@@ -615,12 +615,14 @@ export type CasesBranch =
     dict: { 'l': Loc, 'pat-loc': Loc, 'name': string, 'body': Expr }
   }
 
+export type IsOp = "op==" | "op=~" | "op<=>"
+
 export type CheckOp =
   | { $name: "s-op-is", dict: { 'l': Loc } }
   | { $name: "s-op-is-roughly", dict: { 'l': Loc } }
-  | { $name: "s-op-is-op", dict: { 'l': Loc, 'op': string } }
+  | { $name: "s-op-is-op", dict: { 'l': Loc, 'op': IsOp } }
   | { $name: "s-op-is-not", dict: { 'l': Loc } }
-  | { $name: "s-op-is-not-op", dict: { 'l': Loc, 'op': string } }
+  | { $name: "s-op-is-not-op", dict: { 'l': Loc, 'op': IsOp } }
   | { $name: "s-op-satisfies", dict: { 'l': Loc } }
   | { $name: "s-op-satisfies-not", dict: { 'l': Loc } }
   | { $name: "s-op-raises", dict: { 'l': Loc } }

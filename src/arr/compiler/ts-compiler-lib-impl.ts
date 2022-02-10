@@ -309,6 +309,7 @@ type ResolveScopeExports = {
           const uri = callMethod(locator, "uri");
           const markStatus = tempMarked.get(uri);
           if (markStatus === PROCESSING) {
+            // NOTE(joe/ben): should be restarter.error
             throw new InternalCompilerError(`Detected module cycle: ${currPath.map((l) => callMethod(l, "uri")).join(" => ")}`);
           } else if (markStatus === FINISHED) {
             return;

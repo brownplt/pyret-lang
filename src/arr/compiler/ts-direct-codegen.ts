@@ -127,9 +127,16 @@ export type Exports = {
     const TABLE = constId("_table")
     const NUMBER_ERR_CALLBACKS = "$errCallbacks"
     const EQUAL_ALWAYS = "equal-always"
+    const EQUAL_NOW = "equal-now"
     const IDENTICAL = "identical"
     const TOREPR = "$torepr"
     const UNDEFINED = Identifier(constId("undefined"));
+
+    const OP_TO_FUNCTION = {
+      'op<=>': IDENTICAL,
+      'op==': EQUAL_ALWAYS,
+      'op=~': EQUAL_NOW
+    };
 
     function compressRuntimeName(name : string) { return name; }
     
@@ -603,6 +610,18 @@ export type Exports = {
         }
         case 's-op-raises': {
           [checkOp, checkOpStmts] = [ {$name: 'expect-raises'}, []];
+          break;
+        }
+        case "s-op-is-op": {
+          let refinement = rtField(OP_TO_FUNCTION[op.dict.op]);
+          checkOp = { $name: 'refinement-result', refinement, negate: false };
+          checkOpStmts = [];
+          break;
+        }
+        case "s-op-is-not-op": {
+          let refinement = rtField(OP_TO_FUNCTION[op.dict.op]);
+          checkOp = { $name: 'refinement-result', refinement, negate: true };
+          checkOpStmts = [];
           break;
         }
         default: throw new InternalCompilerError("Not yet implemented: " + op.$name);
