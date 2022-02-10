@@ -3279,10 +3279,17 @@ export type Exports = {
           }
         }
       }
+      function synthesisRefinement() {
+        return synthesisEquivalent();
+      }
 
       // TODO(refinement, predicate, etc)
       switch(e.dict.op.$name) {
-        case 's-op-is': return synthesisEquivalent(); // NOTE(joe): only works for plain is, skips refinement
+        case 's-op-is': return synthesisRefinement();
+        case 's-op-is-roughly': return synthesisEquivalent();
+        case 's-op-is-op': return synthesisEquivalent();
+        case 's-op-is-not': return synthesisRefinement();
+        case 's-op-is-not-op': return synthesisEquivalent();
         default: {
           throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI`);
         }
