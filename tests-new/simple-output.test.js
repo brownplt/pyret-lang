@@ -54,7 +54,7 @@ describe("testing simple-output programs", () => {
         {stdio: "pipe", timeout: COMPILER_TIMEOUT});
 
       if(compileProcess.status !== 0) {
-        let stderr = compileProcess.stderr;
+        let stderr = String(compileProcess.stderr);
         stderrExpected.forEach((expect) => {
           assert(stderr.indexOf(expect) !== -1, `=====EXPECTED STDERR TO CONTAIN THESE LINES IN ORDER=====\n${stderrExpected.join("\n")}\n=====ACTUAL STDERR=====\n${compileProcess.stderr} and stdout was\n${compileProcess.stdout}`);
           stderr = stderr.slice(stderr.indexOf(expect) + expect.length);
