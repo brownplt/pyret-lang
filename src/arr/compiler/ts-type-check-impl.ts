@@ -3298,7 +3298,16 @@ export type Exports = {
         }
       }
       function synthesisPredicate() : TS.Type {
-        throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI`);
+        switch(e.dict.right.$name) {
+          case 'none': throw new InternalCompilerError("satisfies/violates tests must have a right-hand side");
+          case 'some': {
+            const leftTyp = synthesis(e.dict.left, false, context);
+            const predTyp = synthesis(e.dict.right.dict.value, false, context);
+            const arrowArgs = runtime.ffi.makeList([leftTyp]);
+            context.addConstraint(predTyp, TS['t-arrow'].app(arrowArgs, tBoolean(e.dict.l), e.dict.l, false));
+            return createResult();
+          }
+        }
       }
       function synthesisString() : TS.Type {
         throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI`);

@@ -537,7 +537,7 @@ export type Exports = {
         | { $name: "binop-result", op: string }
         | { $name: "expect-raises" }
         | { $name: "refinement-result", refinement: J.Expression, negate: boolean }
-        | { $name: "predicate-result", predicate: any };
+        | { $name: "predicate-result", negate: boolean };
       const {l, op, refinement, left, right: rightOpt, cause} = expr.dict;
       function makeCheckOpResult(success : J.Expression, lhs : J.Expression, rhs: J.Expression) {
         return ObjectExpression([
@@ -575,28 +575,18 @@ export type Exports = {
 
       let checkOp: CheckOpDesugar, checkOpStmts: J.Statement[];
       switch(op.$name) {
-        case "s-op-is": {
-          switch(refinement.$name) {
-            case "some":
-              const [ refinementExpr, refinementStmts ] = compileExpr(context, refinement.dict.value);
-              checkOp = { $name: 'refinement-result', refinement: refinementExpr, negate: false };
-              checkOpStmts = refinementStmts;
-              break;
-            case "none":
-              [checkOp, checkOpStmts] = [ {$name: 'binop-result', op: "op=="}, []];
-              break;
-          }
-          break;
-        }
+        case "s-op-is":
         case "s-op-is-not": {
+          const negate = op.$name === "s-op-is-not";
           switch(refinement.$name) {
             case "some":
               const [ refinementExpr, refinementStmts ] = compileExpr(context, refinement.dict.value);
-              checkOp = { $name: 'refinement-result', refinement: refinementExpr, negate: true };
+              checkOp = { $name: 'refinement-result', refinement: refinementExpr, negate };
               checkOpStmts = refinementStmts;
               break;
             case "none":
-              [checkOp, checkOpStmts] = [ {$name: 'binop-result', op: "op<>"}, []];
+              const opname = negate ? "op<>" : "op==";
+              [checkOp, checkOpStmts] = [ {$name: 'binop-result', op: opname}, []];
               break;
           }
           break;
@@ -612,15 +602,16 @@ export type Exports = {
           [checkOp, checkOpStmts] = [ {$name: 'expect-raises'}, []];
           break;
         }
-        case "s-op-is-op": {
+        case "s-op-is-op":
+        case "s-op-is-not-op": {
           let refinement = rtField(OP_TO_FUNCTION[op.dict.op]);
-          checkOp = { $name: 'refinement-result', refinement, negate: false };
+          checkOp = { $name: 'refinement-result', refinement, negate: op.$name === "s-op-is-not-op" };
           checkOpStmts = [];
           break;
         }
-        case "s-op-is-not-op": {
-          let refinement = rtField(OP_TO_FUNCTION[op.dict.op]);
-          checkOp = { $name: 'refinement-result', refinement, negate: true };
+        case "s-op-satisfies":
+        case "s-op-satisfies-not": {
+          checkOp = { $name: 'predicate-result', negate: op.$name === "s-op-satisfies-not" };
           checkOpStmts = [];
           break;
         }
@@ -730,7 +721,7 @@ export type Exports = {
         }
         case 'refinement-result': {
           const { negate, refinement } = checkOp;
-          const right = unwrap(rightOpt, 'Attempting to use a predicate check without the RHS');
+          const right = unwrap(rightOpt, 'Attempting to use a refinement check without the RHS');
           return defineBinTest(right, (left, right) => {
             if (negate) {
               return UnaryExpression("!", CallExpression(refinement, [left, right]));
@@ -739,9 +730,18 @@ export type Exports = {
             }
           });
         }
-        // case 'predicate-result': {
+        case 'predicate-result': {
+          const { negate } = checkOp;
+          const right = unwrap(rightOpt, 'Attempting to use a predicate check without the RHS');
+          return defineBinTest(right, (lhs, rhs) => {
+            if (negate) {
+              return UnaryExpression("!", CallExpression(rhs, [lhs]));
+            } else {
+              return CallExpression(rhs, [lhs]);
+            }
+          });
 
-        // }
+        }
       }
     }
 

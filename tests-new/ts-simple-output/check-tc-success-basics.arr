@@ -1,6 +1,7 @@
 ### Looks shipshape
 include global
 include string
+include number
 check:
   2 + 2 is 4
   s = "ac"
@@ -19,5 +20,12 @@ check:
 
   "a" is%(samelength) "b"
   "a" is-not%(samelength) "bc"
+
+  fun is-odd(n :: Number):
+    num-modulo(n, 2) == 1
+  end
+
+  5 satisfies is-odd
+  2 violates is-odd
 
 end
