@@ -28,4 +28,7 @@ check:
   5 satisfies is-odd
   2 violates is-odd
 
+  5 / 0 raises "zero"
+  5 + 0 does-not-raise
+
 end

@@ -3310,10 +3310,17 @@ export type Exports = {
         }
       }
       function synthesisString() : TS.Type {
-        throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI`);
+        synthesis(e.dict.left, false, context);
+        switch(e.dict.right.$name) {
+          case 'none': throw new InternalCompilerError("raises(-not) tests must have a right-hand side");
+          case 'some': {
+            checking(e.dict.right.dict.value, tString(e.dict.l), false, context);
+            return createResult();
+          }
+        }
       }
       function synthesisException() : TS.Type {
-        throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI`);
+        throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI in synthesis`);
       }
 
       switch(e.dict.op.$name) {

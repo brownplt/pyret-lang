@@ -602,6 +602,10 @@ export type Exports = {
           [checkOp, checkOpStmts] = [ {$name: 'expect-raises'}, []];
           break;
         }
+        case 's-op-raises-not': {
+          [checkOp, checkOpStmts] = [ {$name: 'expect-raises'}, []];
+          break;
+        }
         case "s-op-is-op":
         case "s-op-is-not-op": {
           let refinement = rtField(OP_TO_FUNCTION[op.dict.op]);
@@ -690,8 +694,17 @@ export type Exports = {
 
           // Thunk the RHS
           let rhs: J.Expression, rhsStmts: J.Statement[];
-          const right = unwrap(rightOpt, "`raises` checkop did not have a RHS, should be a parsing error");
-          [rhs, rhsStmts] = compileExpr(context, right);
+          switch(rightOpt.$name) {
+            case 'none': {
+              rhsStmts = [];
+              rhs = Literal("unused-satisfies-not");
+              break;
+            }
+            case 'some': {
+              const right = unwrap(rightOpt, "`raises` checkop did not have a RHS, should be a parsing error");
+              [rhs, rhsStmts] = compileExpr(context, right);
+            }
+          }
           const rhFunc = thunkIt("RHS", rhs, rhsStmts);
 
           // Thunk the binCheckOp
@@ -701,14 +714,25 @@ export type Exports = {
           const rhsValue = DotExpression(Identifier(rhsParamName), "value");
           const expectedRhs = makeCheckExprResult({ $name: 'left', dict: { v: rhsValue }});
 
-          const lhsExceptionVal = DotExpression(Identifier(lhsParamName), "exception_val");
-          const lhsExceptionExtract = rtMethod(TOREPR, [rtMethod("$raiseExtract", [lhsExceptionVal])]);
-          // NOTE(Ben): I don't like this.
-          const extractionResult = CallExpression(DotExpression(lhsExceptionExtract, "includes"), [rhsValue]);
+          // NOTE(Joe): I don't like what I did here.
           const lhsIsExceptionVal = DotExpression(Identifier(lhsParamName), "exception");
-          const testResult = LogicalExpression("&&", lhsIsExceptionVal, extractionResult);
+          let successResult : J.Expression;
+          if(rightOpt.$name === "some") {
+            // NOTE(Ben): I don't like this.
+            const lhsExceptionVal = DotExpression(Identifier(lhsParamName), "exception_val");
+            const lhsExceptionExtract = rtMethod(TOREPR, [rtMethod("$raiseExtract", [lhsExceptionVal])]);
+            const extractionResult = CallExpression(DotExpression(lhsExceptionExtract, "includes"), [rhsValue]);
+            const testResult = LogicalExpression("&&", lhsIsExceptionVal, extractionResult);
+            successResult = makeCheckOpResult(testResult, Identifier(lhsParamName), expectedRhs);
+          }
+          else {
+            const testResult = UnaryExpression("!", lhsIsExceptionVal);
+            successResult = makeCheckOpResult(testResult, Identifier(lhsParamName), ObjectExpression([
+              Property("exception", Literal(false)),
+              Property("any_value", Literal(true)) // TODO(joe): this needs a better specified representation
+            ]));
+          }
 
-          const successResult = makeCheckOpResult(testResult, Identifier(lhsParamName), expectedRhs);
 
           const testBodyStmts = [...checkOpStmts, ReturnStatement(successResult)];
           const testBody = BlockStatement(testBodyStmts);
