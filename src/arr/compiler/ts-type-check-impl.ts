@@ -3314,7 +3314,7 @@ export type Exports = {
         switch(e.dict.right.$name) {
           case 'none': throw new InternalCompilerError("raises(-not) tests must have a right-hand side");
           case 'some': {
-            checking(e.dict.right.dict.value, tString(e.dict.l), false, context);
+            checking(e.dict.right.dict.value, tString(e.dict.right.dict.value.dict.l), false, context);
             return createResult();
           }
         }

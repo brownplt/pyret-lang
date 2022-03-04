@@ -1484,10 +1484,9 @@ export type Exports = {
           throw new ShouldHaveDesugared(expr.dict.l, expr.$name);
         case 's-newtype': throw new TODOError(expr.$name);
         case 's-when': {
-          const nothing = compileExpr(context, { $name: 's-id', dict: { l: expr.dict.l, id: jsnames.sGlobal("nothing") }});
           return compileIf(context, 
             [{ $name: 's-if-branch', dict: { l: expr.dict.l, test: expr.dict.test, body: expr.dict.block }}],
-            nothing
+            [rtField("$nothing"), []]
           );
         }
         case 's-if':
