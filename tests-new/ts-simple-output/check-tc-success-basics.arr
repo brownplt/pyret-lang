@@ -29,6 +29,7 @@ check:
   2 violates is-odd
 
   5 / 0 raises "zero"
+  5 / 0 raises-other-than "another-kind-of-error"
   5 + 0 does-not-raise
 
 end

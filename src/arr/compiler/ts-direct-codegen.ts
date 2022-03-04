@@ -535,7 +535,7 @@ export type Exports = {
     function compileCheckTest(context, expr : Variant<A.Expr, "s-check-test">) : CompileResult {
       type CheckOpDesugar =
         | { $name: "binop-result", op: string }
-        | { $name: "expect-raises" }
+        | { $name: "expect-raises", negate: boolean }
         | { $name: "refinement-result", refinement: J.Expression, negate: boolean }
         | { $name: "predicate-result", negate: boolean };
       const {l, op, refinement, left, right: rightOpt, cause} = expr.dict;
@@ -598,12 +598,11 @@ export type Exports = {
           ]
           break;
         }
-        case 's-op-raises': {
-          [checkOp, checkOpStmts] = [ {$name: 'expect-raises'}, []];
-          break;
-        }
+        case 's-op-raises':
+        case 's-op-raises-other':
         case 's-op-raises-not': {
-          [checkOp, checkOpStmts] = [ {$name: 'expect-raises'}, []];
+          const negate = op.$name === 's-op-raises-other';
+          [checkOp, checkOpStmts] = [ {$name: 'expect-raises', negate }, []];
           break;
         }
         case "s-op-is-op":
@@ -721,7 +720,10 @@ export type Exports = {
             // NOTE(Ben): I don't like this.
             const lhsExceptionVal = DotExpression(Identifier(lhsParamName), "exception_val");
             const lhsExceptionExtract = rtMethod(TOREPR, [rtMethod("$raiseExtract", [lhsExceptionVal])]);
-            const extractionResult = CallExpression(DotExpression(lhsExceptionExtract, "includes"), [rhsValue]);
+            let extractionResult : J.Expression = CallExpression(DotExpression(lhsExceptionExtract, "includes"), [rhsValue]);
+            if(checkOp.negate) {
+              extractionResult = UnaryExpression("!", extractionResult);
+            }
             const testResult = LogicalExpression("&&", lhsIsExceptionVal, extractionResult);
             successResult = makeCheckOpResult(testResult, Identifier(lhsParamName), expectedRhs);
           }
