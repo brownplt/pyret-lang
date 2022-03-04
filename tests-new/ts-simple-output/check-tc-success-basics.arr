@@ -32,4 +32,7 @@ check:
   5 / 0 raises-other-than "another-kind-of-error"
   5 + 0 does-not-raise
 
+  raise(100) raises-satisfies lam(x): x == 100 end
+  raise(100) raises-violates lam(x): x == 101 end
+
 end

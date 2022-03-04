@@ -3320,7 +3320,16 @@ export type Exports = {
         }
       }
       function synthesisException() : TS.Type {
-        throw new InternalCompilerError(`check-test ${e.dict.op.$name} NYI in synthesis`);
+        switch(e.dict.right.$name) {
+          case 'none': throw new InternalCompilerError("raises-(satisfies/violates) tests must have a right-hand side");
+          case 'some': {
+            const _ = synthesis(e.dict.left, false, context);
+            const predicateType = synthesis(e.dict.right.dict.value, false, context);
+            const arrowArgs = runtime.ffi.makeList([TS['t-top'].app(e.dict.l, false)]);
+            context.addConstraint(predicateType, TS['t-arrow'].app(arrowArgs, tBoolean(e.dict.l), e.dict.l, false));
+            return createResult();
+          }
+        }
       }
 
       switch(e.dict.op.$name) {

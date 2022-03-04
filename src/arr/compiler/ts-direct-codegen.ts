@@ -535,7 +535,7 @@ export type Exports = {
     function compileCheckTest(context, expr : Variant<A.Expr, "s-check-test">) : CompileResult {
       type CheckOpDesugar =
         | { $name: "binop-result", op: string }
-        | { $name: "expect-raises", negate: boolean }
+        | { $name: "expect-raises", negate: boolean, predicate: boolean }
         | { $name: "refinement-result", refinement: J.Expression, negate: boolean }
         | { $name: "predicate-result", negate: boolean };
       const {l, op, refinement, left, right: rightOpt, cause} = expr.dict;
@@ -602,7 +602,13 @@ export type Exports = {
         case 's-op-raises-other':
         case 's-op-raises-not': {
           const negate = op.$name === 's-op-raises-other';
-          [checkOp, checkOpStmts] = [ {$name: 'expect-raises', negate }, []];
+          [checkOp, checkOpStmts] = [ {$name: 'expect-raises', negate, predicate: false }, []];
+          break;
+        }
+        case 's-op-raises-satisfies':
+        case 's-op-raises-violates': {
+          const negate = op.$name === 's-op-raises-violates';
+          [checkOp, checkOpStmts] = [ {$name: 'expect-raises', negate, predicate: true }, []];
           break;
         }
         case "s-op-is-op":
@@ -618,7 +624,7 @@ export type Exports = {
           checkOpStmts = [];
           break;
         }
-        default: throw new InternalCompilerError("Not yet implemented: " + op.$name);
+        default: throw new ExhaustiveSwitchError(op);
       }
 
       function defineBinTest(rightExpr: A.Expr, binOp: (lhs: J.Expression, rhs: J.Expression) => J.Expression): CompileResult {
@@ -720,7 +726,13 @@ export type Exports = {
             // NOTE(Ben): I don't like this.
             const lhsExceptionVal = DotExpression(Identifier(lhsParamName), "exception_val");
             const lhsExceptionExtract = rtMethod(TOREPR, [rtMethod("$raiseExtract", [lhsExceptionVal])]);
-            let extractionResult : J.Expression = CallExpression(DotExpression(lhsExceptionExtract, "includes"), [rhsValue]);
+            let extractionResult : J.Expression;
+            if(checkOp.predicate) {
+              extractionResult = CallExpression(rhsValue, [lhsExceptionVal]);
+            } 
+            else {
+              extractionResult = CallExpression(DotExpression(lhsExceptionExtract, "includes"), [rhsValue]);
+            }
             if(checkOp.negate) {
               extractionResult = UnaryExpression("!", extractionResult);
             }
