@@ -8,7 +8,7 @@ let output = process.argv[3];
 
 let content = fs.readFileSync(input);
 
-let wrapped = "(function() {" + content + "})();";
+let wrapped = "(function(require, exports, module) {" + content + "})(require, exports, module);";
 
 // console.log("WRAPPED:", wrapped);
 let opts = {
