@@ -1,15 +1,16 @@
-import { wrapContent } from '../util';
+/// Use this script to compile NON-TOPLEVEL javascript modules
 
 const stopify = require('@stopify/stopify');
 const fs = require("fs");
 
-let input = process.argv[2];
+let input = process.argv[2]; 
 let output = process.argv[3];
 
 let content = fs.readFileSync(input);
 
-let wrapped = wrapContent(content);
+let wrapped = "(function(require, exports, module) {" + content + "})(require, exports, module);";
 
+// console.log("WRAPPED:", wrapped);
 let opts = {
   // compileFunction: false,
   // getters: false,
