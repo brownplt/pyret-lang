@@ -3550,7 +3550,40 @@ export type Exports = {
         }
         case 's-dot': {
           const newType = synthesis(e.dict.obj, topLevel, context);
-          return synthesisField(e.dict.l, newType, e.dict.field, context);
+          const fieldType = synthesisField(e.dict.l, newType, e.dict.field, context);
+          switch(fieldType.$name) {
+            case 't-ref': {
+              throw new TypeCheckFailure(CS['incorrect-type-expression'].app(
+                typeKey(fieldType),
+                fieldType.dict.l,
+                "a non-ref type",
+                e.dict.l,
+                e
+              ));
+            }
+            default: {
+              return setTypeLoc(fieldType, e.dict.l);
+            }
+
+          }
+        }
+        case 's-get-bang': {
+          const objType = synthesis(e.dict.obj, topLevel, context);
+          const fieldType = synthesisField(e.dict.l, objType, e.dict.field, context);
+          switch(fieldType.$name) {
+            case 't-ref': {
+              return setTypeLoc(fieldType.dict.typ, e.dict.l);
+            }
+            default: {
+              throw new TypeCheckFailure(CS['incorrect-type-expression'].app(
+                typeKey(fieldType),
+                fieldType.dict.l,
+                "a ref type",
+                e.dict.l,
+                e
+              ));
+            }
+          }
         }
         case 's-array': {
           const types : TS.Type[] = [];
