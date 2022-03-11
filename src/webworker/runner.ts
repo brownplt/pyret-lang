@@ -1,3 +1,4 @@
+import { wrapContent } from './util';
 /* eslint-disable */
 export interface RuntimeConfig {
   //spyMessgeHandler?: (x: SpyMessageResult) => void,
@@ -64,23 +65,6 @@ function calculateDependencyTime(rootModule: string) {
     }
   }
   timings.$dependencies = depTotal;
-}
-
-/**
-  This wrapping is necessary because otherwise require, exports, and module
-  will be interpreted as *global* by stopify. However, these really need to
-  be module-local as they have context like the working directory, and
-  exports/module are per-module even though they “act” like a global
-  variable.
-
-  We still set these fields on runner.g (g is the global field for
-  stopify), but immediately apply the function to the values we just set
-  before it evaluates and goes on to process any more requires. Stopify
-  then won't compile uses of module/exports/require within the generated
-  function to use .g, and each module gets its own copy.
-*/
-function wrapContent(content: string): string {
-  return `(function(require, exports, module) { ${content} })(require, exports, module);`;
 }
 
 let asyncCache : {[key:string]: any} = {};
