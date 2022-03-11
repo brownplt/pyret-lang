@@ -3620,13 +3620,30 @@ export type Exports = {
         case 's-check-test': {
           return synthesisCheckTest(e, context);
         }
+        case 's-get-bang': {
+          const objType = synthesis(e.dict.obj, topLevel, context);
+          const fieldType = synthesisField(e.dict.l, objType, e.dict.field, context);
+          switch(fieldType.$name) {
+            case 't-ref': {
+              return setTypeLoc(fieldType.dict.typ, e.dict.l);
+            }
+            default: {
+              throw new TypeCheckFailure(CS['incorrect-type-expression'].app(
+                typeKey(fieldType),
+                fieldType.dict.l,
+                "a ref type",
+                e.dict.l,
+                e
+              ));
+            }
+          }
+        }
         case 's-update': {
           //const objType = synthesis(e.dict.supe, topLevel, context);
           //return synthesisUpdate();
         }
         case 's-instantiate':
         case 's-check-expr':
-        case 's-get-bang':
           throw new InternalCompilerError(`TODO: _synthesis switch ${e.$name}`);
         case 's-data':
         case 's-fun':

@@ -241,14 +241,13 @@ export type Exports = {
     function getVariantMemberId(m : A.VariantMember) : A.Name {
       switch(m.$name) {
         case 's-variant-member':
-          switch(m.dict['member-type'].$name) {
-            case 's-mutable': throw new TODOError(m.dict['member-type'].$name);
-            case 's-normal':
-              switch(m.dict.bind.$name) {
-                case 's-tuple-bind': throw new InternalCompilerError(m.dict.bind.$name);
-                case 's-bind':
-                  return m.dict.bind.dict.id;
-              }
+          // NOTE(joe/ben): with mutable/non-mutable fields having the same
+          // runtime semantics (restricted by earlier TC/wrapping), no need
+          // to switch on member-type here
+          switch(m.dict.bind.$name) {
+            case 's-tuple-bind': throw new InternalCompilerError(m.dict.bind.$name);
+            case 's-bind':
+              return m.dict.bind.dict.id;
           }
       }
     }
@@ -1452,7 +1451,12 @@ export type Exports = {
           return compileExpr(context, expr.dict.body);
         case 's-data-expr':
           return compileData(context, expr);
-        case 's-dot': {
+        // NOTE(joe/ben): This is deliberately the same behavior as s-dot,
+        // the intended semantics is that these will be identical and errors
+        // will be caught at the type-checking level or wrapped by an earlier
+        // contract/error checking pass.
+        case 's-dot':
+        case 's-get-bang': {
           const [objV, objStmts] = compileExpr(context, expr.dict.obj);
           return [pyretLookup(expr.dict.l, objV, expr.dict.field), objStmts]
         }
@@ -1547,7 +1551,6 @@ export type Exports = {
         
         case 's-spy-block': return compileSpy(context, expr);
 
-        case 's-get-bang': throw new TODOError(expr.$name);
         case 's-update': throw new TODOError(expr.$name);
         case 's-id-var-modref': throw new TODOError(expr.$name);
         
