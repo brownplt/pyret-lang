@@ -91,6 +91,15 @@ export type Exports = {
     const jsIds = new Map<string, A.Name>();
     const effectiveIds = new Map<string, boolean>();
 
+    function freshOrReuseId(expr : J.Expression, name : string) : [J.Identifier, J.Statement[]] {
+      if(expr.type === "Identifier") {
+        return [expr, []];
+      }
+      else {
+        const idName = freshId(compilerName(name));
+        return [Identifier(idName), [Var(idName, expr)]];
+      }
+    }
     function freshId(id : A.Name) : A.Name {
       let n;
       do {
@@ -169,7 +178,7 @@ export type Exports = {
 
     }
 
-    function compileList(context, exprs: T.List<A.Expr>) : [ Array<J.Expression>, Array<J.Statement> ] {
+    function compileList(context : Context, exprs: T.List<A.Expr>) : [ Array<J.Expression>, Array<J.Statement> ] {
       if(exprs.$name === 'empty') { return [[], []]; }
       else {
         const [ firstAns, startStmts ] = compileExpr(context, exprs.dict.first);
@@ -178,7 +187,7 @@ export type Exports = {
       }
     }
 
-    function compileSeq(context, exprs : T.List<A.Expr>) : [J.Expression, Array<J.Statement>] {
+    function compileSeq(context : Context, exprs : T.List<A.Expr>) : [J.Expression, Array<J.Statement>] {
       if(exprs.$name === 'empty') { throw new InternalCompilerError("Empty block reached codegen"); }
       let ans, stmts = [];
       let cur: T.List<A.Expr> = exprs;
@@ -186,7 +195,7 @@ export type Exports = {
         const [first, firstStmts] = compileExpr(context, cur.dict.first);
         ans = first;
         stmts.push(...firstStmts);
-        if (first !== undefined && !(first.type === 'Identifier' && first.name === 'undefined')) {
+        if (first !== undefined && !(first.type === 'Identifier')) {
           stmts.push(ExpressionStatement(first));
         }
         cur = cur.dict.rest;
@@ -198,7 +207,7 @@ export type Exports = {
       return runtime.ffi.makeList(arr);
     }
 
-    function compileMethodDefinition(context, method : Variant<A.Member, "s-method-field">) {
+    function compileMethodDefinition(context : Context, method : Variant<A.Member, "s-method-field">) {
       const args = method.dict.args as Variant<T.List<Variant<A.Bind, "s-bind">>, "link">
       const self = jsIdOf(args.dict.first.dict.id);
       const lamProps = method.dict;
@@ -214,7 +223,7 @@ export type Exports = {
       return FunctionExpression(jsIdOf(constId(`getWrapper_${method.dict.name}`)), [], BlockStatement(body));
     }
 
-    function compileObj(context, expr : Variant<A.Expr, 's-obj'>) : [J.Expression, Array<J.Statement>] {
+    function compileObj(context : Context, expr : Variant<A.Expr, 's-obj'>) : [J.Expression, Array<J.Statement>] {
       const fieldsAsArray = listToArray(expr.dict.fields);
       const fieldvs : Array<J.Property> = [], stmts = [], methods : Array<[string, J.Property]> = [];
       fieldsAsArray.forEach(f => {
@@ -252,7 +261,7 @@ export type Exports = {
       }
     }
 
-    function compileData(context, expr : Variant<A.Expr, 's-data-expr'>) : [J.Expression, Array<J.Statement>] {
+    function compileData(context : Context, expr : Variant<A.Expr, 's-data-expr'>) : [J.Expression, Array<J.Statement>] {
       const [sharedBaseObj, sharedBaseStmts] = compileObj(context, {$name: 's-obj', dict: { l: expr.dict.l, fields: expr.dict['shared-members'] } });
       const sharedBaseName = freshId(constId(`sharedBase_${expr.dict.name}`));
       const variants = listToArray(expr.dict.variants);
@@ -327,7 +336,7 @@ export type Exports = {
 
     
 
-    function compileModule(context, expr: Variant<A.Expr, "s-module">) : CompileResult {
+    function compileModule(context : Context, expr: Variant<A.Expr, "s-module">) : CompileResult {
       const fields = [];
       const stmts = [];
       const locs = [];
@@ -369,7 +378,7 @@ export type Exports = {
       return [assignAns, [...aStmts, ...context.checkBlockTestCalls, answerVar, ...stmts]];
     }
 
-    function compileSOp(context, op: string, lv: J.Expression, rv: J.Expression): J.Expression {
+    function compileSOp(context : Context, op: string, lv: J.Expression, rv: J.Expression): J.Expression {
       switch(op) {
         case "op+": return rtMethod("_plus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
         case "op-": return rtMethod("_minus", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
@@ -389,13 +398,13 @@ export type Exports = {
       }
     }
 
-    function compileOp(context, expr : Variant<A.Expr, "s-op">) : CompileResult {
+    function compileOp(context : Context, expr : Variant<A.Expr, "s-op">) : CompileResult {
       const [lv, lStmts] = compileExpr(context, expr.dict.left);
       const [rv, rStmts] = compileExpr(context, expr.dict.right);
       return [compileSOp(context, expr.dict.op, lv, rv), [...lStmts, ...rStmts]];
     }
 
-    function compileIf(context, branches: (A.IfBranch | A.IfPipeBranch)[], compiledElse: CompileResult) : CompileResult {
+    function compileIf(context : Context, branches: (A.IfBranch | A.IfPipeBranch)[], compiledElse: CompileResult) : CompileResult {
       const ans = Identifier(freshId(compilerName('ans')));
       const [elseV, elseStmts] = compiledElse;
       const elseBlock = BlockStatement([
@@ -419,7 +428,7 @@ export type Exports = {
       return [ans, block.body];
     }
 
-    function compileCases(context, expr : Variant<A.Expr, "s-cases-else">) : CompileResult {
+    function compileCases(context : Context, expr : Variant<A.Expr, "s-cases-else">) : CompileResult {
       const ans = freshId(compilerName("ans"));
       const [val, valStmts] = compileExpr(context, expr.dict.val);
       const switchBlocks = listToArray(expr.dict.branches).map(b => {
@@ -446,7 +455,7 @@ export type Exports = {
       ];
     }
 
-    function compileSFor(context, expr : Variant<A.Expr, "s-for">): CompileResult {
+    function compileSFor(context : Context, expr : Variant<A.Expr, "s-for">): CompileResult {
       const binds: A.Bind[] = [];
       const args: A.Expr[] = [];
       listToArray(expr.dict.bindings).forEach((b) => {
@@ -479,7 +488,7 @@ export type Exports = {
       return compileExpr(context, call);
     }
 
-    function compileCheckBlock(context, expr : Variant<A.Expr, "s-check">) : CompileResult {
+    function compileCheckBlock(context : Context, expr : Variant<A.Expr, "s-check">) : CompileResult {
       const [ checkBlockVal, checkBlockStmts ] = compileExpr(context, expr.dict.body);
       let jsCheckBlockFuncName;
       let testBlockName;
@@ -531,7 +540,7 @@ export type Exports = {
         Individual tests are wrapped in functions to allow individual tests to fail
         but still possible to run other tests
      */
-    function compileCheckTest(context, expr : Variant<A.Expr, "s-check-test">) : CompileResult {
+    function compileCheckTest(context : Context, expr : Variant<A.Expr, "s-check-test">) : CompileResult {
       type CheckOpDesugar =
         | { $name: "binop-result", op: string }
         | { $name: "expect-raises", negate: boolean, predicate: boolean }
@@ -782,7 +791,7 @@ export type Exports = {
       }
     }
 
-    function compileTable(context, expr : Variant<A.Expr, 's-table'>): CompileResult {
+    function compileTable(context : Context, expr : Variant<A.Expr, 's-table'>): CompileResult {
       importFlags['table-import'] = true;
 
       const func = BracketExpression(Identifier(TABLE), Literal("_makeTable"));
@@ -809,7 +818,7 @@ export type Exports = {
       return [CallExpression(func, args), rowsStmts];      
     }
 
-    function compileLoadTable(context, expr : Variant<A.Expr, 's-load-table'>): CompileResult {
+    function compileLoadTable(context : Context, expr : Variant<A.Expr, 's-load-table'>): CompileResult {
       // This case handles `loadTable` syntax. The lines in the following Pyret
       // code,
       //
@@ -866,7 +875,7 @@ export type Exports = {
       }
     }
 
-    function compileTableExtend(context, expr: Variant<A.Expr, 's-table-extend'>): CompileResult {
+    function compileTableExtend(context : Context, expr: Variant<A.Expr, 's-table-extend'>): CompileResult {
       // Set the table-import flag
       importFlags['table-import'] = true;
 
@@ -1031,7 +1040,7 @@ export type Exports = {
       return [applyExpr, applyStmts]
     }
 
-    function compileTableUpdate(context, expr : Variant<A.Expr, 's-table-update'>): CompileResult {
+    function compileTableUpdate(context : Context, expr : Variant<A.Expr, 's-table-update'>): CompileResult {
       // Set the table-import flag
       importFlags['table-import'] = true;
 
@@ -1100,7 +1109,7 @@ export type Exports = {
       return [returnExpr, returnStmts];
     }
 
-    function compileTableSelect(context, expr : Variant<A.Expr, 's-table-select'>): CompileResult {
+    function compileTableSelect(context : Context, expr : Variant<A.Expr, 's-table-select'>): CompileResult {
       // Set the table-import flag
       importFlags['table-import'] = true;
 
@@ -1116,7 +1125,7 @@ export type Exports = {
       return [CallExpression(func, args), jsTableStmts];
     }
 
-    function compileTableFilter(context, expr: Variant<A.Expr, 's-table-filter'>): CompileResult {
+    function compileTableFilter(context : Context, expr: Variant<A.Expr, 's-table-filter'>): CompileResult {
       // Set the table-import flag
       importFlags['table-import'] = true;
 
@@ -1181,7 +1190,7 @@ export type Exports = {
       return [returnExpr, returnStmts];
     }
 
-    function compileTableOrder(context, expr: Variant<A.Expr, 's-table-order'>): CompileResult {
+    function compileTableOrder(context : Context, expr: Variant<A.Expr, 's-table-order'>): CompileResult {
       // Set the table-import flag
       importFlags['table-import'] = true;
 
@@ -1239,7 +1248,7 @@ export type Exports = {
 
     }
 
-    function compileTableExtract(context, expr: Variant<A.Expr, 's-table-extract'>): CompileResult {
+    function compileTableExtract(context : Context, expr: Variant<A.Expr, 's-table-extract'>): CompileResult {
       // Set the table-import flag
       importFlags['table-import'] = true;
 
@@ -1272,7 +1281,7 @@ export type Exports = {
       return [returnExpr, returnStmts];
     }
 
-    function compileSpy(context, expr : Variant<A.Expr, 's-spy-block'>): CompileResult {
+    function compileSpy(context : Context, expr : Variant<A.Expr, 's-spy-block'>): CompileResult {
       // Model each spy block as a spy block object
       // SpyBlockObject {
       //   message: () -> String,
@@ -1349,7 +1358,24 @@ export type Exports = {
       }
     }
 
-    function compileExpr(context, expr : A.Expr) : CompileResult {
+    function compileUpdate(context : Context, expr : Variant<A.Expr, 's-update'>) : CompileResult {
+      const [objExpr, objStmts] = compileExpr(context, expr.dict.supe);
+      const [objId, idStmts] = freshOrReuseId(objExpr, "update-obj");
+      const stmts = [...objStmts, ...idStmts];
+      const fields = listToArray(expr.dict.fields);
+      fields.forEach(field => {
+        if(field.$name === 's-method-field') {
+          throw new InternalCompilerError('method field in mutable update');
+        }
+        const [fieldValue, fieldStmts] = compileExpr(context, field.dict.value);
+        stmts.push(...fieldStmts);
+        const fieldAccess = DotExpression(objId, field.dict.name);
+        stmts.push(ExpressionStatement(AssignmentExpression(fieldAccess, fieldValue)));
+      });
+      return [objId, stmts];
+    }
+
+    function compileExpr(context : Context, expr : A.Expr) : CompileResult {
       switch(expr.$name) {
         case 's-module':
           return compileModule(context, expr);
@@ -1550,8 +1576,7 @@ export type Exports = {
         case 's-table-extract': return compileTableExtract(context, expr);
         
         case 's-spy-block': return compileSpy(context, expr);
-
-        case 's-update': throw new TODOError(expr.$name);
+        case 's-update': return compileUpdate(context, expr);
         case 's-id-var-modref': throw new TODOError(expr.$name);
         
 
@@ -1873,6 +1898,16 @@ export type Exports = {
       'array-import': false,
       'reactor-import': false
     };
+    type Context = {
+      uri: string,
+      options: any,
+      provides: CS.Provides,
+      datatypes: Map<string, any>,
+      env: CS.CompileEnvironment,
+      postEnv: Variant<CS.ComputedEnvironment, 'computed-env'>,
+      freeBindings: Map<string, CS.ValueBind>,
+      checkBlockTestCalls: any[]
+    }
     function compileProgram(prog : A.Program, uri : string, env : CS.CompileEnvironment, postEnv : CS.ComputedEnvironment, provides : CS.Provides, options : CompileOptions) : TJSP.CCPDict {
       const translatedDatatypeMap = new Map();   // TODO(joe) process from stringdict
       const fromUri = provides.dict['from-uri']; // TODO(joe) handle phases builtin-stage*
@@ -1887,7 +1922,7 @@ export type Exports = {
         provides: provides,
         datatypes: translatedDatatypeMap,
         env: env,
-        postEnv: postEnv,
+        postEnv: postEnv as Variant<CS.ComputedEnvironment, 'computed-env'>,
         freeBindings,
         checkBlockTestCalls: []
       }, prog.dict.block);

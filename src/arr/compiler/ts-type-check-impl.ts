@@ -3672,8 +3672,8 @@ export type Exports = {
           }
         }
         case 's-update': {
-          //const objType = synthesis(e.dict.supe, topLevel, context);
-          //return synthesisUpdate();
+          const objType = synthesis(e.dict.supe, topLevel, context);
+          return synthesisUpdate(e.dict.l, objType, e.dict.fields, context);
         }
         case 's-instantiate':
         case 's-check-expr':
@@ -3710,6 +3710,52 @@ export type Exports = {
           throw new InternalCompilerError(`_synthesis switch ${e.$name} not even mentioned`);
         default:
           throw new ExhaustiveSwitchError(e);
+      }
+    }
+
+    function synthesisUpdate(updateLoc : SL.Srcloc, objType : TS.Type, fields : List<A.Member>, context : Context) : TS.Type {
+      objType = instantiateObjectType(objType, context);
+      switch(objType.$name) {
+        case 't-record': {
+          throw new TypeCheckFailure(CS['incorrect-type'].app(typeKey(objType), objType.dict.l, "a datatype with at least one ref field", updateLoc));
+        }
+        case 't-existential': {
+          throw new TypeCheckFailure(CS['unable-to-infer'].app(objType.dict.l));
+        }
+        default: {
+          const dataType = instantiateDataType(objType, context);
+          const fieldsArray = listToArray(fields);
+          fieldsArray.forEach(field => {
+            const fieldTyp = callMethod(dataType.dict.fields, "get", field.dict.name);
+            switch(fieldTyp.$name) {
+              case 'none': {
+                throw new TypeCheckFailure(CS['object-missing-field'].app(
+                  field.dict.name, typeKey(objType), objType.dict.l, updateLoc
+                ));
+              }
+              case 'some': {
+                const oldType = fieldTyp.dict.value;
+                switch(oldType.$name) {
+                  case 't-ref': {
+                    if(field.$name === 's-method-field') {
+                      throw new InternalCompilerError('s-method-field in mutable update expression')
+                    }
+                    checking(field.dict.value, oldType.dict.typ, false, context);
+                    break;
+                  }
+                  default: {
+                    // NOTE(joe/ben): This error message should be a custom constructor for
+                    // "expected a ref field but this field wasn't"
+                    throw new TypeCheckFailure(CS['incorrect-type'].app(
+                      typeKey(oldType), oldType.dict.l, typeKey(TS['t-ref'].app(oldType, updateLoc, false)), updateLoc
+                    ));
+                  }
+                }
+              }
+            }
+          });
+          return objType;
+        }
       }
     }
 
