@@ -30,3 +30,4 @@ import file("./regression/get-assignments-var-as-expr.arr") as _
 import file("./regression/named-arrow-ann.arr") as _
 import file("./regression/tc-internal-err.arr") as _
 import file("./regression/sloppy-list-filter.arr") as _
+import file("./regression/import-module-defining-but-not-exporting-data.arr") as _

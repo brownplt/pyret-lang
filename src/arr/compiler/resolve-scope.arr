@@ -1068,7 +1068,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
             A.s-include-name(l, A.s-star(l, empty)),
             A.s-include-type(l, A.s-star(l, empty)),
             A.s-include-module(l, A.s-star(l, empty)),
-            A.s-include-data(l, A.s-star(l, empty), [list:])
+            # A.s-include-data(l, A.s-star(l, empty), [list:])
           ]))
       | s-include-from(l, name, specs) =>
         # NOTE(joe): This few lines is a funky little pattern. It may be worth
