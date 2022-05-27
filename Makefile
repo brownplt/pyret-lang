@@ -211,7 +211,7 @@ build/worker/runtime-files.json: src/webworker/scripts/runtime-bundler.ts $(RUNT
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
 	`npm bin`/browserify src/js/trove/require-node-compile-dependencies.js -o $@
 
-build/phaseA/pyret-grammar.js: lib/jglr/parser-generator.js
+build/phaseA/pyret-grammar.js: lib/jglr/parser-generator.js src/js/base/pyret-grammar.bnf
 	mkdir -p build/phaseA
 	mkdir -p build/worker
 	node lib/jglr/parser-generator.js src/js/base/pyret-grammar.bnf build/phaseA/pyret-grammar.js "../../lib/jglr" "jglr/jglr" "pyret-base/js/pyret-parser"

@@ -131,7 +131,7 @@ check-op: IS | ISEQUALEQUAL | ISEQUALTILDE | ISSPACESHIP | ISROUGHLY
 check-op-postfix: RAISESNOT
 
 expr: paren-expr | id-expr | prim-expr
-    | lambda-expr | method-expr | app-expr
+    | lambda-expr | app-expr
     | obj-expr | tuple-expr | tuple-get
     | dot-expr
     | template-expr
@@ -207,6 +207,7 @@ obj-fields: obj-field (COMMA obj-field)* [COMMA]
 obj-field: key COLON binop-expr
      | REF key [COLONCOLON ann] COLON binop-expr
      | METHOD key fun-header (BLOCK|COLON) doc-string block where-clause END
+     | key COLON method-expr
 
 fields: field (COMMA field)* [COMMA]
 field: key COLON binop-expr

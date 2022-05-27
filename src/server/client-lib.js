@@ -3,7 +3,7 @@ const INFO = 3; // Here and below are for the user
 const WARN = 2;
 const ERROR = 1;
 const SILENT = 0;
-var LOG_LEVEL = WARN;
+var LOG_LEVEL = LOG;
 function makeLogger(level) {
   return function(...args) {
     if(LOG_LEVEL >= level) {

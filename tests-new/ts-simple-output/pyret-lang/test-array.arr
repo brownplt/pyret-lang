@@ -1,5 +1,11 @@
-#lang pyret
+### Looks shipshape
 
+include arrays
+include raw-array
+include lists
+include global
+include number
+include option
 
 fun negate(f): lam(x): not(f(x)) end end
 
@@ -9,8 +15,10 @@ check:
   a1.get-now(-1) raises "negative"
   a1.get-now(1 / 2) raises "integer"
 
-  non-nums = [list: true, false, "not-a-num", {}, [list: ], lam(): 5 end, method(self): 10 end]
+#| NOTE(joe/ben May 2022): dynamic-check test
+  non-nums = [list: true, false, "not-a-num", {}, [list: ], lam(): 5 end, {x: method(self): 10 end}]
   for each(n from non-nums): a1.get-now(n) raises "Number" end
+  |#
 end
 
 check:
@@ -114,7 +122,8 @@ check:
 
   raw-array-length(a1) is 3
 
-  raw-array-length([array: 1, 2]) raises "RawArray"
+  # TODO(joe/ben May 2022): dynamic-check
+  # raw-array-length([array: 1, 2]) raises "RawArray"
 end
 
 check:
@@ -137,7 +146,7 @@ check:
 
   raw-array-to-list(a1) is a2.to-list-now()
   raw-array-set(a1, 0, "update")
-  a1 satisfies _ <> a2
+  a1 satisfies lam(x): x <> a2 end
   raw-array-get(a1, 0) is "update"
   for each(i from range(1, 4)): raw-array-get(a1, i) is "init" end
 
@@ -154,7 +163,7 @@ check:
   
   arr is=~ [raw-array: 0, 25, 100, 225, 400, 625, 900, 1225, 1600, 2025, 2500, 3025, 3600, 4225, 4900, 5625, 6400, 7225, 8100, 9025]
 
-  fun slowly(n):
+  fun slowly(n :: Number) -> Nothing:
     if n <= 0: nothing
     else: slowly(n - 1)
     end
@@ -173,18 +182,21 @@ check:
   for each(i from range(0, 500)): raw-array-get(arr2, i) is i * 2 end
 end
 
+#| TODO(joe/ben May 2022): valueskeleton/torepr
 check:
-  torepr([array: 1,2,"3"]) is '[array: 1, 2, "3"]'
-  torepr([array: ]) is '[array: ]'
-  torepr(raw-array-of(3, 3)) is '[raw-array: 3, 3, 3]'
+  to-repr([array: 1,2,"3"]) is '[array: 1, 2, "3"]'
+  to-repr([array: ]) is '[array: ]'
+  to-repr(raw-array-of(3, 3)) is '[raw-array: 3, 3, 3]'
 end
+|#
 
 check:
   fun f(v :: Array<Number>) block:
     when not(is-array(v)): raise("not an Array") end
     v
   end
-  f([list: ]) raises "Array"
+  # TODO(joe/ben May 2022): dynamic-check
+  # f([list: ]) raises "Array"
   f([array: ]).to-list-now() is [list: ]
   f([array: ]) satisfies is-array
 end
@@ -202,13 +214,15 @@ check:
   a2 is-not=~ a1
 end
 
-data D:
+data D<A,B>:
   | single
-  | multi(a, b)
+  | multi(a :: A, b :: B)
 end
 check:
   a = [array: single, multi(1, "2")]
-  torepr(a) is "[array: single, multi(1, \"2\")]"
+
+  # TODO(joe/ben May 2022): valueskeleton/torepr
+  # to-repr(a) is "[array: single, multi(1, \"2\")]"
   a.set-now(0, a.get-now(1))
   a.to-list-now() is [list: multi(1, "2"), multi(1, "2")]
   a.get-now(0) satisfies identical(_, a.get-now(1))
@@ -259,7 +273,7 @@ check:
 end
 
 check:
-  fun loop(x):
+  fun loop(x :: Number) -> Number:
     if x < 0: 0
     else:
       x + loop(x - 1)

@@ -873,9 +873,10 @@ export type Exports = {
               .app(pos(node.pos), tr(node.kids[1]), tr(node.kids[3]), tr(node.kids[5]));
           } else if (node.kids.length === 3) {
             // (obj-field key COLON value)
-            if(node.kids[2].name === 's-method') {
+            if(node.kids[2].name === 'method-expr') {
               var methodNode = node.kids[2];
               var header = tr(methodNode.kids[1]);
+              let isBlock = (methodNode.kids[2].name === "BLOCK");
               if (header.lparenPos) {
                 RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(methodNode.kids[0].pos, methodNode.kids[2].pos), header.lparenPos);
               }
@@ -890,7 +891,7 @@ export type Exports = {
             }
           } else {
             // (obj-field METHOD key fun-header COLON doc body check END)
-            var isBlock = (node.kids[3].name === "BLOCK");
+            let isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
             if (header.lparenPos) {
               RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[3].pos), header.lparenPos);
@@ -1309,6 +1310,9 @@ export type Exports = {
           // (user-block-expr BLOCK body END)
           return RUNTIME.getField(ast, 's-user-block')
             .app(pos(node.pos), tr(node.kids[1]));
+        },
+        'method-expr': function(node) {
+          RUNTIME.ffi.throwMessageException("standalone method expressions are not supported");
         },
         'lambda-expr': function(node) {
           // (lambda-expr LAM fun-header COLON doc body check END)

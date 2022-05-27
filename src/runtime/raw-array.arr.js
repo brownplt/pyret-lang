@@ -1,5 +1,6 @@
 const NUMBERS = require("./js-numbers.js");
 const EQUALITY = require("./equality.js");
+const OPTION = require("./option.arr.js");
 
 module.exports = {
   'raw-array': {
@@ -15,6 +16,12 @@ module.exports = {
     return arr;
   },
   'raw-array-get': function( arr, index ) {
+    if(!(NUMBERS["isInteger"](index) && NUMBERS["isNonNegative"](index))) {
+      throw new Error("raw-array-get: Expected a non-negative integer, got " + index);
+    }
+    if(index >= arr.length) {
+      throw new Error(`raw-array-get: Index ${index} too large`);
+    }
     return arr[index];
   },
   'raw-array-push': function( arr, elm ) {
@@ -74,7 +81,7 @@ module.exports = {
     return new Array(jsN).fill(elem);
   },
   'raw-array-build': function(f, n) {
-
+    // TODO(joe/ben May 2022): add/test for reasonable range
     if (EQUALITY["_lessthan"](n, 0)) {
       throw "raw-array-build: <0";
     }
@@ -85,6 +92,31 @@ module.exports = {
       array[i] = f(i);
     }
 
+    return array;
+  },
+  'raw-array-build-opt': function(f, n) {
+
+    if (EQUALITY["_lessthan"](n, 0)) {
+      throw "raw-array-build-opt: <0";
+    }
+
+    const jsN = NUMBERS["toFixnum"](n);
+    let array = [];
+    for (let i = 0; i < jsN; i++) {
+      const v = f(i);
+      if(OPTION["is-some"](v)) {
+        array.push(v.value);
+      }
+    }
+
+    return array;
+  },
+  'raw-array-filter': function(f, arr) {
+    let array = [];
+    for (let i = 0; i < arr.length; i++) {
+      const v = f(arr[i]);
+      if(v) { array.push(arr[i]); }
+    }
     return array;
   },
   'is-raw-array': function(v) {
