@@ -1,4 +1,3 @@
-import { callbackify } from "util";
 import { NumericErrorCallbacks } from "./equality";
 import { CheckResult, CheckExprEvalResult, CheckTestResult } from "./common-runtime-types";
 

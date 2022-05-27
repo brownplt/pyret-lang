@@ -1,9 +1,35 @@
+const LOG = 4; // For debugging
+const INFO = 3; // Here and below are for the user
+const WARN = 2;
+const ERROR = 1;
+const SILENT = 0;
+var LOG_LEVEL = WARN;
+function makeLogger(level) {
+  return function(...args) {
+    if(LOG_LEVEL >= level) {
+      console.log.apply(console, ["[client] ", new Date()].concat(args));
+    }
+  }
+}
+
+const log = makeLogger(LOG);
+const info = makeLogger(INFO);
+const warn = makeLogger(WARN);
+const error = makeLogger(ERROR);
+
+const startTime = performance.now();
+
+log(startTime, "script startup");
+
 const WebSocket = require('ws');
 const childProcess = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const mkdirp = require('mkdirp');
 const os = require('os');
+
+
+
 
 function findLocalParleyDir(base, localParley) {
   if(fs.existsSync(path.resolve(path.join(base, localParley)))) {
@@ -40,26 +66,9 @@ function getSocket() {
 
 function start(options) {
 
-  const LOG = 4; // For debugging
-  const INFO = 3; // Here and below are for the user
-  const WARN = 2;
-  const ERROR = 1;
-  const SILENT = 0;
-  var LOG_LEVEL = INFO;
   if(options.meta.quiet) { LOG_LEVEL = ERROR; }
 
-  function makeLogger(level) {
-    return function(...args) {
-      if(LOG_LEVEL >= level) {
-        console.log.apply(console, ["[client] ", new Date()].concat(args));
-      }
-    }
-  }
-
-  const info = makeLogger(INFO);
-  const log = makeLogger(LOG);
-  const warn = makeLogger(WARN);
-  const error = makeLogger(ERROR);
+  log(performance.now(startTime), "Starting parley server");
 
   const localParley = options["_all"]["local-parley"];
   var localParleyDir = findLocalParleyDir(process.cwd(), localParley);
@@ -93,6 +102,7 @@ function start(options) {
   }
 
   function shutdown() {
+    log(performance.now(startTime), "shutdown");
     try {
       const client = new WebSocket("ws+unix://" + portFile);
       client.on('error', function(err) {
@@ -122,6 +132,7 @@ function start(options) {
   }
 
   function runProgram(path) {
+    log(performance.now(startTime), "runProgram");
     log("Executing program: ", path);
     const proc = childProcess.spawn("node", [path], {stdio: 'inherit'});
     proc.on('close', function(code) {
@@ -155,6 +166,7 @@ function start(options) {
 
       client.on('message', function(message) {
         const parsed = JSON.parse(message);
+        log(performance.now(startTime), "message", parsed.type);
         if(parsed.type === 'echo-log') {
           if(options.meta.quiet) { return; }
           if(parsed["clear-first"]) {
@@ -168,6 +180,7 @@ function start(options) {
           }
         }
         else if(parsed.type === 'echo-err') {
+          process.stdout.write(parsed.contents);
           process.stderr.write(parsed.contents);
         }
         else if(parsed.type === "compile-failure") {

@@ -2353,8 +2353,11 @@ export type Exports = {
               throw new TypeCheckFailure(CS['incorrect-type-expression'].app(typeKey(expectTyp), expectTyp.dict.l, "an object type", e.dict.l, e));
           }
         }
-        case 's-check-test':
-          throw new InternalCompilerError(`TODO: _checking switch ${e.$name}`);
+        case 's-check-test': {
+          const result = synthesisCheckTest(e, context);
+          context.addConstraint(result, expectTyp);
+          return solveAndReturn();
+        }
         case 's-data':
         case 's-user-block':
         case 's-fun':

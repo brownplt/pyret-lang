@@ -15,6 +15,8 @@
             }
         },
         "values": {
+          "num-random": ["arrow", ["Number"], "Number"],
+          "num-random-seed": ["arrow", ["Number"], "Nothing"],
           "num-equal": ["arrow", ["Number", "Number"], "Boolean"],
           "num-is-integer": ["arrow", ["Number"], "Boolean"],
           "num-is-rational": ["arrow", ["Number"], "Boolean"],

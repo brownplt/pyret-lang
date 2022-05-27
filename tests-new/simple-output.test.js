@@ -18,6 +18,7 @@ describe("testing simple-output programs", () => {
     dir = "simple-output";
   }
   files = glob.sync(`tests-new/${dir}/*.arr`, {});
+  files = files.concat(glob.sync(`tests-new/${dir}/pyret-lang/*.arr`, {}));
   files.forEach(f => {
     test(`${f}`, () => {
       let compileProcess;

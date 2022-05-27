@@ -19,7 +19,7 @@
          * Required node modules are provided by the webpage at runtime.
          */
         // TODO(alex): Make this a flag or something
-        let nativeRequiresToIgnore = ["assert", "immutable", "csv-parse/lib/sync", "fs"];
+        let nativeRequiresToIgnore = ["assert", "immutable", "csv-parse/lib/sync", "fs", "crypto"];
 
         let opts = {
           filter: function(id) {

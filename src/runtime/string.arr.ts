@@ -12,6 +12,13 @@ function stringToNumber(s: string): any {
     }
 }
 
+const ASTRAL_CUTOFF = 65535;
+function check_astral(n : number) {
+    if(n > ASTRAL_CUTOFF) {
+        throw new Error(`Invalid code point: ${n}. Code points must be smaller than ${ASTRAL_CUTOFF}`);
+    }
+}
+
 module.exports = {
     'string-equal': function(s1: string, s2: string): boolean {
         return EQUALITY.equalAlways(s1, s2);
@@ -31,12 +38,21 @@ module.exports = {
 
     'string-to-number': stringToNumber,
 
+    'string-is-number': function(s) {
+      var num = NUMBER['fromString'](s);
+      if(num !== false) { return true; }
+      else { return false; }
+    },
+
     // n is a PyretNumber
     'string-repeat': function(str: string, n): string {
         return str.repeat(NUMBER["toFixnum"](n));
     },
 
     'string-substring': function(str: string, start, exEnd): string {
+        if(!NUMBER["isInteger"](start) || !NUMBER["isInteger"](exEnd)) {
+            throw new Error(`Expected NumInteger, for string-substring, but got ${start} and ${exEnd}`);
+        }
         start = NUMBER["toFixnum"](start);
         exEnd = NUMBER["toFixnum"](exEnd);
 
@@ -110,6 +126,12 @@ module.exports = {
 
     // n is a PyretNumber
     'string-char-at': function(original: string, n): string {
+        if(n < 0 || !NUMBER['isInteger'](n)) {
+            throw new Error(`string-char-at: expected a non-negative integer for the index, but got ${n}`);
+        }
+        if(n >= original.length) {
+            throw new Error(`string-char-at: index ${n} is greater than the largest index in the string ${original}`);
+        }
         return original.charAt(NUMBER["toFixnum"](n));
     },
 
@@ -131,7 +153,7 @@ module.exports = {
 
     'string-to-code-point': function(str: string): number {
         if (str.length !== 1) {
-            throw "String length !== 1";
+            throw new Error(`string-to-code-point expects a string of length exactly one, got ${str}`);
         }
 
         return str.codePointAt(0);
@@ -149,7 +171,11 @@ module.exports = {
 
     // point is a PyretNumber
     'string-from-code-point': function(point): string {
+        if(!(NUMBER["isInteger"](point) && NUMBER["isNonNegative"](point))) {
+            throw new Error(`string-from-code-point expects a Natural Number, got ${point}`)
+        }
         point = NUMBER["toFixnum"](NUMBER["floor"](point));
+        check_astral(point);
         return String.fromCodePoint(point);
     },
 
@@ -157,7 +183,11 @@ module.exports = {
     'string-from-code-points': function(points): string {
         const rawArrayPoints = LISTS["to-raw-array"](points);
         const stringArray = rawArrayPoints.map((pyNum) => {
+            if(!(NUMBER["isInteger"](pyNum) && NUMBER["isNonNegative"](pyNum))) {
+                throw new Error(`string-from-code-point expects a Natural Number, got ${pyNum}`)
+            }
             const fixedNum = NUMBER["toFixnum"](NUMBER["floor"](pyNum));
+            check_astral(fixedNum);
             return String.fromCodePoint(fixedNum);
         });
 

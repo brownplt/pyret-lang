@@ -1,5 +1,8 @@
+import * as PRIM_TYPES from './primitives';
 const NUMBERS = require('./js-numbers.js');
 const EQUALITY = require("./equality.js");
+const PRIMS = require('./primitives.js') as typeof PRIM_TYPES;
+const seedrandom = require('seedrandom');
 
 
 function numToString(n) {
@@ -17,8 +20,21 @@ function wrap2(f) {
         return f(v1, v2, EQUALITY.NumberErrbacks);
     };
 }
+var rng = seedrandom(Number(new Date()));
+var num_random = function(max) {
+    var f = rng();
+    return NUMBERS.floor(NUMBERS.toFixnum(max) * f);
+};
+var num_random_seed = function(seed) {
+    rng = seedrandom(String(seed));
+    return PRIMS.$nothing;
+  }
 
 module.exports = {
+
+    'num-random': num_random,
+
+    'num-random-seed': num_random_seed,
 
     'num-equal': wrap2(NUMBERS['equals']),
 
