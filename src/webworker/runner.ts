@@ -20,6 +20,7 @@ export interface RunnerPerfResults {
 const csv = require('csv-parse/lib/sync');
 const assert = require('assert');
 const immutable = require('immutable');
+const seedrandom = require('seedrandom');
 import * as stopify from '@stopify/stopify';
 const browserFS = require('./browserfs-setup.ts');
 
@@ -33,6 +34,7 @@ const nodeModules = {
   'csv-parse/lib/sync': csv,
   fs: browserFS.fs,
   immutable,
+  seedrandom
 };
 
 
