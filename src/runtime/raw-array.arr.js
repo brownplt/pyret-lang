@@ -2,6 +2,14 @@ const NUMBERS = require("./js-numbers.js");
 const EQUALITY = require("./equality.js");
 const OPTION = require("./option.arr.js");
 
+function checkArrayIndex(name, index, length) {
+  if(!(NUMBERS["isInteger"](index) && NUMBERS["isNonNegative"](index))) {
+    throw new Error(`${name}: Expected a non-negative integer, got ${index}`);
+  }
+  if(index >= length ) { throw new Error(`${name}: Index too large: ${index} for array of length ${length}`); }
+  else if (index < 0) { throw new Error(`${name}: Negative index for array set: ${index}`); }
+}
+
 module.exports = {
   'raw-array': {
     'make': function(arr) {
@@ -12,16 +20,12 @@ module.exports = {
     return arr.length;
   },
   'raw-array-set': function( arr, index, value ) {
+    checkArrayIndex("raw-array-set", index, arr.length);
     arr[index] = value;
     return arr;
   },
   'raw-array-get': function( arr, index ) {
-    if(!(NUMBERS["isInteger"](index) && NUMBERS["isNonNegative"](index))) {
-      throw new Error("raw-array-get: Expected a non-negative integer, got " + index);
-    }
-    if(index >= arr.length) {
-      throw new Error(`raw-array-get: Index ${index} too large`);
-    }
+    checkArrayIndex("raw-array-set", index, arr.length);
     return arr[index];
   },
   'raw-array-push': function( arr, elm ) {

@@ -493,13 +493,12 @@ export type Exports = {
       let jsCheckBlockFuncName;
       let testBlockName;
       const name = expr.dict.name;
+      jsCheckBlockFuncName = freshId(compilerName("check-block"));
       switch(name.$name) {
         case 'none':
-          jsCheckBlockFuncName = freshId(compilerName("check-block"));
           testBlockName = Literal(nameToSourceString(jsCheckBlockFuncName));
           break;
         case 'some':
-          jsCheckBlockFuncName = freshId(compilerName("check-block" + name.dict.value));
           testBlockName = Literal(name.dict.value);
           break;
       }

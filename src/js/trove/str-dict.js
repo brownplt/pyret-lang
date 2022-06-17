@@ -1162,7 +1162,7 @@
           var key = array[i].vals[0];
           var val = array[i].vals[1];
           runtime.checkString(key);
-        if (dict[key] !== key_missing) {
+          if (dict[key] !== key_missing) {
             runtime.ffi.throwMessageException("Creating mutable string dict with duplicate key " + key);
           }
           dict[key] = val;

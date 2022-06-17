@@ -604,14 +604,14 @@ function HashArrayMapNode(ownerID, count, nodes) {
     };
 }
 
-function eqHelp(pyretSelf, other, selfKeys, recEq) {
+function eqHelp(pyretSelf, other, check, get, selfKeys, recEq) {
     // NOTES
     //   * The original implementation was heavily integrated in the old Pyret runtime
     //   * pyretSelf and other are dictionaries of the same length
     for (let i = 0; i < selfKeys.length; i++) {
         const currKey = selfKeys[i];
-        if (other["has-key"]) {
-            const recResult = recEq(pyretSelf["get-value"](currKey), other["get-value"](currKey));
+        if (other[check](currKey)) {
+            const recResult = recEq(pyretSelf[get](currKey), other[get](currKey));
             if (!EQUALITY.isEqual(recResult)) {
                 return recResult;
             }
@@ -748,7 +748,7 @@ const equalsISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, other, r
         if (keys.length !== otherKeysLength) {
             return EQUALITY.NotEqual("Different key lengths", pyretSelf, other);
         } else {
-            return eqHelp(pyretSelf, other, keys, recursiveEquality);
+            return eqHelp(pyretSelf, other, "has-key", "get-value", keys, recursiveEquality);
         }
     }
 });
@@ -877,7 +877,7 @@ const countMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
 
 const toreprMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, recursiveToRepr) {
     const keys = Object.keys(pyretSelf.$underlyingDict);
-    const elts = [];
+    const elts : any[] = [];
     function combine(elts) {
         //return "[string-dict: " + elts.join(", ") + "]";
         return "[mutable-string-dict: " + elts.join(", ") + "]";
@@ -886,6 +886,7 @@ const toreprMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, recursiv
         if (keys.length === 0) { return combine(elts); }
         else {
             const thisKey = keys.pop();
+            if (!thisKey) { throw new Error("Internal error: undefined key in dictionary"); }
             // The function recursiveToRepr is a callback for rendering
             // sub-elements of collections.  If we call it on anything other
             // than flat primitives, we need to use the following safeCall
@@ -924,7 +925,7 @@ const equalsMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, other, r
         if (selfKeys.length !== otherKeys.length) {
             return EQUALITY.NotEqual("Different key lengths", pyretSelf, other);
         } else {
-            return eqHelp(pyretSelf, other, selfKeys, recursiveEquality);
+            return eqHelp(pyretSelf, other, "has-key-now", "get-value-now", selfKeys, recursiveEquality);
         }
     }
 });
@@ -983,7 +984,7 @@ function createMutableStringDict() {
     return makeMutableStringDict(dict, undefined);
 }
 
-function createMutableStringDictFromArray(array) {
+function createMutableStringDictFromArrayAlternating(array) {
     const dict = Object.create(null);
     const len = array.length;
     if(len % 2 !== 0) {
@@ -995,6 +996,17 @@ function createMutableStringDictFromArray(array) {
         dict[key] = val;
     }
     return makeMutableStringDict(dict, undefined);
+}
+
+function createMutableStringDictFromArray(array) {
+  var dict = Object.create(null);
+  var len = array.length;
+  for(var i = 0; i < len; i += 1) {
+    var key = array[i][0];
+    var val = array[i][1];
+    dict[key] = val;
+  }
+  return makeMutableStringDict(dict, undefined);
 }
 
 function internal_isISD(obj) {
@@ -1010,7 +1022,7 @@ function createImmutableStringDict() {
     return makeImmutableStringDict(map);
 }
 
-function createImmutableStringDictFromArray(array) {
+function createImmutableStringDictFromArrayAlternating(array) {
     const key_missing = {};
     let map = emptyMap();
     const len = array.length;
@@ -1027,6 +1039,24 @@ function createImmutableStringDictFromArray(array) {
     }
     return makeImmutableStringDict(map);
 }
+
+
+function createImmutableStringDictFromArray(array) {
+  var key_missing = {};
+  var map = emptyMap();
+  var len = array.length;
+  for(var i = 0; i < len; i += 1) {
+    var key = array[i][0];
+    var val = array[i][1];
+    if (map.get(key, key_missing) !== key_missing) {
+      throw new Error("Creating immutable string dict with duplicate key " + key);
+    }
+    map = map.set(key, val);
+  }
+  return makeImmutableStringDict(map);
+}
+
+
 
 function createConstImmutableStringDict(names, val) {
     const arr = LISTS["to-raw-array"](names);
@@ -1137,6 +1167,17 @@ module.exports = {
         make4: createMutableStringDict4,
         make5: createMutableStringDict5
     },
+    "alternating-mutable-string-dict": {
+        make: createMutableStringDictFromArrayAlternating,
+        make0: () => createMutableStringDictFromArrayAlternating([]),
+        make1: (a) => { throw new Error("1 argument to alternating string-dict constructor"); },
+        make2: (a, b) => createMutableStringDictFromArrayAlternating([PRIMITIVES.PTuple([a, b])]),
+        make3: (a, b, c) => { throw new Error("3 arguments to alternating string-dict constructor"); },
+        make4: (a, b, c, d) => createMutableStringDictFromArrayAlternating([
+                PRIMITIVES.PTuple([a, b]),
+                PRIMITIVES.PTuple([c, d])]),
+        make5: (a, b, c, d, e) => { throw new Error("5 arguments to alternating string-dict constructor"); },
+    },
     "is-mutable-string-dict": isMutableStringDict,
     "make-string-dict": createImmutableStringDict,
     "map-keys": mapKeys,
@@ -1153,6 +1194,17 @@ module.exports = {
         make3: createImmutableStringDict3,
         make4: createImmutableStringDict4,
         make5: createImmutableStringDict5
+    },
+    "alternating-string-dict": {
+        make: createImmutableStringDictFromArrayAlternating,
+        make0: () => createImmutableStringDictFromArrayAlternating([]),
+        make1: (a) => { throw new Error("1 argument to alternating string-dict constructor"); },
+        make2: (a, b) => createImmutableStringDictFromArrayAlternating([PRIMITIVES.PTuple([a, b])]),
+        make3: (a, b, c) => { throw new Error("3 arguments to alternating string-dict constructor"); },
+        make4: (a, b, c, d) => createImmutableStringDictFromArrayAlternating([
+                PRIMITIVES.PTuple([a, b]),
+                PRIMITIVES.PTuple([c, d])]),
+        make5: (a, b, c, d, e) => { throw new Error("5 arguments to alternating string-dict constructor"); },
     },
     "string-dict-of": createConstImmutableStringDict,
     "is-string-dict": isImmutableStringDict
