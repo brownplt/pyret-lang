@@ -1,18 +1,19 @@
-#lang pyret
+### Looks shipshape
 
-
-provide *
+include number
+include global
+import lists as lists
+include lists
 
 check:
   fun negate(f): lam(x): not(f(x)) end end
-  fun around(n, delta): lam(other): num-abs(other - n) < delta end end
+  fun around(n :: Number, delta :: Number): lam(other :: Number): num-abs(other - n) < delta end end
 
   3 / (4 - 4) raises "division by zero"
 
   within-abs(-3)(1, 2) raises "negative tolerance"
   within(-3)(2, 3) raises "negative relative tolerance"
   within-rel(-3)(2, 3) raises "negative relative tolerance"
-
   min-number = ~0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005
   within-abs(min-number)(0, min-number) raises "roughnum tolerance too small"
 
@@ -20,11 +21,11 @@ check:
 
   num-exp(5000) raises "exp: argument too large"
 
-  num-modulo(0.5, 5) raises "NumInteger"
-  num-modulo(5, 0.5) raises "NumInteger"
+  num-modulo(0.5, 5) raises "not an integer"
+  num-modulo(5, 0.5) raises "not an integer"
   num-modulo(6, 0) raises "second argument is zero"
 
-  num-sqrt(-3) raises "NumNonNegative"
+  num-sqrt(-3) raises "negative argument"
 
   num-acos(-2) raises "acos: out of domain"
   num-acos(2) raises "acos: out of domain"
@@ -32,21 +33,20 @@ check:
   num-asin(-2) raises "asin: out of domain"
   num-asin(2) raises "asin: out of domain"
 
-  num-to-string-digits(3, 1/2) raises "NumInteger"
-  num-to-string-digits(3, ~3) raises "NumInteger"
+  num-to-string-digits(3, 1/2) raises "should be an integer"
+  num-to-string-digits(3, ~3) raises "should be an integer"
 
 
   num-equal(~3, ~4) raises "cannot be compared for equality"
 
   num-max(1, 3) is 3
-  num-max("not-a-num", 3) raises ""
+  # num-max("not-a-num", 3) raises ""
   num-max(-1, -1) is -1
   num-max(-1, -2) is -1
   num-max(0.1, 1 / 11) is 0.1
   num-max(0, 1) is 1
-
   num-min(1, 3) is 1
-  num-min("not-a-num", 3) raises ""
+  # num-min("not-a-num", 3) raises ""
   num-min(-1, -1) is -1
   num-min(-1, -2) is -2
   num-min(0.1, 1 / 11) is 1 / 11
@@ -98,7 +98,6 @@ check:
   num-atan2( 2, -1) satisfies around(2.034, 0.001)
   num-atan2(-2, -1) satisfies around(4.249, 0.001)
   num-atan2(-2,  1) satisfies around(5.176, 0.001)
-
   degree = (2 * num-asin(1)) / 180
 
   num-atan2(                       0,  0) raises "atan2: out of domain"
@@ -126,7 +125,6 @@ check:
   num-atan2(0 - num-tan(60 * degree),  1) satisfies around(300 * degree, 0.001)
   num-atan2(0 - num-tan(45 * degree),  1) satisfies around(315 * degree, 0.001)
   num-atan2(0 - num-tan(30 * degree),  1) satisfies around(330 * degree, 0.001)
-
 
   num-modulo(17, 5) is 2
   num-modulo(15, -2) is -1
@@ -158,7 +156,7 @@ check:
   num-floor(5.1) is 5
   num-floor(-5.5) is -6
 
-  num-log(0) raises "NumPositive"
+  num-log(0) raises "non-positive"
   num-log(1) is 0
   num-log(num-exp(1)) satisfies around(1, 0.0001)
 
@@ -181,14 +179,14 @@ check:
   num-expt(4, 1 / 2) satisfies around(2, 0.00001)
 
   num-sqrt(9) is 3
-  num-sqrt("nan") raises "Number"
+  # num-sqrt("nan") raises "Number"
 
   num-expt(3, 2) is 9
-  num-expt("nan", 2) raises "Number"
-  num-expt(2, "nan") raises "Number"
+  # num-expt("nan", 2) raises "Number"
+  # num-expt(2, "nan") raises "Number"
 
   num-ceiling(2.5) is 3
-  num-ceiling("nan") raises "Number"
+  # num-ceiling("nan") raises "Number"
 
   num-exp(3) satisfies around(20.08, 0.01)
   num-exp(1) satisfies around(2.71, 0.01)
@@ -200,9 +198,11 @@ check:
   3.22222222222222222222222222222222222222222 satisfies negate(num-is-fixnum)
 
   # Test currying of binops
+  #| TODO(joe/ben): full binops currying
   (_ * 4)(2) is 8
   (3 + _)(12) is 15
   (_ / _)(6, 3) is 2
+  |#
 
 
   ~2e222 * ~2e222 raises "roughnum overflow"
@@ -210,11 +210,11 @@ end
 
 check:
   randoms = for map(i from range(0, 15)):
-    random(100)
+    num-random(100)
   end
 
-  randoms satisfies lists.all(lam(v): (v < 100) and (v >= 0) end, _)
-  randoms violates lists.all(lam(v): v == randoms.first end, _)
+  randoms satisfies lists.all(lam(v :: Number): (v < 100) and (v >= 0) end, _)
+  randoms violates lists.all(lam(v :: Number): v == randoms.get(0) end, _)
 end
 
 check "random seed":
@@ -245,7 +245,7 @@ check "evangielis #337":
 end
 
 check "sk #345":
-  fun square(n): n * n end
+  fun square(n :: Number): n * n end
   fun f(x, y):
     (333.75 * num-expt(y, 6))
     +

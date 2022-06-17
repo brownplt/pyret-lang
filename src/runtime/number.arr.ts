@@ -33,6 +33,7 @@ var num_random_seed = function(seed) {
 module.exports = {
 
     'num-random': num_random,
+    'random': num_random,
 
     'num-random-seed': num_random_seed,
 
@@ -63,6 +64,7 @@ module.exports = {
     'num-atan':wrap1(NUMBERS['atan']),
     'num-atan2': wrap2(NUMBERS['atan2']),
 
+    'num-remainder': wrap2(NUMBERS['remainder']),
     'num-modulo': wrap2(NUMBERS['modulo']),
     'num-truncate': function(n) {
         if (NUMBERS['greaterThan'](n, 0, EQUALITY.NumberErrbacks)) {
@@ -96,7 +98,7 @@ module.exports = {
 
 
     'num-to-string': numToString,
-    'num-to-string-digits': NUMBERS['toStringDigits'],
+    'num-to-string-digits': wrap2(NUMBERS['toStringDigits']),
 
     'num-within-abs': EQUALITY["withinAbs"],
     'num-within-rel': EQUALITY["withinRel"],

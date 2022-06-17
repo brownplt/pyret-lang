@@ -212,6 +212,7 @@ export interface Exports {
     }
     function Literal(a : any) : J.Literal | J.UnaryExpression {
       if(a === undefined) { throw new InternalCompilerError("undefined given to Literal"); }
+      if(typeof a === "number" && isNaN(a)) { throw new InternalCompilerError(`NaN as numeric literal: ${a}`); }
       if (typeof a === 'number' && (a < 0 || (a === 0 && (1 / a < 0)))) {
         return UnaryExpression('-', { type: 'Literal', value: 0 - a });
       }

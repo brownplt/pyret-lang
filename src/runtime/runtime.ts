@@ -453,7 +453,8 @@ module.exports["$getCheckResults"] = getCheckResults;
 module.exports["$clearChecks"] = clearChecks;
 
 module.exports["$makeRational"] = _NUMBER["makeRational"];
-module.exports["$makeRoughnum"] = _NUMBER["makeRoughnum"];
+module.exports["$makeRoughnum"] = _NUMBER['makeRoughnum'];
+module.exports["$numToRoughnum"] = (n, errbacks) => _NUMBER['makeRoughnum'](_NUMBER['toFixnum'](n), errbacks);
 module.exports["$errCallbacks"] = _EQUALITY.NumberErrbacks;
 
 module.exports["_not"] = _not;

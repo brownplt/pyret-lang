@@ -1374,6 +1374,15 @@ export type Exports = {
       return [objId, stmts];
     }
 
+    function maybeMakeNumberFromString(n : any) {
+      if(typeof n === "number") {
+        return Literal(n);
+      }
+      else {
+        return rtMethod("_makeNumberFromString", [Literal(n.toString()), rtField(NUMBER_ERR_CALLBACKS)]);
+      }
+    }
+
     function compileExpr(context : Context, expr : A.Expr) : CompileResult {
       switch(expr.$name) {
         case 's-module':
@@ -1381,19 +1390,19 @@ export type Exports = {
         case 's-block':
           return compileSeq(context, expr.dict.stmts);
         case 's-num': {
-          let numAns;
-          if(typeof expr.dict.n === "number") {
-            numAns = Literal(expr.dict.n);
-          }
-          else {
-            numAns = rtMethod("_makeNumberFromString", [Literal(expr.dict.n.toString()), rtField(NUMBER_ERR_CALLBACKS)]);
-          }
+          let numAns = maybeMakeNumberFromString(expr.dict.n);
           return [numAns, []];
         }
-        case 's-frac': 
-          return [rtMethod('$makeRational', [Literal(expr.dict.num), Literal(expr.dict.den)]), []];
-        case 's-rfrac':
-          return [rtMethod('$makeRoughnum', [Literal(expr.dict.num / expr.dict.den)]), []];
+        case 's-frac':  {
+          const numstr = maybeMakeNumberFromString(expr.dict.num);
+          const denstr = maybeMakeNumberFromString(expr.dict.den);
+          return [rtMethod('$makeRational', [numstr, denstr, rtField(NUMBER_ERR_CALLBACKS)]), []];
+        }
+        case 's-rfrac': {
+          const numstr = maybeMakeNumberFromString(expr.dict.num);
+          const denstr = maybeMakeNumberFromString(expr.dict.den);
+          return [rtMethod('$numToRoughnum', [rtMethod("_divide", [numstr, denstr, rtField(NUMBER_ERR_CALLBACKS)]), rtField(NUMBER_ERR_CALLBACKS)]), []];
+        }
         case 's-str':
           return [Literal(expr.dict.s), []];
         case 's-bool':
