@@ -66,7 +66,7 @@
       (while (not (eobp))
         (beginning-of-line)
         (puthash (point) line-no pyret-debug-line-starts)
-        (incf line-no)
+        (cl-incf line-no)
         (forward-line)))))
 
 (defun pyret-debug-get-line-number ()
