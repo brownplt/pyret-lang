@@ -33,12 +33,17 @@
       "EqualityResult": { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://equality" },
                 "name": "EqualityResult"
+      },
+      "ValueSkeleton": { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://valueskeleton" },
+                "name": "ValueSkeleton"
       }
     },
     "values": {
       "display-string": ["arrow", ["String"], "Nothing"],
       "js-to-string": ["arrow", ["Any"], "String"],
       "to-repr": ["arrow", ["Any"], "String"],
+      "to-output": ["arrow", ["Any"], "ValueSkeleton"],
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "print-error": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "time-now": ["arrow", [], "Number"],

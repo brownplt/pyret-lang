@@ -1,3 +1,4 @@
+.vscode
 *~
 *.swp
 *.swo
@@ -32,6 +33,7 @@ docs/written/test-harness/
 docs/written/index/
 docs/*.arr.js
 
+build/lsp
 build/worker
 build/docs
 build/worker

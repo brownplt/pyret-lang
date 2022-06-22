@@ -3,6 +3,7 @@ const RUNTIME = require("./runtime.js");
 const PRIMITIVES = require("./primitives.js") as typeof PRIM_TYPES;
 const EQUALITY = require("./equality.js");
 
+const VS = require("./valueskeleton.arr.js");
 const OPTION = require("./option.arr.js");
 const SETS = require("./sets.arr.js");
 const LISTS = require("./lists.arr.js");
@@ -725,19 +726,14 @@ const countISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf) {
 });
 
 // TODO(alex): valueskeleton
-//var outputISD = runtime.makeMethod0(function(self) {
-//  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a, true); }
-//  var elts = [];
-//  var keys = self.$underlyingMap.keys();
-//  var vsValue = get(VS, "vs-value");
-//  for (var i = 0; i < keys.length; i++) {
-//    elts.push(vsValue.app(keys[i]));
-//    elts.push(vsValue.app(self.$underlyingMap.get(keys[i])));
-//  }
-//  return get(VS, "vs-collection").app(
-//    runtime.makeString("string-dict"),
-//    runtime.ffi.makeList(elts));
-//});
+var outputISD = PRIMITIVES.makeMethodBinder(function(self, toOutput) {
+  var elts : any[] = [];
+  var keys = self.$underlyingMap.keys();
+  for (var i = 0; i < keys.length; i++) {
+    elts.push(toOutput(RUNTIME.PTuple([keys[i], self.$underlyingMap.get(keys[i])])));
+  }
+  return VS["vs-collection"]("string-dict", elts);
+});
 
 const equalsISDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, other, recursiveEquality) {
     if (!PRIMITIVES.hasBrand($PBrandImmutable, other)) {
@@ -780,7 +776,7 @@ function makeImmutableStringDict(underlyingMap) {
     obj['count'] = countISDBinder(obj);
     obj['has-key'] = hasKeyISDBinder(obj);
     obj['_equals'] = equalsISDBinder(obj);
-    // obj. _output = outputISD,
+    obj['_output'] = outputISD(obj),
     obj['unfreeze'] = unfreezeISDBinder(obj);
     obj = PRIMITIVES.applyBrand($PBrandImmutable, obj);
     obj['$underlyingMap'] = underlyingMap;
@@ -901,20 +897,14 @@ const toreprMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, recursiv
     return toreprElts();
 });
 
-// TODO(alex): valueskeleton
-//var outputMSD = runtime.makeMethod0(function(self) {
-//  if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw runtime.ffi.throwArityErrorC(['_output'], 1, $a, true); }
-//  var elts = [];
-//  var keys = Object.keys(self.$underlyingDict);
-//  var vsValue = get(VS, "vs-value");
-//  for (var i = 0; i < keys.length; i++) {
-//    elts.push(vsValue.app(keys[i]));
-//    elts.push(vsValue.app(self.$underlyingDict[keys[i]]));
-//  }
-//  return get(VS, "vs-collection").app(
-//    runtime.makeString("mutable-string-dict"),
-//    runtime.ffi.makeList(elts));
-//});
+var outputMSD = PRIMITIVES.makeMethodBinder(function(self, toOutput) {
+  var elts : any[] = [];
+  var keys = Object.keys(self.$underlyingDict);
+  for (var i = 0; i < keys.length; i++) {
+    elts.push(toOutput(RUNTIME.PTuple([keys[i], self.$underlyingDict[keys[i]]])));
+  }
+  return VS["vs-collection"]("mutable-string-dict", elts);
+});
 
 const equalsMSDBinder = PRIMITIVES.makeMethodBinder(function(pyretSelf, other, recursiveEquality) {
     if (!PRIMITIVES.hasBrand($PMutableStringDictBrand, other)) {
@@ -958,7 +948,7 @@ function makeMutableStringDict(underlyingDict, sealed) {
     obj['has-key-now'] = hasKeyMSDBinder(obj);
     obj['clone-now'] = cloneMSDBinder(obj);
     obj['_equals'] = equalsMSDBinder(obj);
-    //obj._output = outputMSD;
+    obj['_output'] = outputMSD(obj);
     obj['freeze'] = freezeMSDBinder(obj);
     obj['seal'] = sealMSDBinder(obj);
     // Applying a brand creates a new object, so we need to add the reflective field afterward

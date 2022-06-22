@@ -355,13 +355,13 @@ function getModuleValue(uri : string, k : string) {
 }
 
 function installMethod(obj, name, method) {
-  Object.defineProperty(obj, name, {value: method, writable: false});
+  Object.defineProperty(obj, name, {enumerable: true, value: method, writable: false});
   return method;
 }
 function setupMethodGetters(obj) {
   const extension = {};
   for (let k in obj.$methods) {
-    extension[k] = { get: obj.$methods[k], configurable: true };
+    extension[k] = { enumerable: true, get: obj.$methods[k], configurable: true };
   }
   Object.defineProperties(obj, extension);
   return obj;
@@ -385,6 +385,219 @@ function raiseExtract(exception: any): string {
 function torepr(v) {
   return JSON.stringify(v);
 }
+type ValueSkeleton = any;
+type PyretValue = any;
+
+type CacheRecord<A> = { elt: A, name: string | null, next: CacheRecord<A>} | undefined
+type Cache<A> = {
+  add : (elts: CacheRecord<A>, elt: A) => CacheRecord<A>,
+  check : (elts : CacheRecord<A>, elt : A) => string | null
+};
+type StackRecord = {
+  todo: PyretValue[],
+  done: ValueSkeleton[],
+  arrays?: CacheRecord<any[]>,
+  objects?: CacheRecord<any>,
+} & (
+{
+  type: "root",
+  extra: null
+} |
+{
+  type: "object",
+  extra: { fieldNames: string[] }
+} |
+{
+  type: "data",
+  // NOTE: this is just (a fragment of) the representation of a data value
+  extra: { $fieldNames: string[], $name: string }
+} |
+{
+  type: "array",
+  extra: null
+} |
+{
+  type: "tuple",
+  extra: null
+})
+
+function toOutput(val : any) {
+  const VS = require("./valueskeleton.arr.js");
+  function makeCache<A>(type : string) : Cache<A> {
+    var cyclicCounter = 1;
+    // Note (Ben): using concat was leading to quadratic copying times and memory usage...
+    return {
+      add: function(elts, elt) {
+        return {elt: elt, name: null, next: elts};
+      },
+      check: function(elts, elt) {
+        var cur = elts;
+        while (cur !== undefined) {
+          if (cur.elt === elt) {
+            if (cur.name === null) {
+              cur.name = "<cyclic-" + type + "-" + cyclicCounter++ + ">";
+            }
+            return cur.name;
+          } else {
+            cur = cur.next;
+          }
+        }
+        return null;
+      }
+    };
+  }
+  var arrayCache = makeCache<any[]>("array");
+  var addNewArray = arrayCache.add;
+  var findSeenArray = arrayCache.check;
+  var objCache = makeCache<{}>("object");
+  var addNewObject = objCache.add;
+  var findSeenObject = objCache.check;
+  /*
+
+  We could implement this recursively, and it would be simpler. However, we roll
+  our own stack because values can be deeply nested in natural Pyret programs,
+  like a student-implemented linked-list. We want to be able to convert,
+  represent, and render these structures without doing a stack-manipulating
+  conversion on the code (e.g. no Stopify) to keep things running nicely in an
+  synchronous mode.
+
+  The main data structure is a stack of in-progress lists of values to render
+  that will be filled in to some structure (like an objcet or array rendering)
+  when complete. Each element of the stack has two key fields, `todo` and
+  `done`. When we visit e.g. an array like [ v1, v2, v3, v4 ], we push a new
+  entry to the stack with `todo` containing all the v_i. These
+  get popped and converted to rendered representations by the worklist loop,
+  then added to `done`.
+
+  After processing v4 and v3 to rendered versions rv1 and rv2, the entry will
+  look like this (yes, v4 then v3):
+
+  todo: [ v1, v2 ]      done: [ _, _, rv3, rv4 ]
+
+  The entry also stores, in the `type`, field, that we are processing an array,
+  for later dispatch to wrap the values in vs-constr.
+
+  We pre-allocate the done array and fill it in back-to-front. This makes it so
+  `done` ends in the expected order for clients without needing an extra
+  reverse.
+
+  */
+  function toOutputHelp(val : PyretValue) {
+    const stack : StackRecord[] = [{
+      type: "root",
+      arrays: undefined,
+      objects: undefined,
+      todo: [val],
+      done: [undefined],
+      extra: null
+    }];
+    function pushTodo<T extends StackRecord["type"]>(newArray : any[] | undefined, newObject : any, todo : any[], type : T, extra : (StackRecord & { type: T })["extra"]) {
+      var top = stack[stack.length - 1];
+      stack.push({
+        arrays: (newArray !== undefined) ? addNewArray(top.arrays, newArray) : top.arrays,
+        objects: (newObject !== undefined) ? addNewObject(top.objects, newObject) : top.objects,
+        todo: todo,
+        done: new Array(todo.length),
+        type: type,
+        extra: extra as any
+      });
+    }
+    var top : StackRecord;
+    function finishVal(vs : ValueSkeleton) {
+      // NOTE(joe): attempt to be clever -- fill in top.done from the high indices
+      // to avoid a reverse() later! So top.done starts at top.todo.length - 1,
+      // this is also the reason for initializing done with a particular length above
+      const curr = stack[stack.length - 1];
+      curr.todo.pop();
+      curr.done[curr.todo.length] = vs;
+    }
+    while (stack.length > 0 && stack[0].todo.length > 0) {
+      top = stack[stack.length - 1];
+      if (top.todo.length > 0) {
+        var next = top.todo[top.todo.length - 1];
+        if(_PRIMITIVES.isNumber(next)) { finishVal(VS["vs-num"](next)); }
+        else if (_PRIMITIVES.isBoolean(next)) { finishVal(VS["vs-bool"](next)); }
+        else if (_PRIMITIVES.isNothing(next)) { finishVal(VS["vs-nothing"]); }
+        else if (_PRIMITIVES.isFunction(next)) { finishVal(VS["vs-function"](next)); }
+        else if (_PRIMITIVES.isMethod(next)) { finishVal(VS["vs-method"](next)); }
+        else if (_PRIMITIVES.isString(next)) { finishVal(VS["vs-str"](next)); }
+        else if (_PRIMITIVES.isArray(next)) {
+          const arrayHasBeenSeen = findSeenArray(top.arrays, next);
+          if(typeof arrayHasBeenSeen === "string") {
+            finishVal(VS["vs-cyclic"](arrayHasBeenSeen));
+          }
+          else {
+            // NOTE(joe): the spread to copy the array below is important
+            // because we will pop from it when processing the stack
+            // Baffling bugs will result if next is passed directly; user arrays
+            // will empty on rendering
+            pushTodo(next, undefined, [...next], "array", null);
+          }
+        }
+        else if (_PRIMITIVES.isPTuple(next)) {
+          pushTodo(undefined, undefined, [...next], "tuple", null);
+        }
+        else if (_PRIMITIVES.isRawObject(next) || _PRIMITIVES.isDataVariant(next)) {
+          const objHasBeenSeen = findSeenObject(top.objects, next);
+          if(typeof objHasBeenSeen === "string") {
+            finishVal(VS["vs-cyclic"](objHasBeenSeen));
+          }
+          else if('_output' in next && (_PRIMITIVES.isMethod(next['_output']))) {
+            const m = next._output(toOutputHelp);
+            finishVal(m);
+          }
+          else if(_PRIMITIVES.isDataVariant(next)) {
+            const names = next.$fieldNames;
+            if(names === null) {
+              finishVal(VS['vs-literal-str'](next.$name));
+            }
+            else {
+              const vals = names.map(n => next[n]);
+              pushTodo(undefined, next, vals, "data", next);
+            }
+          }
+          else if(_PRIMITIVES.isRawObject(next)) {
+            const names = _PRIMITIVES.getRawObjectFields(next);
+            const vals = names.map(n => next[n]);
+            pushTodo(undefined, next, vals, "object", { fieldNames: names });
+          }
+          else {
+            finishVal(VS['vs-literal-str'](JSON.stringify(next) + "\n" + new Error().stack))
+          }
+        }
+        else {
+          finishVal(VS['vs-literal-str'](JSON.stringify(next) + "\n" + new Error().stack))
+        }
+      }
+      else {
+        // We just finished a compuond value's components, and have a reference
+        // to the results in top. The goal is to put the finished composite
+        // result into the done list of the preceding stack entry, and remove
+        // the stack entry we just finished. So pop here, and top will be a
+        // reference to the element we just removed.
+        stack.pop();
+        switch(top.type) {
+          case "array":
+            finishVal(VS["vs-collection"]("raw-array", top.done));
+            break;
+          case "tuple":
+            finishVal(VS["vs-tuple"](top.done));
+            break;
+          case "data":
+            finishVal(VS["vs-constr"](top.extra.$name, top.extra.$fieldNames, top.done));
+            break;
+          case "object":
+            finishVal(VS["vs-record"](top.extra.fieldNames, top.done));
+            break;
+        }
+      }
+    }
+    var finalAns = stack[0].done[0];
+    return finalAns;
+  }
+  return toOutputHelp(val);
+}
+
 
 function customThrow(exn) {
   exn.toString = function() { return JSON.stringify(this); }
@@ -474,6 +687,7 @@ module.exports["PTuple"] = _PRIMITIVES["PTuple"];
 module.exports["$makeMethodBinder"] = _PRIMITIVES["makeMethodBinder"];
 
 module.exports["$torepr"] = torepr;
+module.exports["$tooutput"] = toOutput;
 module.exports["$nothing"] = _PRIMITIVES["$nothing"];
 
 module.exports["$customThrow"] = customThrow;

@@ -126,5 +126,14 @@ module.exports = {
   'is-raw-array': function(v) {
     // TODO(alex): may need to move this to primitives.ts
     return Array.isArray(v);
+  },
+  'raw-array-from-list': function(v) {
+    const arr = [];
+    let i = 0;
+    while("rest" in v) {
+      arr[i] = v.first;
+      i += 1;
+    }
+    return arr;
   }
 }

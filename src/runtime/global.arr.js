@@ -78,6 +78,7 @@ module.exports = {
   'identical3': runtime['identical3'],
   
   'to-repr': runtime["$torepr"],
+  'to-output': runtime["$tooutput"],
 
   'trace-value': runtime['traceValue'],
 

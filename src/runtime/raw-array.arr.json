@@ -39,9 +39,8 @@
             "raw-array-of": ["forall", ["a"], ["arrow", ["tva", "Number"], "rOfA"]],
             "raw-array-build": ["forall", ["a"], ["arrow", [["arrow",  ["Number"], "tva"], "Number"], "rOfA"]],
             "raw-array-build-opt": ["forall", ["a"], ["arrow", [["arrow",  ["Number"], "oOfA"], "Number"], "rOfA"]],
+            "raw-array-from-list": ["forall", ["a"], ["arrow", [["List", ["tid", "a"]]], "rOfA"]],
             "is-raw-array": ["arrow", ["tany"], "Boolean"]
-
-
         },
         "aliases": { },
         "datatypes": { }

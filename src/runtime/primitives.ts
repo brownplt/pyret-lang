@@ -83,6 +83,20 @@ export function makeDataValue<
   return (extension as O & Required<E>);
 }
 
+// NOTE: the for loop here is the best way to get the properties on the
+// prototype chain as well! For raw objects we want this, and want to include
+// e.g. methods. For data values we don't, because we just want the names listed
+// in the variant declaration, not all the with: and sharing: fields.
+export function getRawObjectFields(val : any) : string[] {
+  const names : string[] = [];
+  for(let field in val) {
+    if(field[0] !== "$") {
+      names.push(field);
+    }
+  }
+  return names;
+}
+
 export function isRow(val: any): boolean {
     return hasBrand($PRowBrand, val);
 }

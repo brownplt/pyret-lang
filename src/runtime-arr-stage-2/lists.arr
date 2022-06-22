@@ -10,8 +10,11 @@ import equality as equality
 import raw-array as RA
 import number as N
 import list-perf as LP
-# import valueskeleton as VS
+import valueskeleton as VS
+include from RA: raw-array, raw-array-push, raw-array-map end
+# include from P: type RawArray end
 # valueskeleton only used on one method (_output)
+
 
 include from N:
   num-ceiling,
@@ -51,6 +54,15 @@ include from equality:
     equal-always3,
     identical3,
 end
+
+#fun raw-array-from-list<A>(l :: List<A>) -> RawArray<A> block:
+#  arr = [raw-array:]
+#  for each(elt from l) block:
+#    raw-array-push(arr, elt)
+#    nothing
+#  end
+#  arr
+#end
 
 # TODO(alex):
 #   1) The 'list' constructor expression breaks function ordering
@@ -112,7 +124,9 @@ sharing:
   # Note(alex): Many methods are implemented as "sharing" b/c "with" methods cannot see other "with" methods
   #   Known restriction of the typechecker (see type-checker.arr:1226)
 
-  # method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
+#  method _output(self :: List<a>) -> VS.ValueSkeleton:
+#    VS.vs-collection("list", raw-array-map(VS.vs-value, raw-array-from-list(self)))
+#  end,
 
   method length(self) -> Number:
     doc: "Takes no other arguments and returns the number of links in the list"
