@@ -422,7 +422,7 @@ type StackRecord = {
 })
 
 function toOutput(val : any) {
-  const VS = require("./valueskeleton.arr.js");
+  const VS = require("./value" + "skeleton.arr.js");
   function makeCache<A>(type : string) : Cache<A> {
     var cyclicCounter = 1;
     // Note (Ben): using concat was leading to quadratic copying times and memory usage...
