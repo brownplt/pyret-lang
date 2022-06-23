@@ -28,7 +28,7 @@ data ValueSkeleton:
 
   | vs-seq(items :: RawArray<ValueSkeleton>)
 
-  | vs-cyclic(v :: Any)
+  | vs-cyclic(label :: String, v :: Any)
   | vs-reactor(v :: Any)
   | vs-other(v :: Any)
 end

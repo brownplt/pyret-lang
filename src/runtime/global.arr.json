@@ -43,6 +43,7 @@
       "display-string": ["arrow", ["String"], "Nothing"],
       "js-to-string": ["arrow", ["Any"], "String"],
       "to-repr": ["arrow", ["Any"], "String"],
+      "to-string": ["arrow", ["Any"], "String"],
       "to-output": ["arrow", ["Any"], "ValueSkeleton"],
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "print-error": ["forall", "a", ["arrow", ["tva"], "tva"]],

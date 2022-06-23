@@ -156,7 +156,11 @@ module.exports = {
             throw new Error(`string-to-code-point expects a string of length exactly one, got ${str}`);
         }
 
-        return str.codePointAt(0);
+        const ans = str.codePointAt(0);
+        if (ans === undefined) {
+            throw new Error(`string-to-code-point could not extract codepoint of ${str}`);
+        }
+        return ans;
     },
 
     'string-to-code-points': function(str: string): number {

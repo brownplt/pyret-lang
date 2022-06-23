@@ -1,5 +1,9 @@
 import { NumericErrorCallbacks } from "./equality";
 import { CheckResult, CheckExprEvalResult, CheckTestResult } from "./common-runtime-types";
+import { $PMethodBrand, applyBrand } from "./primitives";
+
+type Variant<T, V> = T & { $name: V };
+
 
 // TODO(alex): `import type` syntax is causing a parsing error
 // import type { NumericErrorCallbacks } from "equality";
@@ -80,7 +84,7 @@ var _globalCheckResults: { [uri : string]: CheckResult[] } = {};
 // TODO: Add check test override
 // TODO: Need to expose an check runner test API to the IDE
 var $checkBlockExecutor = eagerCheckBlockRunner;
-var $checkBlockFilter: (uri: string, name?: string) => boolean | null = null;
+var $checkBlockFilter: ((uri: string, name?: string) => boolean) | null = null;
 
 export function $setCheckBlockFilter(filter: (uri: string, name?: string) => boolean): void {
   $checkBlockFilter = filter;
@@ -355,6 +359,7 @@ function getModuleValue(uri : string, k : string) {
 }
 
 function installMethod(obj, name, method) {
+  applyBrand($PMethodBrand, method);
   Object.defineProperty(obj, name, {enumerable: true, value: method, writable: false});
   return method;
 }
@@ -381,12 +386,118 @@ function raiseExtract(exception: any): string {
   return exception.toString();
 }
 
-// NOTE(alex): stub implementation used by testing infrastructure
-function torepr(v) {
-  return JSON.stringify(v);
+function toRepr(v) {
+  return renderValueSkeleton(toOutput(v), RenderToRepr);
 }
-type ValueSkeleton = any;
+
+function toString(v) {
+  return renderValueSkeleton(toOutput(v), RenderToString);
+}
+
+type ValueSkeleton = 
+  { $name: "vs-literal-str", s: string }
+| { $name: "vs-str", s: string }
+| { $name: "vs-num", v: PyretValue }
+| { $name: "vs-bool", v: boolean }
+| { $name: "vs-nothing" }
+| { $name: "vs-tuple", vals: ValueSkeleton[] }
+| { $name: "vs-function", v: PyretValue }
+| { $name: "vs-method", v: PyretValue }
+| { $name: "vs-record", "field-names": string[], vals: ValueSkeleton[] }
+| { $name: "vs-collection", name: string, items: ValueSkeleton[] }
+| { $name: "vs-constr", name: string, "field-names": string[], args: ValueSkeleton[] }
+| { $name: "vs-table", headers: string[], rows: ValueSkeleton[][] }
+| { $name: "vs-row", headers: string[], values: ValueSkeleton[] }
+| { $name: "vs-seq", items: ValueSkeleton[] }
+| { $name: "vs-cyclic", label: string, v: any }
+| { $name: "vs-reactor", v: any }
+| { $name: "vs-other", v: any };
 type PyretValue = any;
+
+type ReprVisitor<A> = {
+  [method in ValueSkeleton["$name"]]: 
+    (this: ReprVisitor<A>, vs: Variant<ValueSkeleton, method>) => A
+}
+
+
+function renderValueSkeleton<A>(vs: ValueSkeleton, visitor: ReprVisitor<A>): A {
+  return visitor[vs.$name].apply(visitor, [vs]);
+}
+
+// NOTE(Ben): this really should go in string.arr.js, but that causes an import-loop
+// error and the compiler won't boot itself up
+function replaceUnprintableStringChars(s: string): string {
+  const ret: string[] = [];
+  for (let i = 0; i < s.length; i++) {
+    var val = s.charCodeAt(i);
+    switch(val) {
+    case 7: ret.push('\\a'); break;
+    case 8: ret.push('\\b'); break;
+    case 9: ret.push('\\t'); break;
+    case 10: ret.push('\\n'); break;
+    case 11: ret.push('\\v'); break;
+    case 12: ret.push('\\f'); break;
+    case 13: ret.push('\\r'); break;
+    case 34: ret.push('\\"'); break;
+    case 92: ret.push('\\\\'); break;
+    default:
+      if (val >= 32 && val <= 126) {
+        ret.push( s.charAt(i) );
+      }
+      else {
+        var numStr = val.toString(16).toUpperCase();
+        while (numStr.length < 4) {
+          numStr = '0' + numStr;
+        }
+        ret.push('\\u' + numStr);
+      }
+      break;
+    }
+  }
+  return ret.join('');
+}
+
+const RenderToRepr: ReprVisitor<string> = {
+  "vs-literal-str": (vs) => vs.s,
+  "vs-bool": (vs) => String(vs.v),
+  "vs-str": (vs) => '"' + replaceUnprintableStringChars(vs.s) + '"',
+  "vs-num": (vs) => String(vs.v),
+  "vs-nothing": (_vs) => "nothing",
+  "vs-function": (_vs) => `<function>`,
+  "vs-method": (_vs) => `<method>`,
+  "vs-tuple": function (vs) {
+    return `{${vs.vals.map((v) => renderValueSkeleton(v, this)).join("; ")}}`;
+  },
+  "vs-record": function (vs) {
+    const pairs = vs.vals.map((v, idx) => `${vs["field-names"][idx]}: ${renderValueSkeleton(v, this)}`);
+    return `{ ${pairs.join(", ")} }`;
+  },
+  "vs-collection": function (vs) {
+    const items = vs.items.map((v) => renderValueSkeleton(v, this)).join(", ");
+    return `[${vs.name}: ${items}]`;
+  },
+  "vs-constr": function (vs) {
+    const items = vs.args.map((v) => renderValueSkeleton(v, this)).join(", ");
+    return `${vs.name}(${items})`;
+  },
+  "vs-table": (_vs) => "<table>",
+  "vs-row": (_vs) => "<row>",
+  "vs-seq": function (vs) {
+    return vs.items.map((v) => renderValueSkeleton, this).join("\n");
+  },
+  "vs-reactor": (vs) => "<reactor>",
+  "vs-cyclic": (vs) => `<${vs.label}>`,
+  "vs-other": (vs) => JSON.stringify(vs.v)
+};
+
+const RenderToString = Object.create(RenderToRepr);
+RenderToString["vs-str"] = (vs : Variant<ValueSkeleton, "vs-str">, _visitor) => String(vs.s);
+
+const RenderToCli = Object.create(RenderToRepr);
+RenderToCli["vs-function"] = (vs: Variant<ValueSkeleton, "vs-function">, _visitor) => `<function:${vs.v.name}>`;
+RenderToCli["vs-method"] = (vs: Variant<ValueSkeleton, "vs-method">, _visitor) => `<function:${vs.v.name}>`;
+
+
 
 type CacheRecord<A> = { elt: A, name: string | null, next: CacheRecord<A>} | undefined
 type Cache<A> = {
@@ -488,18 +599,51 @@ function toOutput(val : any) {
       arrays: undefined,
       objects: undefined,
       todo: [val],
-      done: [undefined],
+      done: new Array(1),
       extra: null
     }];
-    function pushTodo<T extends StackRecord["type"]>(newArray : any[] | undefined, newObject : any, todo : any[], type : T, extra : (StackRecord & { type: T })["extra"]) {
-      var top = stack[stack.length - 1];
+    function pushArrayTodo(newArray: PyretValue[], todo: PyretValue[]) {
+      const top = stack[stack.length - 1];
       stack.push({
-        arrays: (newArray !== undefined) ? addNewArray(top.arrays, newArray) : top.arrays,
-        objects: (newObject !== undefined) ? addNewObject(top.objects, newObject) : top.objects,
-        todo: todo,
+        type: "array",
+        arrays: addNewArray(top.arrays, newArray),
+        objects: top.objects,
+        todo,
         done: new Array(todo.length),
-        type: type,
-        extra: extra as any
+        extra: null
+      });
+    }
+    function pushTupleTodo(todo: PyretValue[]) {
+      const top = stack[stack.length - 1];
+      stack.push({
+        type: "tuple",
+        arrays: top.arrays,
+        objects: top.objects,
+        todo,
+        done: new Array(todo.length),
+        extra: null
+      });
+    }
+    function pushDataTodo(newObject: PyretValue, todo: PyretValue[], extra: (StackRecord & {type: "data"})["extra"]) {
+      const top = stack[stack.length - 1];
+      stack.push({
+        type: "data",
+        arrays: top.arrays,
+        objects: addNewObject(top.objects, newObject),
+        todo,
+        done: new Array(todo.length),
+        extra
+      });
+    }
+    function pushObjectTodo(newObject: PyretValue, todo: PyretValue[], extra: (StackRecord & {type: "object"})["extra"]) {
+      const top = stack[stack.length - 1];
+      stack.push({
+        type: "object",
+        arrays: top.arrays,
+        objects: addNewObject(top.objects, newObject),
+        todo,
+        done: new Array(todo.length),
+        extra
       });
     }
     var top : StackRecord;
@@ -524,26 +668,30 @@ function toOutput(val : any) {
         else if (_PRIMITIVES.isArray(next)) {
           const arrayHasBeenSeen = findSeenArray(top.arrays, next);
           if(typeof arrayHasBeenSeen === "string") {
-            finishVal(VS["vs-cyclic"](arrayHasBeenSeen));
+            finishVal(VS["vs-cyclic"](arrayHasBeenSeen, next));
           }
           else {
             // NOTE(joe): the spread to copy the array below is important
             // because we will pop from it when processing the stack
             // Baffling bugs will result if next is passed directly; user arrays
             // will empty on rendering
-            pushTodo(next, undefined, [...next], "array", null);
+            pushArrayTodo(next, [...next]);
           }
         }
         else if (_PRIMITIVES.isPTuple(next)) {
-          pushTodo(undefined, undefined, [...next], "tuple", null);
+          pushTupleTodo([...next]);
         }
         else if (_PRIMITIVES.isRawObject(next) || _PRIMITIVES.isDataVariant(next)) {
           const objHasBeenSeen = findSeenObject(top.objects, next);
           if(typeof objHasBeenSeen === "string") {
-            finishVal(VS["vs-cyclic"](objHasBeenSeen));
+            finishVal(VS["vs-cyclic"](objHasBeenSeen, next));
           }
           else if('_output' in next && (_PRIMITIVES.isMethod(next['_output']))) {
             const m = next._output(toOutputHelp);
+            finishVal(m);
+          }
+          else if('$methods' in next && '_output' in next['$methods'] && (_PRIMITIVES.isMethod(next['$methods']['_output']))) {
+            const m = next['$methods']['_output'](toOutputHelp);
             finishVal(m);
           }
           else if(_PRIMITIVES.isDataVariant(next)) {
@@ -553,13 +701,13 @@ function toOutput(val : any) {
             }
             else {
               const vals = names.map(n => next[n]);
-              pushTodo(undefined, next, vals, "data", next);
+              pushDataTodo(next, vals, next);
             }
           }
           else if(_PRIMITIVES.isRawObject(next)) {
             const names = _PRIMITIVES.getRawObjectFields(next);
             const vals = names.map(n => next[n]);
-            pushTodo(undefined, next, vals, "object", { fieldNames: names });
+            pushObjectTodo(next, vals, { fieldNames: names });
           }
           else {
             finishVal(VS['vs-literal-str'](JSON.stringify(next) + "\n" + new Error().stack))
@@ -686,7 +834,8 @@ module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
 module.exports["PTuple"] = _PRIMITIVES["PTuple"];
 module.exports["$makeMethodBinder"] = _PRIMITIVES["makeMethodBinder"];
 
-module.exports["$torepr"] = torepr;
+module.exports["$torepr"] = toRepr;
+module.exports["$tostring"] = toString;
 module.exports["$tooutput"] = toOutput;
 module.exports["$nothing"] = _PRIMITIVES["$nothing"];
 
