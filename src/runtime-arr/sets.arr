@@ -750,21 +750,23 @@ end
 
 fun arr-to-list-set<a>(arr :: RawArray<a>) -> Set<a>:
   raw-array-fold(
-    lam(acc :: Set<a>, elem :: a):
+    lam(acc :: Set<a>, elem :: a, idx :: Number):
       acc.add(elem)
     end,
     list-set(empty),
-    arr
+    arr,
+    0
   )
 end
 
 fun arr-to-tree-set<a>(arr :: RawArray<a>) -> Set<a>:
   tree = raw-array-fold(
-    lam(acc :: AVLTree<a>, elem :: a):
+    lam(acc :: AVLTree<a>, elem :: a, idx :: Number):
       acc.insert(elem)
     end,
     leaf,
-    arr
+    arr,
+    0
   )
   tree-set(tree)
 end
