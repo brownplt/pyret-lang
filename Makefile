@@ -77,7 +77,10 @@ RUNTIME_ARR_STAGE_1_SRCS := $(wildcard $(RUNTIME_ARR_STAGE_1_SRC_DIR)/*.arr)
 RUNTIME_ARR_STAGE_1_COMPILED_FILES := $(RUNTIME_ARR_STAGE_1_SRCS:$(RUNTIME_ARR_STAGE_1_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
 
 RUNTIME_ARR_STAGE_2_SRC_DIR := src/runtime-arr-stage-2
-RUNTIME_ARR_STAGE_2_SRCS := $(wildcard $(RUNTIME_ARR_STAGE_2_SRC_DIR)/*.arr)
+# NOTE(joe June '22): Explicitly listing the order here. I think we should
+# refactor to just have a hardcoded list of which order we run the .arr files in.
+# Otherwise in 4 years we'll be onlike runtime-arr-stage-37.
+RUNTIME_ARR_STAGE_2_SRCS := $(RUNTIME_ARR_STAGE_2_SRC_DIR)/lists.arr $(RUNTIME_ARR_STAGE_2_SRC_DIR)/arrays.arr
 RUNTIME_ARR_STAGE_2_COMPILED_FILES := $(RUNTIME_ARR_STAGE_2_SRCS:$(RUNTIME_ARR_STAGE_2_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
 
 RUNTIME_ARR_SRC_DIR := src/runtime-arr
