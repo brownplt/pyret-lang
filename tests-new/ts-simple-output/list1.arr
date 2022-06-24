@@ -1,4 +1,4 @@
-### 123
+### [list: 1, 2, 3]
 import lists as L
 import global as G
 
@@ -8,7 +8,4 @@ end
 
 list = [L.list: 1, 2, 3]
 
-msg = for fold(string from "", e from list):
-  string + G.js-to-string(e)
-end
-G.console-log( msg )
+G.console-log( G.to-string(list) )

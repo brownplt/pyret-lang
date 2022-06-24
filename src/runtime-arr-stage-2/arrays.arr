@@ -3,6 +3,7 @@ provide: type Array, * end
 include global
 include lists
 include raw-array
+include valueskeleton
 
 get-arr-key = {}
 
@@ -21,6 +22,9 @@ sharing:
     method to-list-now(self): raw-array-to-list(self.elements) end,
     method _equals(self, other :: Array<A>, eq :: (Any, Any -> Boolean)):
       eq(self.get-arr(get-arr-key), other.get-arr(get-arr-key))
+    end,
+    method _output(self, rec-output :: (Any -> ValueSkeleton)) -> ValueSkeleton:
+      vs-collection("array", raw-array-map(rec-output, self.elements))
     end
 end
 

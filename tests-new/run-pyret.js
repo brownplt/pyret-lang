@@ -22,6 +22,6 @@ client.start({
     'builtin-js-dir': 'build/runtime',
     'base-dir': path.resolve(path.join(__dirname, "/../")),
     'session': session || "empty",
-    'recompile-builtins': false
+    'recompile-builtins': true
   }
 });

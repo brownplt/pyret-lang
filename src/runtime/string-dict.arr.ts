@@ -9,9 +9,6 @@ const SETS = require("./sets.arr.js");
 const LISTS = require("./lists.arr.js");
 const RAW_ARRAY = require("./raw-array.arr.js");
 
-// TODO(alex): valueskeleton
-// var VS = get(VSlib, "values");
-
 const $PMutableStringDictBrand = "mutable-string-dict";
 const $PBrandImmutable = "immutable-string-dict";
 

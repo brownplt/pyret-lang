@@ -1,4 +1,4 @@
-### 1357
+### [list: 1, 3, 5, 7]
 import lists as L
 import global as G
 
@@ -14,4 +14,4 @@ msg = for L.fold(string from "", e from mapped):
   string + G.js-to-string(e)
 end
 
-G.console-log(msg)
+G.console-log(G.to-string(mapped))

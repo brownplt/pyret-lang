@@ -1,4 +1,4 @@
-### 12345234
+### [list: 1, 2, 3, 4, 5, 2, 3, 4]
 
 import lists as L
 import global as G
@@ -19,8 +19,4 @@ G.assert( L.length( empty-list ), 0, "Not empty lists" )
 
 concated = L.append( L.append( list, left-list ), filtered-list )
 
-msg = for L.fold(string from "", e from concated):
-  string + G.js-to-string(e)
-end
-
-G.console-log(msg)
+G.console-log(G.to-string(concated))

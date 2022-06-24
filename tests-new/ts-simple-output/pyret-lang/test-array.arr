@@ -182,13 +182,11 @@ check:
   for each(i from range(0, 500)): raw-array-get(arr2, i) is i * 2 end
 end
 
-#| TODO(joe/ben May 2022): valueskeleton/torepr
 check:
   to-repr([array: 1,2,"3"]) is '[array: 1, 2, "3"]'
   to-repr([array: ]) is '[array: ]'
   to-repr(raw-array-of(3, 3)) is '[raw-array: 3, 3, 3]'
 end
-|#
 
 check:
   fun f(v :: Array<Number>) block:
@@ -221,8 +219,7 @@ end
 check:
   a = [array: single, multi(1, "2")]
 
-  # TODO(joe/ben May 2022): valueskeleton/torepr
-  # to-repr(a) is "[array: single, multi(1, \"2\")]"
+  to-repr(a) is "[array: single, multi(1, \"2\")]"
   a.set-now(0, a.get-now(1))
   a.to-list-now() is [list: multi(1, "2"), multi(1, "2")]
   a.get-now(0) satisfies identical(_, a.get-now(1))
