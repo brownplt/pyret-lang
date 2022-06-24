@@ -1,4 +1,18 @@
 import pick as P
+include from P: data Pick end
+include lists
+import sets as S 
+include from S:
+  * hiding (fold, all, any),
+  data Set
+end
+include raw-array
+import global as G 
+import number as N
+include from N: random end
+include from G: not, raise end
+
+type SetMaker = { make :: (RawArray<Number> -> Set<Number>) }
 
 check "regression for small constructors":
   [set: 1, 2, 1].member(2) is true
@@ -36,30 +50,23 @@ check "to-list":
   [tree-set: "x", "x"].to-list() is [tree-set: "x"].to-list()
 end
 
-fun raw-build-array(n, make-elt):
-  arr = raw-array-of(0, n)
-  for raw-array-fold(_ from 0, _ from arr, ix from 0):
-    raw-array-set(arr, ix, make-elt(n))
-  end
-end
-
-fun make-arraynge(n):
+fun make-arraynge(n :: Number) -> RawArray<Number>:
   arr = raw-array-of(0, n)
   for raw-array-fold(_ from 0, _ from arr, ix from 0):
     raw-array-set(arr, ix, ix)
   end
 end
 
-fun check-random-adds(n :: Number, set-constructor) -> Boolean:
-  nums = raw-build-array(n, lam(n2): random(n2 * n2) end)
+fun check-random-adds(n :: Number, set-constructor :: SetMaker) -> Boolean:
+  nums = raw-array-build(lam(n2): random(n2 * n2) end, n)
   expect = for raw-array-fold(s from [list: ], elt from nums, _ from 0):
     if s.member(elt): s else: link(elt, s) end
   end.sort()
   set-constructor.make(nums).to-list().sort() == expect
 end
 
-fun check-random-removes(n :: Number, set-constructor) -> Boolean:
-  nums = raw-build-array(n, lam(n2): random(2 * n2) end)
+fun check-random-removes(n :: Number, set-constructor :: SetMaker) -> Boolean:
+  nums = raw-array-build(lam(n2): random(2 * n2) end, n)
   orig = make-arraynge(n)
   nums-list = raw-array-to-list(nums)
   expect = for raw-array-fold(lst from empty, elt from orig, _ from 0):
@@ -76,11 +83,11 @@ fun check-random-removes(n :: Number, set-constructor) -> Boolean:
 end
 
 check:
-  fun canonicalize(s):
+  fun canonicalize(s :: Set<Number>) -> List<Number>:
     s.to-list().sort()
   end
   c = canonicalize
-  fun test-constructor(s) block:
+  fun test-constructor(s :: SetMaker) -> Nothing block:
 # SKIP(wating for predicates/annotations)
 #    Set(s([list: 1, 2])) is true
 #    Set(s([list: ])) is true
@@ -108,6 +115,7 @@ check:
     for each(n from range(1,21)) block:
       check-random-adds(n * 5, s) is true
       check-random-removes(n * 5, s) is true
+      nothing
     end
   end
 
@@ -117,11 +125,11 @@ check:
 end
 
 check "Different constructors should work well together":
-  fun canonicalize(s):
+  fun canonicalize(s :: Set<Number>) -> List<Number>:
     s.to-list().sort()
   end
   c = canonicalize
-  fun test-constructor(s-a, s-b) block:
+  fun test-constructor(s-a :: SetMaker, s-b :: SetMaker) block:
     [s-a: 1, 2].union([s-b: 2, 3]) is [s-a: 1, 2, 3]
     [s-a: 1, 2].union([s-b: 4]) is [s-a: 1, 2, 4]
     [s-a: 1, 2].intersect([s-b: 2, 3]) is [s-a: 2]
@@ -141,13 +149,20 @@ check "Different constructors should work well together":
   test-constructor(tree-set, list-set)
 end
 
+fun pick-value<A, B>(p :: Pick<A, B>) -> A:
+  cases(Pick) p:
+    | pick-none => raise("pick-value on pick-none")
+    | pick-some(v, _) => v
+  end
+end
+
 check "pick on list sets doesn't repeat order":
   s = [list-set: 1, 2, 3]
   var found-diff = false
   # This will fail every 2^100 times it is run, given that JS has a decent RNG
   # and given the current sets implementation
   for each(i from range(0, 100)):
-    when not(s.pick().elt == s.pick().elt):
+    when not(pick-value(s.pick()) == pick-value(s.pick())):
       found-diff := true
     end
   end
@@ -156,10 +171,10 @@ end
 
 check "sets pick visits all elemeents":
 
-  fun pick-sum(s):
+  fun pick-sum(s :: Set<Number>) -> Number:
     cases(P.Pick) s.pick():
       | pick-none => 0
-      | pick-some(elt, rest) => elt + pick-sum(rest)
+      | pick-some(elt :: Number, rest) => elt + pick-sum(rest)
     end
   end
 

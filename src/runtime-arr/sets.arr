@@ -23,6 +23,7 @@ include lists
 import equality as equality
 import raw-array as RA
 import number as N
+include from N: random end
 # import valueskeleton as VS
 
 include from RA:
@@ -403,7 +404,7 @@ sharing:
   #   Known restriction of the typechecker (see type-checker.arr:1226)
 
 
-  method pick(self):
+  method pick(self) -> Pick<a, Set<a>>:
     cases(Set) self:
       | list-set(elems) =>
         lst = elems
@@ -414,8 +415,7 @@ sharing:
               | empty => pick-some(f, list-set(empty))
               | link(f2, r2) =>
                 # TODO(alex): implement rng
-                # get-first = random(2)
-                get-first = raise("sets TODO: random")
+                get-first = random(2)
                 if get-first == 0:
                   pick-some(f, list-set(r))
                 else:

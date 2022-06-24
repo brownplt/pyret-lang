@@ -6,6 +6,7 @@ import type * as TD from './ts-type-defaults';
 import type * as TJ from './ts-codegen-helpers';
 import type * as TCS from './ts-type-check-structs';
 import type * as TCSH from './ts-compile-structs-helpers';
+import type * as TRED from './ts-render-error-display';
 import type { Runtime, List, MutableStringDict, PFunction, StringDict, Option, PTuple } from './ts-impl-types';
 import { CompileOptions } from './ts-compiler-lib-impl';
 
@@ -30,6 +31,7 @@ export type Exports = {
     { 'import-type': 'dependency', protocol: 'file', args: ['compile-structs.arr']},
     { 'import-type': 'dependency', protocol: 'file', args: ['type-check-structs.arr']},
     { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-type-defaults']},
+    { 'import-type': 'dependency', protocol: 'js-file', args: ['ts-render-error-display']},
  ],
   nativeRequires: ["escodegen", "path"],
   provides: {
@@ -38,7 +40,7 @@ export type Exports = {
       "empty-context": "tany",
     }
   },
-  theModule: function(runtime: Runtime, _, __, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : TS.Exports, Ain : A.Exports, CSin : CS.Exports, TCS : TCS.Exports, TD : TD.Exports) {
+  theModule: function(runtime: Runtime, _, __, SL : SL.Exports, tj : TJ.Exports, TCSH : (TCSH.Exports), TSin : TS.Exports, Ain : A.Exports, CSin : CS.Exports, TCS : TCS.Exports, TD : TD.Exports, TRED : TRED.Exports) {
     const {
       ExhaustiveSwitchError,
       InternalCompilerError,
@@ -76,11 +78,22 @@ export type Exports = {
       'fold-errors': foldErrors,
       "typing-context": typingContext
     } = TCS.dict.values.dict;
+    const {
+      'display-to-string': displayToString
+    } = TRED.dict.values.dict;
 
     class TypeCheckFailure extends Error {
       errs : CS.CompileError[];
       constructor(...errs : CS.CompileError[]) {
-        super("type error " + require('util').inspect(errs, {depth:null}));
+        runtime['GAS'] = 5000000;
+        var rendered = "";
+        errs.forEach(e => {
+          const reason = callMethod(e as any, "render-reason");
+          const stringReason = displayToString.app(reason, runtime.makeFunction(String), runtime.ffi.makeList([]));
+          rendered += stringReason + "\n";
+        })
+
+        super("type error " + rendered);
         this.errs = errs;
       }
     }
