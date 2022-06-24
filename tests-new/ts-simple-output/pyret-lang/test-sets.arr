@@ -10,7 +10,7 @@ include raw-array
 import global as G 
 import number as N
 include from N: random end
-include from G: not, raise end
+include from G: not, raise, to-repr end
 
 type SetMaker = { make :: (RawArray<Number> -> Set<Number>) }
 
@@ -183,4 +183,11 @@ check "sets pick visits all elemeents":
   pick-sum([list-set:]) is 0
   pick-sum([tree-set:]) is 0
 
+end
+
+check "to-repr":
+  to-repr([set: 1, 2, 3]) is "[list-set: 3, 2, 1]"
+  to-repr([tree-set: 1, 2]) is "[tree-set: 1, 2]"
+  to-repr([tree-set: 1, 2, 2]) is "[tree-set: 1, 2]"
+  to-repr([list-set: {1;2}]) is "[list-set: {1; 2}]"
 end

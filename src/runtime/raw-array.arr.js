@@ -133,6 +133,7 @@ module.exports = {
     while("rest" in v) {
       arr[i] = v.first;
       i += 1;
+      v = v.rest;
     }
     return arr;
   }

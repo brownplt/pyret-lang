@@ -24,10 +24,11 @@ import equality as equality
 import raw-array as RA
 import number as N
 include from N: random end
-# import valueskeleton as VS
+import valueskeleton as VS
+include from VS: data ValueSkeleton end
 
 include from RA:
-    raw-array-fold
+  raw-array-fold, raw-array-map, raw-array-from-list
 end
 
 include from N:
@@ -393,12 +394,7 @@ end
 
 data Set<a>:
   | list-set(elems :: List<a>)
-
-    # TODO(alex): valueskeleton
-    # method _output(self): VS.vs-collection("list-set", self.to-list().map(VS.vs-value)) end,
-
   | tree-set(elems :: AVLTree<a>)
-
 sharing:
   # Note(alex): Many methods are implemented as "sharing" b/c "with" methods cannot see other "with" methods
   #   Known restriction of the typechecker (see type-checker.arr:1226)
@@ -432,8 +428,13 @@ sharing:
     end
   end,
 
-  # TODO(alex): valueskeleton
-  # method _output(self): VS.vs-collection("tree-set", self.to-list().map(VS.vs-value)) end,
+  method _output(self, output :: (Any -> ValueSkeleton)):
+    name = cases(Set) self:
+      | list-set(_) => "list-set"
+      | tree-set(_) => "tree-set"
+    end
+    VS.vs-collection(name, raw-array-map(output, raw-array-from-list(self.to-list())))
+  end,
 
   method fold<b>(self, f :: (b, a -> b), base :: b) -> b:
     cases(Set) self:
