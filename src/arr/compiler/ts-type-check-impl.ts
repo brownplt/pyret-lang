@@ -86,11 +86,13 @@ export type Exports = {
       errs : CS.CompileError[];
       constructor(...errs : CS.CompileError[]) {
         runtime['GAS'] = 5000000;
+        runtime['RUNGAS'] = 5000000;
         var rendered = "";
         errs.forEach(e => {
           const reason = callMethod(e as any, "render-reason");
           const stringReason = displayToString.app(reason, runtime.makeFunction(String), runtime.ffi.makeList([]));
-          rendered += stringReason + "\n";
+          rendered += stringReason;
+          rendered += ` [${e.$name}]`
         })
 
         super("type error " + rendered);
@@ -1636,7 +1638,10 @@ export type Exports = {
         const solution = this.solveLevel()
         this.substituteInBinds(solution);
         this.substituteInMisc(solution);
-        const result = solution.apply(t);
+        let result = solution.apply(t);
+        if(result.$name === 't-app' && (result.dict.onto.$name === 't-app' || result.dict.onto.$name === 't-forall')) {
+          result = simplifyTApp(result, this);
+        }
         LOG(`Solved and resolved: ${typeKey(t)} ===> ${typeKey(result)}\n`);
         LOG(`under solution ${solution.toString()}\n\n`);
         return result;
@@ -1987,7 +1992,9 @@ export type Exports = {
     // FOR DEBUGGNG AID; this will be set within typeCheck using its `options` parameter
     let logger: PFunction<(val: any, _ignored: Option<any>) => void>;
     function LOG(val: any): void {
-      //logger.app(val, runtime.ffi.makeNone());
+      // runtime['RUNGAS'] = Infinity;
+      // runtime['GAS'] = Infinity;
+      // logger.app(val, runtime.ffi.makeNone());
     }
 
     // NOTE(joe/ben): This was called introduce-onto in the original Pyret implementation
@@ -2000,7 +2007,7 @@ export type Exports = {
           if (args.length !== introduces.length) {
             throw new TypeCheckFailure(CS['bad-type-instantiation'].app(appType, introduces.length));
           }
-          let newOnto: TS.Type = onto;
+          let newOnto: TS.Type = onto.dict.onto;
           for (let i = 0; i < args.length; i++) {
             newOnto = substitute(newOnto, args[i], introduces[i]);
           }
@@ -3264,8 +3271,8 @@ export type Exports = {
         }
         else {
           newTyp = newExistential(b.dict.l, true);
-          context.addVariable(newTyp);
         }
+        context.addVariable(newTyp);
         bindings.set(nameToKey(b.dict.id), newTyp);
       }
       return bindings;
