@@ -114,7 +114,7 @@ check:
     ([s: 1, 2.1, 3] <> [s: 1, 2.2, 3]) is true
     c([s: 1, 2, 4]) is c([s: 2, 1, 4])
 
-    for each(n from range(1,21)) block:
+    for each(n from range(1,10)) block:
       check-random-adds(n * 5, s) is true
       check-random-removes(n * 5, s) is true
       nothing

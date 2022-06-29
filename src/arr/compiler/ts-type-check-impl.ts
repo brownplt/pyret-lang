@@ -389,8 +389,8 @@ export type Exports = {
       switch(provide.$name) {
         case 's-provide-block': {
           const curTypes = new Map<string, TS.Type>();
-          const curAliases = context.aliases;
-          const curData = context.dataTypes;
+          const curAliases = context.info.aliases;
+          const curData = context.info.dataTypes;
           // Note(Ben): I'm doing two things differently than the original Pyret code:
           // 1. I'm traversing the list of specs from first to last.  If this ultimately matters,
           //    we could reverse the array on the next line before traversing it.
@@ -2026,7 +2026,7 @@ export type Exports = {
     function substituteVariant(variant: TS.TypeVariant, newType: TS.Type, typeVar: TJ.Variant<TS.Type, 't-var' | 't-existential'>): TS.TypeVariant {
       switch(variant.$name) {
         case 't-variant': {
-          const fields = listToArray(variant.dict.fields);
+          const fields = listToArray(variant.dict.fields).map(t => runtime.makeTuple([...t.vals]));
           const withFields = mapFromStringDict(variant.dict['with-fields']);
           for (let i = 0; i < fields.length; i++) {
             fields[i].vals[1] = substitute(fields[i].vals[1], newType, typeVar);

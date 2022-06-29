@@ -170,7 +170,7 @@ check:
   end
   
   fun slow(i) block:
-    slowly(3000)
+    slowly(300)
     if num-modulo(i, 2) == 0:
       some(i)
     else:

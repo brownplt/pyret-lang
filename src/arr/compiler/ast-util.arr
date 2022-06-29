@@ -416,7 +416,7 @@ fun canonicalize-names(typ :: T.Type, uri :: URI, transform-name :: NameChanger)
     | t-ref(t, l, inferred) => T.t-ref(c(t), l, inferred)
     | t-data-refinement(data-type, variant-name, l, inferred) =>
       T.t-data-refinement(c(data-type), variant-name, l, inferred)
-    | t-existential(id, l, _) => typ
+    | t-existential(id, l, _) => raise("Internal error: Cannot canonicalize free existential types " + to-repr(typ))
   end
 end
 
