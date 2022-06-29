@@ -6,6 +6,6 @@ import global as G
 simple-pi = 355/113
 rough-pi = ~355/113
 
-G.console-log(G.js-to-string(simple-pi))
-G.console-log(G.js-to-string(simple-pi + ~0))
-G.console-log(G.js-to-string(2 * rough-pi))
+G.console-log(G.to-string(simple-pi))
+G.console-log(G.to-string(simple-pi + ~0))
+G.console-log(G.to-string(2 * rough-pi))

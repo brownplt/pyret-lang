@@ -48,8 +48,8 @@ if result:
   G.console-log("pass")
 else:
   G.console-log([L.list:
-    G.js-to-string(my-foo1),
-    G.js-to-string(my-foo2),
-    G.js-to-string(my-nested1),
-    G.js-to-string(my-nested-foo)])
+    G.to-string(my-foo1),
+    G.to-string(my-foo2),
+    G.to-string(my-nested1),
+    G.to-string(my-nested-foo)])
 end
