@@ -490,12 +490,14 @@ const RenderToRepr: ReprVisitor<string> = {
   "vs-other": (vs) => JSON.stringify(vs.v)
 };
 
-const RenderToString = Object.create(RenderToRepr);
-RenderToString["vs-str"] = (vs : Variant<ValueSkeleton, "vs-str">, _visitor) => String(vs.s);
+const RenderToString: ReprVisitor<string> = Object.assign({}, RenderToRepr, {
+  "vs-str": (vs : Variant<ValueSkeleton, "vs-str">) => String(vs.s)
+});
 
-const RenderToCli = Object.create(RenderToRepr);
-RenderToCli["vs-function"] = (vs: Variant<ValueSkeleton, "vs-function">, _visitor) => `<function:${vs.v.name}>`;
-RenderToCli["vs-method"] = (vs: Variant<ValueSkeleton, "vs-method">, _visitor) => `<function:${vs.v.name}>`;
+const RenderToCli: ReprVisitor<string> = Object.assign({}, RenderToRepr, {
+  "vs-function": (vs: Variant<ValueSkeleton, "vs-function">) => `<function:${vs.v.name}>`,
+  "vs-method": (vs: Variant<ValueSkeleton, "vs-method">) => `<function:${vs.v.name}>`
+});
 
 
 
