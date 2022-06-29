@@ -53,6 +53,8 @@ build/phaseA/program-require.js
 build/phaseA/program.js
 build/bundled-node-deps.js
 build/runtime
+
+runtime/types/*.js
 deps/closure-compiler
 node_modules/
 *#
