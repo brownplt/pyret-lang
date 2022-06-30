@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "rootDir": "src/arr/compiler",
+    "target": "esnext",
+    "module": "es2015",
+    "moduleResolution": "node"
+  },
+  "include": [ "src/arr/compiler/*.ts" ]
+}

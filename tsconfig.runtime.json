@@ -1,0 +1,7 @@
+{
+  "compilerOptions": {
+    "outDir": "build/runtime",
+    "rootDir": "src/runtime"
+  },
+  "include": [ "src/runtime/*.ts" ]
+}

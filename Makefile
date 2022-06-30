@@ -10,7 +10,7 @@ $(PYRET_JARR) : $(PYRET_JARR_DEPS)
 	npx pyret --checks none -c src/arr/compiler/pyret.arr -o $(PYRET_JARR)
 
 src/arr/compiler/%.js : src/arr/compiler/%.ts
-	`npm bin`/tsc --target "esnext" --module "es2015" --moduleResolution "node" $<
+	npx tsc --project tsconfig.compiler.json
 # Thanks internet! https://unix.stackexchange.com/a/65691
 # This solves the problem that tsc (rightfully) inserts a semicolon at the end
 # of the expression-statement in JS, but that can't be interpreted correctly
@@ -18,7 +18,7 @@ src/arr/compiler/%.js : src/arr/compiler/%.ts
 # So chop the trailing ;
 # UNFORTUNATELY, we can't do this while compiling individual .ts files,
 # because tsc might overwrite some of the post-processed files.  So do this as a second step
-	`npm bin`/tsc --target "esnext" --module "es2015" --listFilesOnly $< \
+	npx tsc --project tsconfig.compiler.json --listFilesOnly | grep "src/arr/compiler" \
 		| sed s/.ts$$/.js/ | xargs -n1 -I{} realpath --relative-to="src" '{}' | grep -v "\.\." \
 		| xargs -n1 -I{} realpath --relative-to="." 'src/{}' \
 		| xargs -n1 -I{} perl -0777 -p -i -e 's/(?:;|\A)(\n*)(export \{\}(\n*);?)?\Z/\1/m' '{}'
@@ -101,10 +101,7 @@ STOPIFIED_BUILTINS := \
 	$(RUNTIME_ARR_STAGE_2_SRCS:$(RUNTIME_ARR_STAGE_2_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js.stopped) \
 
 $(RUNTIME_BUILD_DIR)/%.js : $(RUNTIME_SRC_DIR)/%.ts
-	`npm bin`/tsc $< --outDir $(RUNTIME_BUILD_DIR)
-
-$(RUNTIME_BUILD_DIR)/%.js : $(RUNTIME_SRC_DIR)/%.tsx
-	`npm bin`/tsc $< --outDir $(RUNTIME_BUILD_DIR) --jsx "react"
+	npx tsc --project tsconfig.runtime.json
 
 $(RUNTIME_SRC_DIR):
 	mkdir -p $(RUNTIME_SRC_DIR)
