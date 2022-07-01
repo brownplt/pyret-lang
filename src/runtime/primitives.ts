@@ -113,6 +113,10 @@ export function isMethod(obj: any): boolean {
   return (typeof obj === "function") && ("$brand" in obj) && (obj["$brand"] === $PMethodBrand);
 }
 
+export function isCallable(obj: any) {
+  return typeof obj === "function";
+}
+
 // TODO(alex): Will nothing always be value 'undefined'?
 export function isNothing(obj: any): boolean { return obj === undefined };
 

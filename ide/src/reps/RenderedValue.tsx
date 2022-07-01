@@ -16,6 +16,10 @@ import ExactNumWidget from './ExactNum';
 import { NeverError } from '../utils';
 import Check from './Check';
 
+import RenderedValueWithOutput from './RenderedValueWithOutput';
+
+const USE_VALUESKELETON = false;
+
 declare global {
   interface window { theKey: any; }
 }
@@ -29,6 +33,7 @@ type RenderedValueState = {};
 /* eslint-disable */
 export default class RenderedValue extends React.Component<RenderedValueProps, RenderedValueState> {
   render() {
+    if(USE_VALUESKELETON) { return <RenderedValueWithOutput value={this.props.value} />; }
     const { value } = this.props;
     const kind = getRenderKind(value);
     switch (kind) {

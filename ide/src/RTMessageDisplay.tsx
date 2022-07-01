@@ -3,7 +3,7 @@ import { connect, ConnectedProps } from 'react-redux';
 
 import { State } from './state';
 
-import RenderedValue from './reps/RenderedValue';
+import RenderedValue from './reps/RenderedValueWithOutput';
 
 import {
   isSpyValue,

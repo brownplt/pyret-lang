@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { Failure } from './failure';
 import { intersperse, srclocToCodeMirrorPosition } from './utils';
 import Highlight from './Highlight';
-import RenderedValue from './reps/RenderedValue';
+import RenderedValue from './reps/RenderedValueWithOutput';
 import { State } from './state';
 import { Chunk, isInitializedEditor } from './chunk';
 

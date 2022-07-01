@@ -2,6 +2,8 @@ const jsnums = require("./js-numbers.js");
 const RUNTIME = require("./runtime.js");
 const Either = require("./either.arr.js");
 const LISTS = require("./lists.arr.js");
+const PRIMITIVES = require("./primitives.js");
+const VS = require("./valueskeleton.arr.js");
 
 var hasOwnProperty = {}.hasOwnProperty;
 
@@ -559,13 +561,16 @@ var translateVertices = /* @stopify flat */ function (vertices) {
 var BaseImage = /* @stopify flat */ function () {
   const that = this;
   this.$brand = "image";
-  this._equals = /* @stopify flat */ function (img) {
+  this._equals = PRIMITIVES.makeMethodBinder(/* @stopify flat */ (that, img) => {
     if (imageEquals(that, img)) {
       return RUNTIME.Equal;
     } else {
       return RUNTIME.NotEqual("image properties are not equal", that, img);
     }
-  };
+  })(that);
+  this._output = PRIMITIVES.makeMethodBinder(/* stopify flat */ (self) => {
+    return VS["vs-other"](self);
+  })(that);
 };
 
 BaseImage.prototype.updatePinhole = /* @stopify flat */ function (x, y) {

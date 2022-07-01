@@ -28,6 +28,10 @@
         "react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx", ".tsx"] }],
         "no-console": "off",
         "no-underscore-dangle": 0,
-        "react/prop-types": [0]
+        "react/prop-types": [0],
+        "max-classes-per-file": "off",
+        "max-len": "off",
+        "no-multi-spaces": "off",
+        "react/destructuring-assignment": "off"
     }
 }

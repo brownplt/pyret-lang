@@ -394,7 +394,7 @@ function toString(v) {
   return renderValueSkeleton(toOutput(v), RenderToString);
 }
 
-type ValueSkeleton = 
+export type ValueSkeleton = 
   { $name: "vs-literal-str", s: string }
 | { $name: "vs-str", s: string }
 | { $name: "vs-num", v: PyretValue }
@@ -412,7 +412,7 @@ type ValueSkeleton =
 | { $name: "vs-cyclic", label: string, v: any }
 | { $name: "vs-reactor", v: any }
 | { $name: "vs-other", v: any };
-type PyretValue = any;
+export type PyretValue = any;
 
 type ReprVisitor<A> = {
   [method in ValueSkeleton["$name"]]: 
@@ -661,6 +661,7 @@ function toOutput(val : any) {
       top = stack[stack.length - 1];
       if (top.todo.length > 0) {
         var next = top.todo[top.todo.length - 1];
+        debugger;
         if(_PRIMITIVES.isNumber(next)) { finishVal(VS["vs-num"](next)); }
         else if (_PRIMITIVES.isBoolean(next)) { finishVal(VS["vs-bool"](next)); }
         else if (_PRIMITIVES.isNothing(next)) { finishVal(VS["vs-nothing"]); }
@@ -688,14 +689,16 @@ function toOutput(val : any) {
           if(typeof objHasBeenSeen === "string") {
             finishVal(VS["vs-cyclic"](objHasBeenSeen, next));
           }
-          else if('_output' in next && (_PRIMITIVES.isMethod(next['_output']))) {
+          else if('_output' in next && (_PRIMITIVES.isCallable(next['_output']))) {
             const m = next._output(toOutputHelp);
             finishVal(m);
           }
+          /* This seems like it would always be false (['$methods']['_output'] wouldn't have the right brands)
           else if('$methods' in next && '_output' in next['$methods'] && (_PRIMITIVES.isMethod(next['$methods']['_output']))) {
             const m = next['$methods']['_output'](toOutputHelp);
             finishVal(m);
           }
+          */
           else if(_PRIMITIVES.isDataVariant(next)) {
             const names = next.$fieldNames;
             if(names === null) {

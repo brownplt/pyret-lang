@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@babel/core": "7.5.5",
+    "@babel/core": "7.9",
     "@babel/runtime": "^7.10.5",
     "@stopify/stopify": "^0.7.2",
     "@svgr/webpack": "4.3.2",

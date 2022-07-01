@@ -104,6 +104,16 @@ export function runStopify<A>(f : () => A) {
   });
 }
 
+export function getAsyncModuleByName(s : string) {
+  if(!(s in asyncCache)) { throw new Error(`Cannot get async module ${s}`); }
+  return asyncCache[s];
+}
+
+const RUNTIME_PATH = "/compiled/builtin/runtime.js.stopped";
+export function getAsyncRuntime() {
+  return asyncCache[RUNTIME_PATH];
+}
+
 export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => Promise<any>
   ) => {
   const requireAsyncMain = (importPath: string) => new Promise(((resolve, reject) => {
