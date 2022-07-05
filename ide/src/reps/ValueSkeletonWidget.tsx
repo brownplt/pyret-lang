@@ -1,13 +1,19 @@
 import React from 'react';
 import type { ValueSkeleton } from '../../../src/runtime/runtime';
 import ExactNumWidget from './ExactNum';
+import TupleWidget from './TupleWidget';
 
-type VSWidgetProps = { value: ValueSkeleton };
+type VSWidgetProps = { value: ValueSkeleton, depth?: number };
 type VSWidgetState = any;
 
 export default class ValueSkeletonWidget extends React.Component<VSWidgetProps, VSWidgetState> {
   render() {
     const { value } = this.props;
+    const depth = this.props.depth ?? 0;
+    const recrender = (props : VSWidgetProps) => {
+      const newDepth = props.depth ?? depth + 1;
+      return <ValueSkeletonWidget value={props.value} depth={newDepth} />;
+    };
     switch (value.$name) {
       case 'vs-bool': return String(value.v);
       case 'vs-num': {
@@ -22,10 +28,13 @@ export default class ValueSkeletonWidget extends React.Component<VSWidgetProps, 
       case 'vs-method': return '<method>';
       case 'vs-nothing': return 'nothing';
       case 'vs-tuple': {
-        return 'tuplewidget';
+        if (depth >= 2) {
+          return '{ ... }';
+        }
+        return <TupleWidget vals={value.vals} expandable={depth === 0} render={recrender} />;
       }
       default: {
-        return `unhandled vs render: ${value.$name}`;
+        return `unhandled valueskeleon render: ${value.$name}`;
       }
     }
   }

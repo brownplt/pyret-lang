@@ -28,7 +28,7 @@ export default function ExpandButton({
   // down arrow, right arrow
   const arrow = expanded ? '\u25BC' : '\u25B6';
   return (
-    <button type="button" onClick={() => setExpanded(!expanded)} aria-label={label} style={style}>
+    <button className="expander" type="button" onClick={() => setExpanded(!expanded)} aria-label={label} style={style}>
       {showArrow ? arrow : ''}
       {children}
     </button>

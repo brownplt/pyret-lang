@@ -13,7 +13,6 @@ import { intersperse, List } from '../utils';
 import ExpandButton from './ExpandButton';
 import { abbreviated, ContainerRange } from './Range';
 import { RangeBoxesWidget } from './RangeWidget';
-import SummaryValue from './SummaryValue';
 
 type ListWidgetProps = {
   value: List<any>;
@@ -32,18 +31,20 @@ function toJSArray<T>(inList: List<T>): Array<T> {
 
 export default function ListWidget({ value, RenderedValue }: ListWidgetProps) {
   const asArray = toJSArray(value);
-  return <ArrayWidget value={asArray} begin="[list:" end="]" RenderedValue={RenderedValue} />;
+  return <ArrayWidget value={asArray} begin="[list:" end="]" sep="," RenderedValue={RenderedValue} />;
 }
 
 type ArrayWidgetProps = {
   value: Array<any>;
   begin: string;
   end: string;
+  sep: string;
+  expandable?: boolean;
   RenderedValue: React.ReactType;
 };
 
 export function ArrayWidget({
-  value, begin, end, RenderedValue,
+  value, begin, end, sep, expandable, RenderedValue,
 }: ArrayWidgetProps) {
   const [expanded, setExpanded]: [boolean, (to: boolean) => void] = (
     React.useState(false as boolean)
@@ -54,8 +55,11 @@ export function ArrayWidget({
     pipe = [<RangeBoxesWidget value={range} key="one" RenderedValue={RenderedValue} />];
   } else {
     pipe = abbreviated(value);
-    pipe = pipe.map((v) => <SummaryValue value={v} />);
-    pipe = intersperse(pipe, <span>, </span>);
+    pipe = pipe.map((v) => <RenderedValue value={v} inlineOrExpanded={false} />);
+    pipe = intersperse(pipe,
+      <span>
+        {sep}
+      </span>);
     const style = { display: 'inline-block' };
     pipe = pipe.map((v, i) => (
       // Rendering an array is a good reason to use indices as keys - they have
@@ -63,8 +67,12 @@ export function ArrayWidget({
       // eslint-disable-next-line
       <div style={style} key={i}>{v}</div>));
   }
+  let className = 'list-container';
+  if (expanded) { className += ' expanded'; }
+  if (expandable) { className += ' expandable'; }
+  console.log(className, value);
   return (
-    <div className="list-container">
+    <div className={className}>
       <ExpandButton expanded={expanded} setExpanded={setExpanded} />
       {' '}
       {begin}

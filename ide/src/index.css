@@ -236,8 +236,16 @@ and overriding of rules. */
   border-bottom: 2px solid #c8c8c8;
 }
 
-.list-container {
-  width: 35em;
+.list-container > .expander {
+  display: none;
+}
+
+.expandable > .expander {
+  display: inline-block;
+}
+
+.list-container.expanded > .expander {
+  display: inline-block;
 }
 
 .menu-button:active {

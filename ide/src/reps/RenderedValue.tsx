@@ -18,7 +18,7 @@ import Check from './Check';
 
 import RenderedValueWithOutput from './RenderedValueWithOutput';
 
-const USE_VALUESKELETON = false;
+const USE_VALUESKELETON = true;
 
 declare global {
   interface window { theKey: any; }
@@ -76,7 +76,7 @@ export default class RenderedValue extends React.Component<RenderedValueProps, R
         const keys = value.$underlyingMap.keys();
         const toRender = keys.flatMap((key: string) => [key, value.$underlyingMap.get(key)]);
         const constructorName = value.$brand === 'mutable-string-dict' ? 'mutable-string-dict' : 'string-dict';
-        return <ArrayWidget value={toRender} begin={`[${constructorName}:`} end="]" RenderedValue={RenderedValue} />
+        return <ArrayWidget value={toRender} begin={`[${constructorName}:`} end="]" sep="," RenderedValue={RenderedValue} />
       case 'template':
         return (
           <div>
@@ -88,7 +88,7 @@ export default class RenderedValue extends React.Component<RenderedValueProps, R
           <ListWidget value={value} RenderedValue={RenderedValue} />
         );
       case 'array':
-        <ArrayWidget value={value} begin="[array:" end="]" RenderedValue={RenderedValue} />
+        <ArrayWidget value={value} begin="[array:" end="]" sep="," RenderedValue={RenderedValue} />
       case 'spy-value': {
         const messageData: RawRTMessage = value.data;
         return (
@@ -115,13 +115,13 @@ export default class RenderedValue extends React.Component<RenderedValueProps, R
         // and any other metadata that may exist.
         const keys = value.$brand.names;
         const toRender = keys.map((key: string) => ({ renderKind: 'key-value', key, value: value[key] }));
-        return <ArrayWidget value={toRender} begin="{" end=" }" RenderedValue={RenderedValue} />;
+        return <ArrayWidget value={toRender} begin="{" end=" }" sep="," RenderedValue={RenderedValue} />;
       }
       case 'object': {
         // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/entries
         const asArray = Object.entries(value).filter(([key]) => !key.startsWith('$')).sort((a, b) => b[0].localeCompare(a[0]));
         const toRender = asArray.map(([key, v]) => ({ renderKind: 'key-value', key, value: v }));
-        return <ArrayWidget value={toRender} begin="{" end=" }" RenderedValue={RenderedValue} />;
+        return <ArrayWidget value={toRender} begin="{" end=" }" sep="," RenderedValue={RenderedValue} />;
       }
       case 'range':
         return <RangeWidget value={value} RenderedValue={RenderedValue} />;

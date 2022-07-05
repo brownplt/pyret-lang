@@ -32,6 +32,9 @@
         "max-classes-per-file": "off",
         "max-len": "off",
         "no-multi-spaces": "off",
-        "react/destructuring-assignment": "off"
+        "react/destructuring-assignment": "off",
+        "react/prefer-stateless-function": "off",
+        "no-else-return": "off",
+        "import/no-cycle": "off"
     }
 }

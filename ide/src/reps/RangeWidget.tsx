@@ -47,7 +47,7 @@ export function RangeBoxesWidget<T>({ value, RenderedValue }:
   const pipe = ranges.map((v, i) => (
     // eslint-disable-next-line
     <div style={style} key={i}>
-      <RenderedValue value={v} />
+      <RenderedValue value={v} depth={0} />
     </div>
   ));
   return <>{pipe}</>;
