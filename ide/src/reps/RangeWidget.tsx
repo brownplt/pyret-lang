@@ -62,8 +62,10 @@ export function RangeBoxesWidget<T>({ tag, value, RenderedValue }:
       );
     } else {
       return (
-        <div style={style} key={v[0]}>
-          <RenderedValue value={v[1]} depth={0} />
+        <div style={style}>
+          {v[0]}
+          :
+          <div style={{ display: 'inline-block' }}><RenderedValue value={v[1]} depth={0} /></div>
         </div>
       );
     }

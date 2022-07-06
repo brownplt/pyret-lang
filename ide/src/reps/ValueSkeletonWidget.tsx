@@ -7,6 +7,8 @@ import TupleWidget from './TupleWidget';
 type VSWidgetProps = { value: ValueSkeleton, depth?: number };
 type VSWidgetState = any;
 
+const MAX_DEPTH = 3;
+
 export default class ValueSkeletonWidget extends React.Component<VSWidgetProps, VSWidgetState> {
   render() {
     const { value } = this.props;
@@ -28,8 +30,25 @@ export default class ValueSkeletonWidget extends React.Component<VSWidgetProps, 
       case 'vs-function': return `<function: ${value.v.name}>`;
       case 'vs-method': return '<method>';
       case 'vs-nothing': return 'nothing';
+      case 'vs-record': {
+        if (depth >= MAX_DEPTH) {
+          return '{ ⋯ }';
+        }
+        const zipped = value['field-names'].map((v, i) : [string, ValueSkeleton] => [v, value.vals[i]]);
+        return (
+          <ArrayWidget
+            tag="keyvals"
+            keyvals={zipped}
+            begin="{"
+            end="}"
+            sep=","
+            expandable={depth === 0}
+            RenderedValue={recrender}
+          />
+        );
+      }
       case 'vs-collection': {
-        if (depth >= 2) {
+        if (depth >= MAX_DEPTH) {
           return `[${value.name}: ⋯]`;
         }
         return (
@@ -45,7 +64,7 @@ export default class ValueSkeletonWidget extends React.Component<VSWidgetProps, 
         );
       }
       case 'vs-tuple': {
-        if (depth >= 2) {
+        if (depth >= MAX_DEPTH) {
           return '{ ⋯ }';
         }
         return <TupleWidget vals={value.vals} expandable={depth === 0} render={recrender} />;

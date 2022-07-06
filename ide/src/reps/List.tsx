@@ -66,7 +66,13 @@ export function ArrayWidget(props : ArrayWidgetProps) {
         // eslint-disable-next-line
         return <div style={style} key={i}><RenderedValue value={v} inlineOrExpanded={false} /></div>;
       } else {
-        return <div style={style} key={v[0]}><RenderedValue value={v[1]} inlineOrExpanded={false} /></div>;
+        return (
+          <>
+            {v[0]}
+            :
+            <div style={style}><RenderedValue value={v[1]} inlineOrExpanded={false} /></div>
+          </>
+        );
       }
     });
     pipe = intersperse(pipe,
