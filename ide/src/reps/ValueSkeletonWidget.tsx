@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ValueSkeleton } from '../../../src/runtime/runtime';
 import ExactNumWidget from './ExactNum';
+import { ArrayWidget } from './List';
 import TupleWidget from './TupleWidget';
 
 type VSWidgetProps = { value: ValueSkeleton, depth?: number };
@@ -27,13 +28,30 @@ export default class ValueSkeletonWidget extends React.Component<VSWidgetProps, 
       case 'vs-function': return `<function: ${value.v.name}>`;
       case 'vs-method': return '<method>';
       case 'vs-nothing': return 'nothing';
+      case 'vs-collection': {
+        if (depth >= 2) {
+          return `[${value.name}: ⋯]`;
+        }
+        return (
+          <ArrayWidget
+            tag="sequence"
+            value={value.items}
+            begin={`[${value.name}: `}
+            end="]"
+            sep=", "
+            expandable={depth === 0}
+            RenderedValue={recrender}
+          />
+        );
+      }
       case 'vs-tuple': {
         if (depth >= 2) {
-          return '{ ... }';
+          return '{ ⋯ }';
         }
         return <TupleWidget vals={value.vals} expandable={depth === 0} render={recrender} />;
       }
       default: {
+        console.log('Unhandled valueskeleton render: ', value);
         return `unhandled valueskeleon render: ${value.$name}`;
       }
     }

@@ -35,6 +35,8 @@
         "react/destructuring-assignment": "off",
         "react/prefer-stateless-function": "off",
         "no-else-return": "off",
-        "import/no-cycle": "off"
+        "import/no-cycle": "off",
+        "object-curly-newline": "off",
+        "no-debugger": "off"
     }
 }

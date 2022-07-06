@@ -94,10 +94,8 @@ export function runStopify<A>(f : () => A) {
   return new Promise((resolve, reject) => {
     currentRunner.runStopifiedCode(f, (result : any) => {
       if (result.type !== 'normal') {
-        console.log('runStopify reject', JSON.stringify(result));
         reject(result);
       } else {
-        console.log('runStopify resolve', JSON.stringify(result));
         resolve(result.value);
       }
     });

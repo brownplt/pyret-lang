@@ -7,16 +7,18 @@ import splitIndexRange from './split-index-range';
 
 type RangeWidgetProps<T> = {
   value: ContainerRange<T>;
-  RenderedValue: React.ReactType
+  expanded: boolean;
+  expandable?: boolean;
+  RenderedValue: React.ReactType;
 };
 
-export function RangeWidget<T>({ value, RenderedValue }: RangeWidgetProps<T>) {
-  const [expanded, setExpanded]: [boolean, (to: boolean) => void] = (
-    React.useState(false as boolean)
+export function RangeWidget<T>({ value, RenderedValue, expanded, expandable }: RangeWidgetProps<T>) {
+  const [curExpanded, setExpanded]: [boolean, (to: boolean) => void] = (
+    React.useState(expanded as boolean)
   );
   let afterArrow;
-  if (expanded) {
-    afterArrow = <RangeBoxesWidget value={value} RenderedValue={RenderedValue} />;
+  if (curExpanded) {
+    afterArrow = <RangeBoxesWidget tag="sequence" value={value} RenderedValue={RenderedValue} />;
   } else {
     const style = { backgroundColor: '#eee', padding: '0.1em 0.4em' };
     afterArrow = (
@@ -28,27 +30,43 @@ export function RangeWidget<T>({ value, RenderedValue }: RangeWidgetProps<T>) {
       </span>
     );
   }
+  let className = 'list-container';
+  if (curExpanded) { className += ' expanded'; }
+  if (expandable) { className += ' expandable'; }
   return (
-    <div className="list-container">
-      <ExpandButton expanded={expanded} setExpanded={setExpanded} />
+    <div className={className}>
+      <ExpandButton expanded={curExpanded} setExpanded={setExpanded} />
       {afterArrow}
     </div>
   );
 }
 
-export function RangeBoxesWidget<T>({ value, RenderedValue }:
-{ value: ContainerRange<T>, RenderedValue: React.ReactType }) {
+export function RangeBoxesWidget<T>({ tag, value, RenderedValue }:
+{ tag: 'sequence' | 'keyvals', value: ContainerRange<T>, RenderedValue: React.ReactType }) {
   const boxes = splitIndexRange(value);
   let ranges: any[] = boxes;
   if (boxes.length === 1) {
     ranges = boxes[0].slice();
   }
   const style = { padding: '0.3em 1.6em' };
-  const pipe = ranges.map((v, i) => (
-    // eslint-disable-next-line
-    <div style={style} key={i}>
-      <RenderedValue value={v} depth={0} />
-    </div>
-  ));
+  const pipe = ranges.map((v, i) => {
+    if (v instanceof ContainerRange) {
+      // eslint-disable-next-line
+      return <div style={style} key={i}><RangeWidget expandable expanded={false} value={v} RenderedValue={RenderedValue} /></div>;
+    } else if (tag === 'sequence') {
+      return (
+        // eslint-disable-next-line
+        <div style={style} key={i}>
+          <RenderedValue value={v} depth={0} />
+        </div>
+      );
+    } else {
+      return (
+        <div style={style} key={v[0]}>
+          <RenderedValue value={v[1]} depth={0} />
+        </div>
+      );
+    }
+  });
   return <>{pipe}</>;
 }

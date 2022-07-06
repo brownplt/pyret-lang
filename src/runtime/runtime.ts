@@ -661,7 +661,6 @@ function toOutput(val : any) {
       top = stack[stack.length - 1];
       if (top.todo.length > 0) {
         var next = top.todo[top.todo.length - 1];
-        debugger;
         if(_PRIMITIVES.isNumber(next)) { finishVal(VS["vs-num"](next)); }
         else if (_PRIMITIVES.isBoolean(next)) { finishVal(VS["vs-bool"](next)); }
         else if (_PRIMITIVES.isNothing(next)) { finishVal(VS["vs-nothing"]); }

@@ -15,7 +15,6 @@ export default class RenderedValueWithOutput extends React.Component<RVWOProps, 
   async componentDidMount() {
     const runtime = getAsyncRuntime();
     const { value } = this.props;
-    console.log('Runtime is: ', runtime);
     const vs : any = await runStopify(() => runtime.$tooutput(value));
     this.setState({ value: vs });
   }
@@ -23,7 +22,6 @@ export default class RenderedValueWithOutput extends React.Component<RVWOProps, 
   static async getDerivedStateFromProps(props : RVWOProps) : Promise<RVWOState> {
     const runtime = getAsyncRuntime();
     const { value } = props;
-    console.log('Runtime is: ', runtime);
     const vs : any = await runStopify(() => runtime.$tooutput(value));
     return { value: vs };
   }
