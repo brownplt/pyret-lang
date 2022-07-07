@@ -553,6 +553,7 @@ function _selectColumns(table: Table, columnNames: string[]): Table {
 
 function _output(table, recoutput : (any) => any) : any {
   const headers = table._headers.slice(0);
+  /*
   const rows : any[][] = [];
   for(let r of table._rows) {
     const curr : any[] = [];
@@ -561,7 +562,8 @@ function _output(table, recoutput : (any) => any) : any {
       curr.push(v);
     }
   }
-  // const rows = table._rows.map(r => r.map(v => recoutput(v))); debugger;
+  */
+  const rows = table._rows.map(r => r.map(v => recoutput(v))); debugger;
   debugger;
   return VS["vs-table"](headers, rows);
 }
