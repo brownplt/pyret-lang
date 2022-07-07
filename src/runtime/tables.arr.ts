@@ -3,6 +3,8 @@
 // TODO(alex): Swapped from equalAlways to equalNow internally
 //   to test equality for (potentially) mutable raw arrays properly.
 //   Is this "correct"?
+const RUNTIME = require("./runtime.js");
+const VS = require("./valueskeleton.arr.js");
 const Equality = require("./equality.js");
 const Primitives = require("./primitives.js");
 const PyretOption = require("./option.arr.js");
@@ -40,6 +42,7 @@ export interface Table {
   '_headerIndex': any,
   '_headers': string[],
   '_rows': any[],
+  '_output': (recoutput : (any) => any) => any,
   '$brand': string
 }
 
@@ -253,6 +256,7 @@ function _makeTable(headers: string[], rows: any[][]): Table {
     'row': (...columns) => _row(table, ...columns),
     'row-n': (index) => _rowN(table, index),
     'select-columns': (columnNames) => _selectColumns(table, columnNames),
+    '_output': (recoutput) => _output(table, recoutput),
     'stack': (bot) => stack(table, bot),
     'transform-column': (columnName, update) => transformColumn(table, columnName, update),
     '_headerIndex': headerIndex,
@@ -545,6 +549,21 @@ function _selectColumns(table: Table, columnNames: string[]): Table {
   }
 
   return _makeTable(colnamesList, newRows);
+}
+
+function _output(table, recoutput : (any) => any) : any {
+  const headers = table._headers.slice(0);
+  const rows : any[][] = [];
+  for(let r of table._rows) {
+    const curr : any[] = [];
+    rows.push(curr);
+    for(let v of r) {
+      curr.push(v);
+    }
+  }
+  // const rows = table._rows.map(r => r.map(v => recoutput(v))); debugger;
+  debugger;
+  return VS["vs-table"](headers, rows);
 }
 
 // TODO(alex): Common list definition

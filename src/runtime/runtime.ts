@@ -683,6 +683,10 @@ function toOutput(val : any) {
         else if (_PRIMITIVES.isPTuple(next)) {
           pushTupleTodo([...next]);
         }
+        else if (_PRIMITIVES.isTable(next)) {
+          const m = next._output(toOutputHelp);
+          finishVal(m);
+        }
         else if (_PRIMITIVES.isRawObject(next) || _PRIMITIVES.isDataVariant(next)) {
           const objHasBeenSeen = findSeenObject(top.objects, next);
           if(typeof objHasBeenSeen === "string") {

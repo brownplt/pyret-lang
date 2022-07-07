@@ -1,7 +1,9 @@
 import React from 'react';
 import type { ValueSkeleton } from '../../../src/runtime/runtime';
 import ExactNumWidget from './ExactNum';
+import ImageWidget from './Image';
 import { ArrayWidget } from './List';
+import TableWidget from './Table';
 import TupleWidget from './TupleWidget';
 
 type VSWidgetProps = { value: ValueSkeleton, depth?: number };
@@ -68,6 +70,29 @@ export default class ValueSkeletonWidget extends React.Component<VSWidgetProps, 
           return '{ ⋯ }';
         }
         return <TupleWidget vals={value.vals} expandable={depth === 0} render={recrender} />;
+      }
+      case 'vs-cyclic': {
+        return `<cyclic value ${value.label}>`;
+      }
+      case 'vs-table': {
+        if (depth >= MAX_DEPTH) {
+          return '<table>';
+        }
+        return (
+          <TableWidget
+            headers={value.headers}
+            rows={value.rows}
+            RenderedValue={ValueSkeletonWidget}
+          />
+        );
+      }
+      case 'vs-other': {
+        if (value.v.$brand === 'image') {
+          return <ImageWidget image={value.v} />;
+        } else {
+          console.log('Unhandled valueskeleton render: ', value);
+          return `unhandled valueskeleon render: ${value.$name}`;
+        }
       }
       default: {
         console.log('Unhandled valueskeleton render: ', value);
