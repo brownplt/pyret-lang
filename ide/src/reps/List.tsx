@@ -67,11 +67,11 @@ export function ArrayWidget(props : ArrayWidgetProps) {
         return <div style={style} key={i}><RenderedValue value={v} inlineOrExpanded={false} /></div>;
       } else {
         return (
-          <>
+          <span key={v[0]}>
             {v[0]}
             :
             <div style={style}><RenderedValue value={v[1]} inlineOrExpanded={false} /></div>
-          </>
+          </span>
         );
       }
     });

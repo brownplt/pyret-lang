@@ -32,6 +32,23 @@ export default class ValueSkeletonWidget extends React.Component<VSWidgetProps, 
       case 'vs-function': return `<function: ${value.v.name}>`;
       case 'vs-method': return '<method>';
       case 'vs-nothing': return 'nothing';
+      case 'vs-constr': {
+        if (depth >= MAX_DEPTH) {
+          return `${value.name}( ⋯ )`;
+        }
+        const zipped = value['field-names'].map((v, i) : [string, ValueSkeleton] => [v, value.args[i]]);
+        return (
+          <ArrayWidget
+            tag="keyvals"
+            keyvals={zipped}
+            begin={`${value.name}(`}
+            end=")"
+            sep=","
+            expandable={depth === 0}
+            RenderedValue={recrender}
+          />
+        );
+      }
       case 'vs-record': {
         if (depth >= MAX_DEPTH) {
           return '{ ⋯ }';

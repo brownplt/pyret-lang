@@ -48,7 +48,7 @@ export function RangeBoxesWidget<T>({ tag, value, RenderedValue }:
   if (boxes.length === 1) {
     ranges = boxes[0].slice();
   }
-  const style = { padding: '0.3em 1.6em' };
+  const style = { padding: '0.3em 1.6em', display: 'block' };
   const pipe = ranges.map((v, i) => {
     if (v instanceof ContainerRange) {
       // eslint-disable-next-line
@@ -62,10 +62,14 @@ export function RangeBoxesWidget<T>({ tag, value, RenderedValue }:
       );
     } else {
       return (
-        <div style={style}>
-          {v[0]}
-          :
-          <div style={{ display: 'inline-block' }}><RenderedValue value={v[1]} depth={0} /></div>
+        <div style={style} key={v[0]}>
+          <div style={{ display: 'table-row', verticalAlign: 'top' }}>
+            <span style={{ display: 'table-cell' }}>
+              {v[0]}
+              :
+            </span>
+            <div style={{ display: 'table-cell' }}><RenderedValue value={v[1]} depth={0} /></div>
+          </div>
         </div>
       );
     }
