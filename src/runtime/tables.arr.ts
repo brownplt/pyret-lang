@@ -558,11 +558,10 @@ function _output(table, recoutput : (any) => any) : any {
     const curr : any[] = [];
     rows.push(curr);
     for(let v of r) {
-      curr.push(v);
+      curr.push(recoutput(v));
     }
   }
-  // const rows = table._rows.map(r => r.map(v => recoutput(v))); debugger;
-  debugger;
+  // const rows = table._rows.map(r => r.map(v => recoutput(v)));
   return VS["vs-table"](headers, rows);
 }
 

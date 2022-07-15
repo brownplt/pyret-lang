@@ -33,7 +33,11 @@ module.exports = {
     return arr;
   },
   'raw-array-map': function(fun, arr) {
-    return arr.map(fun);
+    const ret = [];
+    for(let i = 0; i < arr.length; i += 1) {
+      ret.push(fun(arr[i]));
+    }
+    return ret;
   },
   'raw-array-for-each': function(fun, arr) {
     return arr.forEach(fun);

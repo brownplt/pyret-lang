@@ -6,6 +6,16 @@ import ValueSkeletonWidget from './ValueSkeletonWidget';
 type RVWOProps = { value: R.PyretValue };
 type RVWOState = { value: R.ValueSkeleton };
 
+/**
+ * Some context needs to call $tooutput to render each value.
+ * Since $tooutput can call back into Pyret, and hence stopified code, it needs
+ * to use runStopify. That's asynchronous.
+ *
+ * As a result, this component needs to manage the props update (containing the
+ * Pyret values) and transform them to ValueSkeletons correctly asynchronously.
+ * The actual rendering logic happens more synchronously in ValueSkeleonRenderer
+ * after the conversion happens here.
+ */
 export default class RenderedValueWithOutput extends React.Component<RVWOProps, RVWOState> {
   constructor(props : RVWOProps) {
     super(props);
@@ -19,11 +29,14 @@ export default class RenderedValueWithOutput extends React.Component<RVWOProps, 
     this.setState({ value: vs });
   }
 
-  static async getDerivedStateFromProps(props : RVWOProps) : Promise<RVWOState> {
-    const runtime = getAsyncRuntime();
-    const { value } = props;
-    const vs : any = await runStopify(() => runtime.$tooutput(value));
-    return { value: vs };
+  componentDidUpdate(prevProps : RVWOProps, prevState : RVWOState) {
+    if (prevProps.value !== this.props.value) {
+      console.log('Updating state in RenderedValueWithOutput', prevProps, this.props, prevState, this.state);
+      const runtime = getAsyncRuntime();
+      const { value } = this.props;
+      const vsp : any = runStopify(() => runtime.$tooutput(value));
+      vsp.then((vs : R.ValueSkeleton) => this.setState({ value: vs }));
+    }
   }
 
   render() {
