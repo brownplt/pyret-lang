@@ -109,7 +109,7 @@ type BExports = {
       'session-delete': false,
       'session-filter': runtime.ffi.makeNone(),
       'session': "empty",
-      'should-profile': runtime.makeMethod(((_) => (_) => false), ((_ , __) => false)),
+      'should-profile': runtime.makeMethod(((_) => (_) => (false as boolean)), ((_ , __) => false)),
       'standalone-file': "src/js/base/handalone.js",
       'this-pyret-dir': ".",
       'type-check': false,
