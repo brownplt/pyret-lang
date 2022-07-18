@@ -32,7 +32,11 @@ Install the required dependencies with npm.
 ~/pyret-lang $ npm install
 ```
 
-Now, build the compiler.
+Now, build the compiler, and its webworker library
+
+```shell
+~/pyret-lang $ make
+```
 
 ```shell
 ~/pyret-lang $ npm run web
@@ -41,13 +45,12 @@ Now, build the compiler.
 Next, start the server.
 
 ```shell
-~/pyret-lang $ cd build/worker
-~/pyret-lang/build/worker $ python --version           # check Python version
-~/pyret-lang/build/worker $ python -m http.server      # if using Python 3
-~/pyret-lang/build/worker $ python -m SimpleHTTPServer # if using python 2.7
+~/pyret-lang $ cd ide
+~/pyret-lang/ide $ npm install
+~/pyret-lang/ide $ npm start
 ```
 
-Once the server starts, navigate to http://0.0.0.0:8000 in a web browser.
+This should open a new server in your browser.
 
 ### Compiling a program locally
 Outputs a 'compiled' directory into the current working directory
