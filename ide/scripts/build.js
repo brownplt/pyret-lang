@@ -159,12 +159,14 @@ function build(previousFileSizes) {
         }
         return reject(new Error(messages.errors.join('\n\n')));
       }
-      if (
+        /* NOTE(joe): used to be this, but we have some warnings that are OK
+           for "the request of a dependency is an expression"
         process.env.CI &&
         (typeof process.env.CI !== 'string' ||
           process.env.CI.toLowerCase() !== 'false') &&
         messages.warnings.length
-      ) {
+        */
+      if (false) {
         console.log(
           chalk.yellow(
             '\nTreating warnings as errors because process.env.CI = true.\n' +
