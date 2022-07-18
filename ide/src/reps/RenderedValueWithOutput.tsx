@@ -22,11 +22,16 @@ export default class RenderedValueWithOutput extends React.Component<RVWOProps, 
     this.state = { value: { $name: 'vs-str', s: 'unassigned value' } };
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     const runtime = getAsyncRuntime();
     const { value } = this.props;
-    const vs : any = await runStopify(() => runtime.$tooutput(value));
-    this.setState({ value: vs });
+    const vsp : any = runStopify(() => runtime.$tooutput(value));
+    vsp.then((vs : R.ValueSkeleton) => this.setState({ value: vs }));
+  }
+
+  shouldComponentUpdate(nextProps : RVWOProps, nextState : RVWOState) {
+    const result = nextProps.value !== this.props.value || nextState.value !== this.state.value;
+    return result;
   }
 
   componentDidUpdate(prevProps : RVWOProps, prevState : RVWOState) {
