@@ -7,7 +7,7 @@ import { getRenderKind } from './RenderKind';
 import { NeverError } from '../utils';
 
 import ImageWidget from './Image';
-import ExactNumWidget from './ExactNum';
+import NumWidget from './ExactNum';
 
 declare global {
   interface window { theKey: any; }
@@ -31,7 +31,7 @@ export default class SummaryValue extends React.Component<ValueSummaryProps, Val
       case 'string':
         return `"${value}"`;
       case 'exactnum':
-        return <ExactNumWidget num={value.n} den={value.d} />;
+        return <NumWidget v={value} />;
       // In general we want to be "annoyingly short" for kinds that
       // - are recursive (list)
       // - are annoyingly big (table)

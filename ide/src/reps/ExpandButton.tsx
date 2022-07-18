@@ -20,8 +20,6 @@ export default function ExpandButton({
     // Doesn't seem to be enough in chrome:
     border: 0,
     background: 'none',
-    // This stuff is our-button specific:
-    fontSize: '130%',
     padding: '0.3em',
     cursor: 'pointer',
   };

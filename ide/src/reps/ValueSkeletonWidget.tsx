@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ValueSkeleton } from '../../../src/runtime/runtime';
-import ExactNumWidget from './ExactNum';
+import NumWidget from './ExactNum';
 import ImageWidget from './Image';
 import { ArrayWidget } from './List';
 import TableWidget from './Table';
@@ -21,12 +21,7 @@ export default class ValueSkeletonWidget extends React.Component<VSWidgetProps, 
     };
     switch (value.$name) {
       case 'vs-bool': return String(value.v);
-      case 'vs-num': {
-        if (typeof value.v === 'number') {
-          return String(value.v);
-        }
-        return <ExactNumWidget num={value.v.n} den={value.v.d} />;
-      }
+      case 'vs-num': return <NumWidget v={value.v} />;
       case 'vs-literal-str': return value.s;
       case 'vs-str': return `"${value.s}"`; // TODO: replaceUnprintableStringChars
       case 'vs-function': return `<function: ${value.v.name}>`;

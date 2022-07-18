@@ -275,3 +275,21 @@ and overriding of rules. */
   top: 1em;
   left: -1.4em;
 }
+
+.rationalNumber {
+  color: #af1180;
+}
+
+.rationalRepeat {
+  text-decoration: overline;
+}
+
+.roughnum {
+  color: #af1180;
+}
+
+.roughnum-start {
+  display: inline-block;
+  transform: rotate(-15deg) scaleY(3);
+  margin-right: 0.125em;
+}

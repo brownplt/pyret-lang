@@ -895,3 +895,5 @@ module.exports["throwNonBooleanCondition"] = function(srcloc) {
 
 // NOTE: "is-roughly" => "is%(within(0.000001))"
 module.exports["within"] = _EQUALITY["within"];
+
+module.exports["jsnums"] = _NUMBER;

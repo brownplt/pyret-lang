@@ -12,7 +12,7 @@ import ChartWidget from './Chart';
 import ReactorWidget from './Reactor';
 import { RawRTMessage } from '../rtMessages';
 import { RangeWidget } from './RangeWidget';
-import ExactNumWidget from './ExactNum';
+import NumWidget from './ExactNum';
 import { NeverError } from '../utils';
 import Check from './Check';
 
@@ -47,7 +47,7 @@ export default class RenderedValue extends React.Component<RenderedValueProps, R
         // TODO(michael) can we display more info than just <function> ?
         return '<function>';
       case 'exactnum':
-        return <ExactNumWidget num={value.n} den={value.d} />;
+        return <NumWidget v={value} />;
       case 'table':
         return (
           <TableWidget
