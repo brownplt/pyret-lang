@@ -33,6 +33,8 @@ before_deploy:
 - echo "JOE  CI=false below avoids stopping the build on warnings from webpack about require targets"
 - echo "JOE  We want to see them, but not be blocked on them"
 - CI=false npm run build
+- zip -r anchor.zip build
+- mv anchor.zip build/
 deploy:
   provider: s3
   acl: public_read
