@@ -1,4 +1,5 @@
 import React from 'react';
+import Check from './reps/Check';
 import ExpandButton from './reps/ExpandButton';
 import RenderedValue from './reps/RenderedValue';
 import {
@@ -11,7 +12,7 @@ type Props = {
   title?: string,
 };
 
-export default function RHSObjectComponent({
+export default function CheckResults({
   checks, className, title,
 }: Props) {
   const [success, failed] = checks.reduce(([s, f], check) => (
@@ -29,7 +30,7 @@ export default function RHSObjectComponent({
     : (
       <>
         <div style={{ display: 'inline-block', width: '90%' }}>
-          <RenderedValue value={checks[0]} />
+          <Check value={checks[0]} RenderedValue={RenderedValue} />
         </div>
         <br />
         ... and all
@@ -52,11 +53,11 @@ export default function RHSObjectComponent({
         failed
       </>
     );
-  const details = expanded ? checks.map((check) => <RenderedValue value={check} />) : '';
+  const details = expanded ? checks.map((check) => <Check value={check} RenderedValue={RenderedValue} />) : '';
   const color = !expanded && !allPass ? '#fbbdaf' : '';
   return (
-    <pre className={`chatitor-rhs list-container ${className}`} style={{ backgroundColor: color }} title={title}>
-      <ExpandButton expanded={expanded} setExpanded={setExpanded} />
+    <pre className={`chatitor-rhs ${className}`} style={{ backgroundColor: color, position: 'relative' }} title={title}>
+      <ExpandButton expanded={expanded} setExpanded={setExpanded} showArrow />
       {' '}
       {summary}
       {' '}

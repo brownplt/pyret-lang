@@ -1,4 +1,5 @@
 import React from 'react';
+import Check from './reps/Check';
 import RenderedValue from './reps/RenderedValue';
 import {
   isLocation, isRHSCheck, isTrace, RHSObject,
@@ -58,7 +59,7 @@ export default function RHSObjectComponent({
         onMouseEnter={onMouseEnter}
         title={title}
       >
-        <RenderedValue value={rhsObject} />
+        <Check value={rhsObject} RenderedValue={RenderedValue} />
       </pre>
     );
   }
