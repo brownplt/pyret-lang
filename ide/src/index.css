@@ -3,6 +3,12 @@ the shared styles explicitly list both modes, and the styles specific to a
 mode just list that one. This avoids thinking too hard about rule specificity
 and overriding of rules. */
 
+:root {
+  --success-green: #27cc78;
+  --failure-red: #dc4064;
+  --outdated-gray: #ccc;
+}
+
 /* Button style reset */
 .text-button {
   display: inline-block;
@@ -21,14 +27,14 @@ and overriding of rules. */
 }
 
 .progress-bar {
-  background-color: rgb(67 236 150);
+  background-color: var(--success-green);
   transition: width 0.5s linear;
   width: 0;
   height: 0;
   position: absolute;
   /* Above chats but below header */
   z-index: 5;
-  box-shadow: 0px 1px 2px rgb(67 236 150 / 50%);
+  box-shadow: 0px 1px 2px rgb(var(--success-green) / 50%);
   will-change: width;
 }
 
@@ -41,7 +47,6 @@ and overriding of rules. */
 
 .chat-layout-compact .chats,
 .chat-layout-normal .chats {
-  max-width: 70%;
   margin: 2em auto;
   flex-grow: 1;
 }
@@ -51,7 +56,8 @@ and overriding of rules. */
   min-width: 40em;
 }
 .chat-layout-normal .chats {
-  width: 40em;
+  min-width: 40em;
+  max-width: min(70%, 60em);
 }
 
 .chat-layout-compact .chat .CodeMirror,
@@ -89,6 +95,7 @@ and overriding of rules. */
   background-color: #f2fbff !important;
   min-width: 30em;
   border: 1px solid black;
+  filter: opacity(1) !important;
 }
 .chat-layout-normal .chat .CodeMirror-focused {
   border-radius: 0.5em !important;
@@ -99,6 +106,18 @@ and overriding of rules. */
   border-bottom-left-radius: 0.1em;
 }
 
+.chat-and-result {
+  border-left: 2px solid var(--success-green);
+  padding-left: 0.5em;
+}
+.chat-and-result.partially-outdated {
+  border-left: 2px dashed var(--outdated-gray);
+  padding-left: 0.5em;
+}
+.chat-and-result.chatitor-error {
+  border-left: 2px dashed var(--failure-red);
+  padding-left: 0.5em;
+}
 .chat-layout-compact .chat-and-result {
   display: flex;
   flex-direction: row;
@@ -137,9 +156,6 @@ and overriding of rules. */
 .chat-layout-normal .chat .CodeMirror-focused .CodeMirror-lines {
   cursor: text;
 }
-.chat-layout-normal .chat.checkmark .CodeMirror {
-  padding-right: 2em;
-}
 .chat-layout-normal .chat.checkmark .CodeMirror::after {
   content: "✓";
   display: block;
@@ -166,12 +182,11 @@ and overriding of rules. */
   position: absolute;
   right: 0;
   z-index: 3;
-  margin: 0.6em;
   bottom: 0;
   line-height: 1em;
-  border-radius: 1000em;
+  border-radius: 0 0.7em 0.7em 0;
   background-color: rgb(49, 123, 207);
-  height: 2em;
+  height: 100%;
   width: 2em;
   color: white;
   font-weight: bold;
@@ -179,16 +194,24 @@ and overriding of rules. */
 
 .new-expr .CodeMirror {
   background-color: white !important;
-  border-radius: 1em !important;
-  border: 1px solid black !important;
   /* This is a weird quirk of CodeMirror styles which set this to a value which
    * breaks non-inline positioned elements, but this !important override fixes it */
+  border: none;
+  border-radius: 1em;
   min-height: 0 !important;
   padding: 1em;
-  transition: border-radius 0.1s;
 }
 .new-expr .CodeMirror-focused {
-  border-radius: 0.5em !important;
+  border: none;
+  border-radius: 1em;
+}
+.prompt {
+  border-radius: 1em !important;
+  border: 1px solid black !important;
+}
+.prompt .react-codemirror2 {
+  transition: border-radius 0.1s;
+  width: calc(100% - 3.2em);
 }
 
 .chat-layout-compact .chatitor-rhs,
@@ -218,10 +241,18 @@ and overriding of rules. */
 .chat-layout-compact .partially-outdated .chatitor-rhs,
 .chat-layout-normal .partially-outdated .chatitor-rhs {
   border: 1px dashed black;
+  filter: opacity(0.7);
 }
 .chat-layout-compact .outdated .CodeMirror,
 .chat-layout-normal .outdated .CodeMirror {
   border: 1px dashed black;
+  filter: opacity(0.7);
+}
+.chat-and-result .chatitor-rhs-error {
+  border: 2px solid #dc4064;
+}
+.chat-and-result.partially-outdated .chatitor-rhs-error {
+  border: 2px dashed #dc4064;
 }
 
 .chunks-rhs {
@@ -260,8 +291,8 @@ and overriding of rules. */
 }
 .insert-arrow {
   position: absolute;
-  left: -1.3em;
-  font-size: 1em;
+  left: -1.5em;
+  font-size: 1.25em;
   opacity: 0.3;
   transition: opacity 0.2s;
 }

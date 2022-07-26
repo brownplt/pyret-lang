@@ -270,21 +270,20 @@ class Chat extends React.Component<ChatProps, any> {
       chunks, index, technicallyOutdated,
     } = this.props;
     let chunkResultsPart = <></>;
-    let displayCheckMark = false;
     const chunk = chunks[index];
     const {
       editor: chunkEditor, results, outdated, id, referencedFrom,
     } = chunk;
+    const isError = results.status === 'failed' && isInitializedEditor(chunkEditor);
 
-    if (results.status === 'failed' && isInitializedEditor(chunkEditor)) {
+    if (results.status === 'failed' && isInitializedEditor(chunkEditor)) { // NOTE(joe): repeat check to satisfy tag check
       chunkResultsPart = (
         <div className="chat-result">
           {results.failures.map((failure, i) => (
             <div
               // eslint-disable-next-line
               key={i}
-              className="chatitor-rhs"
-              style={{ border: `2px ${technicallyOutdated ? 'dashed' : 'solid'} #dc4064` }}
+              className="chatitor-rhs chatitor-rhs-error"
               title={technicallyOutdated ? 'value might be changed by earlier definition changes' : ''}
             >
               <FailureComponent failure={failure} id={id} editor={chunkEditor} />
@@ -308,35 +307,29 @@ class Chat extends React.Component<ChatProps, any> {
         // undefined shows up sometimes go figure
         && !(isTrace(r) && typeof r.value === 'undefined')));
       const checks = rhsObjects.filter((r) => isRHSCheck(r));
-      if (shown.length + checks.length === 0) {
-        if (!partiallyOutdated) {
-          displayCheckMark = true;
-        }
-      } else {
-        const values = shown.map((val) => (
-          <RHSObjectComponent
-            key={val.key ?? 'no key for val?'}
-            rhsObject={val}
-            isSelected={false}
+      const values = shown.map((val) => (
+        <RHSObjectComponent
+          key={val.key ?? 'no key for val?'}
+          rhsObject={val}
+          isSelected={false}
+          className="chatitor-rhs"
+          title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
+        />
+      ));
+      const checkSummary = checks.length > 0
+        ? (
+          <CheckResults
+            // Would love to have TypeScript obviate this `as`
+            checks={checks as RHSCheck[]}
             className="chatitor-rhs"
             title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
           />
-        ));
-        const checkSummary = checks.length > 0
-          ? (
-            <CheckResults
-              // Would love to have TypeScript obviate this `as`
-              checks={checks as RHSCheck[]}
-              className="chatitor-rhs"
-              title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
-            />
-          ) : '';
-        chunkResultsPart = (
-          <div className="chat-result">
-            {[...values, checkSummary]}
-          </div>
-        );
-      }
+        ) : '';
+      chunkResultsPart = (
+        <div className="chat-result">
+          {[...values, checkSummary]}
+        </div>
+      );
     }
 
     const chunkEditorPart = (
@@ -376,7 +369,7 @@ class Chat extends React.Component<ChatProps, any> {
             }
           }) as any}
           onBlur={((editor: CMEditor) => this.handleBlur(editor)) as any}
-          className={displayCheckMark ? 'chat checkmark' : 'chat'}
+          className="chat"
         />
       </div>
     );
@@ -385,12 +378,13 @@ class Chat extends React.Component<ChatProps, any> {
 
     const outdatedClass = outdated ? 'outdated' : '';
     const pendingRerunClass = technicallyOutdated ? 'partially-outdated' : '';
+    const isErrorClass = isError ? 'chatitor-error' : '';
 
     return (
       <>
-        <div className={`chat-and-result ${outdatedClass} ${pendingRerunClass}`}>
+        <div className={`chat-and-result ${outdatedClass} ${pendingRerunClass} ${isErrorClass}`}>
           <button title={addButtonTitle} className="text-button insert-arrow" onClick={() => this.insertAbove()} type="button">
-            +
+            [+]
           </button>
           {referencedFrom.map((from) => (
             <button
