@@ -760,11 +760,13 @@ function errors() {
 
 class PyretError extends Error {
   errVal : any;
+  errorDisplay : any;
   constructor(errVal : any) {
     const ed = errVal['render-reason']();
     const red = require("./" + "error-display.arr.js");
     super(red["display-to-string"](ed, toRepr, []));
     this.errVal = errVal;
+    this.errorDisplay = ed;
   }
   toString() {
     const ed = this.errVal['render-reason']();

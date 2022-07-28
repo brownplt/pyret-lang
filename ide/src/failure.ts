@@ -19,7 +19,12 @@ export type Failure =
   | { $name: 'optional', 'contents': Failure }
   | {
     $name: 'highlight',
-    'contents': Failure, 'locs': Array<Srcloc>, 'color': Number };
+    'contents': Failure, 'locs': Array<Srcloc>, 'color': Number }
+  | {
+    $name: 'maybe-stack-loc',
+    n: number, 'user-frames-only': boolean, 'contents-with-loc': (l : Srcloc) => Failure,
+    'contents-without-loc': Failure
+  };
 
 export function getLocs(failure: Failure): Srcloc[] {
   switch (failure.$name) {
@@ -42,6 +47,8 @@ export function getLocs(failure: Failure): Srcloc[] {
       return getLocs(failure.contents);
     case 'highlight':
       return [...getLocs(failure.contents), ...failure.locs];
+    case 'maybe-stack-loc':
+      return [...getLocs(failure['contents-without-loc'])];
     default:
       throw new NeverError(failure);
   }

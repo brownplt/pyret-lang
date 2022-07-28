@@ -183,6 +183,9 @@ function FailureComponentUnconnected({
         </>
       );
     }
+    case 'maybe-stack-loc': {
+      return <FailureComponent failure={failure['contents-without-loc']} id={id} editor={editor} />;
+    }
     default:
       return <>{JSON.stringify(failure)}</>;
   }

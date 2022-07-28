@@ -575,16 +575,17 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
   };
 }
 
-function handleRunSessionFailure(state: State, id: string, error: string) {
+function handleRunSessionFailure(state: State, id: string, error: string, errorVal: any) {
   // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
   //   resulting in a severe memory leak of 50+MB PER RUN
   cleanStopify();
   const newChunks = removeReferencesFrom(state.chunks, id);
   const index = newChunks.findIndex((c) => c.id === id);
+  const failureAsED : any = errorVal.errorDisplay ?? { $name: 'text', str: error };
   newChunks[index] = {
     ...newChunks[index],
     results: {
-      status: 'failed', failures: [{ $name: 'text', str: error }],
+      status: 'failed', failures: [failureAsED],
     },
     outdated: false,
   };
@@ -805,7 +806,7 @@ async function runSegmentsAsync(state : State) : Promise<any> {
       update((s: State) => handleCompileSessionFailure(s, c.id, result.errors));
       break;
     } else if (result.type === 'run-failure') {
-      update((s: State) => handleRunSessionFailure(s, c.id, result.error));
+      update((s: State) => handleRunSessionFailure(s, c.id, result.error, result.errorVal));
       break;
     }
     if (stopFlag) {
@@ -814,7 +815,7 @@ async function runSegmentsAsync(state : State) : Promise<any> {
       // "outdated-by-other-chat-edit" then it's still that is the only
       // difference, which there's currently no UI change for (there maybe
       // should be a super subtle one for a couple reasons)
-      update((s: State) => handleRunSessionFailure(s, c.id, 'Compile was canceled'));
+      update((s: State) => handleRunSessionFailure(s, c.id, 'Compile was canceled', {}));
       stopFlag = false;
       break;
     }
