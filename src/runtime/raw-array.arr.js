@@ -1,13 +1,16 @@
 const NUMBERS = require("./js-numbers.js");
 const EQUALITY = require("./equality.js");
 const OPTION = require("./option.arr.js");
+const RUNTIME = require("./runtime.js");
 
-function checkArrayIndex(name, index, length) {
+function checkArrayIndex(name, array, index, length) {
+  let reason;
   if(!(NUMBERS["isInteger"](index) && NUMBERS["isNonNegative"](index))) {
-    throw new Error(`${name}: Expected a non-negative integer, got ${index}`);
+    reason = (`expected a non-negative integer, got ${index}`);
   }
-  if(index >= length ) { throw new Error(`${name}: Index too large: ${index} for array of length ${length}`); }
-  else if (index < 0) { throw new Error(`${name}: Negative index for array set: ${index}`); }
+  if(index >= length ) { reason = (`index too large: ${index} for array of length ${length}`); }
+  else if (index < 0) { reason = (`negative index for array set: ${index}`); }
+  RUNTIME.throwError("invalid-array-index", name, array, index, reason);
 }
 
 module.exports = {
@@ -20,12 +23,12 @@ module.exports = {
     return arr.length;
   },
   'raw-array-set': function( arr, index, value ) {
-    checkArrayIndex("raw-array-set", index, arr.length);
+    checkArrayIndex("raw-array-set", arr, index, arr.length);
     arr[index] = value;
     return arr;
   },
   'raw-array-get': function( arr, index ) {
-    checkArrayIndex("raw-array-set", index, arr.length);
+    checkArrayIndex("raw-array-set", arr, index, arr.length);
     return arr[index];
   },
   'raw-array-push': function( arr, elm ) {
@@ -126,6 +129,14 @@ module.exports = {
       if(v) { array.push(arr[i]); }
     }
     return array;
+  },
+  'raw-array-join': function(arr, sep) {
+    return arr.join(sep);
+  },
+  'raw-array-join-last': function(arr, sep, sepLast) {
+    if(arr.length === 0) { return ""; }
+    if(arr.length === 1) { return arr[0]; }
+    return arr.slice(0, arr.length - 1).join(sep) + sepLast + arr[arr.length - 1];
   },
   'is-raw-array': function(v) {
     // TODO(alex): may need to move this to primitives.ts

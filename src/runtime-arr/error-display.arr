@@ -4,14 +4,16 @@ provide-types *
 import global as G
 import raw-array as R
 import srcloc as S
+import option as O
 import number as N
+import either as E
+include from G: not end
 include from S: type Srcloc as SL end
-include from R: raw-array end
+include from R: * end
 include from N: num-modulo end
 
 data ErrorDisplay:
   | paragraph(contents :: RawArray<ErrorDisplay>)
-  | paragrap(contents :: RawArray<ErrorDisplay>)
   | bulleted-sequence(contents :: RawArray<ErrorDisplay>)
   | v-sequence(contents :: RawArray<ErrorDisplay>)
   | h-sequence(contents :: RawArray<ErrorDisplay>, sep :: String)
@@ -159,4 +161,62 @@ fun ed-nth(n):
         | otherwise:            "ᵗʰ"
       end
     end)
+end
+
+fun nth-stack-frame(n :: Number, user-frames-only :: Boolean, stack :: RawArray<S.Srcloc>) -> O.Option<S.Srcloc>:
+  usable-frames =
+    if user-frames-only: raw-array-filter(S.is-srcloc, stack)
+    else: stack
+    end
+  if raw-array-length(usable-frames) > n: O.some(raw-array-get(usable-frames, n))
+  else: O.none
+  end
+end
+
+fun display-to-string(e :: ErrorDisplay, embed-display :: (Any -> String), stack :: RawArray<S.Srcloc>) -> String:
+  help = display-to-string(_, embed-display, stack)
+  cases(ErrorDisplay) e:
+    | paragraph(contents) => contents ^ raw-array-map(help, _) ^ raw-array-join(_, "")
+    | text(str) => str
+    | embed(val) => embed-display(val)
+      #|
+      cases(E.Either) run-task(lam(): exn-unwrap(val).render-reason() end):
+        | left(v)  => help(v)
+        | right(_) => embed-display(val)
+      end
+      |#
+    | loc(l) => l.format(true)
+    | maybe-stack-loc(n, user-frames-only, contents-with-loc, contents-without-loc) =>
+      cases(O.Option) nth-stack-frame(n, user-frames-only, stack):
+        | none => help(contents-without-loc)
+        | some(l) => help(contents-with-loc(l))
+      end
+    | loc-display(l, _, contents) =>
+      cases(ErrorDisplay) contents:
+        | loc(l2) =>
+          if l2 == l: help(contents)
+          else: help(contents) + " (at " + l.format(true) + ")"
+          end
+        | else => help(contents) + " (at " + l.format(true) + ")"
+      end
+    | code(contents) => "`" + help(contents) + "`"
+    | h-sequence(contents, sep) =>
+      contents ^ raw-array-filter(lam(c): not(is-optional(c)) end, _)
+               ^ raw-array-map(help, _)
+               ^ raw-array-join(_, sep)
+    | h-sequence-sep(contents, sep, last-sep) =>
+      contents ^ raw-array-filter(lam(c): not(is-optional(c)) end, _)
+               ^ raw-array-map(help, _)
+               ^ raw-array-join-last(_, sep, last-sep)
+    | v-sequence(contents) =>
+      contents ^ raw-array-filter(lam(c): not(is-optional(c)) end, _)
+               ^ raw-array-map(help, _)
+               ^ raw-array-join(_, "\n")
+    | bulleted-sequence(contents) =>
+      contents ^ raw-array-map(lam(elt): "* " + help(elt) end, _)
+               ^ raw-array-join(_, "\n")
+    | optional(_) => ""
+    | cmcode(shadow loc) => G.to-string(loc)
+    | highlight(contents, shadow locs, _) => help(loc-display(raw-array-get(locs, 0), "", contents))
+  end
 end

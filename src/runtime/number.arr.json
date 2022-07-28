@@ -19,6 +19,8 @@
           "random": ["arrow", ["Number"], "Number"],
           "num-random-seed": ["arrow", ["Number"], "Nothing"],
           "num-equal": ["arrow", ["Number", "Number"], "Boolean"],
+          "is-number": ["arrow", ["Any"], "Boolean"],
+          "is-roughnum": ["arrow", ["Any"], "Boolean"],
           "num-is-integer": ["arrow", ["Number"], "Boolean"],
           "num-is-rational": ["arrow", ["Number"], "Boolean"],
           "num-is-roughnum": ["arrow", ["Number"], "Boolean"],
@@ -76,6 +78,7 @@
           "within-abs-now3": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "EqualityResult"]],
 
           "num-clamp": ["arrow", ["Number", "Number", "Number"], "Number"]
+
         },
 
         "aliases": { }

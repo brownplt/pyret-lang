@@ -754,6 +754,28 @@ function toOutput(val : any) {
   return toOutputHelp(val);
 }
 
+function errors() {
+  return require("./" + "error.arr.js");
+}
+
+class PyretError extends Error {
+  errVal : any;
+  constructor(errVal : any) {
+    const ed = errVal['render-reason']();
+    const red = require("./" + "error-display.arr.js");
+    super(red["display-to-string"](ed, toRepr, []));
+    this.errVal = errVal;
+  }
+  toString() {
+    const ed = this.errVal['render-reason']();
+    const red = require("./" + "error-display.arr.js");
+    console.log(red["display-to-string"](ed, toRepr, []));
+  }
+}
+
+function throwError(name : string, ...args : any[]) {
+  throw new PyretError(errors()[name](...args));
+}
 
 function customThrow(exn) {
   exn.toString = function() { return JSON.stringify(this); }
@@ -895,5 +917,6 @@ module.exports["throwNonBooleanCondition"] = function(srcloc) {
 
 // NOTE: "is-roughly" => "is%(within(0.000001))"
 module.exports["within"] = _EQUALITY["within"];
-
 module.exports["jsnums"] = _NUMBER;
+module.exports["errors"] = errors;
+module.exports["throwError"] = throwError;

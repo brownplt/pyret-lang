@@ -88,6 +88,8 @@ module.exports = {
 
     'num-to-roughnum': wrap1(NUMBERS['toRoughnum']),
 
+    'is-number': NUMBERS["isPyretNumber"],
+    'is-roughnum': NUMBERS["isRoughnum"],
     'num-is-integer': NUMBERS['isInteger'],
     'num-is-rational': NUMBERS['isRational'],
     'num-is-roughnum': NUMBERS['isRoughnum'],
@@ -135,4 +137,5 @@ module.exports = {
         return num;
       }
     },
+
 };

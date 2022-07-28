@@ -84,7 +84,13 @@ RUNTIME_ARR_STAGE_2_SRCS := $(RUNTIME_ARR_STAGE_2_SRC_DIR)/lists.arr $(RUNTIME_A
 RUNTIME_ARR_STAGE_2_COMPILED_FILES := $(RUNTIME_ARR_STAGE_2_SRCS:$(RUNTIME_ARR_STAGE_2_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
 
 RUNTIME_ARR_SRC_DIR := src/runtime-arr
-RUNTIME_ARR_SRCS := $(wildcard $(RUNTIME_ARR_SRC_DIR)/*.arr)
+# NOTE(joe/ben): An explicitly listed order for things that depend on specific
+# load orders; all others get wild-carded at the end.
+RUNTIME_ARR_SRCS := \
+	$(RUNTIME_ARR_SRC_DIR)/srcloc.arr \
+	$(RUNTIME_ARR_SRC_DIR)/error-display.arr \
+	$(wildcard $(RUNTIME_ARR_SRC_DIR)/*.arr)
+
 RUNTIME_ARR_COMPILED_FILES := $(RUNTIME_ARR_SRCS:$(RUNTIME_ARR_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
 
 RUNTIME_PRELUDE_FILES_SRC_DIR := src/runtime-arr-preludes
