@@ -1,7 +1,7 @@
 import React from 'react';
 import CM from 'codemirror';
-import { UnControlled as UnControlledCM } from 'react-codemirror2';
 import { connect } from 'react-redux';
+import CodeEmbed from './CodeEmbed';
 import { Failure } from './failure';
 import { intersperse, srclocToCodeMirrorPosition } from './utils';
 import Highlight from './Highlight';
@@ -111,13 +111,12 @@ function FailureComponentUnconnected({
       }
       if (editor) {
         return (
-          <UnControlledCM
-            value={editor.getRange({ line: failure.loc['start-line'] - 1, ch: 0 }, { line: failure.loc['end-line'], ch: 999999 })}
-            options={{ readOnly: true }}
-            editorDidMount={(newEditor) => {
-              newEditor.setSize(null, 'auto');
-            }}
-            className="failure-cmcode"
+          <CodeEmbed
+            from={{ line: failure.loc['start-line'] - 1, ch: 0 }}
+            to={{ line: failure.loc['end-line'], ch: 999999 }}
+            text={editor.getRange({ line: failure.loc['start-line'] - 1, ch: 0 }, { line: failure.loc['end-line'], ch: 999999 })}
+            editor={editor}
+            failure={failure}
           />
         );
       }
