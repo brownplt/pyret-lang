@@ -72,23 +72,19 @@ RUNTIME_COPIED_BUILTINS := \
 	$(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%=$(RUNTIME_BUILD_DIR)/%) \
 	$(RUNTIME_JSON_SRCS:$(RUNTIME_SRC_DIR)/%=$(RUNTIME_BUILD_DIR)/%)
 
-RUNTIME_ARR_STAGE_1_SRC_DIR := src/runtime-arr-stage-1
-RUNTIME_ARR_STAGE_1_SRCS := $(wildcard $(RUNTIME_ARR_STAGE_1_SRC_DIR)/*.arr)
-RUNTIME_ARR_STAGE_1_COMPILED_FILES := $(RUNTIME_ARR_STAGE_1_SRCS:$(RUNTIME_ARR_STAGE_1_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
-
-RUNTIME_ARR_STAGE_2_SRC_DIR := src/runtime-arr-stage-2
-# NOTE(joe June '22): Explicitly listing the order here. I think we should
-# refactor to just have a hardcoded list of which order we run the .arr files in.
-# Otherwise in 4 years we'll be onlike runtime-arr-stage-37.
-RUNTIME_ARR_STAGE_2_SRCS := $(RUNTIME_ARR_STAGE_2_SRC_DIR)/lists.arr $(RUNTIME_ARR_STAGE_2_SRC_DIR)/arrays.arr
-RUNTIME_ARR_STAGE_2_COMPILED_FILES := $(RUNTIME_ARR_STAGE_2_SRCS:$(RUNTIME_ARR_STAGE_2_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
-
 RUNTIME_ARR_SRC_DIR := src/runtime-arr
 # NOTE(joe/ben): An explicitly listed order for things that depend on specific
 # load orders; all others get wild-carded at the end.
 RUNTIME_ARR_SRCS := \
+	$(RUNTIME_ARR_SRC_DIR)/option.arr \
+	$(RUNTIME_ARR_SRC_DIR)/either.arr \
 	$(RUNTIME_ARR_SRC_DIR)/srcloc.arr \
 	$(RUNTIME_ARR_SRC_DIR)/error-display.arr \
+	$(RUNTIME_ARR_SRC_DIR)/valueskeleton.arr \
+	$(RUNTIME_ARR_SRC_DIR)/lists.arr \
+	$(RUNTIME_ARR_SRC_DIR)/error.arr \
+	$(RUNTIME_ARR_SRC_DIR)/arrays.arr \
+	$(RUNTIME_ARR_SRC_DIR)/lists.arr \
 	$(wildcard $(RUNTIME_ARR_SRC_DIR)/*.arr)
 
 RUNTIME_ARR_COMPILED_FILES := $(RUNTIME_ARR_SRCS:$(RUNTIME_ARR_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
@@ -103,8 +99,6 @@ STOPIFIED_BUILTINS := \
 	$(RUNTIME_TS_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME_BUILD_DIR)/%.js.stopped) \
 	$(RUNTIME_TSX_SRCS:$(RUNTIME_SRC_DIR)/%.ts=$(RUNTIME_BUILD_DIR)/%.js.stopped) \
 	$(RUNTIME_ARR_SRCS:$(RUNTIME_ARR_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js.stopped) \
-	$(RUNTIME_ARR_STAGE_1_SRCS:$(RUNTIME_ARR_STAGE_1_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js.stopped) \
-	$(RUNTIME_ARR_STAGE_2_SRCS:$(RUNTIME_ARR_STAGE_2_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js.stopped) \
 
 $(RUNTIME_BUILD_DIR)/%.js : $(RUNTIME_SRC_DIR)/%.ts
 	npx tsc --project tsconfig.runtime.json
@@ -138,26 +132,6 @@ $(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_SRC_DIR)/%.arr
 	mv $(RUNTIME_ARR_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
 
 
-$(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_STAGE_1_SRC_DIR)/%.arr
-	cd $(RUNTIME_ARR_STAGE_1_SRC_DIR) && node ../../build/phaseA/pyret.jarr \
-		--build-runnable $*.arr \
-		--builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" \
-		--runtime-builtin-relative-path "./" \
-		--type-check true \
-		--compile-mode "builtin-stage-1"
-	mv $(RUNTIME_ARR_STAGE_1_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
-	mv $(RUNTIME_ARR_STAGE_1_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
-
-$(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_ARR_STAGE_2_SRC_DIR)/%.arr
-	cd $(RUNTIME_ARR_STAGE_2_SRC_DIR) && node ../../build/phaseA/pyret.jarr \
-		--build-runnable $*.arr \
-		--builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" \
-		--runtime-builtin-relative-path "./" \
-		--type-check true \
-		--compile-mode "builtin-general"
-	mv $(RUNTIME_ARR_STAGE_2_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
-	mv $(RUNTIME_ARR_STAGE_2_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
-
 $(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_PRELUDE_FILES_SRC_DIR)/%.arr
 	cd $(RUNTIME_PRELUDE_FILES_SRC_DIR) && node ../../build/phaseA/pyret.jarr \
 		--build-runnable $*.arr \
@@ -176,8 +150,6 @@ RUNTIME_DEPS := \
 	$(RUNTIME_TS_COMPILED_FILES) \
 	$(RUNTIME_TSX_COMPILED_FILES) \
 	$(RUNTIME_COPIED_BUILTINS) \
-	$(RUNTIME_ARR_STAGE_1_COMPILED_FILES) \
-	$(RUNTIME_ARR_STAGE_2_COMPILED_FILES) \
 	$(RUNTIME_ARR_COMPILED_FILES) \
 	$(RUNTIME_PRELUDE_COMPILED_FILES) \
 	$(STOPIFIED_BUILTINS) \

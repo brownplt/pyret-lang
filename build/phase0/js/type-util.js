@@ -267,7 +267,7 @@ define("pyret-base/js/type-util", [], function() {
     if(typ.bind) {
       return { bind: typ.bind, typ: expandType(typ.typ, shorthands) };
     }
-    var fromGlobal = { "import-type": "uri", uri: "builtin://global" };
+    var fromGlobal = { "import-type": "uri", uri: "builtin://primitive-types" };
     var prims = ["Number", "String", "Boolean", "Nothing", "Any"];
     function mkName(origin, name) {
       return { tag: "name", origin: origin, name: name };
@@ -284,7 +284,7 @@ define("pyret-base/js/type-util", [], function() {
       "Array": function(name, arg) { 
         return mkApp1(mkName({ "import-type": "uri", uri: "builtin://arrays" }, name), arg);
       },
-      "RawArray": function(name, arg) { return mkApp1(mkName(fromGlobal, name), arg); },
+      "RawArray": function(name, arg) { return mkApp1(mkName({ "import-type": "uri", uri: "builtin://primitive-types"}, name), arg); },
       "List": function(name, arg) { 
         return mkApp1(mkName({ "import-type": "uri", uri: "builtin://lists" }, name), arg); 
       },

@@ -1,5 +1,6 @@
 ### Looks shipshape
 
+import error as ERR
 include arrays
 include raw-array
 include lists

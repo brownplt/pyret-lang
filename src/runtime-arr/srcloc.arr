@@ -1,6 +1,6 @@
 provide: *, data * end
 
-import global as G
+import runtime-global as G
 include from G: raise, to-repr end
 
 data Srcloc:

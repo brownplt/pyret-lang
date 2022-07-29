@@ -3,10 +3,6 @@
     {
         "import-type": "builtin",
         "name": "primitive-types"
-    },
-    {
-        "import-type": "builtin",
-        "name": "lists"
     }
   ],
   "provides": {

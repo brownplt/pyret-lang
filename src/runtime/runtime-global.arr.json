@@ -13,6 +13,8 @@
     "values": {
       "display-string": ["arrow", ["String"], "Nothing"],
       "js-to-string": ["arrow", ["Any"], "String"],
+      "to-repr": ["arrow", ["Any"], "String"],
+      "to-string": ["arrow", ["Any"], "String"],
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "nothing": "Nothing",
       "time-now": ["arrow", [], "Number"],

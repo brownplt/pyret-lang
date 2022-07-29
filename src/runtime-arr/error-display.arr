@@ -1,7 +1,7 @@
 provide: *, data * end
 provide-types *
 
-import global as G
+import runtime-global as G
 import raw-array as R
 import srcloc as S
 import option as O

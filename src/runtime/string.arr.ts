@@ -1,7 +1,6 @@
 const EQUALITY = require("./equality.js");
 const NUMBER = require("./js-numbers.js");
 const OPTION = require("./option.arr.js");
-const LISTS = require("./lists.arr.js");
 
 function stringToNumber(s: string): any {
     var result = NUMBER['fromString'](s);
@@ -98,6 +97,7 @@ module.exports = {
 
     // Returns a PyretList<String>
     'string-split': function(original: string, splitOn: string) {
+        const LISTS = require("./" + "lists.arr.js");
         if (EQUALITY.equalAlways(splitOn, "")) {
             return LISTS["list"].make(["", original]);
         } else {
@@ -115,12 +115,14 @@ module.exports = {
     // Returns a PyretList<String>
     'string-split-all': function(original: string, splitOn: string) {
         const separated = original.split(splitOn);
+        const LISTS = require("./" + "lists.arr.js");
         return LISTS["raw-array-to-list"](separated);
     },
 
     // Returns a PyretList<String>
     'string-explode': function(original: string) {
         const separated = original.split("");
+        const LISTS = require("./" + "lists.arr.js");
         return LISTS["raw-array-to-list"](separated);
     },
 
@@ -170,6 +172,7 @@ module.exports = {
             results.push(str.charCodeAt(i));
         }
 
+        const LISTS = require("./" + "lists.arr.js");
         return LISTS["list"].make(results);
     },
 
@@ -185,6 +188,8 @@ module.exports = {
 
     // points is a PyretList<PyretNumber>
     'string-from-code-points': function(points): string {
+
+        const LISTS = require("./" + "lists.arr.js");
         const rawArrayPoints = LISTS["to-raw-array"](points);
         const stringArray = rawArrayPoints.map((pyNum) => {
             if(!(NUMBER["isInteger"](pyNum) && NUMBER["isNonNegative"](pyNum))) {

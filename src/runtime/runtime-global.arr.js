@@ -9,6 +9,8 @@ module.exports = {
   'nothing': runtime["nothing"],
   'time-now' : timeNow,
   'js-to-string': function(v) { return String(v); },
+  'to-repr': runtime["$torepr"],
+  'to-string': runtime["$tostring"],
   'display-string': function(s) { process.stdout.write(s); },
   "console-log": function(v) { console.log(v); },
   'assert': function( lv, rv, msg ) {
