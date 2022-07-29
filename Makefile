@@ -85,6 +85,8 @@ RUNTIME_ARR_SRCS := \
 	$(RUNTIME_ARR_SRC_DIR)/error.arr \
 	$(RUNTIME_ARR_SRC_DIR)/arrays.arr \
 	$(RUNTIME_ARR_SRC_DIR)/lists.arr \
+	$(RUNTIME_ARR_SRC_DIR)/color.arr \
+	$(RUNTIME_ARR_SRC_DIR)/image-structs.arr \
 	$(wildcard $(RUNTIME_ARR_SRC_DIR)/*.arr)
 
 RUNTIME_ARR_COMPILED_FILES := $(RUNTIME_ARR_SRCS:$(RUNTIME_ARR_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
