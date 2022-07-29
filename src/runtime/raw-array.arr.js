@@ -4,13 +4,15 @@ const OPTION = require("./option.arr.js");
 const RUNTIME = require("./runtime.js");
 
 function checkArrayIndex(name, array, index, length) {
-  let reason;
+  let reason = "";
   if(!(NUMBERS["isInteger"](index) && NUMBERS["isNonNegative"](index))) {
     reason = (`expected a non-negative integer, got ${index}`);
   }
   if(index >= length ) { reason = (`index too large: ${index} for array of length ${length}`); }
   else if (index < 0) { reason = (`negative index for array set: ${index}`); }
-  RUNTIME.throwError("invalid-array-index", name, array, index, reason);
+  if(reason != "") {
+    RUNTIME.throwError("invalid-array-index", name, array, index, reason);
+  }
 }
 
 module.exports = {
