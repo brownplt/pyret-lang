@@ -278,12 +278,16 @@ type ResolveScopeExports = {
 
     function getDependencies(p: PyretCode, uri: string): Dependency[] {
       const parsed = getAst(p, uri);
-      const ret: Dependency[] = [];
+      const fromImports: Dependency[] = [];
       for (let i of listToArray(parsed.dict.imports)) {
         const it = getImportType(i);
-        if (it) { ret.push(AU['import-to-dep'].app(it)); }
+        if (it) { fromImports.push(AU['import-to-dep'].app(it)); }
       }
-      return ret;
+      const _use = parsed.dict._use;
+      if(_use.$name === 'some') {
+        fromImports.unshift(AU['import-to-dep'].app(_use.dict.value.dict.mod));
+      }
+      return fromImports;
     }
 
     function getStandardDependencies(p: PyretCode, uri: string): Dependency[] {

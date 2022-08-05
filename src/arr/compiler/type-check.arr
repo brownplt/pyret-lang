@@ -352,7 +352,7 @@ fun internal-type-check(program :: A.Program, compile-env :: C.CompileEnvironmen
   shadow context = typing-context(new-global-types, new-aliases, context.data-types, context.modules, new-module-names, context.binds, context.constraints, context.info, context.misc)
 
   cases(A.Program) program block:
-    | s-program(l, _provide, provided-types, provides, imports, body) =>
+    | s-program(l, _use, _provide, provided-types, provides, imports, body) =>
       # print("\n\n")
       # each(lam(x) block:
       #   print(x)
@@ -371,7 +371,7 @@ fun internal-type-check(program :: A.Program, compile-env :: C.CompileEnvironmen
           folded-info = gather-provides(provides.first, context)
           cases(FoldResult<TCInfo>) folded-info:
             | fold-result(info, _) =>
-              C.ok(TCS.typed(A.s-program(l, _provide, provided-types, provides, imports, new-body), info))
+              C.ok(TCS.typed(A.s-program(l, _use, _provide, provided-types, provides, imports, new-body), info))
             | fold-errors(errs) =>
               C.err(errs)
           end

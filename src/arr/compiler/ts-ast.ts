@@ -30,12 +30,24 @@ export type AppInfo =
 export type PrimAppInfo =
   | { $name: "prim-app-info-c", dict: { 'needs-step': boolean } }
 
+export type Use =
+  | {
+    $name: "s-use",
+    dict:
+    {
+      l: Loc,
+      n: Name,
+      mod: ImportType
+    }
+  };
+
 export type Program =
   | {
     $name: "s-program",
     dict:
     {
       'l': Loc,
+      '_use': Option<Use>,
       '_provide': Provide,
       'provided-types': ProvideTypes,
       'provides': List<ProvideBlock>,
@@ -718,6 +730,18 @@ dict: {values: {dict: {
 'prim-app-info-c': 
   PFunction< (needs_step: boolean) => TCH.Variant<PrimAppInfo, 'prim-app-info-c'> >
 
+'is-Use': PFunction<(val: any) => val is Use>,
+
+'is-s-use': PFunction<(val: any) => val is TCH.Variant<Use, 's-use'>>,
+
+'s-use': PFunction<
+    (
+      l: Loc,
+      n: Name,
+      mod: ImportType
+    ) => TCH.Variant<Use, 's-use'>
+  >,
+
 'is-Program': PFunction<(val: any) => val is Program>
 
 'is-s-program': PFunction<(val: any) => val is TCH.Variant<Program, 's-program'>>
@@ -726,6 +750,7 @@ dict: {values: {dict: {
   PFunction<
     (
         l: Loc,
+        _use: Option<Use>,
         _provide: Provide,
         provided_types: ProvideTypes,
         provides: List<ProvideBlock>,

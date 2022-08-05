@@ -1,7 +1,7 @@
 import type * as A from './ts-ast';
 import type * as C from './ts-compile-structs';
 import type * as ED from './error-display';
-import type * as TJ from './ts-codegen-helpers';
+import * as TJ from './ts-codegen-helpers';
 import type * as S from './ts-srcloc';
 import type { List, PFunction, Option } from './ts-impl-types';
 import { CompileOptions } from './ts-compiler-lib-impl';
@@ -713,12 +713,25 @@ type WFContext = {
       }
 
       const wellFormedVisitor: TJ.Visitor<
-        A.Program | A.ImportType | A.Ann | A.Expr | A.Member | A.LetBind | A.Bind | A.Import | A.Provide | A.ProvideTypes | A.LetrecBind | A.CasesBranch | A.IfBranch | A.IfPipeBranch | A.ForBind | A.VariantMember | A.AField, 
+        A.Program | A.Use | A.ImportType | A.Ann | A.Expr | A.Member | A.LetBind | A.Bind | A.Import | A.Provide | A.ProvideTypes | A.LetrecBind | A.CasesBranch | A.IfBranch | A.IfPipeBranch | A.ForBind | A.VariantMember | A.AField, 
         void,
         WFContext
       > = {
         's-program': (visitor, expr: TJ.Variant<A.Program, 's-program'>) => {
           throw new InternalCompilerError("Impossible");
+        },
+        's-use': (visitor, expr: TJ.Variant<A.Use, 's-use'>) => {
+          if (!(nameToName(expr.dict.n) === "context")) {
+            const error = [
+              ED.text.app("The only supported type of "),
+              ED.code.app(ED.text.app("use")),
+              ED.text.app(" is "),
+              ED.code.app(ED.text.app("context")),
+              ED.text.app(", but this program used "),
+              ED.code.app(ED.text.app(nameToName(expr.dict.n)))
+            ];
+            addError(C['wf-error'].app(runtime.ffi.makeList(error), expr.dict.l))
+          }
         },
         's-special-import': (visitor, expr: TJ.Variant<A.ImportType, 's-special-import'>) => {
           const kind = expr.dict.kind;
@@ -1232,7 +1245,7 @@ type WFContext = {
       }
 
       const topLevelVisitor: TJ.Visitor<
-        A.Program | A.Expr | A.TypeLetBind | A.Variant | A.Member | A.Bind | A.LetBind | A.Import | A.Provide | A.ProvideTypes | A.LetrecBind | A.IfBranch | A.IfPipeBranch | A.CasesBranch | A.ForBind | A.VariantMember | A.Ann | A.AField, 
+        A.Program | A.Use | A.Expr | A.TypeLetBind | A.Variant | A.Member | A.Bind | A.LetBind | A.Import | A.Provide | A.ProvideTypes | A.LetrecBind | A.IfBranch | A.IfPipeBranch | A.CasesBranch | A.ForBind | A.VariantMember | A.Ann | A.AField, 
         void,
         WFContext
       > = {
@@ -1337,6 +1350,9 @@ type WFContext = {
           const checkLoc = checkBlockLoc(expr.dict.l, expr.dict['_check-loc']) ?? expr.dict.l;
           wrapRejectStandalonesInCheck(expr.dict._check as Option<TJ.Variant<A.Expr, 's-block'>>);
           visit(wellFormedVisitor, expr.dict._check, {...wfContext, allowSMethod: false, inCheckBlock: true, parentBlockLoc: checkLoc});
+        },
+        's-use': (visitor, expr: TJ.Variant<A.Use, 's-use'>, wfContext) => {
+          visit(wellFormedVisitor, expr, wfContext);
         },
         's-import': (visitor, expr: TJ.Variant<A.Import, 's-import'>, wfContext) => {
           visit(wellFormedVisitor, expr, wfContext);

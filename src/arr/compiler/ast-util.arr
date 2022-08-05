@@ -227,7 +227,7 @@ end
 # exported
 fun get-named-provides(resolved :: CS.NameResolution, uri :: URI, compile-env :: CS.CompileEnvironment) -> CS.Provides:
   cases(A.Program) resolved.ast:
-    | s-program(_, _, _, provide-blocks, _, _) =>
+    | s-program(_, _ , _, _, provide-blocks, _, _) =>
       cases(A.ProvideBlock) provide-blocks.first block:
           # NOTE(joe): assume the provide block is resolved
         | s-provide-block(_, _, provide-specs) =>
@@ -525,7 +525,7 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
   end
   c = canonicalize-names(_, uri, transformer)
   cases(A.Program) typed.ast block:
-    | s-program(_, _, _, provide-blocks, _, _) =>
+    | s-program(_, _, _, _, provide-blocks, _, _) =>
       cases(A.ProvideBlock) provide-blocks.first block:
         | s-provide-block(_, _, provide-specs) =>
 

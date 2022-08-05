@@ -597,7 +597,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
          - contains no s-let, s-var, s-data, s-tuple-bind
        ```
   cases(A.Program) prog block:
-    | s-program(l, _provide-raw, provide-types-raw, provides, imports-raw, body) =>
+    | s-program(l, _use-raw, _provide-raw, provide-types-raw, provides, imports-raw, body) =>
       str = A.s-str(l, _)
 
       with-imports = cases(A.Expr) body:
@@ -630,7 +630,7 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeReso
 
       recombined = A.s-block(with-provides.l, #| remaining + |# with-provides.stmts)
       visited = recombined.visit(desugar-scope-visitor)
-      C.resolved-scope(A.s-program(l, _provide-raw, provide-types-raw, provides, imports-raw, visited), errors)
+      C.resolved-scope(A.s-program(l, _use-raw, _provide-raw, provide-types-raw, provides, imports-raw, visited), errors)
   end
 
 end
@@ -1178,7 +1178,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
       final-visitor := self
       A.s-module(l, answer.visit(self), defined-modules, defined-vals, defined-types, checks.visit(self))
     end,
-    method s-program(self, l, _provide, _provide-types, provides, imports, body) block:
+    method s-program(self, l, _use, _provide, _provide-types, provides, imports, body) block:
       {imp-e; imp-te; imp-me; imp-imps} = resolve-import-names(self, imports)
 
       visit-body = body.visit(self.{env: imp-e, type-env: imp-te, module-env: imp-me})
@@ -1462,7 +1462,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
 
       one-true-provide = [list: A.s-provide-block(l, empty, final-val-provides + final-type-provides + final-module-provides + final-datatype-provides)]
 
-      A.s-program(l, A.s-provide-none(l), A.s-provide-types-none(l), one-true-provide, imp-imps.reverse(), visit-body)
+      A.s-program(l, _use, A.s-provide-none(l), A.s-provide-types-none(l), one-true-provide, imp-imps.reverse(), visit-body)
     end,
     method s-type-let-expr(self, l, binds, body, blocky):
       {e; te; bs} = for fold(acc from { self.env; self.type-env; empty }, b from binds):

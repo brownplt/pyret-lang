@@ -98,8 +98,9 @@ end
 
 fun make-provide-for-repl(p :: A.Program):
   cases(A.Program) p:
-    | s-program(l, _, _, _, imports, body) =>
+    | s-program(l, _, _, _, _, imports, body) =>
       A.s-program(l,
+          none,
           A.s-provide-none(l),
           A.s-provide-types-none(l),
           [list: A.s-provide-block(l, empty, [list:

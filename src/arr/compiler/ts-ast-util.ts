@@ -86,20 +86,20 @@ export interface Exports {
     }
 
     function appendNothingIfNecessary(prog: A.Program): A.Program {
-      const { l: l1, _provide,"provided-types": providedTypes, provides, imports, block: body } = prog.dict;
+      const { l: l1, _use, _provide,"provided-types": providedTypes, provides, imports, block: body } = prog.dict;
       if (body.$name === "s-block") {
         const l2 = body.dict.l;
         const stmts = listToArray(body.dict.stmts);
         const nothing = A['s-id'].app(A['dummy-loc'], A['s-name'].app(l2, "nothing"));
         if (stmts.length === 0) {
-          return A['s-program'].app(l1, _provide, providedTypes, provides, imports,
+          return A['s-program'].app(l1, _use, _provide, providedTypes, provides, imports,
             A['s-block'].app(l2, runtime.ffi.makeList([nothing])));
         } else {
           if (okLast(stmts[stmts.length - 1])) {
             return prog;
           } else {
             stmts.push(nothing);
-            return A['s-program'].app(l1, _provide, providedTypes, provides, imports,
+            return A['s-program'].app(l1, _use, _provide, providedTypes, provides, imports,
               A['s-block'].app(l2, runtime.ffi.makeList(stmts)));
           }
         }
@@ -116,7 +116,7 @@ export interface Exports {
     }
 
     function wrapToplevels(prog: A.Program): A.Program {
-      const { l, _provide, "provided-types": providedTypes, provides, imports, block: body } = prog.dict;
+      const { l, _use, _provide, "provided-types": providedTypes, provides, imports, block: body } = prog.dict;
       let newBody: A.Expr;
       switch(body.$name) {
         case 's-block': {
@@ -129,7 +129,7 @@ export interface Exports {
           newBody = wrapIfNeeded(body);
           break;
       }
-      return A['s-program'].app(l, _provide, providedTypes, provides, imports, newBody);
+      return A['s-program'].app(l, _use, _provide, providedTypes, provides, imports, newBody);
     }
 
     function inlineLams(prog: A.Program): A.Program {
@@ -505,8 +505,13 @@ export interface Exports {
     }
     
     function wrapExtraImports(prog: A.Program, env: TCS.ExtraImports): A.Program {
-      const { l, _provide, "provided-types": providedTypes, provides, block } = prog.dict;
+      const { l, _use, _provide, "provided-types": providedTypes, provides, block } = prog.dict;
       const origImports = listToArray(prog.dict.imports)
+      if(_use.$name === 'some') {
+        const useImports = [A['s-include'].app(A['dummy-loc'], _use.dict.value.dict.mod), ...origImports];
+        return A['s-program'].app(l, _use, _provide, providedTypes, provides, runtime.ffi.makeList(useImports), block);
+      }
+
       const imports = listToArray(env.dict.imports);
       /*
          NOTE(Ben): I've moved the existing p.imports *after* these generated imports,
@@ -561,7 +566,7 @@ export interface Exports {
         }
       }
       fullImports.push(...origImports);
-      return A['s-program'].app(l, _provide, providedTypes, provides, runtime.ffi.makeList(fullImports), block);
+      return A['s-program'].app(l, _use, _provide, providedTypes, provides, runtime.ffi.makeList(fullImports), block);
     }
 
     function importToDep(imp: A.ImportType): TCS.Dependency {
