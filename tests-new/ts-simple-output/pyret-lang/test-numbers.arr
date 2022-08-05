@@ -1,5 +1,6 @@
 ### Looks shipshape
 
+import error as ERR
 include number
 include global
 import lists as lists

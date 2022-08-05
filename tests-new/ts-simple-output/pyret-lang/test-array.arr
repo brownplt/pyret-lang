@@ -6,6 +6,7 @@ include lists
 include global
 include number
 include option
+include error
 
 fun negate(f): lam(x): not(f(x)) end end
 
