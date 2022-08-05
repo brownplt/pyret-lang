@@ -163,6 +163,7 @@
     {name: "TYPE", val: "type"},
     {name: "TYPE-LET", val: "type-let"},
     {name: "USING", val: "using"},
+    {name: "USE", val: "use"},
     {name: "VAR", val: "var"},
     {name: "SATISFIESNOT", val: "violates", parenIsForExp: true},
     {name: "WHEN", val: "when", parenIsForExp: true}
