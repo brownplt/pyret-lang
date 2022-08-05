@@ -5,7 +5,7 @@ const path = require('path');
 const cp = require('child_process');
 const stream = require('stream');
 
-const COMPILER_TIMEOUT = 10000; // ms, for each compiler run (including startup)
+const COMPILER_TIMEOUT = 30000; // ms, for each compiler run (including startup)
 const RUN_TIMEOUT = 20000; // ms, for each program execution
 
 describe("testing simple-output programs", () => {
