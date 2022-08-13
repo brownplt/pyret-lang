@@ -1,9 +1,11 @@
+import { round } from './js-numbers';
 import * as PRIM_TYPES from './primitives';
 const NUMBERS = require('./js-numbers.js');
 const EQUALITY = require("./equality.js");
 const PRIMS = require('./primitives.js') as typeof PRIM_TYPES;
 const seedrandom = require('seedrandom');
 
+const NumberErrbacks = EQUALITY.NumberErrbacks;
 
 function numToString(n) {
     return String(n);
@@ -29,6 +31,19 @@ var num_random_seed = function(seed) {
     rng = seedrandom(String(seed));
     return PRIMS.$nothing;
   }
+
+var num_truncate = function(n) {
+    if (NUMBERS['greaterThan'](n, 0, EQUALITY.NumberErrbacks)) {
+        return NUMBERS['floor'](n, EQUALITY.NumberErrbacks);
+    } else {
+        return NUMBERS['ceiling'](n, EQUALITY.NumberErrbacks);
+    }
+}
+
+const num_ceiling = wrap1(NUMBERS.ceiling);
+const num_floor = wrap1(NUMBERS.floor);
+const num_round = wrap1(NUMBERS.round);
+const num_round_even = wrap1(NUMBERS.roundEven);
 
 module.exports = {
 
@@ -66,21 +81,15 @@ module.exports = {
 
     'num-remainder': wrap2(NUMBERS['remainder']),
     'num-modulo': wrap2(NUMBERS['modulo']),
-    'num-truncate': function(n) {
-        if (NUMBERS['greaterThan'](n, 0, EQUALITY.NumberErrbacks)) {
-            return NUMBERS['floor'](n, EQUALITY.NumberErrbacks);
-        } else {
-            return NUMBERS['ceiling'](n, EQUALITY.NumberErrbacks);
-        }
-    },
+    'num-truncate': num_truncate,
     'num-sqrt': wrap1(NUMBERS['sqrt']),
     'num-sqr': wrap1(NUMBERS['sqr']),
 
-    'num-ceiling': wrap1(NUMBERS['ceiling']),
-    'num-floor': wrap1(NUMBERS['floor']),
+    'num-ceiling': num_ceiling,
+    'num-floor': num_floor,
 
-    'num-round': wrap1(NUMBERS['round']),
-    'num-round-even': wrap1(NUMBERS['roundEven']),
+    'num-round': num_round,
+    'num-round-even': num_round_even,
 
     'num-log': wrap1(NUMBERS['log']),
     'num-exp': wrap1(NUMBERS['exp']),
@@ -102,6 +111,7 @@ module.exports = {
     'num-to-string': numToString,
     'num-to-string-digits': wrap2(NUMBERS['toStringDigits']),
 
+    'num-within': EQUALITY["within"],
     'num-within-abs': EQUALITY["withinAbs"],
     'num-within-rel': EQUALITY["withinRel"],
     'within': EQUALITY["within"],
@@ -138,4 +148,44 @@ module.exports = {
       }
     },
 
+    'num_truncate_digits': function(n, digits) {
+        var tenDigits = NUMBERS.expt(10, digits, NumberErrbacks);
+        return NUMBERS.divide(num_truncate(NUMBERS.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    },
+    'num_ceiling_digits': function(n, digits) {
+      var tenDigits = NUMBERS.expt(10, digits, NumberErrbacks);
+      return NUMBERS.divide(num_ceiling(NUMBERS.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    },
+    'num_floor_digits': function(n, digits) {
+      var tenDigits = NUMBERS.expt(10, digits, NumberErrbacks);
+      return NUMBERS.divide(num_floor(NUMBERS.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    },
+    'num_round_digits': function(n, digits) {
+      var tenDigits = NUMBERS.expt(10, digits, NumberErrbacks);
+      return NUMBERS.divide(num_round(NUMBERS.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    },
+    'num_round_even_digits': function(n, digits) {
+      var tenDigits = NUMBERS.expt(10, digits, NumberErrbacks);
+      return NUMBERS.divide(num_round_even(NUMBERS.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    },
+    'num_truncate_place': function(n, place) {
+      var tenPlace = NUMBERS.expt(10, place, NumberErrbacks);
+      return NUMBERS.multiply(num_truncate(NUMBERS.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    },
+    'num_ceiling_place': function(n, place) {
+      var tenPlace = NUMBERS.expt(10, place, NumberErrbacks);
+      return NUMBERS.multiply(num_ceiling(NUMBERS.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    },
+    'num_floor_place': function(n, place) {
+      var tenPlace = NUMBERS.expt(10, place, NumberErrbacks);
+      return NUMBERS.multiply(num_floor(NUMBERS.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    },
+    'num_round_place': function(n, place) {
+      var tenPlace = NUMBERS.expt(10, place, NumberErrbacks);
+      return NUMBERS.multiply(num_round(NUMBERS.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    },
+    'num_round_even_place': function(n, place) {
+      var tenPlace = NUMBERS.expt(10, place, NumberErrbacks);
+      return NUMBERS.multiply(num_round_even(NUMBERS.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    }
 };

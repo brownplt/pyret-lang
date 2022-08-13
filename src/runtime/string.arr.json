@@ -21,9 +21,12 @@
     "values": {
         "string-equal": ["arrow", ["String", "String"], "Boolean"],
         "string-contains": ["arrow", ["String", "String"], "Boolean"],
+        "string-starts-with": ["arrow", ["String", "String"], "Boolean"],
+        "string-ends-with": ["arrow", ["String", "String"], "Boolean"],
         "string-append": ["arrow", ["String", "String"], "String"],
         "string-length": ["arrow", ["String"], "Number"],
         "string-to-number": ["arrow", ["String"], "oOfN"],
+        "string-to-num": ["arrow", ["String"], "Number"],
         "string-is-number": ["arrow", ["String"], "Boolean"],
         "string-repeat": ["arrow", ["String", "Number"], "String"],
         "string-substring": ["arrow", ["String", "Number", "Number"], "String"],
@@ -40,7 +43,8 @@
         "string-to-code-point": ["arrow", ["String"], "Number"],
         "string-to-code-points": ["arrow", ["String"], "lOfN"],
         "string-from-code-point": ["arrow", ["Number"], "String"],
-        "string-from-code-points": ["arrow", ["lOfN"], "String"]
+        "string-from-code-points": ["arrow", ["lOfN"], "String"],
+        "is-string": ["arrow", ["Any"], "Boolean"]
     },
     "aliases": {
     },

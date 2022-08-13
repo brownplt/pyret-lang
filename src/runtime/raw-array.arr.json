@@ -42,6 +42,10 @@
             "raw-array-join": ["arrow", [["RawArray", "String"], "String"], "String"],
             "raw-array-join-last": ["arrow", [["RawArray", "String"], "String", "String"], "String"],
             "raw-array-from-list": ["forall", ["a"], ["arrow", [["List", ["tid", "a"]]], "rOfA"]],
+
+            "raw-array-and-mapi": ["forall", ["a"], ["arrow", [["arrow", ["tva", "Number"], "Boolean"], "rOfA", "Number"], "Boolean"]],
+            "raw-array-or-mapi": ["forall", ["a"], ["arrow", [["arrow", ["tva", "Number"], "Boolean"], "rOfA", "Number"], "Boolean"]],
+            "raw-array-map-1": ["forall", ["a", "b"], ["arrow", [["arrow", ["tva"], "tvb"], ["arrow", ["tva"], "tvb"], "rOfA"], "rOfB"]],
             "is-raw-array": ["arrow", ["tany"], "Boolean"]
         },
         "aliases": { },

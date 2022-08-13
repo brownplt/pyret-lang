@@ -153,5 +153,28 @@ module.exports = {
       v = v.rest;
     }
     return arr;
+  },
+  'raw-array-and-mapi': function(f, arr, start) {
+    for(let i = start; i < arr.length; i += 1) {
+      const result = f(arr[i], i);
+      if(result === false) { return false; }
+    }
+    return true;
+  },
+  'raw-array-or-mapi': function(f, arr, start) {
+    for(let i = start; i < arr.length; i += 1) {
+      const result = f(arr[i], i);
+      if(result === true) { return true; }
+    }
+    return false;
+  },
+  'raw-array-map-1': function(f1, f, arr) {
+    if(arr.length === 0) { return []; }
+    const result = new Array(arr.length);
+    result[0] = f1(arr[0]);
+    for(let i = 1; i < arr.length; i += 1) {
+      result[i] = f(arr[i]);
+    }
+    return result;
   }
 }

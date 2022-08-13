@@ -179,3 +179,13 @@ check "case":
   string-to-lower("SS") is "ss"
   string-to-lower("ΛΑΜΒΔΑ") is "λαμβδα"
 end
+
+check "starts/ends":
+  string-starts-with("abc", "a") is true
+  string-starts-with("abc", "ab") is true
+  string-starts-with("abc", "b") is false
+
+  string-ends-with("abc", "c") is true
+  string-ends-with("abc", "bc") is true
+  string-ends-with("abc", "b") is false
+end

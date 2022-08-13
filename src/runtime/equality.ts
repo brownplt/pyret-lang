@@ -298,6 +298,25 @@ export function withinAbsNow3(tolerance) {
   };
 }
 
+const ROUGH_TOL = _NUMBER.fromFixnum(0.000001, NumberErrbacks);
+export function roughlyEqualAlways3(left : any, right : any) {
+  return equalCore3(left, right, EQUAL_ALWAYS, ROUGH_TOL, TOL_IS_REL, /*fromWithin?*/false);
+};
+export function roughlyEqualAlways(v1 : any, v2 : any) {
+  if (((typeof v1 === 'number')  && (typeof v2 === 'number')) ||
+      ((typeof v1 === 'string')  && (typeof v2 === 'string')) ||
+      ((typeof v1 === 'boolean') && (typeof v2 === 'boolean'))) {
+    return v1 === v2;
+  }
+  return equalCore3(v1, v2, EQUAL_ALWAYS, ROUGH_TOL, TOL_IS_REL, /*fromWithin?*/false);
+};
+export function roughlyEqualNow3(left : any, right : any) {
+  return equalCore3(left, right, EQUAL_NOW, ROUGH_TOL, TOL_IS_REL, /*fromWithin?*/false);
+};
+export function roughlyEqualNow(v1 : any, v2 : any) {
+  return equalCore3(v1, v2, EQUAL_NOW, ROUGH_TOL, TOL_IS_REL, /*fromWithin?*/false);
+};
+
 export function _lessthan(lhs: any, rhs: any): boolean {
     // Check if object has a '<' custom implementation
     if ((typeof lhs === "object") && ("_lessthan" in lhs)) {

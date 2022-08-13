@@ -34,6 +34,11 @@ module.exports["within-abs3"] = EQUALITY_CORE.withinAbs3;
 module.exports["within-rel-now3"] = EQUALITY_CORE.withinRelNow3;
 module.exports["within-abs-now3"] = EQUALITY_CORE.withinAbsNow3;
 
+module.exports["roughly-equal"] = EQUALITY_CORE.roughlyEqualAlways;
+module.exports["roughly-equal-always"] = EQUALITY_CORE.roughlyEqualAlways;
+module.exports["roughly-equal-always3"] = EQUALITY_CORE.roughlyEqualAlways3;
+module.exports["roughly-equal-now"] = EQUALITY_CORE.roughlyEqualNow;
+module.exports["roughly-equal-now3"] = EQUALITY_CORE.roughlyEqualNow3;
 
 module.exports["equal-now"] = EQUALITY_CORE.equalNow;
 module.exports["equal-now3"] = EQUALITY_CORE.equalNow3;

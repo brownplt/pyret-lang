@@ -8,6 +8,8 @@
     ],
     "provides": {
         "shorthands": {
+            "NumBinop": ["arrow", ["Number", "Number"], "Number"],
+            "NumUnop":  ["arrow", ["Number"], "Number"],
             "Exactnum": "Number",
             "EqualityResult": { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://equality" },
@@ -41,6 +43,16 @@
           "num-modulo": ["arrow", ["Number", "Number"], "Number"],
           "num-remainder": ["arrow", ["Number", "Number"], "Number"],
           "num-truncate": ["arrow", ["Number"], "Number"],
+          "num-truncate-digits": "NumBinop",
+          "num-floor-digits": "NumBinop",
+          "num-ceiling-digits": "NumBinop",
+          "num-round-digits": "NumBinop",
+          "num-round-even-digits": "NumBinop",
+          "num-truncate-place": "NumBinop",
+          "num-floor-place": "NumBinop",
+          "num-ceiling-place": "NumBinop",
+          "num-round-place": "NumBinop",
+          "num-round-even-place": "NumBinop",
           "num-sqrt": ["arrow", ["Number"], "Number"],
           "num-sqr": ["arrow", ["Number"], "Number"],
           "num-ceiling": ["arrow", ["Number"], "Number"],
@@ -59,6 +71,7 @@
           "num-exact": ["arrow", ["Number"], "Exactnum"],
           "num-to-rational": ["arrow", ["Number"], "Exactnum"],
 
+          "num-within": ["arrow", ["Number"], ["arrow", ["Number", "Number"], "Boolean"]],
           "within": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
 
           "within-rel": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],

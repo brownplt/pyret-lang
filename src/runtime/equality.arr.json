@@ -28,6 +28,12 @@
         "identical": ["arrow", ["tany", "tany"], "Boolean"],
         "identical3": ["arrow", ["tany", "tany"], ["local", "EqualityResult"]],
 
+        "roughly-equal": ["arrow", ["tany", "tany"], "Boolean"],
+        "roughly-equal-now": ["arrow", ["tany", "tany"], "Boolean"],
+        "roughly-equal-now3": ["arrow", ["tany", "tany"], ["local", "EqualityResult"]],
+        "roughly-equal-always": ["arrow", ["tany", "tany"], "Boolean"],
+        "roughly-equal-always3": ["arrow", ["tany", "tany"], ["local", "EqualityResult"]],
+
         "within": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
         "within-now": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],
         "within-rel": ["arrow", ["Number"], ["arrow", ["tany", "tany"], "Boolean"]],

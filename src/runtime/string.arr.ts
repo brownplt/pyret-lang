@@ -1,6 +1,7 @@
 const EQUALITY = require("./equality.js");
 const NUMBER = require("./js-numbers.js");
 const OPTION = require("./option.arr.js");
+const RUNTIME = require("./runtime.js");
 
 function stringToNumber(s: string): any {
     var result = NUMBER['fromString'](s);
@@ -8,6 +9,16 @@ function stringToNumber(s: string): any {
         return OPTION['none'];
     } else {
         return OPTION['some'](result);
+    }
+}
+
+function stringToNum(s: string): any {
+    var result = NUMBER['fromString'](s);
+    if (result === false) {
+        RUNTIME.throwError("message-exception",
+            `string-to-num expected a numeric string, got ${RUNTIME.toRepr(s)}`);
+    } else {
+        return result;
     }
 }
 
@@ -36,6 +47,8 @@ module.exports = {
     },
 
     'string-to-number': stringToNumber,
+    'string-to-num': stringToNum,
+    'string-tonumber': stringToNum,
 
     'string-is-number': function(s) {
       var num = NUMBER['fromString'](s);
@@ -201,5 +214,12 @@ module.exports = {
         });
 
         return stringArray.join("");
-    }
+    },
+    'string-starts-with': function(s: string, fragment: string) {
+        return s.startsWith(fragment);
+    },
+    'string-ends-with': function(s: string, fragment: string) {
+        return s.endsWith(fragment);
+    },
+    'is-string': function(x : any) { return typeof x === 'string'; }
 };

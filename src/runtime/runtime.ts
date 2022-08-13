@@ -779,6 +779,30 @@ function throwError(name : string, ...args : any[]) {
   throw new PyretError(errors()[name](...args));
 }
 
+function checkType(val : any, test : (v : any) => boolean, typeName : string) {
+  if(!test(val)) {
+    throwError("type-mismatch", val, typeName);
+  }
+  return true;
+}
+
+function makeCheckType(test : (v : any) => boolean, typeName : string) {
+  return function(val : any) {
+    return checkType(val, test, typeName);
+  };
+}
+
+var checkString = makeCheckType(_PRIMITIVES.isString, "String");
+var checkNumber = makeCheckType(_PRIMITIVES.isNumber, "Number");
+var checkExactnum = makeCheckType(_NUMBER.isRational, "Exactnum");
+var checkRoughnum = makeCheckType(_NUMBER.isRoughnum, "Roughnum");
+var checkNumInteger = makeCheckType(_NUMBER.isInteger, "NumInteger");
+var checkNumRational = makeCheckType(_NUMBER.isRational, "NumRational");
+var checkNumPositive = makeCheckType(_NUMBER.isPositive, "NumPositive");
+var checkNumNegative = makeCheckType(_NUMBER.isNegative, "NumNegative");
+var checkNumNonPositive = makeCheckType(_NUMBER.isNonPositive, "NumNonPositive");
+var checkNumNonNegative = makeCheckType(_NUMBER.isNonNegative, "NumNonNegative");
+
 function customThrow(exn) {
   exn.toString = function() { return JSON.stringify(this); }
   throw new Error(exn);
@@ -922,3 +946,16 @@ module.exports["within"] = _EQUALITY["within"];
 module.exports["jsnums"] = _NUMBER;
 module.exports["errors"] = errors;
 module.exports["throwError"] = throwError;
+module.exports["makeCheckType"] = throwError;
+module.exports["checkType"] = throwError;
+
+module.exports["checkString"] = checkString;
+module.exports["checkNumber"] = checkNumber;
+module.exports["checkExactnum"] = checkExactnum;
+module.exports["checkRoughnum"] = checkRoughnum;
+module.exports["checkNumInteger"] = checkNumInteger;
+module.exports["checkNumRational"] = checkNumRational;
+module.exports["checkNumPositive"] = checkNumPositive;
+module.exports["checkNumNegative"] = checkNumNegative;
+module.exports["checkNumNonPositive"] = checkNumNonPositive;
+module.exports["checkNumNonNegative"] = checkNumNonNegative;

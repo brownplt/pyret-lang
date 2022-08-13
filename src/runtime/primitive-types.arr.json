@@ -4,7 +4,12 @@
 
     "shorthands": {},
     "values": {
-        "nothing": ["local", "Nothing"]
+        "nothing": ["local", "Nothing"],
+        "is-nothing": ["arrow", ["Any"], "Boolean"],
+        "is-boolean": ["arrow", ["Any"], "Boolean"],
+        "is-object": ["arrow", ["Any"], "Boolean"],
+        "is-function": ["arrow", ["Any"], "Boolean"],
+        "is-tuple": ["arrow", ["Any"], "Boolean"]
     },
     "aliases": {
         "Nothing": ["local", "Nothing"],

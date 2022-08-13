@@ -976,6 +976,14 @@ function tableFromColumn(columnName: string, values: any): Table {
   return tableFromColumns([col]);
 }
 
+function isTable(x : any) {
+  return Primitives.isTable(x);
+}
+
+function isRow(x : any) {
+  return Primitives.isRow(x);
+}
+
 module.exports = {
   '_makeTableSkeletonFromCSVString': _makeTableSkeletonFromCSVString,
   '_makeTableFromTableSkeleton': _makeTableFromTableSkeleton,
@@ -1015,5 +1023,7 @@ module.exports = {
   'stack': stack,
   'transform-column': transformColumn,
   '_tableReduce': _tableReduce,
-  'running-sum': runningSum
+  'running-sum': runningSum,
+  'is-table': isTable,
+  'is-row': isRow
 };
