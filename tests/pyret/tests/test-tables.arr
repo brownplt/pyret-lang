@@ -754,3 +754,12 @@ check:
   cs.length() is 5
 end
 
+check "empty table-from-columns":
+  t = [table-from-columns:
+    {"a"; [list: ]},
+    {"b"; [list: ]}
+  ]
+
+  t.length() is 0
+  t.column-names() is [list: "a", "b"]
+end
