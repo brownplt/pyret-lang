@@ -175,6 +175,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
       parseFloat,
       isNaN,
       isFinite,
+      parseInt,
       // @ts-ignore
       ide: window.ide,
     });
