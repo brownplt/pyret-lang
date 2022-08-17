@@ -212,7 +212,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
       // TODO(luna): Should have existence check, otherwise new file with same
       // name => truncate
       if (fullName.endsWith('.arr')) {
-        control.fs.writeFileSync(path, 'include cpo');
+        control.fs.writeFileSync(path, 'use context essentials2021');
       } else {
         control.createFile(path);
       }

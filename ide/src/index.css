@@ -76,7 +76,7 @@ and overriding of rules. */
 .chat-layout-normal .chat .CodeMirror {
   border-radius: 0.9em !important;
   border-bottom-left-radius: 0 !important;
-  padding: 0.7em;
+  padding: 0.2em;
 }
 
 .chat-layout-compact .chat .CodeMirror {
@@ -230,7 +230,7 @@ and overriding of rules. */
   max-width: 100%;
 }
 .chat-layout-normal .chatitor-rhs {
-  padding: 0.7em;
+  padding: 0.4em;
   max-width: 90%;
 }
 

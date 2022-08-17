@@ -282,7 +282,7 @@ provide from raw-array:
   raw-array,
 end
 
-include from tables:
+provide from tables:
   is-table,
   is-row,
 end
