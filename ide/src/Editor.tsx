@@ -36,6 +36,7 @@ import { NeverError } from './utils';
 import Chatitor from './Chatitor';
 import GlobalInteractions from './GlobalInteractions';
 import FailureComponent from './FailureComponent';
+import GoogleDrive from './Drive';
 
 /*
 function compileAndRun(name : string, source : string) : Promise<RunResult> {
@@ -245,6 +246,18 @@ class Editor extends React.Component<EditorProps, any> {
         {rightHandSide}
       </SplitterLayout>
     );
+
+    const drive = new GoogleDrive();
+    const params = new URLSearchParams(window.location.search);
+    const folderId = params.get('folder');
+
+    if (folderId === null) {
+      console.log('No starting folder');
+    } else {
+      drive.getFileStructureFor(folderId)
+        .then((structure) => console.log(structure))
+        .catch((e) => console.error(e));
+    }
 
     return (
       <div className="page-container">

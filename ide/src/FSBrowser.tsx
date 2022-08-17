@@ -20,12 +20,14 @@ import FSItem from './FSItem';
 type StateProps = {
   browseRoot: string,
   browsePath: string
+  developerMode: boolean,
 };
 
 function mapStateToProps(state: any): StateProps {
   return {
     browseRoot: state.browseRoot,
     browsePath: state.browsePath,
+    developerMode: state.developerMode,
   };
 }
 
@@ -289,7 +291,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
   render() {
     const { editType, editValue, selected } = this.state;
-    const { browsePath } = this.props;
+    const { browsePath, developerMode } = this.props;
 
     const that = this;
 
@@ -421,7 +423,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             </div>
           </div>
           {editor}
-          {!this.browsingRoot && (
+          {!this.browsingRoot && developerMode && (
           <FSItem
             onClick={this.traverseUp}
             path=".."

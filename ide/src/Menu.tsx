@@ -17,6 +17,7 @@ type StateProps = {
   editorMode: EditorMode,
   currentFileContents: string | undefined,
   editorLayout : EditorLayout,
+  developerMode : boolean,
 };
 
 function mapStateToProps(state: State): StateProps {
@@ -27,6 +28,7 @@ function mapStateToProps(state: State): StateProps {
     editorMode,
     currentFileContents,
     editorLayout,
+    developerMode,
   } = state;
 
   return {
@@ -36,6 +38,7 @@ function mapStateToProps(state: State): StateProps {
     editorMode,
     currentFileContents,
     editorLayout,
+    developerMode,
   };
 }
 
@@ -69,6 +72,7 @@ function Menu({
   editorMode,
   currentFileContents,
   editorLayout,
+  developerMode,
 }: MenuProps) {
   function getTab() {
     if (menuTabVisible === false) {
@@ -80,6 +84,29 @@ function Menu({
     );
 
     const modes = [EditorMode.Chatitor, EditorMode.Embeditor, EditorMode.Text];
+    const modesElement = (
+      <div
+        style={{
+          display: 'flex',
+          height: '2.7em',
+        }}
+      >
+        {modes.map((mode) => (
+          <button
+            onClick={() => setEditorMode(mode)}
+            className="option"
+            key={mode}
+            type="button"
+            style={{
+              width: `${Math.floor(100 * modes.length)}%`,
+            }}
+          >
+            {mode}
+          </button>
+        ))}
+      </div>
+    );
+
     switch (menuItems[menuTabVisible].name) {
       case 'Files':
         return (
@@ -93,28 +120,8 @@ function Menu({
               flexDirection: 'column',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                height: '2.7em',
-              }}
-            >
-              {modes.map((mode) => (
-                <button
-                  onClick={() => setEditorMode(mode)}
-                  className="option"
-                  key={mode}
-                  type="button"
-                  style={{
-                    width: `${Math.floor(100 * modes.length)}%`,
-                  }}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
             <FontSize key="FontSize" />
-            {editorMode === EditorMode.Chatitor && (
+            {editorMode === EditorMode.Chatitor && developerMode && (
               <button
                 onClick={() => update((s) => ({ ...s, editorLayout: swapLayout() }))}
                 className="option"
@@ -131,6 +138,9 @@ function Menu({
                 )}
               </button>
             )}
+
+            {developerMode ? modesElement : false}
+
             {editorMode === EditorMode.Chatitor && (
               <button
                 onClick={() => update((s) => ({ ...s, enterNewline: !s.enterNewline }))}

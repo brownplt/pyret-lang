@@ -8,6 +8,8 @@ import { RTMessages } from './rtMessages';
 import * as control from './control';
 import { program } from './path';
 
+const DEVELOPER_MODE = false;
+
 export type Outdates =
   // Applying *or undoing* this change technically invalidates this chunk. If a
   // lower-index chunk has been edited, firstOutdatedChunk may not change
@@ -144,6 +146,10 @@ export type State = {
    * "technically outdated" - their values can mostly be believed, but may change
    * due to changes in definitions in previous chats */
   firstOutdatedChunk: number,
+
+  /* Whether to show advanced options like Stopify, parent directory in
+   * filesystem, modes */
+  developerMode: boolean
 };
 
 export enum EditorResponseLoop {
@@ -216,4 +222,5 @@ export const initialState: State = {
   editorResponseLoop: EditorResponseLoop.Manual,
   firstOutdatedChunk: 0,
   editorLayout: EditorLayout.Normal,
+  developerMode: DEVELOPER_MODE,
 };
