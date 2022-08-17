@@ -9,6 +9,7 @@ import { State, EditorMode, EditorLayout } from './state';
 import { Action } from './action';
 import FSBrowser from './FSBrowser';
 import FontSize from './FontSize';
+import { CHUNKSEP } from './chunk';
 
 type StateProps = {
   menuItems: MenuItems,
@@ -121,15 +122,41 @@ function Menu({
             }}
           >
             <FontSize key="FontSize" />
+            {editorMode === EditorMode.Chatitor && (
+              <button
+                onClick={() => {
+                  if (currentFileContents !== undefined) {
+                    const url = `${document.location.origin}${document.location.pathname}?program=${encodeURIComponent(currentFileContents)}`;
+                    navigator.clipboard.writeText(url);
+                  }
+                }}
+                className="option"
+                key="getShareableLink"
+                type="button"
+                style={{
+                  height: '2.7em',
+                  width: '100%',
+                }}
+              >
+                Get shareable link
+              </button>
+            )}
+            <button
+              className="option"
+              onClick={() => {
+                const noChunks = (currentFileContents || '').replaceAll(CHUNKSEP, '\n');
+                navigator.clipboard.writeText(noChunks);
+              }}
+              type="button"
+            >
+              Copy as Program
+            </button>
             {editorMode === EditorMode.Chatitor && developerMode && (
               <button
                 onClick={() => update((s) => ({ ...s, editorLayout: swapLayout() }))}
                 className="option"
                 key="layout"
                 type="button"
-                style={{
-                  height: '2.7em',
-                }}
               >
                 {editorLayout === EditorLayout.Compact ? (
                   'Switch to chat layout'
@@ -156,25 +183,6 @@ function Menu({
                 ) : (
                   'Enter can send chats (click to change)'
                 )}
-              </button>
-            )}
-            {editorMode === EditorMode.Chatitor && (
-              <button
-                onClick={() => {
-                  if (currentFileContents !== undefined) {
-                    const url = `${document.location.origin}${document.location.pathname}?program=${encodeURIComponent(currentFileContents)}`;
-                    navigator.clipboard.writeText(url);
-                  }
-                }}
-                className="option"
-                key="getShareableLink"
-                type="button"
-                style={{
-                  height: '2.7em',
-                  width: '100%',
-                }}
-              >
-                Get shareable link
               </button>
             )}
           </div>

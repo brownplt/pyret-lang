@@ -34,7 +34,6 @@ import 'react-splitter-layout/lib/index.css';
 import Embeditor from './embeditor/Embeditor';
 import { NeverError } from './utils';
 import Chatitor from './Chatitor';
-import GlobalInteractions from './GlobalInteractions';
 import FailureComponent from './FailureComponent';
 import GoogleDrive from './Drive';
 
@@ -265,7 +264,6 @@ class Editor extends React.Component<EditorProps, any> {
           <div>
             <MenuBar />
           </div>
-          {editorMode === EditorMode.Chatitor ? <GlobalInteractions /> : <></>}
           <Run />
         </Header>
         <div className="code-container">

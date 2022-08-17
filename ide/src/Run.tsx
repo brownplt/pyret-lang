@@ -41,6 +41,7 @@ type StateProps = {
   chunks: Chunk[],
   editorResponseLoop: EditorResponseLoop,
   editorMode: EditorMode,
+  developerMode: boolean,
 };
 
 function mapStateToProps(state: State): StateProps {
@@ -54,6 +55,7 @@ function mapStateToProps(state: State): StateProps {
     chunks,
     editorResponseLoop,
     editorMode,
+    developerMode,
   } = state;
 
   return {
@@ -66,6 +68,7 @@ function mapStateToProps(state: State): StateProps {
     chunks,
     editorResponseLoop,
     editorMode,
+    developerMode,
   };
 }
 
@@ -135,6 +138,7 @@ function Run({
   compiling,
   editorResponseLoop,
   editorMode,
+  developerMode,
 }: Props) {
   // TODO(alex): Better UI for selection
   const editorLoopDropdown = editorLoopDropdownVisible && (
@@ -165,7 +169,7 @@ function Run({
 
     </Dropdown>
   );
-  const dropdown = dropdownVisible && (
+  const dropdown = dropdownVisible && developerMode && (
     <Dropdown>
       <DropdownOption
         id="OptionEditorResponseLoop"
@@ -176,13 +180,15 @@ function Run({
         Editor Response Loop
         {editorLoopDropdown}
       </DropdownOption>
-      <DropdownOption
-        id="OptionStopifyButton"
-        enabled={stopify}
-        onClick={() => setStopify(!stopify)}
-      >
-        Stopify
-      </DropdownOption>
+      { developerMode && (
+        <DropdownOption
+          id="OptionStopifyButton"
+          enabled={stopify}
+          onClick={() => setStopify(!stopify)}
+        >
+          Stopify
+        </DropdownOption>
+      )}
       <DropdownOption
         id="OptionTypeCheckButton"
         enabled={typeCheck}
@@ -273,21 +279,23 @@ function Run({
         >
           Update responses
         </button>
-        <button
-          type="button"
-          className="run-options"
-          onClick={() => setDropdownVisible(!dropdownVisible)}
-          onBlur={() => {
-            setDropdownVisible(false);
-            setEditorLoopDropdownVisible(false);
-          }}
-          style={{
-            background: dropdownBackground,
-          }}
-        >
-          &#8628;
-          {dropdown}
-        </button>
+        { developerMode && (
+          <button
+            type="button"
+            className="run-options"
+            onClick={() => setDropdownVisible(!dropdownVisible)}
+            onBlur={() => {
+              setDropdownVisible(false);
+              setEditorLoopDropdownVisible(false);
+            }}
+            style={{
+              background: dropdownBackground,
+            }}
+          >
+            &#8628;
+            {dropdown}
+          </button>
+        )}
       </div>
     </div>
   );
