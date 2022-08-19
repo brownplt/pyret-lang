@@ -101,7 +101,8 @@ export type Exports = {
     }
 
     function prettyIsh(v : any) : string {
-      return require('util').inspect(v, {depth:null});
+      return JSON.stringify(v);
+      // return require('util').inspect(v, {depth:null});
     }
 
     function sameOrigin(o1 : TS.NameOrigin, o2 : TS.NameOrigin) : boolean {
@@ -4313,7 +4314,7 @@ export type Exports = {
       }
       catch(e) {
         console.error("XXX Got a type-checking error", e);
-        LOG("YYY Got a type-checking error " + require('util').inspect(e, {depth:null}) + "\n");
+        // LOG("YYY Got a type-checking error " + require('util').inspect(e, {depth:null}) + "\n");
         // if (e instanceof TypeCheckFailure) {
         //   return CS.err.app(runtime.ffi.makeList(e.errs));
         // }
