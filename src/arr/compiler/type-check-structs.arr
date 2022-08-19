@@ -592,125 +592,145 @@ fun solve-helper-constraints(system :: ConstraintSystem, solution :: ConstraintS
                 shadow system = system.add-variable-set(list-to-tree-set(new-existentials))
                 solve-helper-constraints(system.add-constraint(subtype, b-onto), solution, context)
               | else =>
-                cases(Type) subtype:
-                  | t-name(a-module-name, a-id, a-loc, _) =>
-                    cases(Type) supertype:
-                      | t-name(b-module-name, b-id, b-loc, _) =>
-                        if (a-module-name == b-module-name) and (a-id == b-id):
-                          solve-helper-constraints(system, solution, context)
-                        else:
-                          fold-errors([list: C.type-mismatch(subtype, supertype)])
-                        end
-                      | else =>
-                        fold-errors([list: C.type-mismatch(subtype, supertype)])
-                    end
-                  | t-arrow(a-args, a-ret, a-loc, _) =>
-                    cases(Type) supertype:
-                      | t-arrow(b-args, b-ret, b-loc, _) =>
-                        if not(a-args.length() == b-args.length()):
-                          # TODO(MATT) mention argument length
-                          fold-errors([list: C.type-mismatch(subtype, supertype)])
-                        else:
-                          shadow system = foldr2(lam(shadow system, a-arg, b-arg):
-                            system.add-constraint(b-arg, a-arg)
-                          end, system.add-constraint(a-ret, b-ret), a-args, b-args)
-                          solve-helper-constraints(system, solution, context)
-                        end
-                      | else =>
-                        fold-errors([list: C.type-mismatch(subtype, supertype)])
-                    end
-                  | t-app(a-onto, a-args, a-loc, _) =>
-                    cases(Type) supertype:
-                      | t-app(b-onto, b-args, b-loc, _) =>
-                        if not(a-args.length() == b-args.length()):
-                          # TODO(MATT) mention argument length
-                          fold-errors([list: C.type-mismatch(subtype, supertype)])
-                        else:
-                          shadow system = foldr2(lam(shadow system, a-arg, b-arg):
-                            system.add-constraint(a-arg, b-arg)
-                          end, system.add-constraint(a-onto, b-onto), a-args, b-args)
-                          solve-helper-constraints(system, solution, context)
-                        end
-                      | else =>
-                        fold-errors([list: C.type-mismatch(subtype, supertype)])
-                    end
-                  | t-top(a-loc, _) =>
-                    cases(Type) supertype:
-                      | t-top(b-loc, _) =>
-                        solve-helper-constraints(system, solution, context)
-                      | else =>
-                        fold-errors([list: C.type-mismatch(subtype, supertype)])
-                    end
-                  | t-bot(a-loc, _) =>
-                    cases(Type) supertype:
-                      | t-bot(b-loc, _) =>
-                        solve-helper-constraints(system, solution, context)
-                      | else =>
-                        fold-errors([list: C.type-mismatch(subtype, supertype)])
-                    end
-                  | t-record(a-fields, a-loc, _) =>
-                    cases(Type) supertype:
-                      | t-record(b-fields, b-loc, _) =>
-                        foldr-fold-result(lam(b-key, shadow context, shadow system):
-                          cases(Option<Type>) a-fields.get(b-key):
-                            | some(a-field) =>
-                              b-field = b-fields.get-value(b-key)
-                              fold-result(system.add-constraint(a-field, b-field), context)
-                            | none =>
-                              # TODO(MATT): field missing error
-                              fold-errors([list: C.type-mismatch(subtype, supertype)])
+                if TS.is-t-record(supertype) and (TS.is-t-app(subtype) or TS.is-t-name(subtype)):
+                  instantiate-data-type(subtype, context).bind(lam(instantiated, shadow context):
+                    available-fields = instantiated.fields
+                    shadow system = for fold(s from some(system), f from supertype.fields.keys-list()):
+                      cases(Option) s:
+                        | none => none
+                        | some(shadow s) =>
+                          cases(Option) available-fields.get(f):
+                            | none => none
+                            | some(typ) => some(s.add-constraint(typ, supertype.fields.get-value(f)))
                           end
-                        end, b-fields.keys-list(), context, system).bind(lam(shadow system, shadow context):
-                          solve-helper-constraints(system, solution, context)
-                        end)
-                      | else =>
-                        fold-errors([list: C.type-mismatch(subtype, supertype)])
+                      end
                     end
-                  | t-tuple(a-elts, a-loc, _) =>
-                    cases(Type) supertype:
-                      | t-tuple(b-elts, b-loc, _) =>
-                        if not(a-elts.length() == b-elts.length()):
-                          # TODO(MATT): more specific error
+                    cases(Option) system:
+                      | none => fold-errors([list: C.type-mismatch(subtype, supertype)])
+                      | some(s) => solve-helper-constraints(s, solution, context)
+                    end
+                  end)
+                else:
+                  cases(Type) subtype:
+                    | t-name(a-module-name, a-id, a-loc, _) =>
+                      cases(Type) supertype:
+                        | t-name(b-module-name, b-id, b-loc, _) =>
+                          if (a-module-name == b-module-name) and (a-id == b-id):
+                            solve-helper-constraints(system, solution, context)
+                          else:
+                            fold-errors([list: C.type-mismatch(subtype, supertype)])
+                          end
+                        | else =>
                           fold-errors([list: C.type-mismatch(subtype, supertype)])
-                        else:
-                          shadow system = foldr2(lam(shadow system, a-elt, b-elt):
-                            system.add-constraint(a-elt, b-elt)
-                          end, system, a-elts, b-elts)
-                          solve-helper-constraints(system, solution, context)
-                        end
-                      | else =>
-                        fold-errors([list: C.type-mismatch(subtype, supertype)])
-                    end
-                  | t-forall(a-introduces, a-onto, a-loc, _) =>
-                    new-existentials = a-introduces.map(lam(variable): new-existential(variable.l, false) end)
-                    shadow a-onto = foldr2(lam(shadow a-onto, variable, exists):
-                      a-onto.substitute(exists, variable)
-                    end, a-onto, a-introduces, new-existentials)
-                    shadow system = system.add-variable-set(list-to-tree-set(new-existentials))
-                    solve-helper-constraints(system.add-constraint(a-onto, supertype), solution, context)
-                  | t-ref(a-typ, a-loc, _) =>
-                    cases(Type) supertype:
-                      | t-ref(b-typ, b-loc, _) =>
-                        solve-helper-constraints(system.add-constraint(a-typ, b-typ), solution, context)
-                      | else =>
-                        fold-errors([list: C.type-mismatch(subtype, supertype)])
-                    end
-                  | t-data-refinement(a-data-type, a-variant-name, a-loc, _) =>
-                    solve-helper-constraints(system.add-constraint(a-data-type, supertype), solution, context)
-                  | t-var(a-id, a-loc, _) =>
-                    cases(Type) supertype:
-                      | t-var(b-id, b-loc, _) =>
-                        if a-id == b-id:
-                          solve-helper-constraints(system, solution, context)
-                        else:
+                      end
+                    | t-arrow(a-args, a-ret, a-loc, _) =>
+                      cases(Type) supertype:
+                        | t-arrow(b-args, b-ret, b-loc, _) =>
+                          if not(a-args.length() == b-args.length()):
+                            # TODO(MATT) mention argument length
+                            fold-errors([list: C.type-mismatch(subtype, supertype)])
+                          else:
+                            shadow system = foldr2(lam(shadow system, a-arg, b-arg):
+                              system.add-constraint(b-arg, a-arg)
+                            end, system.add-constraint(a-ret, b-ret), a-args, b-args)
+                            solve-helper-constraints(system, solution, context)
+                          end
+                        | else =>
                           fold-errors([list: C.type-mismatch(subtype, supertype)])
-                        end
-                      | else =>
-                        fold-errors([list: C.type-mismatch(subtype, supertype)])
-                    end
-                  | t-existential(a-id, a-loc, _) =>
-                    shadow system = system.add-constraint(supertype, subtype)
-                    solve-helper-constraints(system, solution, context)
+                      end
+                    | t-app(a-onto, a-args, a-loc, _) =>
+                      cases(Type) supertype:
+                        | t-app(b-onto, b-args, b-loc, _) =>
+                          if not(a-args.length() == b-args.length()):
+                            # TODO(MATT) mention argument length
+                            fold-errors([list: C.type-mismatch(subtype, supertype)])
+                          else:
+                            shadow system = foldr2(lam(shadow system, a-arg, b-arg):
+                              system.add-constraint(a-arg, b-arg)
+                            end, system.add-constraint(a-onto, b-onto), a-args, b-args)
+                            solve-helper-constraints(system, solution, context)
+                          end
+                        | else =>
+                          fold-errors([list: C.type-mismatch(subtype, supertype)])
+                      end
+                    | t-top(a-loc, _) =>
+                      cases(Type) supertype:
+                        | t-top(b-loc, _) =>
+                          solve-helper-constraints(system, solution, context)
+                        | else =>
+                          fold-errors([list: C.type-mismatch(subtype, supertype)])
+                      end
+                    | t-bot(a-loc, _) =>
+                      cases(Type) supertype:
+                        | t-bot(b-loc, _) =>
+                          solve-helper-constraints(system, solution, context)
+                        | else =>
+                          fold-errors([list: C.type-mismatch(subtype, supertype)])
+                      end
+                    | t-record(a-fields, a-loc, _) =>
+                      cases(Type) supertype:
+                        | t-record(b-fields, b-loc, _) =>
+                          foldr-fold-result(lam(b-key, shadow context, shadow system):
+                            cases(Option<Type>) a-fields.get(b-key):
+                              | some(a-field) =>
+                                b-field = b-fields.get-value(b-key)
+                                fold-result(system.add-constraint(a-field, b-field), context)
+                              | none =>
+                                # TODO(MATT): field missing error
+                                fold-errors([list: C.type-mismatch(subtype, supertype)])
+                            end
+                          end, b-fields.keys-list(), context, system).bind(lam(shadow system, shadow context):
+                            solve-helper-constraints(system, solution, context)
+                          end)
+                        | else =>
+                          fold-errors([list: C.type-mismatch(subtype, supertype)])
+                      end
+                    | t-tuple(a-elts, a-loc, _) =>
+                      cases(Type) supertype:
+                        | t-tuple(b-elts, b-loc, _) =>
+                          if not(a-elts.length() == b-elts.length()):
+                            # TODO(MATT): more specific error
+                            fold-errors([list: C.type-mismatch(subtype, supertype)])
+                          else:
+                            shadow system = foldr2(lam(shadow system, a-elt, b-elt):
+                              system.add-constraint(a-elt, b-elt)
+                            end, system, a-elts, b-elts)
+                            solve-helper-constraints(system, solution, context)
+                          end
+                        | else =>
+                          fold-errors([list: C.type-mismatch(subtype, supertype)])
+                      end
+                    | t-forall(a-introduces, a-onto, a-loc, _) =>
+                      new-existentials = a-introduces.map(lam(variable): new-existential(variable.l, false) end)
+                      shadow a-onto = foldr2(lam(shadow a-onto, variable, exists):
+                        a-onto.substitute(exists, variable)
+                      end, a-onto, a-introduces, new-existentials)
+                      shadow system = system.add-variable-set(list-to-tree-set(new-existentials))
+                      solve-helper-constraints(system.add-constraint(a-onto, supertype), solution, context)
+                    | t-ref(a-typ, a-loc, _) =>
+                      cases(Type) supertype:
+                        | t-ref(b-typ, b-loc, _) =>
+                          solve-helper-constraints(system.add-constraint(a-typ, b-typ), solution, context)
+                        | else =>
+                          fold-errors([list: C.type-mismatch(subtype, supertype)])
+                      end
+                    | t-data-refinement(a-data-type, a-variant-name, a-loc, _) =>
+                      solve-helper-constraints(system.add-constraint(a-data-type, supertype), solution, context)
+                    | t-var(a-id, a-loc, _) =>
+                      cases(Type) supertype:
+                        | t-var(b-id, b-loc, _) =>
+                          if a-id == b-id:
+                            solve-helper-constraints(system, solution, context)
+                          else:
+                            fold-errors([list: C.type-mismatch(subtype, supertype)])
+                          end
+                        | else =>
+                          fold-errors([list: C.type-mismatch(subtype, supertype)])
+                      end
+                    | t-existential(a-id, a-loc, _) =>
+                      shadow system = system.add-constraint(supertype, subtype)
+                      solve-helper-constraints(system, solution, context)
+                  end
                 end
             end
           end
