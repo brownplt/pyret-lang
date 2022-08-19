@@ -1,5 +1,5 @@
 ##! type-mismatch
 include global
 check:
-  "a" is<=> {}
+  "a" is<=> 45
 end
