@@ -1221,7 +1221,6 @@ export type Exports = {
       const tempSolution = solveHelperConstraints(system, new ConstraintSolution(), context);
       const tempSubstitutions = new TypeSet(...[...tempSolution.substitutions.values()].map(({typeVar}) => typeVar));
       const newKeys = tempSubstitutions.difference(tempVariables);
-      console.log("Differenced: ", newKeys, tempSubstitutions, tempVariables);
       // TODO(Matt): make this more robust
       if (newKeys.size() > 0) { // || !tempSustem.refinementConstraints.size() > 0
         LOG(`newKeys: ${[...newKeys.values()].map(typeKey).join(',')}\n`);
