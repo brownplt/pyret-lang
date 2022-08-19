@@ -993,7 +993,7 @@ export type Exports = {
       const { constraints, variables } = system.curLevel();
       // NOTE(joe): Compared to type-check-structs.arr, here continue; is a recursive call
       while(constraints.length > 0) {
-        const { subtype, supertype } = constraints.pop();
+        const { subtype, supertype } = constraints.pop() as Constraint;
         if(supertype.$name === "t-top" || subtype.$name === "t-bot") {
           continue;
         }
@@ -1047,6 +1047,28 @@ export type Exports = {
             const newOnto = instantiateForallWithFreshVars(supertype, system, true);
             system.addConstraint(subtype, newOnto);
             continue;
+          }
+          case "t-record": {
+            switch(subtype.$name) {
+              case "t-app":
+              case "t-name": {
+                const instantiated = instantiateDataType(subtype, context);
+                const availableFields = mapFromStringDict(instantiated.dict.fields);
+                for (let [fieldName, fieldType] of mapFromStringDict(supertype.dict.fields)) {
+                  const fieldInDataType = availableFields.get(fieldName);
+                  if(fieldInDataType === undefined) {
+                    throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype)); 
+                  }
+                  system.addConstraint(fieldInDataType, fieldType);
+                }
+                continue;
+              }
+              default: {
+                // This deliberately falls through to the default: case for
+                // handling all other subtypes. continue here would be incorrect
+                // because we haven't made progress on this constraint
+              }
+            }
           }
           default: {
             switch(subtype.$name) {
