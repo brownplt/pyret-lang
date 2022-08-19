@@ -218,13 +218,16 @@ end
 fun type-check(program :: A.Program, compile-env :: C.CompileEnvironment, post-compile-env :: C.ComputedEnvironment, modules, options):
   cases(C.Pipeline) options.pipeline:
     | pipeline-ts-anchor(args) => 
-      if args.member("typecheck"): # Only use TS version if we enable it in pipeline
-        # Note: passing `options` in to TSTC so that it can use options.log for debug output
-        TSTC.type-check(program, compile-env, post-compile-env, modules, options)
-      else:
-        internal-type-check(program, compile-env, post-compile-env, modules)
-      end
-    | pipeline-anchor => internal-type-check(program, compile-env, post-compile-env, modules)
+      TSTC.type-check(program, compile-env, post-compile-env, modules, options)
+      #if args.member("typecheck"): # Only use TS version if we enable it in pipeline
+      #  # Note: passing `options` in to TSTC so that it can use options.log for debug output
+      #  TSTC.type-check(program, compile-env, post-compile-env, modules, options)
+      #else:
+      #  internal-type-check(program, compile-env, post-compile-env, modules)
+      #end
+    | pipeline-anchor =>
+      TSTC.type-check(program, compile-env, post-compile-env, modules, options)
+      # internal-type-check(program, compile-env, post-compile-env, modules)
   end
 end
 
