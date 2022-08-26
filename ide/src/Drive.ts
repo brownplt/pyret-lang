@@ -1,3 +1,6 @@
+import { ReadStream } from 'fs';
+import { GoogleDriveFile } from './state';
+
 const FOLDER_MIME = 'application/vnd.google-apps.folder';
 
 function loadScript(src : string) {
@@ -73,30 +76,44 @@ class GoogleAPI {
   }
   */
 
+  saveFile = async (file : GoogleDriveFile, newContents: ReadStream) => (window as any).gapi.client.drive.files.update({
+    fileId: file.id,
+    media: {
+      mimeType: file.mimeType,
+      body: newContents,
+    },
+  });
+
   getFileStructureFor = async (folderId : string) => {
-    async function recAccess(id : string) {
+    async function recAccess(fileInfo : any) {
       console.log(google);
       // (window as any).gapi.auth.setToken({ access_token: null });
       const filesAndFolders = await (window as any).gapi.client.drive.files.list({
         supportsAllDrives: true,
         includeItemsFromAllDrives: true,
-        q: `"${id}" in parents and not trashed`,
+        q: `"${fileInfo.id}" in parents and not trashed`,
         fields: 'files(id, name, mimeType, modifiedTime, modifiedByMeTime, webContentLink, iconLink, thumbnailLink)',
       });
       const files = filesAndFolders.result.files.filter((f : any) => f.mimeType !== FOLDER_MIME)
-        .map((f : any) => (window as any).gapi.client.drive.files.get({
-          fileId: f.id,
-          alt: 'media',
-        }));
+        .map(async (f : any) => {
+          const contents = await (window as any).gapi.client.drive.files.get({
+            fileId: f.id,
+            alt: 'media',
+          });
+          return { ...f, body: contents.body };
+        });
       const folders = filesAndFolders.result.files.filter((f : any) => f.mimeType === FOLDER_MIME);
       return {
-        id,
+        ...fileInfo,
         files: await Promise.all(files),
-        folders: await Promise.all(folders.map(async (f : any) => ({ ...f, ...(await recAccess(f.id)) }))),
+        folders: await Promise.all(folders.map(async (f : any) => ({ ...f, ...(await recAccess(f)) }))),
       };
     }
     await this.load();
-    return recAccess(folderId);
+    const folder = await (window as any).gapi.client.drive.files.get({
+      fileId: folderId,
+    });
+    return recAccess(folder.result);
   };
 }
 export default GoogleAPI;

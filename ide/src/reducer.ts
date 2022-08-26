@@ -4,12 +4,10 @@
    called in response to any Redux dispatch. The root reducer delegates to other
    reducers based off of what kind of action was passed in the dispatch.
 
-   Important: none of the functions here can perform side effects. This means
-   that they can't modify state directly---they have to return a modified copy.
-   It also means that side effects such as file saving should not be performed
-   here---those should be dealt with in store.ts. */
+ */
 
 import { Store } from 'redux';
+import { fs } from './browserfs-setup';
 import {
   EffectFailure,
   EffectSuccess,
@@ -32,6 +30,8 @@ import {
   State,
   initialState,
   Outdates,
+  GoogleDriveProjectStructure,
+  GoogleDriveFile,
 } from './state';
 
 import {
@@ -60,11 +60,11 @@ import {
   RTMessages,
 } from './rtMessages';
 
-import { fs } from './browserfs-setup';
 import * as path from './path';
 import { bfsSetup, makeServerAPI, CompileAndRunResult } from './control';
 import { getLocs } from './failure';
 import { RunKind } from './backend';
+import GoogleAPI from './Drive';
 
 // Dependency cycle between store and reducer because we dispatch from
 // runSession. Our solution is to inject the store into this global variable
@@ -456,6 +456,59 @@ function handleSetMenuTabVisible(state: State, tab: false | number) {
   }
 
   return { ...state, menuTabVisible: tab };
+}
+
+export function populateFromDrive(structure : GoogleDriveProjectStructure) {
+  function copyFile(base : string, file : GoogleDriveFile) {
+    const filePath = `${base}/${file.name}`;
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, file.body);
+    }
+  }
+  function recursiveCopy(base : string, dir: GoogleDriveProjectStructure) {
+    const dirPath = `${base}/${dir.name}/`;
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath);
+    }
+    dir.files.forEach((f) => copyFile(dirPath, f));
+    dir.folders.forEach((f) => recursiveCopy(dirPath, f));
+  }
+  const projectPath = `/google-drive/${structure.id}/`;
+  if (!fs.existsSync(projectPath)) {
+    fs.mkdirSync(projectPath, { recursive: true });
+  }
+  recursiveCopy(projectPath, structure);
+}
+
+function handleFileSync(state: State) : State {
+  const google = new GoogleAPI();
+  if (state.projectState.type !== 'gdrive') { return state; }
+
+  function checkAndSave(base : string, file : GoogleDriveFile) : GoogleDriveFile {
+    const filePath = `${base}/${file.name}`;
+    const stats = fs.statSync(filePath);
+    console.log(stats.mtime, new Date(stats.mtime), file.modifiedTime, new Date(file.modifiedTime));
+    if (new Date(stats.mtime) > new Date(file.modifiedTime)) {
+      console.log('Saving file', file.name, file.id);
+      const contents = fs.readFileSync(filePath);
+      google.saveFile(file, contents);
+      return { ...file, modifiedTime: stats.mtime, body: contents };
+    }
+    return file;
+  }
+  function recursiveCheckAndSave(base : string, dir: GoogleDriveProjectStructure) : GoogleDriveProjectStructure {
+    const dirPath = `${base}/${dir.name}/`;
+    const files = dir.files.map((f) => checkAndSave(dirPath, f));
+    const folders = dir.folders.map((f) => recursiveCheckAndSave(dirPath, f));
+    return { ...dir, files, folders };
+  }
+  const { structure } = state.projectState;
+
+  const projectPath = `/google-drive/${structure.id}/`;
+  const newStructure = recursiveCheckAndSave(projectPath, structure);
+
+  console.log('syncing files...', state.projectState);
+  return { ...state, projectState: { type: 'gdrive', structure: newStructure }};
 }
 
 function handleRTMessage(state: State, message: RawRTMessage): State {
@@ -881,6 +934,8 @@ function rootReducer(state: State, action: Action): State {
       return handleEffectEnded(state, action);
     case 'enqueueEffect':
       return handleEnqueueEffect(state, action);
+    case 'fileSync':
+      return handleFileSync(state);
     case 'run':
       if (action.key === 'runProgram') {
         return runProgramOrSegments(state, runProgramAsync, setupRunProgramAsync);

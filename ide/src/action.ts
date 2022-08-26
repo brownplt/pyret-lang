@@ -88,10 +88,13 @@ export type EffectStarted = { effect: number };
 
 export type EnqueueEffect = { effect: Effect };
 
+export type FileSync = { };
+
 export type Action =
   | { type: 'effectStarted' } & EffectStarted
   | { type: 'effectEnded' } & EffectEnded
   | { type: 'enqueueEffect' } & EnqueueEffect
+  | { type: 'fileSync' } & FileSync
   | { type: 'update' } & Update
   | { type: 'chunk' } & UIChunksUpdate
   | { type: 'undo' }

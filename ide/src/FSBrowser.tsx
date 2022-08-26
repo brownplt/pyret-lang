@@ -344,6 +344,23 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     }
     const editor = makeEditor();
 
+    let fsitems;
+    try  {
+      fsitems = control.fs
+        .readdirSync(this.browsePathString)
+        .map(this.createFSItemPair)
+        .sort(FSBrowser.compareFSItemPair)
+        .map((x: [string, FSItem]) => x[1]);
+    } catch (e) {
+      console.error('Could not find path: ', e);
+      return (
+        <span>
+          Could not find path
+          {this.browsePathString}
+        </span>
+      );
+    }
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -430,13 +447,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             selected={false}
           />
           )}
-          {
-                        control.fs
-                          .readdirSync(this.browsePathString)
-                          .map(this.createFSItemPair)
-                          .sort(FSBrowser.compareFSItemPair)
-                          .map((x: [string, FSItem]) => x[1])
-                    }
+          { fsitems }
         </div>
       </div>
     );

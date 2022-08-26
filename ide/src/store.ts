@@ -372,7 +372,6 @@ if (maybeEncodedProgram !== null) {
 }
 // Run `import cpo` at the very beginning to make first-time run more bearable
 {
-  store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
   const saveFile = '/tmp/include-cpo.arr';
   const programText = 'import cpo as __UNUSED_NAME';
   const { runKind } = store.getState();

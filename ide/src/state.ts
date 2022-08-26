@@ -34,10 +34,23 @@ export type RunningState =
   | { type: 'text' }
   | { type: 'segments', total: number, done: number };
 
+export type GoogleDriveFile = {
+  id: string,
+  name: string,
+  body: string,
+  mimeType: string,
+  modifiedTime: string,
+};
+export type GoogleDriveProjectStructure = {
+  id: string,
+  name: string,
+  files: GoogleDriveFile[],
+  folders: GoogleDriveProjectStructure[],
+};
 export type ProjectState =
   | { type: 'scratch' }
   | { type: 'gdrive-pending' }
-  | { type: 'gdrive' };
+  | { type: 'gdrive', structure: GoogleDriveProjectStructure };
 
 export type State = {
 

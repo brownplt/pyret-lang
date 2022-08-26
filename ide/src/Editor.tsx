@@ -36,6 +36,8 @@ import { NeverError } from './utils';
 import Chatitor from './Chatitor';
 import FailureComponent from './FailureComponent';
 import GoogleDrive from './Drive';
+import FileSync from './FileSync';
+import { populateFromDrive } from './reducer';
 
 type StateProps = {
   browseRoot: string,
@@ -75,6 +77,7 @@ type DispatchProps = {
   updateContents: (contents: string) => void,
   setEditorMode: (mode: EditorMode) => void,
   setMessageTabIndex: (index: number) => void,
+  loadFile: () => void,
 };
 
 function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchProps {
@@ -106,6 +109,9 @@ function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchP
         throw new Error(`Unknown message tab index: ${index}`);
       }
     },
+    loadFile() {
+      dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
+    },
   };
 }
 
@@ -125,12 +131,19 @@ class Editor extends React.Component<EditorProps, any> {
     if (folderId !== null) {
       this.props.update({
         projectState: { type: 'gdrive-pending' },
-        browsePath: '',
       });
       drive.getFileStructureFor(folderId)
         .then((structure) => {
-          this.props.update({ projectState: { type: 'gdrive' } });
+          populateFromDrive(structure);
+          this.props.update({
+            projectState: { type: 'gdrive', structure },
+            browsePath: `/google-drive/${folderId}/${structure.name}`,
+          });
+          this.props.loadFile();
+          console.log('Structure is: ', structure);
         });
+    } else {
+      this.props.loadFile();
     }
   }
 
@@ -174,8 +187,12 @@ class Editor extends React.Component<EditorProps, any> {
       messageTabIndex,
       setMessageTabIndex,
       editorMode,
+      projectState,
     } = this.props;
 
+    if (projectState.type === 'gdrive-pending') {
+      return <div>Loading from drive</div>;
+    }
     const interactionValues = (
       <RHS />
     );
@@ -254,6 +271,7 @@ class Editor extends React.Component<EditorProps, any> {
 
     return (
       <div className="page-container">
+        <FileSync />
         <Header>
           <div>
             <MenuBar />
