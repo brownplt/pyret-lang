@@ -12,8 +12,11 @@ export const configure = (worker: Worker /* , projectsDirectory: string */): voi
   BrowserFS.configure({
     fs: 'MountableFileSystem',
     options: {
-      '/projects': {
-        fs: 'LocalStorage',
+      '/projects/scratch': {
+        fs: 'InMemory',
+      },
+      '/projects/': {
+        fs: 'InMemory',
       },
       '/prewritten': {
         fs: 'InMemory',

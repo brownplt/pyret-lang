@@ -8,7 +8,7 @@ import { RTMessages } from './rtMessages';
 import * as control from './control';
 import { program } from './path';
 
-const DEVELOPER_MODE = false;
+const DEVELOPER_MODE = true;
 
 export type Outdates =
   // Applying *or undoing* this change technically invalidates this chunk. If a
@@ -34,6 +34,11 @@ export type RunningState =
   | { type: 'text' }
   | { type: 'segments', total: number, done: number };
 
+export type ProjectState =
+  | { type: 'scratch' }
+  | { type: 'gdrive-pending' }
+  | { type: 'gdrive' };
+
 export type State = {
 
   /* Since Redux doesn't handle side effects for us we need to keep a queue of
@@ -52,6 +57,9 @@ export type State = {
 
   /* The path to the current file. */
   currentFile: string,
+
+  /* If we are loading a project */
+  projectState: ProjectState,
 
   /* The contents of the current file, or `undefined` if the current file has
      not yet been loaded. */
@@ -179,6 +187,7 @@ export const initialState: State = {
   browsePath: '/projects',
   currentFile: program,
   currentFileContents: undefined,
+  projectState: { type: 'scratch' },
   typeCheck: true,
   rhs: {
     objects: [],

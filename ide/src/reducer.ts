@@ -529,7 +529,7 @@ export const serverAPI = makeServerAPI(
 
 function segmentName(file: string, id: string): string {
   const { base } = bfsSetup.path.parse(file);
-  return `/projects/${base}-${id}`;
+  return `/tmp/${base}-${id}`;
 }
 
 // Yeah... this is like O(n_chunks*n_references) and runs on every run result,
@@ -825,7 +825,8 @@ async function runSegmentsAsync(state : State) : Promise<any> {
     }));
   }
   filenames.forEach((f) => {
-    fs.unlinkSync(f);
+    //    fs.unlinkSync(f);
+    console.log(f);
   });
 }
 

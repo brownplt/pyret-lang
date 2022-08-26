@@ -37,26 +37,9 @@ import Chatitor from './Chatitor';
 import FailureComponent from './FailureComponent';
 import GoogleDrive from './Drive';
 
-/*
-function compileAndRun(name : string, source : string) : Promise<RunResult> {
-  const p1 = control.backend.compile(name, source, options...);
-  const p2 = p1.then((compileResult) => {
-    return control.backend.run(name);
-  });
-  return p2;
-}
-
-function editorWhenYouClickRun() {
-  const segments = getSegments();
-  for(let [name, source] of segments) {
-    const result = await compileAndRun(name, source);
-    updateReduxState(result);
-  }
-}
-*/
-
 type StateProps = {
   browseRoot: string,
+  browsePath: string,
   currentFileContents: undefined | string,
   definitionsHighlights: number[][],
   fontSize: number,
@@ -66,11 +49,13 @@ type StateProps = {
   chunks: Chunk[],
   compiling: boolean | 'out-of-date',
   messageTabIndex: MessageTabIndex,
+  projectState: State.ProjectState,
 };
 
 function mapStateToProps(state: State.State): StateProps {
   return {
     browseRoot: state.browseRoot,
+    browsePath: state.browsePath,
     currentFileContents: state.currentFileContents,
     definitionsHighlights: state.definitionsHighlights,
     fontSize: state.fontSize,
@@ -80,11 +65,13 @@ function mapStateToProps(state: State.State): StateProps {
     compiling: state.compiling,
     rtMessages: state.rtMessages,
     messageTabIndex: state.messageTabIndex,
+    projectState: state.projectState,
   };
 }
 
 type DispatchProps = {
   runProgram: () => void,
+  update: (kv : Partial<State.State>) => void,
   updateContents: (contents: string) => void,
   setEditorMode: (mode: EditorMode) => void,
   setMessageTabIndex: (index: number) => void,
@@ -93,6 +80,7 @@ type DispatchProps = {
 function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchProps {
   return {
     runProgram: () => dispatch({ type: 'run', key: 'runProgram' }),
+    update: (kv) => dispatch({ type: 'update', key: 'updater', value: (s : State.State) => ({ ...s, ...kv }) }),
     updateContents: (contents: string) => dispatch({
       type: 'update',
       key: 'currentFileContents',
@@ -128,6 +116,24 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type EditorProps = PropsFromRedux & DispatchProps & StateProps;
 
 class Editor extends React.Component<EditorProps, any> {
+  constructor(props : EditorProps) {
+    super(props);
+    const drive = new GoogleDrive();
+    const params = new URLSearchParams(window.location.search);
+    const folderId = params.get('folder');
+
+    if (folderId !== null) {
+      this.props.update({
+        projectState: { type: 'gdrive-pending' },
+        browsePath: '',
+      });
+      drive.getFileStructureFor(folderId)
+        .then((structure) => {
+          this.props.update({ projectState: { type: 'gdrive' } });
+        });
+    }
+  }
+
   makeDefinitions() {
     const {
       editorMode,
@@ -245,18 +251,6 @@ class Editor extends React.Component<EditorProps, any> {
         {rightHandSide}
       </SplitterLayout>
     );
-
-    const drive = new GoogleDrive();
-    const params = new URLSearchParams(window.location.search);
-    const folderId = params.get('folder');
-
-    if (folderId === null) {
-      console.log('No starting folder');
-    } else {
-      drive.getFileStructureFor(folderId)
-        .then((structure) => console.log(structure))
-        .catch((e) => console.error(e));
-    }
 
     return (
       <div className="page-container">

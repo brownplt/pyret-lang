@@ -83,11 +83,15 @@ class GoogleAPI {
         q: `"${id}" in parents and not trashed`,
         fields: 'files(id, name, mimeType, modifiedTime, modifiedByMeTime, webContentLink, iconLink, thumbnailLink)',
       });
-      const files = filesAndFolders.result.files.filter((f : any) => f.mimeType !== FOLDER_MIME);
+      const files = filesAndFolders.result.files.filter((f : any) => f.mimeType !== FOLDER_MIME)
+        .map((f : any) => (window as any).gapi.client.drive.files.get({
+          fileId: f.id,
+          alt: 'media',
+        }));
       const folders = filesAndFolders.result.files.filter((f : any) => f.mimeType === FOLDER_MIME);
       return {
         id,
-        files,
+        files: await Promise.all(files),
         folders: await Promise.all(folders.map(async (f : any) => ({ ...f, ...(await recAccess(f.id)) }))),
       };
     }
