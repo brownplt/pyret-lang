@@ -487,10 +487,9 @@ function handleFileSync(state: State) : State {
   function checkAndSave(base : string, file : GoogleDriveFile) : GoogleDriveFile {
     const filePath = `${base}/${file.name}`;
     const stats = fs.statSync(filePath);
-    console.log(stats.mtime, new Date(stats.mtime), file.modifiedTime, new Date(file.modifiedTime));
     if (new Date(stats.mtime) > new Date(file.modifiedTime)) {
       console.log('Saving file', file.name, file.id);
-      const contents = fs.readFileSync(filePath);
+      const contents = String(fs.readFileSync(filePath));
       google.saveFile(file, contents);
       return { ...file, modifiedTime: stats.mtime, body: contents };
     }
@@ -508,7 +507,7 @@ function handleFileSync(state: State) : State {
   const newStructure = recursiveCheckAndSave(projectPath, structure);
 
   console.log('syncing files...', state.projectState);
-  return { ...state, projectState: { type: 'gdrive', structure: newStructure }};
+  return { ...state, projectState: { type: 'gdrive', structure: newStructure } };
 }
 
 function handleRTMessage(state: State, message: RawRTMessage): State {
@@ -582,7 +581,7 @@ export const serverAPI = makeServerAPI(
 
 function segmentName(file: string, id: string): string {
   const { base } = bfsSetup.path.parse(file);
-  return `/tmp/${base}-${id}`;
+  return `${base}-${id}`;
 }
 
 // Yeah... this is like O(n_chunks*n_references) and runs on every run result,
@@ -878,7 +877,7 @@ async function runSegmentsAsync(state : State) : Promise<any> {
     }));
   }
   filenames.forEach((f) => {
-    //    fs.unlinkSync(f);
+    fs.unlinkSync(f);
     console.log(f);
   });
 }

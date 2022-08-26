@@ -1,4 +1,3 @@
-import { ReadStream } from 'fs';
 import { GoogleDriveFile } from './state';
 
 const FOLDER_MIME = 'application/vnd.google-apps.folder';
@@ -76,12 +75,13 @@ class GoogleAPI {
   }
   */
 
-  saveFile = async (file : GoogleDriveFile, newContents: ReadStream) => (window as any).gapi.client.drive.files.update({
-    fileId: file.id,
-    media: {
-      mimeType: file.mimeType,
-      body: newContents,
+  saveFile = async (file : GoogleDriveFile, newContents: string) => (window as any).gapi.client.request({
+    path: `/upload/drive/v3/files/${file.id}?uploadType=media`,
+    method: 'PATCH',
+    params: {
+      uploadType: 'media',
     },
+    body: newContents,
   });
 
   getFileStructureFor = async (folderId : string) => {
