@@ -75,6 +75,23 @@ export function setStore(theStore: Store<State, Action>) {
   store = theStore;
 }
 
+function update(value: (s: State) => State) {
+  store.dispatch({
+    type: 'update',
+    key: 'updater',
+    value,
+  });
+}
+
+function segmentName(file: string, id: string): string {
+  const { dir, base } = bfsSetup.path.parse(file);
+  return `${dir}/${base}-${id}-segment`;
+}
+
+function isSegmentName(file : string) {
+  return file.endsWith('-segment');
+}
+
 /* Tracks the state of side effects. This should only be called as a response to the
    dispatch in store.ts. */
 function handleEffectStarted(state: State, action: EffectStarted): State {
@@ -271,7 +288,7 @@ function handleSetCurrentFile(state: State, file: string): State {
   };
 }
 
-function handleSetChunks(state: State, update: ChunksUpdate): State {
+function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
   const { editorMode, isFileSaved } = state;
   if (editorMode !== EditorMode.Chatitor) {
     throw new Error('handleSetChunks: not in chunk mode');
@@ -283,41 +300,41 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
     firstOutdatedChunk,
   } = state;
 
-  if (isMultipleChunkUpdate(update)) {
+  if (isMultipleChunkUpdate(chunksUpdate)) {
     let contents = currentFileContents;
 
     let newOutdate = firstOutdatedChunk;
-    if (update.modifiesText) {
-      const firstDiffering = update.chunks
+    if (chunksUpdate.modifiesText) {
+      const firstDiffering = chunksUpdate.chunks
         .findIndex((c, i) => chunks[i]?.editor.getValue() !== c.editor.getValue());
       newOutdate = firstDiffering === -1
         ? firstOutdatedChunk
         : Math.min(firstOutdatedChunk, firstDiffering);
     }
 
-    if (update.modifiesText) {
-      contents = update.chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
+    if (chunksUpdate.modifiesText) {
+      contents = chunksUpdate.chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
     }
 
     return {
       ...state,
-      chunks: update.chunks,
+      chunks: chunksUpdate.chunks,
       currentFileContents: contents,
-      isFileSaved: isFileSaved && update.modifiesText === false,
+      isFileSaved: isFileSaved && chunksUpdate.modifiesText === false,
       firstOutdatedChunk: newOutdate,
     };
   }
 
-  if (isSingleChunkUpdate(update)) {
-    const chunkIdOrNeg1 = chunks.findIndex((c) => c.id === update.chunk.id);
+  if (isSingleChunkUpdate(chunksUpdate)) {
+    const chunkIdOrNeg1 = chunks.findIndex((c) => c.id === chunksUpdate.chunk.id);
     const chunkId = chunkIdOrNeg1 === -1 ? firstOutdatedChunk : chunkIdOrNeg1;
     const newChunks = chunks.map((chunk) => (
-      chunk.id === update.chunk.id ? update.chunk : chunk
+      chunk.id === chunksUpdate.chunk.id ? chunksUpdate.chunk : chunk
     ));
 
     let contents = currentFileContents;
 
-    if (update.modifiesText) {
+    if (chunksUpdate.modifiesText) {
       contents = newChunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
     }
 
@@ -325,12 +342,12 @@ function handleSetChunks(state: State, update: ChunksUpdate): State {
       ...state,
       chunks: newChunks,
       currentFileContents: contents,
-      isFileSaved: isFileSaved && update.modifiesText === false,
+      isFileSaved: isFileSaved && chunksUpdate.modifiesText === false,
       firstOutdatedChunk: Math.min(firstOutdatedChunk, chunkId),
     };
   }
 
-  throw new NeverError(update);
+  throw new NeverError(chunksUpdate);
 }
 
 function resolveOutdates(firstOutdatedChunk: number, outdates: Outdates): Outdates {
@@ -345,12 +362,12 @@ function resolveOutdates(firstOutdatedChunk: number, outdates: Outdates): Outdat
 
 // TODO(luna): outdating is done wrong. for example, delete the last chunk and
 // firstOutdatedChunk becomes 0, which is wrong(?)
-function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
+function handleUIChunkUpdate(state: State, chunksUpdate: UIChunksUpdate): State {
   const { chunks, past, firstOutdatedChunk } = state;
   let newChunks: Chunk[];
   let outdates: Outdates;
   let nowOutdated;
-  switch (update.key) {
+  switch (chunksUpdate.key) {
     case 'clear':
       newChunks = [emptyChunk({
         editor: { getValue() { return 'include cpo'; } },
@@ -360,26 +377,26 @@ function handleUIChunkUpdate(state: State, update: UIChunksUpdate): State {
       break;
     case 'delete':
       newChunks = [
-        ...chunks.slice(0, update.index),
-        ...chunks.slice(update.index + 1, chunks.length),
+        ...chunks.slice(0, chunksUpdate.index),
+        ...chunks.slice(chunksUpdate.index + 1, chunks.length),
       ];
-      outdates = { type: 'outdates', index: update.index };
+      outdates = { type: 'outdates', index: chunksUpdate.index };
       // If it's the last chunk, the result goes away and that's it
-      nowOutdated = update.index === chunks.length - 1 ? firstOutdatedChunk : update.index;
+      nowOutdated = chunksUpdate.index === chunks.length - 1 ? firstOutdatedChunk : chunksUpdate.index;
       break;
     case 'insert':
       newChunks = [
-        ...chunks.slice(0, update.index),
+        ...chunks.slice(0, chunksUpdate.index),
         emptyChunk({
-          editor: { getValue() { return update.text ?? ''; }, grabFocus: update.grabFocus },
+          editor: { getValue() { return chunksUpdate.text ?? ''; }, grabFocus: chunksUpdate.grabFocus },
         }),
-        ...chunks.slice(update.index, chunks.length),
+        ...chunks.slice(chunksUpdate.index, chunks.length),
       ];
-      outdates = { type: 'outdates', index: update.index };
-      nowOutdated = update.text ? update.index : firstOutdatedChunk;
+      outdates = { type: 'outdates', index: chunksUpdate.index };
+      nowOutdated = chunksUpdate.text ? chunksUpdate.index : firstOutdatedChunk;
       break;
     default:
-      throw new NeverError(update);
+      throw new NeverError(chunksUpdate);
   }
   const undo = {
     chunks,
@@ -484,6 +501,83 @@ function handleFileSync(state: State) : State {
   const google = new GoogleAPI();
   if (state.projectState.type !== 'gdrive') { return state; }
 
+  async function checkAndSaveFile(fsPath : string, filename : string, googDir : GoogleDriveProjectStructure) : Promise<GoogleDriveFile> {
+    const existingGoogleFile = googDir.files.filter((d) => d.name === filename);
+    console.log('Looking for google files: ', existingGoogleFile, fsPath, filename, googDir);
+    if (existingGoogleFile.length > 0) {
+      const filePath = `${fsPath}/${filename}`;
+      const stats = fs.statSync(filePath);
+      const [file] = existingGoogleFile;
+      if (new Date(stats.mtime) > new Date(file.modifiedTime)) {
+        const contents = String(fs.readFileSync(`${fsPath}/${filename}`));
+        google.saveFile(file, contents);
+        return { ...file, modifiedTime: stats.mtime, body: contents };
+      }
+      console.log('No change to ', fsPath, filename);
+      return file;
+    } else {
+      const contents = String(fs.readFileSync(`${fsPath}/${filename}`));
+      return google.createFile(filename, googDir.id, contents);
+    }
+  }
+
+  async function recursiveCheckAndSave(fsPath : string, googDir : GoogleDriveProjectStructure) : Promise<GoogleDriveProjectStructure> {
+    console.log('Visiting ', fsPath, googDir);
+    const inDirectory : string[] = fs.readdirSync(fsPath);
+    const updatedDirs = [];
+    const updatedFiles = [];
+    for (let i = 0; i < inDirectory.length; i += 1) {
+      const dirOrFile = inDirectory[i];
+      // eslint-disable-next-line
+      if (isSegmentName(dirOrFile)) { continue; }
+      const fullPath = `${fsPath}/${dirOrFile}`;
+      const stats = fs.statSync(fullPath);
+      if (stats.isDirectory()) {
+        const existingGoogleDir = googDir.folders.filter((d) => d.name === dirOrFile);
+        console.log('Syncing a directory', existingGoogleDir);
+        let dirToVisit;
+        if (existingGoogleDir.length > 0) {
+          [dirToVisit] = existingGoogleDir;
+        } else {
+          // eslint-disable-next-line
+          const newDir = await google.createDir(dirOrFile, googDir.id);
+          dirToVisit = { ...newDir, files: [], folders: [] };
+        }
+        // eslint-disable-next-line
+        const updatedDir = await recursiveCheckAndSave(fullPath, dirToVisit);
+        updatedDirs.push(updatedDir);
+      } else {
+        console.log('Syncing a file', fsPath, dirOrFile);
+        // eslint-disable-next-line
+        const updatedFile = await checkAndSaveFile(fsPath, dirOrFile, googDir);
+        updatedFiles.push(updatedFile);
+      }
+    }
+    return { ...googDir, files: updatedFiles, folders: updatedDirs };
+  }
+
+  const { structure } = state.projectState;
+  const projectPath = `/google-drive/${structure.id}/${structure.name}`;
+  const newStructure = recursiveCheckAndSave(projectPath, structure);
+  newStructure.then((updatedStructure) => {
+    update((s : State) => ({ ...s, projectState: { type: 'gdrive', structure: updatedStructure } }));
+    // Then, if this was the first-created file, make sure it pops up
+    if (structure.files.length === 0 && updatedStructure.files.length > 0) {
+      const filePath = `${projectPath}/${updatedStructure.files[0].name}`;
+      update((s : State) => ({ ...s, currentFile: filePath }));
+      store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
+    }
+  })
+    .catch((err) => {
+      console.error("Couldn't sync: ", err);
+    });
+  return state;
+}
+/*
+function handleFileSync(state: State) : State {
+  const google = new GoogleAPI();
+  if (state.projectState.type !== 'gdrive') { return state; }
+
   function checkAndSave(base : string, file : GoogleDriveFile) : GoogleDriveFile {
     const filePath = `${base}/${file.name}`;
     const stats = fs.statSync(filePath);
@@ -509,6 +603,7 @@ function handleFileSync(state: State) : State {
   console.log('syncing files...', state.projectState);
   return { ...state, projectState: { type: 'gdrive', structure: newStructure } };
 }
+*/
 
 function handleRTMessage(state: State, message: RawRTMessage): State {
   const {
@@ -578,11 +673,6 @@ export const serverAPI = makeServerAPI(
   (msg) => console.log('Server: ', msg),
   () => console.log('Setup finished from server API'),
 );
-
-function segmentName(file: string, id: string): string {
-  const { dir, base } = bfsSetup.path.parse(file);
-  return `${dir}/${base}-${id}`;
-}
 
 // Yeah... this is like O(n_chunks*n_references) and runs on every run result,
 // *and* it reconstructs every chunk, but it's very important to not mutate
@@ -701,14 +791,6 @@ function handleCompileSessionFailure(
     firstOutdatedChunk: Math.max(firstOutdatedChunk, chunkIndex + 1),
   };
 }
-
-const update = (value: (s: State) => State) => {
-  store.dispatch({
-    type: 'update',
-    key: 'updater',
-    value,
-  });
-};
 
 function handleCompileProgramFailure(state: State, errors: string[]) : State {
   const failures = errors.map((e) => JSON.parse(e));

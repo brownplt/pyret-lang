@@ -48,6 +48,7 @@ type StateProps = {
   interactionErrors: any[],
   rtMessages: RTMessages,
   editorMode: EditorMode,
+  menuTabVisible: false | number,
   chunks: Chunk[],
   compiling: boolean | 'out-of-date',
   messageTabIndex: MessageTabIndex,
@@ -63,6 +64,7 @@ function mapStateToProps(state: State.State): StateProps {
     fontSize: state.fontSize,
     interactionErrors: state.interactionErrors,
     editorMode: state.editorMode,
+    menuTabVisible: state.menuTabVisible,
     chunks: state.chunks,
     compiling: state.compiling,
     rtMessages: state.rtMessages,
@@ -140,9 +142,18 @@ class Editor extends React.Component<EditorProps, any> {
           this.props.update({
             projectState: { type: 'gdrive', structure },
             browsePath,
-            currentFile: `${browsePath}/${structure.files[0].name}`,
+            browseRoot: browsePath,
           });
-          this.props.loadFile();
+          if (structure.files.length > 0) {
+            this.props.update({
+              currentFile: `${browsePath}/${structure.files[0].name}`,
+            });
+            this.props.loadFile();
+          } else {
+            this.props.update({
+              menuTabVisible: 0, // Need to make this a better API (this is the files menu)
+            });
+          }
           console.log('Structure is: ', structure);
         });
     } else {
@@ -272,6 +283,13 @@ class Editor extends React.Component<EditorProps, any> {
       </SplitterLayout>
     );
 
+    let mainContent;
+    if (projectState.type === 'gdrive' && projectState.structure.files.length === 0) {
+      mainContent = <div>There are no files; use the Files menu to create one to get started.</div>;
+    } else {
+      mainContent = mainSplit;
+    }
+
     return (
       <div className="page-container">
         <FileSync />
@@ -283,7 +301,7 @@ class Editor extends React.Component<EditorProps, any> {
         </Header>
         <div className="code-container">
           <Menu />
-          {mainSplit}
+          {mainContent}
         </div>
         <Footer />
       </div>

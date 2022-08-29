@@ -75,6 +75,24 @@ class GoogleAPI {
   }
   */
 
+  createDir = async (name : string, parent : string) => (window as any).gapi.client.drive.files.create({
+    requestBody: {
+      name,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [parent],
+    },
+  });
+
+  createFile = async (name : string, parent : string, contents : string) => {
+    const created = await (window as any).gapi.client.drive.files.create({
+      name,
+      parents: [parent],
+    });
+    console.log('Craeted a file', created);
+    await this.saveFile(created.result, contents);
+    return { ...created.result, body: contents };
+  };
+
   saveFile = async (file : GoogleDriveFile, newContents: string) => (window as any).gapi.client.request({
     path: `/upload/drive/v3/files/${file.id}?uploadType=media`,
     method: 'PATCH',
