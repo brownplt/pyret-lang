@@ -580,8 +580,8 @@ export const serverAPI = makeServerAPI(
 );
 
 function segmentName(file: string, id: string): string {
-  const { base } = bfsSetup.path.parse(file);
-  return `${base}-${id}`;
+  const { dir, base } = bfsSetup.path.parse(file);
+  return `${dir}/${base}-${id}`;
 }
 
 // Yeah... this is like O(n_chunks*n_references) and runs on every run result,
