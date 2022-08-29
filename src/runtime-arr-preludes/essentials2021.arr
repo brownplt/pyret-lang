@@ -458,7 +458,7 @@ provide from E:
   # type Any,
   type Method,
   type Object,
-  type Function,
+#   type Function,
   type NumNonNegative,
   type NumNonPositive,
   type NumNegative,

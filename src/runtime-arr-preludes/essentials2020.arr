@@ -103,9 +103,9 @@ provide from global:
   #display,
   print-error,
   #display-error,
-  to-string as tostring,
   to-string,
-  to-repr as torepr,
+  to-string,
+  to-repr,
   to-repr,
   raise,
   not,
@@ -131,7 +131,7 @@ provide from global:
   type String,
   type Table,
   type Row,
-  type Function,
+#  type Function,
   type Boolean,
   type Object,
   type Method,
@@ -196,7 +196,6 @@ provide from number:
   num-is-rational,
   num-is-roughnum,
   num-expt,
-  num-to-string as num-tostring,
   num-to-string,
   num-to-string-digits,
   num-within,
@@ -205,6 +204,7 @@ provide from number:
   random,
 end
 
+
 provide from string:
   string-equal,
   string-contains,
@@ -212,13 +212,9 @@ provide from string:
   string-ends-with,
   string-append,
   string-length,
-  string-is-number as string-isnumber,
   string-is-number,
-  string-is-number as string-is-num,
   string-to-num,
-  string-to-num as string-tonumber,
   string-to-number,
-  string-to-number as string-to-num-opt,
   string-repeat,
   string-substring,
   string-replace,
@@ -286,3 +282,24 @@ provide from tables:
   is-table,
   is-row,
 end
+
+provide:
+  tostring,
+  torepr,
+  num-tostring,
+  string-isnumber,
+  string-is-num,
+  string-tonumber,
+  string-to-num-opt
+end
+
+# Due to a bug in how aliases are carried across, rename these "manually"
+tostring = global.to-string
+torepr = global.to-repr
+
+num-tostring = number.num-to-string
+
+string-isnumber = string.string-is-number
+string-is-num = string.string-is-number
+string-tonumber = string.string-to-num
+string-to-num-opt = string.string-to-number
