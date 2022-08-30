@@ -143,6 +143,9 @@ export type State = {
   /* Message to display at bottom of page */
   footerMessage: string,
 
+  /* Message to display next to the file/options menu */
+  headerMessage: string,
+
   /* Names of the menus. These appear in the top left of the page. */
   menuItems: MenuItems,
 
@@ -223,6 +226,7 @@ export const initialState: State = {
   compiling: false,
   running: { type: 'idle' },
   footerMessage: 'Setting up (run may be slow)',
+  headerMessage: '',
   chunks: [],
   past: [],
   future: [],

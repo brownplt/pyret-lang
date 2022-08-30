@@ -283,6 +283,12 @@ and overriding of rules. */
   background: darkgrey !important;
 }
 
+.loading {
+  height: 100%;
+  vertical-align: middle;
+  text-align: center;
+}
+
 .chat-layout-compact .insert-arrow {
   top: -0.5em;
 }

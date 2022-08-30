@@ -510,7 +510,8 @@ function handleFileSync(state: State) : State {
       const [file] = existingGoogleFile;
       if (new Date(stats.mtime) > new Date(file.modifiedTime)) {
         const contents = String(fs.readFileSync(`${fsPath}/${filename}`));
-        google.saveFile(file, contents);
+        // eslint-disable-next-line
+        await google.saveFile(file, contents);
         return { ...file, modifiedTime: stats.mtime, body: contents };
       }
       console.log('No change to ', fsPath, filename);
@@ -553,24 +554,30 @@ function handleFileSync(state: State) : State {
         updatedFiles.push(updatedFile);
       }
     }
+
     return { ...googDir, files: updatedFiles, folders: updatedDirs };
   }
 
   const { structure } = state.projectState;
   const projectPath = `/google-drive/${structure.id}/${structure.name}`;
   const newStructure = recursiveCheckAndSave(projectPath, structure);
-  newStructure.then((updatedStructure) => {
-    update((s : State) => ({ ...s, projectState: { type: 'gdrive', structure: updatedStructure } }));
-    // Then, if this was the first-created file, make sure it pops up
-    if (structure.files.length === 0 && updatedStructure.files.length > 0) {
-      const filePath = `${projectPath}/${updatedStructure.files[0].name}`;
-      update((s : State) => ({ ...s, currentFile: filePath }));
-      store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
-    }
-  })
-    .catch((err) => {
-      console.error("Couldn't sync: ", err);
-    });
+  setImmediate(() => {
+    update((s : State) => ({ ...s, headerMessage: 'Saving...' }));
+    newStructure.then((updatedStructure) => {
+      update((s : State) => ({ ...s, projectState: { type: 'gdrive', structure: updatedStructure } }));
+      update((s : State) => ({ ...s, headerMessage: 'Saved.' }));
+      // Then, if this was the first-created file, make sure it pops up
+      if (structure.files.length === 0 && updatedStructure.files.length > 0) {
+        const filePath = `${projectPath}/${updatedStructure.files[0].name}`;
+        update((s : State) => ({ ...s, currentFile: filePath }));
+        store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
+      }
+    })
+      .catch((err) => {
+        update((s : State) => ({ ...s, headerMessage: 'Could not save.' }));
+        console.error("Couldn't sync: ", err);
+      });
+  });
   return state;
 }
 /*

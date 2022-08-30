@@ -3,11 +3,15 @@ import { GoogleDriveFile } from './state';
 const FOLDER_MIME = 'application/vnd.google-apps.folder';
 
 function loadScript(src : string) {
-  const script = document.createElement('script');
-  script.src = src;
-  script.async = false; // We need to simulate the load order of CPO here, unfortunately
-  document.body.appendChild(script);
-  return script;
+  return new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = false; // We need to simulate the load order of CPO here, unfortunately
+    document.body.appendChild(script);
+    script.addEventListener('load', () => {
+      resolve(script);
+    });
+  });
 }
 
 let apiKey = 'API_KEY_UNINITIALIZED';
@@ -21,20 +25,16 @@ const google : Promise<any> = new Promise((resolve, reject) => {
     console.log('API Key response', response);
     apiKey = await response.text();
     (window as any).apiKey = apiKey;
-    loadScript('/js/localSettings.js');
+    await loadScript('/js/localSettings.js');
     (window as any).LOG_URL = false;
     (window as any).GIT_REV = false;
     (window as any).GIT_BRANCH = false;
-    loadScript('/js/log.js');
-    loadScript('/js/q.js');
-    loadScript('https://apis.google.com/js/client.js');
-    loadScript('https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js');
-    const apiWrapperScript = loadScript('/js/google-apis/api-wrapper.js');
-    console.log(`Found API key: ${apiKey}`);
-    apiWrapperScript.addEventListener('load', () => {
-      console.log('Loaded API wrapper script ', (window as any).gwrap);
-      resolve((window as any).gwrap);
-    });
+    await loadScript('/js/log.js');
+    await loadScript('/js/q.js');
+    await loadScript('https://apis.google.com/js/client.js');
+    await loadScript('https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js');
+    await loadScript('/js/google-apis/api-wrapper.js');
+    resolve((window as any).gwrap);
   }).catch((error) => {
     console.log(`No /apiKey endpoint, so assuming we are running locally ${error}`);
     reject(error);
@@ -75,15 +75,19 @@ class GoogleAPI {
   }
   */
 
-  createDir = async (name : string, parent : string) => (window as any).gapi.client.drive.files.create({
-    requestBody: {
-      name,
-      mimeType: 'application/vnd.google-apps.folder',
-      parents: [parent],
-    },
-  });
+  createDir = async (name : string, parent : string) => {
+    await this.load();
+    return (window as any).gapi.client.drive.files.create({
+      requestBody: {
+        name,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parent],
+      },
+    });
+  };
 
   createFile = async (name : string, parent : string, contents : string) => {
+    await this.load();
     const created = await (window as any).gapi.client.drive.files.create({
       name,
       parents: [parent],
@@ -93,14 +97,17 @@ class GoogleAPI {
     return { ...created.result, body: contents };
   };
 
-  saveFile = async (file : GoogleDriveFile, newContents: string) => (window as any).gapi.client.request({
-    path: `/upload/drive/v3/files/${file.id}?uploadType=media`,
-    method: 'PATCH',
-    params: {
-      uploadType: 'media',
-    },
-    body: newContents,
-  });
+  saveFile = async (file : GoogleDriveFile, newContents: string) => {
+    await this.load();
+    return (window as any).gapi.client.request({
+      path: `/upload/drive/v3/files/${file.id}?uploadType=media`,
+      method: 'PATCH',
+      params: {
+        uploadType: 'media',
+      },
+      body: newContents,
+    });
+  };
 
   getFileStructureFor = async (folderId : string) => {
     async function recAccess(fileInfo : any) {

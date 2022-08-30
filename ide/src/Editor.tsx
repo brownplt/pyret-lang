@@ -45,6 +45,7 @@ type StateProps = {
   currentFileContents: undefined | string,
   definitionsHighlights: number[][],
   fontSize: number,
+  headerMessage: string,
   interactionErrors: any[],
   rtMessages: RTMessages,
   editorMode: EditorMode,
@@ -62,6 +63,7 @@ function mapStateToProps(state: State.State): StateProps {
     currentFileContents: state.currentFileContents,
     definitionsHighlights: state.definitionsHighlights,
     fontSize: state.fontSize,
+    headerMessage: state.headerMessage,
     interactionErrors: state.interactionErrors,
     editorMode: state.editorMode,
     menuTabVisible: state.menuTabVisible,
@@ -196,6 +198,7 @@ class Editor extends React.Component<EditorProps, any> {
   render() {
     const {
       fontSize,
+      headerMessage,
       interactionErrors,
       rtMessages,
       messageTabIndex,
@@ -205,7 +208,7 @@ class Editor extends React.Component<EditorProps, any> {
     } = this.props;
 
     if (projectState.type === 'gdrive-pending') {
-      return <div>Loading from drive</div>;
+      return <div className="loading">Loading from Drive...</div>;
     }
     const interactionValues = (
       <RHS />
@@ -297,6 +300,7 @@ class Editor extends React.Component<EditorProps, any> {
           <div>
             <MenuBar />
           </div>
+          <span>{headerMessage}</span>
           <Run />
         </Header>
         <div className="code-container">
