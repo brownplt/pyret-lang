@@ -65,6 +65,7 @@ import { bfsSetup, makeServerAPI, CompileAndRunResult } from './control';
 import { getLocs } from './failure';
 import { RunKind } from './backend';
 import GoogleAPI from './Drive';
+import { resetAsyncCacheToBuiltins } from './runner';
 
 // Dependency cycle between store and reducer because we dispatch from
 // runSession. Our solution is to inject the store into this global variable
@@ -898,6 +899,12 @@ async function runSegmentsAsync(state : State) : Promise<any> {
       && chunks[chunks.length - 2] !== undefined
       && chunks[chunks.length - 2].results.status === 'succeeded';
   const filenames: string[] = [];
+  // If we are re-running the whole program, make sure to also re-run anything
+  // that's imported, etc. This reset function removes *everything* but the
+  // builtins from the cache, which is also a good eager GC thing to do.
+  if (!onlyLastSegmentChanged) {
+    resetAsyncCacheToBuiltins();
+  }
   console.log('RUNNING THESE CHUNKS:');
   chunks.forEach((c, i) => {
     const isLastSegment = (i === chunks.length - 1);

@@ -112,6 +112,12 @@ export function getAsyncRuntime() {
   return asyncCache[RUNTIME_PATH];
 }
 
+export const resetAsyncCacheToBuiltins = () => {
+  Object.keys(asyncCache).forEach((k) => {
+    if (!k.includes('/compiled/builtin')) { delete asyncCache[k]; }
+  });
+}
+
 export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((importPath: string) => Promise<any>
   ) => {
   const requireAsyncMain = (importPath: string) => new Promise(((resolve, reject) => {
