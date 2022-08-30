@@ -94,7 +94,7 @@ class GoogleAPI {
     });
     console.log('Craeted a file', created);
     await this.saveFile(created.result, contents);
-    return { ...created.result, body: contents };
+    return { ...created.result, body: contents, modifiedTime: new Date(Date.now()) };
   };
 
   saveFile = async (file : GoogleDriveFile, newContents: string) => {
