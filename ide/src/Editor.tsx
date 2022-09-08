@@ -140,7 +140,6 @@ class Editor extends React.Component<EditorProps, any> {
         .then((structure) => {
           populateFromDrive(structure);
           const browsePath = `/google-drive/${folderId}/${structure.name}`;
-          // TODO: Check that a file exists before doing the below
           this.props.update({
             projectState: { type: 'gdrive', structure },
             browsePath,
@@ -159,6 +158,12 @@ class Editor extends React.Component<EditorProps, any> {
           console.log('Structure is: ', structure);
         });
     } else {
+      this.props.update({
+        menuTabVisible: 0, // Need to make this a better API (this is the files menu)
+        browsePath: '/projects/',
+        browseRoot: '/projects/',
+        currentFile: '/projects/program.arr',
+      });
       this.props.loadFile();
     }
   }
