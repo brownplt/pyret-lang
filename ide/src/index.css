@@ -323,6 +323,8 @@ and overriding of rules. */
 
 .roughnum {
   color: #af1180;
+  height: 1.5em;
+  overflow: hidden;
 }
 
 .roughnum-start {

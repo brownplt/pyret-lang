@@ -10,10 +10,10 @@ export default function NumWidget({ v }: { v: any }) {
     return <span>{String(v)}</span>;
   } else if (jsnums.isRoughnum(v)) {
     return (
-      <span className="roughnum">
+      <div className="roughnum">
         <span className="roughnum-start">~</span>
         <span>{String(v).slice(1)}</span>
-      </span>
+      </div>
     );
   } else if (jsnums.isExact(v)) {
     const num = v.numerator();
