@@ -26,25 +26,6 @@ type Dispatch = (action: Action) => void;
    Stopify. Used for stopping the program when the user hits the "stop" button. */
 let currentRunner: any;
 
-function handleStartEditTimer(dispatch: Dispatch, editTimer: NodeJS.Timer | false) {
-  if (editTimer) {
-    clearTimeout(editTimer);
-  }
-
-  dispatch({
-    type: 'effectEnded',
-    status: 'succeeded',
-    effectKey: 'startEditTimer',
-    timer: setTimeout(() => {
-      dispatch({
-        type: 'effectEnded',
-        status: 'succeeded',
-        effectKey: 'editTimer',
-      });
-    }, 200),
-  });
-}
-
 function handleLoadFile(
   dispatch: Dispatch,
   currentFile: string,
@@ -167,13 +148,6 @@ function handleFirstActionableEffect(
     const effect = effectQueue[i];
 
     switch (effect.effectKey) {
-      case 'startEditTimer': {
-        const { editTimer } = state;
-        return {
-          effect: i,
-          applyEffect: () => handleStartEditTimer(dispatch, editTimer),
-        };
-      }
       case 'loadFile':
         {
           console.log('loadFile');

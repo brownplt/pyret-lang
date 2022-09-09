@@ -13,15 +13,11 @@ import { RawRTMessage } from './rtMessages';
 import * as control from './control';
 
 export type EffectFailure =
-  | { effectKey: 'startEditTimer' }
-  | { effectKey: 'editTimer' }
   | { effectKey: 'stop' }
   | { effectKey: 'loadFile' }
   | { effectKey: 'saveFile', error: Error };
 
 export type EffectSuccess =
-  | { effectKey: 'startEditTimer', timer: NodeJS.Timer }
-  | { effectKey: 'editTimer' }
   | { effectKey: 'stop', line: number }
   | { effectKey: 'loadFile' }
   | { effectKey: 'saveFile' };
