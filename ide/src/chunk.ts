@@ -55,11 +55,11 @@ function newId() {
    Arguments:
      options: A partial Chunk. Any keys not provide here will be
               filled with defaults. */
-export function emptyChunk(options?: Partial<Chunk>): Chunk {
+export function emptyChunk(options?: Partial<Chunk>, initialText: string = ''): Chunk {
   return {
     id: newId(),
     results: { status: 'succeeded', objects: [] },
-    editor: { getValue: () => '' },
+    editor: { getValue: () => initialText },
     outdated: true,
     referencedFrom: [],
     ...options,
