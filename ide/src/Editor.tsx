@@ -35,9 +35,7 @@ import Embeditor from './embeditor/Embeditor';
 import { NeverError } from './utils';
 import Chatitor from './Chatitor';
 import FailureComponent from './FailureComponent';
-import GoogleDrive from './Drive';
 import FileSync from './FileSync';
-import { populateFromDrive } from './reducer';
 
 type StateProps = {
   browseRoot: string,
@@ -126,43 +124,6 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type EditorProps = PropsFromRedux & DispatchProps & StateProps;
 
 class Editor extends React.Component<EditorProps, any> {
-  constructor(props : EditorProps) {
-    super(props);
-    const drive = new GoogleDrive();
-    const params = new URLSearchParams(window.location.search);
-    const folderId = params.get('folder');
-
-    if (folderId !== null) {
-      this.props.update({
-        projectState: { type: 'gdrive-pending' },
-      });
-      drive.getFileStructureFor(folderId)
-        .then((structure) => {
-          populateFromDrive(structure);
-          const browsePath = `/google-drive/${folderId}/${structure.name}`;
-          // TODO: Check that a file exists before doing the below
-          this.props.update({
-            projectState: { type: 'gdrive', structure },
-            browsePath,
-            browseRoot: browsePath,
-          });
-          if (structure.files.length > 0) {
-            this.props.update({
-              currentFile: `${browsePath}/${structure.files[0].name}`,
-            });
-            this.props.loadFile();
-          } else {
-            this.props.update({
-              menuTabVisible: 0, // Need to make this a better API (this is the files menu)
-            });
-          }
-          console.log('Structure is: ', structure);
-        });
-    } else {
-      this.props.loadFile();
-    }
-  }
-
   makeDefinitions() {
     const {
       editorMode,

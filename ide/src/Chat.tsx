@@ -45,6 +45,7 @@ type StateProps = {
   chunks: Chunk[],
   enterNewline: boolean,
   technicallyOutdated: boolean,
+  fontSize: number,
 };
 
 function mapStateToProps(state: State, ownProps: any): StateProps {
@@ -52,6 +53,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     chunks,
     enterNewline,
     firstOutdatedChunk,
+    fontSize,
   } = state;
 
   const {
@@ -64,6 +66,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     chunks,
     enterNewline,
     technicallyOutdated,
+    fontSize,
   };
 }
 
@@ -112,18 +115,22 @@ class Chat extends React.Component<ChatProps, any> {
   shouldComponentUpdate(newProps: ChatProps) {
     const n = newProps;
     const o = this.props;
-    if (n.enterNewline !== o.enterNewline) {
-      return true;
-    }
-    if (n.technicallyOutdated !== o.technicallyOutdated) {
-      return true;
-    }
+    if (n.enterNewline !== o.enterNewline) { return true; }
+    if (n.technicallyOutdated !== o.technicallyOutdated) { return true; }
+    if (n.fontSize !== o.fontSize) { return true; }
     const nChunk = n.chunks[n.index];
     const oChunk = o.chunks[o.index];
     if (nChunk !== oChunk) {
       return true;
     }
     return false;
+  }
+
+  componentDidUpdate(prevProps: Readonly<ChatProps>): void {
+    const { editor } = this.props.chunks[this.props.index];
+    if (this.props.fontSize !== prevProps.fontSize && isInitializedEditor(editor)) {
+      editor.refresh();
+    }
   }
 
   /* Called in response to an edit event, where `value` is the chunk's text

@@ -117,23 +117,6 @@ function handleEffectStarted(state: State, action: EffectStarted): State {
   }
 }
 
-function handleStartEditTimerSuccess(
-  state: State,
-  action: SuccessForEffect<'startEditTimer'>,
-): State {
-  return {
-    ...state,
-    editTimer: action.timer,
-  };
-}
-
-function handleEditTimerSuccess(state: State): State {
-  // NOTE(luna): Yeah you know i'm working around Redux's "reducers shouldn't
-  // dispatch" by wrapping it in a setTimeout, what's it to you, Redux is rude
-  setTimeout(() => store.dispatch({ type: 'run', key: 'runProgram' }), 0);
-  return state;
-}
-
 function handleStopSuccess(state: State, action: SuccessForEffect<'stop'>): State {
   console.log('stop successful, paused on line', action.line);
   return {
@@ -160,10 +143,6 @@ function handleSaveFileSuccess(state: State): State {
 
 function handleEffectSucceeded(state: State, action: EffectSuccess): State {
   switch (action.effectKey) {
-    case 'startEditTimer':
-      return handleStartEditTimerSuccess(state, action);
-    case 'editTimer':
-      return handleEditTimerSuccess(state);
     case 'stop':
       return handleStopSuccess(state, action);
     case 'loadFile':

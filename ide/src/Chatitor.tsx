@@ -6,14 +6,14 @@ import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import CodeMirror from 'codemirror';
 import { UnControlled } from 'react-codemirror2';
-import { Action, ChunksUpdate } from './action';
+import { Action } from './action';
 import {
   EditorLayout,
   RunningState,
   State,
 } from './state';
 import {
-  Chunk, emptyChunk, isInitializedEditor,
+  Chunk, isInitializedEditor,
 } from './chunk';
 import Chat from './Chat';
 import { CMEditor, enterShouldSend, isWrapFirst } from './utils';
@@ -27,7 +27,6 @@ type StateProps = {
 
 type DispatchProps = {
   run: () => void,
-  setChunks: (chunks: ChunksUpdate) => void,
   insertChunk: (index: number, text: string) => void,
   undo: () => void,
   redo: () => void,
@@ -54,9 +53,6 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     run() {
       dispatch({ type: 'run', key: 'runSegments' });
     },
-    setChunks(chunks: ChunksUpdate) {
-      dispatch({ type: 'update', key: 'chunks', value: chunks });
-    },
     undo() {
       dispatch({ type: 'undo' });
     },
@@ -80,7 +76,6 @@ function Chatitor({
   run,
   chunks,
   enterNewline,
-  setChunks,
   editorLayout,
   undo,
   redo,
@@ -119,31 +114,6 @@ function Chatitor({
   const enterNewlineRef = React.useRef(enterNewline);
   enterNewlineRef.current = enterNewline;
 
-  // Merge a contract followed by an examples block followed by a function
-  // definition. Assume contract and examples are at the end of chunks, and
-  // definition has not yet been added to the chunks (passed in a string)
-  // Returns true if a merge occured and the chat shouldn't be sent normally,
-  // false otherwise
-  function mergeDesignRecipe(definition: string): boolean {
-    if (chunksRef.current.length < 2) {
-      return false;
-    }
-    const contract = chunksRef.current[chunksRef.current.length - 2];
-    const examples = chunksRef.current[chunksRef.current.length - 1];
-    const split = (s: string) => s.trim().split(/[ \n]+/);
-    const tokens = (chunk: Chunk) => split(chunk.editor.getValue());
-    // An extremely awful way to parse Pyret syntax
-    const isDesignRecipe = tokens(contract)[1] === '::' && tokens(examples)[0] === 'examples:' && split(definition)[0] === 'fun';
-    if (isDesignRecipe) {
-      const newChunks = [
-        ...chunksRef.current.slice(0, -2),
-        emptyChunk({ editor: { getValue: () => `${contract.editor.getValue()}\n${examples.editor.getValue()}\n${definition}` } }),
-      ];
-      setChunks({ chunks: newChunks, modifiesText: true });
-    }
-    return isDesignRecipe;
-  }
-
   function setupChunk(chunk: Chunk, index: number) {
     return (
       <Chat
@@ -158,9 +128,7 @@ function Chatitor({
   function send(editor: CMEditor) {
     if (editor.getValue() !== '') {
       const value = editor.getValue();
-      if (!mergeDesignRecipe(value)) {
-        insertChunk(chunksRef.current.length, value);
-      }
+      insertChunk(chunksRef.current.length, value);
       editor.setValue('');
       run();
     }
@@ -250,9 +218,7 @@ function Chatitor({
               throw new Error('cannot send before editor mounts');
             }
             const value = mountedEditor.getValue();
-            if (!mergeDesignRecipe(value)) {
-              insertChunk(chunksRef.current.length, value);
-            }
+            insertChunk(chunksRef.current.length, value);
             mountedEditor.setValue('');
             run();
           }}

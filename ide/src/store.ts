@@ -1,7 +1,7 @@
 /* Handles side effects. */
 
 import { createStore } from 'redux';
-import ideApp, { setStore, serverAPI } from './reducer';
+import ideApp, { setStore, serverAPI, populateFromDrive } from './reducer';
 import { IDE } from './ide';
 import {
   EditorMode,
@@ -19,31 +19,13 @@ import * as control from './control';
 import { CHATITOR_SESSION, NeverError, TEXT_SESSION } from './utils';
 import { bfsSetup, fs } from './control';
 import * as ideRt from './ide-rt-override';
+import GoogleDrive from './Drive';
 
 type Dispatch = (action: Action) => void;
 
 /* Tracks the current runner of a running program that was compiled with
    Stopify. Used for stopping the program when the user hits the "stop" button. */
 let currentRunner: any;
-
-function handleStartEditTimer(dispatch: Dispatch, editTimer: NodeJS.Timer | false) {
-  if (editTimer) {
-    clearTimeout(editTimer);
-  }
-
-  dispatch({
-    type: 'effectEnded',
-    status: 'succeeded',
-    effectKey: 'startEditTimer',
-    timer: setTimeout(() => {
-      dispatch({
-        type: 'effectEnded',
-        status: 'succeeded',
-        effectKey: 'editTimer',
-      });
-    }, 200),
-  });
-}
 
 function handleLoadFile(
   dispatch: Dispatch,
@@ -167,13 +149,6 @@ function handleFirstActionableEffect(
     const effect = effectQueue[i];
 
     switch (effect.effectKey) {
-      case 'startEditTimer': {
-        const { editTimer } = state;
-        return {
-          effect: i,
-          applyEffect: () => handleStartEditTimer(dispatch, editTimer),
-        };
-      }
       case 'loadFile':
         {
           console.log('loadFile');
@@ -362,8 +337,51 @@ store.subscribe(() => {
 
 /* Try to load a Chunk mode program from the URI component ?program=uri-encoded-program */
 
-const maybeEncodedProgram: null | string = new URLSearchParams(window.location.search).get('program');
+const params = new URLSearchParams(window.location.search);
 
+const drive = new GoogleDrive();
+const folderId = params.get('folder');
+
+function update(kv : Partial<State>) {
+  store.dispatch({ type: 'update', key: 'updater', value: (s : State) => ({ ...s, ...kv }) });
+}
+
+if (folderId !== null) {
+  update({
+    projectState: { type: 'gdrive-pending' },
+  });
+  drive.getFileStructureFor(folderId)
+    .then((structure) => {
+      populateFromDrive(structure);
+      const browsePath = `/google-drive/${folderId}/${structure.name}`;
+      update({
+        projectState: { type: 'gdrive', structure },
+        browsePath,
+        browseRoot: browsePath,
+      });
+      if (structure.files.length > 0) {
+        update({
+          currentFile: `${browsePath}/${structure.files[0].name}`,
+        });
+        store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
+      } else {
+        update({
+          menuTabVisible: 0, // Need to make this a better API (this is the files menu)
+        });
+      }
+      console.log('Structure is: ', structure);
+    });
+} else {
+  update({
+    menuTabVisible: 0, // Need to make this a better API (this is the files menu)
+    browsePath: '/projects/',
+    browseRoot: '/projects/',
+    currentFile: '/projects/program.arr',
+  });
+  store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
+}
+
+const maybeEncodedProgram: null | string = params.get('program');
 if (maybeEncodedProgram !== null) {
   const decodedProgram = decodeURIComponent(maybeEncodedProgram);
   const chunks: Chunk[] = makeChunksFromString(decodedProgram);
