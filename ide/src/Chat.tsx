@@ -279,7 +279,7 @@ class Chat extends React.Component<ChatProps, any> {
     let chunkResultsPart = <></>;
     const chunk = chunks[index];
     const {
-      editor: chunkEditor, results, outdated, id, referencedFrom,
+      editor: chunkEditor, results, outdated, id,
     } = chunk;
     const isError = results.status === 'failed' && isInitializedEditor(chunkEditor);
 
@@ -393,21 +393,6 @@ class Chat extends React.Component<ChatProps, any> {
           <button title={addButtonTitle} className="text-button insert-arrow" onClick={() => this.insertAbove()} type="button">
             [+]
           </button>
-          {referencedFrom.map((from) => (
-            <button
-              onClick={() => {
-                const ed = chunks.find((c) => c.id === from)?.editor;
-                if (ed && isInitializedEditor(ed)) {
-                  ed.scrollIntoView({ line: 9999, ch: 999 });
-                }
-              }}
-              className="text-button referenced-by-error"
-              title="An error references this chat, click to focus"
-              type="button"
-            >
-              <span role="img" aria-label="reference">📨</span>
-            </button>
-          ))}
           { chunkEditorPart }
           { chunkResultsPart }
         </div>
