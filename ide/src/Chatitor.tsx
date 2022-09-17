@@ -144,6 +144,102 @@ function Chatitor({
   // to be in to look good
   const runWidth = running.type === 'segments' ? `${(100 * (running.done + 1)) / running.total}%` : '0%';
   const height = running.type === 'segments' ? '0.8em' : '0';
+  const prompt = (
+    <div className="prompt">
+      <UnControlled
+        className="new-expr"
+        options={{
+          mode: 'pyret',
+          theme: 'default',
+          lineWrapping: true,
+          autofocus: true,
+          extraKeys: { Tab: 'indentAuto' },
+        }}
+        editorDidMount={((editor: CMEditor) => {
+          editor.setSize(null, 'auto');
+          setEditor(editor);
+        }) as (editor: CodeMirror.Editor) => void}
+        onChange={((editor: CMEditor) => {
+          setIsEmpty(editor.getValue() === '');
+          setEnterSendRender(enterShouldSend(editor, enterNewlineRef.current));
+        }) as any}
+        onSelection={((
+          editor: CMEditor,
+          { ranges }: {ranges: [{head: CodeMirror.Position, anchor: CodeMirror.Position}]},
+        ) => {
+          setEnterSendRender(
+            enterShouldSend(editor, enterNewlineRef.current, undefined, ranges[0].head),
+          );
+        }) as any}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        onKeyDown={((editor: CMEditor, event: KeyboardEvent) => {
+          event.stopPropagation();
+          switch ((event as any).key) {
+            case 'Enter': {
+              if (enterShouldSend(editor, enterNewlineRef.current, event)) {
+                send(editor);
+                event.preventDefault();
+              }
+              break;
+            }
+            case 'ArrowUp': {
+              const pos = editor.getCursor();
+              if (pos.line === 0 && isWrapFirst(editor, pos)) {
+                const lastEditor = chunksRef.current[chunksRef.current.length - 1].editor;
+                if (isInitializedEditor(lastEditor)) {
+                  lastEditor.getInputField().focus();
+                }
+                event.preventDefault();
+              }
+              break;
+            }
+            case 'Escape':
+              editor.getInputField().blur();
+              break;
+            default:
+          }
+        }) as any}
+        autoCursor
+      />
+      <button
+        className="text-button send-button"
+        type="button"
+        onClick={() => {
+          if (mountedEditor === null) {
+            throw new Error('cannot send before editor mounts');
+          }
+          const value = mountedEditor.getValue();
+          insertChunk(chunksRef.current.length, value);
+          mountedEditor.setValue('');
+          run();
+        }}
+      >
+        ➤
+      </button>
+    </div>
+  );
+  const promptHint = (
+    <div style={{
+      width: '48em',
+      textAlign: 'right',
+      margin: '0.3em auto',
+      transition: isFocused ? 'opacity 0.2s 1s ease-in' : 'opacity 0.2s ease-in',
+      opacity: isFocused && !isEmpty ? '60%' : '0%',
+    }}
+    >
+      <span style={shiftEnterStyle}>Shift-Enter: new line</span>
+      <span style={tooltipStyle}>Ctrl-Enter: send</span>
+      <span style={{
+        ...tooltipStyle, display: 'inline-block', textAlign: 'left', width: '8.2em',
+      }}
+      >
+        Enter:
+        {' '}
+        {enterSendRender ? 'send' : 'new line'}
+      </span>
+    </div>
+  );
   return (
     <div className={`${layout} chatitor-container`}>
       <div className="progress-bar" style={{ width: runWidth, height }} />
@@ -152,98 +248,10 @@ function Chatitor({
           {allChunks}
           <div style={{ clear: 'both' }} />
         </div>
-      </div>
-      <div className="prompt">
-        <UnControlled
-          className="new-expr"
-          options={{
-            mode: 'pyret',
-            theme: 'default',
-            lineWrapping: true,
-            autofocus: true,
-            extraKeys: { Tab: 'indentAuto' },
-          }}
-          editorDidMount={((editor: CMEditor) => {
-            editor.setSize(null, 'auto');
-            setEditor(editor);
-          }) as (editor: CodeMirror.Editor) => void}
-          onChange={((editor: CMEditor) => {
-            setIsEmpty(editor.getValue() === '');
-            setEnterSendRender(enterShouldSend(editor, enterNewlineRef.current));
-          }) as any}
-          onSelection={((
-            editor: CMEditor,
-            { ranges }: {ranges: [{head: CodeMirror.Position, anchor: CodeMirror.Position}]},
-          ) => {
-            setEnterSendRender(
-              enterShouldSend(editor, enterNewlineRef.current, undefined, ranges[0].head),
-            );
-          }) as any}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          onKeyDown={((editor: CMEditor, event: KeyboardEvent) => {
-            event.stopPropagation();
-            switch ((event as any).key) {
-              case 'Enter': {
-                if (enterShouldSend(editor, enterNewlineRef.current, event)) {
-                  send(editor);
-                  event.preventDefault();
-                }
-                break;
-              }
-              case 'ArrowUp': {
-                const pos = editor.getCursor();
-                if (pos.line === 0 && isWrapFirst(editor, pos)) {
-                  const lastEditor = chunksRef.current[chunksRef.current.length - 1].editor;
-                  if (isInitializedEditor(lastEditor)) {
-                    lastEditor.getInputField().focus();
-                  }
-                  event.preventDefault();
-                }
-                break;
-              }
-              case 'Escape':
-                editor.getInputField().blur();
-                break;
-              default:
-            }
-          }) as any}
-          autoCursor
-        />
-        <button
-          className="text-button send-button"
-          type="button"
-          onClick={() => {
-            if (mountedEditor === null) {
-              throw new Error('cannot send before editor mounts');
-            }
-            const value = mountedEditor.getValue();
-            insertChunk(chunksRef.current.length, value);
-            mountedEditor.setValue('');
-            run();
-          }}
-        >
-          ➤
-        </button>
-      </div>
-      <div style={{
-        width: '48em',
-        textAlign: 'right',
-        margin: '0.3em auto',
-        transition: isFocused ? 'opacity 0.2s 1s ease-in' : 'opacity 0.2s ease-in',
-        opacity: isFocused && !isEmpty ? '60%' : '0%',
-      }}
-      >
-        <span style={shiftEnterStyle}>Shift-Enter: new line</span>
-        <span style={tooltipStyle}>Ctrl-Enter: send</span>
-        <span style={{
-          ...tooltipStyle, display: 'inline-block', textAlign: 'left', width: '8.2em',
-        }}
-        >
-          Enter:
-          {' '}
-          {enterSendRender ? 'send' : 'new line'}
-        </span>
+        <div style={{ marginBottom: '10em' }}>
+          { prompt }
+          { promptHint }
+        </div>
       </div>
     </div>
   );

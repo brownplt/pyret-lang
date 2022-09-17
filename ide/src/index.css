@@ -42,13 +42,12 @@ and overriding of rules. */
   width: 100%;
   overflow: auto;
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
 }
 
 .chat-layout-compact .chats,
 .chat-layout-normal .chats {
   margin: 2em auto;
-  flex-grow: 1;
 }
 
 .chat-layout-compact .chats {
