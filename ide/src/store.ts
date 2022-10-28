@@ -391,7 +391,7 @@ if (maybeEncodedProgram !== null) {
 // Run `import cpo` at the very beginning to make first-time run more bearable
 {
   const saveFile = '/tmp/include-cpo.arr';
-  const programText = 'import cpo as __UNUSED_NAME';
+  const programText = 'import essentials2021 as __UNUSED_NAME';
   const { runKind } = store.getState();
   // We aren't going to lock running, because we don't want any interface
   // changes that may continue to be associated with it as this happens "in the
