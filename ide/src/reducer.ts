@@ -435,6 +435,12 @@ function handleRedo(state: State): State {
   };
 }
 
+function handleReady(state: State) : State {
+  const { readyCallbacks } = state;
+  readyCallbacks.forEach((cb) => cb());
+  return { ...state, readyCallbacks: [] };
+}
+
 function handleSetFontSize(state: State, fontSize: number): State {
   return { ...state, fontSize };
 }
@@ -1028,6 +1034,8 @@ function rootReducer(state: State, action: Action): State {
       return handleUndo(state);
     case 'redo':
       return handleRedo(state);
+    case 'ready':
+      return handleReady(state);
     default:
       return state;
   }

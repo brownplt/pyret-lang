@@ -95,5 +95,6 @@ export type Action =
   | { type: 'chunk' } & UIChunksUpdate
   | { type: 'undo' }
   | { type: 'redo' }
+  | { type: 'ready' }
   | { type: 'run' } & Run
   | { type: 'stopSession' };

@@ -416,6 +416,7 @@ if (maybeEncodedProgram !== null) {
   }).then(() => {
     console.log('compiled and run `include cpo`');
     store.dispatch({ type: 'update', key: 'updater', value: (s: State) => ({ ...s, footerMessage: '' }) });
+    store.dispatch({ type: 'ready' });
   });
 }
 

@@ -143,6 +143,9 @@ export type State = {
   /* Message to display at bottom of page */
   footerMessage: string,
 
+  /* List of callbacks for when the page is ready */
+  readyCallbacks: (() => void)[],
+
   /* Message to display next to the file/options menu */
   headerMessage: string,
 
@@ -225,6 +228,7 @@ export const initialState: State = {
   isFileSaved: false,
   compiling: false,
   running: { type: 'idle' },
+  readyCallbacks: [],
   footerMessage: 'Setting up (run may be slow)',
   headerMessage: '',
   chunks: [],

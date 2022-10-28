@@ -8,6 +8,7 @@ import EmbedableEditor from './EmbedableEditor';
 import store from './store';
 import { emptyChunk } from './chunk';
 import { Action } from './action';
+import { State } from './state';
 
 export function startApp() {
   ReactDOM.render(<App />, document.getElementById('root'));
@@ -35,5 +36,12 @@ export function renderParley(container : HTMLElement) {
       store.dispatch(action);
     },
     run: () => store.dispatch({ type: 'run', key: 'runSegments' }),
+    onReady: (cb : () => void) => {
+      store.dispatch({
+        type: 'update',
+        key: 'updater',
+        value: (s : State) => ({ ...s, readyCallbacks: [cb].concat(s.readyCallbacks) }),
+      });
+    },
   };
 }
