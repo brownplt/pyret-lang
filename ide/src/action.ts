@@ -74,6 +74,7 @@ export type Update =
   // Run.tsx, almost certainly not read though
   | { key: 'editorResponseLoop', value: EditorResponseLoop }
   | { key: 'editorLoopDropdownVisible', value: boolean }
+  | { key: 'addReadyCallback', value: () => void }
   | { key: 'updater', value: (state : State) => State };
 
 export type Run =

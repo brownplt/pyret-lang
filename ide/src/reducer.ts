@@ -438,7 +438,7 @@ function handleRedo(state: State): State {
 function handleReady(state: State) : State {
   const { readyCallbacks } = state;
   readyCallbacks.forEach((cb) => cb());
-  return { ...state, readyCallbacks: [] };
+  return { ...state, readyCallbacks: [], ready: true };
 }
 
 function handleSetFontSize(state: State, fontSize: number): State {
@@ -621,6 +621,18 @@ function handleMessageIndexUpdate(state: State, newIndex: MessageTabIndex) {
   };
 }
 
+function handleAddReadyCallback(state : State, cb: () => void) {
+  if (state.ready) {
+    setImmediate(cb);
+    return state;
+  } else {
+    return {
+      ...state,
+      readyCallbacks: [cb].concat(state.readyCallbacks),
+    };
+  }
+}
+
 // TODO(alex): split editor UI updates to a separate function/file
 function handleUpdate(
   state: State,
@@ -655,6 +667,8 @@ function handleUpdate(
       return { ...state, editorResponseLoop: action.value };
     case 'editorLoopDropdownVisible':
       return { ...state, editorLoopDropdownVisible: action.value };
+    case 'addReadyCallback':
+      return handleAddReadyCallback(state, action.value);
     case 'updater':
       return action.value(state);
     default:

@@ -143,6 +143,9 @@ export type State = {
   /* Message to display at bottom of page */
   footerMessage: string,
 
+  /* Starts false, true once the user can click "Run" and have it start immediately */
+  ready: boolean,
+
   /* List of callbacks for when the page is ready */
   readyCallbacks: (() => void)[],
 
@@ -228,6 +231,7 @@ export const initialState: State = {
   isFileSaved: false,
   compiling: false,
   running: { type: 'idle' },
+  ready: false,
   readyCallbacks: [],
   footerMessage: 'Setting up (run may be slow)',
   headerMessage: '',
