@@ -53,7 +53,13 @@ var colorBlue = /* @stopify flat */ function (c) { return clamp(c.blue); }
 var colorAlpha = /* @stopify flat */ function (c) { return clamp(c.alpha); }
 
 var convertColor = /* @stopify flat */ function (c) {
-  if (typeof c === "string") { return colorDb.get(c); }
+  if (typeof c === "string") {
+    const result = colorDb.get(c);
+    if(result === undefined) {
+      throw new Error(`Color ${c} is not defined as a named color.`);
+    }
+    return colorDb.get(c);
+  }
   else { return c; }
 }
 
@@ -176,8 +182,11 @@ colorDb.put("DARK-MAGENTA", makeColor(139, 0, 139));
 colorDb.put("GHOST-WHITE", makeColor(248, 248, 255));
 colorDb.put("WHITE-SMOKE", makeColor(245, 245, 245));
 colorDb.put("LIGHT-GRAY", makeColor(211, 211, 211));
+colorDb.put("LIGHT-GREY", makeColor(211, 211, 211));
 colorDb.put("DARK-GRAY", makeColor(169, 169, 169));
+colorDb.put("DARK-GREY", makeColor(169, 169, 169));
 colorDb.put("DIM-GRAY", makeColor(105, 105, 105));
+colorDb.put("DIM-GREY", makeColor(105, 105, 105));
 
 colorDb.put("ORANGE", makeColor(255, 165, 0));
 colorDb.put("RED", makeColor(255, 0, 0));
@@ -305,9 +314,13 @@ colorDb.put("SKYBLUE", makeColor(135, 206, 235));
 colorDb.put("CADET BLUE", makeColor(96, 160, 160));
 colorDb.put("CADETBLUE", makeColor(95, 158, 160));
 colorDb.put("DARK SLATE GRAY", makeColor(47, 79, 79));
+colorDb.put("DARK SLATE GREY", makeColor(47, 79, 79));
 colorDb.put("DARKSLATEGRAY", makeColor(47, 79, 79));
+colorDb.put("DARKSLATEGREY", makeColor(47, 79, 79));
 colorDb.put("LIGHTSLATEGRAY", makeColor(119, 136, 153));
+colorDb.put("LIGHTSLATEGREY", makeColor(119, 136, 153));
 colorDb.put("SLATEGRAY", makeColor(112, 128, 144));
+colorDb.put("SLATEGREY", makeColor(112, 128, 144));
 colorDb.put("LIGHT STEEL BLUE", makeColor(176, 196, 222));
 colorDb.put("LIGHTSTEELBLUE", makeColor(176, 196, 222));
 colorDb.put("LIGHT BLUE", makeColor(173, 216, 230));
@@ -353,13 +366,20 @@ colorDb.put("WHITE", makeColor(255, 255, 255));
 colorDb.put("WHITESMOKE", makeColor(245, 245, 245));
 colorDb.put("GAINSBORO", makeColor(220, 220, 220));
 colorDb.put("LIGHT GRAY", makeColor(211, 211, 211));
+colorDb.put("LIGHT GREY", makeColor(211, 211, 211));
 colorDb.put("LIGHTGRAY", makeColor(211, 211, 211));
+colorDb.put("LIGHTGREY", makeColor(211, 211, 211));
 colorDb.put("SILVER", makeColor(192, 192, 192));
 colorDb.put("GRAY", makeColor(190, 190, 190));
 colorDb.put("DARK GRAY", makeColor(169, 169, 169));
 colorDb.put("DARKGRAY", makeColor(169, 169, 169));
 colorDb.put("DIM GRAY", makeColor(105, 105, 105));
 colorDb.put("DIMGRAY", makeColor(105, 105, 105));
+colorDb.put("GREY", makeColor(190, 190, 190));
+colorDb.put("DARK GREY", makeColor(169, 169, 169));
+colorDb.put("DARKGREY", makeColor(169, 169, 169));
+colorDb.put("DIM GREY", makeColor(105, 105, 105));
+colorDb.put("DIMGREY", makeColor(105, 105, 105));
 colorDb.put("BLACK", makeColor(0, 0, 0));
 colorDb.put("TRANSPARENT", makeColor(0, 0, 0, 0));
 

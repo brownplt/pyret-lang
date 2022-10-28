@@ -1,3 +1,5 @@
+#lang pyret
+
 provide *
 provide-types *
 
@@ -113,8 +115,11 @@ teal = color(0, 128, 128, 1)
 sky-blue = color(135, 206, 235, 1)
 cadet-blue = color(95, 158, 160, 1)
 dark-slate-gray = color(47, 79, 79, 1)
+dark-slate-grey = dark-slate-gray
 light-slate-gray = color(119, 136, 153, 1)
+light-slate-grey = light-slate-gray
 slate-gray = color(112, 128, 144, 1)
+slate-grey = slate-gray
 light-steel-blue = color(176, 196, 222, 1)
 light-blue = color(173, 216, 230, 1)
 powder-blue = color(176, 224, 230, 1)
@@ -149,9 +154,13 @@ white = color(255, 255, 255, 1)
 white-smoke = color(245, 245, 245, 1)
 gainsboro = color(220, 220, 220, 1)
 light-gray = color(211, 211, 211, 1)
+light-grey = light-gray
 silver = color(192, 192, 192, 1)
 gray = color(190, 190, 190, 1)
+grey = gray
 dark-gray = color(169, 169, 169, 1)
+dark-grey = dark-gray
 dim-gray = color(105, 105, 105, 1)
+dim-grey = dim-gray
 black = color(0, 0, 0, 1)
 transparent = color(0, 0, 0, 0)
