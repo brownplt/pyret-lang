@@ -331,3 +331,89 @@ and overriding of rules. */
   transform: rotate(-15deg) scaleY(3);
   margin-right: 0.125em;
 }
+
+.CodeMirror-matchingbracket {
+  position: relative;
+}
+
+.CodeMirror-matchingbracket::before {
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  border: 0px solid var(--matching-brackets);
+  z-index: 1000;
+}
+
+.CodeMirror-matchingbracket.open::before {
+  border-width: 0.3ex 0px 0px 0.3ex;
+  border-top-left-radius: 0.4ex;
+  margin: -0.3ex;
+}
+
+.CodeMirror-matchingbracket.close::before {
+  border-width: 0px 0.3ex 0.3ex 0px;
+  border-bottom-right-radius: 0.4ex;
+  margin: 0.3ex;
+}
+
+div.CodeMirror span.CodeMirror-matchingbracket-region {
+  position: relative;
+  background-color: var(--matching-region-bg);
+  border-top: 0.1em solid var(--matching-region-bg);
+  border-bottom: 0.1em solid var(--matching-region-bg);
+}
+
+div.CodeMirror span.CodeMirror-matchingbracket-region:last-of-type {
+    box-shadow: 0.5em 0 0.25em var(--matching-region-bg);
+}
+div.CodeMirror span.CodeMirror-matchingbracket-region:first-of-type {
+    box-shadow: -0.5em 0 0.25em var(--matching-region-bg);
+}
+div.CodeMirror span.CodeMirror-matchingbracket-region:first-of-type:last-of-type {
+    box-shadow: -0.5em 0 0.25em var(--matching-region-bg), 0.5em 0 0.25em var(--matching-region-bg);
+}
+div.CodeMirror span.CodeMirror-matchingbracket.open {
+  box-shadow: -0.3ex 0 0.3ex var(--matching-region-bg);
+}
+div.CodeMirror span.CodeMirror-matchingbracket.open:last-of-type {
+  box-shadow: 0.5em 0 0.25em var(--matching-region-bg), -0.3ex 0 0.3ex var(--matching-region-bg);
+}
+div.CodeMirror span.CodeMirror-matchingbracket.close {
+  box-shadow: 0.3ex 0 0.3ex var(--matching-region-bg);
+}
+div.CodeMirror span.CodeMirror-matchingbracket.close:first-of-type {
+  box-shadow: -0.5em 0 0.25em var(--matching-region-bg), 0.3ex 0 0.3ex var(--matching-region-bg);
+}
+
+/* bold ends of matching bracket regions (unless variables) */
+div.CodeMirror span.CodeMirror-matchingbracket:not(.cm-variable) {
+  font-weight: 600;
+  /* color: initial; */
+}
+
+/* ensure keywords, built-ins, & variables retain their color when
+  highlighted as matching brackets */
+div.CodeMirror span.CodeMirror-matchingbracket.cm-keyword {
+  color: var(--keyword);
+}
+div.CodeMirror span.CodeMirror-matchingbracket.cm-builtin {
+  color: var(--built-ins);
+}
+div.CodeMirror span.CodeMirror-matchingbracket.cm-variable {
+  color: var(--variables);
+}
+
+
+div.CodeMirror span.CodeMirror-nonmatchingbracket {
+  font-weight: bold;
+  background-color: var(--nonmatching-bg-2);
+  color: var(--nonmatching-brackets);
+}
+
+div.CodeMirror span.CodeMirror-nonmatchingbracket-region {
+  background-color: var(--nonmatching-bg);
+  border-top: 0.1em solid var(--nonmatching-bg-2);
+  border-bottom: 0.1em solid var(--nonmatching-bg-2);
+  z-index: 4000;
+}

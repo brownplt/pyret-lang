@@ -253,6 +253,9 @@ class Chat extends React.Component<ChatProps, any> {
 
     editor.setSize(null, 'auto');
 
+    editor.setOption('matchKeywords', true);
+    editor.setOption('matchBrackets', true);
+
     // Use value of ghost UninitializedEditor in real editor
     editor.setValue(initialEditor.getValue());
     if ('grabFocus' in initialEditor && initialEditor.grabFocus) {
