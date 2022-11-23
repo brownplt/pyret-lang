@@ -1,4 +1,14 @@
-#lang pyret
+#|
+This source file is programmatically read to generate AST visitors. Make sure
+to maintain the following:
+
+1. All AST nodes are annotated with type annotation
+2. All "built-in" annotations are either String, Boolean, Number, and Loc
+3. All atomic annotations are datatype defined in this file which contains
+   method visit
+4. Complex annotations are either List<...> or Option<...> where ... is either
+   a built-in annotation or atomic annotation
+|#
 
 provide *
 provide-types *
@@ -192,9 +202,18 @@ global-names = MakeName(0)
 
 data AppInfo:
   | app-info-c(is-recursive :: Boolean, is-tail :: Boolean)
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
+  end
 end
+
 data PrimAppInfo:
   | prim-app-info-c(needs-step :: Boolean)
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
+  end
 end
 
 fun funlam-tosource(funtype, name, params, args :: List<Bind>,
@@ -230,7 +249,7 @@ fun funlam-tosource(funtype, name, params, args :: List<Bind>,
     end
   docstr =
     if is-nothing(doc) or (doc == ""): PP.mt-doc
-    else: str-doc + PP.str(torepr(doc)) + PP.hardline
+    else: str-doc + PP.dquote(PP.str(doc)) + PP.hardline
     end
   PP.surround(INDENT, 1, header, docstr + body.tosource(), footer)
 end
@@ -350,6 +369,10 @@ data ProvidedValue:
     method tosource(self):
       PP.infix(INDENT, 1, str-coloncolon, PP.str(self.v.toname()), self.ann.tosource())
     end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
+  end
 end
 
 data ProvidedAlias:
@@ -360,6 +383,10 @@ data ProvidedAlias:
     method tosource(self):
       PP.infix(INDENT, 1, str-as, PP.str(self.in-name.toname()), PP.str(self.out-name.toname()))
     end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
+  end
 end
 
 data ProvidedDatatype:
@@ -370,6 +397,10 @@ data ProvidedDatatype:
     method tosource(self):
       PP.str(self.d.toname())
     end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
+  end
 end
 
 data Provide:
@@ -1159,7 +1190,7 @@ data Expr:
       bindings :: List<ForBind>,
       ann :: Ann,
       body :: Expr,
-      blocky
+      blocky :: Boolean
     ) with:
     method label(self): "s-for" end,
     method tosource(self):
@@ -1185,7 +1216,7 @@ data Expr:
             self.body.tosource(), str-end)
         | some(name) => PP.surround(INDENT, 1,
             if self.keyword-check: PP.str("check ") else: PP.str("examples ") end
-              + PP.str(torepr(name)) + str-colon,
+              + PP.dquote(PP.str(name)) + str-colon,
             self.body.tosource(), str-end)
       end
     end
@@ -1648,6 +1679,10 @@ data CasesBindType:
   | s-cases-bind-normal with:
     method label(self): "s-cases-bind-normal" end,
     method tosource(self): PP.mt-doc end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
+  end
 end
 
 data CasesBind:

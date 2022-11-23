@@ -9,6 +9,8 @@
 *.jarr
 !build/phase0/pyret.jarr
 
+# src/arr/trove/ast-visitors.arr
+
 playground/*
 
 # benchmark
