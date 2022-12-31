@@ -80,8 +80,12 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     return 0;
   }
 
+  nameInputRef: HTMLInputElement | null;
+
   constructor(props: FSBrowserProps) {
     super(props);
+
+    this.nameInputRef = null;
 
     this.state = {
       editType: undefined,
@@ -174,6 +178,11 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     } else {
       this.setState({
         editType: EditType.CreateFile,
+      }, () => {
+        const input = this.nameInputRef;
+        if (input) {
+          input.focus();
+        }
       });
     }
   };
@@ -190,6 +199,11 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     } else {
       this.setState({
         editType: EditType.CreateDirectory,
+      }, () => {
+        const input = this.nameInputRef;
+        if (input) {
+          input.focus();
+        }
       });
     }
   };
@@ -310,10 +324,10 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             }}
             >
               {editType === EditType.CreateFile ? (
-                <div>Name:</div>
+                <div>New file name:</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'row' }}>
-                  Name:
+                  New folder name:
                 </div>
               )}
             </pre>
@@ -325,6 +339,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
               }}
             >
               <input
+                ref={(input) => { that.nameInputRef = input; }}
                 type="text"
                 value={editValue}
                 onChange={that.onChange}
