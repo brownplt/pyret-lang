@@ -14,32 +14,43 @@ type FSItemProps = {
   selected: boolean;
 };
 
-type FSItemState = {};
+type FSItemState = { hover: boolean };
 
 export default class FSItem extends React.Component<FSItemProps, FSItemState> {
+  constructor(props: FSItemProps) {
+    super(props);
+    this.state = { hover: false };
+  }
+
   render() {
     const { path, selected, onClick } = this.props;
 
     const stats = control.fs.statSync(path);
 
+    const { hover } = this.state;
+
     const label = (() => {
       if (stats.isDirectory()) {
         return (
-          <Folder />
+          <Folder width="16" />
         );
       } if (stats.isFile()) {
         return (
-          <File />
+          <File width="16" />
         );
       }
       return '?';
     })();
 
-    const background = selected ? 'darkgray' : 'rgba(0, 0, 0, 0.3)';
+    let background = 'rgba(0, 0, 0, 0.3)';
+    if (selected) background = 'darkgray';
+    if (hover) background = 'rgba(0,0,0,0.5)';
 
     return (
       <button
         onClick={onClick}
+        onMouseEnter={() => this.setState({ hover: true })}
+        onMouseLeave={() => this.setState({ hover: false })}
         style={{
           background,
           border: 0,
@@ -54,11 +65,12 @@ export default class FSItem extends React.Component<FSItemProps, FSItemState> {
         <div style={{
           display: 'flex',
           flexDirection: 'row',
+          alignItems: 'center',
         }}
         >
           <div style={{
-            width: '1em',
-            paddingRight: '1em',
+            paddingLeft: '.4em',
+            paddingRight: '.6em',
           }}
           >
             {label}

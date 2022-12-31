@@ -135,7 +135,6 @@ button::-moz-focus-inner {
 .run-option-label {
     text-align: center;
     line-height: 3em;
-    font-family: sans-serif;
     font-size: 14px;
     padding-left: 1em;
     cursor: pointer;
@@ -174,8 +173,11 @@ button::-moz-focus-inner {
     background: #b30c00;
 }
 
-.run-option-disabled:hover, .run-queued:hover, .menu:hover, .menu-content-button:hover, .fs-browser-item:hover, .option:hover {
+.run-option-disabled:hover, .run-queued:hover, .menu:hover, .menu-content-button:hover, .option:hover {
     background: #979797;
+}
+.fs-browser-item:hover {
+    background: rgba(0,0,0,0.3);
 }
 
 .run-option-checkbox {
@@ -272,10 +274,10 @@ button::-moz-focus-inner {
     color: #fff;
 }
 
-.fs-browser-item {
+.fs-browser-item, .fs-browser-header {
     border: none;
     height: 2.7em;
-    background: rgba(0, 0, 0, 0.3);
+    background: darkgray;
     color: #fff;
     text-align: left;
     flex: none;

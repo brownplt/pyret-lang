@@ -365,7 +365,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div
-            className="fs-browser-item"
+            className="fs-browser-header"
             style={{
               display: 'flex',
               flexDirection: 'row',
@@ -412,7 +412,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                     display: 'none',
                   }}
                 />
-                <Upload />
+                <Upload width="20px" />
               </label>
               <button
                 className="fs-browser-item"
@@ -420,7 +420,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                 title="New file"
                 type="button"
               >
-                <FilePlus />
+                <FilePlus width="20px" />
               </button>
               <button
                 className="fs-browser-item"
@@ -428,7 +428,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                 title="New folder"
                 type="button"
               >
-                <FolderPlus />
+                <FolderPlus width="20px" />
               </button>
               {/* {!this.browsingRoot
                   && (
