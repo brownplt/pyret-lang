@@ -395,6 +395,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             >
               <label
                 className="fs-browser-item"
+                title="Upload file"
                 style={{
                   width: '2.3em',
                   height: '100%',
@@ -416,6 +417,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
               <button
                 className="fs-browser-item"
                 onClick={this.toggleEditFile}
+                title="New file"
                 type="button"
               >
                 <FilePlus />
@@ -423,6 +425,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
               <button
                 className="fs-browser-item"
                 onClick={this.toggleEditDirectory}
+                title="New folder"
                 type="button"
               >
                 <FolderPlus />
