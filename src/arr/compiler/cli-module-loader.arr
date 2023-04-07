@@ -13,6 +13,7 @@ import render-error-display as RED
 import file as F
 import filelib as FS
 import error as ERR
+import iolib as IO
 import system as SYS
 import file("js-ast.arr") as J
 import file("concat-lists.arr") as C
