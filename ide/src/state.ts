@@ -8,7 +8,7 @@ import { RTMessages } from './rtMessages';
 import * as control from './control';
 import { program } from './path';
 
-const DEVELOPER_MODE = false;
+const DEVELOPER_MODE = true;
 
 export type Outdates =
   // Applying *or undoing* this change technically invalidates this chunk. If a
@@ -197,6 +197,7 @@ export enum EditorMode {
   Text = 'Text',
   Embeditor = 'Embeditor',
   Chatitor = 'Chatitor',
+  Examplaritor = 'Examplaritor',
 }
 
 export enum EditorLayout {
