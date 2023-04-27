@@ -191,6 +191,7 @@ function handleEnqueueEffect(state: State, action: EnqueueEffect): State {
 function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
   switch (newEditorMode) {
     case EditorMode.Embeditor:
+    case EditorMode.Examplaritor:
     case EditorMode.Text: {
       // Ensure that currentFileContents is up-to-date with chunks
       const { chunks } = state;
@@ -270,7 +271,7 @@ function handleSetCurrentFile(state: State, file: string): State {
 
 function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
   const { editorMode, isFileSaved } = state;
-  if (editorMode !== EditorMode.Chatitor) {
+  if (editorMode !== EditorMode.Chatitor && editorMode !== EditorMode.Examplaritor) {
     throw new Error('handleSetChunks: not in chunk mode');
   }
 

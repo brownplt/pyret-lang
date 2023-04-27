@@ -36,6 +36,7 @@ function handleLoadFile(
 
   switch (editorMode) {
     case EditorMode.Embeditor:
+    case EditorMode.Examplaritor:
     case EditorMode.Text:
       dispatch({ type: 'update', key: 'currentFileContents', value: contents });
       break;
@@ -90,6 +91,7 @@ function handleSaveFile(
 
   switch (mode) {
     case EditorMode.Embeditor:
+    case EditorMode.Examplaritor:
     case EditorMode.Text:
       control.fs.writeFile(path, contents, saveCallback);
       break;
@@ -148,7 +150,10 @@ function handleFirstActionableEffect(
   for (let i = 0; i < effectQueue.length; i += 1) {
     const effect = effectQueue[i];
 
+    console.log('doing effect.effectKey ', effect.effectKey);
     switch (effect.effectKey) {
+      case 'startEditTimer':
+        break;
       case 'loadFile':
         {
           console.log('loadFile');
@@ -195,6 +200,7 @@ function handleFirstActionableEffect(
         };
       }
       default:
+        console.log('effect.effectKey is ', effect.effectKey);
         throw new Error('getFirstActionableEffect: unknown effect');
     }
   }

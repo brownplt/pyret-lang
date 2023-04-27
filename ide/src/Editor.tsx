@@ -34,6 +34,7 @@ import 'react-splitter-layout/lib/index.css';
 import Embeditor from './embeditor/Embeditor';
 import { NeverError } from './utils';
 import Chatitor from './Chatitor';
+import Examplaritor from './Examplaritor';
 import FailureComponent from './FailureComponent';
 import FileSync from './FileSync';
 
@@ -150,6 +151,10 @@ class Editor extends React.Component<EditorProps, any> {
             highlights={definitionsHighlights}
             run={run}
           />
+        );
+      case EditorMode.Examplaritor:
+        return (
+          <Examplaritor />
         );
       default:
         throw new NeverError(editorMode);
