@@ -76,8 +76,8 @@ type PropsFromReact = {
 };
 
 type DispatchProps = {
-  run: () => void,
-  runSession: () => void,
+  run: (editorMode: EditorMode) => void,
+  // runSession: () => void,
   stop: () => void,
   stopSession: () => void,
   setStopify: (stopify: boolean) => void,
@@ -89,8 +89,26 @@ type DispatchProps = {
 
 function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
   return {
-    run: () => dispatch({ type: 'run', key: 'runProgram' }),
-    runSession: () => dispatch({ type: 'run', key: 'runSegments' }),
+    run: (editorMode) => {
+      switch (editorMode) {
+        case EditorMode.Chatitor:
+          dispatch({ type: 'run', key: 'runSegments' });
+          break;
+        case EditorMode.Embeditor:
+        case EditorMode.Text:
+          dispatch({ type: 'run', key: 'runProgram' });
+          break;
+        case EditorMode.Examplaritor:
+          // shd be runExamplar
+          // runProgram to be more like Embeditor
+          // runSegments to be more like Chatitor
+          dispatch({ type: 'run', key: 'runSegments' });
+          break;
+        default:
+          break;
+      }
+    },
+    // runSession: () => dispatch({ type: 'run', key: 'runSegments' }),
     stop: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'stop' } }),
     stopSession: () => dispatch({ type: 'stopSession' }),
     setStopify: (stopify: boolean) => {
@@ -122,7 +140,7 @@ type Props = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
 
 function Run({
   run,
-  runSession,
+  // runSession,
   stop,
   stopSession,
   setStopify,
@@ -272,7 +290,7 @@ function Run({
           id="RunButton"
           className="run-ready"
           type="button"
-          onClick={editorMode === EditorMode.Chatitor ? runSession : run}
+          onClick={() => run(editorMode)}
           style={{
             background: buttonBackground,
           }}
