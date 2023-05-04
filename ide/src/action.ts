@@ -79,7 +79,8 @@ export type Update =
 
 export type Run =
   | { key: 'runProgram' }
-  | { key: 'runSegments' };
+  | { key: 'runSegments' }
+  | { key: 'runExamplar' };
 
 export type EffectStarted = { effect: number };
 

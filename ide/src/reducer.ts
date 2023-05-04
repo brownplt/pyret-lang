@@ -882,6 +882,40 @@ async function runProgramAsync(state: State) : Promise<void> {
   }
 }
 
+async function runExamplarAsync(state: State) : Promise<void> {
+  const {
+    typeCheck, runKind, currentFile, currentFileContents,
+  } = state;
+  // eslint-disable-next-line
+  const { dir, base } = bfsSetup.path.parse(currentFile);
+  // eslint-disable-next-line
+  const dirWheats = dir + '/wheats';
+  const wheats = fs.readdirSync(dirWheats);
+  // eslint-disable-next-line
+  const resultArray: any[] = [];
+  let result: any;
+  // eslint-disable-next-line
+  for (let i = 0; i < wheats.length; i++) {
+  // eslint-disable-next-line
+    fs.copyFileSync(dirWheats + '/' + wheats[i], dir + '/implementation.arr');
+    // eslint-disable-next-line
+    result = await runTextProgram(typeCheck, runKind, currentFile, currentFileContents ?? '');
+    if (result.type === 'compile-failure') {
+      // eslint-disable-next-line
+      update((s: State) => handleCompileProgramFailure(s, result.errors));
+      break;
+    } else if (result.type === 'run-failure') {
+      // eslint-disable-next-line
+      update((s: State) => handleRunProgramFailure(s, result.error));
+      break;
+    } else {
+      resultArray.push(result);
+    }
+    // console.log('did copyFileSync of', wheats[i]);
+  }
+  update((s: State) => handleRunProgramSuccess(s, resultArray[0].result));
+}
+
 function setupRunProgramAsync(state: State) : State {
   return { ...state, running: { type: 'text' } };
 }
@@ -1037,6 +1071,9 @@ function rootReducer(state: State, action: Action): State {
       }
       if (action.key === 'runSegments') {
         return runProgramOrSegments(state, runSegmentsAsync, setupRunSegmentsAsync);
+      }
+      if (action.key === 'runExamplar') {
+        return runProgramOrSegments(state, runExamplarAsync, setupRunProgramAsync);
       }
       throw new NeverError(action);
     case 'stopSession':
