@@ -900,6 +900,7 @@ async function runExamplarAsync(state: State) : Promise<void> {
   // eslint-disable-next-line
   const resultArray: any[] = [];
   let result: any;
+  let failed = false;
   // eslint-disable-next-line
   for (let i = 0; i < wheats.length; i++) {
     // eslint-disable-next-line
@@ -907,19 +908,22 @@ async function runExamplarAsync(state: State) : Promise<void> {
     // eslint-disable-next-line
     result = await runTextProgram(typeCheck, runKind, currentFile, currentFileContents ?? '');
     if (result.type === 'compile-failure') {
+      failed = true;
       // eslint-disable-next-line
       update((s: State) => handleCompileProgramFailure(s, result.errors));
       break;
     } else if (result.type === 'run-failure') {
+      failed = true;
       // eslint-disable-next-line
       update((s: State) => handleRunProgramFailure(s, result.error));
       break;
     } else {
       resultArray.push(result);
     }
-    // console.log('did copyFileSync of', wheats[i]);
   }
-  update((s: State) => handleRunProgramSuccess(s, resultArray[0].result));
+  if (!failed) {
+    update((s: State) => handleRunProgramSuccess(s, resultArray[0].result));
+  }
 }
 
 function setupRunProgramAsync(state: State) : State {
