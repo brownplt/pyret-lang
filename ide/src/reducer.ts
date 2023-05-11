@@ -882,6 +882,12 @@ async function runProgramAsync(state: State) : Promise<void> {
   }
 }
 
+function copyFileSync(src: string, dst: string) {
+  // (browser)fs doesn't have copyFileSync(). Simulate using {read,write}FileSync()
+  const data = fs.readFileSync(src);
+  fs.writeFileSync(dst, data);
+}
+
 async function runExamplarAsync(state: State) : Promise<void> {
   const {
     typeCheck, runKind, currentFile, currentFileContents,
@@ -896,8 +902,8 @@ async function runExamplarAsync(state: State) : Promise<void> {
   let result: any;
   // eslint-disable-next-line
   for (let i = 0; i < wheats.length; i++) {
-  // eslint-disable-next-line
-    fs.copyFileSync(dirWheats + '/' + wheats[i], dir + '/implementation.arr');
+    // eslint-disable-next-line
+    copyFileSync(dirWheats + '/' + wheats[i], dir + '/implementation.arr');
     // eslint-disable-next-line
     result = await runTextProgram(typeCheck, runKind, currentFile, currentFileContents ?? '');
     if (result.type === 'compile-failure') {
