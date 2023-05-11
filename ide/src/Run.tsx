@@ -102,7 +102,7 @@ function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
           // shd be runExamplar
           // runProgram to be more like Embeditor
           // runSegments to be more like Chatitor
-          dispatch({ type: 'run', key: 'runSegments' });
+          dispatch({ type: 'run', key: 'runExamplar' });
           break;
         default:
           break;
