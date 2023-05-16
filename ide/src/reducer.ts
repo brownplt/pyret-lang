@@ -896,13 +896,12 @@ async function runExamplarAsync(state: State) : Promise<void> {
   const { dir, base } = bfsSetup.path.parse(currentFile);
   // eslint-disable-next-line
   const dirWheats = dir + '/wheats';
-  const wheats = fs.readdirSync(dirWheats);
+  const wheats = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
   // eslint-disable-next-line
   const resultArray: any[] = [];
   let result: any;
   let failed = false;
-  // eslint-disable-next-line
-  for (let i = 0; i < wheats.length; i++) {
+  for (let i = 0; i < wheats.length; i += 1) {
     // eslint-disable-next-line
     copyFileSync(dirWheats + '/' + wheats[i], dir + '/implementation.arr');
     // eslint-disable-next-line
