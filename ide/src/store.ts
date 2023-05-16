@@ -152,8 +152,8 @@ function handleFirstActionableEffect(
 
     // console.log('doing effect.effectKey ', effect.effectKey);
     switch (effect.effectKey) {
-      case 'startEditTimer':
-        break;
+      // case 'startEditTimer':
+      //   break;
       case 'loadFile':
         {
           console.log('loadFile');
