@@ -151,9 +151,10 @@ function handleFirstActionableEffect(
     const effect = effectQueue[i];
 
     // console.log('doing effect.effectKey ', effect.effectKey);
+    // unfortunately, 'startEditTimer' shows up on random runs, so deal with it
     switch (effect.effectKey) {
-      // case 'startEditTimer':
-      //   break;
+      case 'startEditTimer':
+        break;
       case 'loadFile':
         {
           console.log('loadFile');
