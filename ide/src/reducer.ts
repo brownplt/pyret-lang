@@ -897,6 +897,8 @@ async function runExamplarAsync(state: State) : Promise<void> {
   // eslint-disable-next-line
   const dirWheats = dir + '/wheats';
   const wheats = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
+  // const dirChaffs = dir + '/chaffs';
+  // const chaffs = fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : [];
   // eslint-disable-next-line
   const resultArray: any[] = [];
   let result: any;
@@ -921,7 +923,7 @@ async function runExamplarAsync(state: State) : Promise<void> {
     }
   }
   if (!failed) {
-    update((s: State) => handleRunProgramSuccess(s, resultArray[0].result));
+    update((s: State) => handleRunProgramSuccess(s, resultArray.length > 0 ? resultArray[0].result : null));
   }
 }
 
