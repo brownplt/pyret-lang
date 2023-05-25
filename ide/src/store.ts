@@ -36,10 +36,10 @@ function handleLoadFile(
 
   switch (editorMode) {
     case EditorMode.Embeditor:
-    case EditorMode.Examplaritor:
     case EditorMode.Text:
       dispatch({ type: 'update', key: 'currentFileContents', value: contents });
       break;
+    case EditorMode.Examplaritor:
     case EditorMode.Chatitor: {
       const chunks = makeChunksFromString(contents);
 

@@ -47,6 +47,9 @@ function Footer({ footerMessage, running }: FooterProps) {
     case 'text':
       runMessage = 'Running';
       break;
+    case 'examplar':
+      runMessage = 'Running';
+      break;
     default:
       throw new NeverError(running);
   }

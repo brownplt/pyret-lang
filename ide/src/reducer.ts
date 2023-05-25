@@ -725,7 +725,7 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
   };
 }
 
-function handleRunSessionFailure(state: State, id: string, error: string, errorVal: any) {
+function handleRunSessionFailure(state: State, id: string, error: string, errorVal: any) : State {
   // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
   //   resulting in a severe memory leak of 50+MB PER RUN
   cleanStopify();
@@ -819,7 +819,7 @@ function handleCompileProgramFailure(state: State, errors: string[]) : State {
   };
 }
 
-function handleRunProgramFailure(state: State, error: string) {
+function handleRunProgramFailure(state: State, error: string) : State {
   // TODO(joe): get source locations from dynamic errors (source map, etc)
   return {
     ...state,
@@ -830,7 +830,7 @@ function handleRunProgramFailure(state: State, error: string) {
   };
 }
 
-function handleRunProgramSuccess(state : State, result : any) {
+function handleRunProgramSuccess(state : State, result : any) : State {
   const rhs = makeRHSObjects(result, `file://${state.currentFile}`);
   return {
     ...state,
@@ -882,32 +882,51 @@ async function runProgramAsync(state: State) : Promise<void> {
   }
 }
 
-function copyFileSync(src: string, dst: string) {
-  // (browser)fs doesn't have copyFileSync(). Simulate using {read,write}FileSync()
-  const data = fs.readFileSync(src);
-  fs.writeFileSync(dst, data);
-}
+async function runExamplarAsync(state: State) : Promise<any> {
+  // currentFile is just the standard program.arr, we'll use it to get at
+  // our relevant files
+  const { typeCheck, runKind, currentFile } = state;
+  const { dir } = bfsSetup.path.parse(currentFile);
+  // eslint-disable-next-line
+  const dirChaffs: string = dir + '/chaffs';
+  // eslint-disable-next-line
+  const dirWheats: string = dir + '/wheats';
+  // eslint-disable-next-line
+  const testFile: string = dir + '/test.arr';
+  // eslint-disable-next-line
+  const testbedFile: string = dir + '/testbed.arr';
+  if (fs.existsSync(testbedFile)) {
+    fs.unlinkSync(testbedFile);
+  }
+  const wheatFiles: string[] = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
+  const chaffFiles: string[] = fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : [];
 
-async function runExamplarAsync(state: State) : Promise<void> {
-  const {
-    typeCheck, runKind, currentFile, currentFileContents,
-  } = state;
-  // eslint-disable-next-line
-  const { dir, base } = bfsSetup.path.parse(currentFile);
-  // eslint-disable-next-line
-  const dirWheats = dir + '/wheats';
-  const wheats = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
-  // const dirChaffs = dir + '/chaffs';
-  // const chaffs = fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : [];
-  // eslint-disable-next-line
+  const implFiles: string[] = [];
+  for (let i: number = 0; i < wheatFiles.length; i += 1) {
+    // eslint-disable-next-line
+    implFiles.push(dirWheats + '/' + wheatFiles[i]);
+  }
+  for (let i: number = 0; i < chaffFiles.length; i += 1) {
+    // eslint-disable-next-line
+    implFiles.push(dirChaffs + '/' + chaffFiles[i]);
+  }
+
+  const numPrograms: number = implFiles.length;
+
+  // test if numPrograms > 0 and testFile exists
+
   const resultArray: any[] = [];
   let result: any;
-  let failed = false;
-  for (let i = 0; i < wheats.length; i += 1) {
+  let failed: boolean = false;
+  const checkBlock = String(fs.readFileSync(testFile));
+  for (let i = 0; i < numPrograms; i += 1) {
+    const sampleImpl = String(fs.readFileSync(implFiles[i]));
     // eslint-disable-next-line
-    copyFileSync(dirWheats + '/' + wheats[i], dir + '/implementation.arr');
+    const testProgram = sampleImpl + '\n' + checkBlock + '\n';
     // eslint-disable-next-line
-    result = await runTextProgram(typeCheck, runKind, currentFile, currentFileContents ?? '');
+    const testProgramFile = segmentName(testbedFile, Number(i).toString()) + '.arr';
+    // eslint-disable-next-line
+    result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
     if (result.type === 'compile-failure') {
       failed = true;
       // eslint-disable-next-line
@@ -929,6 +948,12 @@ async function runExamplarAsync(state: State) : Promise<void> {
 
 function setupRunProgramAsync(state: State) : State {
   return { ...state, running: { type: 'text' } };
+}
+
+function setupRunExamplarAsync(s: State) : State {
+  const { chunks } = s;
+  const count = chunks.length;
+  return { ...s, running: { type: 'examplar', total: count, done: 0 } };
 }
 
 let stopFlag = false;
@@ -1084,7 +1109,7 @@ function rootReducer(state: State, action: Action): State {
         return runProgramOrSegments(state, runSegmentsAsync, setupRunSegmentsAsync);
       }
       if (action.key === 'runExamplar') {
-        return runProgramOrSegments(state, runExamplarAsync, setupRunProgramAsync);
+        return runProgramOrSegments(state, runExamplarAsync, setupRunExamplarAsync);
       }
       throw new NeverError(action);
     case 'stopSession':
