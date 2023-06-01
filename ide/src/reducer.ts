@@ -746,6 +746,15 @@ function handleRunSessionFailure(state: State, id: string, error: string, errorV
   };
 }
 
+function handleRunExamplarFailure(state: State, error: string) : State {
+  return {
+    ...state,
+    interactionErrors: [error],
+    definitionsHighlights: [],
+    messageTabIndex: MessageTabIndex.ErrorMessages,
+  };
+}
+
 function handleCompileSessionFailure(
   state: State,
   id: string,
@@ -819,6 +828,15 @@ function handleCompileProgramFailure(state: State, errors: string[]) : State {
   };
 }
 
+function handleCompileExamplarFailure(state: State, errors: string[]) : State {
+  return {
+    ...state,
+    interactionErrors: errors,
+    definitionsHighlights: [],
+    messageTabIndex: MessageTabIndex.ErrorMessages,
+  };
+}
+
 function handleRunProgramFailure(state: State, error: string) : State {
   // TODO(joe): get source locations from dynamic errors (source map, etc)
   return {
@@ -832,6 +850,22 @@ function handleRunProgramFailure(state: State, error: string) : State {
 
 function handleRunProgramSuccess(state : State, result : any) : State {
   const rhs = makeRHSObjects(result, `file://${state.currentFile}`);
+  return {
+    ...state,
+    interactionErrors: [],
+    definitionsHighlights: [],
+    rhs: {
+      objects: rhs,
+      outdated: false,
+    },
+    messageTabIndex: MessageTabIndex.RuntimeMessages,
+  };
+}
+
+function handleRunExamplarSuccess(state: State, result: any) : State {
+  // console.log('doing handleRunExamplarSuccess', state.currentFile);
+  const rhs = makeRHSObjects(result, `file://${state.currentFile}`);
+  cleanStopify();
   return {
     ...state,
     interactionErrors: [],
@@ -930,19 +964,19 @@ async function runExamplarAsync(state: State) : Promise<any> {
     if (result.type === 'compile-failure') {
       failed = true;
       // eslint-disable-next-line
-      update((s: State) => handleCompileProgramFailure(s, result.errors));
+      update((s: State) => handleCompileExamplarFailure(s, result.errors));
       break;
     } else if (result.type === 'run-failure') {
       failed = true;
       // eslint-disable-next-line
-      update((s: State) => handleRunProgramFailure(s, result.error));
+      update((s: State) => handleRunExamplarFailure(s, result.error));
       break;
     } else {
       resultArray.push(result);
     }
   }
   if (!failed) {
-    update((s: State) => handleRunProgramSuccess(s, resultArray.length > 0 ? resultArray[0].result : null));
+    update((s: State) => handleRunExamplarSuccess(s, resultArray.length > 0 ? resultArray[0].result : null));
   }
 }
 
