@@ -9,7 +9,8 @@
     theModule: function(RUNTIME, NAMESPACE, uri, fs) {
       // https://github.com/nodejs/node/issues/28243#issuecomment-502402453
       function PromptIO(msg) {
-        fs.writeSync(process.stdout.fd, msg);
+        // console.log(RUNTIME);
+        fs.writeSync(RUNTIME.stdout_fd, msg);
         let s = '';
         while (true) {
           let buf = Buffer.alloc(1);
@@ -17,7 +18,7 @@
           // TODO: figure out why this needs to be within a try-catch
           try {
             // TODO: make sure this line works on non-unix OS
-            fs.readSync(process.stdin.fd, buf, 0, 1, null);
+            fs.readSync(RUNTIME.stdin_fd, buf, 0, 1, null);
           } catch (e) {
             if (e.code !== "EAGAIN") {
               throw e;
