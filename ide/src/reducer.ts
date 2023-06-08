@@ -66,6 +66,7 @@ import { getLocs } from './failure';
 import { RunKind } from './backend';
 import GoogleAPI from './Drive';
 import { resetAsyncCacheToBuiltins } from './runner';
+import { makeEnoughChunks } from './store';
 
 // Dependency cycle between store and reducer because we dispatch from
 // runSession. Our solution is to inject the store into this global variable
@@ -189,9 +190,9 @@ function handleEnqueueEffect(state: State, action: EnqueueEffect): State {
 }
 
 function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
+  const { currentFile } = state;
   switch (newEditorMode) {
     case EditorMode.Embeditor:
-    case EditorMode.Examplaritor:
     case EditorMode.Text: {
       // Ensure that currentFileContents is up-to-date with chunks
       const { chunks } = state;
@@ -200,6 +201,15 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         ...state,
         editorMode: newEditorMode,
         currentFileContents,
+      };
+    }
+    case EditorMode.Examplaritor: {
+      const chunks = makeEnoughChunks(currentFile);
+      return {
+        ...state,
+        editorMode: newEditorMode,
+        currentFileContents: undefined,
+        chunks,
       };
     }
     case EditorMode.Chatitor: {
@@ -273,6 +283,10 @@ function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
   const { editorMode, isFileSaved } = state;
   if (editorMode !== EditorMode.Chatitor && editorMode !== EditorMode.Examplaritor) {
     throw new Error('handleSetChunks: not in chunk mode');
+  }
+
+  if (editorMode === EditorMode.Examplaritor) {
+    return state;
   }
 
   const {
@@ -862,9 +876,9 @@ function handleRunProgramSuccess(state : State, result : any) : State {
   };
 }
 
-function handleRunExamplarSuccess(state: State, result: any) : State {
-  // console.log('doing handleRunExamplarSuccess', state.currentFile);
-  const rhs = makeRHSObjects(result, `file://${state.currentFile}`);
+function handleRunExamplarSuccess(state: State, id: string, result: any) : State {
+  const currentFile = '/projects/testbed';
+  const rhs = makeRHSObjects(result, `file://${segmentName(currentFile, id)}`);
   cleanStopify();
   return {
     ...state,
@@ -919,64 +933,42 @@ async function runProgramAsync(state: State) : Promise<void> {
 async function runExamplarAsync(state: State) : Promise<any> {
   // currentFile is just the standard program.arr, we'll use it to get at
   // our relevant files
-  const { typeCheck, runKind, currentFile } = state;
-  const { dir } = bfsSetup.path.parse(currentFile);
-  // eslint-disable-next-line
-  const dirChaffs: string = dir + '/chaffs';
-  // eslint-disable-next-line
-  const dirWheats: string = dir + '/wheats';
-  // eslint-disable-next-line
-  const testFile: string = dir + '/test.arr';
-  // eslint-disable-next-line
-  const testbedFile: string = dir + '/testbed.arr';
-  if (fs.existsSync(testbedFile)) {
-    fs.unlinkSync(testbedFile);
-  }
-  const wheatFiles: string[] = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
-  const chaffFiles: string[] = fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : [];
+  const { typeCheck, chunks, runKind } = state;
 
-  const implFiles: string[] = [];
-  for (let i: number = 0; i < wheatFiles.length; i += 1) {
-    // eslint-disable-next-line
-    implFiles.push(dirWheats + '/' + wheatFiles[i]);
-  }
-  for (let i: number = 0; i < chaffFiles.length; i += 1) {
-    // eslint-disable-next-line
-    implFiles.push(dirChaffs + '/' + chaffFiles[i]);
-  }
+  const currentFile = '/projects/testbed';
 
-  const numPrograms: number = implFiles.length;
+  const filenames = [];
 
-  // test if numPrograms > 0 and testFile exists
+  chunks.forEach((c) => {
+    const filename = segmentName(currentFile, c.id);
+    filenames.push(filename);
+    const value = c.editor.getValue();
+    fs.writeFileSync(filename, value);
+  });
 
-  const resultArray: any[] = [];
   let result: any;
-  let failed: boolean = false;
-  const checkBlock = String(fs.readFileSync(testFile));
-  for (let i = 0; i < numPrograms; i += 1) {
-    const sampleImpl = String(fs.readFileSync(implFiles[i]));
+  // let failed: boolean = false;
+  for (let i = 0; i < chunks.length; i += 1) {
+    const c = chunks[i];
+    const testProgramFile = segmentName(currentFile, c.id);
     // eslint-disable-next-line
-    const testProgram = sampleImpl + '\n' + checkBlock + '\n';
-    // eslint-disable-next-line
-    const testProgramFile = segmentName(testbedFile, Number(i).toString()) + '.arr';
-    // eslint-disable-next-line
-    result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+    result = await runTextProgram(typeCheck, runKind, testProgramFile, c.editor.getValue());
     if (result.type === 'compile-failure') {
-      failed = true;
+      // failed = true;
       // eslint-disable-next-line
       update((s: State) => handleCompileExamplarFailure(s, result.errors));
       break;
     } else if (result.type === 'run-failure') {
-      failed = true;
+      // failed = true;
       // eslint-disable-next-line
       update((s: State) => handleRunExamplarFailure(s, result.error));
       break;
-    } else {
-      resultArray.push(result);
     }
-  }
-  if (!failed) {
-    update((s: State) => handleRunExamplarSuccess(s, resultArray.length > 0 ? resultArray[0].result : null));
+    // eslint-disable-next-line
+    update((s: State) => ({
+      ...handleRunExamplarSuccess(s, c.id, result.result),
+      running: { ...s.running, done: i + 1 },
+    }));
   }
 }
 
