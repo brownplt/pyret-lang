@@ -6261,6 +6261,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'clearParam' : clearParam,
       'stdout' : theOutsideWorld.stdout,
       'stderr' : theOutsideWorld.stderr,
+      'stdin'  : theOutsideWorld.stdin,
       'console' : CONSOLE,
 
       'makePrimAnn': makePrimAnn
