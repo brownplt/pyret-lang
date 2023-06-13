@@ -266,8 +266,7 @@ pyret-test: phaseA tests/pyret/main2.jarr
 tests/io-tests/main.jarr: phaseA tests/io-tests/main.jarr  $(TEST_FILES)
 	$(TEST_BUILD) \
 		--outfile tests/io-tests/main.jarr \
-		--build-runnable tests/io-tests/main.arr \
-		-check-all # NOTE(joe): check-all doesn't yet do anything
+		--build-runnable tests/io-tests/main.arr
 
 .PHONY : pyret-io-test
 pyret-io-test: phaseA tests/io-tests/main.jarr
