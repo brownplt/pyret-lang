@@ -1,23 +1,24 @@
 ({
   requires: [],
   provides: {
+    shorthands: { },
     values: {
-      // TODO: is tany correct?
-      "prompt": "tany",
-      // TODO: is tany correct?
-      "wrap-input-test": "tany"
-    }
+      "prompt": ["arrow", ["String"], "String"],
+      "wrap-input-test": ["arrow", ["String"], "String"]
+    },
+    aliases: { },
+    datatypes: { }
   },
   nativeRequires: ["readline"],
   theModule: function(RUNTIME, NAMESPACE, uri, readline) {
-    function Input(simulateIO = () => {}) {
+    function Input(mockIO = () => {}) {
         return RUNTIME.pauseStack(function(restarter) {
           const rl = readline.createInterface({ input: RUNTIME.stdin });
           
           // input does not need to display anything
           questionPromise = new Promise(resolve => rl.question('', input => resolve(input)));
           
-          simulateIO(rl)
+          mockIO(rl)
           
           questionPromise
             .then(result => restarter.resume(RUNTIME.makeString(result)))
@@ -36,7 +37,7 @@
     };
 
     function wrapInputTest(testInput) {
-      return Input(simulateIO = (rl) => rl.write(testInput + '\n'));
+      return Input(mockIO = (rl) => rl.write(testInput + '\n'));
     }
 
     var vals = {
@@ -44,15 +45,15 @@
           RUNTIME.ffi.checkArity(0, arguments, "input", false);
           return Input();
         }, "input"),
-        "prompt": RUNTIME.makeFunction(function(input1) {
+        "prompt": RUNTIME.makeFunction(function(msg) {
           RUNTIME.ffi.checkArity(1, arguments, "prompt", false);
-          RUNTIME.checkString(input1);
-          return Prompt(input1);
+          RUNTIME.checkString(msg);
+          return Prompt(msg);
         }, "prompt"),
-        "wrap-input-test": RUNTIME.makeFunction(function(input1) {
+        "wrap-input-test": RUNTIME.makeFunction(function(mockedMsg) {
           RUNTIME.ffi.checkArity(1, arguments, "wrap-input-test", false);
-          RUNTIME.checkString(input1);
-          return wrapInputTest(input1);
+          RUNTIME.checkString(mockedMsg);
+          return wrapInputTest(mockedMsg);
         }, "wrap-input-test")
     };
 

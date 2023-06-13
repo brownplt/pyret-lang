@@ -31,7 +31,6 @@
       "print-error": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "display": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "display-error": ["forall", "a", ["arrow", ["tva"], "tva"]],
-      "input": ["arrow", ["String"], "String"],
       "run-task": ["arrow", [["arrow", [], "Any"]], "Any"],
       "brander": "Any",
       "raise": ["arrow", ["Any"], "tbot"],
