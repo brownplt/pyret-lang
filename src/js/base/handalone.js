@@ -21,9 +21,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
 
   var runtime = runtimeLib.makeRuntime({
     stdout: function(s) { process.stdout.write(s); },
-    stderr: function(s) { process.stderr.write(s); },
-    stdout_fd: process.stdout.fd,
-    stdin_fd: process.stdin.fd,
+    stderr: function(s) { process.stderr.write(s); }
   });
 
   var EXIT_SUCCESS = 0;

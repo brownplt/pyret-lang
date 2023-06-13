@@ -2,46 +2,34 @@
     requires: [],
     provides: {
       values: {
-        "prompt": "tany"
+        "input": "tany"
       }
     },
-    nativeRequires: ["fs"],
-    theModule: function(RUNTIME, NAMESPACE, uri, fs) {
-      // https://github.com/nodejs/node/issues/28243#issuecomment-502402453
-      function PromptIO(msg) {
-        // console.log(RUNTIME);
-        fs.writeSync(RUNTIME.stdout_fd, msg);
-        let s = '';
-        while (true) {
-          let buf = Buffer.alloc(1);
+    nativeRequires: ["readline"],
+    theModule: function(RUNTIME, NAMESPACE, uri, readline) {
+      function Input(msg) {
+          return RUNTIME.pauseStack(function(restarter) {
+            const rl = readline.createInterface({
+              input: process.stdin,
+              output: process.stdout
+            });
 
-          // TODO: figure out why this needs to be within a try-catch
-          try {
-            // TODO: make sure this line works on non-unix OS
-            fs.readSync(RUNTIME.stdin_fd, buf, 0, 1, null);
-          } catch (e) {
-            if (e.code !== "EAGAIN") {
-              throw e;
-            }
-          }
-
-          // TODO: elaborate on more exit conditions
-          if (buf.toString("utf-8") === "\n") {
-            break;
-          }
-
-          s += buf.toString("utf-8");
-        }
-        return s.trim();
+            new Promise(resolve => {
+              rl.question(msg, input => resolve(input));
+            }).then(result => { 
+              restarter.resume(RUNTIME.makeString(result));
+            }).catch(error => {
+              restarter.resume(RUNTIME.makeString(error));
+            })
+          })
       };
   
       var vals = {
-      // TODO: write a test like an actual software engineer
-          "prompt": RUNTIME.makeFunction(function(input) {
-            RUNTIME.ffi.checkArity(1, arguments, "prompt", false);
+          "input": RUNTIME.makeFunction(function(input) {
+            RUNTIME.ffi.checkArity(1, arguments, "input", false);
             RUNTIME.checkString(input);
-            return PromptIO(input);
-          }, "prompt")
+            return Input(input);
+          }, "input")
       };
   
       return RUNTIME.makeModuleReturn(vals, {});

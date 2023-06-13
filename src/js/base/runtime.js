@@ -6260,8 +6260,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       },
       'clearParam' : clearParam,
       'stdout' : theOutsideWorld.stdout,
-      'stdout_fd' : theOutsideWorld.stdout_fd,
-      'stdin_fd' : theOutsideWorld.stdin_fd,
       'stderr' : theOutsideWorld.stderr,
       'console' : CONSOLE,
 
