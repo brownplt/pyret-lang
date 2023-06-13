@@ -1,5 +1,5 @@
 import iolib as IO
 
 check:
-    IO.prompt("") is "hello"
+    IO.input("") is "hello"
 end

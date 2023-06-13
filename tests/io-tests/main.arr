@@ -1,1 +1,1 @@
-import file("./tests/test-read.arr") as _
+import file("./tests/test-input.arr") as _
