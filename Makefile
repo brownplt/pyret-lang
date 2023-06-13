@@ -270,7 +270,7 @@ tests/io-tests/main.jarr: phaseA tests/io-tests/main.jarr  $(TEST_FILES)
 
 .PHONY : pyret-io-test
 pyret-io-test: phaseA tests/io-tests/main.jarr
-	echo "hello" | $(NODE) tests/io-tests/main.jarr
+	$(NODE) tests/io-tests/main.jarr
 
 .PHONY : regression-test
 regression-test: tests/pyret/regression.jarr

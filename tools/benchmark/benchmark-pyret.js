@@ -36,7 +36,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       global.rt = RT.makeRuntime({
         initialGas: 500,
         stdout: function (str) {},
-        stderr: function (str) {}
+        stderr: function (str) {},
+        stdin: process.stdin
       });
     }
 
@@ -145,7 +146,9 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       var newRT = RT.makeRuntime({
         initialGas: 500,
         stdout: function (str) {},
-        stderr: function (str) {}
+        stderr: function (str) {},
+        stdin: process.stdin
+
       });
       global.evalLib.runEvalPyret(newRT, src, global.pyretOptions,
         function (result) {
@@ -274,7 +277,8 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
       var newRT = RT.makeRuntime({
         initialGas: 500,
         stdout: function (str) {process.stdout.write(str); },
-        stderr: function (str) {process.stderr.write(str); }
+        stderr: function (str) {process.stderr.write(str); },
+        stdin: process.stdin
       });
       global.evalLib.runEvalPyret(newRT, src, options, function (result) {
         // debugger; //can check result in debug repl
