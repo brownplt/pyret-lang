@@ -1,5 +1,5 @@
 ({
-  requires: [],
+  requires: [ ],
   provides: {
     shorthands: { },
     values: {
@@ -26,13 +26,12 @@
               // TODO: write a test for this
               restarter.resume(RUNTIME.makeString(error));
             })
-            .finally(x => rl.close())
+            .finally(_ => rl.close())
         })
     };
 
     function Prompt(msg) {
-      // TODO: call this correctly
-      NAMESPACE.bindings.print.app(msg + "\n");
+      RUNTIME.stdout(msg);
       return Input();
     };
 
