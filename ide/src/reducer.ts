@@ -880,12 +880,13 @@ function handleRunExamplarSuccess(state: State, id: string, result: any) : State
   const currentFile = '/projects/testbed';
   const rhs = makeRHSObjects(result, `file://${segmentName(currentFile, id)}`);
   cleanStopify();
+  const newObjects = state.rhs.objects.concat(rhs);
   return {
     ...state,
     interactionErrors: [],
     definitionsHighlights: [],
     rhs: {
-      objects: rhs,
+      objects: newObjects,
       outdated: false,
     },
     messageTabIndex: MessageTabIndex.RuntimeMessages,
