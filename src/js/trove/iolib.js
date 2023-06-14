@@ -24,7 +24,8 @@
             .then(result => restarter.resume(RUNTIME.makeString(result)))
             .catch(error => {
               // TODO: write a test for this
-              restarter.resume(RUNTIME.makeString(error));
+              // TODO: we should probably NOT fail this hard
+              restarter.error(RUNTIME.makeString(error));
             })
             .finally(_ => rl.close())
         })
