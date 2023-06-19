@@ -42,6 +42,8 @@ import {
 
 import {
   makeRHSObjects,
+  RHSObject,
+  Location,
 } from './rhsObject';
 
 import {
@@ -66,7 +68,6 @@ import { getLocs } from './failure';
 import { RunKind } from './backend';
 import GoogleAPI from './Drive';
 import { resetAsyncCacheToBuiltins } from './runner';
-import { makeEnoughChunks } from './store';
 
 // Dependency cycle between store and reducer because we dispatch from
 // runSession. Our solution is to inject the store into this global variable
@@ -190,7 +191,6 @@ function handleEnqueueEffect(state: State, action: EnqueueEffect): State {
 }
 
 function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
-  const { currentFile } = state;
   switch (newEditorMode) {
     case EditorMode.Embeditor:
     case EditorMode.Text: {
@@ -204,12 +204,11 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
       };
     }
     case EditorMode.Examplaritor: {
-      const chunks = makeEnoughChunks(currentFile);
       return {
         ...state,
         editorMode: newEditorMode,
         currentFileContents: undefined,
-        chunks,
+        chunks: [],
       };
     }
     case EditorMode.Chatitor: {
@@ -876,17 +875,46 @@ function handleRunProgramSuccess(state : State, result : any) : State {
   };
 }
 
-function handleRunExamplarSuccess(state: State, id: string, result: any) : State {
-  const currentFile = '/projects/testbed';
-  const rhs = makeRHSObjects(result, `file://${segmentName(currentFile, id)}`);
-  cleanStopify();
-  const newObjects = state.rhs.objects.concat(rhs);
+// eslint-disable-next-line
+function wheatResult(wheatResultArray: any[]) {
+  const wheatsGot = wheatResultArray.filter((result) => {
+    const checkArray = result.result.result.$checks;
+    const failureArray = checkArray.filter((check: any) => (check.success === false));
+    return (failureArray.length > 0);
+  });
+  // eslint-disable-next-line
+  return 'Failed ' + String(wheatsGot.length) + ' out of ' + String(wheatResultArray.length) + ' wheats.';
+}
+
+// eslint-disable-next-line
+function chaffResult(chaffResultArray: any[]) {
+  const chaffsGot = chaffResultArray.filter((result) => {
+    const checkArray = result.result.result.$checks;
+    const failureArray = checkArray.filter((check: any) => (check.success === false));
+    return (failureArray.length > 0);
+  });
+  // eslint-disable-next-line
+  return 'Caught ' + String(chaffsGot.length) + ' out of ' + String(chaffResultArray.length) + ' chaffs.';
+}
+
+function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffResultArray: any[], reprFile: string) : State {
+  const { result } = wheatResultArray[0];
+  const rhs = makeRHSObjects(result, `file://${reprFile}`);
+  const rhs0 = (rhs.slice(0, 1))[0];
+  // eslint-disable-next-line
+  const resultString = chaffResult(chaffResultArray) + ' ' + wheatResult(wheatResultArray);
+  const modifiedResult = {
+    key: (<Location>rhs0).key,
+    tag: 'trace',
+    srcloc: (<Location>rhs0).srcloc,
+    value: resultString,
+  };
   return {
     ...state,
     interactionErrors: [],
     definitionsHighlights: [],
     rhs: {
-      objects: newObjects,
+      objects: [<RHSObject>modifiedResult],
       outdated: false,
     },
     messageTabIndex: MessageTabIndex.RuntimeMessages,
@@ -934,42 +962,106 @@ async function runProgramAsync(state: State) : Promise<void> {
 async function runExamplarAsync(state: State) : Promise<any> {
   // currentFile is just the standard program.arr, we'll use it to get at
   // our relevant files
-  const { typeCheck, chunks, runKind } = state;
+  const { typeCheck, runKind, currentFile } = state;
+  const { dir } = bfsSetup.path.parse(currentFile);
 
-  const currentFile = '/projects/testbed';
+  // eslint-disable-next-line
+  const dirWheats: string = dir + '/wheats';
+  // eslint-disable-next-line
+  const dirChaffs: string = dir + '/chaffs';
 
-  const filenames = [];
+  // eslint-disable-next-line
+  const testFile: string = dir + '/test.arr';
 
-  chunks.forEach((c) => {
-    const filename = segmentName(currentFile, c.id);
-    filenames.push(filename);
-    const value = c.editor.getValue();
-    fs.writeFileSync(filename, value);
-  });
+  // eslint-disable-next-line
+  const testWheatFile = dir + '/testwheat.arr';
+  // eslint-disable-next-line
+  const testChaffFile = dir + '/testchaff.arr';
+
+  if (fs.existsSync(testWheatFile)) {
+    fs.unlinkSync(testWheatFile);
+  }
+  if (fs.existsSync(testChaffFile)) {
+    fs.unlinkSync(testChaffFile);
+  }
+
+  const wheatFileBasenames: string[] = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
+  const chaffFileBasenames: string[] = fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : [];
+
+  const numWheats = wheatFileBasenames.length;
+  const numChaffs = chaffFileBasenames.length;
+
+  const wheatFiles: string[] = [];
+  const chaffFiles: string[] = [];
+
+  for (let i = 0; i < numWheats; i += 1) {
+    // eslint-disable-next-line
+    wheatFiles.push(dirWheats + '/' + wheatFileBasenames[i]);
+  }
+  for (let i = 0; i < numChaffs; i += 1) {
+    // eslint-disable-next-line
+    chaffFiles.push(dirChaffs + '/' + chaffFileBasenames[i]);
+  }
+
+  // test if numPrograms > 0 and testFile exists
+
+  const wheatResultArray: any[] = [];
+  const chaffResultArray: any[] = [];
 
   let result: any;
-  // let failed: boolean = false;
-  for (let i = 0; i < chunks.length; i += 1) {
-    const c = chunks[i];
-    const testProgramFile = segmentName(currentFile, c.id);
+  let failed: boolean = false;
+  const checkBlock = String(fs.readFileSync(testFile));
+
+  for (let i = 0; i < numWheats; i += 1) {
+    const sampleImpl = String(fs.readFileSync(wheatFiles[i]));
     // eslint-disable-next-line
-    result = await runTextProgram(typeCheck, runKind, testProgramFile, c.editor.getValue());
+    const testProgram = sampleImpl + '\n' + checkBlock + '\n';
+    // eslint-disable-next-line
+    const testProgramFile = segmentName(testWheatFile, Number(i).toString())
+    // eslint-disable-next-line
+    result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
     if (result.type === 'compile-failure') {
-      // failed = true;
+      failed = true;
       // eslint-disable-next-line
       update((s: State) => handleCompileExamplarFailure(s, result.errors));
       break;
     } else if (result.type === 'run-failure') {
-      // failed = true;
+      failed = true;
       // eslint-disable-next-line
       update((s: State) => handleRunExamplarFailure(s, result.error));
       break;
+    } else {
+      wheatResultArray.push(result);
     }
-    // eslint-disable-next-line
-    update((s: State) => ({
-      ...handleRunExamplarSuccess(s, c.id, result.result),
-      running: { ...s.running, done: i + 1 },
-    }));
+  }
+
+  if (!failed) {
+    for (let i = 0; i < numChaffs; i += 1) {
+      const sampleImpl = String(fs.readFileSync(chaffFiles[i]));
+      // eslint-disable-next-line
+      const testProgram = sampleImpl + '\n' + checkBlock + '\n';
+      // eslint-disable-next-line
+      const testProgramFile = segmentName(testChaffFile, Number(i).toString())
+      // eslint-disable-next-line
+      result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+      if (result.type === 'compile-failure') {
+        failed = true;
+        // eslint-disable-next-line
+        update((s: State) => handleCompileExamplarFailure(s, result.errors));
+        break;
+      } else if (result.type === 'run-failure') {
+        failed = true;
+        // eslint-disable-next-line
+        update((s: State) => handleRunExamplarFailure(s, result.error));
+        break;
+      } else {
+        chaffResultArray.push(result);
+      }
+    }
+  }
+
+  if (!failed) {
+    update((s: State) => handleRunExamplarSuccess(s, wheatResultArray, chaffResultArray, segmentName(testWheatFile, '0')));
   }
 }
 
