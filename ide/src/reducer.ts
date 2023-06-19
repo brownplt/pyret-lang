@@ -875,26 +875,20 @@ function handleRunProgramSuccess(state : State, result : any) : State {
   };
 }
 
-// eslint-disable-next-line
-function wheatResult(wheatResultArray: any[]) {
-  const wheatsGot = wheatResultArray.filter((result) => {
-    const checkArray = result.result.result.$checks;
-    const failureArray = checkArray.filter((check: any) => (check.success === false));
-    return (failureArray.length > 0);
-  });
+function resultSummary(wheatResultArray: any[], chaffResultArray: any[]) {
+  function numFailures(resultArray: any[]) {
+    const fails = resultArray.filter((result) => {
+      const checkArray = result.result.result.$checks;
+      const failureArray = checkArray.filter((check: any) => (check.success === false));
+      return (failureArray.length > 0);
+    });
+    return fails.length;
+  }
+  const wheatFails = numFailures(wheatResultArray);
+  const chaffFails = numFailures(chaffResultArray);
   // eslint-disable-next-line
-  return 'Failed ' + String(wheatsGot.length) + ' out of ' + String(wheatResultArray.length) + ' wheats.';
-}
-
-// eslint-disable-next-line
-function chaffResult(chaffResultArray: any[]) {
-  const chaffsGot = chaffResultArray.filter((result) => {
-    const checkArray = result.result.result.$checks;
-    const failureArray = checkArray.filter((check: any) => (check.success === false));
-    return (failureArray.length > 0);
-  });
-  // eslint-disable-next-line
-  return 'Caught ' + String(chaffsGot.length) + ' out of ' + String(chaffResultArray.length) + ' chaffs.';
+  return 'Caught ' + String(chaffFails) + ' out of ' + String(chaffResultArray.length) +
+    ' chaffs. Failed ' + String(wheatFails) + ' out of ' + String(wheatResultArray.length) + ' wheats.';
 }
 
 function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffResultArray: any[], reprFile: string) : State {
@@ -902,7 +896,7 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
   const rhs = makeRHSObjects(result, `file://${reprFile}`);
   const rhs0 = (rhs.slice(0, 1))[0];
   // eslint-disable-next-line
-  const resultString = chaffResult(chaffResultArray) + ' ' + wheatResult(wheatResultArray);
+  const resultString = resultSummary(wheatResultArray, chaffResultArray);
   const modifiedResult = {
     key: (<Location>rhs0).key,
     tag: 'trace',
