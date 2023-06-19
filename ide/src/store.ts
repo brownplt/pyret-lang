@@ -12,7 +12,6 @@ import {
   Chunk,
   makeChunksFromString,
   CHUNKSEP,
-  emptyChunk,
 } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
@@ -28,44 +27,6 @@ type Dispatch = (action: Action) => void;
    Stopify. Used for stopping the program when the user hits the "stop" button. */
 let currentRunner: any;
 
-export function makeEnoughChunks(currentFile: string): Chunk[] {
-  const { dir } = bfsSetup.path.parse(currentFile);
-  // eslint-disable-next-line
-  const dirWheats = dir + '/wheats';
-  // eslint-disable-next-line
-  const dirChaffs = dir + '/chaffs';
-  // eslint-disable-next-line
-  const testFile = dir + '/test.arr';
-  const checkBlock = fs.existsSync(testFile) ? String(fs.readFileSync(testFile)) : '';
-  const wheatFiles = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
-  const chaffFiles = fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : [];
-  const chunks = [];
-  // comment
-  for (let i = 0; i < wheatFiles.length; i += 1) {
-    // eslint-disable-next-line
-    const sampleImpl = String(fs.readFileSync(dirWheats + '/' + wheatFiles[i]));
-    const chunk = emptyChunk({
-      // eslint-disable-next-line
-      editor: { getValue: () => sampleImpl + '\n' + checkBlock + '\n' },
-      results: { status: 'succeeded', objects: [] },
-      outdated: true,
-    });
-    chunks.push(chunk);
-  }
-  for (let i = 0; i < chaffFiles.length; i += 1) {
-    // eslint-disable-next-line
-    const sampleImpl = String(fs.readFileSync(dirChaffs + '/' + chaffFiles[i]));
-    const chunk = emptyChunk({
-      // eslint-disable-next-line
-      editor: { getValue: () => sampleImpl + '\n' + checkBlock + '\n' },
-      results: { status: 'succeeded', objects: [] },
-      outdated: true,
-    });
-    chunks.push(chunk);
-  }
-  return chunks;
-}
-
 function handleLoadFile(
   dispatch: Dispatch,
   currentFile: string,
@@ -79,12 +40,11 @@ function handleLoadFile(
       dispatch({ type: 'update', key: 'currentFileContents', value: contents });
       break;
     case EditorMode.Examplaritor: {
-      const chunks = makeEnoughChunks(currentFile);
       dispatch({
         type: 'update',
         key: 'chunks',
         value: {
-          chunks,
+          chunks: [],
           modifiesText: false,
         },
       });
