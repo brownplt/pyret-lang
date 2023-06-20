@@ -39,17 +39,7 @@ function handleLoadFile(
     case EditorMode.Text:
       dispatch({ type: 'update', key: 'currentFileContents', value: contents });
       break;
-    case EditorMode.Examplaritor: {
-      dispatch({
-        type: 'update',
-        key: 'chunks',
-        value: {
-          chunks: [],
-          modifiesText: false,
-        },
-      });
-      break;
-    }
+    case EditorMode.Examplaritor:
     case EditorMode.Chatitor: {
       const chunks = makeChunksFromString(contents);
 
@@ -105,8 +95,6 @@ function handleSaveFile(
       control.fs.writeFile(path, contents, saveCallback);
       break;
     case EditorMode.Examplaritor:
-      // *don't* update program.arr!
-      break;
     case EditorMode.Chatitor:
       // TODO(alex): Chunk file saving works by concating chunks together into a single buffer
       //   and writing it out.

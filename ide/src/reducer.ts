@@ -203,14 +203,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         currentFileContents,
       };
     }
-    case EditorMode.Examplaritor: {
-      return {
-        ...state,
-        editorMode: newEditorMode,
-        currentFileContents: undefined,
-        chunks: [],
-      };
-    }
+    case EditorMode.Examplaritor:
     case EditorMode.Chatitor: {
       // in text mode currentFileContents can be more up-to-date than chunks, so we
       // need to recreate the chunks.
@@ -282,10 +275,6 @@ function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
   const { editorMode, isFileSaved } = state;
   if (editorMode !== EditorMode.Chatitor && editorMode !== EditorMode.Examplaritor) {
     throw new Error('handleSetChunks: not in chunk mode');
-  }
-
-  if (editorMode === EditorMode.Examplaritor) {
-    return state;
   }
 
   const {
@@ -956,8 +945,13 @@ async function runProgramAsync(state: State) : Promise<void> {
 async function runExamplarAsync(state: State) : Promise<any> {
   // currentFile is just the standard program.arr, we'll use it to get at
   // our relevant files
-  const { typeCheck, runKind, currentFile } = state;
+  const { typeCheck, chunks, runKind, currentFile } = state;
   const { dir } = bfsSetup.path.parse(currentFile);
+
+  fs.writeFileSync(
+    state.currentFile,
+    chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
+  );
 
   // eslint-disable-next-line
   const dirWheats: string = dir + '/wheats';
@@ -1009,7 +1003,7 @@ async function runExamplarAsync(state: State) : Promise<any> {
   for (let i = 0; i < numWheats; i += 1) {
     const sampleImpl = String(fs.readFileSync(wheatFiles[i]));
     // eslint-disable-next-line
-    const testProgram = sampleImpl + '\n' + checkBlock + '\n';
+    const testProgram = 'include cpo' + '\n\n' + sampleImpl + '\n' + checkBlock + '\n';
     // eslint-disable-next-line
     const testProgramFile = segmentName(testWheatFile, Number(i).toString())
     // eslint-disable-next-line
