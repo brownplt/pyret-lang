@@ -3,8 +3,7 @@
   provides: {
     shorthands: { },
     values: {
-      "prompt": ["arrow", ["String"], "String"],
-      "wrap-input-test": ["arrow", ["String"], "String"]
+      "prompt": ["arrow", ["String"], "String"]
     },
     aliases: { },
     datatypes: { }
@@ -36,10 +35,6 @@
       return Input();
     };
 
-    function wrapInputTest(testInput) {
-      return Input(mockIO = (rl) => rl.write(testInput + '\n'));
-    }
-
     var vals = {
         "input": RUNTIME.makeFunction(function() {
           RUNTIME.ffi.checkArity(0, arguments, "input", false);
@@ -49,12 +44,7 @@
           RUNTIME.ffi.checkArity(1, arguments, "prompt", false);
           RUNTIME.checkString(msg);
           return Prompt(msg);
-        }, "prompt"),
-        "wrap-input-test": RUNTIME.makeFunction(function(mockedMsg) {
-          RUNTIME.ffi.checkArity(1, arguments, "wrap-input-test", false);
-          RUNTIME.checkString(mockedMsg);
-          return wrapInputTest(mockedMsg);
-        }, "wrap-input-test")
+        }, "prompt")
     };
 
     return RUNTIME.makeModuleReturn(vals, {});

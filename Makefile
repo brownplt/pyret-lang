@@ -270,7 +270,7 @@ tests/io-tests/main.jarr: phaseA tests/io-tests/main.jarr  $(TEST_FILES)
 
 .PHONY : pyret-io-test
 pyret-io-test: phaseA tests/io-tests/main.jarr
-	$(NODE) tests/io-tests/main.jarr
+	npx jest --verbose "tests/io-tests/io.test.js"
 
 .PHONY : regression-test
 regression-test: tests/pyret/regression.jarr
