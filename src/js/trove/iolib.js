@@ -3,6 +3,13 @@
   provides: {
     shorthands: { },
     values: {
+      // Intentional design decision to not expose as a pure function. This is different from Haskell.
+      //
+      // ```haskell
+      // getChar :: IO Char
+      // ```
+      //
+      // ref: https://www.haskell.org/tutorial/io.html
       "prompt": ["arrow", ["String"], "String"]
     },
     aliases: { },
@@ -10,19 +17,14 @@
   },
   nativeRequires: ["readline"],
   theModule: function(RUNTIME, NAMESPACE, uri, readline) {
-    function Input(mockIO = () => {}) {
+    function Input() {
         return RUNTIME.pauseStack(function(restarter) {
           const rl = readline.createInterface({ input: RUNTIME.stdin });
           
           // input does not need to display anything
-          questionPromise = new Promise(resolve => rl.question('', input => resolve(input)));
-          
-          mockIO(rl)
-          
-          questionPromise
+          new Promise(resolve => rl.question('', input => resolve(input)))
             .then(result => restarter.resume(RUNTIME.makeString(result)))
             .catch(error => {
-              // TODO: write a test for this
               // TODO: we should probably NOT fail this hard
               restarter.error(RUNTIME.makeString(error));
             })
