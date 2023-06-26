@@ -263,13 +263,8 @@ tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 pyret-test: phaseA tests/pyret/main2.jarr
 	$(NODE) tests/pyret/main2.jarr
 
-tests/io-tests/main.jarr: phaseA tests/io-tests/main.jarr  $(TEST_FILES)
-	$(TEST_BUILD) \
-		--outfile tests/io-tests/main.jarr \
-		--build-runnable tests/io-tests/main.arr
-
 .PHONY : pyret-io-test
-pyret-io-test: phaseA tests/io-tests/main.jarr
+pyret-io-test: phaseA
 	npx jest --verbose "tests/io-tests/io.test.js"
 
 .PHONY : regression-test
