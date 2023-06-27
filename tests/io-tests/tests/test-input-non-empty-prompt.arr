@@ -1,5 +1,5 @@
-###< Who is this?
-###> FooBarBaz
+###< .*Who is this?.*
+###> .*FooBarBaz.*
 
 import iolib as IO
 
