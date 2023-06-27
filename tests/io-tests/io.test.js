@@ -11,6 +11,7 @@ const EMPTY_MESSAGE = "";
 const parse_file_for_expected_std = (f) => {
   let stdioExpected = "";
   let stdInexpected = "";
+  let stderrExpected = "";
   String(fs.readFileSync(f))
     .split("\n")
     .forEach((line) => {
@@ -26,11 +27,17 @@ const parse_file_for_expected_std = (f) => {
       if(line.startsWith("###>")) {
         stdioExpected = line.slice(line.indexOf(" ")).trim();
       }
+
+      // stderr
+      if(line.startsWith("###!")) {
+        stderrExpected = line.slice(line.indexOf(" ")).trim();
+      }
   });
 
   return {
     stdioExpected: stdioExpected,
-    stdInexpected: stdInexpected
+    stdInexpected: stdInexpected,
+    stderrExpected: stderrExpected
   }
 }
 
@@ -45,7 +52,7 @@ describe("IO Tests", () => {
     afterEach(() => try_delete_compiled_file());
 
     describe("Testing " + f, () => {
-      const {stdioExpected, stdInexpected} = parse_file_for_expected_std(f);
+      const {stdioExpected, stdInexpected, stderrExpected} = parse_file_for_expected_std(f);
 
       test(`it should return io that is expected: ${stdioExpected}`, () => {  
         const compileProcess = cp.spawnSync(
@@ -58,7 +65,7 @@ describe("IO Tests", () => {
               "--builtin-arr-dir","src/arr/trove", 
               "--require-config","src/scripts/standalone-configA.json"
           ],
-          {stdio: "pipe", timeout: COMPILER_TIMEOUT});
+          {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
 
         expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
 
@@ -70,11 +77,19 @@ describe("IO Tests", () => {
           `echo ${stdioExpected} | node ${COMPILED_CODE_PATH}`
         ], {stdio: 'pipe', timeout: RUN_TIMEOUT});
 
-        expect(runProcess.status).toEqual(SUCCESS_EXIT_CODE);
+        if (stderrExpected !== "") {
+          expect(runProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
 
-        const executionStdin = runProcess.stdout.toString();
-        expect(executionStdin).toContain(stdioExpected);
-        expect(executionStdin).toContain(stdInexpected);
+          const executionStderr = runProcess.stderr.toString();
+          expect(executionStderr).toMatch(new RegExp(stderrExpected));
+        } 
+        else {
+          expect(runProcess.status).toEqual(SUCCESS_EXIT_CODE);
+
+          const executionStdin = runProcess.stdout.toString();
+          expect(executionStdin).toMatch(new RegExp(stdioExpected));
+          expect(executionStdin).toMatch(new RegExp(stdInexpected));
+        }
       });
     });
   });
