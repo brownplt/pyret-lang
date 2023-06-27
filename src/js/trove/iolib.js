@@ -25,7 +25,6 @@
           new Promise(resolve => rl.question('', input => resolve(input)))
             .then(result => restarter.resume(RUNTIME.makeString(result)))
             .catch(error => {
-              // TODO: we should probably NOT fail this hard
               restarter.error(RUNTIME.makeString(error));
             })
             .finally(_ => rl.close())

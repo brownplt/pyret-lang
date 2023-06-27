@@ -231,7 +231,7 @@ TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
 test-all: test
 
 .PHONY : test
-test: pyret-test type-check-test
+test: pyret-test type-check-test pyret-io-test
 
 .PHONY : parse-test
 parse-test: tests/parse/parse.js build/phaseA/js/pyret-tokenizer.js build/phaseA/js/pyret-parser.js
