@@ -984,11 +984,11 @@ async function runExamplarAsync(state: State) : Promise<any> {
 
   for (let i = 0; i < numWheats; i += 1) {
     // eslint-disable-next-line
-    wheatFiles.push(dirWheats + '/' + wheatFileBasenames[i]);
+    wheatFiles.push('wheats/' + wheatFileBasenames[i]);
   }
   for (let i = 0; i < numChaffs; i += 1) {
     // eslint-disable-next-line
-    chaffFiles.push(dirChaffs + '/' + chaffFileBasenames[i]);
+    chaffFiles.push('chaffs/' + chaffFileBasenames[i]);
   }
 
   // test if numPrograms > 0 and testFile exists
@@ -1001,9 +1001,9 @@ async function runExamplarAsync(state: State) : Promise<any> {
   const checkBlock = String(fs.readFileSync(testFile));
 
   for (let i = 0; i < numWheats; i += 1) {
-    const sampleImpl = String(fs.readFileSync(wheatFiles[i]));
+    const wheatFile = wheatFiles[i];
     // eslint-disable-next-line
-    const testProgram = 'include cpo' + '\n\n' + sampleImpl + '\n' + checkBlock + '\n';
+    const testProgram = 'include cpo' + '\n\ninclude file("' + wheatFile + '")\n' + checkBlock + '\n';
     // eslint-disable-next-line
     const testProgramFile = segmentName(testWheatFile, Number(i).toString())
     // eslint-disable-next-line
@@ -1025,9 +1025,9 @@ async function runExamplarAsync(state: State) : Promise<any> {
 
   if (!failed) {
     for (let i = 0; i < numChaffs; i += 1) {
-      const sampleImpl = String(fs.readFileSync(chaffFiles[i]));
+      const chaffFile = chaffFiles[i];
       // eslint-disable-next-line
-      const testProgram = sampleImpl + '\n' + checkBlock + '\n';
+      const testProgram = 'include cpo' + '\n\ninclude file("' + chaffFile + '")\n\n' + checkBlock + '\n';
       // eslint-disable-next-line
       const testProgramFile = segmentName(testChaffFile, Number(i).toString())
       // eslint-disable-next-line
