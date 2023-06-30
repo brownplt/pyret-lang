@@ -10,7 +10,7 @@ const EMPTY_MESSAGE = "";
 
 const parse_file_for_expected_std = (f) => {
   let stdioExpected = "";
-  let stdInexpected = "";
+  let stdInToInject = "";
   let stderrExpected = "";
   String(fs.readFileSync(f))
     .split("\n")
@@ -20,7 +20,7 @@ const parse_file_for_expected_std = (f) => {
       
       // stdin
       if (line.startsWith("###<")) {
-        stdInexpected = line.slice(line.indexOf(" ")).trim();
+        stdInToInject = line.slice(line.indexOf(" ")).trim();
       }
       
       // stdout
@@ -36,7 +36,7 @@ const parse_file_for_expected_std = (f) => {
 
   return {
     stdioExpected: stdioExpected,
-    stdInexpected: stdInexpected,
+    stdInToInject: stdInToInject,
     stderrExpected: stderrExpected
   }
 }
@@ -52,7 +52,7 @@ describe("IO Tests", () => {
     afterEach(() => try_delete_compiled_file());
 
     describe("Testing " + f, () => {
-      const {stdioExpected, stdInexpected, stderrExpected} = parse_file_for_expected_std(f);
+      const {stdioExpected, stdInToInject, stderrExpected} = parse_file_for_expected_std(f);
 
       test(`it should return io that is expected: ${stdioExpected}`, () => {  
         const compileProcess = cp.spawnSync(
@@ -74,7 +74,7 @@ describe("IO Tests", () => {
 
         const runProcess = cp.spawnSync("sh", [
           "-c",
-          `echo ${stdioExpected} | node ${COMPILED_CODE_PATH}`
+          `echo ${stdInToInject} | node ${COMPILED_CODE_PATH}`
         ], {stdio: 'pipe', timeout: RUN_TIMEOUT});
 
         if (stderrExpected !== "") {
@@ -88,7 +88,6 @@ describe("IO Tests", () => {
 
           const executionStdin = runProcess.stdout.toString();
           expect(executionStdin).toMatch(new RegExp(stdioExpected));
-          expect(executionStdin).toMatch(new RegExp(stdInexpected));
         }
       });
     });
