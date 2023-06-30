@@ -55,6 +55,7 @@ describe("IO Tests", () => {
       const {stdioExpected, stdInToInject, stderrExpected} = parse_file_for_expected_std(f);
 
       test(`it should return io that is expected: ${stdioExpected}`, () => {  
+        // compile
         const compileProcess = cp.spawnSync(
           "node",
           [
@@ -68,26 +69,21 @@ describe("IO Tests", () => {
           {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
 
         expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
+        expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
 
-        const compilationResultStderr = compileProcess.stderr.toString();
-        expect(compilationResultStderr).toEqual(EMPTY_MESSAGE);
-
+        // execute
         const runProcess = cp.spawnSync("sh", [
           "-c",
           `echo ${stdInToInject} | node ${COMPILED_CODE_PATH}`
-        ], {stdio: 'pipe', timeout: RUN_TIMEOUT});
+        ], {stdio: 'pipe', stderr: "pipe", timeout: RUN_TIMEOUT});
 
         if (stderrExpected !== "") {
           expect(runProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
-
-          const executionStderr = runProcess.stderr.toString();
-          expect(executionStderr).toMatch(new RegExp(stderrExpected));
+          expect(runProcess.stderr.toString()).toMatch(new RegExp(stderrExpected));
         } 
         else {
           expect(runProcess.status).toEqual(SUCCESS_EXIT_CODE);
-
-          const executionStdin = runProcess.stdout.toString();
-          expect(executionStdin).toMatch(new RegExp(stdioExpected));
+          expect(runProcess.stdout.toString()).toMatch(new RegExp(stdioExpected));
         }
       });
     });

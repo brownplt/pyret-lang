@@ -1,6 +1,8 @@
 # IO Tests
 
-We test IO with a harness which executes all tests located in the `tests/io-tests/tests/` directory with an `.arr` file extension. The harness accepts either a test input to inject and an expected output to assert or an error message to assert (along with asserting a failure is expected). The two scenarios are outlined below.
+We test IO with a harness which executes all tests located in the `tests/io-tests/tests/` directory with an `.arr` file extension. The harness accepts a test input to inject and either an expected output to assert or an error message to assert (implicityly asserts a failure is expected as well).
+
+The two scenarios are outlined below.
 
 ### Situation 1: Expected Success
 
@@ -31,6 +33,12 @@ print(IO.prompt("Who is this? "))
 ```
 
 ### Situation 2: Expected Failure
+
+**Input**
+
+```
+###< INPUT (string)
+```
 
 **Error Message**
 ```
