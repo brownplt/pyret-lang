@@ -3,13 +3,6 @@
   provides: {
     shorthands: { },
     values: {
-      // Intentional design decision to not expose as a pure function. This is different from Haskell.
-      //
-      // ```haskell
-      // getChar :: IO Char
-      // ```
-      //
-      // ref: https://www.haskell.org/tutorial/io.html
       "prompt": ["arrow", ["String"], "String"]
     },
     aliases: { },
