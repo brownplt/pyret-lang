@@ -17,9 +17,7 @@
           // input does not need to display anything
           new Promise(resolve => rl.question('', input => resolve(input)))
             .then(result => restarter.resume(RUNTIME.makeString(result)))
-            .catch(error => {
-              restarter.error(RUNTIME.makeString(error));
-            })
+            .catch(error => restarter.error(RUNTIME.makeString(error)))
             .finally(_ => rl.close())
         })
     };

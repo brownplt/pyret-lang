@@ -1,6 +1,6 @@
 # IO Tests
 
-We test IO with a harness which executes all tests located in the `tests/io-tests/tests/` directory with an `.arr` file extension. The harness accepts a test input to inject and either an expected output to assert or an error message to assert (implicityly asserts a failure is expected as well).
+We test IO with a harness which executes all tests located in the `tests/io-tests/tests/` directory with an `.arr` file extension. The harness accepts a test input to inject and either an expected output to assert or an error message to assert (implicitly asserts a failure is expected in this case as well).
 
 The two scenarios are outlined below.
 
@@ -23,8 +23,8 @@ The two scenarios are outlined below.
 The following example inserts `FooBarBaz` and expects _both_ the prompt `Who is this?` and the input `FooBarBaz` to exist in the output.
 
 ```
-###> .*Who is this?.*FooBarBaz.*
 ###< FooBarBaz
+###> .*Who is this?.*FooBarBaz.*
 
 import iolib as IO
 

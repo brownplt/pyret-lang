@@ -1,6 +1,7 @@
 const glob = require('glob');
 const fs = require('fs');
 const cp = require('child_process');
+const assert = require('assert');
 
 const COMPILER_TIMEOUT = 60000; // ms, for each compiler run (including startup)
 const RUN_TIMEOUT = 60000; // ms, for each program execution
@@ -9,9 +10,10 @@ const SUCCESS_EXIT_CODE = 0;
 const EMPTY_MESSAGE = "";
 
 const parse_file_for_expected_std = (f) => {
-  let stdioExpected = "";
-  let stdInToInject = "";
-  let stderrExpected = "";
+  let stdioExpected = EMPTY_MESSAGE;
+  let stdInToInject = EMPTY_MESSAGE;
+  let stderrExpected = EMPTY_MESSAGE;
+
   String(fs.readFileSync(f))
     .split("\n")
     .forEach((line) => {
@@ -58,15 +60,17 @@ describe("IO Tests", () => {
         const compileProcess = cp.spawnSync(
           "node",
           [
-              "build/phaseA/pyret.jarr",
-              "--build-runnable", f, 
-              "--outfile", COMPILED_CODE_PATH, 
-              "--builtin-js-dir", "src/js/trove", 
-              "--builtin-arr-dir","src/arr/trove", 
-              "--require-config","src/scripts/standalone-configA.json"
+            // according to README.md in root, phaseA is recommended for testing
+            "build/phaseA/pyret.jarr",
+            "--build-runnable", f, 
+            "--outfile", COMPILED_CODE_PATH, 
+            "--builtin-js-dir", "src/js/trove", 
+            "--builtin-arr-dir","src/arr/trove", 
+            "--require-config","src/scripts/standalone-configA.json"
           ],
           {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
 
+        // at this time, we always expect compilation to succeed
         expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
         expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
 
@@ -75,7 +79,7 @@ describe("IO Tests", () => {
           `echo ${stdInToInject} | node ${COMPILED_CODE_PATH}`
         ], {stdio: 'pipe', stderr: "pipe", timeout: RUN_TIMEOUT});
 
-        if (stderrExpected !== "") {
+        if (stderrExpected !== EMPTY_MESSAGE) {
           expect(runProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
           expect(runProcess.stderr.toString()).toMatch(new RegExp(stderrExpected));
         } 

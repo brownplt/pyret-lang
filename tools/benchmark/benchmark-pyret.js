@@ -148,7 +148,6 @@ define(['js/runtime-anf', 'js/eval-lib', 'benchmark', 'q', 'fs', 'trove/checker'
         stdout: function (str) {},
         stderr: function (str) {},
         stdin: process.stdin
-
       });
       global.evalLib.runEvalPyret(newRT, src, global.pyretOptions,
         function (result) {
