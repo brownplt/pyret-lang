@@ -55,7 +55,6 @@ describe("IO Tests", () => {
       const {stdioExpected, stdInToInject, stderrExpected} = parse_file_for_expected_std(f);
 
       test(`it should return io that is expected: ${stdioExpected}`, () => {  
-        // compile
         const compileProcess = cp.spawnSync(
           "node",
           [
@@ -71,7 +70,6 @@ describe("IO Tests", () => {
         expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
         expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
 
-        // execute
         const runProcess = cp.spawnSync("sh", [
           "-c",
           `echo ${stdInToInject} | node ${COMPILED_CODE_PATH}`
