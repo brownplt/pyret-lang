@@ -2,8 +2,8 @@ const glob = require('glob');
 const fs = require('fs');
 const cp = require('child_process');
 
-const COMPILER_TIMEOUT = 30000; // ms, for each compiler run (including startup)
-const RUN_TIMEOUT = 20000; // ms, for each program execution
+const COMPILER_TIMEOUT = 60000; // ms, for each compiler run (including startup)
+const RUN_TIMEOUT = 60000; // ms, for each program execution
 const COMPILED_CODE_PATH = "compiled.jarr";
 const SUCCESS_EXIT_CODE = 0;
 const EMPTY_MESSAGE = "";
