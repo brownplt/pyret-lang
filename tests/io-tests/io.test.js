@@ -67,7 +67,7 @@ describe("IO Tests", () => {
           ],
           {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
 
-        // expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
+        expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
         expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
 
         const runProcess = cp.spawnSync("sh", [
@@ -76,11 +76,11 @@ describe("IO Tests", () => {
         ], {stdio: 'pipe', stderr: "pipe", timeout: RUN_TIMEOUT});
 
         if (stderrExpected !== "") {
-          // expect(runProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
+          expect(runProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
           expect(runProcess.stderr.toString()).toMatch(new RegExp(stderrExpected));
         } 
         else {
-          // expect(runProcess.status).toEqual(SUCCESS_EXIT_CODE);
+          expect(runProcess.status).toEqual(SUCCESS_EXIT_CODE);
           expect(runProcess.stdout.toString()).toMatch(new RegExp(stdioExpected));
         }
       });
