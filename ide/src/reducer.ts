@@ -894,6 +894,7 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
   };
   return {
     ...state,
+    running: { type: 'idle' },
     interactionErrors: [],
     definitionsHighlights: [],
     rhs: {
@@ -942,125 +943,8 @@ async function runProgramAsync(state: State) : Promise<void> {
   }
 }
 
-async function runExamplarAsync(state: State) : Promise<any> {
-  // currentFile is just the standard program.arr, we'll use it to get at
-  // our relevant files
-  const { typeCheck, chunks, runKind, currentFile } = state;
-  const { dir } = bfsSetup.path.parse(currentFile);
-
-  fs.writeFileSync(
-    state.currentFile,
-    chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
-  );
-
-  // eslint-disable-next-line
-  const dirWheats: string = dir + '/wheats';
-  // eslint-disable-next-line
-  const dirChaffs: string = dir + '/chaffs';
-
-  // eslint-disable-next-line
-  const testFile: string = dir + '/test.arr';
-
-  // eslint-disable-next-line
-  const testWheatFile = dir + '/testwheat.arr';
-  // eslint-disable-next-line
-  const testChaffFile = dir + '/testchaff.arr';
-
-  if (fs.existsSync(testWheatFile)) {
-    fs.unlinkSync(testWheatFile);
-  }
-  if (fs.existsSync(testChaffFile)) {
-    fs.unlinkSync(testChaffFile);
-  }
-
-  const wheatFileBasenames: string[] = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
-  const chaffFileBasenames: string[] = fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : [];
-
-  const numWheats = wheatFileBasenames.length;
-  const numChaffs = chaffFileBasenames.length;
-
-  const wheatFiles: string[] = [];
-  const chaffFiles: string[] = [];
-
-  for (let i = 0; i < numWheats; i += 1) {
-    // eslint-disable-next-line
-    wheatFiles.push('wheats/' + wheatFileBasenames[i]);
-  }
-  for (let i = 0; i < numChaffs; i += 1) {
-    // eslint-disable-next-line
-    chaffFiles.push('chaffs/' + chaffFileBasenames[i]);
-  }
-
-  // test if numPrograms > 0 and testFile exists
-
-  const wheatResultArray: any[] = [];
-  const chaffResultArray: any[] = [];
-
-  let result: any;
-  let failed: boolean = false;
-  const checkBlock = String(fs.readFileSync(testFile));
-
-  for (let i = 0; i < numWheats; i += 1) {
-    const wheatFile = wheatFiles[i];
-    // eslint-disable-next-line
-    const testProgram = 'include cpo' + '\n\ninclude file("' + wheatFile + '")\n' + checkBlock + '\n';
-    // eslint-disable-next-line
-    const testProgramFile = segmentName(testWheatFile, Number(i).toString())
-    // eslint-disable-next-line
-    result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
-    if (result.type === 'compile-failure') {
-      failed = true;
-      // eslint-disable-next-line
-      update((s: State) => handleCompileExamplarFailure(s, result.errors));
-      break;
-    } else if (result.type === 'run-failure') {
-      failed = true;
-      // eslint-disable-next-line
-      update((s: State) => handleRunExamplarFailure(s, result.error));
-      break;
-    } else {
-      wheatResultArray.push(result);
-    }
-  }
-
-  if (!failed) {
-    for (let i = 0; i < numChaffs; i += 1) {
-      const chaffFile = chaffFiles[i];
-      // eslint-disable-next-line
-      const testProgram = 'include cpo' + '\n\ninclude file("' + chaffFile + '")\n\n' + checkBlock + '\n';
-      // eslint-disable-next-line
-      const testProgramFile = segmentName(testChaffFile, Number(i).toString())
-      // eslint-disable-next-line
-      result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
-      if (result.type === 'compile-failure') {
-        failed = true;
-        // eslint-disable-next-line
-        update((s: State) => handleCompileExamplarFailure(s, result.errors));
-        break;
-      } else if (result.type === 'run-failure') {
-        failed = true;
-        // eslint-disable-next-line
-        update((s: State) => handleRunExamplarFailure(s, result.error));
-        break;
-      } else {
-        chaffResultArray.push(result);
-      }
-    }
-  }
-
-  if (!failed) {
-    update((s: State) => handleRunExamplarSuccess(s, wheatResultArray, chaffResultArray, segmentName(testWheatFile, '0')));
-  }
-}
-
 function setupRunProgramAsync(state: State) : State {
   return { ...state, running: { type: 'text' } };
-}
-
-function setupRunExamplarAsync(s: State) : State {
-  const { chunks } = s;
-  const count = chunks.length;
-  return { ...s, running: { type: 'examplar', total: count, done: 0 } };
 }
 
 let stopFlag = false;
@@ -1179,12 +1063,128 @@ function runProgramOrSegments(
   if (state.running.type !== 'idle') { return state; }
   const result : Promise<any> = runner(state);
   result.finally(() => {
-    store.dispatch(
-      { type: 'update', key: 'updater', value: (s) => ({ ...s, running: { type: 'idle' } }) },
-    );
+    update((s) => ({ ...s, running: { type: 'idle' } }));
   });
   return updater(state);
 }
+
+function handleRunExamplarSuccessFull(state: State, wheatResultArray: any[], chaffResultArray: any[], reprFile: string) : State {
+  const state2 = handleRunExamplarSuccess(state, wheatResultArray, chaffResultArray, reprFile);
+  const state3 = runProgramOrSegments(state2, runSegmentsAsync, setupRunSegmentsAsync);
+  return state3;
+}
+
+async function runExamplarAsync(state: State) : Promise<any> {
+  // currentFile is just the standard program.arr, we'll use it to get at
+  // our relevant files
+  const { typeCheck, chunks, runKind, currentFile } = state;
+  const { dir } = bfsSetup.path.parse(currentFile);
+
+  fs.writeFileSync(
+    state.currentFile,
+    chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
+  );
+
+  // eslint-disable-next-line
+  const dirWheats: string = dir + '/wheats';
+  // eslint-disable-next-line
+  const dirChaffs: string = dir + '/chaffs';
+
+  // eslint-disable-next-line
+  const testFile: string = dir + '/test.arr';
+
+  // eslint-disable-next-line
+  const testWheatFile = dir + '/testwheat.arr';
+  // eslint-disable-next-line
+  const testChaffFile = dir + '/testchaff.arr';
+
+  if (fs.existsSync(testWheatFile)) {
+    fs.unlinkSync(testWheatFile);
+  }
+  if (fs.existsSync(testChaffFile)) {
+    fs.unlinkSync(testChaffFile);
+  }
+
+  const wheatFileBasenames: string[] = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
+  const chaffFileBasenames: string[] = fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : [];
+
+  const numWheats = wheatFileBasenames.length;
+  const numChaffs = chaffFileBasenames.length;
+
+  const wheatFiles: string[] = [];
+  const chaffFiles: string[] = [];
+
+  for (let i = 0; i < numWheats; i += 1) {
+    // eslint-disable-next-line
+    wheatFiles.push('wheats/' + wheatFileBasenames[i]);
+  }
+  for (let i = 0; i < numChaffs; i += 1) {
+    // eslint-disable-next-line
+    chaffFiles.push('chaffs/' + chaffFileBasenames[i]);
+  }
+
+  // test if numPrograms > 0 and testFile exists
+
+  const wheatResultArray: any[] = [];
+  const chaffResultArray: any[] = [];
+
+  let result: any;
+  let failed: boolean = false;
+  const checkBlock = String(fs.readFileSync(testFile));
+
+  for (let i = 0; i < numWheats; i += 1) {
+    const wheatFile = wheatFiles[i];
+    // eslint-disable-next-line
+    const testProgram = 'include cpo' + '\n\ninclude file("' + wheatFile + '")\n' + checkBlock + '\n';
+    // eslint-disable-next-line
+    const testProgramFile = segmentName(testWheatFile, Number(i).toString())
+    // eslint-disable-next-line
+    result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+    if (result.type === 'compile-failure') {
+      failed = true;
+      // eslint-disable-next-line
+      update((s: State) => handleCompileExamplarFailure(s, result.errors));
+      break;
+    } else if (result.type === 'run-failure') {
+      failed = true;
+      // eslint-disable-next-line
+      update((s: State) => handleRunExamplarFailure(s, result.error));
+      break;
+    } else {
+      wheatResultArray.push(result);
+    }
+  }
+
+  if (!failed) {
+    for (let i = 0; i < numChaffs; i += 1) {
+      const chaffFile = chaffFiles[i];
+      // eslint-disable-next-line
+      const testProgram = 'include cpo' + '\n\ninclude file("' + chaffFile + '")\n\n' + checkBlock + '\n';
+      // eslint-disable-next-line
+      const testProgramFile = segmentName(testChaffFile, Number(i).toString())
+      // eslint-disable-next-line
+      result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+      if (result.type === 'compile-failure') {
+        failed = true;
+        // eslint-disable-next-line
+        update((s: State) => handleCompileExamplarFailure(s, result.errors));
+        break;
+      } else if (result.type === 'run-failure') {
+        failed = true;
+        // eslint-disable-next-line
+        update((s: State) => handleRunExamplarFailure(s, result.error));
+        break;
+      } else {
+        chaffResultArray.push(result);
+      }
+    }
+  }
+
+  if (!failed) {
+    update((s: State) => handleRunExamplarSuccessFull(s, wheatResultArray, chaffResultArray, segmentName(testWheatFile, '0')));
+  }
+}
+
 function stopSession(state: State): State {
   console.log('stopSession');
   console.assert(state.running);
@@ -1216,7 +1216,7 @@ function rootReducer(state: State, action: Action): State {
         return runProgramOrSegments(state, runSegmentsAsync, setupRunSegmentsAsync);
       }
       if (action.key === 'runExamplar') {
-        return runProgramOrSegments(state, runExamplarAsync, setupRunExamplarAsync);
+        return runProgramOrSegments(state, runExamplarAsync, setupRunSegmentsAsync);
       }
       throw new NeverError(action);
     case 'stopSession':
