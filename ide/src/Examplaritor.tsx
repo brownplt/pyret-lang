@@ -142,8 +142,8 @@ function Examplaritor({
   // Why plus one? Surely you want zero on zero and 1 on done? No, because of
   // the transition, we want the bar to move *towards* the state it's next going
   // to be in to look good
-  const runWidth = running.type === 'examplar' ? `${(100 * (running.done + 1)) / running.total}%` : '0%';
-  const height = running.type === 'examplar' ? '0.8em' : '0';
+  const runWidth = running.type === 'segments' ? `${(100 * (running.done + 1)) / running.total}%` : '0%';
+  const height = running.type === 'segments' ? '0.8em' : '0';
   const prompt = (
     <div className="prompt">
       <UnControlled

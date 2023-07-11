@@ -32,7 +32,6 @@ type UndoState = {
 export type RunningState =
   | { type: 'idle' }
   | { type: 'text' }
-  | { type: 'examplar', total: number, done: number }
   | { type: 'segments', total: number, done: number };
 
 export type GoogleDriveFile = {
