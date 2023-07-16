@@ -23,7 +23,14 @@
       "tve":      ["tid", "e"],
       "Equality": { tag: "name", 
                     origin: { "import-type": "uri", uri: "builtin://equality" },
-                    name: "EqualityResult" }
+                    name: "EqualityResult" },
+      "Row": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://global" },
+                    name: "Row" },
+      "Table": { tag: "name", 
+                    origin: { "import-type": "uri", uri: "builtin://global" },
+                    name: "Table" },
+      "Col": "tany"
     },
     values: {
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
@@ -524,9 +531,18 @@
         "_greaterequal": ["arrow", ["String"], "Boolean"]
       }],
       "Table": ["data", "Table", [], [], {
-        "length": ["arrow", [], "Number"]
+        "length": ["arrow", [], "Number"],
+        "add-column": ["arrow", ["String", ["List", "Col"]], "Table"],
+        "row-n": ["arrow", ["Number"], "Row"],
+        "column": ["arrow", ["String"], ["List", "Col"]],
+        "select-columns": ["arrow", [["List", "String"]], "Table"],
+        "all-columns": ["arrow", [], ["List", ["List", "Col"]]],
+        "all-rows": ["arrow", [], ["List", "Row"]],
+        "column-names": ["arrow", [], ["List", "String"]],
       }],
-      "Row": ["data", "Row", [], [], { }],
+      "Row": ["data", "Row", [], [], { 
+        "get-column-names": ["arrow", [], ["List", "String"]],
+      }],
       "Function": ["data", "Function", [], [], {}],
       "Boolean": ["data", "Boolean", [], [], {}],
       "Object": ["data", "Object", [], [], {}],
