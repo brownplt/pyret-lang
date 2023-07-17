@@ -1236,6 +1236,25 @@ function rootReducer(state: State, action: Action): State {
   }
 }
 
+let initFlag = 0;
 export default function ideApp(state = initialState, action: Action): State {
-  return rootReducer(state, action);
+  let state2 = state;
+  if (initFlag === 0) {
+    // browserfs not yet configured, so files not yet in place to check
+    initFlag = 1;
+  } else if (initFlag === 1) {
+    initFlag = 2;
+    const { currentFile } = state;
+    const { dir } = bfsSetup.path.parse(currentFile);
+    // eslint-disable-next-line
+    const dirWheats = dir + '/wheats';
+    // eslint-disable-next-line
+    const dirChaffs = dir + '/chaffs';
+    // eslint-disable-next-line
+    const testFile = dir + '/test.arr';
+    if (fs.existsSync(testFile) && fs.existsSync(dirWheats) && fs.existsSync(dirChaffs)) {
+      state2 = { ...state, editorMode: EditorMode.Examplaritor };
+    }
+  }
+  return rootReducer(state2, action);
 }
