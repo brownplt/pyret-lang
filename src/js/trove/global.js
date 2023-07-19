@@ -33,6 +33,8 @@
       "Col": "tany"
     },
     values: {
+      "table-from-column": ["arrow", ["Col", ["List", "Col"]], "Table"],
+
       "print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "test-print": ["forall", "a", ["arrow", ["tva"], "tva"]],
       "print-error": ["forall", "a", ["arrow", ["tva"], "tva"]],
@@ -539,9 +541,12 @@
         "all-columns": ["arrow", [], ["List", ["List", "Col"]]],
         "all-rows": ["arrow", [], ["List", "Row"]],
         "column-names": ["arrow", [], ["List", "String"]],
+        "build-column": ["arrow", ["String", ["arrow", ["Row"], "Col"]], "Table"],
       }],
       "Row": ["data", "Row", [], [], { 
         "get-column-names": ["arrow", [], ["List", "String"]],
+        "get-value": ["arrow", ["String"], "Col"],
+        "get": ["arrow", ["String"], ["Option", "Col"]],
       }],
       "Function": ["data", "Function", [], [], {}],
       "Boolean": ["data", "Boolean", [], [], {}],
