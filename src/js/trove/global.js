@@ -542,11 +542,35 @@
         "all-rows": ["arrow", [], ["List", "Row"]],
         "column-names": ["arrow", [], ["List", "String"]],
         "build-column": ["arrow", ["String", ["arrow", ["Row"], "Col"]], "Table"],
+        "increasing-by": ["arrow", ["String"], "Table"],
+        "decreasing-by": ["arrow", ["String"], "Table"],
+        "order-by": ["arrow", ["String", "Boolean"], "Table"],
+        // incorrect: column names must all match, order does not matter
+        "stack": ["arrow", ["Table"], "Table"],
+        "empty": ["arrow", [], "Table"],
+        "drop": ["arrow", ["String"], "Table"],
+        "rename-column": ["arrow", ["String", "String"], "Table"],
+
+        // order-by-columns
+        // multi-order
+        // add-row
+        // column-n
+        // reduce
+        // filter-by
+        // filter
+        // transform-column
+        // _column-index
+        // _no-column
+        // _equals
+        // _output
+        // row
+        // new-row
       }],
       "Row": ["data", "Row", [], [], { 
         "get-column-names": ["arrow", [], ["List", "String"]],
         "get-value": ["arrow", ["String"], "Col"],
-        "get": ["arrow", ["String"], ["Option", "Col"]],
+        // _output
+        // _equals
       }],
       "Function": ["data", "Function", [], [], {}],
       "Boolean": ["data", "Boolean", [], [], {}],

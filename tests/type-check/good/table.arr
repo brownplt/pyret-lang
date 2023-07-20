@@ -64,3 +64,17 @@ check "can build-column":
 
   foods-with-cpg satisfies is-table
 end
+
+tbl.increasing-by("age")
+tbl.decreasing-by("age")
+tbl.order-by("age", false)
+
+tbl-2 = table:age, name
+  row: 35, "age"
+end
+
+stacked-tbl = tbl.stack(tbl-2)
+empty-tbl = tbl.empty()
+
+dropped-age-tbl = tbl.drop("age")
+renamed-age-tbl = tbl.rename-column("age", "years-old")
