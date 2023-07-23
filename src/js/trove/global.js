@@ -532,6 +532,18 @@
         "_greaterthan": ["arrow", ["String"], "Boolean"],
         "_greaterequal": ["arrow", ["String"], "Boolean"]
       }],
+      // Issues and things that make me uncomfortable:
+      // * sometimes order matters and we can't enforce it
+      // * sometimes column names must match and we can't enforce it
+      // * sometimes we want to ensure a column being passed in exists in the schema and we can't enforce it
+      // * would be nice to have a way to express column uniqueness (i.e. add-column)
+      // * Col is an any (even though we do have the type info available), so:
+      //    * when passing in functions, these functions cannot really be typed
+      //    * when returning from these methods we lose type information
+      //
+      // Things I do like about this:
+      //  * thus far it "feels right" to return Table and Row. These types are cognitively simple to understand.
+      //
       "Table": ["data", "Table", [], [], {
         "length": ["arrow", [], "Number"],
         "add-column": ["arrow", ["String", ["List", "Col"]], "Table"],
@@ -550,25 +562,33 @@
         "empty": ["arrow", [], "Table"],
         "drop": ["arrow", ["String"], "Table"],
         "rename-column": ["arrow", ["String", "String"], "Table"],
+        "column-n": ["arrow", ["Number"], "Col"],
+        "filter": ["arrow", [["arrow", ["Col"], "Boolean"]], "Table"],
+        "filter-by": ["arrow", ["String", ["arrow", ["Col"], "Boolean"]], "Table"],
+        // incorrect: column names must all match and order matters
+        "add-row": ["arrow", ["Row"], "Table"],
 
-        // order-by-columns
-        // multi-order
-        // add-row
-        // column-n
-        // reduce
-        // filter-by
-        // filter
+        // TODO: figure out how to properly type these variadic function
+        // row
+        // new-row
+
+        // TODO: finish implementing types for these
+        // order-by-columns - how to type a Tuple?
+        // multi-order - how to type an array of two element arrays?
+        // reduce - how to type a Reducer?
         // transform-column
+
+        // TODO: implement types for internals
         // _column-index
         // _no-column
         // _equals
         // _output
-        // row
-        // new-row
       }],
       "Row": ["data", "Row", [], [], { 
         "get-column-names": ["arrow", [], ["List", "String"]],
         "get-value": ["arrow", ["String"], "Col"],
+
+        // TODO: implement types for internals
         // _output
         // _equals
       }],

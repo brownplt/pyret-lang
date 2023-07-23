@@ -1,4 +1,5 @@
 import tables as T
+import string-dict as SD
 
 email :: Table =
   table: sender, subject
@@ -60,7 +61,7 @@ check "can build-column":
     true
   end
   
-  foods.build-column("cal-per-gram", add-cpg) is foods-with-cpg
+  foods.build-column("cal-per-gram", add-cpg)
 
   foods-with-cpg satisfies is-table
 end
@@ -78,3 +79,17 @@ empty-tbl = tbl.empty()
 
 dropped-age-tbl = tbl.drop("age")
 renamed-age-tbl = tbl.rename-column("age", "years-old")
+
+column-1 = tbl.column-n(1)
+
+fun allTrue(x) -> Boolean:
+  true
+end
+
+tbl.filter(allTrue)
+tbl.filter-by("age", allTrue)
+
+tbl-with-extra-row = tbl.add-row([T.raw-row: {"name"; "Paul"}, {"age"; 10}])
+
+tbl.row(10, "Bar")
+extended-tbl-3-rows.row(10, "Bar", "Foo")
