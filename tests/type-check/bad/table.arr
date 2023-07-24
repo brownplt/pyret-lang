@@ -6,4 +6,5 @@ email :: Table =
     row: "Matthias", "bye"
   end
 
-  all-columns-tbl-selected = tbl.select-columns([list: 10, 11])
+# select-columns :: List<Striong> -> Table
+all-columns-tbl-selected = tbl.select-columns([list: 10, 11])

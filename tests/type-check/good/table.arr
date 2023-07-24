@@ -1,13 +1,6 @@
 import tables as T
-import string-dict as SD
 
-email :: Table =
-  table: sender, subject
-    row: "Matthias", "hi"
-    row: "Kathi", "foo"
-    row: "Joe", "bar"
-    row: "Matthias", "bye"
-  end
+#=============== Set Up ================== #
 
 tbl = table: name, age
   row: "Bob", 12
@@ -15,81 +8,81 @@ tbl = table: name, age
   row: "Eve", 13
 end
 
-extended-tbl-3-rows = tbl.add-column("gender", [list: "man", "lady", "lady"])
-
-check "adding columns does not add rows":
-  extended-tbl-3-rows.length() is tbl.length()
+tbl-2 = table: name, age
+  row: "Rob", 14
 end
-
-row-1 = extended-tbl-3-rows.row-n(1)
-row-1-column-names = row-1.get-column-names()
-age-column = extended-tbl-3-rows.column("age")
-
-check "can extract value":
-  row-1.get-value("age") is 15
-end
-
-# TODO: doesn't work
-# check "can create a table from a column":
-  # T.table-from-column("foo", [list: "bar", "baz"]) satisfies is-table
-# end
-
-all-columns-tbl = tbl.all-columns()
-all-columns-tbl-selected = tbl.select-columns([list: "name", "age"])
-
-check "all rows grabs all rows":
-  tbl.all-rows().length() is tbl.length()
-end
-
-check "fetchs all table names":
-  tbl.column-names() is [list: "name", "age"]
-end
-
-check "can build-column":
-  foods = table: name, grams, calories
-    row: "Fries", 200, 500
-    row: "Milkshake", 400, 600
-  end
-  foods-with-cpg = table: name, grams, calories, cal-per-gram
-    row: "Fries", 200, 500, 500/200
-    row: "Milkshake", 400, 600, 600/400
-  end
-
-  fun add-cpg(r :: Row) -> Boolean:
-# fun add-cpg(r :: Row) -> Number:
-    # r.get-value("calories") / r.get-value("grams")
-    true
-  end
-  
-  foods.build-column("cal-per-gram", add-cpg)
-
-  foods-with-cpg satisfies is-table
-end
-
-tbl.increasing-by("age")
-tbl.decreasing-by("age")
-tbl.order-by("age", false)
-
-tbl-2 = table:age, name
-  row: 35, "age"
-end
-
-stacked-tbl = tbl.stack(tbl-2)
-empty-tbl = tbl.empty()
-
-dropped-age-tbl = tbl.drop("age")
-renamed-age-tbl = tbl.rename-column("age", "years-old")
-
-column-1 = tbl.column-n(1)
 
 fun allTrue(x) -> Boolean:
   true
 end
 
+#=============== Table ================== #
+
+# length :: () -> Number
+tbl.length()
+
+# add-column :: (String, List<Col>) -> Table
+tbl.add-column("gender", [list: "man", "lady", "lady"])
+
+# row-n :: Number -> Row
+row-1 = tbl.row-n(1)
+
+# column :: (String) -> List<Col>
+age-column = tbl.column("age")
+
+# select-columns :: (List<String>) -> Table
+tbl.select-columns([list: "name", "age"])
+
+# all-columns :: () -> List<List<Col>>
+tbl.all-columns()
+
+# all-rows :: () -> List<Row>
+tbl.all-rows()
+
+# column-names :: () -> List<String>
+tbl.column-names()
+
+# build-column :: (String, (Row -> Col)) -> Table
+tbl.build-column("is-cool", allTrue)
+
+# increasing-by :: (String) -> Table
+tbl.increasing-by("age")
+
+# decreasing-by :: (String) -> Table
+tbl.decreasing-by("age")
+
+# order-by :: (String, Boolean) -> Table
+tbl.order-by("age", false)
+
+# stack :: (Table) -> Table
+tbl.stack(tbl-2)
+
+# empty :: () -> Table
+tbl.empty()
+
+# drop :: (String) -> Table
+tbl.drop("age")
+
+# rename-column :: (String, String) -> Table
+tbl.rename-column("age", "years-old")
+
+# column-n :: (Number) -> Col
+tbl.column-n(1)
+
+# filter :: (Col -> Boolean) -> Table
 tbl.filter(allTrue)
+
+# filter-by :: (String, (Col -> Boolean)) -> Table
 tbl.filter-by("age", allTrue)
 
-tbl-with-extra-row = tbl.add-row([T.raw-row: {"name"; "Paul"}, {"age"; 10}])
+# TODO: after fix raw-row, use a uniquely constructed row here
+# add-row :: Row -> Table
+tbl.add-row(row-1)
 
-tbl.row(10, "Bar")
-extended-tbl-3-rows.row(10, "Bar", "Foo")
+#=============== Row ================== #
+
+# get-column-names :: () -> List<String>
+row-1-column-names = row-1.get-column-names()
+
+# get-value :: (String) -> Col
+row-1.get-value("age")
