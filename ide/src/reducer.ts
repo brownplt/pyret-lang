@@ -1074,6 +1074,10 @@ function handleRunExamplarSuccessFull(state: State, wheatResultArray: any[], cha
   return state3;
 }
 
+function removeIncludes(s: string) {
+  return s.split('\n').map((x) => x.replace(/^ *include.*/, '')).join('\n');
+}
+
 async function runExamplarAsync(state: State) : Promise<any> {
   // currentFile is just the standard program.arr, we'll use it to get at
   // our relevant files
@@ -1130,7 +1134,7 @@ async function runExamplarAsync(state: State) : Promise<any> {
 
   let result: any;
   let failed: boolean = false;
-  const checkBlock = String(fs.readFileSync(testFile));
+  const checkBlock = removeIncludes(String(fs.readFileSync(testFile)));
 
   for (let i = 0; i < numWheats; i += 1) {
     const wheatFile = wheatFiles[i];
