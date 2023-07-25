@@ -1258,6 +1258,8 @@ export default function ideApp(state = initialState, action: Action): State {
     const testFile = dir + '/test.arr';
     if (fs.existsSync(testFile) && fs.existsSync(dirWheats) && fs.existsSync(dirChaffs)) {
       state2 = { ...state, editorMode: EditorMode.Examplaritor };
+    } else if (state.editorMode === EditorMode.Examplaritor) {
+      state2 = { ...state, editorMode: EditorMode.Chatitor };
     }
   }
   return rootReducer(state2, action);
