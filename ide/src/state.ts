@@ -8,7 +8,7 @@ import { RTMessages } from './rtMessages';
 import * as control from './control';
 import { program } from './path';
 
-const DEVELOPER_MODE = true;
+const DEVELOPER_MODE = false;
 
 export type Outdates =
   // Applying *or undoing* this change technically invalidates this chunk. If a

@@ -127,10 +127,31 @@ function handleStopSuccess(state: State, action: SuccessForEffect<'stop'>): Stat
   };
 }
 
+function correctEditorOption(state: State) {
+  const { currentFile } = state;
+  const { dir } = bfsSetup.path.parse(currentFile);
+  // eslint-disable-next-line
+  const dirWheats = dir + '/wheats';
+  // eslint-disable-next-line
+  const dirChaffs = dir + '/chaffs';
+  // eslint-disable-next-line
+  const testFile = dir + '/test.arr';
+  let state2 = state;
+  if (fs.existsSync(testFile) && fs.existsSync(dirWheats) && fs.existsSync(dirChaffs)) {
+    console.log('setting to Examplaritor');
+    state2 = { ...state, editorMode: EditorMode.Examplaritor };
+  } else if (state.editorMode === EditorMode.Examplaritor) {
+    console.log('setting to Chatitor');
+    state2 = { ...state, editorMode: EditorMode.Chatitor };
+  }
+  return state2;
+}
+
 function handleLoadFileSuccess(state: State): State {
   console.log('loaded a file successfully');
+  const state2 = correctEditorOption(state);
   return {
-    ...state,
+    ...state2,
   };
 }
 
@@ -1240,27 +1261,6 @@ function rootReducer(state: State, action: Action): State {
   }
 }
 
-let initFlag = 0;
 export default function ideApp(state = initialState, action: Action): State {
-  let state2 = state;
-  if (initFlag === 0) {
-    // browserfs not yet configured, so files not yet in place to check
-    initFlag = 1;
-  } else if (initFlag === 1) {
-    initFlag = 2;
-    const { currentFile } = state;
-    const { dir } = bfsSetup.path.parse(currentFile);
-    // eslint-disable-next-line
-    const dirWheats = dir + '/wheats';
-    // eslint-disable-next-line
-    const dirChaffs = dir + '/chaffs';
-    // eslint-disable-next-line
-    const testFile = dir + '/test.arr';
-    if (fs.existsSync(testFile) && fs.existsSync(dirWheats) && fs.existsSync(dirChaffs)) {
-      state2 = { ...state, editorMode: EditorMode.Examplaritor };
-    } else if (state.editorMode === EditorMode.Examplaritor) {
-      state2 = { ...state, editorMode: EditorMode.Chatitor };
-    }
-  }
-  return rootReducer(state2, action);
+  return rootReducer(state, action);
 }
