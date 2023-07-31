@@ -39,6 +39,7 @@ function handleLoadFile(
     case EditorMode.Text:
       dispatch({ type: 'update', key: 'currentFileContents', value: contents });
       break;
+    case EditorMode.Examplaritor:
     case EditorMode.Chatitor: {
       const chunks = makeChunksFromString(contents);
 
@@ -93,6 +94,7 @@ function handleSaveFile(
     case EditorMode.Text:
       control.fs.writeFile(path, contents, saveCallback);
       break;
+    case EditorMode.Examplaritor:
     case EditorMode.Chatitor:
       // TODO(alex): Chunk file saving works by concating chunks together into a single buffer
       //   and writing it out.
@@ -148,11 +150,15 @@ function handleFirstActionableEffect(
   for (let i = 0; i < effectQueue.length; i += 1) {
     const effect = effectQueue[i];
 
+    // console.log('doing effect.effectKey ', effect.effectKey);
+    // unfortunately, 'startEditTimer' shows up on random runs, so deal with it
     switch (effect.effectKey) {
+      case 'startEditTimer':
+        break;
       case 'loadFile':
         {
-          console.log('loadFile');
           const { currentFile, editorMode } = state;
+          // console.log('loadFile', currentFile, editorMode);
           if (currentFile !== undefined) {
             return {
               effect: i,
@@ -195,6 +201,7 @@ function handleFirstActionableEffect(
         };
       }
       default:
+        // console.log('effect.effectKey is ', effect.effectKey);
         throw new Error('getFirstActionableEffect: unknown effect');
     }
   }

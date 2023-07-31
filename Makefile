@@ -182,7 +182,7 @@ lsp/lsp.js: build/lsp/pyret-grammar.js src/arr/compiler/pyret-parser.js $(PYRET_
 lsp/lsp-server.mjs: lsp/lsp.js lsp/lsp-server.ts
 	npx tsc --target "esnext" --module "es2015" --moduleResolution "node" lsp/lsp-server.ts
 	mv lsp/lsp-server.js lsp/lsp-server.mjs
-	`npm bin`/tsc --target "esnext" --module "es2015" --listFilesOnly lsp/lsp-server.ts \
+	npx tsc --target "esnext" --module "es2015" --listFilesOnly lsp/lsp-server.ts \
 		| sed s/.ts$$/.js/ | xargs -n1 -I{} realpath --relative-to="src" '{}' | grep -v "\.\." \
 		| xargs -n1 -I{} realpath --relative-to="." 'src/{}' \
 		| xargs -n1 -I{} perl -0777 -p -i -e 's/(?:;|\A)(\n*)(export \{\}(\n*);?)?\Z/\1/m' '{}'
@@ -195,7 +195,7 @@ build/worker/runtime-files.json: src/webworker/scripts/runtime-bundler.ts $(RUNT
 	node $(WEBWORKER_BUILD_DIR)/runtime-bundler.js $(RUNTIME_BUILD_DIR) build/worker/runtime-files.json
 
 build/worker/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
-	`npm bin`/browserify src/js/trove/require-node-compile-dependencies.js -o $@
+	npx browserify src/js/trove/require-node-compile-dependencies.js -o $@
 
 build/phaseA/pyret-grammar.js: lib/jglr/parser-generator.js src/js/base/pyret-grammar.bnf
 	mkdir -p build/phaseA

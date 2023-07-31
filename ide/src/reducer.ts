@@ -42,6 +42,8 @@ import {
 
 import {
   makeRHSObjects,
+  RHSObject,
+  Location,
 } from './rhsObject';
 
 import {
@@ -125,10 +127,31 @@ function handleStopSuccess(state: State, action: SuccessForEffect<'stop'>): Stat
   };
 }
 
+function correctEditorOption(state: State) {
+  const { currentFile } = state;
+  const { dir } = bfsSetup.path.parse(currentFile);
+  // eslint-disable-next-line
+  const dirWheats = dir + '/wheats';
+  // eslint-disable-next-line
+  const dirChaffs = dir + '/chaffs';
+  // eslint-disable-next-line
+  const testFile = dir + '/test.arr';
+  let state2 = state;
+  if (fs.existsSync(testFile) && fs.existsSync(dirWheats) && fs.existsSync(dirChaffs)) {
+    console.log('setting to Examplaritor');
+    state2 = { ...state, editorMode: EditorMode.Examplaritor };
+  } else if (state.editorMode === EditorMode.Examplaritor) {
+    console.log('setting to Chatitor');
+    state2 = { ...state, editorMode: EditorMode.Chatitor };
+  }
+  return state2;
+}
+
 function handleLoadFileSuccess(state: State): State {
   console.log('loaded a file successfully');
+  const state2 = correctEditorOption(state);
   return {
-    ...state,
+    ...state2,
   };
 }
 
@@ -201,6 +224,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         currentFileContents,
       };
     }
+    case EditorMode.Examplaritor:
     case EditorMode.Chatitor: {
       // in text mode currentFileContents can be more up-to-date than chunks, so we
       // need to recreate the chunks.
@@ -270,7 +294,7 @@ function handleSetCurrentFile(state: State, file: string): State {
 
 function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
   const { editorMode, isFileSaved } = state;
-  if (editorMode !== EditorMode.Chatitor) {
+  if (editorMode !== EditorMode.Chatitor && editorMode !== EditorMode.Examplaritor) {
     throw new Error('handleSetChunks: not in chunk mode');
   }
 
@@ -724,7 +748,7 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
   };
 }
 
-function handleRunSessionFailure(state: State, id: string, error: string, errorVal: any) {
+function handleRunSessionFailure(state: State, id: string, error: string, errorVal: any) : State {
   // NOTE(alex): necessary b/c Stopify does not clean up top level infrastructure,
   //   resulting in a severe memory leak of 50+MB PER RUN
   cleanStopify();
@@ -742,6 +766,15 @@ function handleRunSessionFailure(state: State, id: string, error: string, errorV
     ...state,
     chunks: newChunks,
     firstOutdatedChunk: Math.max(state.firstOutdatedChunk, index + 1),
+  };
+}
+
+function handleRunExamplarFailure(state: State, error: string) : State {
+  return {
+    ...state,
+    interactionErrors: [error],
+    definitionsHighlights: [],
+    messageTabIndex: MessageTabIndex.ErrorMessages,
   };
 }
 
@@ -818,7 +851,16 @@ function handleCompileProgramFailure(state: State, errors: string[]) : State {
   };
 }
 
-function handleRunProgramFailure(state: State, error: string) {
+function handleCompileExamplarFailure(state: State, errors: string[]) : State {
+  return {
+    ...state,
+    interactionErrors: errors,
+    definitionsHighlights: [],
+    messageTabIndex: MessageTabIndex.ErrorMessages,
+  };
+}
+
+function handleRunProgramFailure(state: State, error: string) : State {
   // TODO(joe): get source locations from dynamic errors (source map, etc)
   return {
     ...state,
@@ -829,7 +871,7 @@ function handleRunProgramFailure(state: State, error: string) {
   };
 }
 
-function handleRunProgramSuccess(state : State, result : any) {
+function handleRunProgramSuccess(state : State, result : any) : State {
   const rhs = makeRHSObjects(result, `file://${state.currentFile}`);
   return {
     ...state,
@@ -837,6 +879,47 @@ function handleRunProgramSuccess(state : State, result : any) {
     definitionsHighlights: [],
     rhs: {
       objects: rhs,
+      outdated: false,
+    },
+    messageTabIndex: MessageTabIndex.RuntimeMessages,
+  };
+}
+
+function resultSummary(wheatResultArray: any[], chaffResultArray: any[]) {
+  function numFailures(resultArray: any[]) {
+    const fails = resultArray.filter((result) => {
+      const checkArray = result.result.result.$checks;
+      const failureArray = checkArray.filter((check: any) => (check.success === false));
+      return (failureArray.length > 0);
+    });
+    return fails.length;
+  }
+  const wheatFails = numFailures(wheatResultArray);
+  const chaffFails = numFailures(chaffResultArray);
+  // eslint-disable-next-line
+  return 'Caught ' + String(chaffFails) + ' out of ' + String(chaffResultArray.length) +
+    ' chaffs. Failed ' + String(wheatFails) + ' out of ' + String(wheatResultArray.length) + ' wheats.';
+}
+
+function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffResultArray: any[], reprFile: string) : State {
+  const { result } = wheatResultArray[0];
+  const rhs = makeRHSObjects(result, `file://${reprFile}`);
+  const rhs0 = (rhs.slice(0, 1))[0];
+  // eslint-disable-next-line
+  const resultString = resultSummary(wheatResultArray, chaffResultArray);
+  const modifiedResult = {
+    key: (<Location>rhs0).key,
+    tag: 'trace',
+    srcloc: (<Location>rhs0).srcloc,
+    value: resultString,
+  };
+  return {
+    ...state,
+    running: { type: 'idle' },
+    interactionErrors: [],
+    definitionsHighlights: [],
+    rhs: {
+      objects: [<RHSObject>modifiedResult],
       outdated: false,
     },
     messageTabIndex: MessageTabIndex.RuntimeMessages,
@@ -1001,12 +1084,132 @@ function runProgramOrSegments(
   if (state.running.type !== 'idle') { return state; }
   const result : Promise<any> = runner(state);
   result.finally(() => {
-    store.dispatch(
-      { type: 'update', key: 'updater', value: (s) => ({ ...s, running: { type: 'idle' } }) },
-    );
+    update((s) => ({ ...s, running: { type: 'idle' } }));
   });
   return updater(state);
 }
+
+function handleRunExamplarSuccessFull(state: State, wheatResultArray: any[], chaffResultArray: any[], reprFile: string) : State {
+  const state2 = handleRunExamplarSuccess(state, wheatResultArray, chaffResultArray, reprFile);
+  const state3 = runProgramOrSegments(state2, runSegmentsAsync, setupRunSegmentsAsync);
+  return state3;
+}
+
+function removeIncludes(s: string) {
+  return s.split('\n').map((x) => x.replace(/^ *include.*/, '')).join('\n');
+}
+
+async function runExamplarAsync(state: State) : Promise<any> {
+  // currentFile is just the standard program.arr, we'll use it to get at
+  // our relevant files
+  const { typeCheck, chunks, runKind, currentFile } = state;
+  const { dir } = bfsSetup.path.parse(currentFile);
+
+  fs.writeFileSync(
+    state.currentFile,
+    chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
+  );
+
+  // eslint-disable-next-line
+  const dirWheats: string = dir + '/wheats';
+  // eslint-disable-next-line
+  const dirChaffs: string = dir + '/chaffs';
+
+  // eslint-disable-next-line
+  const testFile: string = dir + '/test.arr';
+
+  // eslint-disable-next-line
+  const testWheatFile = dir + '/testwheat.arr';
+  // eslint-disable-next-line
+  const testChaffFile = dir + '/testchaff.arr';
+
+  if (fs.existsSync(testWheatFile)) {
+    fs.unlinkSync(testWheatFile);
+  }
+  if (fs.existsSync(testChaffFile)) {
+    fs.unlinkSync(testChaffFile);
+  }
+
+  const wheatFileBasenames: string[] = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
+  const chaffFileBasenames: string[] = fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : [];
+
+  const numWheats = wheatFileBasenames.length;
+  const numChaffs = chaffFileBasenames.length;
+
+  const wheatFiles: string[] = [];
+  const chaffFiles: string[] = [];
+
+  for (let i = 0; i < numWheats; i += 1) {
+    // eslint-disable-next-line
+    wheatFiles.push('wheats/' + wheatFileBasenames[i]);
+  }
+  for (let i = 0; i < numChaffs; i += 1) {
+    // eslint-disable-next-line
+    chaffFiles.push('chaffs/' + chaffFileBasenames[i]);
+  }
+
+  // test if numPrograms > 0 and testFile exists
+
+  const wheatResultArray: any[] = [];
+  const chaffResultArray: any[] = [];
+
+  let result: any;
+  let failed: boolean = false;
+  const checkBlock = removeIncludes(String(fs.readFileSync(testFile)));
+
+  for (let i = 0; i < numWheats; i += 1) {
+    const wheatFile = wheatFiles[i];
+    // eslint-disable-next-line
+    const testProgram = 'include cpo' + '\n\ninclude file("' + wheatFile + '")\n' + checkBlock + '\n';
+    // eslint-disable-next-line
+    const testProgramFile = segmentName(testWheatFile, Number(i).toString())
+    // eslint-disable-next-line
+    result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+    if (result.type === 'compile-failure') {
+      failed = true;
+      // eslint-disable-next-line
+      update((s: State) => handleCompileExamplarFailure(s, result.errors));
+      break;
+    } else if (result.type === 'run-failure') {
+      failed = true;
+      // eslint-disable-next-line
+      update((s: State) => handleRunExamplarFailure(s, result.error));
+      break;
+    } else {
+      wheatResultArray.push(result);
+    }
+  }
+
+  if (!failed) {
+    for (let i = 0; i < numChaffs; i += 1) {
+      const chaffFile = chaffFiles[i];
+      // eslint-disable-next-line
+      const testProgram = 'include cpo' + '\n\ninclude file("' + chaffFile + '")\n\n' + checkBlock + '\n';
+      // eslint-disable-next-line
+      const testProgramFile = segmentName(testChaffFile, Number(i).toString())
+      // eslint-disable-next-line
+      result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+      if (result.type === 'compile-failure') {
+        failed = true;
+        // eslint-disable-next-line
+        update((s: State) => handleCompileExamplarFailure(s, result.errors));
+        break;
+      } else if (result.type === 'run-failure') {
+        failed = true;
+        // eslint-disable-next-line
+        update((s: State) => handleRunExamplarFailure(s, result.error));
+        break;
+      } else {
+        chaffResultArray.push(result);
+      }
+    }
+  }
+
+  if (!failed) {
+    update((s: State) => handleRunExamplarSuccessFull(s, wheatResultArray, chaffResultArray, segmentName(testWheatFile, '0')));
+  }
+}
+
 function stopSession(state: State): State {
   console.log('stopSession');
   console.assert(state.running);
@@ -1036,6 +1239,9 @@ function rootReducer(state: State, action: Action): State {
       }
       if (action.key === 'runSegments') {
         return runProgramOrSegments(state, runSegmentsAsync, setupRunSegmentsAsync);
+      }
+      if (action.key === 'runExamplar') {
+        return runProgramOrSegments(state, runExamplarAsync, setupRunSegmentsAsync);
       }
       throw new NeverError(action);
     case 'stopSession':

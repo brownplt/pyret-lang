@@ -197,6 +197,7 @@ export enum EditorMode {
   Text = 'Text',
   Embeditor = 'Embeditor',
   Chatitor = 'Chatitor',
+  Examplaritor = 'Examplaritor',
 }
 
 export enum EditorLayout {
