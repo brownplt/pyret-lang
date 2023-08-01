@@ -74,10 +74,7 @@ describe("IO Tests", () => {
         expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
         expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
 
-        const runProcess = cp.spawnSync("sh", [
-          "-c",
-          `echo ${stdInToInject} | node ${COMPILED_CODE_PATH}`
-        ], {stdio: 'pipe', stderr: "pipe", timeout: RUN_TIMEOUT});
+        const runProcess = cp.spawnSync("node" ,[COMPILED_CODE_PATH], {input: stdInToInject, stderr: "pipe", timeout: RUN_TIMEOUT});
 
         if (stderrExpected !== EMPTY_MESSAGE) {
           expect(runProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
