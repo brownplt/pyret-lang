@@ -66,15 +66,19 @@ describe("IO Tests", () => {
             "--outfile", COMPILED_CODE_PATH, 
             "--builtin-js-dir", "src/js/trove", 
             "--builtin-arr-dir","src/arr/trove", 
-            "--require-config","src/scripts/standalone-configA.json"
+            "--require-config","src/scripts/standalone-configA.json",
+            "--compiled-dir", "tests/compiled/"
           ],
           {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
-
+         
         // at this time, we always expect compilation to succeed
         expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
         expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
 
-        const runProcess = cp.spawnSync("node" ,[COMPILED_CODE_PATH], {input: stdInToInject, stderr: "pipe", timeout: RUN_TIMEOUT});
+        const runProcess = cp.spawnSync("sh", [
+          "-c",
+          `echo ${stdInToInject} | node ${COMPILED_CODE_PATH}`
+        ], {stdio: 'pipe', stderr: "pipe", timeout: RUN_TIMEOUT});
 
         if (stderrExpected !== EMPTY_MESSAGE) {
           expect(runProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
