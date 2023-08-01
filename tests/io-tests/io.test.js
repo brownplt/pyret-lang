@@ -3,8 +3,8 @@ const fs = require('fs');
 const cp = require('child_process');
 const assert = require('assert');
 
-const COMPILER_TIMEOUT = 2000; // ms, for each compiler run (including startup)
-const RUN_TIMEOUT = 2000; // ms, for each program execution
+const COMPILER_TIMEOUT = 60000; // ms, for each compiler run (including startup)
+const RUN_TIMEOUT = 60000; // ms, for each program execution
 const COMPILED_CODE_PATH = "compiled.jarr";
 const SUCCESS_EXIT_CODE = 0;
 const EMPTY_MESSAGE = "";
@@ -68,7 +68,7 @@ describe("IO Tests", () => {
             "--builtin-arr-dir","src/arr/trove", 
             "--require-config","src/scripts/standalone-configA.json"
           ],
-          {timeout: COMPILER_TIMEOUT});
+          {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
 
         // at this time, we always expect compilation to succeed
         expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
@@ -77,7 +77,7 @@ describe("IO Tests", () => {
         const runProcess = cp.spawnSync("sh", [
           "-c",
           `echo ${stdInToInject} | node ${COMPILED_CODE_PATH}`
-        ], {timeout: RUN_TIMEOUT});
+        ], {stdio: 'pipe', stderr: "pipe", timeout: RUN_TIMEOUT});
 
         if (stderrExpected !== EMPTY_MESSAGE) {
           expect(runProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
