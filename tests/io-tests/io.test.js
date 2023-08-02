@@ -22,7 +22,7 @@ const parse_file_for_expected_std = (f) => {
       
       // stdin
       if (line.startsWith("###<")) {
-        stdInToInject = line.slice(line.indexOf(" ")).trim();
+        stdInToInject = line.slice(line.indexOf(" ")).trim() + "\n";
       }
       
       // stdout
@@ -75,10 +75,10 @@ describe("IO Tests", () => {
         expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
         expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
 
-        const runProcess = cp.spawnSync("sh", [
-          "-c",
-          `echo ${stdInToInject} | node ${COMPILED_CODE_PATH}`
-        ], {stdio: 'pipe', stderr: "pipe", timeout: RUN_TIMEOUT});
+        const runProcess = cp.spawnSync(
+          'node', 
+          [COMPILED_CODE_PATH], 
+          {input: stdInToInject, stdio: 'pipe', stderr: "pipe", timeout: RUN_TIMEOUT});
 
         if (stderrExpected !== EMPTY_MESSAGE) {
           expect(runProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
