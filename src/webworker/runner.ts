@@ -7,6 +7,7 @@ export interface RuntimeConfig {
   imgUrlProxy?: (url: string) => string,
   checkBlockRunner?: (block: any) => void,
   checkBlockFilter?: (srcloc: string, name: string) => boolean,
+  cwd: string
 }
 
 export interface RunnerPerfResults {
@@ -26,8 +27,7 @@ const browserFS = require('./browserfs-setup.ts');
 
 (window as any).stopify = stopify;
 
-const { fs } = browserFS;
-const { path } = browserFS;
+const { fs, path, process } = browserFS;
 
 const nodeModules = {
   assert,
@@ -187,6 +187,14 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
     });
     currentRunner.path = nextPath;
 
+    // Scary state warning! Need to reset this on all paths out of running the
+    // main program
+    const oldCwd = process.cwd();
+    if(rtCfg) {
+      process.chdir(rtCfg.cwd);
+    }
+
+
     resolve({
       run: new Promise((resolve, reject) => {
         const endRootRequires = window.performance.now();
@@ -194,6 +202,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
         const startRootExecution = endRootRequires;
         const cb =  (result : any) => {
           if (result.type !== 'normal') {
+            process.chdir(oldCwd);
             reject(result);
           } else {
             const toReturn = currentRunner.g.module.exports;
@@ -204,6 +213,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
             timings.$total = endRootExecution - startRootRequires;
             calculateDependencyTime(cachePath);
             timings.$rootOnly = timings.$total - timings.$dependencies - timings.$makeRootRequires;
+            process.chdir(oldCwd);
             resolve(toReturn);
           }
         };
@@ -219,6 +229,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
         currentRunner.resume();
       },
       onEnd: (result : any): void => {
+        process.chdir(oldCwd);
         currentRunner.onEnd(result);
       },
     });

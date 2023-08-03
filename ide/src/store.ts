@@ -416,6 +416,7 @@ if (maybeEncodedProgram !== null) {
     recompileBuiltins: false,
     session: sessionId,
   }, runKind, {
+    cwd: dir,
     spyMessgeHandler: ideRt.defaultSpyMessage,
     spyExprHandler: ideRt.defaultSpyExpr,
     imgUrlProxy: ideRt.defaultImageUrlProxy,

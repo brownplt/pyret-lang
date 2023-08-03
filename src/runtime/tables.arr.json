@@ -9,6 +9,8 @@
       "_makeTableFromTableSkeleton": ["arrow", ["Any"], ["local", "Table"]],
       "_tableSkeletonChangeHeaders": ["arrow", ["Any", "Any"], "Any"],
       "csv-open": ["arrow", ["String"], "Any"],
+      "table-from-csv-file": ["arrow", ["String"], ["local", "Table"]],
+      "table-from-csv-string": ["arrow", ["String"], ["local", "Table"]],
       "_makeTableFromCSVFile": ["arrow", ["String"], ["local", "Table"]],
       "_makeTableFromCSVString": ["arrow", ["String"], ["local", "Table"]],
       "table-from-column": ["arrow", ["String", "Any"], ["local", "Table"]],
