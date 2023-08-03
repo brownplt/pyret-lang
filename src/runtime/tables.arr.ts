@@ -989,7 +989,9 @@ module.exports = {
   '_makeTableFromTableSkeleton': _makeTableFromTableSkeleton,
   '_tableSkeletonChangeHeaders': _tableSkeletonChangeHeaders,
   'csv-open': _makeTableSkeletonFromCSVFile,
+  'table-from-csv-file': _makeTableFromCSVFile,
   '_makeTableFromCSVFile': _makeTableFromCSVFile,
+  'table-from-csv-string': _makeTableFromCSVString,
   '_makeTableFromCSVString': _makeTableFromCSVString,
   'table-from-column': tableFromColumn,
   'table-from-columns': {
