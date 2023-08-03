@@ -5,7 +5,7 @@ module.exports = {
     return fs.existsSync( path );
   },
 
-  "file-imes": function( path ) {
+  "file-times": function( path ) {
     stats = fs.statSync( path );
     return {mtime: stats.mtime, atime: stats.atime, ctime: stats.ctime};
   },

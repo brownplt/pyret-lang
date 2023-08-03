@@ -942,6 +942,7 @@ async function runTextProgram(
     recompileBuiltins: false,
     session: sessionId,
   }, runKind, {
+    cwd: dir,
     spyMessgeHandler: ideRt.defaultSpyMessage,
     spyExprHandler: ideRt.defaultSpyExpr,
     imgUrlProxy: ideRt.defaultImageUrlProxy,
@@ -1026,6 +1027,7 @@ async function runSegmentsAsync(state : State) : Promise<any> {
       recompileBuiltins: false,
       session: sessionId,
     }, state.runKind, {
+      cwd: dir,
       spyMessgeHandler: ideRt.defaultSpyMessage,
       spyExprHandler: ideRt.defaultSpyExpr,
       imgUrlProxy: ideRt.defaultImageUrlProxy,

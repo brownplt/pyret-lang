@@ -4,6 +4,8 @@ export const fs = BrowserFS.BFSRequire('fs');
 
 export const path = BrowserFS.BFSRequire('path');
 
+export const process = BrowserFS.BFSRequire('process');
+
 export const install = (): void => {
   BrowserFS.install(window);
 };
