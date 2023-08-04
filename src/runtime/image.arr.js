@@ -4,6 +4,7 @@ const Either = require("./either.arr.js");
 const LISTS = require("./lists.arr.js");
 const PRIMITIVES = require("./primitives.js");
 const VS = require("./valueskeleton.arr.js");
+const fs = require('fs');
 
 var hasOwnProperty = {}.hasOwnProperty;
 
@@ -1865,6 +1866,24 @@ var ImageUrlImage = function (url) {
   });
 };
 
+var FilePathImage = function (path) {
+  return RUNTIME.pauseStack(function (restarter) {
+    if(!fs.existsSync(path)) { return restarter.error(new Error("Path for file image does not exist: " + path)); }
+    var rawImage = new Image();
+    var data = fs.readFileSync(path);
+    var buffer = Buffer.from(data);
+    var objURL = URL.createObjectURL(new Blob([buffer]));
+    rawImage.onload = function () {
+      restarter.resume(new FileImage(String(objURL), rawImage));
+    };
+    rawImage.onerror = function (e) {
+      restarter.error(new Error("unable to load " + url + ": " + e.message));
+    };
+    rawImage.src = String(objURL);
+  });
+};
+
+
 //////////////////////////////////////////////////////////////////////
 // FileImage: string node -> Image
 var FileImage = /* @stopify flat */ function (src, rawImage) {
@@ -2183,6 +2202,9 @@ module.exports = {
   },
   "image-url": /* @stopify flat */ function (url) {
     return ImageUrlImage(url);
+  },
+  "image-file": /* @stopify flat */ function (path) {
+    return FilePathImage(path);
   },
   "bitmap-url": /* @stopify flat */ function (url) {
     return ImageUrlImage(url);

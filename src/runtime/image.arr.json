@@ -89,6 +89,7 @@
       "place-image-align": ["arrow", ["Image", "Number", "Number", "String", "String", "Image"], "Image"],
       "scene-line": ["arrow", ["Image", "Number", "Number", "Number", "Number", "String"], "Image"],
       "image-url": ["arrow", ["String"], "Image"],
+      "image-file": ["arrow", ["String"], "Image"],
       "bitmap-url": ["arrow", ["String"], "Image"],
       "make-color": ["arrow", ["Number", "Number", "Number", "Number"], "Color"],
       "colors-equal": ["arrow", ["Color", "Color"], "Boolean"],

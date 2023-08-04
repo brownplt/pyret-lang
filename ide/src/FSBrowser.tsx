@@ -279,13 +279,14 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
         control.bfsSetup.fs.writeFileSync(
           control.bfsSetup.path.join(browsePath, name),
-          data,
+          Buffer.from(data),
         );
 
         this.forceUpdate();
       };
 
-      reader.readAsText(file);
+      reader.readAsArrayBuffer(file);
+      // reader.readAsText(file);
     }
   };
 

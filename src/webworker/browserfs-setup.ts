@@ -17,6 +17,9 @@ export const configure = (worker: Worker /* , projectsDirectory: string */): voi
       '/projects/': {
         fs: 'LocalStorage',
       },
+      '/projects/data': {
+        fs: 'InMemory',
+      },
       '/google-drive/': {
         fs: 'InMemory',
       },
