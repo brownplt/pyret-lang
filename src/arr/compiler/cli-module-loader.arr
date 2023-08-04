@@ -688,7 +688,6 @@ fun build-program(path, options, stats) block:
 
   clear-and-print("Loading existing compiled modules...")
 
-  print-progress("Aggregating modules and session was " + options.session)
   CL.modules-from-worklist-known-modules(wl, starter-modules, max-dep-times, get-loadable(options.compiled-cache, options.compiled-read-only.map(P.resolve), _, _))
   clear-and-print("Found " + to-repr(starter-modules.keys-now()) + " after looking at dep times")
 
@@ -708,7 +707,6 @@ fun build-program(path, options, stats) block:
           + ": " + locator.name())
     end,
     method on-compile(self, locator, loadable, trace) block:
-      clear-and-print("Compiled " + locator.uri() + " and session was " + options.session)
       locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
