@@ -2,6 +2,8 @@
 
 all: build parser runtime
 
+UNAME := $(shell uname)
+
 PYRET_JARR_DEPS := $(wildcard src/arr/compiler/*.arr) $(patsubst src/arr/compiler/%.ts,src/arr/compiler/%.js,$(wildcard src/arr/compiler/*.ts))
 
 PYRET_JARR := build/phaseA/pyret.jarr
@@ -9,8 +11,6 @@ PYRET_JARR := build/phaseA/pyret.jarr
 $(PYRET_JARR) : $(PYRET_JARR_DEPS)
 	npx pyret --checks none -c src/arr/compiler/pyret.arr -o $(PYRET_JARR)
 
-src/arr/compiler/%.js : src/arr/compiler/%.ts
-	npx tsc --project tsconfig.compiler.json
 # Thanks internet! https://unix.stackexchange.com/a/65691
 # This solves the problem that tsc (rightfully) inserts a semicolon at the end
 # of the expression-statement in JS, but that can't be interpreted correctly
@@ -18,10 +18,25 @@ src/arr/compiler/%.js : src/arr/compiler/%.ts
 # So chop the trailing ;
 # UNFORTUNATELY, we can't do this while compiling individual .ts files,
 # because tsc might overwrite some of the post-processed files.  So do this as a second step
+ifeq ($(UNAME), Linux)
+src/arr/compiler/%.js : src/arr/compiler/%.ts
+	@echo "executing src/arr/compiler/%.js targetting Linux"
+	npx tsc --project tsconfig.compiler.json
 	npx tsc --project tsconfig.compiler.json --listFilesOnly | grep "src/arr/compiler" \
 		| sed s/.ts$$/.js/ | xargs -n1 -I{} realpath --relative-to="src" '{}' | grep -v "\.\." \
 		| xargs -n1 -I{} realpath --relative-to="." 'src/{}' \
 		| xargs -n1 -I{} perl -0777 -p -i -e 's/(?:;|\A)(\n*)(export \{\}(\n*);?)?\Z/\1/m' '{}'
+else ifeq ($(UNAME), Darwin)
+src/arr/compiler/%.js : src/arr/compiler/%.ts
+	@echo "executing src/arr/compiler/%.js targetting Darwin"
+	npx tsc --project tsconfig.compiler.json
+	npx tsc --project tsconfig.compiler.json --listFilesOnly | grep "src/arr/compiler" \
+		| sed s/.ts$$/.js/ | sed  's|/.*arr|src/arr|'  | grep -v "\.\." \
+		| xargs -n1 -I{} perl -0777 -p -i -e 's/(?:;|\A)(\n*)(export \{\}(\n*);?)?\Z/\1/m' '{}'
+else
+src/arr/compiler/%.js : src/arr/compiler/%.ts
+	@echo "Unsupported operating system: $(UNAME)"
+endif
 
 BUILD_DEPS := \
 	src/arr/compiler/pyret-parser.js \
@@ -179,14 +194,27 @@ lsp/lsp.js: build/lsp/pyret-grammar.js src/arr/compiler/pyret-parser.js $(PYRET_
 # NOTE(joe): after this run with node --experimental-specifier-resolution=node lsp/lsp-server.mjs
 # Alternatively, never forget to add .js after an import's name!
 # https://github.com/microsoft/TypeScript/issues/18442#issuecomment-581738714
+ifeq ($(UNAME), Linux)
 lsp/lsp-server.mjs: lsp/lsp.js lsp/lsp-server.ts
+	@echo "executing lsp/lsp-server.mjs targetting Linux"
 	npx tsc --target "esnext" --module "es2015" --moduleResolution "node" lsp/lsp-server.ts
 	mv lsp/lsp-server.js lsp/lsp-server.mjs
 	`npm bin`/tsc --target "esnext" --module "es2015" --listFilesOnly lsp/lsp-server.ts \
 		| sed s/.ts$$/.js/ | xargs -n1 -I{} realpath --relative-to="src" '{}' | grep -v "\.\." \
 		| xargs -n1 -I{} realpath --relative-to="." 'src/{}' \
 		| xargs -n1 -I{} perl -0777 -p -i -e 's/(?:;|\A)(\n*)(export \{\}(\n*);?)?\Z/\1/m' '{}'
-
+else ifeq ($(UNAME), Darwin)
+lsp/lsp-server.mjs: lsp/lsp.js lsp/lsp-server.ts
+	@echo "executing lsp/lsp-server.mjs targetting Darwin"
+	npx tsc --target "esnext" --module "es2015" --moduleResolution "node" lsp/lsp-server.ts
+	mv lsp/lsp-server.js lsp/lsp-server.mjs
+	`npm bin`/tsc --target "esnext" --module "es2015" --listFilesOnly lsp/lsp-server.ts \
+		| sed s/.ts$$/.js/ | sed  's|/.*arr|src/arr|'  | grep -v "\.\." \
+		| xargs -n1 -I{} perl -0777 -p -i -e 's/(?:;|\A)(\n*)(export \{\}(\n*);?)?\Z/\1/m' '{}'
+else
+lsp/lsp-server.mjs: lsp/lsp.js lsp/lsp-server.ts
+	@echo "Unsupported operating system: $(UNAME)"
+endif
 
 web: build/worker/pyret.js build/worker/page.html build/worker/main.js
 
