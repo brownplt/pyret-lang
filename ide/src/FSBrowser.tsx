@@ -293,13 +293,14 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
         control.bfsSetup.fs.writeFileSync(
           control.bfsSetup.path.join(browsePath, name),
-          data,
+          Buffer.from(data),
         );
 
         this.forceUpdate();
       };
 
-      reader.readAsText(file);
+      reader.readAsArrayBuffer(file);
+      // reader.readAsText(file);
     }
   };
 
@@ -360,9 +361,15 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     const editor = makeEditor();
 
     let fsitems;
+    function showPath(file : string) {
+      if (file.startsWith('.')) { return false; }
+      if (file.endsWith('-segment')) { return false; }
+      return true;
+    }
     try  {
       fsitems = control.fs
         .readdirSync(this.browsePathString)
+        .filter(showPath)
         .map(this.createFSItemPair)
         .sort(FSBrowser.compareFSItemPair)
         .map((x: [string, FSItem]) => x[1]);

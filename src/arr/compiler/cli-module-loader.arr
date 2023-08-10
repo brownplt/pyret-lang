@@ -674,12 +674,9 @@ fun build-program(path, options, stats) block:
   base-locator = get-base-locator(options, base)
   
 
-  print-progress("Found " + to-repr(starter-modules.keys-now()) + " as starter modules in-memory")
   wl = CL.compile-worklist-known-modules(module-finder, base-locator, base.context, starter-modules)
-  print-progress("Found worklist of length: " + to-repr(wl.length()))
   compiler-edited-time = if FS.exists(CMD.file-name): F.file-times(CMD.file-name).mtime else: 0 end
   max-dep-times = CL.dep-times-from-worklist(wl, compiler-edited-time)
-  print-progress("Found max-dep-times: " + to-repr(max-dep-times) + "\n" + to-repr(compiler-edited-time))
   shadow wl = for map(located from wl):
     located.{ locator: get-cached-if-available-known-mtimes(options.compiled-cache, located.locator, max-dep-times) }
   end
@@ -688,9 +685,7 @@ fun build-program(path, options, stats) block:
 
   clear-and-print("Loading existing compiled modules...")
 
-  print-progress("Aggregating modules and session was " + options.session)
   CL.modules-from-worklist-known-modules(wl, starter-modules, max-dep-times, get-loadable(options.compiled-cache, options.compiled-read-only.map(P.resolve), _, _))
-  clear-and-print("Found " + to-repr(starter-modules.keys-now()) + " after looking at dep times")
 
   cached-modules = starter-modules.count-now() - length-before-wl
   total-modules = wl.length() - cached-modules
@@ -708,7 +703,6 @@ fun build-program(path, options, stats) block:
           + ": " + locator.name())
     end,
     method on-compile(self, locator, loadable, trace) block:
-      clear-and-print("Compiled " + locator.uri() + " and session was " + options.session)
       locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
