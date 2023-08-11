@@ -8,6 +8,10 @@
 
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
+import TreeView, { flattenTree } from 'react-accessible-treeview';
+import { DiDatabase, DiJavascript, DiCode } from 'react-icons/di';
+import { FaRegFolder, FaRegFolderOpen } from 'react-icons/fa';
+
 import {
   Upload,
   FilePlus,
@@ -66,6 +70,30 @@ type FSBrowserState = {
   editValue: string,
   selected: string | undefined,
 };
+
+function showPath(file : string) {
+  if (file.startsWith('.')) { return false; }
+  if (file.endsWith('-segment')) { return false; }
+  return true;
+}
+
+function structureFromBrowseRoot(browseRoot : string) {
+  const root = control.fs.readdirSync(browseRoot);
+  const rootChildren = root.filter(showPath).map((child : string) => {
+    const childPath = control.bfsSetup.path.join(browseRoot, child);
+    const childStats = control.fs.statSync(childPath);
+    if (childStats.isDirectory()) {
+      return {
+        name: child,
+        children: structureFromBrowseRoot(childPath),
+      };
+    }
+    return {
+      name: child,
+    };
+  });
+  return rootChildren;
+}
 
 class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
   /* Compares FSItemPairs (the output of createFSItemPair). This is used as a
@@ -313,46 +341,48 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     function makeEditor() {
       if (editType !== undefined) {
         return (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-          >
-            <pre style={{
-              paddingLeft: '1em',
-              paddingRight: '1em',
+          <>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
             }}
             >
-              {editType === EditType.CreateFile ? (
-                <div>New file name:</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'row' }}>
-                  New folder name:
-                </div>
-              )}
-            </pre>
-            <form
-              onSubmit={that.handleSubmit}
-              style={{
-                height: '100%',
-                flexGrow: 1,
+              <pre style={{
+                paddingLeft: '1em',
+                paddingRight: '1em',
               }}
-            >
-              <input
-                ref={(input) => { that.nameInputRef = input; }}
-                type="text"
-                value={editValue}
-                onChange={that.onChange}
+              >
+                {editType === EditType.CreateFile ? (
+                  <div>New file name:</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'row' }}>
+                    New folder name:
+                  </div>
+                )}
+              </pre>
+              <form
+                onSubmit={that.handleSubmit}
                 style={{
-                  border: 0,
-                  padding: 0,
-                  width: '100%',
                   height: '100%',
+                  flexGrow: 1,
                 }}
-              />
-            </form>
-          </div>
+              >
+                <input
+                  ref={(input) => { that.nameInputRef = input; }}
+                  type="text"
+                  value={editValue}
+                  onChange={that.onChange}
+                  style={{
+                    border: 0,
+                    padding: 0,
+                    width: '100%',
+                    height: '100%',
+                  }}
+                />
+              </form>
+            </div>
+          </>
         );
       }
 
@@ -361,11 +391,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     const editor = makeEditor();
 
     let fsitems;
-    function showPath(file : string) {
-      if (file.startsWith('.')) { return false; }
-      if (file.endsWith('-segment')) { return false; }
-      return true;
-    }
     try  {
       fsitems = control.fs
         .readdirSync(this.browsePathString)
@@ -382,6 +407,11 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         </span>
       );
     }
+
+    const fsBrowserStructure = {
+      name: '',
+      children: structureFromBrowseRoot(that.browsePathString),
+    };
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -474,8 +504,52 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
           )}
           { fsitems }
         </div>
+        <div className="directory">
+          <TreeView
+            data={flattenTree(fsBrowserStructure)}
+            aria-label="directory tree"
+            nodeRenderer={({
+              element,
+              isBranch,
+              isExpanded,
+              getNodeProps,
+              level,
+            }) => (
+              // eslint-disable-next-line react/jsx-props-no-spreading
+              <div {...getNodeProps()} style={{ paddingLeft: 20 * (level - 1) }}>
+                {isBranch ? (
+                  <FolderIcon isOpen={isExpanded} />
+                ) : (
+                  <FileIcon filename={element.name} />
+                )}
+
+                {element.name}
+              </div>
+            )}
+          />
+        </div>
       </div>
     );
+  }
+}
+function FolderIcon({ isOpen } : { isOpen : boolean}) {
+  return isOpen ? (
+    <FaRegFolderOpen color="e8a87c" className="icon" />
+  ) : (
+    <FaRegFolder color="e8a87c" className="icon" />
+  );
+}
+function FileIcon({ filename } : { filename : string }) {
+  const extension = filename.slice(filename.lastIndexOf('.') + 1);
+  switch (extension) {
+    case 'js':
+      return <DiJavascript color="yellow" className="icon" />;
+    case 'arr':
+      return <DiCode color="blue" className="icon" />;
+    case 'csv':
+      return <DiDatabase color="green" className="icon" />;
+    default:
+      return null;
   }
 }
 
