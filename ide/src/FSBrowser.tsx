@@ -24,14 +24,12 @@ import FSItem from './FSItem';
 type StateProps = {
   browseRoot: string,
   browsePath: string
-  developerMode: boolean,
 };
 
 function mapStateToProps(state: any): StateProps {
   return {
     browseRoot: state.browseRoot,
     browsePath: state.browsePath,
-    developerMode: state.developerMode,
   };
 }
 
@@ -67,8 +65,7 @@ enum EditType {
 
 type FSBrowserState = {
   editType: EditType | undefined,
-  editValue: string,
-  selected: string | undefined,
+  editValue: string
 };
 
 function showPath(file : string) {
@@ -85,10 +82,12 @@ function structureFromBrowseRoot(browseRoot : string) {
     if (childStats.isDirectory()) {
       return {
         name: child,
+        metadata: { directory: true, path: childPath },
         children: structureFromBrowseRoot(childPath),
       };
     }
     return {
+      metadata: { directory: false, path: childPath },
       name: child,
     };
   });
@@ -118,7 +117,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     this.state = {
       editType: undefined,
       editValue: '',
-      selected: undefined,
     };
   }
 
@@ -138,10 +136,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
     const newPath = control.bfsSetup.path.join(browsePath, '..');
 
-    this.setState({
-      selected: undefined,
-    });
-
     setBrowsePath(newPath);
   };
 
@@ -150,10 +144,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     const { browsePath, setBrowsePath } = this.props;
 
     const newPath = control.bfsSetup.path.join(browsePath, childDirectory);
-
-    this.setState({
-      selected: undefined,
-    });
 
     setBrowsePath(newPath);
   };
@@ -169,10 +159,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     if (stats.isDirectory()) {
       this.traverseDown(child);
     } else if (stats.isFile()) {
-      this.setState({
-        selected: child,
-      });
-
       onExpandChild(fullChildPath);
     }
   };
@@ -181,7 +167,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
      path, and the second is the item. See also: compareFSItemPair. */
   createFSItemPair = (filePath: string): [string, any] => {
     const { browsePath } = this.props;
-    const { selected } = this.state;
 
     return [
       filePath,
@@ -189,7 +174,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         key={filePath}
         onClick={() => this.expandChild(filePath)}
         path={control.bfsSetup.path.join(browsePath, filePath)}
-        selected={filePath === selected}
       />,
     ];
   };
@@ -275,36 +259,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     });
   };
 
-  /* (unused), deletes the selected FSItem. When this was enabled it was too
-     easy to delete the current directory and all of its contents.
-     TODO(michael): add this back in a more sensible way. */
-  deleteSelected = (): void => {
-    const { selected } = this.state;
-    const { browsePath } = this.props;
-
-    if (selected === undefined) {
-      control.removeDirectory(this.browsePathString);
-
-      this.traverseUp();
-    } else {
-      control.removeFile(
-        control.bfsSetup.path.join(browsePath, selected),
-      );
-
-      this.setState({
-        selected: undefined,
-      });
-    }
-  };
-
-  /* Selects the current directory. This is only matters when determining what
-     to delete (see deleteSelected) */
-  selectCurrentDirectory = (): void => {
-    this.setState({
-      selected: undefined,
-    });
-  };
-
   /* Opens a system-specific file uploading dialog, writing the result to the
      file system. */
   uploadFile = (event: any): void => {
@@ -333,8 +287,8 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
   };
 
   render() {
-    const { editType, editValue, selected } = this.state;
-    const { browsePath, developerMode } = this.props;
+    const { editType, editValue } = this.state;
+    const { browsePath } = this.props;
 
     const that = this;
 
@@ -410,7 +364,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
     const fsBrowserStructure = {
       name: '',
-      children: structureFromBrowseRoot(that.browsePathString),
+      children: structureFromBrowseRoot(that.props.browseRoot),
     };
 
     return (
@@ -425,7 +379,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             }}
           >
             <div
-              onClick={this.selectCurrentDirectory}
               style={{
                 cursor: 'pointer',
                 fontFamily: 'monospace',
@@ -433,7 +386,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                 alignItems: 'center',
                 paddingLeft: '1em',
                 paddingRight: '1em',
-                background: selected ? 'none' : 'darkgray',
               }}
             >
               {control.bfsSetup.path.parse(browsePath).base || '/'}
@@ -495,11 +447,10 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             </div>
           </div>
           {editor}
-          {!this.browsingRoot && developerMode && (
+          {!this.browsingRoot && (
           <FSItem
             onClick={this.traverseUp}
             path=".."
-            selected={false}
           />
           )}
           { fsitems }
@@ -508,16 +459,26 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
           <TreeView
             data={flattenTree(fsBrowserStructure)}
             aria-label="directory tree"
+            onNodeSelect={({ element }) => {
+              if (typeof element.metadata?.path !== 'string') {
+                console.error('Could not find path: ', element.metadata?.path);
+                return;
+              }
+              if (element.metadata?.directory) {
+                this.props.setBrowsePath(element.metadata?.path);
+              } else {
+                this.props.onExpandChild(element.metadata?.path);
+              }
+            }}
             nodeRenderer={({
               element,
-              isBranch,
               isExpanded,
               getNodeProps,
               level,
             }) => (
               // eslint-disable-next-line react/jsx-props-no-spreading
               <div {...getNodeProps()} style={{ paddingLeft: 20 * (level - 1) }}>
-                {isBranch ? (
+                {element.metadata?.directory ? (
                   <FolderIcon isOpen={isExpanded} />
                 ) : (
                   <FileIcon filename={element.name} />

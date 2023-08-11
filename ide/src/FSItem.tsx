@@ -11,7 +11,6 @@ import * as control from './control';
 type FSItemProps = {
   onClick: () => void;
   path: string;
-  selected: boolean;
 };
 
 type FSItemState = { hover: boolean };
@@ -23,7 +22,7 @@ export default class FSItem extends React.Component<FSItemProps, FSItemState> {
   }
 
   render() {
-    const { path, selected, onClick } = this.props;
+    const { path, onClick } = this.props;
 
     const stats = control.fs.statSync(path);
 
@@ -43,7 +42,6 @@ export default class FSItem extends React.Component<FSItemProps, FSItemState> {
     })();
 
     let background = 'rgba(0, 0, 0, 0.3)';
-    if (selected) background = 'darkgray';
     if (hover) background = 'rgba(0,0,0,0.5)';
 
     return (
