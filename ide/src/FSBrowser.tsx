@@ -1,5 +1,4 @@
-/* Handles the main logic of the file system browser. FSBrowser acts as a
-   container for FSItems (see FSItem.tsx) */
+/* Handles the main logic of the file system browser. */
 
 // TODO (michael): improve accessibilty by enabling these rules
 /* eslint-disable jsx-a11y/click-events-have-key-events */
@@ -19,7 +18,6 @@ import {
 } from 'react-feather';
 import * as control from './control';
 import * as action from './action';
-import FSItem from './FSItem';
 
 type StateProps = {
   browseRoot: string,
@@ -95,18 +93,6 @@ function structureFromBrowseRoot(browseRoot : string) {
 }
 
 class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
-  /* Compares FSItemPairs (the output of createFSItemPair). This is used as a
-     comparison function to sort FSItems, so that we always display FSItems in the
-     same order. */
-  static compareFSItemPair(a: [string, FSItem], b: [string, FSItem]) {
-    if (a[0] < b[0]) {
-      return -1;
-    } if (a[0] > b[0]) {
-      return 1;
-    }
-    return 0;
-  }
-
   nameInputRef: HTMLInputElement | null;
 
   constructor(props: FSBrowserProps) {
@@ -119,64 +105,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
       editValue: '',
     };
   }
-
-  get browsePathString() {
-    const { browsePath } = this.props;
-    return browsePath;
-  }
-
-  get browsingRoot() {
-    const { browsePath, browseRoot } = this.props;
-    return browsePath === browseRoot;
-  }
-
-  /* Moves the current directory up the tree, like `cd ..` */
-  traverseUp = (): void => {
-    const { browsePath, setBrowsePath } = this.props;
-
-    const newPath = control.bfsSetup.path.join(browsePath, '..');
-
-    setBrowsePath(newPath);
-  };
-
-  /* Moves the current directory down the tree, like `cd childDirectory` */
-  traverseDown = (childDirectory: string): void => {
-    const { browsePath, setBrowsePath } = this.props;
-
-    const newPath = control.bfsSetup.path.join(browsePath, childDirectory);
-
-    setBrowsePath(newPath);
-  };
-
-  /* Either opens a directory (if child is a directory), or opens a file (if
-     child is a file) in the LHS of the editor. */
-  expandChild = (child: string): void => {
-    const { onExpandChild } = this.props;
-
-    const fullChildPath = control.bfsSetup.path.join(this.browsePathString, child);
-    const stats = control.fs.statSync(fullChildPath);
-
-    if (stats.isDirectory()) {
-      this.traverseDown(child);
-    } else if (stats.isFile()) {
-      onExpandChild(fullChildPath);
-    }
-  };
-
-  /* Creates a FSItem, returning a two-element array where the first is the
-     path, and the second is the item. See also: compareFSItemPair. */
-  createFSItemPair = (filePath: string): [string, any] => {
-    const { browsePath } = this.props;
-
-    return [
-      filePath,
-      <FSItem
-        key={filePath}
-        onClick={() => this.expandChild(filePath)}
-        path={control.bfsSetup.path.join(browsePath, filePath)}
-      />,
-    ];
-  };
 
   /* Toggles the new file creation dialog. This is called when the file plus
      icon is clicked */
@@ -288,7 +216,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 
   render() {
     const { editType, editValue } = this.state;
-    const { browsePath } = this.props;
 
     const that = this;
 
@@ -344,24 +271,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     }
     const editor = makeEditor();
 
-    let fsitems;
-    try  {
-      fsitems = control.fs
-        .readdirSync(this.browsePathString)
-        .filter(showPath)
-        .map(this.createFSItemPair)
-        .sort(FSBrowser.compareFSItemPair)
-        .map((x: [string, FSItem]) => x[1]);
-    } catch (e) {
-      console.error('Could not find path: ', e);
-      return (
-        <span>
-          Could not find path
-          {this.browsePathString}
-        </span>
-      );
-    }
-
     const fsBrowserStructure = {
       name: '',
       children: structureFromBrowseRoot(that.props.browseRoot),
@@ -388,7 +297,7 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
                 paddingRight: '1em',
               }}
             >
-              {control.bfsSetup.path.parse(browsePath).base || '/'}
+              {control.bfsSetup.path.parse(this.props.browseRoot).base || '/'}
             </div>
             <div style={{
               flexGrow: 1,
@@ -434,26 +343,9 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
               >
                 <FolderPlus width="20px" />
               </button>
-              {/* {!this.browsingRoot
-                  && (
-                  <button
-                  className="fs-browser-item"
-                  onClick={this.deleteSelected}
-                  type="button"
-                  >
-                  <X />
-                  </button>
-                  )} */}
             </div>
           </div>
           {editor}
-          {!this.browsingRoot && (
-          <FSItem
-            onClick={this.traverseUp}
-            path=".."
-          />
-          )}
-          { fsitems }
         </div>
         <div className="directory">
           <TreeView
