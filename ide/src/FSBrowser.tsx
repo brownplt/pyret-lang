@@ -388,9 +388,9 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 }
 function FolderIcon({ isOpen } : { isOpen : boolean}) {
   return isOpen ? (
-    <Folder color="#e8a87c" className="icon" width="16px" />
-  ) : (
     <FolderMinus color="#e8a87c" className="icon" width="16px" />
+  ) : (
+    <Folder color="#e8a87c" className="icon" width="16px" />
   );
 }
 function FileIcon({ filename } : { filename : string }) {
