@@ -417,3 +417,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket-region {
   border-bottom: 0.1em solid var(--nonmatching-bg-2);
   z-index: 4000;
 }
+
+div.directory {
+  background: #555;
+}

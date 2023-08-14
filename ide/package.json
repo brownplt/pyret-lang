@@ -49,6 +49,7 @@
     "postcss-safe-parser": "4.0.1",
     "pyret-codemirror-mode": "git://github.com/brownplt/pyret-codemirror-mode.git#master",
     "react": "^16.13.1",
+    "react-accessible-treeview": "^2.6.3",
     "react-app-polyfill": "^1.0.6",
     "react-beautiful-dnd": "^11.0.5",
     "react-codemirror2": "^6.0.1",

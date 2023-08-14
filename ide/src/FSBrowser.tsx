@@ -1,5 +1,4 @@
-/* Handles the main logic of the file system browser. FSBrowser acts as a
-   container for FSItems (see FSItem.tsx) */
+/* Handles the main logic of the file system browser. */
 
 // TODO (michael): improve accessibilty by enabling these rules
 /* eslint-disable jsx-a11y/click-events-have-key-events */
@@ -8,26 +7,29 @@
 
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
+import TreeView, { flattenTree } from 'react-accessible-treeview';
+
 import {
+  Code,
+  Database,
   Upload,
   FilePlus,
+  Folder,
   FolderPlus,
+  FolderMinus,
 } from 'react-feather';
 import * as control from './control';
 import * as action from './action';
-import FSItem from './FSItem';
 
 type StateProps = {
   browseRoot: string,
   browsePath: string
-  developerMode: boolean,
 };
 
 function mapStateToProps(state: any): StateProps {
   return {
     browseRoot: state.browseRoot,
     browsePath: state.browsePath,
-    developerMode: state.developerMode,
   };
 }
 
@@ -63,23 +65,36 @@ enum EditType {
 
 type FSBrowserState = {
   editType: EditType | undefined,
-  editValue: string,
-  selected: string | undefined,
+  editValue: string
 };
 
-class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
-  /* Compares FSItemPairs (the output of createFSItemPair). This is used as a
-     comparison function to sort FSItems, so that we always display FSItems in the
-     same order. */
-  static compareFSItemPair(a: [string, FSItem], b: [string, FSItem]) {
-    if (a[0] < b[0]) {
-      return -1;
-    } if (a[0] > b[0]) {
-      return 1;
-    }
-    return 0;
-  }
+function showPath(file : string) {
+  if (file.startsWith('.')) { return false; }
+  if (file.endsWith('-segment')) { return false; }
+  return true;
+}
 
+function structureFromBrowseRoot(browseRoot : string) {
+  const root = control.fs.readdirSync(browseRoot);
+  const rootChildren = root.filter(showPath).map((child : string) => {
+    const childPath = control.bfsSetup.path.join(browseRoot, child);
+    const childStats = control.fs.statSync(childPath);
+    if (childStats.isDirectory()) {
+      return {
+        name: child,
+        metadata: { directory: true, path: childPath },
+        children: structureFromBrowseRoot(childPath),
+      };
+    }
+    return {
+      metadata: { directory: false, path: childPath },
+      name: child,
+    };
+  });
+  return rootChildren;
+}
+
+class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
   nameInputRef: HTMLInputElement | null;
 
   constructor(props: FSBrowserProps) {
@@ -90,81 +105,8 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     this.state = {
       editType: undefined,
       editValue: '',
-      selected: undefined,
     };
   }
-
-  get browsePathString() {
-    const { browsePath } = this.props;
-    return browsePath;
-  }
-
-  get browsingRoot() {
-    const { browsePath, browseRoot } = this.props;
-    return browsePath === browseRoot;
-  }
-
-  /* Moves the current directory up the tree, like `cd ..` */
-  traverseUp = (): void => {
-    const { browsePath, setBrowsePath } = this.props;
-
-    const newPath = control.bfsSetup.path.join(browsePath, '..');
-
-    this.setState({
-      selected: undefined,
-    });
-
-    setBrowsePath(newPath);
-  };
-
-  /* Moves the current directory down the tree, like `cd childDirectory` */
-  traverseDown = (childDirectory: string): void => {
-    const { browsePath, setBrowsePath } = this.props;
-
-    const newPath = control.bfsSetup.path.join(browsePath, childDirectory);
-
-    this.setState({
-      selected: undefined,
-    });
-
-    setBrowsePath(newPath);
-  };
-
-  /* Either opens a directory (if child is a directory), or opens a file (if
-     child is a file) in the LHS of the editor. */
-  expandChild = (child: string): void => {
-    const { onExpandChild } = this.props;
-
-    const fullChildPath = control.bfsSetup.path.join(this.browsePathString, child);
-    const stats = control.fs.statSync(fullChildPath);
-
-    if (stats.isDirectory()) {
-      this.traverseDown(child);
-    } else if (stats.isFile()) {
-      this.setState({
-        selected: child,
-      });
-
-      onExpandChild(fullChildPath);
-    }
-  };
-
-  /* Creates a FSItem, returning a two-element array where the first is the
-     path, and the second is the item. See also: compareFSItemPair. */
-  createFSItemPair = (filePath: string): [string, any] => {
-    const { browsePath } = this.props;
-    const { selected } = this.state;
-
-    return [
-      filePath,
-      <FSItem
-        key={filePath}
-        onClick={() => this.expandChild(filePath)}
-        path={control.bfsSetup.path.join(browsePath, filePath)}
-        selected={filePath === selected}
-      />,
-    ];
-  };
 
   /* Toggles the new file creation dialog. This is called when the file plus
      icon is clicked */
@@ -247,36 +189,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     });
   };
 
-  /* (unused), deletes the selected FSItem. When this was enabled it was too
-     easy to delete the current directory and all of its contents.
-     TODO(michael): add this back in a more sensible way. */
-  deleteSelected = (): void => {
-    const { selected } = this.state;
-    const { browsePath } = this.props;
-
-    if (selected === undefined) {
-      control.removeDirectory(this.browsePathString);
-
-      this.traverseUp();
-    } else {
-      control.removeFile(
-        control.bfsSetup.path.join(browsePath, selected),
-      );
-
-      this.setState({
-        selected: undefined,
-      });
-    }
-  };
-
-  /* Selects the current directory. This is only matters when determining what
-     to delete (see deleteSelected) */
-  selectCurrentDirectory = (): void => {
-    this.setState({
-      selected: undefined,
-    });
-  };
-
   /* Opens a system-specific file uploading dialog, writing the result to the
      file system. */
   uploadFile = (event: any): void => {
@@ -305,54 +217,55 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
   };
 
   render() {
-    const { editType, editValue, selected } = this.state;
-    const { browsePath, developerMode } = this.props;
+    const { editType, editValue } = this.state;
 
     const that = this;
 
     function makeEditor() {
       if (editType !== undefined) {
         return (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-          >
-            <pre style={{
-              paddingLeft: '1em',
-              paddingRight: '1em',
+          <>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
             }}
             >
-              {editType === EditType.CreateFile ? (
-                <div>New file name:</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'row' }}>
-                  New folder name:
-                </div>
-              )}
-            </pre>
-            <form
-              onSubmit={that.handleSubmit}
-              style={{
-                height: '100%',
-                flexGrow: 1,
+              <pre style={{
+                paddingLeft: '1em',
+                paddingRight: '1em',
               }}
-            >
-              <input
-                ref={(input) => { that.nameInputRef = input; }}
-                type="text"
-                value={editValue}
-                onChange={that.onChange}
+              >
+                {editType === EditType.CreateFile ? (
+                  <div>New file name:</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'row' }}>
+                    New folder name:
+                  </div>
+                )}
+              </pre>
+              <form
+                onSubmit={that.handleSubmit}
                 style={{
-                  border: 0,
-                  padding: 0,
-                  width: '100%',
                   height: '100%',
+                  flexGrow: 1,
                 }}
-              />
-            </form>
-          </div>
+              >
+                <input
+                  ref={(input) => { that.nameInputRef = input; }}
+                  type="text"
+                  value={editValue}
+                  onChange={that.onChange}
+                  style={{
+                    border: 0,
+                    padding: 0,
+                    width: '100%',
+                    height: '100%',
+                  }}
+                />
+              </form>
+            </div>
+          </>
         );
       }
 
@@ -360,28 +273,10 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     }
     const editor = makeEditor();
 
-    let fsitems;
-    function showPath(file : string) {
-      if (file.startsWith('.')) { return false; }
-      if (file.endsWith('-segment')) { return false; }
-      return true;
-    }
-    try  {
-      fsitems = control.fs
-        .readdirSync(this.browsePathString)
-        .filter(showPath)
-        .map(this.createFSItemPair)
-        .sort(FSBrowser.compareFSItemPair)
-        .map((x: [string, FSItem]) => x[1]);
-    } catch (e) {
-      console.error('Could not find path: ', e);
-      return (
-        <span>
-          Could not find path
-          {this.browsePathString}
-        </span>
-      );
-    }
+    const fsBrowserStructure = {
+      name: '',
+      children: structureFromBrowseRoot(that.props.browseRoot),
+    };
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -395,18 +290,15 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             }}
           >
             <div
-              onClick={this.selectCurrentDirectory}
               style={{
                 cursor: 'pointer',
-                fontFamily: 'monospace',
                 display: 'flex',
                 alignItems: 'center',
                 paddingLeft: '1em',
                 paddingRight: '1em',
-                background: selected ? 'none' : 'darkgray',
               }}
             >
-              {control.bfsSetup.path.parse(browsePath).base || '/'}
+              {control.bfsSetup.path.parse(this.props.browseRoot).base || '/'}
             </div>
             <div style={{
               flexGrow: 1,
@@ -452,30 +344,66 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
               >
                 <FolderPlus width="20px" />
               </button>
-              {/* {!this.browsingRoot
-                  && (
-                  <button
-                  className="fs-browser-item"
-                  onClick={this.deleteSelected}
-                  type="button"
-                  >
-                  <X />
-                  </button>
-                  )} */}
             </div>
           </div>
           {editor}
-          {!this.browsingRoot && developerMode && (
-          <FSItem
-            onClick={this.traverseUp}
-            path=".."
-            selected={false}
+        </div>
+        <div className="directory">
+          <TreeView
+            data={flattenTree(fsBrowserStructure)}
+            aria-label="directory tree"
+            onNodeSelect={({ element }) => {
+              if (typeof element.metadata?.path !== 'string') {
+                console.error('Could not find path: ', element.metadata?.path);
+                return;
+              }
+              if (element.metadata?.directory) {
+                this.props.setBrowsePath(element.metadata?.path);
+              } else {
+                this.props.onExpandChild(element.metadata?.path);
+              }
+            }}
+            nodeRenderer={({
+              element,
+              isExpanded,
+              getNodeProps,
+              level,
+            }) => (
+              // eslint-disable-next-line react/jsx-props-no-spreading
+              <div {...getNodeProps()} style={{ paddingLeft: 20 * (level - 1) }}>
+                {element.metadata?.directory ? (
+                  <FolderIcon isOpen={isExpanded} />
+                ) : (
+                  <FileIcon filename={element.name} />
+                )}
+
+                {element.name}
+              </div>
+            )}
           />
-          )}
-          { fsitems }
         </div>
       </div>
     );
+  }
+}
+function FolderIcon({ isOpen } : { isOpen : boolean}) {
+  return isOpen ? (
+    <FolderMinus color="#e8a87c" className="icon" width="16px" />
+  ) : (
+    <Folder color="#e8a87c" className="icon" width="16px" />
+  );
+}
+function FileIcon({ filename } : { filename : string }) {
+  const extension = filename.slice(filename.lastIndexOf('.') + 1);
+  switch (extension) {
+    case 'js':
+      return <Code color="yellow" className="icon" width="16px" />;
+    case 'arr':
+      return <Code color="lightblue" className="icon" width="16px" />;
+    case 'csv':
+      return <Database color="lightgreen" className="icon" width="16px" />;
+    default:
+      return null;
   }
 }
 
