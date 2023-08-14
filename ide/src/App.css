@@ -274,13 +274,19 @@ button::-moz-focus-inner {
     color: #fff;
 }
 
+
 .fs-browser-item, .fs-browser-header {
     border: none;
+    background: #555;
     height: 2.7em;
-    background: darkgray;
     color: #fff;
     text-align: left;
     flex: none;
+}
+
+.fs-browser-header {
+    border-bottom: 1px solid #eee;
+    background: #555;
 }
 
 .option {

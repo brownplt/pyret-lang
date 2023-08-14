@@ -8,13 +8,15 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import TreeView, { flattenTree } from 'react-accessible-treeview';
-import { DiDatabase, DiJavascript, DiCode } from 'react-icons/di';
-import { FaRegFolder, FaRegFolderOpen } from 'react-icons/fa';
 
 import {
+  Code,
+  Database,
   Upload,
   FilePlus,
+  Folder,
   FolderPlus,
+  FolderMinus,
 } from 'react-feather';
 import * as control from './control';
 import * as action from './action';
@@ -290,7 +292,6 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
             <div
               style={{
                 cursor: 'pointer',
-                fontFamily: 'monospace',
                 display: 'flex',
                 alignItems: 'center',
                 paddingLeft: '1em',
@@ -387,20 +388,20 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
 }
 function FolderIcon({ isOpen } : { isOpen : boolean}) {
   return isOpen ? (
-    <FaRegFolderOpen color="e8a87c" className="icon" />
+    <Folder color="#e8a87c" className="icon" width="16px" />
   ) : (
-    <FaRegFolder color="e8a87c" className="icon" />
+    <FolderMinus color="#e8a87c" className="icon" width="16px" />
   );
 }
 function FileIcon({ filename } : { filename : string }) {
   const extension = filename.slice(filename.lastIndexOf('.') + 1);
   switch (extension) {
     case 'js':
-      return <DiJavascript color="yellow" className="icon" />;
+      return <Code color="yellow" className="icon" width="16px" />;
     case 'arr':
-      return <DiCode color="blue" className="icon" />;
+      return <Code color="lightblue" className="icon" width="16px" />;
     case 'csv':
-      return <DiDatabase color="green" className="icon" />;
+      return <Database color="lightgreen" className="icon" width="16px" />;
     default:
       return null;
   }
