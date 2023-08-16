@@ -270,7 +270,13 @@ type DesugarInfo = {
           }
         }
       }
-      const dsVisitor: TJ.Visitor<A.Program | A.Expr | A.Member | A.Bind | A.Ann, any> = {
+      type DSVisitor =
+          TJ.Visitor<A.Program, A.Program>
+        & TJ.Visitor<A.Expr, A.Expr>
+        & TJ.Visitor<A.Member, A.Member>
+        & TJ.Visitor<A.Bind, A.Bind>
+        & TJ.Visitor<A.Ann, A.Ann>;
+      const dsVisitor: DSVisitor = {
         // s-module is uniform
         // s-instantiate is uniform
         // s-block is uniform
@@ -348,11 +354,11 @@ type DesugarInfo = {
         's-get-bang': (visitor, expr: TJ.Variant<A.Expr, 's-get-bang'>) => {
           return dsCurryNullary(A['s-get-bang'].app, expr.dict.l, expr.dict.obj, expr.dict.field, visitor);
         },
-        's-update': (visitor, expr: TJ.Variant<A.Expr, 's-update'>) => {
+        's-update': (visitor : DSVisitor, expr: TJ.Variant<A.Expr, 's-update'>) => {
           const dsFields = runtime.ffi.makeList(listToArray(expr.dict.fields).map(field => map<A.Member>(visitor, field)));
           return dsCurryNullary(A['s-update'].app, expr.dict.l, expr.dict.supe, dsFields, visitor);
         },
-        's-extend': (visitor, expr: TJ.Variant<A.Expr, 's-extend'>) => {
+        's-extend': (visitor : DSVisitor, expr: TJ.Variant<A.Expr, 's-extend'>) => {
           const dsFields = runtime.ffi.makeList(listToArray(expr.dict.fields).map(field => map<A.Member>(visitor, field)));
           return dsCurryNullary(A['s-extend'].app, expr.dict.l, expr.dict.supe, dsFields, visitor);
         },
@@ -373,7 +379,7 @@ type DesugarInfo = {
         // s-tuple is uniform
         // s-tuple-get is uniform
         // s-construct in uniform
-        's-reactor': (visitor, expr: TJ.Variant<A.Expr, 's-reactor'>) => {
+        's-reactor': (visitor : DSVisitor, expr: TJ.Variant<A.Expr, 's-reactor'>) => {
           const fieldsByName = new Map<string, A.Expr>();
           listToArray(expr.dict.fields).forEach(field => {
             if ("value" in field.dict) {
@@ -383,7 +389,7 @@ type DesugarInfo = {
           const optionFields: TJ.Variant<A.Member, "s-data-field">[] = [];
           for (const [key, value] of reactorOptionalFields) {
             if (fieldsByName.has(key)) {
-              const thisField = fieldsByName.get(key);
+              const thisField = fieldsByName.get(key) as A.Expr;
               const thisFieldL = thisField.dict.l;
               optionFields.push(A['s-data-field'].app(
                 thisFieldL,
@@ -405,7 +411,7 @@ type DesugarInfo = {
             expr.dict.l,
             "makeReactor",
             runtime.ffi.makeList([
-              map<A.Expr>(visitor, fieldsByName.get("init")),
+              map<A.Expr>(visitor, fieldsByName.get("init") as A.Expr),
               A['s-obj'].app(expr.dict.l, runtime.ffi.makeList(optionFields))]),
             flatPrimApp);
         },
