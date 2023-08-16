@@ -48,7 +48,40 @@ export type Exports = {
     let errors : Array<CS.CompileError>;
 
     function desugarToplevelTypes(stmts : Array<A.Expr>) : Array<A.Expr> {
-      return [];
+      const typeBinds : A.TypeLetBind[] = [];
+      const ansStmts : A.Expr[] = [];
+      stmts.forEach(s => {
+        switch(s.$name) {
+          case 's-type': {
+            ansStmts.push(s);
+            break;
+          }
+          case 's-newtype': {
+            typeBinds.push(A['s-newtype-bind'].app(s.dict.l, s.dict.name, s.dict.namet));
+            break;
+          }
+          case 's-data': {
+            const { l, name, params, mixins, variants, "shared-members": shared, "_check-loc": checkLoc, _check } = s.dict;
+            const namet = scopeNames.makeAtom(name);
+            typeBinds.push(A['s-newtype-bind'].app(l, A['s-name'].app(l, name), namet));
+            ansStmts.push(A['s-data-expr'].app(l, name, namet, params, mixins, variants, shared, checkLoc, _check));
+            break;
+          }
+          default: {
+            ansStmts.push(s);
+          }
+        }
+      });
+      if(typeBinds.length === 0) { return stmts; }
+      else {
+        return [
+          A['s-type-let-expr'].app(
+              typeBinds[0].dict.l,
+              runtime.ffi.makeList(typeBinds),
+              A['s-block'].app(typeBinds[0].dict.l, runtime.ffi.makeList(ansStmts)),
+              ansStmts.length > 1)
+          ];
+      }
     }
 
     type Contract = TJ.Variant<A.Expr, 's-contract'>;
@@ -56,7 +89,172 @@ export type Exports = {
     type BindingGroup =
       | [ 'let-binds', Contract[], A.LetBind[] ]
       | [ 'letrec-binds', Contract[], A.LetrecBind[] ]
-      | [ 'type-let-binds', A.TypeLetBind[] ]
+      | [ 'type-let-binds', [], A.TypeLetBind[] ]
+    
+    function weaveContracts(contracts : Contract[], binds : A.LetBind[]) : A.LetBind[];
+    function weaveContracts(contracts : Contract[], binds : A.LetrecBind[]) : A.LetrecBind[];
+    function weaveContracts(contracts : Contract[], binds : (A.LetBind[] | A.LetrecBind[])) : (A.LetBind | A.LetrecBind)[];
+    function weaveContracts(contracts : Contract[], binds : (A.LetBind[] | A.LetrecBind[])) : (A.LetBind | A.LetrecBind)[] {
+      const contractsSD : Map<string, Contract> = new Map();
+      contracts.forEach(c => {
+        const name = tj.nameToName(c.dict.name);
+        if(contractsSD.has(name)) {
+          errors.unshift(CS['contract-redefined'].app(c.dict.l, name, contractsSD.get(name)!.dict.l))
+        }
+        else {
+          contractsSD.set(name, c);
+        }
+      });
+      function rebuildBind(b : A.LetBind, newB : A.Bind, newV : A.Expr) : A.LetBind;
+      function rebuildBind(b : A.LetrecBind, newB : A.Bind, newV : A.Expr) : A.LetrecBind;
+      function rebuildBind(b : A.LetBind | A.LetrecBind, newB : A.Bind, newV : A.Expr) : A.LetBind | A.LetrecBind;
+      function rebuildBind(b : A.LetBind | A.LetrecBind, newB : A.Bind, newV : A.Expr) : A.LetBind | A.LetrecBind {
+        switch(b.$name) {
+          case 's-let-bind': { return A['s-let-bind'].app(b.dict.l, newB, newV); }
+          case 's-var-bind': { return A['s-var-bind'].app(b.dict.l, newB, newV); }
+          case 's-letrec-bind': { return A['s-letrec-bind'].app(b.dict.l, newB, newV); }
+        }
+      }
+      type SBind = TJ.Variant<A.Bind, 's-bind'>;
+      function namesMatch(funargs : List<SBind>, annargs : List<SBind>) {
+        const funargsArray = listToArray(funargs);
+        const annargsArray = listToArray(annargs);
+        if(funargsArray.length !== annargsArray.length) { return false; }
+        for(let i = 0; i < funargsArray.length; i += 1) {
+          if(tj.nameToName(funargsArray[i].dict.id) !== tj.nameToName(annargsArray[i].dict.id)) { return false; }
+        }
+        return true;
+      }
+      function paramsMatch(funparams : List<A.Name>, annparams : List<A.Name>) {
+        const funparamsArray = listToArray(funparams);
+        const annparamsArray = listToArray(annparams);
+        if(funparamsArray.length !== annparamsArray.length) { return false; }
+        for(let i = 0; i < funparamsArray.length; i += 1) {
+          if(tj.nameToName(funparamsArray[i]) !== tj.nameToName(annparamsArray[i])) { return false; }
+        }
+        return true;
+      }
+      function funToLam(bind : A.LetBind) : A.LetBind;
+      function funToLam(bind : A.LetrecBind) : A.LetrecBind;
+      function funToLam(bind : A.LetBind | A.LetrecBind) : A.LetBind | A.LetrecBind;
+      function funToLam(bind : A.LetBind | A.LetrecBind) : A.LetBind | A.LetrecBind {
+        const { l, b, value } = bind.dict;
+        switch(value.$name) {
+          case 's-fun': {
+            const { name, params, args, ann, doc, body, '_check-loc' : checkLoc, _check : check, blocky } = value.dict;
+            const newBody = A['s-lam'].app(l, name, params, args, ann, doc, body, checkLoc, check, blocky);
+            return rebuildBind(bind, b, newBody);
+          }
+          default: {
+            return rebuildBind(bind, b, value);
+          }
+        }
+      }
+      function isBlankContract(a : A.Ann) : boolean {
+        switch(a.$name) {
+          case 'a-blank': { return true; }
+          case 'a-tuple': { return listToArray(a.dict.fields).every(isBlankContract); }
+          default: {
+            return false;
+          }
+        }
+      }
+
+      const revAns = binds.map((bind : (A.LetBind | A.LetrecBind)) => {
+        switch(bind.dict.b.$name) {
+          case 's-bind': {
+            const { l, shadows, id, ann } = bind.dict.b.dict;
+            const idName = tj.nameToName(id);
+            if(!contractsSD.has(idName)) {
+              return funToLam(bind); 
+            }
+            else {
+              const c = contractsSD.get(idName)!;
+              contractsSD.delete(idName);
+              if(ann.$name === 'a-blank') {
+                if(!tj.beforeSrcloc(c.dict.l, bind.dict.value.dict.l)) {
+                  errors.unshift(CS['contract-bad-loc'].app(c.dict.l, idName, bind.dict.value.dict.l));
+                  return funToLam(bind);
+                }
+                else {
+                  switch(bind.dict.value.$name) {
+                    case 's-fun': {
+                      const { l: lFun, name, params, args, ann, doc, body, '_check-loc' : checkLoc, _check : check, blocky } = bind.dict.value.dict;
+                      const bindargs : SBind[] = listToArray(args) as SBind[];
+                      if(!(bindargs.every(a => isBlankContract(a.dict.ann)) && (ann.$name === 'a-blank'))) {
+                        errors.unshift(CS['contract-redefined'].app(c.dict.l, idName, lFun));
+                        return funToLam(bind);
+                      }
+                      else if(c.dict.ann.$name === 'a-arrow' || c.dict.ann.$name === 'a-arrow-argnames') {
+                        let okParams = true;
+                        if(params.$name === 'link' && !(paramsMatch(c.dict.params, params))) { 
+                          errors.unshift(CS['contract-inconsistent-params'].app(c.dict.l, idName, lFun));
+                          okParams = false;
+                        }
+                        let okArgs = true;
+                        if(c.dict.ann.$name === 'a-arrow-argnames') {
+                          if(!(namesMatch(args as List<SBind>, c.dict.ann.dict.args as List<SBind>))) {
+                            errors.unshift(CS['contract-inconsistent-names'].app(c.dict.l, idName, lFun));
+                            okArgs = false;
+                          }
+                        }
+                        else {
+                          if(listToArray(args).length !== listToArray(c.dict.ann.dict.args).length) {
+                            errors.unshift(CS['contract-inconsistent-names'].app(c.dict.l, idName, lFun));
+                            okArgs = false;
+                          }
+                        }
+
+                        if(okParams && okArgs) {
+                          const argAnns = c.dict.ann.$name === 'a-arrow-argnames'
+                            ? listToArray(c.dict.ann.dict.args).map(a => a.dict.ann)
+                            : listToArray(c.dict.ann.dict.args);
+                          const newargs = argAnns.map((ann : A.Ann, i : number) => {
+                            const a = args[i];
+                            return A['s-bind'].app(a.dict.l, a.dict.shadows, a.dict.id, ann);
+                          });
+                          const newLam = A['s-lam'].app(lFun, name, c.dict.params, runtime.ffi.makeList(newargs), c.dict.ann.dict.ret, doc, body, checkLoc, check, blocky);
+                          return rebuildBind(bind, bind.dict.b, newLam);
+                        }
+                        else {
+                          return funToLam(bind);
+                        }
+
+                      }
+                      else {
+                        errors.unshift(CS['contract-non-function'].app(c.dict.l, idName, lFun, true));
+                        return funToLam(bind);
+                      }
+                      break; // Check to make sure this stays dead code
+                    }
+                    default : {
+                      if(c.dict.ann.$name === 'a-arrow' || c.dict.ann.$name === 'a-arrow-argnames') {
+                        errors.unshift(CS['contract-non-function'].app(c.dict.l, idName, bind.dict.value.dict.l, false));
+                        return bind;
+                      }
+                      else {
+                        return rebuildBind(bind, A['s-bind'].app(l, shadows, id, c.dict.ann), bind.dict.value);
+                      }
+                    }
+                  }
+                }
+              }
+              else {
+                errors.unshift(CS['contract-redefined'].app(c.dict.l, idName, bind.dict.value.dict.l));
+                return funToLam(bind);
+              }
+            }
+          }
+          default: {
+            return bind;
+          }
+        }
+      });
+      contractsSD.forEach((c : Contract, name : string) => {
+        errors.unshift(CS['contract-unused'].app(c.dict.l, name));
+      });
+      return revAns.reverse(); // NOTE(Joe/Ben): we think
+    }
     
     type DesugarVisitor =
         TJ.Visitor<A.Expr, A.Expr>
@@ -85,7 +283,7 @@ export type Exports = {
           case 's-contract': {
             const index = rest.findIndex((e : A.Expr) => e.$name !== 's-contract');
             const [ contracts, restStmts ] = index === -1 ? [ [], rest ] : [ rest.slice(0, index), rest.slice(index) ];
-            return addContracts(bindingGroup, [ f, ...contracts ], restStmts);
+            return addContracts(bindingGroup, [ f, ...(contracts as Contract[]) ], restStmts);
           }
           case 's-let': {
             return addLetBind(bindingGroup, A['s-let-bind'].app(f.dict.l, f.dict.name, f.dict.value), rest);
@@ -128,7 +326,7 @@ export type Exports = {
             return addLetrecBinds(bindingGroup, allBinds2, rest);
           }
           case 's-check': {
-            const { l, body, 'keyword-check': keyword } = f.dict;
+            const { l } = f.dict;
             function b(l : A.Srcloc) { return A['s-bind'].app(l, false, A['s-underscore'].app(l), A['a-blank']); }
             return addLetrecBind(bindingGroup, A['s-letrec-bind'].app(l, b(l), f), rest);
           }
@@ -160,31 +358,106 @@ export type Exports = {
     function makeCheckerName(s : string) { return "is-" + s; }
 
     function bindWrap(bindingGroup : BindingGroup, e : A.Expr) : A.Expr {
-      return undefined as unknown as any;
+      const [kind, contracts, revBinds] = bindingGroup;
+      if(revBinds.length === 0) { 
+        contracts.forEach((c : Contract) => errors.unshift(CS['contract-unused'].app(c.dict.l, tj.nameToName(c.dict.name))));
+        return e;
+      }
+      else {
+        switch(kind) {
+          case 'let-binds': {
+            const withContracts = weaveContracts(contracts, revBinds);
+            return A['s-let-expr'].app(revBinds[0].dict.l, runtime.ffi.makeList(withContracts), e, false);
+          }
+          case 'letrec-binds': {
+            const withContracts = weaveContracts(contracts, revBinds);
+            return A['s-letrec'].app(revBinds[0].dict.l, runtime.ffi.makeList(withContracts), e, false);
+          }
+          case 'type-let-binds': {
+            return A['s-type-let-expr'].app(revBinds[0].dict.l, runtime.ffi.makeList(revBinds.reverse()), e, false);
+          }
+        }
+      }
     }
 
     function whereAsCheck(l : A.Srcloc, name : string, checkLoc : Option<A.Srcloc>, check : A.Expr) : A.Expr {
-      return undefined as unknown as any;
+      if(checkLoc.$name === 'some') { l = checkLoc.dict.value; }
+      return A['s-check'].app(l, runtime.ffi.makeSome(name), check, false);
     }
 
     function addTypeLetBind(bindingGroup : BindingGroup, bind : A.TypeLetBind, rest : A.Expr[]) : A.Expr {
-      return undefined as unknown as any;
+      const [kind, contracts, revBinds] = bindingGroup;
+      switch(kind) {
+        case 'type-let-binds': {
+          return desugarScopeBlock(rest, [ kind, contracts, [ bind, ...revBinds ] ]);
+        }
+        default: {
+          return bindWrap(bindingGroup, desugarScopeBlock(rest, [ 'type-let-binds', [], [ bind ] ]));
+        }
+      }
     }
 
     function addLetBind(bindingGroup : BindingGroup, bind : A.LetBind, rest : A.Expr[]) : A.Expr {
-      return undefined as unknown as any;
+      const [kind, contracts, revBinds] = bindingGroup;
+      let lb;
+      switch(bind.$name) {
+        case 's-let-bind': {
+          lb = simplifyLetBind(bind.dict.l, bind.dict.b, bind.dict.value, []);
+          break;
+        }
+        case 's-var-bind': {
+          lb = [ bind ];
+          break;
+        }
+      }
+      switch(kind) {
+        case 'let-binds': {
+          return desugarScopeBlock(rest, [ kind, contracts, [...lb, ...revBinds ] ]);
+        }
+        default: {
+          return bindWrap(bindingGroup, desugarScopeBlock(rest, [ 'let-binds', [], lb ]));
+        }
+      }
     }
 
     function addLetrecBind(bindingGroup : BindingGroup, bind : A.LetrecBind, rest : A.Expr[]) : A.Expr {
-      return undefined as unknown as any;
+      return addLetrecBinds(bindingGroup, [ bind ], rest);
     }
 
     function addLetrecBinds(bindingGroup : BindingGroup, binds : A.LetrecBind[], rest : A.Expr[]) : A.Expr {
-      return undefined as unknown as any;
+      const [kind, contracts, revBinds] = bindingGroup;
+      switch(kind) {
+        case 'letrec-binds': {
+          return desugarScopeBlock(rest, [ kind, contracts, [...binds, ...revBinds ] ]);
+        }
+        default: {
+          return bindWrap(bindingGroup, desugarScopeBlock(rest, [ 'letrec-binds', [], binds ]));
+        }
+      }
     }
 
-    function addContracts(bindingGroup : BindingGroup, contracts : A.Expr[], rest : A.Expr[]) : A.Expr {
-      return undefined as unknown as any;
+    function addContracts(bindingGroup : BindingGroup, contracts : Contract[], stmts : A.Expr[]) : A.Expr {
+      if(stmts.length === 0) {
+        throw new InternalCompilerError("Impossible: well-formedness prohibits contracts being last in block (at " + tj.formatSrcloc(contracts[0].dict.l, true) + ")");
+      }
+      const [kind, contracts2, revBinds] = bindingGroup;
+      const [first, ...rest] = stmts;
+      if(['s-rec', 's-fun', 's-data-expr', 's-check'].includes(first.$name)) {
+        if(kind === 'letrec-binds') {
+          return desugarScopeBlock(stmts, [ 'letrec-binds', [...contracts, ...contracts2], revBinds ]);
+        }
+        else {
+          return bindWrap(bindingGroup, desugarScopeBlock(stmts, [ 'letrec-binds', contracts, [] ]));
+        }
+      }
+      else {
+        if(kind == 'let-binds') {
+          return desugarScopeBlock(stmts, [ 'let-binds', [...contracts, ...contracts2], revBinds ]);
+        }
+        else {
+          return bindWrap(bindingGroup, desugarScopeBlock(stmts, [ 'let-binds', contracts, [] ]));
+        }
+      }
     }
 
     function simplifyLetBind(l : A.Srcloc, bind : A.Bind, expr : A.Expr, binds : A.LetBind[]) : A.LetBind[] {

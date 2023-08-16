@@ -90,6 +90,7 @@ export interface Exports {
   sameName: (n1: A.Name, n2: A.Name) => boolean,
   dummyLoc : A.Srcloc,
   compileSrcloc: (context: any, l : A.Srcloc) => J.Expression,
+  beforeSrcloc: (s1 : A.Srcloc, s2 : A.Srcloc) => boolean,
   formatSrcloc: (loc: A.Srcloc, showFile: boolean) => string,
   visit: (<T extends PyretDataValue, E = any>(v : Visitor<T, any, E>, d : PyretDataValue, extra: E) => void)
        & (<T extends PyretDataValue>(v : Visitor<T, any, undefined>, d : PyretDataValue) => void),
@@ -479,6 +480,23 @@ export interface Exports {
           ]);
       }
     }
+
+    function beforeSrcloc(s1 : A.Srcloc, s2 : A.Srcloc) : boolean {
+      switch(s1.$name) {
+        case "builtin": {
+          switch(s2.$name) {
+            case "builtin": return s1.dict['module-name'] < s2.dict['module-name'];
+            case "srcloc": return false;
+          }
+        }
+        case "srcloc": {
+          switch(s2.$name) {
+            case "builtin": return true;
+            case "srcloc": { return s1.dict['start-char'] < s2.dict['start-char']; }
+          }
+        }
+      }
+    }
     
     function listToArray<T>(list: List<T>): T[] {
       const ret = [];
@@ -639,6 +657,7 @@ export interface Exports {
       sameName,
       dummyLoc,
       compileSrcloc,
+      beforeSrcloc,
       formatSrcloc,
       visit,
       map,
