@@ -10,6 +10,7 @@ import lists as L
 import file("compile-structs.arr") as C
 import file("ast-util.arr") as U
 import file("type-structs.arr") as T
+import js-file("ts-resolve-scope") as TRS
 
 type ValueBind = C.ValueBind
 type TypeBind = C.TypeBind
@@ -585,7 +586,20 @@ desugar-scope-visitor = A.default-map-visitor.{
   end
 }
 
-fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeResolution:
+fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment, options :: C.CompileOptions) -> C.ScopeResolution:
+  cases(C.Pipeline) options.pipeline:
+    | pipeline-ts-anchor(args) => 
+      if args.member("resolve-scope"): # Only use TS version if we enable it in pipeline
+        # Note: passing `options` in to TSTC so that it can use options.log for debug output
+        TRS.desugar-scope(prog, env)
+      else:
+        internal-desugar-scope(prog, env)
+      end
+    | pipeline-anchor => internal-desugar-scope(prog, env)
+  end
+end
+
+fun internal-desugar-scope(prog :: A.Program, env :: C.CompileEnvironment) -> C.ScopeResolution:
   doc: ```
        Remove x = e, var x = e, tuple bindings, and fun f(): e end
        and turn them into explicit let and letrec expressions.

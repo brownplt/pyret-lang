@@ -2,7 +2,7 @@ import type * as TS from './ts-type-structs';
 import type * as A from './ts-ast';
 import type * as CS from './ts-compile-structs';
 import type * as TJ from './ts-codegen-helpers';
-import type { List, MutableStringDict, PFunction, StringDict, PMethod, Runtime } from './ts-impl-types';
+import type { List, MutableStringDict, PFunction, Runtime } from './ts-impl-types';
 import { CompileOptions } from './ts-compiler-lib-impl';
 
 export type Exports = {

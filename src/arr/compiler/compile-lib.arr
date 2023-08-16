@@ -311,7 +311,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, module
           var imported = AU.wrap-extra-imports(checked, libs)
           checked := nothing
           add-phase("Added imports", imported)
-          var scoped = RS.desugar-scope(imported, env)
+          var scoped = RS.desugar-scope(imported, env, options)
           imported := nothing
           add-phase("Desugared scope", scoped)
           var named-result = RS.resolve-names(scoped.ast, locator.uri(), env)
