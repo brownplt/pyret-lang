@@ -3,7 +3,7 @@ import type * as A from './ts-ast';
 import type * as CS from './ts-compile-structs';
 import type * as AU from './ts-ast-util';
 import type * as TJ from './ts-codegen-helpers';
-import type { List, MutableStringDict, PFunction, StringDict, PMethod, Runtime } from './ts-impl-types';
+import type { List, Option, MutableStringDict, PFunction, StringDict, PMethod, Runtime } from './ts-impl-types';
 
 export type Exports = {
   dict: {
@@ -58,10 +58,133 @@ export type Exports = {
       | [ 'letrec-binds', Contract[], A.LetrecBind[] ]
       | [ 'type-let-binds', A.TypeLetBind[] ]
     
-    type DesugarVisitor = TJ.Visitor<A.Expr, A.Expr> & TJ.Visitor<A.CasesBranch, A.CasesBranch> & TJ.Visitor<A.Member, A.Member>;
+    type DesugarVisitor =
+        TJ.Visitor<A.Expr, A.Expr>
+      & TJ.Visitor<A.CasesBranch, A.CasesBranch>
+      & TJ.Visitor<A.Member, A.Member>
+      & TJ.Visitor<A.Bind, A.Bind>
+      & TJ.Visitor<A.CasesBind, A.CasesBind>
+      & TJ.Visitor<A.Name, A.Name>
+      & TJ.Visitor<Option<A.Expr>, Option<A.Expr>>
+      & TJ.Visitor<A.Ann, A.Ann>;
 
+    /**
+        Treating stmts as a block, resolve scope.
+        There should be no blocks left after this stage of the compiler pipeline.
+      */
     function desugarScopeBlock(stmts: A.Expr[], bindingGroup : BindingGroup) : A.Expr {
-      return undefined as any;
+      if(stmts.length === 0) {
+        throw new InternalCompilerError("Should not get an empty block in desugarScopeBlock");
+      }
+      else {
+        const [f, ...rest] = stmts;
+        switch(f.$name) {
+          case 's-type': {
+            return addTypeLetBind(bindingGroup, A['s-type-bind'].app(f.dict.l, f.dict.name, f.dict.params, f.dict.ann), rest);
+          }
+          case 's-contract': {
+            const index = rest.findIndex((e : A.Expr) => e.$name !== 's-contract');
+            const [ contracts, restStmts ] = index === -1 ? [ [], rest ] : [ rest.slice(0, index), rest.slice(index) ];
+            return addContracts(bindingGroup, [ f, ...contracts ], restStmts);
+          }
+          case 's-let': {
+            return addLetBind(bindingGroup, A['s-let-bind'].app(f.dict.l, f.dict.name, f.dict.value), rest);
+          }
+          case 's-var': {
+            return addLetBind(bindingGroup, A['s-var-bind'].app(f.dict.l, f.dict.name, f.dict.value), rest);
+          }
+          case 's-rec': {
+            return addLetrecBind(bindingGroup, A['s-letrec-bind'].app(f.dict.l, f.dict.name, f.dict.value), rest);
+          }
+          case 's-fun': {
+            const { l, name, '_check-loc' : checkLoc, _check : check } = f.dict;
+            if(check.$name === 'some') {
+              rest.unshift(whereAsCheck(l, name, checkLoc, check.dict.value))
+            }
+            // NOTE(Ben 2017): deliberately keeping this as an s-fun by using f directly below,
+            // it'll get turned into an s-lam in weave-contracts
+            const lrb = A['s-letrec-bind'].app(l, A['s-bind'].app(l, false, A['s-name'].app(l, name), A['a-blank']), f)
+            return addLetrecBind(bindingGroup, lrb, rest);
+          }
+          case 's-data-expr': {
+            const { l, name, variants } = f.dict;
+            function b(l : A.Srcloc, id : string) { return A['s-bind'].app(l, false, A['s-name'].app(l, id), A['a-blank']); }
+            function bn(l : A.Srcloc, n : A.Name) { return A['s-bind'].app(l, false, n, A['a-blank']); }
+            function variantBinds(dataBlobId : A.Expr, variant : A.Variant) : A.LetrecBind[] {
+              const { l, name } = variant.dict;
+              const checkerName = makeCheckerName(name);
+              const getPart = (n) => A['s-dot'].app(l, dataBlobId, n);
+              return [
+                A['s-letrec-bind'].app(l, b(l, name), getPart(name)),
+                A['s-letrec-bind'].app(l, b(l, checkerName), getPart(checkerName)),
+              ]
+            }
+            const blobId = scopeNames.makeAtom("data-blob");
+            const bindData = A['s-letrec-bind'].app(l, bn(l, blobId), f);
+            const lookupChecker = A['s-dot'].app(l, A['s-id-letrec'].app(l, blobId, true), makeCheckerName(name));
+            const bindDataPred = A['s-letrec-bind'].app(l, b(l, makeCheckerName(name)), lookupChecker);
+            const allBinds = listToArray(variants).flatMap((v : A.Variant) => variantBinds(A['s-id-letrec'].app(l, blobId, true), v));
+            const allBinds2 = [...allBinds, bindData, bindDataPred];
+            return addLetrecBinds(bindingGroup, allBinds2, rest);
+          }
+          case 's-check': {
+            const { l, body, 'keyword-check': keyword } = f.dict;
+            function b(l : A.Srcloc) { return A['s-bind'].app(l, false, A['s-underscore'].app(l), A['a-blank']); }
+            return addLetrecBind(bindingGroup, A['s-letrec-bind'].app(l, b(l), f), rest);
+          }
+          default: {
+            if(rest.length === 0) {
+              return bindWrap(bindingGroup, f);
+            }
+            else {
+              const restStmt = desugarScopeBlock(rest, [ 'let-binds', [], [] ]);
+              let restStmts;
+              switch(restStmt.$name) {
+                case 's-block': {
+                  const { l, stmts } = restStmt.dict;
+                  restStmts = [f, ...listToArray(stmts) ];
+                  break;
+                }
+                default: {
+                  restStmts = [f, restStmt];
+                  break;
+                }
+              }
+              return bindWrap(bindingGroup, A['s-block'].app(f.dict.l, runtime.ffi.makeList(restStmts)));
+            }
+          }
+        }
+      }
+    }
+
+    function makeCheckerName(s : string) { return "is-" + s; }
+
+    function bindWrap(bindingGroup : BindingGroup, e : A.Expr) : A.Expr {
+      return undefined as unknown as any;
+    }
+
+    function whereAsCheck(l : A.Srcloc, name : string, checkLoc : Option<A.Srcloc>, check : A.Expr) : A.Expr {
+      return undefined as unknown as any;
+    }
+
+    function addTypeLetBind(bindingGroup : BindingGroup, bind : A.TypeLetBind, rest : A.Expr[]) : A.Expr {
+      return undefined as unknown as any;
+    }
+
+    function addLetBind(bindingGroup : BindingGroup, bind : A.LetBind, rest : A.Expr[]) : A.Expr {
+      return undefined as unknown as any;
+    }
+
+    function addLetrecBind(bindingGroup : BindingGroup, bind : A.LetrecBind, rest : A.Expr[]) : A.Expr {
+      return undefined as unknown as any;
+    }
+
+    function addLetrecBinds(bindingGroup : BindingGroup, binds : A.LetrecBind[], rest : A.Expr[]) : A.Expr {
+      return undefined as unknown as any;
+    }
+
+    function addContracts(bindingGroup : BindingGroup, contracts : A.Expr[], rest : A.Expr[]) : A.Expr {
+      return undefined as unknown as any;
     }
 
     function simplifyLetBind(l : A.Srcloc, bind : A.Bind, expr : A.Expr, binds : A.LetBind[]) : A.LetBind[] {
@@ -129,25 +252,82 @@ export type Exports = {
         bindsArray.forEach((b : A.LetBind) => {
           simplifyLetBind(b.dict.l, b.dict.b, b.dict.value, newBinds);
         });
-
-        return undefined as unknown as A.Expr;
+        return A['s-let-expr'].app(l, runtime.ffi.makeList(newBinds), vBody, blocky);
       },
-      's-for': function(self, e) {
-        return undefined as unknown as A.Expr;
+      's-for': function(self : DesugarVisitor, e) {
+        const { l, iterator, bindings, ann, body, blocky } = e.dict;
+        const vIterator = tj.map(self, iterator);
+        const vAnn = tj.map(self, ann);
+        const vBody = tj.map(self, body);
+        let newBinds : A.ForBind[] = [];
+        let newBody = vBody;
+        const binds = listToArray(bindings);
+        for(let i = binds.length - 1; i >= 0; i -= 1) {
+          const b = binds[i];
+          const vBind = tj.map(self, b.dict.bind);
+          const vValue = tj.map(self, b.dict.value);
+          const lbs = simplifyLetBind(b.dict.l, vBind, vValue, []);
+          const argBind = lbs[0];
+          newBinds.push(A['s-for-bind'].app(b.dict.l, argBind.dict.b, argBind.dict.value));
+          if(lbs.length > 1) {
+            newBody = A['s-let-expr'].app(b.dict.l, runtime.ffi.makeList(lbs.slice(1)), newBody, false);
+          }
+        }
+        return A['s-for'].app(l, vIterator, runtime.ffi.makeList(newBinds), vAnn, newBody, blocky);
       },
-      's-cases-branch': function(self, e) {
-        return undefined as unknown as A.CasesBranch;
+      's-cases-branch': function(self : DesugarVisitor, e) {
+        const { l, 'pat-loc': patLoc, name, args, body } = e.dict;
+        const vBody = tj.map(self, body);
+        let newBinds : A.CasesBind[] = [];
+        let newBody = vBody;
+        const argsArray = listToArray(args);
+        for(let i = argsArray.length - 1; i >= 0; i -= 1) {
+          const a = argsArray[i];
+          const lbs = simplifyLetBind(a.dict.l, tj.map(self, a.dict.bind), A['s-str'].app(a.dict.l, "placeholder"), []);
+          const argBind = lbs[0];
+          newBinds.push(A['s-cases-bind'].app(a.dict.l, a.dict['field-type'], argBind.dict.b));
+          if(lbs.length > 1) {
+            newBody = A['s-let-expr'].app(a.dict.l, runtime.ffi.makeList(lbs.slice(1)), newBody, false);
+          }
+        }
+        return A['s-cases-branch'].app(l, patLoc, name, runtime.ffi.makeList(newBinds), newBody);
       },
       's-fun': function(self, e) {
-        return undefined as unknown as A.Expr;
+        const { l, name, params, args, ann, doc, body, '_check-loc' : checkLoc, _check : check, blocky } = e.dict;
+        return rebuildFun(A['s-fun'], self, l, name, params, args, ann, doc, body, checkLoc, check, blocky);
       },
       's-lam': function(self, e) {
-        return undefined as unknown as A.Expr;
+        const { l, name, params, args, ann, doc, body, '_check-loc' : checkLoc, _check : check, blocky } = e.dict;
+        return rebuildFun(A['s-lam'], self, l, name, params, args, ann, doc, body, checkLoc, check, blocky);
       },
       's-method-field': function(self, e) {
-        return undefined as unknown as A.Member;
+        const { l, name, params, args, ann, doc, body, '_check-loc' : checkLoc, _check : check, blocky } = e.dict;
+        return rebuildFun(A['s-method-field'], self, l, name, params, args, ann, doc, body, checkLoc, check, blocky);
       }
     };
+
+
+    type FunctionBuilder = typeof A['s-lam' | 's-method-field' | 's-fun'];
+    function rebuildFun(rebuild : FunctionBuilder, visitor : DesugarVisitor, l : A.Srcloc, name : string, params : List<A.Name>, args : List<A.Bind>, ann : A.Ann, doc : string, body : A.Expr, checkLoc : Option<A.Srcloc>, check : Option<A.Expr>, blocky : boolean) : any {
+      const vParams = listToArray(params).map((p : A.Name) => tj.map(visitor, p));
+      const vAnn = tj.map(visitor, ann);
+      const vBody = tj.map(visitor, body);
+      const vCheck = tj.map(visitor, check);
+      const placeholder = A['s-str'].app(l, "placeholder");
+      let newBinds : A.Bind[] = [];
+      let newBody = vBody;
+      const argsArray = listToArray(args);
+      for(let i = argsArray.length - 1; i >= 0; i -= 1) {
+        const a = argsArray[i];
+        const lbs = simplifyLetBind(a.dict.l, tj.map(visitor, a), placeholder, []);
+        const argBind = lbs[0];
+        newBinds.push(argBind.dict.b);
+        if(lbs.length > 1) {
+          newBody = A['s-let-expr'].app(a.dict.l, runtime.ffi.makeList(lbs.slice(1)), newBody, false);
+        }
+      }
+      return rebuild.app(l, name, runtime.ffi.makeList(vParams), runtime.ffi.makeList(newBinds), vAnn, doc, newBody, checkLoc, vCheck, blocky);
+    }
 
     /**
        Remove x = e, var x = e, tuple bindings, and fun f(): e end

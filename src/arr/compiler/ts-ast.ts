@@ -1980,4 +1980,6 @@ dict: {values: {dict: {
 'a-field': 
   PFunction< (l: Loc, name: string, ann: Ann) => TCH.Variant<AField, 'a-field'> >
 
+'make-checker-name': PFunction<(name: string) => string>
+
 }}}}
