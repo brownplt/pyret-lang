@@ -167,7 +167,7 @@ type ResolveScopeExports = {
   dict: {
     values: {
       dict: {
-        'desugar-scope': PFunction<(program: A.Program, env: TCS.CompileEnvironment) => TCS.ScopeResolution>,
+        'desugar-scope': PFunction<(program: A.Program, env: TCS.CompileEnvironment, options : CompileOptions) => TCS.ScopeResolution>,
         'resolve-names': PFunction<(program: A.Program, uri: string, env: TCS.CompileEnvironment) => TCS.NameResolution>,
         'check-unbound-ids-bad-assignments': PFunction<(program: A.Program, namedResult: TCS.NameResolution, env: TCS.CompileEnvironment) => List<TCS.CompileError>>,
       }
@@ -583,7 +583,7 @@ type ResolveScopeExports = {
           let imported = AU['wrap-extra-imports'].app(wfAst, todo.dict.libs);
           wfAst = undefined;
           addPhase("Added imports", imported);
-          let scoped = RS['desugar-scope'].app(imported, env);
+          let scoped = RS['desugar-scope'].app(imported, env, options);
           imported = undefined;
           addPhase("Desugared scope", scoped);
           let namedResult = RS['resolve-names'].app(scoped.dict.ast, uri, env);

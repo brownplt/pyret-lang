@@ -9,7 +9,7 @@ export type Exports = {
   dict: {
     values: {
       dict: {
-        'desugar-scope': PFunction<(program: A.Program, env: CS.CompileEnvironment) => CS.ScopeResolution>
+        'desugar-scope': PFunction<(program: A.Program, env: CS.CompileEnvironment, options : any) => CS.ScopeResolution>
         'resolve-names': PFunction<(program: A.Program, thismodulesUri: string, initialEnv: CS.CompileEnvironment) => CS.NameResolution>
       }
     }
@@ -37,8 +37,11 @@ export type Exports = {
     const CS = CSin.dict.values.dict;
     const {
       listToArray,
-      InternalCompilerError
+      InternalCompilerError,
+      MakeName
     } = tj;
+
+    const scopeNames = MakeName(0);
 
     // NOTE(joe/ben Aug 2023): This is a global that is referred to and reset on each call to
     // resolve scope.
@@ -61,6 +64,57 @@ export type Exports = {
       return undefined as any;
     }
 
+    function simplifyLetBind(l : A.Srcloc, bind : A.Bind, expr : A.Expr, binds : A.LetBind[]) : A.LetBind[] {
+      switch(bind.$name) {
+        case 's-bind': {
+          binds.push(A['s-let-bind'].app(l, bind, expr));
+          break;
+        }
+        case 's-tuple-bind': {
+          const { l : lb, fields, 'as-name': asName } = bind.dict;
+          let boundExpr : A.Expr;
+          let binding : A.LetBind;
+          switch(asName.$name) {
+            case 'none': {
+              const name = scopeNames.makeAtom("tup");
+              const newFields = listToArray(fields).map((f : A.Bind) => {
+                switch(f.$name) {
+                  case 's-bind': { return f.dict.ann; }
+                  case 's-tuple-bind': { return A['a-blank']; }
+                }
+              });
+              const ann = A['a-tuple'].app(lb, runtime.ffi.makeList(newFields));
+              boundExpr = A['s-id'].app(lb, name);
+              binding = A['s-let-bind'].app(lb, A['s-bind'].app(lb, false, name, ann), expr);
+              break;
+            }
+            case 'some': {
+              const b = (asName.dict.value as TJ.Variant<A.Bind, 's-bind'>);
+              let someBinding;
+              switch(b.dict.ann.$name) {
+                case 'a-blank': {
+                  const ann = A['a-tuple'].app(lb, runtime.ffi.makeList(listToArray(fields).map(f => A['a-blank'])));
+                  someBinding = A['s-bind'].app(b.dict.l, b.dict.shadows, b.dict.id, ann);
+                  break;
+                }
+                default: {
+                  someBinding = b;
+                }
+              }
+              boundExpr = A['s-id'].app(b.dict.l, b.dict.id);
+              binding = A['s-let-bind'].app(l, someBinding, expr);
+              break;
+            }
+          }
+          binds.push(binding);
+          listToArray(fields).forEach((f, i : number) => {
+            simplifyLetBind(f.dict.l, f, A['s-tuple-get'].app(f.dict.l, boundExpr, i, f.dict.l), binds);
+          });
+        }
+      }
+      return binds;
+    }
+
     const desugarScopeVisitor : DesugarVisitor = {
       's-block': function(self, e) {
         const { l, stmts } = e.dict;
@@ -68,6 +122,14 @@ export type Exports = {
         return desugarScopeBlock(newStmts, [ 'let-binds', [], [] ]);
       },
       's-let-expr': function(self, e) {
+        const { l, binds, body, blocky } = e.dict;
+        const vBody = tj.map(self, body);
+        const bindsArray = listToArray(binds);
+        const newBinds = [];
+        bindsArray.forEach((b : A.LetBind) => {
+          simplifyLetBind(b.dict.l, b.dict.b, b.dict.value, newBinds);
+        });
+
         return undefined as unknown as A.Expr;
       },
       's-for': function(self, e) {

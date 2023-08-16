@@ -257,9 +257,9 @@ fun add-letrec-binds(bg :: BindingGroup, lrbs :: List<A.LetrecBind>, stmts :: Li
   end
 end
 
-fun simplify-let-bind(rebuild, l, bind, expr, lbs :: List<A.LetBind>) -> List<A.LetBind>:
+fun simplify-let-bind(l, bind, expr, lbs :: List<A.LetBind>) -> List<A.LetBind>:
   cases(A.Bind) bind:
-    | s-bind(_,_,_,_) => rebuild(l, bind, expr) ^ link(_, lbs)
+    | s-bind(_,_,_,_) => A.s-let-bind(l, bind, expr) ^ link(_, lbs)
     | s-tuple-bind(lb, fields, as-name) =>
       {bound-expr; binding} = cases(Option) as-name:
         | none =>
@@ -270,7 +270,7 @@ fun simplify-let-bind(rebuild, l, bind, expr, lbs :: List<A.LetBind>) -> List<A.
                 | s-tuple-bind(_, _, _) => A.a-blank
               end
             end)
-          {A.s-id(lb, name); rebuild(lb, A.s-bind(lb, false, name, ann), expr)}
+          {A.s-id(lb, name); A.s-let-bind(lb, A.s-bind(lb, false, name, ann), expr)}
         | some(b) =>
           binding = cases(A.Ann) b.ann:
             | a-blank =>
@@ -279,10 +279,10 @@ fun simplify-let-bind(rebuild, l, bind, expr, lbs :: List<A.LetBind>) -> List<A.
               A.s-bind(b.l, b.shadows, b.id, ann)
             | else => b
           end
-          {A.s-id(b.l, b.id); rebuild(l, binding, expr)}
+          {A.s-id(b.l, b.id); A.s-let-bind(l, binding, expr)}
       end
       for lists.fold_n(n from 0, shadow lbs from binding ^ link(_, lbs), f from fields):
-        simplify-let-bind(rebuild, f.l, f, A.s-tuple-get(f.l, bound-expr, n, f.l), lbs)
+        simplify-let-bind(f.l, f, A.s-tuple-get(f.l, bound-expr, n, f.l), lbs)
       end
   end
 end
@@ -290,8 +290,8 @@ end
 fun add-let-binds(bg :: BindingGroup, lbs :: List<A.LetBind>, stmts :: List<A.Expr>) -> A.Expr:
   simplified-lbs = for fold(acc from empty, lb from lbs):
     cases(A.LetBind) lb:
-      | s-let-bind(l, b, value) => simplify-let-bind(A.s-let-bind, l, b, value, acc)
-      | s-var-bind(l, b, value) => simplify-let-bind(A.s-var-bind, l, b, value, acc)
+      | s-let-bind(l, b, value) => simplify-let-bind(l, b, value, acc)
+      | s-var-bind(l, b, value) => link(lb, acc)
     end
   end
   cases(BindingGroup) bg:
@@ -523,7 +523,7 @@ fun rebuild-fun(rebuild, visitor, l, name, params, args, ann, doc, body, _check-
   placeholder = A.s-str(l, "placeholder")
   {new-binds; new-body} = for fold(acc from {empty; v-body}, a from args):
     {new-binds; new-body} = acc
-    lbs = simplify-let-bind(A.s-let-bind, a.l, a.visit(visitor), placeholder, empty).reverse()
+    lbs = simplify-let-bind(a.l, a.visit(visitor), placeholder, empty).reverse()
     arg-bind = lbs.first
     shadow new-binds = arg-bind.b ^ link(_, new-binds)
     cases(List) lbs.rest:
@@ -541,7 +541,7 @@ desugar-scope-visitor = A.default-map-visitor.{
   method s-let-expr(self, l, binds, body, blocky):
     v-body = body.visit(self)
     new-binds = for fold(new-binds from empty, b from binds):
-      simplify-let-bind(A.s-let-bind, b.l, b.b.visit(self), b.value.visit(self), new-binds)
+      simplify-let-bind(b.l, b.b.visit(self), b.value.visit(self), new-binds)
     end
     A.s-let-expr(l, new-binds.reverse(), v-body, blocky)
   end,
@@ -551,7 +551,7 @@ desugar-scope-visitor = A.default-map-visitor.{
     v-body = body.visit(self)
     {new-binds; new-body} = for fold(acc from {empty; v-body}, b from bindings):
       {new-binds; new-body} = acc
-      lbs = simplify-let-bind(A.s-let-bind, b.l, b.bind.visit(self), b.value.visit(self), empty).reverse()
+      lbs = simplify-let-bind(b.l, b.bind.visit(self), b.value.visit(self), empty).reverse()
       arg-bind = lbs.first
       shadow new-binds = A.s-for-bind(b.l, arg-bind.b, arg-bind.value) ^ link(_, new-binds)
       cases(List) lbs.rest:
@@ -565,7 +565,7 @@ desugar-scope-visitor = A.default-map-visitor.{
     v-body = body.visit(self)
     {new-binds; new-body} = for fold(acc from {empty; v-body}, b from args):
       {new-binds; new-body} = acc
-      lbs = simplify-let-bind(A.s-let-bind, b.l, b.bind.visit(self), A.s-str(b.l, "placeholder"), empty).reverse()
+      lbs = simplify-let-bind(b.l, b.bind.visit(self), A.s-str(b.l, "placeholder"), empty).reverse()
       arg-bind = lbs.first
       shadow new-binds = A.s-cases-bind(b.l, b.field-type, arg-bind.b) ^ link(_, new-binds)
       cases(List) lbs.rest:
@@ -590,7 +590,6 @@ fun desugar-scope(prog :: A.Program, env :: C.CompileEnvironment, options :: C.C
   cases(C.Pipeline) options.pipeline:
     | pipeline-ts-anchor(args) => 
       if args.member("resolve-scope"): # Only use TS version if we enable it in pipeline
-        # Note: passing `options` in to TSTC so that it can use options.log for debug output
         TRS.desugar-scope(prog, env)
       else:
         internal-desugar-scope(prog, env)
