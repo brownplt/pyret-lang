@@ -210,7 +210,7 @@ export type Exports = {
                             ? listToArray(c.dict.ann.dict.args).map(a => a.dict.ann)
                             : listToArray(c.dict.ann.dict.args);
                           const newargs = argAnns.map((ann : A.Ann, i : number) => {
-                            const a = args[i];
+                            const a = bindargs[i];
                             return A['s-bind'].app(a.dict.l, a.dict.shadows, a.dict.id, ann);
                           });
                           const newLam = A['s-lam'].app(lFun, name, c.dict.params, runtime.ffi.makeList(newargs), c.dict.ann.dict.ret, doc, body, checkLoc, check, blocky);
@@ -322,7 +322,7 @@ export type Exports = {
             const lookupChecker = A['s-dot'].app(l, A['s-id-letrec'].app(l, blobId, true), makeCheckerName(name));
             const bindDataPred = A['s-letrec-bind'].app(l, b(l, makeCheckerName(name)), lookupChecker);
             const allBinds = listToArray(variants).flatMap((v : A.Variant) => variantBinds(A['s-id-letrec'].app(l, blobId, true), v));
-            const allBinds2 = [...allBinds, bindData, bindDataPred];
+            const allBinds2 = [...allBinds, bindDataPred, bindData];
             return addLetrecBinds(bindingGroup, allBinds2, rest);
           }
           case 's-check': {
@@ -463,7 +463,7 @@ export type Exports = {
     function simplifyLetBind(l : A.Srcloc, bind : A.Bind, expr : A.Expr, binds : A.LetBind[]) : A.LetBind[] {
       switch(bind.$name) {
         case 's-bind': {
-          binds.push(A['s-let-bind'].app(l, bind, expr));
+          binds.unshift(A['s-let-bind'].app(l, bind, expr));
           break;
         }
         case 's-tuple-bind': {
@@ -502,7 +502,7 @@ export type Exports = {
               break;
             }
           }
-          binds.push(binding);
+          binds.unshift(binding);
           listToArray(fields).forEach((f, i : number) => {
             simplifyLetBind(f.dict.l, f, A['s-tuple-get'].app(f.dict.l, boundExpr, i, f.dict.l), binds);
           });
@@ -535,8 +535,7 @@ export type Exports = {
         let newBinds : A.ForBind[] = [];
         let newBody = vBody;
         const binds = listToArray(bindings);
-        for(let i = binds.length - 1; i >= 0; i -= 1) {
-          const b = binds[i];
+        binds.forEach((b : A.ForBind) => {
           const vBind = tj.map(self, b.dict.bind);
           const vValue = tj.map(self, b.dict.value);
           const lbs = simplifyLetBind(b.dict.l, vBind, vValue, []);
@@ -545,7 +544,7 @@ export type Exports = {
           if(lbs.length > 1) {
             newBody = A['s-let-expr'].app(b.dict.l, runtime.ffi.makeList(lbs.slice(1)), newBody, false);
           }
-        }
+        });
         return A['s-for'].app(l, vIterator, runtime.ffi.makeList(newBinds), vAnn, newBody, blocky);
       },
       's-cases-branch': function(self : DesugarVisitor, e) {
@@ -554,15 +553,14 @@ export type Exports = {
         let newBinds : A.CasesBind[] = [];
         let newBody = vBody;
         const argsArray = listToArray(args);
-        for(let i = argsArray.length - 1; i >= 0; i -= 1) {
-          const a = argsArray[i];
-          const lbs = simplifyLetBind(a.dict.l, tj.map(self, a.dict.bind), A['s-str'].app(a.dict.l, "placeholder"), []);
+        argsArray.forEach((a : A.CasesBind) => {
+          const lbs = simplifyLetBind(a.dict.l, tj.map(self, a.dict.bind), A['s-str'].app(a.dict.l, "placeholder-cases"), []);
           const argBind = lbs[0];
           newBinds.push(A['s-cases-bind'].app(a.dict.l, a.dict['field-type'], argBind.dict.b));
           if(lbs.length > 1) {
             newBody = A['s-let-expr'].app(a.dict.l, runtime.ffi.makeList(lbs.slice(1)), newBody, false);
           }
-        }
+        });
         return A['s-cases-branch'].app(l, patLoc, name, runtime.ffi.makeList(newBinds), newBody);
       },
       's-fun': function(self, e) {
@@ -586,19 +584,18 @@ export type Exports = {
       const vAnn = tj.map(visitor, ann);
       const vBody = tj.map(visitor, body);
       const vCheck = tj.map(visitor, check);
-      const placeholder = A['s-str'].app(l, "placeholder");
+      const placeholder = A['s-str'].app(l, "placeholder-rebuild");
       let newBinds : A.Bind[] = [];
       let newBody = vBody;
       const argsArray = listToArray(args);
-      for(let i = argsArray.length - 1; i >= 0; i -= 1) {
-        const a = argsArray[i];
-        const lbs = simplifyLetBind(a.dict.l, tj.map(visitor, a), placeholder, []);
+      argsArray.forEach((a : A.Bind) => {
+        const lbs = simplifyLetBind(a.dict.l, tj.map(visitor, a), placeholder, []).reverse();
         const argBind = lbs[0];
         newBinds.push(argBind.dict.b);
         if(lbs.length > 1) {
           newBody = A['s-let-expr'].app(a.dict.l, runtime.ffi.makeList(lbs.slice(1)), newBody, false);
         }
-      }
+      });
       return rebuild.app(l, name, runtime.ffi.makeList(vParams), runtime.ffi.makeList(newBinds), vAnn, doc, newBody, checkLoc, vCheck, blocky);
     }
 
