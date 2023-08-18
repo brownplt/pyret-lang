@@ -1097,8 +1097,9 @@ function handleRunExamplarSuccessFull(state: State, wheatResultArray: any[], cha
   return state3;
 }
 
-function removeIncludes(s: string) {
-  return s.split('\n').map((x) => x.replace(/^ *include.*/, '')).join('\n');
+function insertUserImpl(s: string, newFile: string) {
+  // eslint-disable-next-line
+  return s.split('\n').map((x) => x.replace(/^ *(include|import) +file\(".*?"\)(.*?)### *CHANGE *$/, '$1 file("' + newFile + '")$2')).join('\n');
 }
 
 async function runExamplarAsync(state: State) : Promise<any> {
@@ -1132,8 +1133,10 @@ async function runExamplarAsync(state: State) : Promise<any> {
     fs.unlinkSync(testChaffFile);
   }
 
-  const wheatFileBasenames: string[] = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
-  const chaffFileBasenames: string[] = fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : [];
+  // eslint-disable-next-line
+  const wheatFileBasenames: string[] = (fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : []).filter((f: string) => !(fs.lstatSync(dirWheats + '/' + f).isDirectory()));
+  // eslint-disable-next-line
+  const chaffFileBasenames: string[] = (fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : []).filter((f: string) => !(fs.lstatSync(dirChaffs + '/' + f).isDirectory()));
 
   const numWheats = wheatFileBasenames.length;
   const numChaffs = chaffFileBasenames.length;
@@ -1157,12 +1160,11 @@ async function runExamplarAsync(state: State) : Promise<any> {
 
   let result: any;
   let failed: boolean = false;
-  const checkBlock = removeIncludes(String(fs.readFileSync(testFile)));
+  const testTemplate = String(fs.readFileSync(testFile));
 
   for (let i = 0; i < numWheats; i += 1) {
     const wheatFile = wheatFiles[i];
-    // eslint-disable-next-line
-    const testProgram = 'include cpo' + '\n\ninclude file("' + wheatFile + '")\n' + checkBlock + '\n';
+    const testProgram = insertUserImpl(testTemplate, wheatFile);
     // eslint-disable-next-line
     const testProgramFile = segmentName(testWheatFile, Number(i).toString())
     // eslint-disable-next-line
@@ -1185,8 +1187,7 @@ async function runExamplarAsync(state: State) : Promise<any> {
   if (!failed) {
     for (let i = 0; i < numChaffs; i += 1) {
       const chaffFile = chaffFiles[i];
-      // eslint-disable-next-line
-      const testProgram = 'include cpo' + '\n\ninclude file("' + chaffFile + '")\n\n' + checkBlock + '\n';
+      const testProgram = insertUserImpl(testTemplate, chaffFile);
       // eslint-disable-next-line
       const testProgramFile = segmentName(testChaffFile, Number(i).toString())
       // eslint-disable-next-line
