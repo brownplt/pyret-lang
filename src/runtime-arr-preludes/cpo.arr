@@ -89,8 +89,8 @@ provide from G:
 end
 
 provide from N:
-  # num-random,
-  # num-random-seed,
+  num-random,
+  num-random-seed,
   num-max,
   num-min,
   num-equal,
