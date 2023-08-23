@@ -4601,7 +4601,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           var res = f.app(currentFst);
           if(isContinuation(res)) { return res; }
-          if(res) {
+          if(!(isBoolean(res))) {
+            return thisRuntime.ffi.throwNonBooleanCondition(["raw-list-filter"], "Boolean", res);
+          }
+          if(isPyretTrue(res)){
             currentAcc.push(currentFst);
           }
         }
@@ -5810,8 +5813,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       'string-equal': makeFunction(string_equals, "string-equal"),
       'string-contains': makeFunction(string_contains, "string-contains"),
-      'string-starts-with': makeFunction(string_contains, "string-starts-with"),
-      'string-ends-with': makeFunction(string_contains, "string-ends-with"),
+      'string-starts-with': makeFunction(string_starts_with, "string-starts-with"),
+      'string-ends-with': makeFunction(string_ends_with, "string-ends-with"),
       'string-append': makeFunction(string_append, "string-append"),
       'string-length': makeFunction(string_length, "string-length"),
       'string-isnumber': makeFunction(string_isnumber, "string-isnumber"),

@@ -414,3 +414,8 @@ j = 50
   msgs(result) is%(string-contains) "nonsense"
 
 end
+
+check "TC error regression https://github.com/brownplt/pyret-lang/issues/1619":
+  result = restart(```o = { m: {(): raise("something") } }\n"success"```, true)
+  val(result) is some("success")
+end

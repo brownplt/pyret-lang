@@ -2690,7 +2690,7 @@ data ParseError:
       [ED.error: 
         [ED.para-nospace:
           ED.text("The testing operator at "),
-          draw-and-highlight(self.loc),
+          draw-and-highlight(self.op.l),
           ED.text(" must be used inside a"),
           ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
         [ED.para:
