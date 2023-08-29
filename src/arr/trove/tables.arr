@@ -72,13 +72,16 @@ raw-row = {
   make5: lam(t1, t2, t3, t4, t5): builtins.raw-make-row([raw-array: t1, t2, t3, t4, t5]) end,
 }
 
+fun empty-table(col-names :: List<String>) -> Table:
+  for fold(t from table: ignore end.drop("ignore"),
+           c from col-names):
+    t.add-column(c, empty)
+  end
+end
+
 fun table-from-raw-array(arr):
-  cols = raw-array-get(arr, 0).get-column-names()
-  with-cols =
-    for fold(t from table: ignore end.drop("ignore"),
-            c from cols):
-      t.add-column(c, empty)
-    end
+  col-names = raw-array-get(arr, 0).get-column-names()
+  with-cols = empty-table(col-names)
   for raw-array-fold(t from with-cols, r from arr, _ from 0):
     t.add-row(r)
   end
@@ -95,13 +98,10 @@ table-from-rows = {
 }
 
 fun table-from-column<A>(col-name :: String, values :: List<A>) -> Table:
-  rows = for map(v from values):
-    raw-row.make([raw-array: {col-name; v}])
+  for fold(t from empty-table([list: col-name]), v from values):
+    t.add-row([raw-row: {col-name; v}])
   end
-  table-from-rows.make(raw-array-from-list(rows))
 end
-
-
 
 table-from-cols :: RawArray<{String; List<Any>}> -> Table
 fun table-from-cols(colspecs):

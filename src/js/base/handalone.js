@@ -21,7 +21,9 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
 
   var runtime = runtimeLib.makeRuntime({
     stdout: function(s) { process.stdout.write(s); },
-    stderr: function(s) { process.stderr.write(s); }
+    stderr: function(s) { process.stderr.write(s); },
+    // TODO: this is semantically different. Is this ok?
+    stdin: process.stdin,
   });
 
   var EXIT_SUCCESS = 0;

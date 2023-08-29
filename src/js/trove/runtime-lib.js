@@ -23,7 +23,8 @@
       return applyBrand(brandRuntime, runtime.makeObject({
         "runtime": runtime.makeOpaque(runtimeLib.makeRuntime({
           stdout: runtime.stdout,
-          stderr: runtime.stderr
+          stderr: runtime.stderr,
+          stdin: runtime.stdin
         }))
       }));
     }

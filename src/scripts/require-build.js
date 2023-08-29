@@ -3,6 +3,7 @@
     paths: {
         'crypto': 'empty:',
         'fs': 'empty:',
+        'readline': 'empty',
         'path': 'empty:',
         'q': 'empty:',
         'requirejs': 'empty:',
