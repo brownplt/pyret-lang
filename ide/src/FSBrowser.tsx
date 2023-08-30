@@ -21,6 +21,8 @@ import {
 import * as control from './control';
 import * as action from './action';
 
+import { initialState } from './state';
+
 type StateProps = {
   browseRoot: string,
   browsePath: string
@@ -69,8 +71,10 @@ type FSBrowserState = {
 };
 
 function showPath(file : string) {
-  if (file.startsWith('.')) { return false; }
-  if (file.endsWith('-segment')) { return false; }
+  if (!initialState.developerMode) {
+    if (file.startsWith('.')) { return false; }
+    if (file.endsWith('-segment')) { return false; }
+  }
   return true;
 }
 

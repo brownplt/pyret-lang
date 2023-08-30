@@ -2,7 +2,10 @@
 provide:
   * hiding (raw-array-from-list)
 end
-provide-types *
+provide:
+  type *,
+  data *
+end
 
 import primitive-types as P
 import runtime-global as G
