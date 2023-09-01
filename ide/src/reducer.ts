@@ -887,11 +887,7 @@ function handleRunProgramSuccess(state : State, result : any) : State {
 
 function resultSummary(wheatResultArray: any[], chaffResultArray: any[]) {
   function numFailures(resultArray: any[]) {
-    const fails = resultArray.filter((result) => {
-      const checkArray = result.result.result.$checks;
-      const failureArray = checkArray.filter((check: any) => (check.success === false));
-      return (failureArray.length > 0);
-    });
+    const fails = resultArray.filter((result) => !result);
     return fails.length;
   }
   const wheatFails = numFailures(wheatResultArray);
@@ -901,9 +897,11 @@ function resultSummary(wheatResultArray: any[], chaffResultArray: any[]) {
     ' chaffs. Failed ' + String(wheatFails) + ' out of ' + String(wheatResultArray.length) + ' wheats.';
 }
 
-function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffResultArray: any[], reprFile: string) : State {
-  const { result } = wheatResultArray[0];
-  const rhs = makeRHSObjects(result, `file://${reprFile}`);
+function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffResultArray: any[], sampleResult: any, reprFile: string) : State {
+  if (!sampleResult) {
+    console.log('examplar all wheats and chaffs were ill-formed');
+  }
+  const rhs = makeRHSObjects(sampleResult, `file://${reprFile}`);
   const rhs0 = (rhs.slice(0, 1))[0];
   // eslint-disable-next-line
   const resultString = resultSummary(wheatResultArray, chaffResultArray);
@@ -929,6 +927,9 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
 async function runTextProgram(
   typeCheck: boolean, runKind: RunKind, saveFile: string, programText: string,
 ) : Promise<CompileAndRunResult> {
+  if (fs.existsSync(saveFile)) {
+    fs.unlinkSync(saveFile);
+  }
   fs.writeFileSync(saveFile, programText);
   const sessionId = TEXT_SESSION;
   const { dir, base } = bfsSetup.path.parse(saveFile);
@@ -1091,14 +1092,28 @@ function runProgramOrSegments(
   return updater(state);
 }
 
-function handleRunExamplarSuccessFull(state: State, wheatResultArray: any[], chaffResultArray: any[], reprFile: string) : State {
-  const state2 = handleRunExamplarSuccess(state, wheatResultArray, chaffResultArray, reprFile);
+function handleRunExamplarSuccessFull(state: State, wheatResultArray: any[], chaffResultArray: any[], sampleResult: any, reprFile: string) : State {
+  const state2 = handleRunExamplarSuccess(state, wheatResultArray, chaffResultArray, sampleResult, reprFile);
   const state3 = runProgramOrSegments(state2, runSegmentsAsync, setupRunSegmentsAsync);
   return state3;
 }
 
-function removeIncludes(s: string) {
-  return s.split('\n').map((x) => x.replace(/^ *include.*/, '')).join('\n');
+function insertUserImpl(s: string, newFile: string) {
+  const ll = s.split('\n');
+  const llOut = ll.map((x) => x);
+  for (let i = 0; i < ll.length; i += 1) {
+    const line = ll[i];
+    if (/^ *include +file\(/.test(line)) {
+      // eslint-disable-next-line
+      llOut[i] = line.replace(/^ *include +file\(".*?"\)/, 'include file("' + newFile + '")');
+      break;
+    } else if (/^ *import +file\(/.test(line)) {
+      // eslint-disable-next-line
+      llOut[i] = line.replace(/^ *import +file\(".*?"\)/, 'import file("' + newFile + '")');
+      break;
+    }
+  }
+  return llOut.join('\n');
 }
 
 async function runExamplarAsync(state: State) : Promise<any> {
@@ -1132,8 +1147,10 @@ async function runExamplarAsync(state: State) : Promise<any> {
     fs.unlinkSync(testChaffFile);
   }
 
-  const wheatFileBasenames: string[] = fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : [];
-  const chaffFileBasenames: string[] = fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : [];
+  // eslint-disable-next-line
+  const wheatFileBasenames: string[] = (fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : []).filter((f: string) => !(fs.lstatSync(dirWheats + '/' + f).isDirectory()));
+  // eslint-disable-next-line
+  const chaffFileBasenames: string[] = (fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : []).filter((f: string) => !(fs.lstatSync(dirChaffs + '/' + f).isDirectory()));
 
   const numWheats = wheatFileBasenames.length;
   const numChaffs = chaffFileBasenames.length;
@@ -1156,59 +1173,80 @@ async function runExamplarAsync(state: State) : Promise<any> {
   const chaffResultArray: any[] = [];
 
   let result: any;
-  let failed: boolean = false;
-  const checkBlock = removeIncludes(String(fs.readFileSync(testFile)));
+  const testTemplate = String(fs.readFileSync(testFile));
+
+  let firstUsableResult = false;
+  let correspondingFile: string;
+  let firstFailureResult: any = false;
 
   for (let i = 0; i < numWheats; i += 1) {
     const wheatFile = wheatFiles[i];
-    // eslint-disable-next-line
-    const testProgram = 'include cpo' + '\n\ninclude file("' + wheatFile + '")\n' + checkBlock + '\n';
+    const testProgram = insertUserImpl(testTemplate, wheatFile);
     // eslint-disable-next-line
     const testProgramFile = segmentName(testWheatFile, Number(i).toString())
     // eslint-disable-next-line
     result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
     if (result.type === 'compile-failure') {
-      failed = true;
-      // eslint-disable-next-line
-      update((s: State) => handleCompileExamplarFailure(s, result.errors));
-      break;
-    } else if (result.type === 'run-failure') {
-      failed = true;
-      // eslint-disable-next-line
-      update((s: State) => handleRunExamplarFailure(s, result.error));
-      break;
-    } else {
-      wheatResultArray.push(result);
-    }
-  }
-
-  if (!failed) {
-    for (let i = 0; i < numChaffs; i += 1) {
-      const chaffFile = chaffFiles[i];
-      // eslint-disable-next-line
-      const testProgram = 'include cpo' + '\n\ninclude file("' + chaffFile + '")\n\n' + checkBlock + '\n';
-      // eslint-disable-next-line
-      const testProgramFile = segmentName(testChaffFile, Number(i).toString())
-      // eslint-disable-next-line
-      result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
-      if (result.type === 'compile-failure') {
-        failed = true;
-        // eslint-disable-next-line
-        update((s: State) => handleCompileExamplarFailure(s, result.errors));
-        break;
-      } else if (result.type === 'run-failure') {
-        failed = true;
-        // eslint-disable-next-line
-        update((s: State) => handleRunExamplarFailure(s, result.error));
-        break;
-      } else {
-        chaffResultArray.push(result);
+      console.log('examplar ill-formed', wheatFile, result);
+      if (!firstFailureResult) {
+        firstFailureResult = result;
       }
+      wheatResultArray.push(false);
+    } else if (result.type === 'run-failure') {
+      console.log('examplar ill-formed', wheatFile, result);
+      if (!firstFailureResult) {
+        firstFailureResult = result;
+      }
+      wheatResultArray.push(false);
+    } else {
+      if (!firstUsableResult) {
+        firstUsableResult = result.result;
+        correspondingFile = testProgramFile;
+      }
+      const checkArray = result.result.result.$checks;
+      const failureArray = checkArray.filter((check: any) => (check.success === false));
+      wheatResultArray.push(failureArray.length === 0);
     }
   }
 
-  if (!failed) {
-    update((s: State) => handleRunExamplarSuccessFull(s, wheatResultArray, chaffResultArray, segmentName(testWheatFile, '0')));
+  for (let i = 0; i < numChaffs; i += 1) {
+    const chaffFile = chaffFiles[i];
+    const testProgram = insertUserImpl(testTemplate, chaffFile);
+    // eslint-disable-next-line
+    const testProgramFile = segmentName(testChaffFile, Number(i).toString())
+    // eslint-disable-next-line
+    result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+    if (result.type === 'compile-failure') {
+      console.log('examplar error in', chaffFile, result);
+      if (!firstFailureResult) {
+        firstFailureResult = result;
+      }
+      chaffResultArray.push(false);
+    } else if (result.type === 'run-failure') {
+      console.log('examplar error in', chaffFile, result);
+      if (!firstFailureResult) {
+        firstFailureResult = result;
+      }
+      chaffResultArray.push(false);
+    } else {
+      if (!firstUsableResult) {
+        firstUsableResult = result.result;
+        correspondingFile = testProgramFile;
+      }
+      const checkArray = result.result.result.$checks;
+      const failureArray = checkArray.filter((check: any) => (check.success === false));
+      chaffResultArray.push(failureArray.length === 0);
+    }
+  }
+
+  if (firstUsableResult) {
+    update((s: State) => handleRunExamplarSuccessFull(s, wheatResultArray, chaffResultArray, firstUsableResult, correspondingFile));
+  } else if (firstFailureResult) {
+    if (firstFailureResult.type === 'compile-failure') {
+      update((s: State) => handleCompileExamplarFailure(s, firstFailureResult.errors));
+    } else if (firstFailureResult.type === 'run-failure') {
+      update((s: State) => handleRunExamplarFailure(s, firstFailureResult.error));
+    }
   }
 }
 
