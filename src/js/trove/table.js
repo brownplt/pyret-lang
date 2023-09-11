@@ -552,7 +552,7 @@
                 var reducerWrapped = runtime.makeFunction(function(acc, val, ix) {
                   return reduce.app(runtime.getTuple(acc, 0, ["tables"]), val);
                 });
-                return runtime.raw_array_fold(reducerWrapped, one, column.slice(1), 1);
+                return runtime.raw_array_fold(reducerWrapped, one, column, 1);
               }
             }, "reduce-one");
           }, function(answerTuple) {
