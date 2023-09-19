@@ -2304,10 +2304,10 @@ data RuntimeError:
                   ED.text(") expression errored.")],
                 [ED.para:
                   ED.text("The left side was:")],
-                ED.embed(self.val1),
+                ED.embed(self.value1),
                 [ED.para:
                   ED.text("The right side was:")],
-                ED.embed(self.val2),
+                ED.embed(self.value2),
                 [ED.para:
                   ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
           end]
