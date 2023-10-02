@@ -890,11 +890,50 @@ function resultSummary(wheatResultArray: any[], chaffResultArray: any[]) {
     const fails = resultArray.filter((result) => !result);
     return fails.length;
   }
+  const numWheats = wheatResultArray.length;
+  const numChaffs = chaffResultArray.length;
   const wheatFails = numFailures(wheatResultArray);
   const chaffFails = numFailures(chaffResultArray);
+  const wheatSuccs = numWheats - wheatFails;
+  const chaffSuccs = numChaffs - chaffFails;
+  let introMessage = '';
+  let wheatMessage = '';
+  let chaffMessage = '';
+  //
+  if (wheatFails === 0 && chaffSuccs === 0) {
+    introMessage = 'Congratulations! Your tests are correct and comprehensive.';
+  } else if (wheatFails === 0 && chaffSuccs >= 1) {
+    introMessage = 'Your tests are correct but not comprehensive.';
+  } else if (wheatFails > 0) {
+    introMessage = 'Sorry. Your tests are incorrect.';
+  }
+  //
+  if (wheatFails === 0 && numWheats === 1) {
+    wheatMessage = 'The only wheat succeeded.';
+  } else if (wheatFails === 1 && numWheats === 1) {
+    wheatMessage = 'The only wheat failed.';
+  } else if (wheatFails === 0) {
+    wheatMessage = `All ${numWheats} wheats succeeded.`;
+  } else if (wheatFails > 0 && wheatFails === numWheats) {
+    wheatMessage = `All ${numWheats} wheats failed.`;
+  } else if (wheatFails > 0) {
+    wheatMessage = `Only ${wheatSuccs} out of ${numWheats} wheats succeeded.`;
+  }
+  //
+  if (chaffFails === 1 && numChaffs === 1) {
+    chaffMessage = 'You caught the only chaff.';
+  } else if (chaffFails === 0 && numChaffs === 1) {
+    chaffMessage = 'You didn\'t catch the only chaff.';
+  } else if (chaffFails === 0) {
+    chaffMessage = `You didn't catch any of the ${numChaffs} chaffs.`;
+  } else if (chaffFails > 0 && chaffFails === numChaffs) {
+    chaffMessage = `You caught all ${numChaffs} chaffs.`;
+  } else if (chaffFails > 0) {
+    chaffMessage = `You caught only ${chaffFails} out of ${numChaffs} chaffs.`;
+  }
+  //
   // eslint-disable-next-line
-  return 'Caught ' + String(chaffFails) + ' out of ' + String(chaffResultArray.length) +
-    ' chaffs. Failed ' + String(wheatFails) + ' out of ' + String(wheatResultArray.length) + ' wheats.';
+  return `${introMessage}\n${wheatMessage}\n${chaffMessage}`;
 }
 
 function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffResultArray: any[], sampleResult: any, reprFile: string) : State {
@@ -1187,13 +1226,13 @@ async function runExamplarAsync(state: State) : Promise<any> {
     // eslint-disable-next-line
     result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
     if (result.type === 'compile-failure') {
-      console.log('examplar ill-formed', wheatFile, result);
+      console.log('examplar compile failure in', wheatFile, result);
       if (!firstFailureResult) {
         firstFailureResult = result;
       }
       wheatResultArray.push(false);
     } else if (result.type === 'run-failure') {
-      console.log('examplar ill-formed', wheatFile, result);
+      console.log('examplar run failure in', wheatFile, result);
       if (!firstFailureResult) {
         firstFailureResult = result;
       }

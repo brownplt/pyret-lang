@@ -209,7 +209,6 @@ provide from lists:
   type List,
   to-raw-array as array-from-list,
   raw-array-to-list as array-to-list-now,
-  length as list-length,
 
   list,
   is-List,
@@ -217,7 +216,6 @@ provide from lists:
   is-link,
   empty,
   link,
-  sort-by,
   range,
   range-by,
   repeat,
@@ -227,8 +225,6 @@ provide from lists:
   any,
   find,
   map,
-  all,
-  all2,
   map2,
   map3,
   map4,
@@ -252,6 +248,7 @@ end
 
 provide from option:
   type Option,
+  data Option,
   is-Option,
   is-some,
   is-none,
