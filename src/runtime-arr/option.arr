@@ -3,8 +3,11 @@
 #  on the builtin global module.
 #
 
-provide *
-provide-types *
+provide:
+  *,
+  type *,
+  data *
+end
 
 import primitive-types as _
 
