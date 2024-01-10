@@ -36,12 +36,21 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
 
   runtime.setParam("command-line-arguments", process.argv.slice(1));
 
-  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: true});
+  function checkFlag(name) {
+    return program.runtimeOptions && program.runtimeOptions[name];
+  }
+
+  if(checkFlag("disableAnnotationChecks")) {
+    runtime.checkArgsInternal1 = function() {};
+    runtime.checkArgsInternal2 = function() {};
+    runtime.checkArgsInternal3 = function() {};
+    runtime._checkAnn = function() {};
+  }
+
+  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: checkFlag("checks") === "all"});
   postLoadHooks[main] = function(answer) {
-    var profile = runtime.getProfile();
-    if (profile.length > 0) {
-      profile.forEach(function(entry) { process.stderr.write(JSON.stringify(entry) + "\n"); });
-    }
+    var checks = checkFlag("checks");
+    if(checks && checks === "none") { process.exit(EXIT_SUCCESS); }
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {

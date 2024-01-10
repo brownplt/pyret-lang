@@ -182,7 +182,9 @@
     }
     function getModuleResultChecks(mr) {
       checkSuccess(mr, "checks");
-      return mr.val.runtime.getField(mr.val.result.result, "checks");
+      var checks = mr.val.runtime.getField(mr.val.result.result, "checks");
+      if(mr.val.runtime.ffi.isList(checks)) { return checks; }
+      else { return mr.val.runtime.ffi.makeList([]); }
     }
     function getModuleResultExn(mr) {
       checkExn(mr);
@@ -313,7 +315,7 @@
     /* ProgramString is a staticModules/depMap/toLoad tuple as a string */
     // TODO(joe): this should take natives as an argument, as well, and requirejs them
     function runProgram(otherRuntimeObj, realmObj, programString, options, commandLineArguments) {
-      var checkAll = runtime.getField(options, "check-all");
+      var checks = runtime.getField(options, "checks");
       var otherRuntime = runtime.getField(otherRuntimeObj, "runtime").val;
       otherRuntime.setParam("command-line-arguments", runtime.ffi.toArray(commandLineArguments));
       var realm = {
@@ -330,12 +332,15 @@
       runtime.setParam("currentMainURL", main);
 
       if(realm.instantiated["builtin://checker"]) {
-        var checker = otherRuntime.getField(otherRuntime.getField(realm.instantiated["builtin://checker"], "provide-plus-types"), "values");
-        var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checkAll);
-        otherRuntime.setParam("current-checker", currentChecker);
+        // NOTE(joe): This is the place to add checkAll
+        if (checks !== "none") {
+          var checker = otherRuntime.getField(otherRuntime.getField(realm.instantiated["builtin://checker"], "provide-plus-types"), "values");
+          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checks === "all");
+          otherRuntime.setParam("current-checker", currentChecker);
+        }
       }
 
-      var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(otherRuntime, {main: main, checkAll: checkAll});
+      var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(otherRuntime, {main: main, checkAll: checks === "all"});
 
       return runtime.pauseStack(function(restarter) {
         var mainReached = false;

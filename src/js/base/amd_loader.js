@@ -13,6 +13,18 @@ if(typeof require === "function") {
 
     var nodeRequire = (typeof require != "undefined") ? require : null;
 
+    function isAvailableNodeModule(name) {
+      try {
+        require.resolve(name);
+        isNodeModuleAvailable = true;
+      }
+      catch(e) {
+        isNodeModuleAvailable = false;
+      }
+      return isNodeModuleAvailable;
+    }
+
+
     // module name -> module object
     var moduleTable = {};
 
@@ -34,6 +46,12 @@ if(typeof require === "function") {
 
         if (moduleObj.val != null) {
             throw new Error("Already evaluated " + moduleObj.name);
+        }
+
+        if(isAvailableNodeModule(moduleObj.name)) {
+          moduleObj.val = require(moduleObj.name);
+          moduleObj.resolved = true;
+          return;
         }
 
         var callbackArgs = buildCallbackArgs(moduleObj.deps);
@@ -79,6 +97,13 @@ if(typeof require === "function") {
         var visitedNodes = {}; // Nodes we're done with
 
         function visitNode(node) {
+            if (isAvailableNodeModule(node)) {
+              topsorted.push(node);
+              visitedNodes[node] = true;
+              delete toVisit[node];
+              return;
+            }
+
             if (!(node in moduleTable)) {
                 throw new Error("Unknown module : " + node);
             }
@@ -141,6 +166,15 @@ if(typeof require === "function") {
 
         for (var i = 0; i < loadOrder.length; i++) {
             var modName = loadOrder[i];
+            if (!moduleTable[modName] && isAvailableNodeModule(modName)) {
+              moduleTable[modName] = {
+                callback: null,
+                name: modName,
+                deps: [],
+                val: null,
+                resolved: false,
+              };
+            }
             if (!moduleTable[modName].resolved) {
                 evaluateModuleFn(moduleTable[modName]);
             }

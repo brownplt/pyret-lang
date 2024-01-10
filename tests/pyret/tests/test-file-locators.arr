@@ -66,7 +66,7 @@ fun make-file-ops(): {
     method real-path(self, path): "/mock" + path end
 } end
 
-NUM-BUILTIN-MODULES = 25
+NUM-BUILTIN-MODULES = 26
 
 check "File locators":
   fops = make-file-ops()
