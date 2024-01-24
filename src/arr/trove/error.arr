@@ -20,9 +20,16 @@ fun horz-list-values(vals):
 end
 
 fun ed-simple-intro(name, loc):
+  ed-simple-intro-a-an(name, loc, "a")
+end
+fun ed-simple-intro-an(name, loc):
+  ed-simple-intro-a-an(name, loc, "an")
+end
+
+fun ed-simple-intro-a-an(name, loc, a-or-an):
   if loc.is-builtin():
     [ED.para:
-      ED.text("Evaluating a " + name + " in "),
+      ED.text("Evaluating " + a-or-an + " " + name + " in "),
       ED.loc(loc),
       ED.text(" errored.")]
   else:
@@ -2231,7 +2238,80 @@ data RuntimeError:
     end
   | equality-failure(reason :: String, value1, value2) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      self.render-reason() # TODO
+      if is-number(self.value1) and is-number(self.value2) block:
+        self.render-reason()
+      else:
+        [ED.error:
+          cases(O.Option) maybe-stack-loc(0, false):
+            | some(loc) =>
+              if loc.is-builtin():
+                [ED.sequence:
+                  ed-simple-intro-an("equality comparison", loc),
+                  [ED.para:
+                    ED.text("The left side was:")],
+                  ED.embed(self.value1),
+                  [ED.para:
+                    ED.text("The right side was:")],
+                  ED.embed(self.value2),
+                  [ED.para:
+                    ED.text("The values are not comparable.")]]
+              else if src-available(loc):
+                cases(O.Option) maybe-ast(loc):
+                  | some(ast) =>
+                    left-loc =  ast.left.l
+                    right-loc = ast.right.l
+                    [ED.sequence:
+                      ed-intro("equality comparison", loc, -1, true),
+                      ED.cmcode(loc),
+                      [ED.para:
+                        ED.text("The "),
+                        ED.highlight(ED.text("left side"), [ED.locs: left-loc],0),
+                        ED.text(" was:")],
+                      ED.embed(self.value1),
+                      [ED.para:
+                        ED.text("The "),
+                        ED.highlight(ED.text("right side"), [ED.locs: right-loc],1),
+                        ED.text(" was:")],
+                      ED.embed(self.value2),
+                      [ED.para:
+                        ED.text("The values are not comparable.")]]
+                  | none      =>
+                    [ED.sequence:
+                      ed-intro("equality comparison", loc, 0, true),
+                      ED.cmcode(loc),
+                      [ED.para: ED.text("The left side was:")],
+                      ED.embed(self.value1),
+                      [ED.para: ED.text("The right side was:")],
+                      ED.embed(self.value2),
+                      [ED.para:
+                        ED.text("The values are not comparable")]]
+                end
+              else:
+                [ED.sequence:
+                  ed-simple-intro-an("equality comparison", loc),
+                  [ED.para: ED.text("The left side was:")],
+                  ED.embed(self.value1),
+                  [ED.para: ED.text("The right side was:")],
+                  ED.embed(self.value2),
+                  [ED.para:
+                    ED.text("The values are not comparable")]]
+              end
+            | none =>
+              [ED.sequence:
+                [ED.para:
+                  ED.text("An equality comparison "),
+                  ED.code(ED.text(self.opname)),
+                  ED.text(") expression errored.")],
+                [ED.para:
+                  ED.text("The left side was:")],
+                ED.embed(self.value1),
+                [ED.para:
+                  ED.text("The right side was:")],
+                ED.embed(self.value2),
+                [ED.para:
+                  ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
+          end]
+       end
     end,
     method render-reason(self):
       value1 = self.value1
@@ -2690,7 +2770,7 @@ data ParseError:
       [ED.error: 
         [ED.para-nospace:
           ED.text("The testing operator at "),
-          draw-and-highlight(self.loc),
+          draw-and-highlight(self.op.l),
           ED.text(" must be used inside a"),
           ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
         [ED.para:
