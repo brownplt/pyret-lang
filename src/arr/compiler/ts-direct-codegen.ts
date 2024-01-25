@@ -1833,8 +1833,8 @@ export type Exports = {
         } 
       }
       for (const [k, subd] of Object.entries(val.dict)) {
-        if (typeof subd === 'object' && "$name" in subd) {
-          visitor[subd['$name']] = deepCheck;
+        if (typeof subd === 'object' && subd !== null && "$name" in subd) {
+          visitor[subd['$name'] as any] = deepCheck;
           visit(visitor, subd as any);
         }
       }
