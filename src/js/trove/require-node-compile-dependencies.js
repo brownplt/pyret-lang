@@ -2,6 +2,9 @@
 // When building a standalone, browserify will parse this file
 // and produce a version which include each dependency that is required()
 //
+const process = require('process');
+process.versions = { node: "20.11.0" };
+
 stream = require("stream");
 define("stream", [], function() {return stream;});
 
@@ -118,6 +121,6 @@ self.process = {
     } else {
       return [1, 1];
     }
-  }
+  },
+  versions: { node: "20.11.0" }
 };
-

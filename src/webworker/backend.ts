@@ -159,7 +159,7 @@ export const makeBackendMessageHandler = (
       return null;
     } catch (err) {
       console.log(JSON.stringify(err));
-      runtimeFailure(err);
+      runtimeFailure(err as any);
       return null;
     }
   };

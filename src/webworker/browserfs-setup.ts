@@ -5,6 +5,7 @@ export const fs = BrowserFS.BFSRequire('fs');
 export const path = BrowserFS.BFSRequire('path');
 
 export const process = BrowserFS.BFSRequire('process');
+process.versions = { node: '20.11.0' };
 
 export const install = (): void => {
   BrowserFS.install(window);
