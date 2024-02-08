@@ -14,6 +14,12 @@ const stylesHandler = 'style-loader';
 
 const config = {
     entry: './src/index.tsx',
+    // There are specific warnings of this form:
+    // WARNING in ../node_modules/babel-core/lib/transformation/file/options/option-manager.js 178:19-37
+    // Critical dependency: the request of a dependency is an expression
+    // 
+    // They cause no issues and are deep in a babel dependency, so we ignore them
+    ignoreWarnings: [/the request of a dependency is an expression/],
     output: {
         path: path.resolve(__dirname, 'dist'),
         library: "embedableParley",

@@ -72,7 +72,7 @@
     "webpack-manifest-plugin": "^5.0.0"
   },
   "scripts": {
-    "start": "node scripts/start.js",
+    "start": "webpack serve --open",
     "hstart": "BROWSER=none node scripts/start.js",
     "build": "webpack --mode=production --node-env=production",
     "build:dev": "webpack --mode=development",
