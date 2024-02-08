@@ -56,7 +56,7 @@ check-block-tests: build runtime
 	npx jest --verbose "tests-new/check-blocks.test.js"
 
 ide: web
-	cd ide; npm run hstart
+	cd ide; npm run start
 
 WEBWORKER_BUILD_DIR := build/worker
 WEBWORKER_SRC_DIR := src/webworker

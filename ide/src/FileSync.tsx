@@ -29,7 +29,7 @@ type PropsFromRedux = ConnectedProps<typeof connector>;
 type FileSyncProps = PropsFromRedux & DispatchProps & StateProps;
 
 type FileSyncState = {
-  interval: NodeJS.Timeout,
+  interval: number,
 };
 
 const SYNC_RATE = 3000;

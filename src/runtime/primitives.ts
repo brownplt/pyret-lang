@@ -37,7 +37,7 @@ export {
 // ********* Runtime Type Representations (Non-Primitives) *********
 
 export function PTuple<T extends any[]>(values: T): PTuple<T> {
-  values["$brand"] = $PTupleBrand;
+  (values as any)["$brand"] = $PTupleBrand;
 
   return <PTuple<T>>values;
 }
@@ -153,15 +153,15 @@ export function isPRef(val: any): boolean {
 }
 
 export function makeMethodBinder(inner: any): any {
-  return function binder(pyretSelf) {
+  return function binder(pyretSelf : any) {
 
     let myFunction = function() {
       const innerArgs = [pyretSelf].concat(Array.from(arguments));
       return inner.apply(null, innerArgs);
     };
 
-    myFunction["$brand"] = $PMethodBrand;
-    myFunction["$binder"] = binder;
+    (myFunction as any)["$brand"] = $PMethodBrand;
+    (myFunction as any)["$binder"] = binder;
 
     return myFunction;
   };
@@ -171,7 +171,7 @@ export function hasBrand(brand: any, val: object): boolean {
     return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === brand);
 }
 
-export function applyBrand(brand: any, val: object): any {
+export function applyBrand(brand: any, val: any): any {
     val["$brand"] = brand;
     return val;
 }

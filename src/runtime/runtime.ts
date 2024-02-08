@@ -23,7 +23,7 @@ const _PRIMITIVES = require("./primitives.js");
 
 // *********Spy Stuff*********
 
-var $spyMessageHandler = function(data) {
+var $spyMessageHandler = function(data : any) {
   if (data.message) {
     console.log(`Spying "${data.message}" (at ${data.loc})`);
   } else {
@@ -31,7 +31,7 @@ var $spyMessageHandler = function(data) {
   }
 };
 
-var $spyValueHandler = function(data) {
+var $spyValueHandler = function(data : any) {
   console.log(`    ${data.key}: ${data.value} (at ${data.loc})`);
 };
 
@@ -47,11 +47,11 @@ export interface SpyObject {
   exprs: SpyExpr[],
 }
 
-export function $setSpyMessageHandler(handler) {
+export function $setSpyMessageHandler(handler : any) {
   $spyMessageHandler = handler;
 }
 
-export function $setSpyValueHandler(handler) {
+export function $setSpyValueHandler(handler : any) {
   $spyValueHandler = handler;
 }
 
@@ -90,7 +90,7 @@ export function $setCheckBlockFilter(filter: (uri: string, name?: string) => boo
   $checkBlockFilter = filter;
 }
 
-export function $setCheckBlockExecutor(executor): void {
+export function $setCheckBlockExecutor(executor : any): void {
   $checkBlockExecutor = executor;
 }
 
@@ -102,8 +102,8 @@ function getCheckResults(uri : string): CheckResult[] {
   return _globalCheckResults[uri].slice();
 }
 
-let currentMainURI = false;
-function claimMainIfLoadedFirst(uri) {
+let currentMainURI : boolean | string = false;
+function claimMainIfLoadedFirst(uri : string) {
   if(currentMainURI === false) {
     currentMainURI = uri;
     // The runtime can initialize filter if it wants to, to something other than null
@@ -119,7 +119,7 @@ function claimMainIfLoadedFirst(uri) {
     }
   }
 }
-function clearChecks(uri) { _globalCheckResults[uri] = []; }
+function clearChecks(uri : string) { _globalCheckResults[uri] = []; }
 function checkResults(uri : string): CheckResult[] {
   let errorCount = 0;
   if($checkBlockFilter && !$checkBlockFilter(uri)) {
@@ -231,7 +231,7 @@ function eagerCheckBlockRunner(srcloc: string, name: string, checkBlock: () => v
   }
 }
 
-var _globalTraceValues = {};
+var _globalTraceValues : any = {};
 
 function getUri(loc : [string, number, number, number, number, number, number]) {
   return loc[0];
@@ -243,7 +243,7 @@ function getUriForCheckLoc(loc : string) {
 }
 
 // ********* Other Functions *********
-export function traceValue(loc, value) {
+export function traceValue(loc : any, value : any) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
   const uri = getUri(loc);
   if(!(uri in _globalTraceValues)) {
@@ -253,8 +253,8 @@ export function traceValue(loc, value) {
   return value;
 }
 
-function getTraces(uri) { return _globalTraceValues[uri]; }
-function clearTraces(uri) { _globalTraceValues[uri] = []; }
+function getTraces(uri : any) { return _globalTraceValues[uri]; }
+function clearTraces(uri : any) { _globalTraceValues[uri] = []; }
 
 // Allow '+' for string concat.
 // Otherwise, defer to the number library.
@@ -321,12 +321,12 @@ function customDivide(lhs: any, rhs: any, errbacks: NumericErrorCallbacks): any 
 }
 
 /* @stopify flat */
-export function pauseStack(callback) {
+export function pauseStack(callback : any) {
   // @ts-ignore
   return $STOPIFY.pauseK(/* @stopify flat */ (kontinue) => {
     return callback({
-      resume: /* @stopify flat */ (val) => kontinue({ type: "normal", value: val }),
-      error: /* @stopify flat */ (err) => kontinue({ type: "error", error: err })
+      resume: /* @stopify flat */ (val : any) => kontinue({ type: "normal", value: val }),
+      error: /* @stopify flat */ (err : any) => kontinue({ type: "error", error: err })
     })
   });
 }
@@ -349,7 +349,7 @@ export function run<A>(f : (() => A), onDone : ((a : {type: 'normal', value: A} 
   return $STOPIFY.runStopifiedCode(f, onDone);
 }
 
-const allModules = { };
+const allModules : any = { };
 
 function addModule(uri : string, vals : any) {
   allModules[uri] = {values: vals};
@@ -358,13 +358,13 @@ function getModuleValue(uri : string, k : string) {
   return allModules[uri].values[k];
 }
 
-function installMethod(obj, name, method) {
+function installMethod(obj : any, name : any, method : any) {
   applyBrand($PMethodBrand, method);
   Object.defineProperty(obj, name, {enumerable: true, value: method, writable: false});
   return method;
 }
-function setupMethodGetters(obj) {
-  const extension = {};
+function setupMethodGetters(obj : any) {
+  const extension : any = {};
   for (let k in obj.$methods) {
     extension[k] = { enumerable: true, get: obj.$methods[k], configurable: true };
   }
@@ -386,11 +386,11 @@ function raiseExtract(exception: any): string {
   return exception.toString();
 }
 
-function toRepr(v) {
+function toRepr(v : any) {
   return renderValueSkeleton(toOutput(v), RenderToRepr);
 }
 
-function toString(v) {
+function toString(v : any) {
   return renderValueSkeleton(toOutput(v), RenderToString);
 }
 
@@ -421,7 +421,7 @@ type ReprVisitor<A> = {
 
 
 function renderValueSkeleton<A>(vs: ValueSkeleton, visitor: ReprVisitor<A>): A {
-  return visitor[vs.$name].apply(visitor, [vs]);
+  return (visitor[vs.$name] as any).apply(visitor, [vs]);
 }
 
 // NOTE(Ben): this really should go in string.arr.js, but that causes an import-loop
@@ -708,13 +708,13 @@ function toOutput(val : any) {
               finishVal(VS['vs-literal-str'](next.$name));
             }
             else {
-              const vals = names.map(n => next[n]);
+              const vals = names.map((n : any) => next[n]);
               pushDataTodo(next, vals, next);
             }
           }
           else if(_PRIMITIVES.isRawObject(next)) {
             const names = _PRIMITIVES.getRawObjectFields(next);
-            const vals = names.map(n => next[n]);
+            const vals = names.map((n : any) => next[n]);
             pushObjectTodo(next, vals, { fieldNames: names });
           }
           else {
@@ -803,7 +803,7 @@ var checkNumNegative = makeCheckType(_NUMBER.isNegative, "NumNegative");
 var checkNumNonPositive = makeCheckType(_NUMBER.isNonPositive, "NumNonPositive");
 var checkNumNonNegative = makeCheckType(_NUMBER.isNonNegative, "NumNonNegative");
 
-function customThrow(exn) {
+function customThrow(exn : any) {
   exn.toString = function() { return JSON.stringify(this); }
   throw new Error(exn);
 }
@@ -871,7 +871,7 @@ module.exports["$clearChecks"] = clearChecks;
 
 module.exports["$makeRational"] = _NUMBER["makeRational"];
 module.exports["$makeRoughnum"] = _NUMBER['makeRoughnum'];
-module.exports["$numToRoughnum"] = (n, errbacks) => _NUMBER['makeRoughnum'](_NUMBER['toFixnum'](n), errbacks);
+module.exports["$numToRoughnum"] = (n : any, errbacks : any) => _NUMBER['makeRoughnum'](_NUMBER['toFixnum'](n), errbacks);
 module.exports["$errCallbacks"] = _EQUALITY.NumberErrbacks;
 
 module.exports["_not"] = _not;
@@ -897,28 +897,28 @@ module.exports["$nothing"] = _PRIMITIVES["$nothing"];
 
 module.exports["$customThrow"] = customThrow;
 
-module.exports["$messageThrow"] = function(srcloc, message) {
+module.exports["$messageThrow"] = function(srcloc : any, message : any) {
   customThrow({
     "message": message,
     "$srcloc": srcloc
   });
 }
 
-module.exports["throwUnfinishedTemplate"] = function(srcloc) {
+module.exports["throwUnfinishedTemplate"] = function(srcloc : any) {
   customThrow({
     "$template-not-finished": srcloc
   });
 };
 
 // TODO(alex): Fill out exceptions with useful info
-module.exports["throwNoCasesMatched"] = function(srcloc) {
+module.exports["throwNoCasesMatched"] = function(srcloc : any) {
   customThrow({
     "kind": "throwNoCasesMatched",
     "$srcloc": srcloc
   });
 };
 
-module.exports["throwNoBranchesMatched"] = function(srcloc) {
+module.exports["throwNoBranchesMatched"] = function(srcloc : any) {
   customThrow({
     "kind": "throwNoBranchesMatched",
     "$srcloc": srcloc
@@ -926,7 +926,7 @@ module.exports["throwNoBranchesMatched"] = function(srcloc) {
 };
 
 // TODO(alex): is exn necessary?
-module.exports["throwNonBooleanOp"] = function(srcloc) {
+module.exports["throwNonBooleanOp"] = function(srcloc : any) {
   customThrow({
     "kind": "throwNonBooleanOp",
     "$srcloc": srcloc
@@ -934,7 +934,7 @@ module.exports["throwNonBooleanOp"] = function(srcloc) {
 };
 
 // TODO(alex): is exn necessary?
-module.exports["throwNonBooleanCondition"] = function(srcloc) {
+module.exports["throwNonBooleanCondition"] = function(srcloc : any) {
   customThrow({
     "kind": "throwNonBooleanCondition",
     "$srcloc": srcloc

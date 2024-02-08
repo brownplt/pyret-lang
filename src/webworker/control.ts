@@ -148,7 +148,7 @@ export const run = (
       } catch (x) {
         console.error(x);
         callback({
-          result: { error: String(x.value) },
+          result: { error: String((x as any).value) },
         });
       }
     });

@@ -12,7 +12,7 @@ const sharedBase_EqualityResult = { ['$methods']: {} };
 const variantBase_Equal = PRIMITIVES.createVariant(sharedBase_EqualityResult, { ['$methods']: {} }, {
     ['$data']: sharedBase_EqualityResult,
     ['$name']: 'Equal',
-    ['$fieldNames']: null
+    ['$fieldNames']: null as any
 });
 const variantBase_NotEqual = PRIMITIVES.createVariant(sharedBase_EqualityResult, { ['$methods']: {} }, {
     ['$data']: sharedBase_EqualityResult,
@@ -34,17 +34,17 @@ const variantBase_Unknown = PRIMITIVES.createVariant(sharedBase_EqualityResult, 
 });
 
 /* @stopify flat */
-export function isEqualityResult(val) {
+export function isEqualityResult(val : any) {
   return typeof val === 'object' && val !== null && val['$data'] === sharedBase_EqualityResult;
 }
 /* @stopify flat */
-export function isEqual(val) {
+export function isEqual(val : any) {
   return typeof val === 'object' && val !== null && val['$variant'] === Equal.$variant;
 }
 const Equal : EQ.Equal = variantBase_Equal;
 export { Equal };
 /* @stopify flat */
-export function isNotEqual(val) {
+export function isNotEqual(val : any) {
   return typeof val === 'object' && val !== null && val['$variant'] === variantBase_NotEqual.$variant;
 }
 /* @stopify flat */
@@ -56,7 +56,7 @@ export function NotEqual(reason: string, value1: any, value2: any): EQ.NotEqual 
   });
 }
 /* @stopify flat */
-export function isUnknown(val) {
+export function isUnknown(val : any) {
   return typeof val === 'object' && val !== null && val['$variant'] === variantBase_Unknown.$variant;
 }
 /* @stopify flat */
@@ -90,6 +90,9 @@ function equalityResultToBool(ans: EQ.EqualityResult): boolean {
       value1: unknownVariant.value1,
       value2: unknownVariant.value2,
     };
+  }
+  else {
+    throw "Matched none of Equal, NotEqual, or Unknown in equalityResultToBool";
   }
 }
 
@@ -245,55 +248,55 @@ export {
   withinNow3,
 }
 
-export function withinRel(tolerance) {
+export function withinRel(tolerance : any) {
   const inner = withinRel3(tolerance);
-  return function(l, r): boolean {
+  return function(l : any, r : any): boolean {
     return to_boolean(inner(l, r));
   };
 }
 
-export function withinAbs(tolerance) {
+export function withinAbs(tolerance : any) {
   const inner = withinAbs3(tolerance);
-  return function(l, r): boolean {
+  return function(l : any, r : any): boolean {
     return to_boolean(inner(l, r));
   };
 }
 
-export function withinRelNow(tolerance) {
+export function withinRelNow(tolerance : any) {
   const inner = withinRelNow3(tolerance);
-  return function(l, r): boolean {
+  return function(l : any, r : any): boolean {
     return to_boolean(inner(l, r));
   };
 }
 
-export function withinAbsNow(tolerance) {
+export function withinAbsNow(tolerance : any) {
   const inner = withinAbsNow3(tolerance);
-  return function(l, r): boolean {
+  return function(l : any, r : any): boolean {
     return to_boolean(inner(l, r));
   };
 }
 
 /// within-*3
-export function withinRel3(tolerance) {
-  return function(l, r) {
+export function withinRel3(tolerance : any) {
+  return function(l : any, r : any) {
     return equalCore3(l, r, EQUAL_ALWAYS, tolerance, TOL_IS_REL, FROM_WITHIN);
   };
 }
 
-export function withinAbs3(tolerance) {
-  return function(l, r) {
+export function withinAbs3(tolerance : any) {
+  return function(l : any, r : any) {
     return equalCore3(l, r, EQUAL_ALWAYS, tolerance, TOL_IS_ABS, FROM_WITHIN);
   };
 }
 
-export function withinRelNow3(tolerance) {
-  return function(l, r) {
+export function withinRelNow3(tolerance : any) {
+  return function(l : any, r : any) {
     return equalCore3(l, r, EQUAL_NOW, tolerance, TOL_IS_REL, FROM_WITHIN);
   };
 }
 
-export function withinAbsNow3(tolerance) {
-  return function(l, r) {
+export function withinAbsNow3(tolerance : any) {
+  return function(l : any, r : any) {
     return equalCore3(l, r, EQUAL_NOW, tolerance, TOL_IS_ABS, FROM_WITHIN);
   };
 }
@@ -382,7 +385,7 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
   }
 
   function worklistPop(): [any, any] {
-    return worklist.pop();
+    return worklist.pop()!;
   }
 
   function equalRec(l: any, r: any): EQ.EqualityResult {
