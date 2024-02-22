@@ -17,6 +17,7 @@ require('pyret-codemirror-mode/mode/pyret');
 
 type Props = {
   onEdit: (s: string) => void,
+  onInit: (e : CodeMirror.Editor) => void,
   highlights: number[][],
   text: string
   // TODO(alex): Do we need to do the connector business here too
@@ -93,6 +94,7 @@ export default class SingleCodeMirrorDefinitions extends React.Component<Props, 
         }}
         onChange={this.onChange}
         autoCursor={false}
+        editorDidMount={this.props.onInit}
       />
     );
   }

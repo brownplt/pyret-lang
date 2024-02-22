@@ -147,6 +147,7 @@ class Editor extends React.Component<EditorProps, any> {
           <SingleCodeMirrorDefinitions
             text={currentFileContents || ''}
             onEdit={(contents: string) => updateContents(contents)}
+            onInit={(editor: CodeMirror.Editor) => this.props.update({ definitionsEditor: editor })}
             highlights={definitionsHighlights}
             run={run}
           />
@@ -176,52 +177,9 @@ class Editor extends React.Component<EditorProps, any> {
       return <div className="loading">Loading from Drive...</div>;
     }
 
-    // TODO(alex): interaction errors DOM node not extending the entire plane
-    //   Caused by the tab panel implementation which shrinks to the size of the content
-    const rhsMessages = (
-      <Tabs
-        selectedIndex={messageTabIndex}
-        onSelect={(tabIndex) => setMessageTabIndex(tabIndex)}
-      >
-        <TabList>
-          <Tab>Message</Tab>
-          <Tab>Errors</Tab>
-        </TabList>
-
-        <TabPanel>
-          <RTMessageDisplay />
-        </TabPanel>
-
-        <TabPanel className="interaction-error">
-          <InteractionError fontSize={fontSize}>
-            {interactionErrors.map((f) => {
-              let failure;
-              try {
-                failure = JSON.parse(f);
-              } catch (e) {
-                return f;
-              }
-              return <FailureComponent failure={failure} />;
-            })}
-          </InteractionError>
-        </TabPanel>
-      </Tabs>
-    );
-
-    const hasMessages = (interactionErrors.length > 0) || (rtMessages.messages.length > 0);
-    const interactions = <Chatitor />;
-
     const rightHandSide = (
       <div className="interactions-area-container">
-        {hasMessages ? (
-          <SplitterLayout
-            vertical
-            percentage
-          >
-            {interactions}
-            {rhsMessages}
-          </SplitterLayout>
-        ) : interactions}
+        <Chatitor />
       </div>
     );
 

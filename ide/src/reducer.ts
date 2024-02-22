@@ -997,6 +997,7 @@ async function runTextProgram(
   fs.writeFileSync(saveFile, programText);
   const sessionId = TEXT_SESSION;
   const { dir, base } = bfsSetup.path.parse(saveFile);
+
   await serverAPI.filterSession(sessionId, 'builtin://');
   const result = await serverAPI.compileAndRun({
     baseDir: dir,
@@ -1021,7 +1022,6 @@ async function runProgramAsync(state: State) : Promise<void> {
     typeCheck, runKind, currentFile, currentFileContents,
   } = state;
   const result = await runTextProgram(typeCheck, runKind, currentFile, currentFileContents ?? '');
-  const chunksResult = await runSegmentsAsyncWithSession(state, TEXT_SESSION, true);
   if (result.type === 'compile-failure') {
     update((s: State) => handleCompileProgramFailure(s, result.errors));
   } else if (result.type === 'run-failure') {
@@ -1029,6 +1029,7 @@ async function runProgramAsync(state: State) : Promise<void> {
   } else {
     update((s: State) => handleRunProgramSuccess(s, result.result));
   }
+  const chunksResult = await runSegmentsAsyncWithSession(state, TEXT_SESSION, true);
 }
 
 function setupRunProgramAsync(state: State) : State {

@@ -1,14 +1,15 @@
 /* Exports both the type of state in the Redux store as well as its default value. */
 
-import { Chunk } from './chunk';
+import { Chunk, UninitializedEditor } from './chunk';
 import { Effect } from './effect';
 import { MenuItems } from './menu-types';
 import { RHSObjects } from './rhsObject';
 import { RTMessages } from './rtMessages';
 import * as control from './control';
 import { program } from './path';
+import { CMEditor } from './utils';
 
-const DEVELOPER_MODE = false;
+const DEVELOPER_MODE = true;
 
 export type Outdates =
   // Applying *or undoing* this change technically invalidates this chunk. If a
@@ -73,7 +74,7 @@ export type State = {
 
   /* If we are loading a project */
   projectState: ProjectState,
-
+  
   /* The contents of the current file, or `undefined` if the current file has
      not yet been loaded. */
   currentFileContents: string | undefined,
@@ -179,7 +180,10 @@ export type State = {
 
   /* Whether to show advanced options like Stopify, parent directory in
    * filesystem, modes */
-  developerMode: boolean
+  developerMode: boolean,
+
+  /* The main definitions editor */
+  definitionsEditor: UninitializedEditor | CMEditor
 };
 
 export enum EditorResponseLoop {
@@ -258,4 +262,7 @@ export const initialState: State = {
   firstOutdatedChunk: 0,
   editorLayout: EditorLayout.Normal,
   developerMode: DEVELOPER_MODE,
+  definitionsEditor: {
+    getValue() { return ""; }
+  },
 };
