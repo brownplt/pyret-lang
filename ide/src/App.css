@@ -201,6 +201,11 @@ button::-moz-focus-inner {
     height: 100%;
 }
 
+.edit-area-container .CodeMirror {
+    height: 100%;
+    border: none;
+}
+
 .splitter-layout {
     position: relative !important;
 }
@@ -237,7 +242,6 @@ button::-moz-focus-inner {
 }
 
 .interactions-area-container {
-    height: 100%;
     display: flex;
     flex-flow: column;
 }

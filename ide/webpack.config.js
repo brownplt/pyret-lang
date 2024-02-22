@@ -21,7 +21,7 @@ const config = {
     // They cause no issues and are deep in a babel dependency, so we ignore them
     ignoreWarnings: [/the request of a dependency is an expression/],
     output: {
-        path: path.resolve(__dirname, 'dist'),
+        path: path.resolve(__dirname, 'build'),
         library: "embedableParley",
         filename: 'static/js/bundle[name].js',
         // There are also additional JS chunk files if you use code splitting.

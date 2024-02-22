@@ -264,7 +264,13 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
   const {
     effectQueue,
     compiling,
+    rhs
   } = state;
+
+  let newChunks = state.chunks;
+  if(state.editorMode == EditorMode.Text) {
+    newChunks = state.chunks.map(c => ({ ...c, outdated: true }));
+  }
 
   return {
     ...state,
@@ -272,6 +278,9 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
     effectQueue: [...effectQueue, { effectKey: 'startEditTimer' }],
     isFileSaved: false,
     compiling: compiling ? 'out-of-date' : false,
+    chunks: newChunks,
+    firstOutdatedChunk: 0,
+    rhs: { ...rhs, outdated: true }
   };
 }
 
@@ -294,20 +303,21 @@ function handleSetCurrentFile(state: State, file: string): State {
 
 function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
   const { editorMode, isFileSaved } = state;
-  if (editorMode !== EditorMode.Chatitor && editorMode !== EditorMode.Examplaritor) {
-    throw new Error('handleSetChunks: not in chunk mode');
-  }
-
   const {
     chunks,
     currentFileContents,
     firstOutdatedChunk,
   } = state;
-
+  
+  let chunksString;
+  let definitionsString;
+  let newOutdate;
+  let newChunks : Chunk[] = chunks;
+  
   if (isMultipleChunkUpdate(chunksUpdate)) {
-    let contents = currentFileContents;
+    definitionsString = currentFileContents;
 
-    let newOutdate = firstOutdatedChunk;
+    newOutdate = firstOutdatedChunk;
     if (chunksUpdate.modifiesText) {
       const firstDiffering = chunksUpdate.chunks
         .findIndex((c, i) => chunks[i]?.editor.getValue() !== c.editor.getValue());
@@ -317,41 +327,56 @@ function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
     }
 
     if (chunksUpdate.modifiesText) {
-      contents = chunksUpdate.chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
+      chunksString = chunksUpdate.chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
     }
-
-    return {
-      ...state,
-      chunks: chunksUpdate.chunks,
-      currentFileContents: contents,
-      isFileSaved: isFileSaved && chunksUpdate.modifiesText === false,
-      firstOutdatedChunk: newOutdate,
-    };
+    newChunks = chunksUpdate.chunks;
   }
-
-  if (isSingleChunkUpdate(chunksUpdate)) {
+  else if (isSingleChunkUpdate(chunksUpdate)) {
     const chunkIdOrNeg1 = chunks.findIndex((c) => c.id === chunksUpdate.chunk.id);
     const chunkId = chunkIdOrNeg1 === -1 ? firstOutdatedChunk : chunkIdOrNeg1;
-    const newChunks = chunks.map((chunk) => (
+    newChunks = chunks.map((chunk) => (
       chunk.id === chunksUpdate.chunk.id ? chunksUpdate.chunk : chunk
     ));
 
-    let contents = currentFileContents;
+    definitionsString = currentFileContents;
 
     if (chunksUpdate.modifiesText) {
-      contents = newChunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
+      chunksString = newChunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
     }
-
-    return {
-      ...state,
-      chunks: newChunks,
-      currentFileContents: contents,
-      isFileSaved: isFileSaved && chunksUpdate.modifiesText === false,
-      firstOutdatedChunk: Math.min(firstOutdatedChunk, chunkId),
-    };
+    newOutdate = Math.min(firstOutdatedChunk, chunkId);
+  }
+  else {
+    throw new NeverError(chunksUpdate);
   }
 
-  throw new NeverError(chunksUpdate);
+  switch(editorMode) {
+    case EditorMode.Text: {
+      return {
+        ...state,
+        chunks: newChunks,
+        currentFileContents: definitionsString,
+        isFileSaved: isFileSaved && chunksUpdate.modifiesText === false,
+        firstOutdatedChunk: newOutdate,
+      };
+    }
+    case EditorMode.Embeditor:
+    case EditorMode.Chatitor:
+    case EditorMode.Examplaritor: {
+      return {
+        ...state,
+        chunks: newChunks,
+        currentFileContents: chunksString,
+        isFileSaved: isFileSaved && chunksUpdate.modifiesText === false,
+        firstOutdatedChunk: newOutdate
+      };
+    }
+    default: {
+      throw new NeverError(editorMode);  
+    }
+  }
+
+  
+
 }
 
 function resolveOutdates(firstOutdatedChunk: number, outdates: Outdates): Outdates {
@@ -996,6 +1021,7 @@ async function runProgramAsync(state: State) : Promise<void> {
     typeCheck, runKind, currentFile, currentFileContents,
   } = state;
   const result = await runTextProgram(typeCheck, runKind, currentFile, currentFileContents ?? '');
+  const chunksResult = await runSegmentsAsyncWithSession(state, TEXT_SESSION, true);
   if (result.type === 'compile-failure') {
     update((s: State) => handleCompileProgramFailure(s, result.errors));
   } else if (result.type === 'run-failure') {
@@ -1010,7 +1036,7 @@ function setupRunProgramAsync(state: State) : State {
 }
 
 let stopFlag = false;
-async function runSegmentsAsync(state : State) : Promise<any> {
+async function runSegmentsAsyncWithSession(state : State, sessionId : string, alwaysKeepCache : boolean) : Promise<any> {
   stopFlag = false;
   const { typeCheck, chunks, firstOutdatedChunk } = state;
   const onlyLastSegmentChanged = firstOutdatedChunk === chunks.length - 1
@@ -1025,7 +1051,7 @@ async function runSegmentsAsync(state : State) : Promise<any> {
   // If we are re-running the whole program, make sure to also re-run anything
   // that's imported, etc. This reset function removes *everything* but the
   // builtins from the cache, which is also a good eager GC thing to do.
-  if (!onlyLastSegmentChanged) {
+  if (!onlyLastSegmentChanged && !alwaysKeepCache) {
     resetAsyncCacheToBuiltins();
   }
   console.log('RUNNING THESE CHUNKS:');
@@ -1040,13 +1066,12 @@ async function runSegmentsAsync(state : State) : Promise<any> {
     }
   });
   console.log('Chunks were saved in:', JSON.stringify(filenames));
-  fs.writeFileSync(
-    state.currentFile,
-    chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
-  );
+  // fs.writeFileSync(
+  //   state.currentFile,
+  //   chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
+  // );
 
-  const sessionId = CHATITOR_SESSION;
-  if (!onlyLastSegmentChanged) {
+  if (!onlyLastSegmentChanged && !alwaysKeepCache) {
     await serverAPI.filterSession(sessionId, 'builtin://');
   }
 
@@ -1100,6 +1125,12 @@ async function runSegmentsAsync(state : State) : Promise<any> {
     fs.unlinkSync(f);
     console.log(f);
   });
+
+}
+
+async function runSegmentsAsync(state : State) : Promise<any> {
+  const session = state.editorMode === EditorMode.Text ? TEXT_SESSION : CHATITOR_SESSION;
+  return runSegmentsAsyncWithSession(state, session, state.editorMode === EditorMode.Text);
 }
 
 function setupRunSegmentsAsync(s : State) : State {

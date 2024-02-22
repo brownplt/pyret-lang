@@ -18,7 +18,6 @@ import SplitterLayout from 'react-splitter-layout';
 import { Chunk } from './chunk';
 import * as State from './state';
 import { EditorMode, MessageTabIndex } from './state';
-import RHS from './RHS';
 import RTMessageDisplay from './RTMessageDisplay';
 import { RTMessages } from './rtMessages';
 import SingleCodeMirrorDefinitions from './SingleCodeMirrorDefinitions';
@@ -176,9 +175,6 @@ class Editor extends React.Component<EditorProps, any> {
     if (projectState.type === 'gdrive-pending') {
       return <div className="loading">Loading from Drive...</div>;
     }
-    const interactionValues = (
-      <RHS />
-    );
 
     // TODO(alex): interaction errors DOM node not extending the entire plane
     //   Caused by the tab panel implementation which shrinks to the size of the content
@@ -213,6 +209,7 @@ class Editor extends React.Component<EditorProps, any> {
     );
 
     const hasMessages = (interactionErrors.length > 0) || (rtMessages.messages.length > 0);
+    const interactions = <Chatitor />;
 
     const rightHandSide = (
       <div className="interactions-area-container">
@@ -221,10 +218,10 @@ class Editor extends React.Component<EditorProps, any> {
             vertical
             percentage
           >
-            {interactionValues}
+            {interactions}
             {rhsMessages}
           </SplitterLayout>
-        ) : interactionValues}
+        ) : interactions}
       </div>
     );
 

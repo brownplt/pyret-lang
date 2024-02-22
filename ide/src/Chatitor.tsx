@@ -13,16 +13,18 @@ import {
   State,
 } from './state';
 import {
-  Chunk, isInitializedEditor,
+  Chunk, ChunkResults, isInitializedEditor,
 } from './chunk';
 import Chat from './Chat';
 import { CMEditor, enterShouldSend, isWrapFirst } from './utils';
+import ChatResult from './ChatResult';
 
 type StateProps = {
   chunks: Chunk[],
   enterNewline: boolean,
   editorLayout: EditorLayout
   running: RunningState,
+  topChunk: Chunk | undefined
 };
 
 type DispatchProps = {
@@ -38,13 +40,31 @@ function mapStateToProps(state: State): StateProps {
     enterNewline,
     editorLayout,
     running,
+    rhs
   } = state;
+
+  let topChunk : Chunk | undefined = undefined;
+  if(rhs.objects.length !== 0) {
+    topChunk = {
+      id: "topChunk",
+      results: {
+        status: 'succeeded',
+        objects: rhs.objects
+      },
+      editor: {
+        getValue() { return ""; }
+      },
+      outdated: rhs.outdated,
+      referencedFrom: []
+    }
+  }
 
   return {
     chunks,
     enterNewline,
     editorLayout,
     running,
+    topChunk
   };
 }
 
@@ -81,6 +101,7 @@ function Chatitor({
   redo,
   insertChunk,
   running,
+  topChunk,
 }: DefChunksProps) {
   const [mountedEditor, setEditor] = (
     React.useState<(CMEditor) | null>(null)
@@ -240,11 +261,24 @@ function Chatitor({
       </span>
     </div>
   );
+
+  let topChunkPart = <></>;
+  if(topChunk) {
+    const pendingRerunClass = topChunk.outdated ? 'partially-outdated' : '';
+    topChunkPart = <div className={`chat-and-result ${pendingRerunClass}`}>
+      <ChatResult
+        editor={topChunk.editor}
+        results={topChunk.results}
+        id={"topChunk"}
+        technicallyOutdated={topChunk.outdated}/>
+      </div>;
+  }
   return (
     <div className={`${layout} chatitor-container`}>
       <div className="progress-bar" style={{ width: runWidth, height }} />
       <div className="chat-scroll">
         <div className="chats">
+          {topChunkPart}
           {allChunks}
           <div style={{ clear: 'both' }} />
         </div>
