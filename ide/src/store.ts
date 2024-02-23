@@ -35,7 +35,6 @@ function handleLoadFile(
   const contents = control.openOrCreateFile(currentFile);
 
   switch (editorMode) {
-    case EditorMode.Embeditor:
     case EditorMode.Text:
       dispatch({ type: 'update', key: 'currentFileContents', value: contents });
       break;
@@ -90,7 +89,6 @@ function handleSaveFile(
   };
 
   switch (mode) {
-    case EditorMode.Embeditor:
     case EditorMode.Text:
       control.fs.writeFile(path, contents, saveCallback);
       break;

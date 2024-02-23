@@ -213,7 +213,6 @@ function handleEnqueueEffect(state: State, action: EnqueueEffect): State {
 
 function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
   switch (newEditorMode) {
-    case EditorMode.Embeditor:
     case EditorMode.Text: {
       // Ensure that currentFileContents is up-to-date with chunks
       const { chunks } = state;
@@ -253,6 +252,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         ...state,
         editorMode: newEditorMode,
         chunks,
+        topChunk: undefined,
       };
     }
     default:
@@ -264,7 +264,7 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
   const {
     effectQueue,
     compiling,
-    rhs
+    topChunk
   } = state;
 
   let newChunks = state.chunks;
@@ -280,7 +280,7 @@ function handleSetCurrentFileContents(state: State, contents: string): State {
     compiling: compiling ? 'out-of-date' : false,
     chunks: newChunks,
     firstOutdatedChunk: 0,
-    rhs: { ...rhs, outdated: true }
+    topChunk: topChunk ? { ...topChunk, outdated: true } : undefined
   };
 }
 
@@ -359,7 +359,6 @@ function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
         firstOutdatedChunk: newOutdate,
       };
     }
-    case EditorMode.Embeditor:
     case EditorMode.Chatitor:
     case EditorMode.Examplaritor: {
       return {
@@ -797,9 +796,18 @@ function handleRunSessionFailure(state: State, id: string, error: string, errorV
 function handleRunExamplarFailure(state: State, error: string) : State {
   return {
     ...state,
-    interactionErrors: [error],
     definitionsHighlights: [],
     messageTabIndex: MessageTabIndex.ErrorMessages,
+    topChunk: {
+      editor: state.definitionsEditor,
+      results: {
+        status: 'failed',
+        failures: [JSON.parse(error)],
+      },
+      id: "topChunk",
+      outdated: false,
+      referencedFrom: []
+    }
   };
 }
 
@@ -870,18 +878,36 @@ function handleCompileProgramFailure(state: State, errors: string[]) : State {
   return {
     ...state,
     // compiling: false,
-    interactionErrors: errors,
     definitionsHighlights: places.map(asHL),
     messageTabIndex: MessageTabIndex.ErrorMessages,
+    topChunk: {
+      id: "topChunk",
+      editor: state.definitionsEditor,
+      results: {
+        status: 'failed',
+        failures,
+      },
+      outdated: false,
+      referencedFrom: []
+    }
   };
 }
 
 function handleCompileExamplarFailure(state: State, errors: string[]) : State {
   return {
     ...state,
-    interactionErrors: errors,
     definitionsHighlights: [],
     messageTabIndex: MessageTabIndex.ErrorMessages,
+    topChunk: {
+      id: "topChunk",
+      editor: state.definitionsEditor,
+      results: {
+        status: 'failed',
+        failures: errors.map(e => JSON.parse(e)),
+      },
+      outdated: false,
+      referencedFrom: []
+    }
   };
 }
 
@@ -890,9 +916,18 @@ function handleRunProgramFailure(state: State, error: string) : State {
   return {
     ...state,
     // compiling: false,
-    interactionErrors: [error],
     definitionsHighlights: [],
     messageTabIndex: MessageTabIndex.ErrorMessages,
+    topChunk: {
+      editor: state.definitionsEditor,
+      results: {
+        status: 'failed',
+        failures: [JSON.parse(error)],
+      },
+      id: "topChunk",
+      outdated: false,
+      referencedFrom: []
+    }
   };
 }
 
@@ -900,11 +935,16 @@ function handleRunProgramSuccess(state : State, result : any) : State {
   const rhs = makeRHSObjects(result, `file://${state.currentFile}`);
   return {
     ...state,
-    interactionErrors: [],
     definitionsHighlights: [],
-    rhs: {
-      objects: rhs,
+    topChunk: {
+      editor: state.definitionsEditor,
+      results: {
+        status: 'succeeded',
+        objects: rhs
+      },
       outdated: false,
+      id: "topChunk",
+      referencedFrom: []
     },
     messageTabIndex: MessageTabIndex.RuntimeMessages,
   };
@@ -978,12 +1018,7 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
   return {
     ...state,
     running: { type: 'idle' },
-    interactionErrors: [],
     definitionsHighlights: [],
-    rhs: {
-      objects: [<RHSObject>modifiedResult],
-      outdated: false,
-    },
     messageTabIndex: MessageTabIndex.RuntimeMessages,
   };
 }

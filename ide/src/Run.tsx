@@ -94,7 +94,6 @@ function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
         case EditorMode.Chatitor:
           dispatch({ type: 'run', key: 'runSegments' });
           break;
-        case EditorMode.Embeditor:
         case EditorMode.Text:
           dispatch({ type: 'run', key: 'runProgram' });
           break;

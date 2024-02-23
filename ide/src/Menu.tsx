@@ -84,7 +84,7 @@ function Menu({
       editorLayout === EditorLayout.Compact ? EditorLayout.Normal : EditorLayout.Compact
     );
 
-    const modes = [EditorMode.Chatitor, EditorMode.Embeditor, EditorMode.Text, EditorMode.Examplaritor];
+    const modes = [EditorMode.Chatitor, EditorMode.Text, EditorMode.Examplaritor];
     const modesElement = (
       <div
         style={{

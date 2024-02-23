@@ -40,44 +40,8 @@ function mapStateToProps(state: State): StateProps {
     enterNewline,
     editorLayout,
     running,
-    rhs,
-    interactionErrors,
-    rtMessages,
-    definitionsEditor,
+    topChunk
   } = state;
-
-  let topChunk : Chunk | undefined = undefined;
-  let chunkResults : ChunkResults;
-  const hasMessages = (interactionErrors.length > 0) || (rtMessages.messages.length > 0);
-
-  if(hasMessages) {
-    chunkResults = {
-      status: 'failed',
-      failures: interactionErrors.map(e => JSON.parse(e)),
-    }
-  }
-  else if(rhs.objects.length !== 0) {
-    chunkResults = {
-      status: 'succeeded',
-      objects: rhs.objects
-    };
-  }
-  else {
-    chunkResults = {
-      status: 'succeeded',
-      objects: []
-    }
-  }
-  if(hasMessages || rhs.objects.length !== 0) {
-    topChunk = {
-      id: "topChunk",
-      results: chunkResults,
-      editor: definitionsEditor,
-      outdated: rhs.outdated,
-      referencedFrom: []
-    }
-  }
-
 
   return {
     chunks,

@@ -8,33 +8,23 @@
 import React from 'react';
 import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
-import {
-  Tab,
-  Tabs,
-  TabList,
-  TabPanel,
-} from 'react-tabs';
 import SplitterLayout from 'react-splitter-layout';
 import { Chunk } from './chunk';
 import * as State from './state';
 import { EditorMode, MessageTabIndex } from './state';
-import RTMessageDisplay from './RTMessageDisplay';
 import { RTMessages } from './rtMessages';
 import SingleCodeMirrorDefinitions from './SingleCodeMirrorDefinitions';
 import Menu from './Menu';
 import MenuBar from './MenuBar';
 import Footer from './Footer';
 import Header from './Header';
-import InteractionError from './InteractionError';
 import Run from './Run';
 import * as action from './action';
 import 'react-tabs/style/react-tabs.css';
 import 'react-splitter-layout/lib/index.css';
-import Embeditor from './embeditor/Embeditor';
 import { NeverError } from './utils';
 import Chatitor from './Chatitor';
 import Examplaritor from './Examplaritor';
-import FailureComponent from './FailureComponent';
 import FileSync from './FileSync';
 
 type StateProps = {
@@ -44,7 +34,6 @@ type StateProps = {
   definitionsHighlights: number[][],
   fontSize: number,
   headerMessage: string,
-  interactionErrors: any[],
   rtMessages: RTMessages,
   editorMode: EditorMode,
   menuTabVisible: false | number,
@@ -62,7 +51,6 @@ function mapStateToProps(state: State.State): StateProps {
     definitionsHighlights: state.definitionsHighlights,
     fontSize: state.fontSize,
     headerMessage: state.headerMessage,
-    interactionErrors: state.interactionErrors,
     editorMode: state.editorMode,
     menuTabVisible: state.menuTabVisible,
     chunks: state.chunks,
@@ -138,10 +126,6 @@ class Editor extends React.Component<EditorProps, any> {
         return (
           <Chatitor />
         );
-      case EditorMode.Embeditor:
-        return (
-          <Embeditor />
-        );
       case EditorMode.Text:
         return (
           <SingleCodeMirrorDefinitions
@@ -165,10 +149,6 @@ class Editor extends React.Component<EditorProps, any> {
     const {
       fontSize,
       headerMessage,
-      interactionErrors,
-      rtMessages,
-      messageTabIndex,
-      setMessageTabIndex,
       editorMode,
       projectState,
     } = this.props;

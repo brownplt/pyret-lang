@@ -82,15 +82,8 @@ export type State = {
   /* `true` if the compiler should be run with type checking, `false` otherwise. */
   typeCheck: boolean,
 
-  /* The parsed module results of a Pyret program. Not read by Chatitor, which
-   * prefers chunkToRHS */
-  rhs: RHSObjects,
-
   /* Parsed messages from an executed/executing Pyret program */
   rtMessages: RTMessages,
-
-  /* In text mode: the errors (if any) */
-  interactionErrors: string[],
 
   /* The type of run (whether we should run with Stopify [async mode] or not [sync mode]) */
   runKind: control.backend.RunKind,
@@ -118,6 +111,10 @@ export type State = {
 
   /* Text mode only. Tracks error highlight source location spans (if any). */
   definitionsHighlights: number[][],
+
+  /* A chunk, intended to have results only, that appears above all other chunks.
+     Usually it has an `editor` that refers to the definitions editor. */
+  topChunk: Chunk | undefined,
 
   /* The list of chunks. */
   chunks: Chunk[],
@@ -199,7 +196,6 @@ export enum MessageTabIndex {
 
 export enum EditorMode {
   Text = 'Text',
-  Embeditor = 'Embeditor',
   Chatitor = 'Chatitor',
   Examplaritor = 'Examplaritor',
 }
@@ -216,15 +212,10 @@ export const initialState: State = {
   currentFileContents: undefined,
   projectState: { type: 'scratch' },
   typeCheck: true,
-  rhs: {
-    objects: [],
-    outdated: false,
-  },
   rtMessages: {
     messages: [],
     outdated: false,
   },
-  interactionErrors: [],
   runKind: control.backend.RunKind.Async,
   editTimer: false,
   dropdownVisible: false,
@@ -240,6 +231,7 @@ export const initialState: State = {
   readyCallbacks: [],
   footerMessage: 'Setting up (run may be slow)',
   headerMessage: '',
+  topChunk: undefined,
   chunks: [],
   past: [],
   future: [],
