@@ -42,7 +42,6 @@ import {
 
 import {
   makeRHSObjects,
-  RHSObject,
   Location,
 } from './rhsObject';
 
@@ -711,10 +710,6 @@ function handleUpdate(
       return handleRTMessage(state, <RawRTMessage>action.value);
     case 'messageTabIndex':
       return handleMessageIndexUpdate(state, action.value);
-    case 'editorResponseLoop':
-      return { ...state, editorResponseLoop: action.value };
-    case 'editorLoopDropdownVisible':
-      return { ...state, editorLoopDropdownVisible: action.value };
     case 'addReadyCallback':
       return handleAddReadyCallback(state, action.value);
     case 'updater':

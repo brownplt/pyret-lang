@@ -5,7 +5,6 @@ import { Chunk } from './chunk';
 import {
   EditorMode,
   MessageTabIndex,
-  EditorResponseLoop,
   State,
 } from './state';
 import { Effect, EffectKey } from './effect';
@@ -71,9 +70,6 @@ export type Update =
   | { key: 'rt-message', value: RawRTMessage }
   // Editor.tsx
   | { key: 'messageTabIndex', value: MessageTabIndex }
-  // Run.tsx, almost certainly not read though
-  | { key: 'editorResponseLoop', value: EditorResponseLoop }
-  | { key: 'editorLoopDropdownVisible', value: boolean }
   | { key: 'addReadyCallback', value: () => void }
   | { key: 'updater', value: (state : State) => State };
 

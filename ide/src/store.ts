@@ -248,7 +248,6 @@ store.subscribe(() => {
     // compiling / running: always false on load
     // menuItems: shouldn't be in state probably
     enterNewline: s.enterNewline,
-    editorResponseLoop: s.editorResponseLoop,
     editorLayout: s.editorLayout,
   };
   const keys = Object.keys(storage);

@@ -14,7 +14,6 @@ import {
 
 import {
   EditorMode,
-  EditorResponseLoop,
   State,
 } from './state';
 
@@ -39,7 +38,6 @@ type StateProps = {
   isRunning: boolean,
   compiling: boolean | 'out-of-date',
   chunks: Chunk[],
-  editorResponseLoop: EditorResponseLoop,
   editorMode: EditorMode,
   developerMode: boolean,
 };
@@ -53,7 +51,6 @@ function mapStateToProps(state: State): StateProps {
     running,
     compiling,
     chunks,
-    editorResponseLoop,
     editorMode,
     developerMode,
   } = state;
@@ -66,7 +63,6 @@ function mapStateToProps(state: State): StateProps {
     isRunning: running.type !== 'idle',
     compiling,
     chunks,
-    editorResponseLoop,
     editorMode,
     developerMode,
   };
@@ -83,8 +79,6 @@ type DispatchProps = {
   setStopify: (stopify: boolean) => void,
   setTypeCheck: (typeCheck: boolean) => void,
   setDropdownVisible: (dropdownVisible: boolean) => void,
-  setEditorLoopDropdownVisible: (visible: boolean) => void,
-  setEditorResponseLoop: (ed: EditorResponseLoop) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
@@ -123,12 +117,6 @@ function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
     setDropdownVisible: (dropdownVisible: boolean) => {
       dispatch({ type: 'update', key: 'dropdownVisible', value: dropdownVisible });
     },
-    setEditorLoopDropdownVisible: (visible: boolean) => {
-      dispatch({ type: 'update', key: 'editorLoopDropdownVisible', value: visible });
-    },
-    setEditorResponseLoop: (ed: EditorResponseLoop) => {
-      dispatch({ type: 'update', key: 'editorResponseLoop', value: ed });
-    },
   };
 }
 
@@ -145,58 +133,17 @@ function Run({
   setStopify,
   setTypeCheck,
   setDropdownVisible,
-  setEditorLoopDropdownVisible,
-  setEditorResponseLoop,
   stopify,
   dropdownVisible,
   editorLoopDropdownVisible,
   typeCheck,
   isRunning: running,
   compiling,
-  editorResponseLoop,
   editorMode,
   developerMode,
 }: Props) {
-  // TODO(alex): Better UI for selection
-  const editorLoopDropdown = editorLoopDropdownVisible && (
-    <Dropdown>
-      <DropdownOption
-        id="OptionERLManual"
-        enabled={editorResponseLoop === EditorResponseLoop.Manual}
-        onClick={() => setEditorResponseLoop(EditorResponseLoop.Manual)}
-      >
-        Manual
-      </DropdownOption>
-
-      <DropdownOption
-        id="OptionERLAutoCompile"
-        enabled={editorResponseLoop === EditorResponseLoop.AutoCompile}
-        onClick={() => setEditorResponseLoop(EditorResponseLoop.AutoCompile)}
-      >
-        AutoCompile
-      </DropdownOption>
-
-      <DropdownOption
-        id="OptionERLAutoCompileRun"
-        enabled={editorResponseLoop === EditorResponseLoop.AutoCompileRun}
-        onClick={() => setEditorResponseLoop(EditorResponseLoop.AutoCompileRun)}
-      >
-        AutoCompileRun
-      </DropdownOption>
-
-    </Dropdown>
-  );
   const dropdown = dropdownVisible && developerMode && (
     <Dropdown>
-      <DropdownOption
-        id="OptionEditorResponseLoop"
-        // eslint-disable-next-line react/jsx-boolean-value
-        enabled={editorLoopDropdownVisible}
-        onClick={() => setEditorLoopDropdownVisible(!editorLoopDropdownVisible)}
-      >
-        Editor Response Loop
-        {editorLoopDropdown}
-      </DropdownOption>
       { developerMode && (
         <DropdownOption
           id="OptionStopifyButton"
@@ -303,7 +250,6 @@ function Run({
             onClick={() => setDropdownVisible(!dropdownVisible)}
             onBlur={() => {
               setDropdownVisible(false);
-              setEditorLoopDropdownVisible(false);
             }}
             style={{
               background: dropdownBackground,

@@ -3,7 +3,6 @@
 import { Chunk, UninitializedEditor } from './chunk';
 import { Effect } from './effect';
 import { MenuItems } from './menu-types';
-import { RHSObjects } from './rhsObject';
 import { RTMessages } from './rtMessages';
 import * as control from './control';
 import { program } from './path';
@@ -163,10 +162,6 @@ export type State = {
   /* Current tab index of the messages tab panel */
   messageTabIndex: MessageTabIndex,
 
-  /* In text mode, whether the program is compiled/run after pauses to editing */
-  /* TODO(luna): Do we really want this? */
-  editorResponseLoop: EditorResponseLoop,
-
   editorLayout: EditorLayout,
 
   /* In Chatitor mode, when an edit has been made to any chunk, including
@@ -182,12 +177,6 @@ export type State = {
   /* The main definitions editor */
   definitionsEditor: UninitializedEditor | CMEditor
 };
-
-export enum EditorResponseLoop {
-  AutoCompile,
-  AutoCompileRun,
-  Manual,
-}
 
 export enum MessageTabIndex {
   RuntimeMessages = 0,
@@ -250,7 +239,6 @@ export const initialState: State = {
   ],
   enterNewline: true,
   messageTabIndex: MessageTabIndex.RuntimeMessages,
-  editorResponseLoop: EditorResponseLoop.Manual,
   firstOutdatedChunk: 0,
   editorLayout: EditorLayout.Normal,
   developerMode: DEVELOPER_MODE,
