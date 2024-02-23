@@ -88,6 +88,9 @@ function Reactor({ reactor, RenderedValue }: Props) {
   return (
     <div>
       <div
+        style={{
+          border: '1px solid black'
+        }}
         onClick={() => {
           if (open === false) {
             try {
@@ -107,6 +110,7 @@ function Reactor({ reactor, RenderedValue }: Props) {
           }
         }}
       >
+        <p>⚛ Click to start</p>
         {typeof value === 'undefined' ? 'Initializing...' : <RenderedValue value={value} />}
       </div>
       {open && (

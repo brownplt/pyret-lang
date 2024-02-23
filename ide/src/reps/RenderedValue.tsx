@@ -33,9 +33,14 @@ type RenderedValueState = {};
 /* eslint-disable */
 export default class RenderedValue extends React.Component<RenderedValueProps, RenderedValueState> {
   render() {
-    if(USE_VALUESKELETON) { return <RenderedValueWithOutput value={this.props.value} />; }
     const { value } = this.props;
     const kind = getRenderKind(value);
+    if (kind === 'reactor') {
+      return (
+        <ReactorWidget reactor={value} RenderedValue={RenderedValue} />
+      );      
+    }
+    if(USE_VALUESKELETON) { return <RenderedValueWithOutput value={this.props.value} />; }
     switch (kind) {
       case 'undefined':
       case 'number':
@@ -67,10 +72,6 @@ export default class RenderedValue extends React.Component<RenderedValueProps, R
             rows={value._rows}
             chartType={value.chartType}
           />
-        );
-      case 'reactor':
-        return (
-          <ReactorWidget reactor={value} RenderedValue={RenderedValue} />
         );
       case 'string-dict':
         const keys = value.$underlyingMap.keys();

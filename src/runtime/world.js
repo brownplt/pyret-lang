@@ -154,7 +154,7 @@ function makeBigBangFromDict(shouldPauseAndResume) {
 var bigBangFromDict = makeBigBangFromDict(true);
 var bigBangFromDictNoPauseResume = makeBigBangFromDict(false);
 
-var makeBigBang = function(shouldPauseAndResume) {
+var makeBigBang = /* stopify flat */ function(shouldPauseAndResume) {
     return function(initW, handlers, tracer, title, insertNode) {
         var closeBigBangWindow = null;
         var outerToplevelNode = document.createElement('span');
@@ -199,16 +199,16 @@ var makeBigBang = function(shouldPauseAndResume) {
 
 
         if (shouldPauseAndResume) {
-            return anchorRuntime.pauseStack(function(restarter) {
+            return anchorRuntime.pauseStack(/* @stopify flat */ function(restarter) {
                 rawJsworld.bigBang(
                     toplevelNode,
                     initW,
                     configs,
                     {},
-                    function(finalWorldValue) {
+                    /* @stopify flat */ function(finalWorldValue) {
                         restarter.resume(finalWorldValue);
                     },
-                    function(err) {
+                    /* @stopify flat */ function(err) {
                         restarter.error(err);
                     },
                     {
@@ -279,7 +279,7 @@ var isWorldConfigOption = function(v) { return v instanceof WorldConfigOption; }
 
 
 
-// adaptWorldFunction: Racket-function -> World-CPS
+// adaptWorldFunction: Pyret-function -> World-CPS
 // Takes a pyret function and converts it to the CPS-style function
 // that our world implementation expects.
 // NOTE(joe):  This expects there to be no active run for runtime
