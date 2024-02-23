@@ -215,23 +215,6 @@ function Run({
       <div
         className="run-container"
       >
-        {/* TODO(luna): Compile-only in promise API */}
-        {/* <button
-          id="CompileButton"
-          className="compile-ready"
-          type="button"
-          onClick={compile}
-          style={{
-            background: buttonBackground,
-          }}
-        >
-          {
-          // TODO(alex): figure out button style/margins
-          // TODO(alex): compile button has a persisting black outline (unlike the run button)
-          // TODO(alex): figure out compilation/run-ready progress bar
-        }
-          Compile
-        </button> */}
         <button
           id="RunButton"
           className="run-ready"
