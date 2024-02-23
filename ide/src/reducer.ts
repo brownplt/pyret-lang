@@ -613,37 +613,6 @@ function handleFileSync(state: State) : State {
   });
   return state;
 }
-/*
-function handleFileSync(state: State) : State {
-  const google = new GoogleAPI();
-  if (state.projectState.type !== 'gdrive') { return state; }
-
-  function checkAndSave(base : string, file : GoogleDriveFile) : GoogleDriveFile {
-    const filePath = `${base}/${file.name}`;
-    const stats = fs.statSync(filePath);
-    if (new Date(stats.mtime) > new Date(file.modifiedTime)) {
-      console.log('Saving file', file.name, file.id);
-      const contents = String(fs.readFileSync(filePath));
-      google.saveFile(file, contents);
-      return { ...file, modifiedTime: stats.mtime, body: contents };
-    }
-    return file;
-  }
-  function recursiveCheckAndSave(base : string, dir: GoogleDriveProjectStructure) : GoogleDriveProjectStructure {
-    const dirPath = `${base}/${dir.name}/`;
-    const files = dir.files.map((f) => checkAndSave(dirPath, f));
-    const folders = dir.folders.map((f) => recursiveCheckAndSave(dirPath, f));
-    return { ...dir, files, folders };
-  }
-  const { structure } = state.projectState;
-
-  const projectPath = `/google-drive/${structure.id}/`;
-  const newStructure = recursiveCheckAndSave(projectPath, structure);
-
-  console.log('syncing files...', state.projectState);
-  return { ...state, projectState: { type: 'gdrive', structure: newStructure } };
-}
-*/
 
 function handleRTMessage(state: State, message: RawRTMessage): State {
   const {
