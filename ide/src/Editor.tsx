@@ -72,7 +72,7 @@ type DispatchProps = {
 
 function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchProps {
   return {
-    runProgram: () => dispatch({ type: 'run', key: 'runProgram' }),
+    runProgram: () => dispatch({ type: 'run' }),
     update: (kv) => dispatch({ type: 'update', key: 'updater', value: (s : State.State) => ({ ...s, ...kv }) }),
     updateContents: (contents: string) => dispatch({
       type: 'update',

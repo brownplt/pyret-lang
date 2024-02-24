@@ -73,11 +73,6 @@ export type Update =
   | { key: 'addReadyCallback', value: () => void }
   | { key: 'updater', value: (state : State) => State };
 
-export type Run =
-  | { key: 'runProgram' }
-  | { key: 'runSegments' }
-  | { key: 'runExamplar' };
-
 export type EffectStarted = { effect: number };
 
 export type EnqueueEffect = { effect: Effect };
@@ -94,5 +89,5 @@ export type Action =
   | { type: 'undo' }
   | { type: 'redo' }
   | { type: 'ready' }
-  | { type: 'run' } & Run
+  | { type: 'run' }
   | { type: 'stopSession' };

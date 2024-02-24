@@ -1344,16 +1344,16 @@ function rootReducer(state: State, action: Action): State {
     case 'fileSync':
       return handleFileSync(state);
     case 'run':
-      if (action.key === 'runProgram') {
+      if (state.editorMode === EditorMode.Text) {
         return runProgramOrSegments(state, runProgramAsync, setupRunProgramAsync);
       }
-      if (action.key === 'runSegments') {
+      else if (state.editorMode === EditorMode.Chatitor) {
         return runProgramOrSegments(state, runSegmentsAsync, setupRunSegmentsAsync);
       }
-      if (action.key === 'runExamplar') {
+      else if (state.editorMode === EditorMode.Examplaritor) {
         return runProgramOrSegments(state, runExamplarAsync, setupRunSegmentsAsync);
       }
-      throw new NeverError(action);
+
     case 'stopSession':
       return stopSession(state);
     case 'update':

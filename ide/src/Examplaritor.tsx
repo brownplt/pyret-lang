@@ -51,7 +51,7 @@ function mapStateToProps(state: State): StateProps {
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     run() {
-      dispatch({ type: 'run', key: 'runExamplar' });
+      dispatch({ type: 'run' });
     },
     undo() {
       dispatch({ type: 'undo' });

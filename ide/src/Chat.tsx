@@ -76,7 +76,7 @@ type DispatchProps = {
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
   return {
     run() {
-      dispatch({ type: 'run', key: 'runSegments' });
+      dispatch({ type: 'run' });
     },
     setChunks(chunks: ChunksUpdate) {
       dispatch({ type: 'update', key: 'chunks', value: chunks });

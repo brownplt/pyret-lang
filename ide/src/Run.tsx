@@ -84,22 +84,7 @@ type DispatchProps = {
 function mapDispatchToProps(dispatch: (action: Action) => void): DispatchProps {
   return {
     run: (editorMode) => {
-      switch (editorMode) {
-        case EditorMode.Chatitor:
-          dispatch({ type: 'run', key: 'runSegments' });
-          break;
-        case EditorMode.Text:
-          dispatch({ type: 'run', key: 'runProgram' });
-          break;
-        case EditorMode.Examplaritor:
-          // shd be runExamplar
-          // runProgram to be more like Embeditor
-          // runSegments to be more like Chatitor
-          dispatch({ type: 'run', key: 'runExamplar' });
-          break;
-        default:
-          break;
-      }
+      dispatch({ type: 'run' });
     },
     // runSession: () => dispatch({ type: 'run', key: 'runSegments' }),
     stop: () => dispatch({ type: 'enqueueEffect', effect: { effectKey: 'stop' } }),
