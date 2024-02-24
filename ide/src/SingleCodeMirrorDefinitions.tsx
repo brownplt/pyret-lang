@@ -31,7 +31,8 @@ type State = {
 // TODO(alex): Unify short-cut handling between 'Text' and 'Chunk' modes somehow
 function setShortcuts(editor: CodeMirror.Editor, run: () => void) {
   editor.setOption('extraKeys', {
-    'Shift-Enter': run,
+    'Ctrl-Enter': run,
+    'Cmd-Enter': run,
   });
 }
 
