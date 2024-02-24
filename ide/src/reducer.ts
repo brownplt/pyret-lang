@@ -1027,8 +1027,8 @@ async function runProgramAsync(state: State) : Promise<void> {
     update((s: State) => handleRunProgramFailure(s, result.error));
   } else {
     update((s: State) => handleRunProgramSuccess(s, result.result));
+    await runSegmentsAsyncWithSession(state, TEXT_SESSION, true);
   }
-  const chunksResult = await runSegmentsAsyncWithSession(state, TEXT_SESSION, true);
 }
 
 function setupRunProgramAsync(state: State) : State {
