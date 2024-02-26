@@ -288,20 +288,32 @@ and overriding of rules. */
   text-align: center;
 }
 
-.chat-layout-compact .insert-arrow {
+.focused-chunk .chunk-menu {
+  visibility: visible;
+}
+
+.chunk-menu {
+  position: absolute;
+  visibility: hidden;
+  top: 1em;
+  left: -1em;
+  background: #eee;
+  filter: drop-shadow(2px 2px #ddd);
+  z-index: 99;
+}
+
+.chat-layout-compact .chunk-menu {
   top: -0.5em;
 }
-.chat-layout-normal .insert-arrow {
+.chat-layout-normal .chunk-menu {
   top: -1em;
 }
-.insert-arrow {
-  position: absolute;
-  left: -1.5em;
-  font-size: 1.25em;
+.chunk-menu-icon {
   opacity: 0.3;
   transition: opacity 0.2s;
+  font-size: 1.25em;
 }
-.insert-arrow:hover {
+.chunk-menu-icon:hover {
   opacity: 1;
 }
 

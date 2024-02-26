@@ -14,7 +14,7 @@
    component and the Redux store. */
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { UnControlled as ReactCM } from 'react-codemirror2';
+import { DomEvent, UnControlled as ReactCM } from 'react-codemirror2';
 import { State } from './state';
 import {
   CMEditor, enterShouldSend, isWrapFirst, isWrapLast,
@@ -70,7 +70,7 @@ type DispatchProps = {
   run: () => void,
   setChunks: (chunks: ChunksUpdate) => void,
   deleteChunk: (index: number) => void,
-  insertChunk: (index: number) => void,
+  insertChunk: (index: number, text?: string) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
@@ -84,9 +84,9 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     deleteChunk(index: number) {
       dispatch({ type: 'chunk', key: 'delete', index });
     },
-    insertChunk(index: number) {
+    insertChunk(index: number, text?: string) {
       dispatch({
-        type: 'chunk', key: 'insert', index, grabFocus: true,
+        type: 'chunk', key: 'insert', index, grabFocus: true, text
       });
     },
   };
@@ -96,19 +96,25 @@ const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
 type ChatProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
+type ChatState = { focused: boolean, removed: boolean }
 
-class Chat extends React.Component<ChatProps, any> {
+class Chat extends React.Component<ChatProps, ChatState> {
+  constructor(props : ChatProps) {
+    super(props);
+    this.state = { focused: false, removed: false };
+  }
   /* A React component updates every time its props change. Since each chunk
      receives, as props, all other chunks, this would cause a lot of redundant
      re-rendering. This function attempts to determine when such prop updates
      can be ignored. It will probably need to be changed when new props are
      added or removed from this component. */
-  shouldComponentUpdate(newProps: ChatProps) {
+  shouldComponentUpdate(newProps: ChatProps, nextState: ChatState) {
     const n = newProps;
     const o = this.props;
     if (n.enterNewline !== o.enterNewline) { return true; }
     if (n.technicallyOutdated !== o.technicallyOutdated) { return true; }
     if (n.fontSize !== o.fontSize) { return true; }
+    if (this.state.focused !== nextState.focused) { return true; }
     const nChunk = n.chunks[n.index];
     const oChunk = o.chunks[o.index];
     if (nChunk !== oChunk) {
@@ -196,8 +202,9 @@ class Chat extends React.Component<ChatProps, any> {
     }
   }
 
-  handleBlur(editor: CMEditor) {
+  handleBlur(editor: CMEditor, event: DomEvent) {
     const { index } = this.props;
+    this.setState({ focused: false });
     if (editor.getValue().trim() === '') {
       // Prepare chunk for reasonable state if restored by GLOBAL undo by doing
       // a LOCAL undo (presumably undoing a backspace)
@@ -208,9 +215,31 @@ class Chat extends React.Component<ChatProps, any> {
     }
   }
 
+  handleFocus(editor: CMEditor) {
+    this.setState({ focused: true });
+  }
+
   insertAbove() {
     const { insertChunk: insert, index } = this.props;
     insert(index);
+  }
+
+  merge() {
+    const { deleteChunk, setChunks, index } = this.props;
+    const above = this.props.chunks[index - 1];
+    const thisChunk = this.props.chunks[index];
+    deleteChunk(index - 1);
+    const editor = thisChunk.editor;
+    if(isInitializedEditor(editor)) {
+      editor.setValue(above.editor.getValue() + "\n" + editor.getValue())
+    }
+    setChunks({
+      chunk: {
+        ...thisChunk,
+        outdated: true
+      },
+      modifiesText: true,
+    });
   }
 
   /* Delete this chunk and move every chunk below it up by one */
@@ -316,7 +345,8 @@ class Chat extends React.Component<ChatProps, any> {
               default:
             }
           }) as any}
-          onBlur={((editor: CMEditor) => this.handleBlur(editor)) as any}
+          onBlur={((editor: CMEditor, e : DomEvent) => this.handleBlur(editor, e)) as any}
+          onFocus={((editor: CMEditor) => this.handleFocus(editor)) as any}
           className="chat"
         />
       </div>
@@ -327,13 +357,19 @@ class Chat extends React.Component<ChatProps, any> {
     const outdatedClass = outdated ? 'outdated' : '';
     const pendingRerunClass = technicallyOutdated ? 'partially-outdated' : '';
     const isErrorClass = isError ? 'chatitor-error' : '';
+    const focusedClass = this.state.focused ? 'focused-chunk' : '';
 
     return (
       <>
-        <div className={`chat-and-result ${outdatedClass} ${pendingRerunClass} ${isErrorClass}`}>
-          <button title={addButtonTitle} className="text-button insert-arrow" onClick={() => this.insertAbove()} type="button">
-            [+]
-          </button>
+        <div className={`chat-and-result ${outdatedClass} ${pendingRerunClass} ${isErrorClass} ${focusedClass}`}>
+          <div className='chunk-menu'>
+            <button title={addButtonTitle} className="text-button chunk-menu-icon" onMouseDown={() => this.insertAbove()} type="button">
+              [+]
+            </button>
+            <button title='Merge with previous' className="text-button chunk-menu-icon" onMouseDown={() => this.merge()} type="button">
+              [↑]
+            </button>
+          </div>
           { chunkEditorPart }
           { chunkResultsPart }
         </div>
