@@ -9,6 +9,8 @@ env:
 git:
   submodules: false
 language: node_js
+node_js:
+- 16.15.1
 install:
 - npm ci
 before_script:
