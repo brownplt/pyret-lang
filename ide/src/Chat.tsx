@@ -7,14 +7,13 @@
    displays.
 
    Editing interactions are balanced between the underlying CodeMirror object
-   and this component. For instance, we do not yet handle an "undo" feature that
-   works across chunks, instead relying on a per-codemirror-instance undo. We
-   do, however, override some of CodeMirror's default functionality, like
-   highlighting (via click and drag). This is handled entirely by this
-   component and the Redux store. */
+   and this component. For instance, each CodeMirror, when focused, will handle
+   text editing undo/redo, but the reducer/react handles undo/redo of chunk-level
+   edits like deleting and merging. This matches how tools like iPython work,
+   for better or worse. */
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
-import { DomEvent, UnControlled as ReactCM } from 'react-codemirror2';
+import { UnControlled as ReactCM } from 'react-codemirror2';
 import { State } from './state';
 import {
   CMEditor, enterShouldSend, isWrapFirst, isWrapLast,
