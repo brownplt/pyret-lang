@@ -5,7 +5,7 @@ import { Failure } from './failure';
 import { RHSObject } from './rhsObject';
 import { CMEditor } from './utils';
 
-export const CHUNKSEP = '\n#---#\n';
+export const CHUNKSEP = '#.CHUNK#\n';
 
 /* Represents the current state of the chunk, whether it (1) has not yet been
    linted; (2) was successfully linted, but not compiled (3) was successfully
