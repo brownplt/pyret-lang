@@ -165,7 +165,7 @@ function Menu({
               </button>
             )}
 
-            {developerMode ? modesElement : false}
+            {modesElement}
 
             {editorMode === EditorMode.Chatitor && (
               <button
