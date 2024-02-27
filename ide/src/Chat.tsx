@@ -143,9 +143,6 @@ class Chat extends React.Component<ChatProps, {}> {
     }
   }
 
-  /* Called in response to an edit event, where `value` is the chunk's text
-     after the edit. Marks updated chunks as not linted so that the running
-     infastructure knows to lint them before compiling. */
   scheduleUpdate() {
     const {
       chunks,

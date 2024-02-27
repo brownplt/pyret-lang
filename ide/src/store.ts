@@ -5,6 +5,7 @@ import ideApp, { setStore, serverAPI, populateFromDrive } from './reducer';
 import { IDE } from './ide';
 import {
   EditorMode,
+  getCurrentFileContents,
   initialState,
   State,
 } from './state';
@@ -12,11 +13,13 @@ import {
   Chunk,
   makeChunksFromString,
   CHUNKSEP,
+  UninitializedEditor,
+  emptyChunk,
 } from './chunk';
 import { Action } from './action';
 import { Effect } from './effect';
 import * as control from './control';
-import { CHATITOR_SESSION, NeverError, TEXT_SESSION } from './utils';
+import { CHATITOR_SESSION, CMEditor, NeverError, TEXT_SESSION } from './utils';
 import { bfsSetup, fs } from './control';
 import * as ideRt from './ide-rt-override';
 import GoogleDrive from './Drive';
@@ -33,15 +36,21 @@ function handleLoadFile(
   editorMode: EditorMode,
 ) {
   const contents = control.openOrCreateFile(currentFile);
+  const chunks = makeChunksFromString(contents);
+  console.log("loadFile chunks", chunks);
 
   switch (editorMode) {
     case EditorMode.Text:
-      dispatch({ type: 'update', key: 'currentFileContents', value: contents });
+      const defs = chunks[0].editor.getValue();
+      dispatch({ type: 'update', key: 'updater', value: (state : State) => ({...state,
+          definitionsEditor: { getValue: () => defs },
+          chunks: chunks.slice(1),
+          topChunk: state.topChunk ? { ...state.topChunk, outdated: true } : undefined
+        })
+      })
       break;
     case EditorMode.Examplaritor:
     case EditorMode.Chatitor: {
-      const chunks = makeChunksFromString(contents);
-
       dispatch({
         type: 'update',
         key: 'chunks',
@@ -50,7 +59,6 @@ function handleLoadFile(
           modifiesText: true,
         },
       });
-
       break;
     }
     default:
@@ -66,10 +74,7 @@ function handleLoadFile(
 
 function handleSaveFile(
   dispatch: Dispatch,
-  mode: EditorMode,
-  path: string,
-  contents: string,
-  chunks: Chunk[],
+  state: State
 ) {
   const saveCallback = (error: Error) => {
     if (error) {
@@ -87,27 +92,9 @@ function handleSaveFile(
       });
     }
   };
-
-  switch (mode) {
-    case EditorMode.Text:
-      control.fs.writeFile(path, contents, saveCallback);
-      break;
-    case EditorMode.Examplaritor:
-    case EditorMode.Chatitor:
-      // TODO(alex): Chunk file saving works by concating chunks together into a single buffer
-      //   and writing it out.
-      // If performance becomes bottlenecked here, consider:
-      //   * Storing chunks in a single string buffer and performing edits on that buffer
-      //   * Using fs.WriteStream to stream the chunk contents into the file
-      control.fs.writeFile(
-        path,
-        chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
-        saveCallback,
-      );
-      break;
-    default:
-      throw new NeverError(mode);
-  }
+  const { currentFile } = state;
+  const contents = getCurrentFileContents(state);
+  control.fs.writeFile(currentFile, contents, saveCallback);
 }
 
 function handleStop(dispatch: Dispatch) {
@@ -168,18 +155,12 @@ function handleFirstActionableEffect(
       case 'saveFile':
         {
           const {
-            editorMode, currentFile, currentFileContents, chunks,
+            currentFile,
           } = state;
-          if (currentFile !== undefined && currentFileContents !== undefined) {
+          if (currentFile !== undefined) {
             return {
               effect: i,
-              applyEffect: () => handleSaveFile(
-                dispatch,
-                editorMode,
-                currentFile,
-                currentFileContents,
-                chunks,
-              ),
+              applyEffect: () => handleSaveFile(dispatch, state)
             };
           }
         }
@@ -232,7 +213,6 @@ store.subscribe(() => {
     browsePath: s.browsePath,
     browseRoot: s.browseRoot,
     currentFile: s.currentFile,
-    // currentFileContents: saved to disk routinely
     typeCheck: s.typeCheck,
     // rhs / rtMessages / interactionErrors / definitionsHighlights: can/should
     // be gotten by running

@@ -1,12 +1,12 @@
 /* Exports both the type of state in the Redux store as well as its default value. */
 
-import { Chunk, UninitializedEditor } from './chunk';
+import { CHUNKSEP, Chunk, UninitializedEditor } from './chunk';
 import { Effect } from './effect';
 import { MenuItems } from './menu-types';
 import { RTMessages } from './rtMessages';
 import * as control from './control';
 import { program } from './path';
-import { CMEditor } from './utils';
+import { CMEditor, NeverError } from './utils';
 
 const DEVELOPER_MODE = true;
 
@@ -73,10 +73,6 @@ export type State = {
 
   /* If we are loading a project */
   projectState: ProjectState,
-  
-  /* The contents of the current file, or `undefined` if the current file has
-     not yet been loaded. */
-  currentFileContents: string | undefined,
 
   /* `true` if the compiler should be run with type checking, `false` otherwise. */
   typeCheck: boolean,
@@ -210,7 +206,6 @@ export const initialState: State = {
   browseRoot: '/',
   browsePath: '/projects',
   currentFile: program,
-  currentFileContents: undefined,
   projectState: { type: 'scratch' },
   typeCheck: true,
   rtMessages: {
@@ -260,3 +255,23 @@ export const initialState: State = {
     getValue() { return ""; }
   },
 };
+
+// TODO(alex): Chunk file saving works by concating chunks together into a single buffer
+//   and writing it out.
+// If performance becomes bottlenecked here, consider:
+//   * Storing chunks in a single string buffer and performing edits on that buffer
+//   * Using fs.WriteStream to stream the chunk contents into the file
+export function getCurrentFileContents(state : State) {
+  const { editorMode, definitionsEditor, chunks } = state;
+  const chunkContents = chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
+  switch (editorMode) {
+    case EditorMode.Text:
+      const fullContents = `${definitionsEditor.getValue()}${CHUNKSEP}${chunkContents}`
+      return fullContents
+    case EditorMode.Examplaritor:
+    case EditorMode.Chatitor:
+      return chunkContents;
+    default:
+      throw new NeverError(editorMode);
+  }
+}

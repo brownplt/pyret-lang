@@ -5,7 +5,7 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { MenuItems } from './menu-types';
-import { State, EditorMode, EditorLayout } from './state';
+import { State, EditorMode, EditorLayout, getCurrentFileContents } from './state';
 import { Action } from './action';
 import FSBrowser from './FSBrowser';
 import FontSize from './FontSize';
@@ -27,7 +27,6 @@ function mapStateToProps(state: State): StateProps {
     menuTabVisible,
     enterNewline,
     editorMode,
-    currentFileContents,
     editorLayout,
     developerMode,
   } = state;
@@ -37,9 +36,9 @@ function mapStateToProps(state: State): StateProps {
     menuTabVisible,
     enterNewline,
     editorMode,
-    currentFileContents,
     editorLayout,
     developerMode,
+    currentFileContents: getCurrentFileContents(state)
   };
 }
 

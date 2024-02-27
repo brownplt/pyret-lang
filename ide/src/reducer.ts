@@ -211,76 +211,44 @@ function handleEnqueueEffect(state: State, action: EnqueueEffect): State {
 }
 
 function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
+  if (state.editorMode === newEditorMode) { return state; }
   switch (newEditorMode) {
     case EditorMode.Text: {
       // Ensure that currentFileContents is up-to-date with chunks
       const { chunks } = state;
-      const currentFileContents = chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
+      const newDefsEditor = {
+        getValue: () => chunks[0].editor.getValue()
+      }
       return {
         ...state,
+        definitionsEditor: newDefsEditor,
+        chunks: chunks.slice(1),
         editorMode: newEditorMode,
-        currentFileContents,
       };
     }
     case EditorMode.Examplaritor:
     case EditorMode.Chatitor: {
-      // in text mode currentFileContents can be more up-to-date than chunks, so we
-      // need to recreate the chunks.
-
-      const { currentFileContents } = state;
-
-      if (currentFileContents === undefined) {
-        return {
-          ...state,
-          editorMode: newEditorMode,
-          chunks: [],
-        };
-      }
-
-      const chunks: Chunk[] = [];
-
-      if (currentFileContents !== '') {
-        currentFileContents.split(CHUNKSEP).forEach((chunkString) => {
-          chunks.push(emptyChunk({
-            editor: { getValue: () => chunkString },
-          }));
-        });
+      const newChunks = [...state.chunks];
+      if (state.editorMode === EditorMode.Text) {
+        const { definitionsEditor } = state;
+        const currentFileContents = definitionsEditor.getValue();
+        if(currentFileContents !== "") {
+          newChunks.unshift(emptyChunk({
+            editor: { getValue: () => currentFileContents }
+          }))
+        }
       }
 
       return {
         ...state,
         editorMode: newEditorMode,
-        chunks,
+        chunks: newChunks,
         topChunk: undefined,
       };
     }
     default:
       throw new NeverError(newEditorMode);
   }
-}
-
-function handleSetCurrentFileContents(state: State, contents: string): State {
-  const {
-    effectQueue,
-    compiling,
-    topChunk
-  } = state;
-
-  let newChunks = state.chunks;
-  if(state.editorMode == EditorMode.Text) {
-    newChunks = state.chunks.map(c => ({ ...c, outdated: true }));
-  }
-
-  return {
-    ...state,
-    currentFileContents: contents,
-    effectQueue: [...effectQueue, { effectKey: 'startEditTimer' }],
-    isFileSaved: false,
-    compiling: compiling ? 'out-of-date' : false,
-    chunks: newChunks,
-    firstOutdatedChunk: 0,
-    topChunk: topChunk ? { ...topChunk, outdated: true } : undefined
-  };
 }
 
 function handleSetBrowsePath(state: State, browsePath: string): State {
@@ -304,18 +272,14 @@ function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
   const { editorMode, isFileSaved } = state;
   const {
     chunks,
-    currentFileContents,
     firstOutdatedChunk,
   } = state;
   
   let chunksString;
-  let definitionsString;
   let newOutdate;
   let newChunks : Chunk[] = chunks;
   
   if (isMultipleChunkUpdate(chunksUpdate)) {
-    definitionsString = currentFileContents;
-
     newOutdate = firstOutdatedChunk;
     if (chunksUpdate.modifiesText) {
       const firstDiffering = chunksUpdate.chunks
@@ -337,8 +301,6 @@ function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
       chunk.id === chunksUpdate.chunk.id ? chunksUpdate.chunk : chunk
     ));
 
-    definitionsString = currentFileContents;
-
     if (chunksUpdate.modifiesText) {
       chunksString = newChunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
     }
@@ -353,9 +315,9 @@ function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
       return {
         ...state,
         chunks: newChunks,
-        currentFileContents: definitionsString,
         isFileSaved: isFileSaved && chunksUpdate.modifiesText === false,
         firstOutdatedChunk: newOutdate,
+        effectQueue: [ ...state.effectQueue, { effectKey: 'saveFile' }]
       };
     }
     case EditorMode.Chatitor:
@@ -363,9 +325,9 @@ function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
       return {
         ...state,
         chunks: newChunks,
-        currentFileContents: chunksString,
         isFileSaved: isFileSaved && chunksUpdate.modifiesText === false,
-        firstOutdatedChunk: newOutdate
+        firstOutdatedChunk: newOutdate,
+        effectQueue: [ ...state.effectQueue, { effectKey: 'saveFile' }]
       };
     }
     default: {
@@ -455,6 +417,7 @@ function handleUIChunkUpdate(state: State, chunksUpdate: UIChunksUpdate): State 
     future: [],
     rerunAllChunks,
     firstOutdatedChunk: Math.min(firstOutdatedChunk, nowOutdated),
+    effectQueue: [ ...state.effectQueue, { effectKey: 'saveFile' }]
   };
 }
 
@@ -477,6 +440,7 @@ function handleUndo(state: State): State {
     firstOutdatedChunk: outdates.index,
     past: past.slice(0, -1),
     future: [...future, undo],
+    effectQueue: [ ...state.effectQueue, { effectKey: 'saveFile' }]
   };
 }
 
@@ -499,6 +463,7 @@ function handleRedo(state: State): State {
     firstOutdatedChunk: outdates.index,
     past: [...past, entry],
     future: future.slice(0, -1),
+    effectQueue: [ ...state.effectQueue, { effectKey: 'saveFile' }]
   };
 }
 
@@ -677,8 +642,6 @@ function handleUpdate(
   switch (action.key) {
     case 'editorMode':
       return handleSetEditorMode(state, action.value);
-    case 'currentFileContents':
-      return handleSetCurrentFileContents(state, action.value);
     case 'browsePath':
       return handleSetBrowsePath(state, action.value);
     case 'currentFile':
@@ -1038,9 +1001,10 @@ async function runTextProgram(
 
 async function runProgramAsync(state: State) : Promise<void> {
   const {
-    typeCheck, runKind, currentFile, currentFileContents,
+    typeCheck, runKind, currentFile, definitionsEditor
   } = state;
-  const result = await runTextProgram(typeCheck, runKind, currentFile, currentFileContents ?? '');
+  const currentFileContents = definitionsEditor.getValue();
+  const result = await runTextProgram(typeCheck, runKind, segmentName(currentFile, "definitions"), currentFileContents ?? '');
   if (result.type === 'compile-failure') {
     update((s: State) => handleCompileProgramFailure(s, result.errors));
   } else if (result.type === 'run-failure') {
@@ -1090,14 +1054,8 @@ async function runSegmentsAsyncWithSession(state : State, sessionId : string, al
       filenames.push(filename);
       const value = c.editor.getValue();
       fs.writeFileSync(filename, value);
-      console.log(value);
     }
   });
-  console.log('Chunks were saved in:', JSON.stringify(filenames));
-  // fs.writeFileSync(
-  //   state.currentFile,
-  //   chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
-  // );
 
   if (!onlyLastSegmentChanged && !alwaysKeepCache) {
     await serverAPI.filterSession(sessionId, 'builtin://');

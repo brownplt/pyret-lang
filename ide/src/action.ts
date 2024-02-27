@@ -58,7 +58,6 @@ export function isSingleChunkUpdate(update: ChunksUpdate): update is SingleChunk
 // TODO(alex): Split editor updates into a separate type
 export type Update =
   | { key: 'editorMode', value: EditorMode }
-  | { key: 'currentFileContents', value: string }
   | { key: 'browsePath', value: string }
   | { key: 'currentFile', value: string }
   | { key: 'chunks', value: ChunksUpdate }

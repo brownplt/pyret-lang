@@ -21,7 +21,7 @@ function mapStateToProps(state: State.State): StateProps {
   return {
     browseRoot: state.browseRoot,
     browsePath: state.browsePath,
-    currentFileContents: state.currentFileContents,
+    currentFileContents: state.definitionsEditor.getValue(),
     fontSize: state.fontSize,
     chunks: state.chunks,
   };
@@ -30,7 +30,6 @@ function mapStateToProps(state: State.State): StateProps {
 type DispatchProps = {
   runProgram: () => void,
   update: (kv : Partial<State.State>) => void,
-  updateContents: (contents: string) => void,
   loadFile: () => void,
 };
 
@@ -38,11 +37,6 @@ function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchP
   return {
     runProgram: () => dispatch({ type: 'run' }),
     update: (kv) => dispatch({ type: 'update', key: 'updater', value: (s : State.State) => ({ ...s, ...kv }) }),
-    updateContents: (contents: string) => dispatch({
-      type: 'update',
-      key: 'currentFileContents',
-      value: contents,
-    }),
     loadFile() {
       dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
     },

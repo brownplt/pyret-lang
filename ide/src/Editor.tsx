@@ -9,7 +9,7 @@ import React from 'react';
 import './App.css';
 import { connect, ConnectedProps } from 'react-redux';
 import SplitterLayout from 'react-splitter-layout';
-import { Chunk } from './chunk';
+import { Chunk, UninitializedEditor } from './chunk';
 import * as State from './state';
 import { EditorMode, MessageTabIndex } from './state';
 import { RTMessages } from './rtMessages';
@@ -22,7 +22,7 @@ import Run from './Run';
 import * as action from './action';
 import 'react-tabs/style/react-tabs.css';
 import 'react-splitter-layout/lib/index.css';
-import { NeverError } from './utils';
+import { CMEditor, NeverError } from './utils';
 import Chatitor from './Chatitor';
 import Examplaritor from './Examplaritor';
 import FileSync from './FileSync';
@@ -30,8 +30,8 @@ import FileSync from './FileSync';
 type StateProps = {
   browseRoot: string,
   browsePath: string,
-  currentFileContents: undefined | string,
   definitionsHighlights: number[][],
+  definitionsEditor: UninitializedEditor | CMEditor,
   fontSize: number,
   headerMessage: string,
   rtMessages: RTMessages,
@@ -47,8 +47,8 @@ function mapStateToProps(state: State.State): StateProps {
   return {
     browseRoot: state.browseRoot,
     browsePath: state.browsePath,
-    currentFileContents: state.currentFileContents,
     definitionsHighlights: state.definitionsHighlights,
+    definitionsEditor: state.definitionsEditor,
     fontSize: state.fontSize,
     headerMessage: state.headerMessage,
     editorMode: state.editorMode,
@@ -64,21 +64,16 @@ function mapStateToProps(state: State.State): StateProps {
 type DispatchProps = {
   runProgram: () => void,
   update: (kv : Partial<State.State>) => void,
-  updateContents: (contents: string) => void,
   setEditorMode: (mode: EditorMode) => void,
   setMessageTabIndex: (index: number) => void,
   loadFile: () => void,
+  save: () => void
 };
 
 function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchProps {
   return {
     runProgram: () => dispatch({ type: 'run' }),
     update: (kv) => dispatch({ type: 'update', key: 'updater', value: (s : State.State) => ({ ...s, ...kv }) }),
-    updateContents: (contents: string) => dispatch({
-      type: 'update',
-      key: 'currentFileContents',
-      value: contents,
-    }),
     setEditorMode: (mode: EditorMode) => {
       dispatch({ type: 'update', key: 'editorMode', value: mode });
     },
@@ -102,6 +97,9 @@ function mapDispatchToProps(dispatch: (action: action.Action) => any): DispatchP
     loadFile() {
       dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
     },
+    save() {
+      dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile' } });
+    }
   };
 }
 
@@ -115,9 +113,8 @@ class Editor extends React.Component<EditorProps, any> {
   makeDefinitions() {
     const {
       editorMode,
-      currentFileContents,
-      updateContents,
       definitionsHighlights,
+      definitionsEditor,
       runProgram: run,
     } = this.props;
 
@@ -129,8 +126,8 @@ class Editor extends React.Component<EditorProps, any> {
       case EditorMode.Text:
         return (
           <SingleCodeMirrorDefinitions
-            text={currentFileContents || ''}
-            onEdit={(contents: string) => updateContents(contents)}
+            text={definitionsEditor.getValue()}
+            onEdit={() => { this.props.save() }}
             onInit={(editor: CodeMirror.Editor) => this.props.update({ definitionsEditor: editor })}
             highlights={definitionsHighlights}
             run={run}
