@@ -295,26 +295,32 @@ and overriding of rules. */
 .chunk-menu {
   position: absolute;
   visibility: hidden;
-  top: 1em;
   left: -1em;
   background: #eee;
   filter: drop-shadow(2px 2px #ddd);
   z-index: 99;
+  height: 1em;
+  font-size: 1.25em;
 }
 
 .chat-layout-compact .chunk-menu {
   top: -0.5em;
 }
 .chat-layout-normal .chunk-menu {
-  top: -1em;
+  top: -0.5em;
 }
 .chunk-menu-icon {
   opacity: 0.3;
   transition: opacity 0.2s;
-  font-size: 1.25em;
 }
 .chunk-menu-icon:hover {
   opacity: 1;
+}
+
+
+.chunk-menu-icon .icon {
+  width: 1.5em;
+  height: 1.5em;
 }
 
 .referenced-by-error {

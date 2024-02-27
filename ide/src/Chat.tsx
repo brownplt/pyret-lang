@@ -32,11 +32,18 @@ import {
 } from './action';
 import ChatResult from './ChatResult';
 
+import {
+  LogIn,
+  Plus,
+  Trash2
+} from 'react-feather';
+
 type StateProps = {
   chunks: Chunk[],
   enterNewline: boolean,
   technicallyOutdated: boolean,
   fontSize: number,
+  focusedChunk: number | false
 };
 
 function mapStateToProps(state: State, ownProps: any): StateProps {
@@ -45,6 +52,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     enterNewline,
     firstOutdatedChunk,
     fontSize,
+    focusedChunk
   } = state;
 
   const {
@@ -58,6 +66,7 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     enterNewline,
     technicallyOutdated,
     fontSize,
+    focusedChunk
   };
 }
 
@@ -70,7 +79,9 @@ type DispatchProps = {
   run: () => void,
   setChunks: (chunks: ChunksUpdate) => void,
   deleteChunk: (index: number) => void,
+  mergeChunks: (top: number, bottom: number) => void,
   insertChunk: (index: number, text?: string) => void,
+  focusChunk: (index: number | false) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
@@ -84,11 +95,19 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     deleteChunk(index: number) {
       dispatch({ type: 'chunk', key: 'delete', index });
     },
+    mergeChunks(top: number, bottom: number) {
+      dispatch({ type: 'chunk', key: 'merge', top, bottom });
+    },
     insertChunk(index: number, text?: string) {
       dispatch({
         type: 'chunk', key: 'insert', index, grabFocus: true, text
       });
     },
+    focusChunk(index : number | false) {
+      dispatch({
+        type: 'update', key: 'updater', value: (state : State) => ({ ...state, focusedChunk: index })
+      });  
+    }
   };
 }
 
@@ -96,25 +115,20 @@ const connector = connect(mapStateToProps, mapDispatchToProps);
 
 type PropsFromRedux = ConnectedProps<typeof connector>;
 type ChatProps = PropsFromRedux & DispatchProps & StateProps & PropsFromReact;
-type ChatState = { focused: boolean, removed: boolean }
 
-class Chat extends React.Component<ChatProps, ChatState> {
-  constructor(props : ChatProps) {
-    super(props);
-    this.state = { focused: false, removed: false };
-  }
+class Chat extends React.Component<ChatProps, {}> {
   /* A React component updates every time its props change. Since each chunk
      receives, as props, all other chunks, this would cause a lot of redundant
      re-rendering. This function attempts to determine when such prop updates
      can be ignored. It will probably need to be changed when new props are
      added or removed from this component. */
-  shouldComponentUpdate(newProps: ChatProps, nextState: ChatState) {
+  shouldComponentUpdate(newProps: ChatProps) {
     const n = newProps;
     const o = this.props;
     if (n.enterNewline !== o.enterNewline) { return true; }
     if (n.technicallyOutdated !== o.technicallyOutdated) { return true; }
     if (n.fontSize !== o.fontSize) { return true; }
-    if (this.state.focused !== nextState.focused) { return true; }
+    if (n.focusedChunk !== o.focusedChunk) { return true; }
     const nChunk = n.chunks[n.index];
     const oChunk = o.chunks[o.index];
     if (nChunk !== oChunk) {
@@ -202,21 +216,8 @@ class Chat extends React.Component<ChatProps, ChatState> {
     }
   }
 
-  handleBlur(editor: CMEditor, event: DomEvent) {
-    const { index } = this.props;
-    this.setState({ focused: false });
-    if (editor.getValue().trim() === '') {
-      // Prepare chunk for reasonable state if restored by GLOBAL undo by doing
-      // a LOCAL undo (presumably undoing a backspace)
-      if (isInitializedEditor(editor)) {
-        editor.undo();
-      }
-      this.deleteChunk(index);
-    }
-  }
-
-  handleFocus(editor: CMEditor) {
-    this.setState({ focused: true });
+  handleFocus() {
+    this.props.focusChunk(this.props.index);
   }
 
   insertAbove() {
@@ -225,21 +226,8 @@ class Chat extends React.Component<ChatProps, ChatState> {
   }
 
   merge() {
-    const { deleteChunk, setChunks, index } = this.props;
-    const above = this.props.chunks[index - 1];
-    const thisChunk = this.props.chunks[index];
-    deleteChunk(index - 1);
-    const editor = thisChunk.editor;
-    if(isInitializedEditor(editor)) {
-      editor.setValue(above.editor.getValue() + "\n" + editor.getValue())
-    }
-    setChunks({
-      chunk: {
-        ...thisChunk,
-        outdated: true
-      },
-      modifiesText: true,
-    });
+    const { mergeChunks, index } = this.props;
+    mergeChunks(index - 1, index);
   }
 
   /* Delete this chunk and move every chunk below it up by one */
@@ -278,7 +266,9 @@ class Chat extends React.Component<ChatProps, ChatState> {
 
     // Use value of ghost UninitializedEditor in real editor
     editor.setValue(initialEditor.getValue());
-    if ('grabFocus' in initialEditor && initialEditor.grabFocus) {
+    const grabs = 'grabFocus' in initialEditor && initialEditor.grabFocus;
+    const isCurrent = this.props.focusedChunk === this.props.index;
+    if (grabs || isCurrent) {
       editor.getInputField().focus();
     }
 
@@ -345,8 +335,7 @@ class Chat extends React.Component<ChatProps, ChatState> {
               default:
             }
           }) as any}
-          onBlur={((editor: CMEditor, e : DomEvent) => this.handleBlur(editor, e)) as any}
-          onFocus={((editor: CMEditor) => this.handleFocus(editor)) as any}
+          onFocus={((editor: CMEditor) => this.handleFocus()) as any}
           className="chat"
         />
       </div>
@@ -357,18 +346,23 @@ class Chat extends React.Component<ChatProps, ChatState> {
     const outdatedClass = outdated ? 'outdated' : '';
     const pendingRerunClass = technicallyOutdated ? 'partially-outdated' : '';
     const isErrorClass = isError ? 'chatitor-error' : '';
-    const focusedClass = this.state.focused ? 'focused-chunk' : '';
+    const focusedClass = this.props.focusedChunk === this.props.index ? 'focused-chunk' : '';
 
+    const merge = this.props.index === 0 ? <></> :
+      <button title='Merge with previous' className="text-button chunk-menu-icon" onClick={() => this.merge()} type="button">
+        <LogIn style={{ transform: "rotate(270deg)" }} className="icon"/>
+      </button>;
     return (
       <>
         <div className={`chat-and-result ${outdatedClass} ${pendingRerunClass} ${isErrorClass} ${focusedClass}`}>
           <div className='chunk-menu'>
-            <button title={addButtonTitle} className="text-button chunk-menu-icon" onMouseDown={() => this.insertAbove()} type="button">
-              [+]
+            <button title={addButtonTitle} className="text-button chunk-menu-icon" onClick={() => this.insertAbove()} type="button">
+              <Plus className="icon"/>
             </button>
-            <button title='Merge with previous' className="text-button chunk-menu-icon" onMouseDown={() => this.merge()} type="button">
-              [↑]
+            <button title='Delete' className="text-button chunk-menu-icon" onClick={() => this.deleteChunk(this.props.index)} type="button">
+              <Trash2 className="icon"/>
             </button>
+            {merge}
           </div>
           { chunkEditorPart }
           { chunkResultsPart }

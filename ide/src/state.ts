@@ -118,6 +118,10 @@ export type State = {
   /* The list of chunks. */
   chunks: Chunk[],
 
+  /* The index of the Chunk that was most recently focused, for showing its menu.
+   * false indicates nothing focused */
+  focusedChunk: number | false;
+
   /* Chunk undo history */
   past: UndoState[],
   future: UndoState[],
@@ -169,6 +173,14 @@ export type State = {
    * "technically outdated" - their values can mostly be believed, but may change
    * due to changes in definitions in previous chats */
   firstOutdatedChunk: number,
+
+  /* Because of limitations in tracking the environment per-chunk, we cannot
+   * reliably re-run faithfully from firstOutdatedChunk. So some edits, like merging
+   * cells and other multi-cell edits, simply require a re-run.
+   * 
+   * Starts true, then switches to false after each run
+   * (then it's OK to append and just run the last one), then switches back on some edits */
+  rerunAllChunks: boolean,
 
   /* Whether to show advanced options like Stopify, parent directory in
    * filesystem, modes */
@@ -222,6 +234,7 @@ export const initialState: State = {
   headerMessage: '',
   topChunk: undefined,
   chunks: [],
+  focusedChunk: false,
   past: [],
   future: [],
   menuTabVisible: false,
@@ -240,6 +253,7 @@ export const initialState: State = {
   enterNewline: true,
   messageTabIndex: MessageTabIndex.RuntimeMessages,
   firstOutdatedChunk: 0,
+  rerunAllChunks: true,
   editorLayout: EditorLayout.Normal,
   developerMode: DEVELOPER_MODE,
   definitionsEditor: {

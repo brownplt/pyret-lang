@@ -411,6 +411,24 @@ function handleUIChunkUpdate(state: State, chunksUpdate: UIChunksUpdate): State 
       // If it's the last chunk, the result goes away and that's it
       nowOutdated = chunksUpdate.index === chunks.length - 1 ? firstOutdatedChunk : chunksUpdate.index;
       break;
+    case 'merge':
+      const above = chunks[chunksUpdate.top];
+      const below = chunks[chunksUpdate.bottom];
+      const newChunkText = `${above.editor.getValue()}\n${below.editor.getValue()}`;
+      const newChunk = emptyChunk({ 
+        editor: {
+          getValue() { return newChunkText; },
+          grabFocus: true
+        }
+      });
+      newChunks = [
+        ...chunks.slice(0, chunksUpdate.top),
+        newChunk,
+        ...chunks.slice(chunksUpdate.bottom + 1, chunks.length)
+      ];
+      outdates = { type: 'outdates', index: chunksUpdate.top };
+      nowOutdated = chunksUpdate.top;
+      break;
     case 'insert':
       newChunks = [
         ...chunks.slice(0, chunksUpdate.index),
@@ -429,11 +447,13 @@ function handleUIChunkUpdate(state: State, chunksUpdate: UIChunksUpdate): State 
     chunks,
     outdates,
   };
+  const rerunAllChunks = ['clear', 'delete', 'merge'].indexOf(chunksUpdate.key) >= 0;
   return {
     ...state,
     chunks: newChunks,
     past: [...past, undo],
     future: [],
+    rerunAllChunks,
     firstOutdatedChunk: Math.min(firstOutdatedChunk, nowOutdated),
   };
 }
@@ -1038,15 +1058,23 @@ function setupRunProgramAsync(state: State) : State {
 let stopFlag = false;
 async function runSegmentsAsyncWithSession(state : State, sessionId : string, alwaysKeepCache : boolean) : Promise<any> {
   stopFlag = false;
-  const { typeCheck, chunks, firstOutdatedChunk } = state;
+  const { typeCheck, chunks, firstOutdatedChunk, rerunAllChunks } = state;
   const onlyLastSegmentChanged = firstOutdatedChunk === chunks.length - 1
-      // If any non-outdated segment was an error, the final segment would not
+      
+  // If any non-outdated segment was an error, the final segment would not
       // be non-outdated, with the exception of the last segment itself. We
       // don't want to run this one in such a case because it would have been
       // skipped by the "break on error" logic. Are we ever going to reconsider
       // that logic?
       && chunks[chunks.length - 2] !== undefined
-      && chunks[chunks.length - 2].results.status === 'succeeded';
+      && chunks[chunks.length - 2].results.status === 'succeeded'
+
+      // If we did some merging or deleting that might have made bindings go away,
+      // but still left the last chunk as the only one outdated, we still need
+      // to re-run all, because we don't have per-chunk control over the environment,
+      // etc. So rerunAllChunks makes sure we don't e.g. get a shadowing error from
+      // the bindings of a chunk that was deleted.
+      && !rerunAllChunks;
   const filenames: string[] = [];
   // If we are re-running the whole program, make sure to also re-run anything
   // that's imported, etc. This reset function removes *everything* but the
