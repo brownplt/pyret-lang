@@ -12,9 +12,9 @@ export { backend, path, bfsSetup };
 
 export const worker = new Worker(path.pyretJarr);
 
-export const installFileSystem = () => {
+export async function installFileSystem() : Promise<void> {
   bfsSetup.install();
-  bfsSetup.configure(worker /* , path.compileBase */);
+  return bfsSetup.configure(worker /* , path.compileBase */);
 };
 
 export const loadBuiltins = (): void => {

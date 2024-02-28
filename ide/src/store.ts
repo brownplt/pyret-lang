@@ -241,10 +241,8 @@ store.subscribe(() => {
   }
 });
 
-control.installFileSystem();
-control.loadBuiltins();
 
-setStore(store);
+
 
 const ide: IDE = {
   dispatchSpyMessage: (loc: string, message: string | undefined) => {
@@ -321,88 +319,99 @@ store.subscribe(() => {
 
 /* Try to load a Chunk mode program from the URI component ?program=uri-encoded-program */
 
-const params = new URLSearchParams(window.location.search);
+control.installFileSystem().then(() => {
+  control.loadBuiltins();
+  setStore(store);
+  setup();
+}).catch((e) =>{
+  console.error("Failed to load fs: ", e);
+})
 
-const drive = new GoogleDrive();
-const folderId = params.get('folder');
+function setup() {
+  const params = new URLSearchParams(window.location.search);
 
-function update(kv : Partial<State>) {
-  store.dispatch({ type: 'update', key: 'updater', value: (s : State) => ({ ...s, ...kv }) });
-}
-
-if (folderId !== null) {
-  update({
-    projectState: { type: 'gdrive-pending' },
-  });
-  drive.getFileStructureFor(folderId)
-    .then((structure) => {
-      populateFromDrive(structure);
-      const browsePath = `/google-drive/${folderId}/${structure.name}`;
-      update({
-        projectState: { type: 'gdrive', structure },
-        browsePath,
-        browseRoot: browsePath,
-      });
-      if (structure.files.length > 0) {
-        update({
-          currentFile: `${browsePath}/${structure.files[0].name}`,
-        });
-        store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
-      } else {
-        update({
-          menuTabVisible: 0, // Need to make this a better API (this is the files menu)
-        });
-      }
-      console.log('Structure is: ', structure);
+  const drive = new GoogleDrive();
+  const folderId = params.get('folder');
+  
+  function update(kv : Partial<State>) {
+    store.dispatch({ type: 'update', key: 'updater', value: (s : State) => ({ ...s, ...kv }) });
+  }
+  
+  if (folderId !== null) {
+    update({
+      projectState: { type: 'gdrive-pending' },
     });
-} else {
-  update({
-    menuTabVisible: 0, // Need to make this a better API (this is the files menu)
-    browsePath: '/projects/',
-    browseRoot: '/projects/',
-    currentFile: '/projects/program.arr',
-  });
-  store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
-}
-
-const maybeEncodedProgram: null | string = params.get('program');
-if (maybeEncodedProgram !== null) {
-  const decodedProgram = decodeURIComponent(maybeEncodedProgram);
-  const chunks: Chunk[] = makeChunksFromString(decodedProgram);
-  store.dispatch({ type: 'update', key: 'chunks', value: { chunks, modifiesText: true } });
-  store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile' } });
-}
-// Run `import cpo` at the very beginning to make first-time run more bearable
-{
-  const saveFile = '/tmp/include-cpo.arr';
-  const programText = 'import essentials2021 as __UNUSED_NAME';
-  const { runKind } = store.getState();
-  // We aren't going to lock running, because we don't want any interface
-  // changes that may continue to be associated with it as this happens "in the
-  // background" - this *is* safe, though it might not seem it because we are
-  // saving to a special file in /tmp which runSegments won't unlink
-  fs.writeFileSync(saveFile, programText);
-  const sessionId = store.getState().editorMode === 'Chatitor' ? CHATITOR_SESSION : TEXT_SESSION;
-  const { dir, base } = bfsSetup.path.parse(saveFile);
-  serverAPI.compileAndRun({
-    baseDir: dir,
-    program: base,
-    builtinJSDir: control.path.compileBuiltinJS,
-    checks: 'none',
-    typeCheck: false,
-    recompileBuiltins: false,
-    session: sessionId,
-  }, runKind, {
-    cwd: dir,
-    spyMessgeHandler: ideRt.defaultSpyMessage,
-    spyExprHandler: ideRt.defaultSpyExpr,
-    imgUrlProxy: ideRt.defaultImageUrlProxy,
-    checkBlockFilter: ideRt.checkBlockFilter,
-  }).then(() => {
-    console.log('compiled and run `include cpo`');
-    store.dispatch({ type: 'update', key: 'updater', value: (s: State) => ({ ...s, footerMessage: '' }) });
-    store.dispatch({ type: 'ready' });
-  });
+    drive.getFileStructureFor(folderId)
+      .then((structure) => {
+        populateFromDrive(structure);
+        const browsePath = `/google-drive/${folderId}/${structure.name}`;
+        update({
+          projectState: { type: 'gdrive', structure },
+          browsePath,
+          browseRoot: browsePath,
+        });
+        if (structure.files.length > 0) {
+          update({
+            currentFile: `${browsePath}/${structure.files[0].name}`,
+          });
+          store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
+        } else {
+          update({
+            menuTabVisible: 0, // Need to make this a better API (this is the files menu)
+          });
+        }
+        console.log('Structure is: ', structure);
+      });
+  } else {
+    update({
+      menuTabVisible: 0, // Need to make this a better API (this is the files menu)
+      browsePath: '/projects/',
+      browseRoot: '/projects/',
+      currentFile: '/projects/program.arr',
+    });
+    store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
+  }
+  
+  const maybeEncodedProgram: null | string = params.get('program');
+  if (maybeEncodedProgram !== null) {
+    const decodedProgram = decodeURIComponent(maybeEncodedProgram);
+    const chunks: Chunk[] = makeChunksFromString(decodedProgram);
+    store.dispatch({ type: 'update', key: 'chunks', value: { chunks, modifiesText: true } });
+    store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'saveFile' } });
+  }
+  // Run `import cpo` at the very beginning to make first-time run more bearable
+  {
+    const saveFile = '/tmp/include-cpo.arr';
+    const programText = 'import essentials2021 as __UNUSED_NAME';
+    const { runKind } = store.getState();
+    // We aren't going to lock running, because we don't want any interface
+    // changes that may continue to be associated with it as this happens "in the
+    // background" - this *is* safe, though it might not seem it because we are
+    // saving to a special file in /tmp which runSegments won't unlink
+    fs.writeFileSync(saveFile, programText);
+    const sessionId = store.getState().editorMode === 'Chatitor' ? CHATITOR_SESSION : TEXT_SESSION;
+    const { dir, base } = bfsSetup.path.parse(saveFile);
+    serverAPI.compileAndRun({
+      baseDir: dir,
+      program: base,
+      builtinJSDir: control.path.compileBuiltinJS,
+      checks: 'none',
+      typeCheck: false,
+      recompileBuiltins: false,
+      session: sessionId,
+    }, runKind, {
+      cwd: dir,
+      spyMessgeHandler: ideRt.defaultSpyMessage,
+      spyExprHandler: ideRt.defaultSpyExpr,
+      imgUrlProxy: ideRt.defaultImageUrlProxy,
+      checkBlockFilter: ideRt.checkBlockFilter,
+    }).then(() => {
+      console.log('compiled and run `include cpo`');
+      store.dispatch({ type: 'update', key: 'updater', value: (s: State) => ({ ...s, footerMessage: '' }) });
+      store.dispatch({ type: 'ready' });
+    });
+  }
+  
 }
 
 export default store;

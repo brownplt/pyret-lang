@@ -11,35 +11,57 @@ export const install = (): void => {
   BrowserFS.install(window);
 };
 
-export const configure = (worker: Worker /* , projectsDirectory: string */): void => {
-  BrowserFS.configure({
-    fs: 'MountableFileSystem',
-    options: {
-      '/projects/': {
-        fs: 'LocalStorage',
-      },
-      '/projects/data': {
-        fs: 'InMemory',
-      },
-      '/google-drive/': {
-        fs: 'InMemory',
-      },
-      '/prewritten': {
-        fs: 'InMemory',
-      },
-      '/compiled': {
-        fs: 'InMemory',
-      },
-      '/tmp': {
-        fs: 'InMemory',
-      },
-    },
-  }, (e: any) => {
-    if (e) {
-      throw e;
-    }
-
-    BrowserFS.FileSystem.WorkerFS.attachRemoteListener(worker);
-    (window as any).bfs = BrowserFS.BFSRequire('fs');
+export async function configure(worker: Worker /* , projectsDirectory: string */) : Promise<void> {
+  return new Promise((resolve, reject) => {
+      BrowserFS.configure({
+        fs: 'MountableFileSystem',
+        options: {
+          '/projects/': {
+            fs: "AsyncMirror",
+            options: {
+              sync: { fs: "InMemory" },
+              async: {
+                fs: 'IndexedDB',
+                options: {
+                  storeName: "parley"
+                }
+              }
+            }
+          },
+          '/projects/data': {
+            fs: "AsyncMirror",
+            options: {
+              sync: { fs: "InMemory" },
+              async: {
+                fs: 'IndexedDB',
+                options: {
+                  storeName: "parley-data"
+                }
+              }
+            }
+          },
+          '/google-drive/': {
+            fs: 'InMemory',
+          },
+          '/prewritten': {
+            fs: 'InMemory',
+          },
+          '/compiled': {
+            fs: 'InMemory',
+          },
+          '/tmp': {
+            fs: 'InMemory',
+          },
+        },
+      }, (e: any) => {
+        if (e) {
+          reject(e);
+          throw e;
+        }
+    
+        BrowserFS.FileSystem.WorkerFS.attachRemoteListener(worker);
+        (window as any).bfs = BrowserFS.BFSRequire('fs');
+        resolve();
+    });
   });
 };
