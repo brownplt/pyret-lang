@@ -28,18 +28,6 @@ export async function configure(worker: Worker /* , projectsDirectory: string */
               }
             }
           },
-          '/projects/data': {
-            fs: "AsyncMirror",
-            options: {
-              sync: { fs: "InMemory" },
-              async: {
-                fs: 'IndexedDB',
-                options: {
-                  storeName: "parley-data"
-                }
-              }
-            }
-          },
           '/google-drive/': {
             fs: 'InMemory',
           },
