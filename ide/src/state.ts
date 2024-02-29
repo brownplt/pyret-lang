@@ -266,9 +266,9 @@ export function getCurrentFileContents(state : State) {
   const chunkContents = chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP);
   switch (editorMode) {
     case EditorMode.Text:
+    case EditorMode.Examplaritor:
       const fullContents = `${definitionsEditor.getValue()}${CHUNKSEP}${chunkContents}`
       return fullContents
-    case EditorMode.Examplaritor:
     case EditorMode.Chatitor:
       return chunkContents;
     default:

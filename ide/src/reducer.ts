@@ -32,17 +32,20 @@ import {
   Outdates,
   GoogleDriveProjectStructure,
   GoogleDriveFile,
+  getCurrentFileContents,
 } from './state';
 
 import {
   Chunk,
   CHUNKSEP,
   emptyChunk,
+  makeChunksFromString,
 } from './chunk';
 
 import {
   makeRHSObjects,
   Location,
+  Trace,
 } from './rhsObject';
 
 import {
@@ -138,10 +141,9 @@ function correctEditorOption(state: State) {
   let state2 = state;
   if (fs.existsSync(testFile) && fs.existsSync(dirWheats) && fs.existsSync(dirChaffs)) {
     console.log('setting to Examplaritor');
-    state2 = { ...state, editorMode: EditorMode.Examplaritor };
+    return handleSetEditorMode(state, EditorMode.Examplaritor);
   } else if (state.editorMode === EditorMode.Examplaritor) {
-    console.log('setting to Chatitor');
-    state2 = { ...state, editorMode: EditorMode.Chatitor };
+    return handleSetEditorMode(state, EditorMode.Chatitor);
   }
   return state2;
 }
@@ -155,7 +157,7 @@ function handleLoadFileSuccess(state: State): State {
 }
 
 function handleSaveFileSuccess(state: State): State {
-  console.log('saved a file successfully');
+  console.log('saved a file successfully', state, getCurrentFileContents(state));
 
   return {
     ...state,
@@ -212,28 +214,28 @@ function handleEnqueueEffect(state: State, action: EnqueueEffect): State {
 
 function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
   if (state.editorMode === newEditorMode) { return state; }
+  const allChunks = makeChunksFromString(getCurrentFileContents(state));
   switch (newEditorMode) {
+    case EditorMode.Examplaritor:
     case EditorMode.Text: {
       // Ensure that currentFileContents is up-to-date with chunks
-      const { chunks } = state;
+      const defs = allChunks.length > 0 ? allChunks[0].editor.getValue() : "";
       const newDefsEditor = {
-        getValue: () => chunks[0].editor.getValue()
-      }
+        getValue: () => defs
+      };
       return {
         ...state,
         definitionsEditor: newDefsEditor,
-        chunks: chunks.slice(1),
+        chunks: allChunks.slice(1),
         editorMode: newEditorMode,
       };
     }
-    case EditorMode.Examplaritor:
     case EditorMode.Chatitor: {
-      const newChunks = [...state.chunks];
       if (state.editorMode === EditorMode.Text) {
         const { definitionsEditor } = state;
         const currentFileContents = definitionsEditor.getValue();
         if(currentFileContents !== "") {
-          newChunks.unshift(emptyChunk({
+          allChunks.unshift(emptyChunk({
             editor: { getValue: () => currentFileContents }
           }))
         }
@@ -242,7 +244,7 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
       return {
         ...state,
         editorMode: newEditorMode,
-        chunks: newChunks,
+        chunks: allChunks,
         topChunk: undefined,
       };
     }
@@ -311,6 +313,7 @@ function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
   }
 
   switch(editorMode) {
+    case EditorMode.Examplaritor: 
     case EditorMode.Text: {
       return {
         ...state,
@@ -320,8 +323,7 @@ function handleSetChunks(state: State, chunksUpdate: ChunksUpdate): State {
         effectQueue: [ ...state.effectQueue, { effectKey: 'saveFile' }]
       };
     }
-    case EditorMode.Chatitor:
-    case EditorMode.Examplaritor: {
+    case EditorMode.Chatitor: {
       return {
         ...state,
         chunks: newChunks,
@@ -956,7 +958,7 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
   const rhs0 = (rhs.slice(0, 1))[0];
   // eslint-disable-next-line
   const resultString = resultSummary(wheatResultArray, chaffResultArray);
-  const modifiedResult = {
+  const modifiedResult : Trace = {
     key: (<Location>rhs0).key,
     tag: 'trace',
     srcloc: (<Location>rhs0).srcloc,
@@ -966,6 +968,13 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
     ...state,
     running: { type: 'idle' },
     definitionsHighlights: [],
+    topChunk: {
+      id: "topChunk",
+      editor: state.definitionsEditor,
+      results: { status: 'succeeded', objects: [modifiedResult] },
+      outdated: false,
+      referencedFrom: []
+    },
     messageTabIndex: MessageTabIndex.RuntimeMessages,
   };
 }
@@ -1150,8 +1159,8 @@ function runProgramOrSegments(
 
 function handleRunExamplarSuccessFull(state: State, wheatResultArray: any[], chaffResultArray: any[], sampleResult: any, reprFile: string) : State {
   const state2 = handleRunExamplarSuccess(state, wheatResultArray, chaffResultArray, sampleResult, reprFile);
-  const state3 = runProgramOrSegments(state2, runSegmentsAsync, setupRunSegmentsAsync);
-  return state3;
+  // const state3 = runProgramOrSegments(state2, runSegmentsAsync, setupRunSegmentsAsync);
+  return state2;
 }
 
 function insertUserImpl(s: string, newFile: string) {
@@ -1175,13 +1184,8 @@ function insertUserImpl(s: string, newFile: string) {
 async function runExamplarAsync(state: State) : Promise<any> {
   // currentFile is just the standard program.arr, we'll use it to get at
   // our relevant files
-  const { typeCheck, chunks, runKind, currentFile } = state;
+  const { typeCheck, runKind, currentFile } = state;
   const { dir } = bfsSetup.path.parse(currentFile);
-
-  fs.writeFileSync(
-    state.currentFile,
-    chunks.map((chunk) => chunk.editor.getValue()).join(CHUNKSEP),
-  );
 
   // eslint-disable-next-line
   const dirWheats: string = dir + '/wheats';
@@ -1337,7 +1341,7 @@ function rootReducer(state: State, action: Action): State {
         return runProgramOrSegments(state, runSegmentsAsync, setupRunSegmentsAsync);
       }
       else if (state.editorMode === EditorMode.Examplaritor) {
-        return runProgramOrSegments(state, runExamplarAsync, setupRunSegmentsAsync);
+        return runProgramOrSegments(state, runExamplarAsync, setupRunProgramAsync);
       }
 
     case 'stopSession':

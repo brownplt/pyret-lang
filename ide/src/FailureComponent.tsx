@@ -22,7 +22,7 @@ function mapStateToProps(state: State): StateProps {
   const { chunks } = state;
   return { chunks };
 }
-const connector = connect(mapStateToProps, () => {});
+const connector = connect(mapStateToProps, () => ({}));
 
 function FailureComponentUnconnected({
   failure, id, editor, chunks,

@@ -41,15 +41,15 @@ function handleLoadFile(
 
   switch (editorMode) {
     case EditorMode.Text:
-      const defs = chunks[0].editor.getValue();
+    case EditorMode.Examplaritor:
+      const defs = chunks.length > 0 ? chunks[0].editor.getValue() : "";
       dispatch({ type: 'update', key: 'updater', value: (state : State) => ({...state,
           definitionsEditor: { getValue: () => defs },
           chunks: chunks.slice(1),
-          topChunk: state.topChunk ? { ...state.topChunk, outdated: true } : undefined
+          topChunk: undefined
         })
       })
       break;
-    case EditorMode.Examplaritor:
     case EditorMode.Chatitor: {
       dispatch({
         type: 'update',

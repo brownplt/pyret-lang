@@ -16,7 +16,7 @@ import * as RawCodeMirror from 'codemirror';
 require('pyret-codemirror-mode/mode/pyret');
 
 type Props = {
-  onEdit: (s: string) => void,
+  onEdit: (e : CodeMirror.Editor, s: string) => void,
   onInit: (e : CodeMirror.Editor) => void,
   highlights: number[][],
   text: string
@@ -78,7 +78,7 @@ export default class SingleCodeMirrorDefinitions extends React.Component<Props, 
     for (let i = 0; i < editor.getDoc().getAllMarks().length; i += 1) {
       editor.getDoc().getAllMarks()[i].clear();
     }
-    onEdit(value);
+    onEdit(editor, value);
   };
 
   render() {

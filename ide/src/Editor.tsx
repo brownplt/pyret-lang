@@ -124,18 +124,15 @@ class Editor extends React.Component<EditorProps, any> {
           <Chatitor />
         );
       case EditorMode.Text:
+      case EditorMode.Examplaritor:
         return (
           <SingleCodeMirrorDefinitions
             text={definitionsEditor.getValue()}
-            onEdit={() => { this.props.save() }}
+            onEdit={(editor: CodeMirror.Editor) => { this.props.save(); }}
             onInit={(editor: CodeMirror.Editor) => this.props.update({ definitionsEditor: editor })}
             highlights={definitionsHighlights}
             run={run}
-          />
-        );
-      case EditorMode.Examplaritor:
-        return (
-          <Examplaritor />
+        />
         );
       default:
         throw new NeverError(editorMode);
