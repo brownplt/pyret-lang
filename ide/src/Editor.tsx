@@ -41,6 +41,7 @@ type StateProps = {
   compiling: boolean | 'out-of-date',
   messageTabIndex: MessageTabIndex,
   projectState: State.ProjectState,
+  topChunk: Chunk | undefined
 };
 
 function mapStateToProps(state: State.State): StateProps {
@@ -58,6 +59,7 @@ function mapStateToProps(state: State.State): StateProps {
     rtMessages: state.rtMessages,
     messageTabIndex: state.messageTabIndex,
     projectState: state.projectState,
+    topChunk: state.topChunk
   };
 }
 
@@ -116,6 +118,7 @@ class Editor extends React.Component<EditorProps, any> {
       definitionsHighlights,
       definitionsEditor,
       runProgram: run,
+      topChunk
     } = this.props;
 
     switch (editorMode) {
@@ -128,7 +131,17 @@ class Editor extends React.Component<EditorProps, any> {
         return (
           <SingleCodeMirrorDefinitions
             text={definitionsEditor.getValue()}
-            onEdit={(editor: CodeMirror.Editor) => { this.props.update({ definitionsEditor: editor }); this.props.save(); }}
+            onEdit={(editor: CodeMirror.Editor) => {
+              this.props.update({
+                topChunk: topChunk && {
+                  ...topChunk,
+                  outdated: true
+                },
+                definitionsEditor: editor,
+                firstOutdatedChunk: 0
+              });
+              this.props.save();
+            }}
             onInit={(editor: CodeMirror.Editor) => this.props.update({ definitionsEditor: editor })}
             highlights={definitionsHighlights}
             run={run}

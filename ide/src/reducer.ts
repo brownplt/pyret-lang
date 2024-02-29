@@ -1010,17 +1010,22 @@ async function runTextProgram(
 
 async function runProgramAsync(state: State) : Promise<void> {
   const {
-    typeCheck, runKind, currentFile, definitionsEditor
+    typeCheck, runKind, currentFile, definitionsEditor, topChunk
   } = state;
-  const currentFileContents = definitionsEditor.getValue();
-  const result = await runTextProgram(typeCheck, runKind, segmentName(currentFile, "definitions"), currentFileContents ?? '');
-  if (result.type === 'compile-failure') {
-    update((s: State) => handleCompileProgramFailure(s, result.errors));
-  } else if (result.type === 'run-failure') {
-    update((s: State) => handleRunProgramFailure(s, result.error));
-  } else {
-    update((s: State) => handleRunProgramSuccess(s, result.result));
-    await runSegmentsAsyncWithSession(state, TEXT_SESSION, true);
+  if(topChunk?.outdated || !topChunk) {
+    const currentFileContents = definitionsEditor.getValue();
+    const result = await runTextProgram(typeCheck, runKind, segmentName(currentFile, "definitions"), currentFileContents ?? '');
+    if (result.type === 'compile-failure') {
+      update((s: State) => handleCompileProgramFailure(s, result.errors));
+    } else if (result.type === 'run-failure') {
+      update((s: State) => handleRunProgramFailure(s, result.error));
+    } else {
+      update((s: State) => handleRunProgramSuccess(s, result.result));
+      await runSegmentsAsyncWithSession(state, TEXT_SESSION, true);
+    }  
+  }
+  else {
+    await runSegmentsAsyncWithSession(state, TEXT_SESSION, true); 
   }
 }
 
