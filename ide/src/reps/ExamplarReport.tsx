@@ -2,6 +2,8 @@
 import React from 'react';
 // TODO(joe): is this a bad import to have in the view? Should we have a more intermediate datatype like ChunkResults or no?
 import { CompileAndRunResult } from '../control';
+import { FaBug, FaBugSlash } from "react-icons/fa6";
+
 
 type ExamplarResult = { success: boolean, result: CompileAndRunResult };
 
@@ -62,11 +64,47 @@ function resultSummary(wheatResultArray: ExamplarResult[], chaffResultArray: Exa
   return `${introMessage}\n${wheatMessage}\n${chaffMessage}`;
 }
 
+function missingBug() {
+  return <span style={{
+    width: "3em",
+    height: "3em",
+    display: "inline-flex",
+    alignItems: "center",
+    borderRadius: "1.5em",
+    backgroundColor: "#ddd"}
+  }>
+    <FaBugSlash style={{margin: "auto"}} color="#111" size="2em" background-color="rgb(44, 139, 219)"></FaBugSlash>
+  </span>}
+function caughtBug() {
+  return <span style={{
+    width: "3em",
+    height: "3em",
+    display: "inline-flex",
+    alignItems: "center",
+    borderRadius: "1.5em",
+    backgroundColor: "rgb(44, 139, 219)"}
+  }>
+    <FaBug style={{margin: "auto"}} color="#111" size="2em" background-color="rgb(44, 139, 219)"></FaBug>
+  </span>
+}
+function chaffWidget(chaffResults: ExamplarResult[]) {
+  return <div>
+    {
+      chaffResults.map(cr => {
+        if(cr.success) { return missingBug(); }
+        return caughtBug();
+      })
+    }
+  </div>
+}
+
+
+
 export default class ExamplarReportWidget extends React.Component<ExamplarReportProps, ExamplarReportState> {
   render() {
     const { wheatResults, chaffResults } = this.props;
     return (
-      <div>{resultSummary(wheatResults, chaffResults)}</div>
+      <div>{chaffWidget(chaffResults)}<p>{resultSummary(wheatResults, chaffResults)}</p></div>
     );
   }
 }
