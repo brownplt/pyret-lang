@@ -128,7 +128,7 @@ class Editor extends React.Component<EditorProps, any> {
         return (
           <SingleCodeMirrorDefinitions
             text={definitionsEditor.getValue()}
-            onEdit={(editor: CodeMirror.Editor) => { this.props.save(); }}
+            onEdit={(editor: CodeMirror.Editor) => { this.props.update({ definitionsEditor: editor }); this.props.save(); }}
             onInit={(editor: CodeMirror.Editor) => this.props.update({ definitionsEditor: editor })}
             highlights={definitionsHighlights}
             run={run}
