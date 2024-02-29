@@ -37,6 +37,7 @@ import {
 
 import {
   Chunk,
+  ChunkResults,
   CHUNKSEP,
   emptyChunk,
   makeChunksFromString,
@@ -45,8 +46,8 @@ import {
 import {
   makeRHSObjects,
   Location,
-  Trace,
   ExamplarReport,
+  ExamplarResult
 } from './rhsObject';
 
 import {
@@ -900,56 +901,7 @@ function handleRunProgramSuccess(state : State, result : any) : State {
   };
 }
 
-function resultSummary(wheatResultArray: any[], chaffResultArray: any[]) {
-  function numFailures(resultArray: any[]) {
-    const fails = resultArray.filter((result) => !result);
-    return fails.length;
-  }
-  const numWheats = wheatResultArray.length;
-  const numChaffs = chaffResultArray.length;
-  const wheatFails = numFailures(wheatResultArray);
-  const chaffFails = numFailures(chaffResultArray);
-  const wheatSuccs = numWheats - wheatFails;
-  const chaffSuccs = numChaffs - chaffFails;
-  let introMessage = '';
-  let wheatMessage = '';
-  let chaffMessage = '';
-  //
-  if (wheatFails === 0 && chaffSuccs === 0) {
-    introMessage = 'Congratulations! Your tests are correct and comprehensive.';
-  } else if (wheatFails === 0 && chaffSuccs >= 1) {
-    introMessage = 'Your tests are correct but not comprehensive.';
-  } else if (wheatFails > 0) {
-    introMessage = 'Sorry. Your tests are incorrect.';
-  }
-  //
-  if (wheatFails === 0 && numWheats === 1) {
-    wheatMessage = 'The only wheat succeeded.';
-  } else if (wheatFails === 1 && numWheats === 1) {
-    wheatMessage = 'The only wheat failed.';
-  } else if (wheatFails === 0) {
-    wheatMessage = `All ${numWheats} wheats succeeded.`;
-  } else if (wheatFails > 0 && wheatFails === numWheats) {
-    wheatMessage = `All ${numWheats} wheats failed.`;
-  } else if (wheatFails > 0) {
-    wheatMessage = `Only ${wheatSuccs} out of ${numWheats} wheats succeeded.`;
-  }
-  //
-  if (chaffFails === 1 && numChaffs === 1) {
-    chaffMessage = 'You caught the only chaff.';
-  } else if (chaffFails === 0 && numChaffs === 1) {
-    chaffMessage = 'You didn\'t catch the only chaff.';
-  } else if (chaffFails === 0) {
-    chaffMessage = `You didn't catch any of the ${numChaffs} chaffs.`;
-  } else if (chaffFails > 0 && chaffFails === numChaffs) {
-    chaffMessage = `You caught all ${numChaffs} chaffs.`;
-  } else if (chaffFails > 0) {
-    chaffMessage = `You caught only ${chaffFails} out of ${numChaffs} chaffs.`;
-  }
-  //
-  // eslint-disable-next-line
-  return `${introMessage}\n${wheatMessage}\n${chaffMessage}`;
-}
+
 
 function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffResultArray: any[], sampleResult: any, reprFile: string) : State {
   if (!sampleResult) {
@@ -958,12 +910,12 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
   const rhs = makeRHSObjects(sampleResult, `file://${reprFile}`);
   const rhs0 = (rhs.slice(0, 1))[0];
   // eslint-disable-next-line
-  const resultString = resultSummary(wheatResultArray, chaffResultArray);
   const modifiedResult : ExamplarReport = {
     key: (<Location>rhs0).key,
     tag: 'examplar',
     srcloc: (<Location>rhs0).srcloc,
-    summaryString: resultString
+    wheatResults: wheatResultArray,
+    chaffResults: chaffResultArray
   };
   return {
     ...state,
@@ -1234,9 +1186,8 @@ async function runExamplarAsync(state: State) : Promise<any> {
   }
 
   // test if numPrograms > 0 and testFile exists
-
-  const wheatResultArray: any[] = [];
-  const chaffResultArray: any[] = [];
+  const wheatResultArray: ExamplarResult[] = [];
+  const chaffResultArray: ExamplarResult[] = [];
 
   let result: any;
   const testTemplate = String(fs.readFileSync(testFile));
@@ -1257,13 +1208,19 @@ async function runExamplarAsync(state: State) : Promise<any> {
       if (!firstFailureResult) {
         firstFailureResult = result;
       }
-      wheatResultArray.push(false);
+      wheatResultArray.push({
+        success: false,
+        result
+      });
     } else if (result.type === 'run-failure') {
       console.log('examplar run failure in', wheatFile, result);
       if (!firstFailureResult) {
         firstFailureResult = result;
       }
-      wheatResultArray.push(false);
+      wheatResultArray.push({
+        success: false,
+        result
+      });
     } else {
       if (!firstUsableResult) {
         firstUsableResult = result.result;
@@ -1271,7 +1228,11 @@ async function runExamplarAsync(state: State) : Promise<any> {
       }
       const checkArray = result.result.result.$checks;
       const failureArray = checkArray.filter((check: any) => (check.success === false));
-      wheatResultArray.push(failureArray.length === 0);
+      const success = failureArray.length === 0;
+      wheatResultArray.push({
+        success,
+        result
+      });
     }
   }
 
@@ -1287,13 +1248,19 @@ async function runExamplarAsync(state: State) : Promise<any> {
       if (!firstFailureResult) {
         firstFailureResult = result;
       }
-      chaffResultArray.push(false);
+      chaffResultArray.push({
+        success: false,
+        result
+      });
     } else if (result.type === 'run-failure') {
       console.log('examplar error in', chaffFile, result);
       if (!firstFailureResult) {
         firstFailureResult = result;
       }
-      chaffResultArray.push(false);
+      chaffResultArray.push({
+        success: false,
+        result
+      });
     } else {
       if (!firstUsableResult) {
         firstUsableResult = result.result;
@@ -1301,7 +1268,8 @@ async function runExamplarAsync(state: State) : Promise<any> {
       }
       const checkArray = result.result.result.$checks;
       const failureArray = checkArray.filter((check: any) => (check.success === false));
-      chaffResultArray.push(failureArray.length === 0);
+      const success = failureArray.length === 0;
+      chaffResultArray.push({ success, result });
     }
   }
 

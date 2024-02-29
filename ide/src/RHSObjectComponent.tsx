@@ -67,7 +67,7 @@ export default function RHSObjectComponent({
   }
 
   if (isExamplarReport(rhsObject)) {
-    return <ExamplarReportWidget summaryString={rhsObject.summaryString}/>
+    return <ExamplarReportWidget wheatResults={rhsObject.wheatResults} chaffResults={rhsObject.chaffResults}/>
   }
 
   throw new NeverError(rhsObject);

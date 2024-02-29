@@ -7,6 +7,8 @@
    - RenderedValue.tsx is used to render RHSObjects into HTML
    - HTML is dipslayed in the RHS.tsx component or inline in DefChunk.tsx */
 
+import { CompileAndRunResult } from "./control";
+
 export type RHSCheckValue = {
   exception: boolean,
   value: any,
@@ -46,10 +48,13 @@ export type Trace = {
   srcloc: SrcLoc,
 };
 
+export type ExamplarResult = { success: boolean, result: CompileAndRunResult };
+
 export type ExamplarReport = {
   tag: 'examplar',
   key?: string,
-  summaryString: string,
+  wheatResults: ExamplarResult[],
+  chaffResults: ExamplarResult[],
   srcloc: SrcLoc
   // TODO(joe): add much more here to report on wheat/chaff specifics
 }
