@@ -46,9 +46,17 @@ export type Trace = {
   srcloc: SrcLoc,
 };
 
+export type ExamplarReport = {
+  tag: 'examplar',
+  key?: string,
+  summaryString: string,
+  srcloc: SrcLoc
+  // TODO(joe): add much more here to report on wheat/chaff specifics
+}
+
 type RawRHSObject<T> = Omit<T, 'tag'>;
 
-export type RHSObject = Trace | Location | RHSCheck;
+export type RHSObject = Trace | Location | RHSCheck | ExamplarReport;
 
 export function isTrace(a: RHSObject): a is Trace {
   return a.tag === 'trace';
@@ -60,6 +68,10 @@ export function isLocation(a: RHSObject): a is Location {
 
 export function isRHSCheck(a: RHSObject): a is RHSCheck {
   return a.tag === 'rhs-check';
+}
+
+export function isExamplarReport(a: RHSObject): a is ExamplarReport {
+  return a.tag === 'examplar';
 }
 
 export type HasSrcLoc =

@@ -2,9 +2,11 @@ import React from 'react';
 import Check from './reps/Check';
 import RenderedValue from './reps/RenderedValue';
 import {
+  isExamplarReport,
   isLocation, isRHSCheck, isTrace, RHSObject,
 } from './rhsObject';
 import { NeverError } from './utils';
+import ExamplarReportWidget from './reps/ExamplarReport';
 
 // .class, .class-selected
 type Props = {
@@ -62,6 +64,10 @@ export default function RHSObjectComponent({
         <Check value={rhsObject} RenderedValue={RenderedValue} />
       </pre>
     );
+  }
+
+  if (isExamplarReport(rhsObject)) {
+    return <ExamplarReportWidget summaryString={rhsObject.summaryString}/>
   }
 
   throw new NeverError(rhsObject);

@@ -46,6 +46,7 @@ import {
   makeRHSObjects,
   Location,
   Trace,
+  ExamplarReport,
 } from './rhsObject';
 
 import {
@@ -958,11 +959,11 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
   const rhs0 = (rhs.slice(0, 1))[0];
   // eslint-disable-next-line
   const resultString = resultSummary(wheatResultArray, chaffResultArray);
-  const modifiedResult : Trace = {
+  const modifiedResult : ExamplarReport = {
     key: (<Location>rhs0).key,
-    tag: 'trace',
+    tag: 'examplar',
     srcloc: (<Location>rhs0).srcloc,
-    value: resultString,
+    summaryString: resultString
   };
   return {
     ...state,
