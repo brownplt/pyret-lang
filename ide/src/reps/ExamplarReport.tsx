@@ -65,26 +65,12 @@ function resultSummary(wheatResultArray: ExamplarResult[], chaffResultArray: Exa
 }
 
 function missingBug() {
-  return <span style={{
-    width: "3em",
-    height: "3em",
-    display: "inline-flex",
-    alignItems: "center",
-    borderRadius: "1.5em",
-    backgroundColor: "#ddd"}
-  }>
-    <FaBugSlash style={{margin: "auto"}} color="#111" size="2em" background-color="rgb(44, 139, 219)"></FaBugSlash>
+  return <span className="examplar-bug-icon missed">
+    <FaBugSlash style={{margin: "auto"}} color="#111" size="2em"></FaBugSlash>
   </span>}
 function caughtBug() {
-  return <span style={{
-    width: "3em",
-    height: "3em",
-    display: "inline-flex",
-    alignItems: "center",
-    borderRadius: "1.5em",
-    backgroundColor: "rgb(44, 139, 219)"}
-  }>
-    <FaBug style={{margin: "auto"}} color="#111" size="2em" background-color="rgb(44, 139, 219)"></FaBug>
+  return <span className="examplar-bug-icon caught">
+    <FaBug style={{margin: "auto"}} color="#111" size="2em"></FaBug>
   </span>
 }
 function chaffWidget(chaffResults: ExamplarResult[]) {

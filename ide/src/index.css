@@ -330,6 +330,23 @@ and overriding of rules. */
   left: -1.4em;
 }
 
+
+.examplar-bug-icon {
+  width: 3em;
+  height: 3em;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 1.5em;
+}
+
+.examplar-bug-icon.caught {
+  background-color: rgb(44, 139, 219);
+}
+
+.examplar-bug-icon.missed {
+  background-color: #ddd;
+}
+
 .rationalNumber {
   color: #af1180;
 }
