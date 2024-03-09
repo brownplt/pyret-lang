@@ -75,7 +75,7 @@ export default class RVPortal extends React.PureComponent<RVProps, RVState> {
         }
         skipOnMount
       >
-        <RHSObjectComponent rhsObject={rv} isSelected={false} className="chunks-rhs" />
+        <RHSObjectComponent editor={editor} rhsObject={rv} isSelected={false} className="chunks-rhs" />
       </ResizeObserver>
     ));
     const content = rvs.length === 0 ? <hr /> : rvs;

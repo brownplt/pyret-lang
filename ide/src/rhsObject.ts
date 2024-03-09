@@ -16,10 +16,6 @@ export type RHSCheckValue = {
 };
 
 // The result of evaluating a `check:` or `examples:` block.
-//
-// check:
-//   2 + 2 is 4
-// end
 export type RHSCheck = {
   tag: 'rhs-check',
   key?: string,

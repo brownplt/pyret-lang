@@ -3,13 +3,16 @@ import React from 'react';
 // TODO(joe): is this a bad import to have in the view? Should we have a more intermediate datatype like ChunkResults or no?
 import { CompileAndRunResult } from '../control';
 import { FaBug, FaBugSlash } from "react-icons/fa6";
-
+import CodeEmbed from '../CodeEmbed';
+import { CMEditor, parseLocation } from '../utils';
+import { UninitializedEditor } from '../chunk';
 
 type ExamplarResult = { success: boolean, result: CompileAndRunResult };
 
 type ExamplarReportProps = {
     wheatResults: ExamplarResult[],
-    chaffResults: ExamplarResult[]
+    chaffResults: ExamplarResult[],
+    editor: UninitializedEditor | CMEditor
 };
 type ExamplarReportState = {};
 
@@ -84,11 +87,56 @@ function chaffWidget(chaffResults: ExamplarResult[]) {
   </div>
 }
 
+function failingWheatTests(wheatResults: ExamplarResult[]) {
+    const failResults = wheatResults.flatMap(wr => {
+        if(wr.result.type !== 'run-result') { return []; }
+        console.log("Wheat result: ", wr);
+        const checks = wr.result.result.result.$checks;
+        const failed = checks.filter((c : any) => c.success === false);
+        if(failed.length === 0) { return []; }
+        const failingLoc = failed[0].loc;
+        return [failingLoc];
+    });
+    return failResults;
+}
+
+function firstFailingWheatTest(wheatResults : ExamplarResult[]) {
+    const failResults = failingWheatTests(wheatResults);
+    if(failResults.length === 0) {
+        console.error("Tried to get failing location for successful wheat results");
+        throw new Error("Tried to get failing location for successful wheat results");
+    }
+    console.log(failResults);
+    return failResults[0];
+}
+
+
+function wheatFailureEmbed(location : any, editor : any) {
+    return <CodeEmbed
+        from={{ line: location['start-line'] - 1, ch: 0}}
+        to={{ line: location['end-line'], ch: 999999 }}
+        text={editor.getRange({ line: location['start-line'] - 1, ch: 0 }, { line: location['end-line'] - 1, ch: 999999 })}
+        editor={editor}
+        failure={{}}>
+    </CodeEmbed>;
+}
+
+function showFirstWheatFailure(wheatResults : ExamplarResult[], editor : any) {
+    const first = parseLocation(firstFailingWheatTest(wheatResults));
+    console.log("wheatFailure ", first);
+    return <div>This test is invalid (it did not match the behavior of a wheat):
+        <div>{wheatFailureEmbed(first, editor)}</div>
+    </div>;
+}
 
 
 export default class ExamplarReportWidget extends React.Component<ExamplarReportProps, ExamplarReportState> {
   render() {
-    const { wheatResults, chaffResults } = this.props;
+    const { wheatResults, chaffResults, editor } = this.props;
+    const failures = failingWheatTests(wheatResults);
+    if(failures.length !== 0) {
+        return <div>{showFirstWheatFailure(wheatResults, editor)}</div>
+    }
     return (
       <div>{chaffWidget(chaffResults)}<p>{resultSummary(wheatResults, chaffResults)}</p></div>
     );

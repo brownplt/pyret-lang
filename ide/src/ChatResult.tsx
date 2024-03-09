@@ -66,6 +66,7 @@ class ChatResult extends React.Component<ChatResultProps, any> {
             const checks = rhsObjects.filter((r) => isRHSCheck(r));
             const values = shown.map((val) => (
                 <RHSObjectComponent
+                    editor={chunkEditor}
                     key={val.key ?? 'no key for val?'}
                     rhsObject={val}
                     isSelected={false}

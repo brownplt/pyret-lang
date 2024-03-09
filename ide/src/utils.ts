@@ -1,4 +1,5 @@
 import CodeMirror from 'codemirror';
+import { Location, SrcLoc } from './rhsObject';
 
 export type Srcloc =
   | { $name: 'builtin', 'module-name': string, 'asString': string, }
@@ -119,4 +120,23 @@ export function srclocToCodeMirrorPosition(
   const from = { line: loc['start-line'] - 1, ch: loc['start-column'] };
   const to = { line: loc['end-line'] - 1, ch: loc['end-column'] };
   return { from, to };
+}
+
+// file:///projects/examplar/testwheat.arr-0-segment:8:2-8:14
+const matchLocation = /.*:(\d)+:(\d)+-(\d)+:(\d)+$/;
+export function parseLocation(location : string) : Srcloc {
+  const locPieces = location.match(matchLocation);
+  if(locPieces === null) { throw new Error(`Cannot match ${location} as a location`); }
+  
+  return {
+      $name: 'srcloc',
+      'source': locPieces[0],
+      'start-line': Number(locPieces[1]),
+      'start-column': Number(locPieces[2]),
+      'start-char': 0,
+      'end-line': Number(locPieces[3]),
+      'end-column': Number(locPieces[4]),
+      'end-char': 0,
+      'asString': location,
+    };
 }

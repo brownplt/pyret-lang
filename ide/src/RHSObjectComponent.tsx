@@ -5,8 +5,9 @@ import {
   isExamplarReport,
   isLocation, isRHSCheck, isTrace, RHSObject,
 } from './rhsObject';
-import { NeverError } from './utils';
+import { CMEditor, NeverError } from './utils';
 import ExamplarReportWidget from './reps/ExamplarReport';
+import { UninitializedEditor } from './chunk';
 
 // .class, .class-selected
 type Props = {
@@ -15,10 +16,11 @@ type Props = {
   onMouseEnter?: () => void,
   className: string
   title?: string,
+  editor: UninitializedEditor | CMEditor
 };
 
 export default function RHSObjectComponent({
-  isSelected, rhsObject, onMouseEnter, className, title,
+  isSelected, rhsObject, onMouseEnter, className, title, editor
 }: Props) {
   const taggedClass = `${className} ${isSelected ? `${className}-selected` : ''}`;
 
@@ -67,7 +69,7 @@ export default function RHSObjectComponent({
   }
 
   if (isExamplarReport(rhsObject)) {
-    return <ExamplarReportWidget wheatResults={rhsObject.wheatResults} chaffResults={rhsObject.chaffResults}/>
+    return <ExamplarReportWidget editor={editor} wheatResults={rhsObject.wheatResults} chaffResults={rhsObject.chaffResults}/>
   }
 
   throw new NeverError(rhsObject);

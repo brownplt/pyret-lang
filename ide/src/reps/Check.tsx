@@ -4,6 +4,7 @@ import { RHSCheck } from '../rhsObject';
 type CheckProps = {value: RHSCheck, RenderedValue: React.ReactType};
 
 export default function Check({ value, RenderedValue }: CheckProps) {
+  console.log("Check result: ", value);
   // NOTE(luna): We don't get back the type of test operator used :(
   const sideStyle = {
     display: 'inline-block',
