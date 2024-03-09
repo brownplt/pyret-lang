@@ -5,7 +5,7 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/label-has-associated-control */
 
-import React from 'react';
+import React, { ChangeEvent, FormEvent } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import TreeView, { flattenTree } from 'react-accessible-treeview';
 
@@ -22,6 +22,13 @@ import * as control from './control';
 import * as action from './action';
 
 import { initialState } from './state';
+
+// Allow us to upload directories (nonstandard, but wide support)
+declare module "react" {
+  interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
+      webkitdirectory?: string;
+  }
+}
 
 type StateProps = {
   browseRoot: string,
@@ -193,31 +200,105 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
     });
   };
 
+  mkdirp(base : string, dir : string) {
+    const parts = dir.split(control.bfsSetup.path.sep);
+    let sofar = base;
+    parts.forEach(p => {
+      sofar = control.bfsSetup.path.join(sofar, p);
+      if(!control.bfsSetup.fs.existsSync(sofar)) {
+        control.bfsSetup.fs.mkdirSync(sofar);
+      }
+    });
+  }
+
+  neededDirs(files : FileList) {
+    const asArray = Array.from(files);
+    const seenDirs : Set<string> = new Set();
+    asArray.map(f => {
+      const { dir } = control.bfsSetup.path.parse(f.webkitRelativePath);
+      seenDirs.add(dir);
+    });
+    const toReturn = Array.from(seenDirs);
+    toReturn.sort();
+    return toReturn;
+  }
+
+  conflicts(base : string, files : FileList) {
+    const asArray = Array.from(files);
+    return asArray.filter(f => {
+      const webkitpath = f.webkitRelativePath;
+      const p = webkitpath === "" ? f.name : webkitpath;
+      const toCheck = control.bfsSetup.path.join(base, p);
+      return control.bfsSetup.fs.existsSync(toCheck);
+    });
+  }
+
+  conflictMessage(conflicts : File[]) {
+    let conflictPaths = conflicts.map(c => c.name);
+    let more = "";
+    if(conflictPaths.length > 6) {
+      more = `\nand ${conflictPaths.length - 6} more...\n`;
+      conflictPaths = conflictPaths.slice(0, 6);
+    }
+    const conflictString = conflictPaths.join("\n");
+    return `This upload will overwrite the following files:\n${conflictString}${more}\nOverwrite them with the uploaded versions?`;
+
+  }
+
   /* Opens a system-specific file uploading dialog, writing the result to the
      file system. */
-  uploadFile = (event: any): void => {
+  uploadFile = (event: FormEvent): void => {
     const { browsePath } = this.props;
+    const target : HTMLInputElement = event.target as HTMLInputElement;
+    if(!event.target || !target.files) { return; }
+    const files = target.files;
 
-    const file = event.target.files[0];
-
-    if (file) {
-      const reader = new FileReader();
-
-      reader.onload = (e: any) => {
-        const data = e.target.result;
-        const { name } = file;
-
-        control.bfsSetup.fs.writeFileSync(
-          control.bfsSetup.path.join(browsePath, name),
-          Buffer.from(data),
-        );
-
-        this.forceUpdate();
-      };
-
-      reader.readAsArrayBuffer(file);
-      // reader.readAsText(file);
+    const conflicts = this.conflicts(browsePath, files);
+    if(conflicts.length > 0) {
+      const result = confirm(this.conflictMessage(conflicts));
+      if(!result) {
+        // NOTE(joe): Because we want to use onChange on just one input element, we need
+        // to clear the state here. Otherwise, future clicks to the upload button with the
+        // same file or directory won't do anything. This is a common case if someone reviews
+        // the files after cancelling in the dialog about conflicts. Amusingly, setting
+        // files to null has no effect, but setting value to the empty string does the
+        // right clearing.
+        // https://stackoverflow.com/questions/26634616/filereader-upload-same-file-again-not-working
+        target.value = '';
+        return;
+      }
     }
+
+    const toCreate = this.neededDirs(files);
+    toCreate.forEach(c => {
+      this.mkdirp(browsePath, c);
+    });
+
+    Array.from(files).forEach((file : File) => {
+      if (file) {
+        const reader = new FileReader();
+  
+        reader.onload = (e: any) => {
+          const data = e.target.result;
+
+          const fs = control.bfsSetup.fs;
+          
+          const webkitpath = file.webkitRelativePath;
+          const p = webkitpath === "" ? file.name : webkitpath;
+  
+          fs.writeFileSync(
+            control.bfsSetup.path.join(browsePath, p),
+            Buffer.from(data),
+          );
+  
+          this.forceUpdate();
+        };
+  
+        reader.readAsArrayBuffer(file);
+      }
+    });
+    // NOTE(joe): also clear this after a successful upload to keep things consistent
+    target.value = '';
   };
 
   render() {
@@ -325,7 +406,9 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
               >
                 <input
                   type="file"
-                  onChange={this.uploadFile}
+                  multiple={true}
+                  webkitdirectory=""
+                  onInput={this.uploadFile}
                   style={{
                     display: 'none',
                   }}
