@@ -128,6 +128,9 @@ export function parseLocation(location : string) : Srcloc {
   const locPieces = location.match(matchLocation);
   if(locPieces === null) { throw new Error(`Cannot match ${location} as a location`); }
   
+  // TODO(joe): Think about how to manage this representation when start/end-char are unknown.
+  // They aren't currently used by highlighting (CodeMirror uses line/col), and they
+  // aren't in the serialization some layers see.
   return {
       $name: 'srcloc',
       'source': locPieces[0],
