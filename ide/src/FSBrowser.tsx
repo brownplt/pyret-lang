@@ -103,6 +103,14 @@ function structureFromBrowseRoot(browseRoot : string) {
       metadata: { directory: false, path: childPath },
       name: child,
     };
+  }).sort((a : any, b : any) => {
+    const { directory: adir, path: apath } = a.metadata;
+    const { directory: bdir, path: bpath } = b.metadata;
+    if(adir && !bdir) { return -1; }
+    if(!adir && bdir) { return 1; }
+    if(apath < bpath) { return -1; }
+    if(bpath < apath) { return 1; }
+    return 0;
   });
   return rootChildren;
 }
@@ -451,8 +459,8 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         <div className="directory">
           <TreeView
             data={flattened}
-            expandedIds={expandedIds}
-            selectedIds={selectedIds}
+            defaultExpandedIds={expandedIds}
+            defaultSelectedIds={selectedIds}
             aria-label="directory tree"
             onNodeSelect={({ element }) => {
               if (typeof element.metadata?.path !== 'string') {
@@ -462,6 +470,8 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
               if (element.metadata?.directory) {
                 this.props.setBrowsePath(element.metadata?.path);
               } else {
+                const { dir } = control.bfsSetup.path.parse(element.metadata?.path);
+                this.props.setBrowsePath(dir);
                 this.props.onExpandChild(element.metadata?.path);
               }
             }}
