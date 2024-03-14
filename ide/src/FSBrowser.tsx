@@ -21,7 +21,7 @@ import {
 import * as control from './control';
 import * as action from './action';
 
-import { initialState } from './state';
+import { State, initialState } from './state';
 
 // Allow us to upload directories (nonstandard, but wide support)
 declare module "react" {
@@ -32,13 +32,15 @@ declare module "react" {
 
 type StateProps = {
   browseRoot: string,
-  browsePath: string
+  browsePath: string,
+  currentFile: string,
 };
 
-function mapStateToProps(state: any): StateProps {
+function mapStateToProps(state: State): StateProps {
   return {
     browseRoot: state.browseRoot,
     browsePath: state.browsePath,
+    currentFile: state.currentFile
   };
 }
 
@@ -362,6 +364,17 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
       name: '',
       children: structureFromBrowseRoot(that.props.browseRoot),
     };
+    const flattened = flattenTree(fsBrowserStructure);
+    const expandedIds = flattened.filter(val => {
+      if(!val.metadata) { return false; }
+      const meta = val.metadata;
+      return that.props.browsePath.startsWith(meta.path! as string) && meta.directory;
+    }).map(node => node.id);
+    const selectedIds = flattened.filter(val => {
+      if(!val.metadata) { return false; }
+      const meta = val.metadata;
+      return that.props.currentFile == meta.path;
+    }).map(node => node.id);
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -437,7 +450,9 @@ class FSBrowser extends React.Component<FSBrowserProps, FSBrowserState> {
         </div>
         <div className="directory">
           <TreeView
-            data={flattenTree(fsBrowserStructure)}
+            data={flattened}
+            expandedIds={expandedIds}
+            selectedIds={selectedIds}
             aria-label="directory tree"
             onNodeSelect={({ element }) => {
               if (typeof element.metadata?.path !== 'string') {

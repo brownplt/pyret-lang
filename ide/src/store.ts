@@ -365,9 +365,6 @@ function setup() {
   } else {
     update({
       menuTabVisible: 0, // Need to make this a better API (this is the files menu)
-      browsePath: '/projects/',
-      browseRoot: '/projects/',
-      currentFile: '/projects/program.arr',
     });
     store.dispatch({ type: 'enqueueEffect', effect: { effectKey: 'loadFile' } });
   }
