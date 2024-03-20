@@ -39,24 +39,15 @@ and overriding of rules. */
 }
 
 .chat-scroll {
-  width: 100%;
   overflow: auto;
   display: flex;
   flex-direction: column;
+  width: calc(min(100%, 60em) - 20px);
+  margin: 0 auto;
 }
 
-.chat-layout-compact .chats,
-.chat-layout-normal .chats {
-  margin: 2em auto;
-}
-
-.chat-layout-compact .chats {
-  width: 70em;
-  min-width: 40em;
-}
-.chat-layout-normal .chats {
-  min-width: 40em;
-  max-width: min(70%, 60em);
+.chats {
+  margin: 2em;
 }
 
 .chat-layout-compact .chat .CodeMirror,
@@ -172,8 +163,7 @@ and overriding of rules. */
 }
 
 .prompt {
-  width: 45em;
-  margin: 0 auto;
+  margin: 0 4em 0 2em;
   position: relative;
 }
 .send-button {
