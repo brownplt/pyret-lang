@@ -8,10 +8,16 @@ provide {
     mode-smallest: mode-smallest,
     mode-largest: mode-largest,
     mode-any: mode-any,
+    variance: variance,
     stdev: stdev,
+    variance-sample: variance-sample,
     stdev-sample: stdev-sample,
     linear-regression: linear-regression,
-    r-squared: r-squared
+    r-squared: r-squared,
+    t-test-paired: t-test-paired,
+    t-test-pooled: t-test-pooled,
+    t-test-independent: t-test-independent,
+    chi-square: chi-square
 } end
 provide-types *
 import global as _
@@ -143,24 +149,36 @@ fun mode-any(l :: List<Number>) -> Number:
     ms.get(num-random(ms.length()))
   end
 end
-  
-fun stdev(l :: List) -> Number:
-  doc: ```returns the standard deviation of the list 
+
+fun variance(l :: List) -> Number:
+  doc: ```returns the variance of the list
        of numbers, or raises an error if the list is empty```
   reg-mean = mean(l)
   sq-diff = l.map(lam(k): num-expt((k - reg-mean), 2) end)
   sq-mean = mean(sq-diff)
-  num-sqrt(sq-mean)
+  sq-mean
 end
 
-fun stdev-sample(l :: List) -> Number:
-  doc: ```returns the standard deviation of the list 
+fun stdev(l :: List) -> Number:
+  doc: ```returns the standard deviation of the list
+       of numbers, or raises an error if the list is empty```
+  num-sqrt(variance(l))
+end
+
+fun variance-sample(l :: List) -> Number:
+  doc: ```returns the variance of the list
        of numbers, or raises an error if the list is empty```
   len = l.length()
   reg-mean = mean(l)
   sq-diff = l.map(lam(k): num-expt((k - reg-mean), 2) end)
   sq-mean = math.sum(sq-diff) / (len - 1)
-  num-sqrt(sq-mean)
+  sq-mean
+end
+
+fun stdev-sample(l :: List) -> Number:
+  doc: ```returns the standard deviation of the list
+       of numbers, or raises an error if the list is empty```
+  num-sqrt(variance-sample(l))
 end
 
 fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number):
@@ -177,8 +195,8 @@ fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number
     covariance = xpt-xy - xpt-x-xpt-y
     v1 = math.sum(map(lam(n): n * n end, x))
     v2 = (math.sum(x) * math.sum(x)) / x.length()
-    variance = v1 - v2
-    beta = covariance / variance
+    variance1 = v1 - v2
+    beta = covariance / variance1
     alpha = mean(y) - (beta * mean(x))
 
     fun predictor(in :: Number) -> Number:
@@ -204,3 +222,45 @@ fun r-squared(x :: List<Number>, y :: List<Number>, f :: (Number -> Number)) -> 
   end
 end
 
+fun t-test-paired(l1 :: List, l2 :: List) -> Number:
+  doc: "t-test-paired"
+  n1 = l1.length()
+  n2 = l2.length()
+  if n1 <> n2:
+    raise(E.message-exception("t-test-paired: input lists must have equal lengths"))
+  else if n1 == 0:
+    raise(E.message-exception("t-test-paired: input lists should have at least one element"))
+  else:
+    diffs = map2(lam(x1, x2): x1 - x2 end, l1, l2)
+    diffs-mean = mean(diffs)
+    s-hat = stdev-sample(diffs)
+    diffs-mean / (s-hat / num-sqrt(n1))
+  end
+end
+
+fun t-test-pooled(l1 :: List, l2 :: List) -> Number:
+  doc: "t-test-pooled"
+  n1 = l1.length()
+  n2 = l2.length()
+  m1 = mean(l1)
+  m2 = mean(l2)
+  v1 = variance-sample(l1)
+  v2 = variance-sample(l2)
+  (m1 - m2) / (((((n1 - 1) * num-expt(v1, 2)) + ((n2 - 1) * num-expt(v2, 2))) / ((n1 + n2) - 2)) * num-sqrt((1 / n1) + (1 / n2)))
+end
+
+fun t-test-independent(l1 :: List, l2 :: List) -> Number:
+  doc: "t-test-independent"
+  n1 = l1.length()
+  n2 = l2.length()
+  m1 = mean(l1)
+  m2 = mean(l2)
+  v1 = variance-sample(l1)
+  v2 = variance-sample(l2)
+  (m1 - m2) / num-sqrt((v1 / n1) + (v2 / n2))
+end
+
+fun chi-square(obs :: List, exp :: List) -> Number:
+  doc: "chi-square"
+  math.sum(map2(lam(o, e): num-expt(o - e, 2) / e end, obs, exp))
+end
