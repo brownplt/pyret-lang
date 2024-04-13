@@ -229,7 +229,7 @@ fun t-test-paired(l1 :: List, l2 :: List) -> Number:
   if n1 <> n2:
     raise(E.message-exception("t-test-paired: input lists must have equal lengths"))
   else if n1 == 0:
-    raise(E.message-exception("t-test-paired: input lists should have at least one element"))
+    raise(E.message-exception("t-test-paired: input lists must have at least one element"))
   else:
     diffs = map2(lam(x1, x2): x1 - x2 end, l1, l2)
     diffs-mean = mean(diffs)
@@ -242,22 +242,30 @@ fun t-test-pooled(l1 :: List, l2 :: List) -> Number:
   doc: "t-test-pooled"
   n1 = l1.length()
   n2 = l2.length()
-  m1 = mean(l1)
-  m2 = mean(l2)
-  v1 = variance-sample(l1)
-  v2 = variance-sample(l2)
-  (m1 - m2) / (((((n1 - 1) * num-expt(v1, 2)) + ((n2 - 1) * num-expt(v2, 2))) / ((n1 + n2) - 2)) * num-sqrt((1 / n1) + (1 / n2)))
+  if (n1 == 0) or (n2 == 0):
+    raise(E.message-exception("t-test-pooled: input lists must have at least one element"))
+  else:
+    m1 = mean(l1)
+    m2 = mean(l2)
+    v1 = variance-sample(l1)
+    v2 = variance-sample(l2)
+    (m1 - m2) / (((((n1 - 1) * num-expt(v1, 2)) + ((n2 - 1) * num-expt(v2, 2))) / ((n1 + n2) - 2)) * num-sqrt((1 / n1) + (1 / n2)))
+  end
 end
 
 fun t-test-independent(l1 :: List, l2 :: List) -> Number:
   doc: "t-test-independent"
   n1 = l1.length()
   n2 = l2.length()
-  m1 = mean(l1)
-  m2 = mean(l2)
-  v1 = variance-sample(l1)
-  v2 = variance-sample(l2)
-  (m1 - m2) / num-sqrt((v1 / n1) + (v2 / n2))
+  if (n1 == 0) or (n2 == 0):
+    raise(E.message-exception("t-test-independent: input lists must have at least one element"))
+  else:
+    m1 = mean(l1)
+    m2 = mean(l2)
+    v1 = variance-sample(l1)
+    v2 = variance-sample(l2)
+    (m1 - m2) / num-sqrt((v1 / n1) + (v2 / n2))
+  end
 end
 
 fun chi-square(obs :: List, exp :: List) -> Number:

@@ -49,18 +49,40 @@ check "numeric helpers":
   modes([list: -1, 2, -1, 2, -1]) is [list: -1]
   modes([list: 1, 1, 2, 2, 3, 3, 3]) is [list: 3]
 
+  variance([list:]) raises "empty"
+  variance([list: 5]) is 0
+  variance([list: 3, 4, 5, 6, 7]) is%(within(0.01)) 2.0
+  variance([list: 1, 1, 1, 1]) is-roughly ~0
+
   stdev([list:]) raises "empty"
   stdev([list: 5]) is 0
-
   stdev([list: 3, 4, 5, 6, 7]) is%(within(0.01)) 1.41
   stdev([list: 1, 1, 1, 1]) is-roughly ~0
-  stdev([list:]) raises "empty"
-  
+
+  variance-sample([list: 3, 4, 5, 6, 7]) is%(within(0.01)) (10 / 4)
+  variance-sample([list: 3]) raises "division by zero"
+  variance-sample([list: 1, 1, 1, 1]) is-roughly ~0
+  variance-sample([list:]) raises "empty"
+
   stdev-sample([list: 3, 4, 5, 6, 7]) is%(within(0.01)) num-sqrt(10 / 4)
   stdev-sample([list: 3]) raises "division by zero"
   stdev-sample([list: 1, 1, 1, 1]) is-roughly ~0
   stdev-sample([list:]) raises "empty"
 
+  t-test-paired([list: 1], [list: 2, 3]) raises "lists must have equal lengths"
+  t-test-paired([list:], [list:]) raises "lists must have at least one element"
+  t-test-paired([list: 1, 2, 3], [list: 4, 6, 8]) is%(within(0.01)) -6.928
+
+  t-test-pooled([list:], [list: 1, 2, 3]) raises "lists must have at least one element"
+  t-test-pooled([list: 1, 2, 3], [list: 4, 5, 6]) is%(within(0.01)) -3.674
+  t-test-pooled([list: 1, 2, 3], [list: 4, 5, 6, 7]) is%(within(0.01)) -2.217
+
+  t-test-independent([list:], [list: 1, 2, 3]) raises "lists must have at least one element"
+  t-test-independent([list: 1, 2, 3], [list: 4, 5, 6]) is%(within(0.01)) -3.674
+  t-test-independent([list: 1, 2, 3], [list: 4, 5, 6, 7]) is%(within(0.01)) -4.041
+
+  chi-square([list: 1, 2, 3, 4], [list: 1, 2, 3, 4]) is 0
+  chi-square([list: 1, 2, 3, 4], [list: 0.9, 1.8, 3.5, 4.7]) is%(within(0.01)) 0.209
 end
 
 check "linear regression":
