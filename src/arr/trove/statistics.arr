@@ -17,6 +17,7 @@ provide {
     t-test-paired: t-test-paired,
     t-test-pooled: t-test-pooled,
     t-test-independent: t-test-independent,
+    z-test: z-test,
     chi-square: chi-square
 } end
 provide-types *
@@ -266,6 +267,15 @@ fun t-test-independent(l1 :: List, l2 :: List) -> Number:
     v2 = variance-sample(l2)
     (m1 - m2) / num-sqrt((v1 / n1) + (v2 / n2))
   end
+end
+
+fun z-test(l1 :: List, l2 :: List, sd1 :: Number, sd2 :: Number) -> Number:
+  doc: "z-test"
+  n1 = l1.length()
+  n2 = l2.length()
+  x-bar-1 = mean(l1)
+  x-bar-2 = mean(l2)
+  (x-bar-1 - x-bar-2) / num-sqrt((num-expt(sd1, 2) / n1) + (num-expt(sd2, 2) / n2))
 end
 
 fun chi-square(obs :: List, exp :: List) -> Number:

@@ -81,6 +81,8 @@ check "numeric helpers":
   t-test-independent([list: 1, 2, 3], [list: 4, 5, 6]) is%(within(0.01)) -3.674
   t-test-independent([list: 1, 2, 3], [list: 4, 5, 6, 7]) is%(within(0.01)) -4.041
 
+  z-test([list: 1, 2, 3], [list: 4, 5, 6], 1.58, 2.58) is%(within(0.01)) -1.718
+
   chi-square([list: 1, 2, 3, 4], [list: 1, 2, 3, 4]) is 0
   chi-square([list: 1, 2, 3, 4], [list: 0.9, 1.8, 3.5, 4.7]) is%(within(0.01)) 0.209
 end
