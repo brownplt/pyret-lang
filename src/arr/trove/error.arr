@@ -2088,7 +2088,7 @@ data RuntimeError:
       if self.loc.is-builtin():
         [ED.error:
           [ED.para:
-            ED.text("The identifier "), 
+            ED.text("The name "), 
             ED.code(ED.text(self.name)),
             ED.text(" is unbound in "),
             ED.loc(self.loc)],
@@ -2097,7 +2097,7 @@ data RuntimeError:
         [ED.error:
           [ED.para:
             ED.text("The "),
-            ED.highlight(ED.text("identifier"), [ED.locs: self.loc], 0)],
+            ED.highlight(ED.text("name"), [ED.locs: self.loc], 0)],
           ED.cmcode(self.loc),
           [ED.para:
             ED.text(" is unbound. Although it has been previously defined, it is being "),
@@ -2106,7 +2106,7 @@ data RuntimeError:
       else:
         [ED.error:
           [ED.para:
-            ED.text("The identifier "), 
+            ED.text("The name "), 
             ED.code(ED.text(self.name)),
             ED.text(" in "),
             ED.loc(self.loc),
@@ -2117,7 +2117,7 @@ data RuntimeError:
       if self.loc.is-builtin():
         [ED.error:
           [ED.para:
-            ED.text("The identifier "), 
+            ED.text("The name "), 
             ED.code(ED.text(self.name)),
             ED.text(" is unbound in "),
             ED.loc(self.loc)],
@@ -2125,7 +2125,7 @@ data RuntimeError:
       else:
         [ED.error:
           [ED.para:
-            ED.text("The identifier "), 
+            ED.text("The name "), 
             ED.code(ED.text(self.name)),
             ED.text(" in "),
             ED.loc(self.loc),
