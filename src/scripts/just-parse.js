@@ -60,8 +60,8 @@ R(["pyret-base/js/pyret-tokenizer", "src-base/js/pyret-tokenizer-old", "pyret-ba
         //{"toString ": toTime(tostrTime).toFixed(10)}
       ].forEach((e) => console.log(e));
 
-      //console.log("ast.toString().length = " + astStr.length)
-      // console.log(astStr);
+      console.log("ast.toString().length = " + astStr.length)
+      console.log(astStr);
       return ast;
     } else {
       var asts = G.PyretGrammar.constructAllParses(parsed);

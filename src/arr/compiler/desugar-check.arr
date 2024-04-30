@@ -27,52 +27,118 @@ fun ast-srcloc(l):
 end
 
 check-stmts-visitor = A.default-map-visitor.{
-  method s-check-test(self, l, op, refinement, left, right):
-    term = A.s-check-test(l, op, refinement, left, right)
+  method s-check-test(self, l, op, refinement, left, right, cause):
     fun check-op(fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
         [list: ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
+    end
+    fun check-op-cause(shadow cause, fieldname):
+      A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
+        [list: ast-lam(left), ast-lam(right.value), ast-lam(cause), ast-srcloc(l)])
     end
     fun check-refinement(shadow refinement, fieldname):
       A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
         [list: refinement, ast-lam(left), ast-lam(right.value), ast-srcloc(l)])
     end
+    fun check-refinement-cause(shadow refinement, shadow cause, fieldname):
+      A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
+        [list: refinement, ast-lam(left), ast-lam(right.value), ast-lam(cause), ast-srcloc(l)])
+    end
+    fun check-raises(fieldname):
+      A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
+        [list: ast-lam(left), right.value, ast-srcloc(l)])
+    end
+    fun check-raises-not(fieldname):
+      A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
+        [list: ast-lam(left), ast-srcloc(l)])
+    end
+    fun check-raises-cause(shadow cause, fieldname):
+      A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
+        [list: ast-lam(left), right.value, ast-lam(cause), ast-srcloc(l)])
+    end
+    fun check-raises-not-cause(shadow cause, fieldname):
+      A.s-app(l, A.s-dot(l, U.checkers(l), fieldname),
+        [list: ast-lam(left), ast-lam(cause), ast-srcloc(l)])
+    end
     cases(A.CheckOp) op:
       | s-op-is(_)                =>
         cases(Option) refinement:
-          | none                    => check-op("check-is")
-          | some(shadow refinement) => check-refinement(refinement, "check-is-refinement")
+          | none                    =>
+            cases(Option) cause:
+              | none                => check-op("check-is")
+              | some(shadow cause)  => check-op-cause(cause, "check-is-cause")
+            end
+          | some(shadow refinement) =>
+            cases(Option) cause:
+              | none                => check-refinement(refinement, "check-is-refinement")
+              | some(shadow cause)  => check-refinement-cause(refinement, cause, "check-is-refinement-cause")
+            end
         end
       | s-op-is-roughly(_) =>
-        check-op("check-is-roughly")
+        cases(Option) cause:
+          | none               => check-op("check-is-roughly")
+          | some(shadow cause) => check-op-cause(cause, "check-is-roughly-cause")
+        end
       | s-op-is-not(_)              =>
         cases(Option) refinement:
-          | none                    => check-op("check-is-not")
-          | some(shadow refinement) => check-refinement(refinement, "check-is-not-refinement")
+          | none                    =>
+            cases(Option) cause:
+              | none                => check-op("check-is-not")
+              | some(shadow cause)  => check-op-cause(cause, "check-is-not-cause")
+            end
+          | some(shadow refinement) =>
+            cases(Option) cause:
+              | none                => check-refinement(refinement, "check-is-not-refinement")
+              | some(shadow cause)  => check-refinement-cause(refinement, cause, "check-is-not-refinement-cause")
+            end
         end
       | s-op-is-op(_, opname)     =>
-        check-refinement(A.s-id(l, A.s-name(l, A.get-op-fun-name(opname))), "check-is-refinement")
+        shadow refinement = A.s-id(l, A.s-name(l, A.get-op-fun-name(opname)))
+        cases(Option) cause:
+          | none                => check-refinement(refinement, "check-is-refinement")
+          | some(shadow cause)  => check-refinement-cause(refinement, cause, "check-is-refinement-cause")
+        end
       | s-op-is-not-op(_, opname) =>
-        check-refinement(A.s-id(l, A.s-name(l, A.get-op-fun-name(opname))), "check-is-not-refinement")
+        shadow refinement = A.s-id(l, A.s-name(l, A.get-op-fun-name(opname)))
+        cases(Option) cause:
+          | none               => check-refinement(refinement, "check-is-not-refinement")
+          | some(shadow cause) => check-refinement-cause(refinement, cause, "check-is-not-refinement-cause")
+        end
       | s-op-satisfies(_)         =>
-        check-op("check-satisfies-delayed")
+        cases(Option) cause:
+          | none                  => check-op("check-satisfies-delayed")
+          | some(shadow cause)    => check-op-cause(cause, "check-satisfies-delayed-cause")
+        end
       | s-op-satisfies-not(_)     =>
-        check-op("check-satisfies-not-delayed")
+        cases(Option) cause:
+          | none                  => check-op("check-satisfies-not-delayed")
+          | some(shadow cause)    => check-op-cause(cause, "check-satisfies-not-delayed-cause")
+        end
       | s-op-raises(_)            =>
-        A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-str"),
-          [list: ast-lam(left), right.value, ast-srcloc(l)])
+        cases(Option) cause:
+          | none                  => check-raises("check-raises-str")
+          | some(shadow cause)    => check-raises-cause(cause, "check-raises-str-cause")
+        end
       | s-op-raises-not(_)        =>
-        A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-not"),
-          [list: ast-lam(left), ast-srcloc(l)])
+        cases(Option) cause:
+          | none                  => check-raises-not("check-raises-not")
+          | some(shadow cause)    => check-raises-not-cause(cause, "check-raises-not-cause")
+        end
       | s-op-raises-other(_)      =>
-        A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-other-str"),
-          [list: ast-lam(left), right.value, ast-srcloc(l)])
+        cases(Option) cause:
+          | none                  => check-raises("check-raises-other-str")
+          | some(shadow cause)    => check-raises-cause(cause, "check-raises-other-str-cause")
+        end
       | s-op-raises-satisfies(_)  =>
-        A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-satisfies"),
-          [list: ast-lam(left), right.value, ast-srcloc(l)])
+        cases(Option) cause:
+          | none                  => check-raises("check-raises-satisfies")
+          | some(shadow cause)    => check-raises-cause(cause, "check-raises-satisfies-cause")
+        end
       | s-op-raises-violates(_)   =>
-        A.s-app(l, A.s-dot(l, U.checkers(l), "check-raises-violates"),
-          [list: ast-lam(left), right.value, ast-srcloc(l)])
+        cases(Option) cause:
+          | none                  => check-raises("check-raises-violates")
+          | some(shadow cause)    => check-raises-cause(cause, "check-raises-violates-cause")
+        end
       | else => raise("Check test operator " + op.label() + " not yet implemented at " + torepr(l))
     end
   end,
@@ -136,7 +202,7 @@ fun create-check-block(l, checks):
       A.s-app(l, A.s-dot(l, U.checkers(l), "run-checks"), [list: 
           A.s-str(l, l.source),
           # TODO(joe): need to make this a s-global somehow
-          A.s-construct(l, A.s-construct-normal, A.s-id(l, A.s-name(l, "list")), checkers)
+          A.s-app(l, A.s-dot(l, A.s-prim-val(l, "builtins"), "raw-array-to-list"), [list: A.s-array(l, checkers)])
         ])
     ])
 end
@@ -187,10 +253,13 @@ check-visitor = A.default-map-visitor.{
       A.s-block(
           l,
           ds-stmts.take(ds-stmts.length() - 1) +
-            [list: 
-              A.s-let(l, A.s-bind(l, true, id-result, A.a-blank), last-expr, false),
-              do-checks,
-              A.s-id(l, id-result)
+            [list: A.s-user-block(
+              l,
+              A.s-block(l, [list: 
+                A.s-let(l, A.s-bind(l, true, id-result, A.a-blank), last-expr, false),
+                do-checks,
+                A.s-id(l, id-result)
+              ]))
             ]
         )
     end

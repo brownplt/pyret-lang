@@ -1,7 +1,18 @@
+var Jasmine = require('jasmine');
+var jazz = new Jasmine();
 const R = require("requirejs");
 var build = process.env["PHASE"] || "build/phaseA";
+R.config({
+  waitSeconds: 15000,
+  paths: {
+    "trove": "../../" + build + "/trove",
+    "js": "../../" + build + "/js",
+    "compiler": "../../" + build + "/arr/compiler",
+    "jglr": "../../lib/jglr",
+    "pyret-base": "../../" + build
+  }
+});
 R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], function(T, G, fs) {
-  _ = require("jasmine-node");
   function parse(str) {
     const toks = T.Tokenizer;
     toks.tokenizeFrom(str);
@@ -215,6 +226,34 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("```asd``\\````")).not.toBe(false);
       expect(parse("```asd```asd```")).toBe(false);
     });
+
+    it('should not lex bogus escape sequences', function() {
+      expect(parse("'\\a'")).toBe(false);
+      expect(parse("'\\b'")).toBe(false);
+      expect(parse("'\\v'")).toBe(false);
+      expect(parse("'\\f'")).toBe(false);
+      expect(parse("'\\xWX")).toBe(false);
+      expect(parse("'\\xwx")).toBe(false);
+      expect(parse("'\\uWXYZ")).toBe(false);
+      expect(parse("'\\uwxyz")).toBe(false);
+    });
+
+    it('should lex octal escape sequences', function() {
+      const escapeSequences = ["'\\0'", "'\\77'", "'\\101'"];
+      const expectedValues = ["'\0'", "'?'", "'A'"];
+      for (let i = 0; i < escapeSequences.length; ++i) {
+        const tokens = lex(escapeSequences[i]);
+        expect(tokens.length).toBe(2);
+        expect(tokens[0].value).toBe(expectedValues[i]);
+        expect(tokens[1].name).toBe("EOF");
+
+        const parseStr = `str = ${escapeSequences[i]}`;
+        expect(parse(parseStr)).not.toBe(false);
+      }
+
+      // invalid escape sequence
+      expect(parse("str = '\\8'")).toBe(false);
+    });
   });
   describe("parsing", function() {
     it("should parse lets and letrecs", function() {
@@ -401,6 +440,12 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("a :: List<A, B> = a")).not.toBe(false);
     });
 
+    it("should parse angle brackets with trailing whitespace in annotations", function() {
+      expect(parse("a :: List#|comment|#<A> = a")).not.toBe(false);
+      expect(parse("a :: List<A > = a")).not.toBe(false);
+      expect(parse("a :: List<A, B#|comment|#> = a")).not.toBe(false);
+    });
+
     it("should parse angle brackets with whitespace as gt/lt", function() {
       expect(parse("1\n<\n2 or false\n B > (id)")).not.toBe(false);
       expect(parse("1<\n2 or false, B > (id)")).toBe(false);
@@ -483,9 +528,9 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("{(a): true}")).not.toBe(false);
       expect(parse("{(a, b): true}")).not.toBe(false); // colon ==> lambda
       expect(parse("{(a, b); true}")).toBe(false); // semicolon ==> tuple with invalid first arg
-      expect(parse("{ (): true}")).toBe(false);
-      expect(parse("{ (a): true}")).toBe(false);
-      expect(parse("{ (a, b): true}")).toBe(false);
+      expect(parse("{ (): true}")).not.toBe(false);  // NOTE: will be caught with a bad-args parse later
+      expect(parse("{ (a): true}")).not.toBe(false); // NOTE: will be caught with a bad-args parse later
+      expect(parse("{ (a, b): true}")).not.toBe(false);  // NOTE: will be caught with a bad-args parse later
       expect(parse("{(1 + 2); (3 + 4)}")).not.toBe(false);
       expect(parse("{ (1 + 2); (3 + 4) }")).not.toBe(false);
     });
@@ -745,7 +790,42 @@ R(["pyret-base/js/pyret-tokenizer", "pyret-base/js/pyret-parser", "fs"], functio
       expect(parse("spy \"five\": x end")).not.toBe(false);
       expect(parse("spy \"five\": x: 5 end")).not.toBe(false);
     });
+
+    it("should not parse escapes ending in G (bracket) through ` (backtick)", function() {
+      expect(parse("\"\\uG\"")).toBe(false);
+      expect(parse("'\\uG'")).toBe(false);
+      expect(parse("```\\uG```")).toBe(false);
+      expect(parse("\"\\u`\"")).toBe(false);
+      expect(parse("'\\u`'")).toBe(false);
+      expect(parse("```\\u````")).toBe(false);
+      expect(parse("\"\\u`\"")).toBe(false);
+    });
+
+    it("should parse use statements", function() {
+      expect(parse(`
+      use lang shared-gdrive("cse019-assignment1", "j0fd91328fhhf")
+      `)).not.toBe(false);
+    
+      expect(parse(`
+      use uninterpreted-token file("cse019-assignment1.arr")
+      `)).not.toBe(false);
+    
+      expect(parse(`
+      use uninterpreted-token file("cse019-assignment1.arr")
+      use uninterpreted-token2 file("cse019-assignment2.arr")
+      `)).toBe(false);
+    
+      expect(parse(`
+      use a b("c")
+      import e("f") as G
+      `)).not.toBe(false);
+    
+      expect(parse(`
+      use missing-name("c")
+      `)).toBe(false);
+    });
   });
 
+  jazz.execute();
 
 });

@@ -119,6 +119,8 @@ check "malformed blocks":
        "10")
     satisfies CS.is-block-needed
 
+  c("for map(): end") satisfies CS.is-wf-empty-block
+
   run-str("lam(): x = 5 end") is%(output) compile-error(CS.is-block-ending)
   run-str("lam(): var x = 5 end") is%(output) compile-error(CS.is-block-ending)
   run-str("lam(): fun f(): nothing end end") is%(output) compile-error(CS.is-block-ending)
@@ -244,6 +246,15 @@ check "duplicated names in data defintiions":
   run-str("data Foo: bar | bar end") is%(output) compile-error(CS.is-duplicate-variant)
 end
 
+check "duplicated names in record type":
+  run-str("type foo = {x :: Number, x :: Number}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {y :: Number, y :: Boolean}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {x :: Number, y :: Number, x :: Number}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {x :: Number, y :: Number, x :: Boolean}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {x :: Number, y :: Number, y :: Boolean}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {bar :: Number, bar :: Boolean, bar :: List}") is%(output) compile-error(CS.is-duplicate-field)
+end
+
 check "underscores":
   run-str("cases(List) _: | empty => 5 end") is%(output) compile-error(CS.is-underscore-as-expr)
   run-str("cases(List) _: | empty => 5 | else => 6 end") is%(output) compile-error(CS.is-underscore-as-expr)
@@ -262,6 +273,24 @@ check "underscores":
   run-str("{a: 1}.{_: 2}") is%(output) compile-error(CS.is-underscore-as)
   run-str("{a: 1}._") is%(output) compile-error(CS.is-underscore-as)
 end
+
+check "standalone expressions":
+  cok("1 + 2\n1 + 5") is empty
+  cok("x = 5\n1 == 1\nx") is empty
+  cok("x = 10\nx + 1\nx") is empty
+  cok("x = 5\ny = 12\nx\ny") is empty
+
+  run-str("block: 1 + 2\n1 + 3 end") is%(output) compile-error(CS.is-wf-err)
+  run-str("block: x\ny end") is%(output) compile-error(CS.is-wf-err)
+  run-str("block: x = 10\nx\nx + 1 end") is%(output) compile-error(CS.is-wf-err)
+end
+
+check "empty if blocks":
+  run-str("if true: else if false: 4 end") is%(output) compile-error(CS.is-wf-empty-block)
+  run-str("if true: 4 else if false: end") is%(output) compile-error(CS.is-wf-empty-block)
+  run-str("if true: end") is%(output) compile-error(CS.is-single-branch-if)
+end
+
 
 #|
       it("should notice empty blocks", function(done) {

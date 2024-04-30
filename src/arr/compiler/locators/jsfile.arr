@@ -18,6 +18,7 @@ const-dict = BL.const-dict
 fun make-jsfile-locator(path):
   raw = B.builtin-raw-locator(path)
   {
+    method get-uncached(_): none end,
     method needs-compile(_, _): false end,
     method get-modified-time(self):
       F.file-times(path + ".js").mtime
@@ -50,11 +51,12 @@ fun make-jsfile-locator(path):
     method get-compiled(self):
       provs = convert-provides(self.uri(), {
         uri: self.uri(),
+        modules: raw-array-to-list(raw.get-raw-module-provides()),
         values: raw-array-to-list(raw.get-raw-value-provides()),
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
-      some(CL.module-as-string(provs, CM.no-builtins, CM.ok(JSP.ccp-file(F.real-path(path + ".js")))))
+      some(CL.module-as-string(provs, CM.no-builtins, CM.computed-none, CM.ok(JSP.ccp-file(F.real-path(path + ".js")))))
     end,
 
     method _equals(self, other, req-eq):

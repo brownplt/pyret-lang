@@ -83,7 +83,7 @@ define("src-base/js/pyret-tokenizer-old", ["jglr/jglr"], function(E) {
     } else if (tok_type === "LPAREN?") {
       tok_type = this.parenIsForExp || "PARENNOSPACE";
     } else if (tok_type === "BLOCKCOMMENT") {
-      return this.tokenizeBlockComment(match, str, 1, 2);
+      tok_type = this.tokenizeBlockComment(match, str, 1, 2);
     }
     this.parenIsForExp = tok.parenIsForExp || "PARENNOSPACE";
     return tok_type;
@@ -350,8 +350,8 @@ define("src-base/js/pyret-tokenizer-old", ["jglr/jglr"], function(E) {
 
     {name: "BAD-OPER", val: opsNoSpace},
 
-    {name: "BLOCKCOMMENT", val: blockcommentstart},
-    {name: "COMMENT", val: comment},
+    {name: "BLOCKCOMMENT", val: blockcommentstart, parenIsForExp: true},
+    {name: "COMMENT", val: comment, parenIsForExp: true},
     {name: "WS", val: ws, parenIsForExp: true},
 
     {name: "SEMI", val: semi},

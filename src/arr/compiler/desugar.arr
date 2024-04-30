@@ -26,7 +26,7 @@ var generated-binds = SD.make-mutable-string-dict()
 
 fun g(id): A.s-global(id) end
 fun gid(l, id): A.s-id(l, g(id)) end
-fun bid(l, name): A.s-dot(l, A.s-id(l, g("builtins")), name) end
+fun bid(l, name): A.s-dot(l, A.s-prim-val(l, "builtins"), name) end
 
 flat-prim-app = A.prim-app-info-c(false)
 
@@ -99,7 +99,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
     | a-arrow(l, args, ret, use-parens) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
     | a-arrow-argnames(l, args, ret, use-parens) =>
-      A.a-arrow-argnames(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
+      A.a-arrow-argnames(l, args.map(desugar-afield), desugar-ann(ret), use-parens)
     | a-method(l, args, ret) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), true)
     | a-app(l, base, args) =>
@@ -130,22 +130,22 @@ fun desugar(program :: A.Program):
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
   cases(A.Program) program block:
-    | s-program(l, _provide, provided-types, imports, body) =>
+    | s-program(l, _use, _provide, provided-types, provides, imports, body) =>
       generated-binds := SD.make-mutable-string-dict()
-      {ast: A.s-program(l, _provide, provided-types, imports, desugar-expr(body)), new-binds: generated-binds}
+      {ast: A.s-program(l, _use, _provide, provided-types, provides, imports, desugar-expr(body)), new-binds: generated-binds}
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end
 
 fun mk-id-ann(loc, base, ann) block:
   a = names.make-atom(base)
-  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-let, a, ann))
+  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc, a), C.vb-let, a, ann))
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
 end
 
 fun mk-id-var-ann(loc, base, ann) block:
   a = names.make-atom(base)
-  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-var, a, ann))
+  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc, a), C.vb-var, a, ann))
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id-var(loc, a) }
 end
 
@@ -355,8 +355,8 @@ end
 
 fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
-    | s-module(l, answer, dv, dt, provides, types, checks) =>
-      A.s-module(l, desugar-expr(answer), dv, dt, desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
+    | s-module(l, answer, dm, dv, dt, checks) =>
+      A.s-module(l, desugar-expr(answer), dm, dv, dt, desugar-expr(checks))
     | s-instantiate(l, inner-expr, params) =>
       A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
     | s-block(l, stmts) =>
@@ -525,6 +525,8 @@ fun desugar-expr(expr :: A.Expr):
           end
       end
     | s-id(l, x) => expr
+    | s-id-modref(_, _, _, _) => expr
+    | s-id-var-modref(_, _, _, _) => expr
     | s-id-var(l, x) => expr
     | s-id-letrec(_, _, _) => expr
     | s-srcloc(_, _) => expr
@@ -538,7 +540,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
     | s-tuple(l, fields) => A.s-tuple(l, fields.map(desugar-expr))
     | s-tuple-get(l, tup, index, index-loc) => A.s-tuple-get(l, desugar-expr(tup), index, index-loc)
-    | s-ref(l, ann) => A.s-ann(l, desugar-ann(ann))
+    | s-ref(l, ann) => A.s-ref(l, desugar-ann(ann))
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:
         | s-construct-normal =>
@@ -610,8 +612,8 @@ fun desugar-expr(expr :: A.Expr):
     # NOTE(joe): see preconditions; desugar-checks should have already happened
     | s-check(l, name, body, keyword-check) =>
       A.s-check(l, name, desugar-expr(body), keyword-check)
-    | s-check-test(l, op, refinement, left, right) =>
-      A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right))
+    | s-check-test(l, op, refinement, left, right, cause) =>
+      A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right), desugar-opt(desugar-expr, cause))
     | s-load-table(l, headers, spec) =>
       dummy = A.dummy-loc
       {src; sanitizers} = for fold(acc from {none; empty}, s from spec):
@@ -619,7 +621,7 @@ fun desugar-expr(expr :: A.Expr):
         cases(A.LoadTableSpec) s:
           | s-sanitize(_, name, sanitizer) =>
             # Convert to loader option
-            as-option = A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "as-loader-option"),
+            as-option = A.s-app(l, bid(l, "as-loader-option"),
               [list:
                 A.s-str(dummy, "sanitizer"),
                 A.s-str(dummy, name.toname()),
@@ -643,7 +645,7 @@ fun desugar-expr(expr :: A.Expr):
           A.s-array(dummy, headers.map(lam(h): A.s-str(l, h.name) end)),
           A.s-array(dummy, sanitizers)])
 
-      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "open-table"), [list: loaded])
+      A.s-app(l, bid(l, "open-table"), [list: loaded])
 
     | s-table-extend(l, column-binds, extensions) =>
       # NOTE(philip): I am fairly certain that this will need to be moved
@@ -944,9 +946,11 @@ fun desugar-expr(expr :: A.Expr):
           ds-content.{2} ^ link(_, acc.{2})
         }
       end
-      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "spy"),
+      A.s-app(l, bid(l, "spy"),
         [list: A.s-srcloc(l, l), ds-message,
           A.s-array(l, ds-contents.{0}), A.s-array(l, ds-contents.{1}), A.s-array(l, ds-contents.{2})])
+    | s-prim-val(l, name) => expr
+    | s-array(l, vals) => A.s-array(l, vals.map(desugar-expr))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:

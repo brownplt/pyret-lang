@@ -6,7 +6,7 @@ provide {
   file-exists: file-exists,
   file-times: file-times,
   file-to-string: file-to-string,
-  real-path: F.real-path
+  real-path: real-path
 } end
 provide-types *
 
@@ -46,7 +46,8 @@ fun file-to-string(path) block:
   f.close-file()
   s
 end
-  
+
+real-path = F.real-path
 
 fun output-file(path :: String, append :: Boolean):
   out-fd(F.open-output-file(path, append))

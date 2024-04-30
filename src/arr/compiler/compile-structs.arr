@@ -57,26 +57,34 @@ data NativeModule:
 end
 
 data BindOrigin:
-  | bind-origin(local-bind-site :: Loc, definition-bind-site :: Loc, new-definition :: Boolean, uri-of-definition :: URI)
+  | bind-origin(local-bind-site :: Loc, definition-bind-site :: Loc, new-definition :: Boolean, uri-of-definition :: URI, original-name :: A.Name)
 end
 
-fun bo-local(loc):
+fun bo-local(loc, original-name):
   cases(SL.Srcloc) loc:
     | builtin(source) =>
-      bind-origin(loc, loc, true, source)
+      bind-origin(loc, loc, true, source, original-name)
     | else =>
-      bind-origin(loc, loc, true, loc.source)
+      bind-origin(loc, loc, true, loc.source, original-name)
   end
 end
 
 # NOTE(joe): If source information ends up in provides, we can add an extra arg
 # here to provide better definition site info for names from other modules
-fun bo-module(loc, uri):
-  bind-origin(loc, SL.builtin(uri), false, uri)
+fun bo-module(local-loc, def-loc, def-uri, original-name):
+  # spy "bo-module":
+  #   def-uri, original-name, local-loc, def-loc
+  # end
+  bind-origin(local-loc, def-loc, false, def-uri, original-name)
 end
 
-fun bo-global(uri):
-  bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri)
+fun bo-global(opt-origin, uri, original-name):
+  cases(Option) opt-origin block:
+    | none =>
+      bind-origin(A.dummy-loc, SL.builtin(uri), false, uri, original-name)
+    | some(origin) =>
+      bind-origin(origin.local-bind-site, origin.definition-bind-site, false, uri, original-name)
+  end
 end
 
 data ValueBinder:
@@ -98,12 +106,17 @@ data TypeBinder:
   | tb-type-var
 end
 
+data TypeBindTyp:
+  | tb-typ(typ :: T.Type)
+  | tb-none
+end
+
 data TypeBind:
   | type-bind(
       origin :: BindOrigin,
       binder :: TypeBinder,
       atom :: A.Name,
-      ann :: Option<A.Ann>)
+      typ :: TypeBindTyp)
 end
 
 data ModuleBind:
@@ -117,14 +130,24 @@ data ScopeResolution:
   | resolved-scope(ast :: A.Program, errors :: List<CompileError>)
 end
 
+data ComputedEnvironment:
+  | computed-none
+  | computed-env(
+      module-bindings :: SD.MutableStringDict<ModuleBind>,
+      bindings :: SD.MutableStringDict<ValueBind>,
+      type-bindings :: SD.MutableStringDict<TypeBind>,
+      datatypes :: SD.MutableStringDict<A.Expr>,
+      module-env :: SD.StringDict<ModuleBind>,
+      env :: SD.StringDict<ValueBind>,
+      type-env :: SD.StringDict<TypeBind>)
+end
+
 data NameResolution:
   | resolved-names(
       ast :: A.Program,
       errors :: List<CompileError>,
-      module-bindings :: SD.MutableStringDict<ModuleBind>,
-      bindings :: SD.MutableStringDict<ValueBind>,
-      type-bindings :: SD.MutableStringDict<TypeBind>,
-      datatypes :: SD.MutableStringDict<A.Expr>)
+      env :: ComputedEnvironment
+     )
 end
 
 # Used to describe when additional module imports should be added to a
@@ -139,7 +162,7 @@ data ExtraImport:
 end
 
 data Loadable:
-  | module-as-string(provides :: Provides, compile-env :: CompileEnvironment, result-printer :: CompileResult<Any>)
+  | module-as-string(provides :: Provides, compile-env :: CompileEnvironment, post-compile-env :: ComputedEnvironment, result-printer :: CompileResult<Any>)
     # NOTE(joe): there's a circular dependency between this module and js-of-pyret.arr; hence the Any above
 end
 
@@ -151,14 +174,23 @@ data CompileEnvironment:
         my-modules :: StringDict<URI>
       )
 sharing:
-  # TODO(joe/ben/jose): Write a recursive lookup here
-  # that fully resolves names (once ValueExport and
-  # friends have that information)
-  method value-by-uri(self, uri :: String, name :: String):
-    self.all-modules
+  method value-by-uri(self, uri :: String, name :: String) block:
+    cases(Option) self.all-modules
       .get-value-now(uri)
-      .provides
-      .values.get(name)
+      .provides.values
+      .get(name):
+
+      | none => none
+      | some(ve) =>
+        cases(ValueExport) ve block:
+          | v-alias(origin, shadow name) =>
+            when uri == origin.uri-of-definition:
+              raise("Self-referential alias for " + name + " in module " + uri)
+            end
+            self.value-by-uri(origin.uri-of-definition, name)
+          | else => some(ve)
+        end
+    end
   end,
   method value-by-uri-value(self, uri :: String, name :: String):
     cases(Option) self.value-by-uri(uri, name):
@@ -166,11 +198,77 @@ sharing:
       | some(v) => v
     end
   end,
-  method type-by-uri(self, uri, name):
-    self.all-modules
+  method datatype-by-uri(self, uri, name):
+    cases(Option) self.all-modules
       .get-value-now(uri)
-      .provides
-      .types.get(name)
+      .provides.data-definitions
+      .get(name):
+
+      | none => none
+      | some(de) =>
+        cases(DataExport) de block:
+          | d-alias(origin, shadow name) =>
+            when uri == origin.uri-of-definition:
+              raise("Self-referential alias for " + name + " in module " + uri)
+            end
+            self.datatype-by-uri(origin.uri-of-definition, name)
+          | d-type(origin, typ) => some(de)
+        end
+    end
+  end,
+  method datatype-by-uri-value(self, uri, name):
+    cases(Option) self.datatype-by-uri(uri, name):
+      | none => raise("Could not find datatype " + name + " on module " + uri)
+      | some(v) => v
+    end
+  end,
+  method resolve-datatype-by-uri(self, uri, name):
+    self.datatype-by-uri(uri, name).and-then(lam(dt):
+      cases(DataExport) dt block:
+        | d-type(origin, typ) => typ
+        | else => raise("resolve-datatype-by-uri got a d-alias: " + to-repr(dt))
+      end
+    end)
+  end,
+  method resolve-datatype-by-uri-value(self, uri, name):
+    cases(Option) self.resolve-datatype-by-uri(uri, name):
+      | none => raise("Could not find datatype " + name + " on module " + uri)
+      | some(v) => v
+    end
+  end,
+  method value-by-origin(self, origin):
+    self.value-by-uri(origin.uri-of-definition, origin.original-name.toname())
+  end,
+  method value-by-origin-value(self, origin):
+    self.value-by-uri-value(origin.uri-of-definition, origin.original-name.toname())
+  end,
+  method type-by-uri(self, uri, name):
+    provides-of-aliased = self.all-modules.get-value-now(uri).provides
+    cases(Option) provides-of-aliased.data-definitions.get(name):
+      | some(remote-datatype) =>
+        de = cases(DataExport) remote-datatype:
+          | d-alias(origin, remote-name) =>
+            cases(Option) self.datatype-by-uri(origin.uri-of-definition, remote-name):
+              | some(de) => de
+              | none => raise("A datatype alias in an export was not found: " + to-repr(remote-datatype))
+            end
+          | d-type(_, _) => remote-datatype
+        end
+        some(T.t-name(T.module-uri(de.origin.uri-of-definition), A.s-type-global(de.typ.name), de.origin.local-bind-site, false))
+      | none =>
+        cases(Option) provides-of-aliased.aliases.get(name):
+          | some(typ) =>
+            cases(T.Type) typ:
+              | t-name(a-mod, a-id, l, inferred) =>
+                cases(T.NameOrigin) a-mod:
+                  | module-uri(shadow uri) => self.type-by-uri(uri, a-id.toname())
+                  | else => raise("A provided type alias referred to an unresolved module: " + to-repr(typ))
+                end
+              | else => some(typ)
+            end
+          | none => none
+        end
+    end
   end,
   method type-by-uri-value(self, uri, name):
     cases(Option) self.type-by-uri(uri, name):
@@ -178,14 +276,26 @@ sharing:
       | some(v) => v
     end
   end,
+  method type-by-origin(self, origin):
+    self.type-by-uri(origin.uri-of-definition, origin.original-name.toname())
+  end,
+  method type-by-origin-value(self, origin):
+    self.type-by-uri-value(origin.uri-of-definition, origin.original-name.toname())
+  end,
   method global-value(self, name :: String):
     self.globals.values.get(name)
-      .and-then(self.value-by-dep-key(_, name))
+      .and-then(self.value-by-origin(_))
       .and-then(_.value)
+  end,
+  method global-value-value(self, name :: String):
+    cases(Option) self.global-value(name):
+      | none => raise("Could not find value " + name + " as a global")
+      | some(v) => v
+    end
   end,
   method global-type(self, name :: String):
     self.globals.types.get(name)
-      .and-then(self.type-by-dep-key(_, name))
+      .and-then(self.type-by-origin(_))
       .and-then(_.value)
   end,
   method uri-by-dep-key(self, dep-key):
@@ -194,6 +304,18 @@ sharing:
   method provides-by-uri(self, uri):
     self.all-modules.get-now(uri)
       .and-then(_.provides)
+  end,
+  method provides-by-uri-value(self, uri):
+    cases(Option) self.provides-by-uri(uri):
+      | none => raise("Could not find module with uri: " + uri)
+      | some(shadow provides) => provides
+    end
+  end,
+  method provides-by-origin(self, origin):
+    self.provides-by-uri(origin.uri-of-definition)
+  end,
+  method provides-by-origin-value(self, origin):
+    self.provides-by-uri-value(origin.uri-of-definition)
   end,
   method provides-by-dep-key(self, dep-key):
     self.my-modules.get(dep-key)
@@ -208,8 +330,7 @@ sharing:
   end,
   method provides-by-value-name(self, name):
     self.globals.values.get(name)
-      .and-then(self.provides-by-dep-key(_))
-      .and-then(_.value)
+      .and-then(self.provides-by-origin-value(_))
   end,
   method provides-by-value-name-value(self, name):
     cases(Option) self.provides-by-value-name(name):
@@ -219,7 +340,7 @@ sharing:
   end,
   method provides-by-type-name(self, name):
     self.globals.types.get(name)
-      .and-then(self.provides-by-dep-key(_))
+      .and-then(self.provides-by-origin(_))
       .and-then(_.value)
   end,
   method provides-by-type-name-value(self, name):
@@ -230,7 +351,7 @@ sharing:
   end,
   method provides-by-module-name(self, name):
     self.globals.modules.get(name)
-      .and-then(self.provides-by-dep-key(_))
+      .and-then(self.provides-by-origin(_))
       .and-then(_.value)
   end,
   method provides-by-module-name-value(self, name):
@@ -253,25 +374,42 @@ sharing:
     uri = self.my-modules.get-value(dep-key)
     self.type-by-uri(uri, name)
   end,
-  method uri-by-value-name(self, name):
+  method origin-by-module-name(self, name):
+    self.globals.modules.get(name)
+  end,
+  method origin-by-value-name(self, name):
     self.globals.values.get(name)
-      .and-then(self.uri-by-dep-key(_))
+  end,
+  method origin-by-type-name(self, name):
+    self.globals.types.get(name)
+  end,
+  method uri-by-module-name(self, name):
+    self.globals.modules.get(name).and-then(_.uri-of-definition)
+  end,
+  method uri-by-value-name(self, name):
+    self.globals.values.get(name).and-then(_.uri-of-definition)
   end,
   method uri-by-type-name(self, name):
-    self.globals.types.get(name)
-      .and-then(self.uri-by-dep-key(_))
+    self.globals.types.get(name).and-then(_.uri-of-definition)
   end
 end
 
-# globals maps from names to the appropriate dependency (e.g. in my-modules)
+# Globals maps from names to BindOrigins so we know the most recent binding and
+# original binding for each
 data Globals:
-  | globals(modules :: StringDict<String>, values :: StringDict<String>, types :: StringDict<String>)
+  | globals(modules :: StringDict<BindOrigin>, values :: StringDict<BindOrigin>, types :: StringDict<BindOrigin>)
 end
 
 data ValueExport:
-  | v-just-type(t :: T.Type)
-  | v-var(t :: T.Type)
-  | v-fun(t :: T.Type, name :: String, flatness :: Option<Number>)
+  | v-alias(origin :: BindOrigin, original-name :: String)
+  | v-just-type(origin :: BindOrigin, t :: T.Type)
+  | v-var(origin :: BindOrigin, t :: T.Type)
+  | v-fun(origin :: BindOrigin, t :: T.Type, name :: String, flatness :: Option<Number>)
+end
+
+data DataExport:
+  | d-alias(origin :: BindOrigin, name :: String)
+  | d-type(origin :: BindOrigin, typ :: T.DataType)
 end
 
 data Provides:
@@ -280,7 +418,7 @@ data Provides:
       modules :: StringDict<URI>,
       values :: StringDict<ValueExport>,
       aliases :: StringDict<T.Type>,
-      data-definitions :: StringDict<T.DataType>
+      data-definitions :: StringDict<DataExport>
     )
 end
 
@@ -316,11 +454,13 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
     | t == "bot" then: T.t-bot(l, false)
     | t == "record" then:
       T.t-record(typ.fields.foldl(lam(f, fields): fields.set(f.name, tfr(f.value)) end, [string-dict: ]), l, false)
+    | t == "data-refinement" then:
+      T.t-data-refinement(tfr(typ.basetype), typ.variant, l, false)
     | t == "tuple" then:
       T.t-tuple(for map(e from typ.elts): tfr(e) end, l, false)
     | t == "name" then:
       if typ.origin.import-type == "$ELF":
-        T.t-name(T.local, A.s-type-global(typ.name), l, false)
+        T.t-name(T.module-uri(uri), A.s-type-global(typ.name), l, false)
       else if typ.origin.import-type == "uri":
         T.t-name(T.module-uri(typ.origin.uri), A.s-type-global(typ.name), l, false)
       else:
@@ -328,7 +468,7 @@ fun type-from-raw(uri, typ, tyvar-env :: SD.StringDict<T.Type>) block:
       end
     | t == "tyvar" then:
       cases(Option<T.Type>) tyvar-env.get(typ.name):
-        | none => raise("Unbound type variable " + typ.name + " in provided type.")
+        | none => raise("Unbound type variable " + typ.name + " in provided type when processing " + uri)
         | some(tv) => T.t-var(tv, l, false)
       end
     | t == "forall" then:
@@ -356,9 +496,15 @@ fun tvariant-from-raw(uri, tvariant, env):
       members = tvariant.vmembers.foldr(lam(tm, members):
         link({tm.name; type-from-raw(uri, tm.typ, env)}, members)
       end, empty)
-      t-variant(tvariant.name, members, [string-dict: ])
+      with-members = for fold(wmembers from [string-dict:], wm from tvariant.withmembers):
+        wmembers.set(wm.name, type-from-raw(uri, wm.value, env))
+      end
+      t-variant(tvariant.name, members, with-members)
     | t == "singleton-variant" then:
-      t-singleton-variant(tvariant.name, [string-dict: ])
+      with-members = for fold(wmembers from [string-dict:], wm from tvariant.withmembers):
+        wmembers.set(wm.name, type-from-raw(uri, wm.value, env))
+      end
+      t-singleton-variant(tvariant.name, with-members)
     | otherwise: raise("Unkonwn raw tag for variant: " + t)
   end
 end
@@ -366,10 +512,10 @@ end
 fun datatype-from-raw(uri, datatyp):
   l = SL.builtin(uri)
 
-  if datatyp.tag == "any":
-    # TODO(joe): this will be replaced when datatypes have a settled format
-    t-top
-  else:
+  if datatyp.tag == "data-alias":
+    origin = origin-from-raw(uri, datatyp.origin, datatyp.name)
+    d-alias(origin, datatyp.name)
+  else if datatyp.tag == "data":
     pdict = for fold(pdict from SD.make-string-dict(), a from datatyp.params):
       tvn = A.global-names.make-atom(a)
       pdict.set(a, tvn)
@@ -381,31 +527,72 @@ fun datatype-from-raw(uri, datatyp):
     members = datatyp.methods.foldl(lam(tm, members):
       members.set(tm.name, type-from-raw(uri, tm.value, pdict))
     end, [string-dict: ])
-    t-data(datatyp.name, params, variants, members)
+    origin = origin-from-raw(uri, datatyp.origin, datatyp.name)
+    d-type(origin, t-data(datatyp.name, params, variants, members))
+  else:
+    raise("Unknown format for data export in " + uri + ": " + to-repr(datatyp))
+  end
+end
+
+fun srcloc-from-raw(raw):
+  if raw-array-length(raw) == 1:
+    SL.builtin(raw-array-get(raw, 0))
+  else:
+    SL.srcloc(
+      raw-array-get(raw, 0),
+      raw-array-get(raw, 1),
+      raw-array-get(raw, 2),
+      raw-array-get(raw, 3),
+      raw-array-get(raw, 4),
+      raw-array-get(raw, 5),
+      raw-array-get(raw, 6))
+  end
+end
+
+fun origin-from-raw(uri, raw, name):
+  if raw.provided:
+    bind-origin(
+      srcloc-from-raw(raw.local-bind-site),
+      srcloc-from-raw(raw.definition-bind-site),
+      raw.new-definition,
+      raw.uri-of-definition,
+      A.s-name(srcloc-from-raw(raw.definition-bind-site), name)
+      )
+  else:
+    bind-origin(SL.builtin(uri), SL.builtin(uri), false, uri, A.s-name(A.dummy-loc, name))
   end
 end
 
 fun provides-from-raw-provides(uri, raw):
+  mods = raw.modules
+  mdict = for fold(mdict from SD.make-string-dict(), v from raw.modules):
+    mdict.set(v.name, v.uri)
+  end
   values = raw.values
   vdict = for fold(vdict from SD.make-string-dict(), v from raw.values):
     if is-string(v) block:
-      vdict.set(v, v-just-type(t-top))
+      vdict.set(v, v-just-type(origin-from-raw(uri, {provided:false}, v), t-top))
     else:
-      if v.value.bind == "var":
-        vdict.set(v.name, v-var(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+      if v.value.bind == "alias":
+        origin = origin-from-raw(uri, v.value.origin, v.value.original-name)
+        vdict.set(v.name, v-alias(origin, v.value.original-name))
+      else if v.value.bind == "var":
+        origin = origin-from-raw(uri, v.value.origin, v.name)
+        vdict.set(v.name, v-var(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       else if v.value.bind == "fun":
+        origin = origin-from-raw(uri, v.value.origin, v.name)
         flatness = if is-number(v.value.flatness):
           some(v.value.flatness)
         else:
           none
         end
-        vdict.set(v.name, v-fun(type-from-raw(uri, v.value.typ, SD.make-string-dict()), v.value.name, flatness))
+        vdict.set(v.name, v-fun(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict()), v.value.name, flatness))
       else:
-        vdict.set(v.name, v-just-type(type-from-raw(uri, v.value.typ, SD.make-string-dict())))
+        origin = origin-from-raw(uri, v.value.origin, v.name)
+        vdict.set(v.name, v-just-type(origin, type-from-raw(uri, v.value.typ, SD.make-string-dict())))
       end
     end
   end
-  aliases = raw.aliases
   adict = for fold(adict from SD.make-string-dict(), a from raw.aliases):
     if is-string(a):
       adict.set(a, t-top)
@@ -413,12 +600,10 @@ fun provides-from-raw-provides(uri, raw):
       adict.set(a.name, type-from-raw(uri, a.typ, SD.make-string-dict()))
     end
   end
-  datas = raw.datatypes
   ddict = for fold(ddict from SD.make-string-dict(), d from raw.datatypes):
     ddict.set(d.name, datatype-from-raw(uri, d.typ))
   end
-  # MARK(joe/ben): modules
-  provides(uri, [SD.string-dict:], vdict, adict, ddict)
+  provides(uri, mdict, vdict, adict, ddict)
 end
 
 
@@ -490,9 +675,9 @@ data CompileError:
     method render-reason(self):
       [ED.error:
         [ED.para:
-          ED.text("Well-formedness:"),
+          ED.text("Well-formedness: "),
           ED.text(self.msg),
-          ED.text("at")],
+          ED.text(" at")],
         ED.v-sequence(self.loc.map(lam(l): [ED.para: draw-and-highlight(l)] end))]
     end
   | reserved-name(loc :: Loc, id :: String) with:
@@ -504,7 +689,7 @@ data CompileError:
           ED.text(" errored:")],
         ED.cmcode(self.loc),
         [ED.para:
-          ED.text("This name is reserved is reserved by Pyret, and cannot be used as an identifier.")]]
+          ED.text("This name is reserved by Pyret, and cannot be used in a definition.")]]
     end,
     method render-reason(self):
       [ED.error:
@@ -513,17 +698,17 @@ data CompileError:
           ED.code(ED.text(self.id)),
           ED.text(" at "),
           ED.loc(self.loc),
-          ED.text(" is reserved by Pyret, and cannot be used as an identifier.")]]
+          ED.text(" is reserved by Pyret, and cannot be used in a definition.")]]
     end
-  | contract-on-import(loc :: Loc, name :: String, import-type :: A.ImportType) with:
+  | contract-on-import(loc :: Loc, name :: String, import-loc :: Loc, import-uri :: String) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
           ED.text("Contracts for functions can only be defined once, and the contract for "),
           ED.highlight(ED.code(ED.text(self.name)), [list: self.loc], 0),
           ED.text(" is already defined in the "),
-          ED.highlight(ED.code(ED.text(self.import-type.tosource().pretty(1000).join-str(""))),
-            [list: self.import-type.l], 1),
+          ED.highlight(ED.code(ED.text(self.import-uri)),
+            [list: self.import-loc], 1),
           ED.text(" library.")],
         ED.cmcode(self.loc)]
     end,
@@ -718,11 +903,10 @@ data CompileError:
         [ED.para:
           ED.text("The "),
           ED.code(ED.highlight(ED.text(self.op-a-name),[list: self.op-a-loc], 0)),
-          ED.text(" operation is at the same level as the "),
+          ED.text(" and "),
           ED.code(ED.highlight(ED.text(self.op-b-name),[list: self.op-b-loc], 1)),
-          ED.text(" operation.")],
-        [ED.para:
-          ED.text("Use parentheses to group the operations and to make the order of operations clear.")]]
+          ED.text(" operations are at the same grouping level. "),
+          ED.text("Add parentheses to group the operations, and make the order of operations clear.")]]
     end,
     method render-reason(self):
       [ED.error:
@@ -812,7 +996,9 @@ data CompileError:
         ED.cmcode(self.expr.l),
         [ED.para:
           ED.code(ED.text("example")),
-          ED.text(" blocks must only contain testing statements.")]]
+          ED.text(" blocks must only contain testing statements.  "),
+          ED.text("A test consists of an expression followed by an answer connected by a testing keyword, usually "),
+          ED.code(ED.text("is")), ED.text(".")]]
     end,
     method render-reason(self):
       [ED.error:
@@ -820,7 +1006,8 @@ data CompileError:
           ED.code(ED.text("example")),
           ED.text(" blocks must only contain testing statements, but the statement at "),
           ED.loc(self.expr.l),
-          ED.text(" isn't a testing statement.")]]
+          ED.text(" isn't a testing statement.  "),
+          ED.text("A test consists of an expression followed by an answer connected by a testing keyword, usually ")]]
     end
   | tuple-get-bad-index(l, tup, index, index-loc) with:
     method render-fancy-reason(self):
@@ -1114,6 +1301,41 @@ data CompileError:
             ED.code(ED.text("block:")), ED.text(" to indicate this is deliberate.")]]
       end
     end
+  | name-not-provided(name-loc, imp-loc, name :: A.Name, typ :: String) with:
+    method render-fancy-reason(self):
+      cases(SL.Srcloc) self.name-loc:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin import that's not defined"),
+            ED.text(self.name.toname()), ED.text("at"),
+            draw-and-highlight(self.name-loc)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The name "),
+              ED.code(ED.highlight(ED.text(self.name.toname()), [ED.locs: self.name-loc], 0)),
+              ED.text(" is not provided as a " + self.typ + " in the import at ")],
+            ED.cmcode(self.imp-loc)]
+      end
+    end,
+    method render-reason(self):
+      cases(SL.Srcloc) self.name-loc:
+        | builtin(_) =>
+          [ED.para:
+            ED.text("ERROR: should not be allowed to have a builtin import that's not defined"),
+            ED.text(self.name.toname()), ED.text("at"),
+            draw-and-highlight(self.name-loc)]
+        | srcloc(_, _, _, _, _, _, _) =>
+          [ED.error:
+            [ED.para:
+              ED.text("The name "),
+              ED.code(ED.text(self.name.toname())),
+              ED.text(" at "),
+              ED.loc(self.name-loc),
+              ED.text(" is not provided as a " + self.typ + " in the import at "),
+              ED.loc(self.imp-loc)]]
+      end
+    end
   | unbound-id(id :: A.Expr) with:
     method render-fancy-reason(self):
       cases(SL.Srcloc) self.id.l:
@@ -1125,7 +1347,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The identifier "),
+              ED.text("The name "),
               ED.code(ED.highlight(ED.text(self.id.id.toname()), [ED.locs: self.id.l], 0)),
               ED.text(" is unbound:")],
              ED.cmcode(self.id.l),
@@ -1145,7 +1367,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The identifier "),
+              ED.text("The name "),
               ED.code(ED.text(self.id.id.toname())),
               ED.text(" at "),
               ED.loc(self.id.l),
@@ -1256,7 +1478,7 @@ data CompileError:
           ED.text(" is being used as a value:")]
       usage = ED.cmcode(self.id.l)
       cases(BindOrigin) self.origin:
-        | bind-origin(lbind, ldef, newdef, uri) =>
+        | bind-origin(lbind, ldef, newdef, uri, orig-name) =>
           if newdef:
             [ED.error: intro, usage,
               [ED.para:
@@ -1265,7 +1487,7 @@ data CompileError:
                 ED.text(":")],
               ED.cmcode(ldef)]
           else:
-            # MARK(joe/ben): This may be able to use lbind and ldef when they
+            # TODO(joe/ben): This may be able to use lbind and ldef when they
             # are more refined; come back to this
             [ED.error: intro, usage,
               [ED.para:
@@ -1289,7 +1511,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The "),
-          ED.highlight(ED.text("identifier"), [ED.locs: self.loc], self.loc),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], self.loc),
           ED.text(" is used in a dot-annotation")],
         ED.cmcode(self.loc),
         [ED.para:
@@ -1299,7 +1521,7 @@ data CompileError:
       #### TODO ###
       [ED.error:
         [ED.para-nospace:
-          ED.text("Identifier "),
+          ED.text("The name "),
           ED.text(tostring(self.name)),
           ED.text(" is used in a dot-annotation at "),
           draw-and-highlight(self.loc),
@@ -1369,7 +1591,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("Defining the anonymous recursive identifier "),
+              ED.text("Defining the anonymous recursive binding "),
               ED.code(ED.text("rec _")),
               ED.text(" at "),
               ED.loc(self.loc),
@@ -1403,7 +1625,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The anonymous identifier "),
+              ED.text("The anonymous binding "),
               ED.code(ED.text("shadow _")),
               ED.text(" at "),
               ED.loc(self.loc),
@@ -1462,52 +1684,135 @@ data CompileError:
           ED.text(self.id + " is declared as both a variable (at " + tostring(self.var-loc) + ")"
               + " and an identifier (at " + self.id-loc.format(not(self.var-loc.same-file(self.id-loc))) + ")")]]
     end
-  | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
+  | shadow-id(id :: String, new-loc :: Loc, old-loc :: Loc, import-loc :: Option<Loc>) with:
     # TODO: disambiguate what is doing the shadowing and what is being shadowed.
     # it's not necessarily a binding; could be a function definition.
     method render-fancy-reason(self):
+
+
+      # included in definitions, shadowed in definitions
+      # included in definitions, shadowed in interactions
+      # global in definitions, shadowed in definitions
+      # global in definitions, shadowed in interactions
+      # everything else mentions the name somewhere as a local-bind-site
+
       old-loc-color = 0
       new-loc-color = 1
+      imp-loc-color = 2
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The declaration of the identifier named "),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
-              ED.text(" shadows the declaration of a built-in of the same name.")]]
-        | srcloc(_, _, _, _, _, _, _) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The declaration of the identifier named "),
-              ED.highlight(ED.text(self.id), [list: self.new-loc], new-loc-color),
-              ED.text(" shadows a previous declaration of an identifier also named "),
-              ED.highlight(ED.text(self.id), [list: self.old-loc], old-loc-color)]]
+          cases(Option) self.import-loc:
+            | none =>
+              [ED.error:
+                [ED.para:
+                  ED.text("The declaration of "),
+                  ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                  ED.text(" shadows the declaration of a built-in of the same name.")]]
+            | some(imp-loc) =>
+              [ED.error:
+                [ED.para:
+                  ED.text("The declaration of "),
+                  ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                  ED.text(" shadows the declaration of a built-in of the same name, which was imported "),
+                  ED.highlight(ED.code(ED.text("here")), [list: imp-loc], imp-loc-color)]]
+          end
+        | srcloc(filename, _, _, _, _, _, _) =>
+          is-builtin-loc = (string-index-of(filename, "builtin://") == 0)
+          cases(Option) self.import-loc:
+            | none =>
+              [ED.error:
+                if is-builtin-loc:
+                  [ED.para:
+                    ED.text("The declaration of "),
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                    ED.text(" shadows a built-in declaration of the same name.")]
+                else:
+                  [ED.para:
+                    ED.text("The declaration of "),
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                    ED.text(" shadows a previous declaration of "),
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color)]
+                end]
+            | some(imp-loc) =>
+              if imp-loc == self.old-loc:
+                  [ED.para:
+                    ED.text("The declaration of "),
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                    ED.text(" shadows a previous declaration of "),
+                    ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color)]
+              else: 
+                [ED.error:
+                  if is-builtin-loc:
+                    [ED.para:
+                      ED.text("The declaration of "),
+                      ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                      ED.text(" shadows a built-in declaration of the same name, which was imported "),
+                      ED.highlight(ED.code(ED.text("here")), [list: imp-loc], imp-loc-color)]
+                  else:
+                    [ED.para:
+                      ED.text("The declaration of "),
+                      ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
+                      ED.text(" shadows a previous declaration of "),
+                      ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color),
+                      ED.text(", which was imported "),
+                      ED.highlight(ED.code(ED.text("here")), [list: imp-loc], imp-loc-color)]
+                  end]
+              end
+          end
       end
     end,
     method render-reason(self):
       cases(SL.Srcloc) self.old-loc:
         | builtin(_) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The declaration of the identifier named "),
-              ED.code(ED.text(self.id)),
-              ED.text(" at "),
-              ED.loc(self.new-loc),
-              ED.text(" shadows the declaration of a built-in identifier also named "),
-              ED.code(ED.text(self.id)),
-              ED.text(" at "),
-              ED.loc(self.old-loc)]]
+          cases(Option) self.import-loc:
+            | none =>
+              [ED.error:
+                [ED.para:
+                  ED.text("7The declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" at "),
+                  ED.loc(self.new-loc),
+                  ED.text(" shadows the declaration of a built-in of the same name, defined at "),
+                  ED.loc(self.old-loc)]]
+            | some(imp-loc) =>
+              [ED.error:
+                [ED.para:
+                  ED.text("8The declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" at "),
+                  ED.loc(self.new-loc),
+                  ED.text(" shadows the declaration of a built-in of the same name, defined at "),
+                  ED.loc(self.old-loc),
+                  ED.text(" and imported from "),
+                  ED.loc(imp-loc)]]
+          end
         | srcloc(_, _, _, _, _, _, _) =>
-          [ED.error:
-            [ED.para:
-              ED.text("The declaration of the identifier named "),
-              ED.code(ED.text(self.id)),
-              ED.text(" at "),
-              ED.loc(self.new-loc),
-              ED.text(" shadows the declaration of an identifier also named "),
-              ED.code(ED.text(self.id)),
-              ED.text(" at "),
-              ED.loc(self.old-loc)]]
+          cases(Option) self.import-loc:
+            | none =>
+              [ED.error:
+                [ED.para:
+                  ED.text("9The declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" at "),
+                  ED.loc(self.new-loc),
+                  ED.text(" shadows a previous declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" defined at "),
+                  ED.loc(self.old-loc)]]
+            | some(imp-loc) =>
+              [ED.error:
+                [ED.para:
+                  ED.text("0The declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" at "),
+                  ED.loc(self.new-loc),
+                  ED.text(" shadows a previous declaration of "),
+                  ED.code(ED.text(self.id)),
+                  ED.text(" defined at "),
+                  ED.loc(self.old-loc),
+                  ED.text(" and imported from "),
+                  ED.loc(imp-loc)]]
+          end
       end
     end
   | duplicate-id(id :: String, new-loc :: Loc, old-loc :: Loc) with:
@@ -1518,9 +1823,9 @@ data CompileError:
         | builtin(_) =>
           [ED.error:
             [ED.para:
-              ED.text("The declaration of the identifier named "),
+              ED.text("The declaration named "),
               ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
-              ED.text(" is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.text(" is preceeded in the same scope by another declaration also named "),
               ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color),
               ED.text(".")]]
         | srcloc(_, _, _, _, _, _, _) =>
@@ -1540,22 +1845,22 @@ data CompileError:
         | builtin(_) =>
           [ED.error:
             [ED.para:
-              ED.text("The declaration of the identifier named "),
+              ED.text("The declaration named "),
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.new-loc),
-              ED.text(" is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.text(" is preceeded in the same scope by another declaration also named "),
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.old-loc)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The declaration of the identifier named "),
+              ED.text("The declaration named "),
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.new-loc),
-              ED.text(" is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.text(" is preceeded in the same scope by another declaration also named "),
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.old-loc)]]
@@ -1588,14 +1893,14 @@ data CompileError:
           ED.code(ED.text(self.id)),
           ED.text(" at "),
           ED.loc(self.new-loc),
-          ED.text(" is preceeded in the same object by a field of an identifier also named "),
+          ED.text(" is preceeded in the same object by a field that is also named "),
           ED.code(ED.text(self.id)),
           ED.text(" at "),
           ED.loc(self.old-loc),
           ED.text(".")],
         [ED.para: ED.text("Pick a different name for one of them.")]]
     end
-  | same-line(a :: Loc, b :: Loc) with:
+  | same-line(a :: Loc, b :: Loc, b-is-paren :: Boolean) with:
     method render-fancy-reason(self):
       [ED.error:
         [ED.para:
@@ -1604,8 +1909,16 @@ data CompileError:
           ED.highlight(ED.text("another expression"), [list: self.b], 1),
           ED.text(":")],
         ED.cmcode(self.a + self.b),
-        [ED.para:
-          ED.text("Each expression within a block should be on its own line.")]]
+        if self.b-is-paren:
+          [ED.para:
+            ED.text("Each expression within a block should be on its own line.  "),
+            ED.text("If you meant to write a function call, there should be no space between the "),
+            ED.highlight(ED.text("function expression"), [list: self.a], 0),
+            ED.text(" and the "), ED.highlight(ED.text("arguments"), [list: self.b], 1), ED.text(".")]
+        else:
+          [ED.para:
+            ED.text("Each expression within a block should be on its own line.")]
+        end]
     end,
     method render-reason(self):
       [ED.error:
@@ -2514,9 +2827,9 @@ data CompileError:
     method render-fancy-reason(self):
       
       bad-column = self.sanitize-expr.name
-      bad-column-name = bad-column.tosource().pretty(80)
+      bad-column-name = bad-column.toname()
       sanitizer = self.sanitize-expr.sanitizer
-      sanitizer-name = sanitizer.tosource().pretty(80)
+      sanitizer-name = sanitizer.tosource().pretty(80).join-str(" ")
       [ED.error:
         [ED.para:
           ED.text("The column "),
@@ -2605,6 +2918,7 @@ type CompileOptions = {
   check-mode :: Boolean,
   check-all :: Boolean,
   type-check :: Boolean,
+  enable-spies :: Boolean,
   allow-shadowed :: Boolean,
   collect-all :: Boolean,
   collect-times :: Boolean,
@@ -2623,6 +2937,7 @@ default-compile-options = {
   check-mode : true,
   check-all : true,
   type-check : false,
+  enable-spies: true,
   allow-shadowed : false,
   collect-all: false,
   collect-times: false,
@@ -2725,6 +3040,8 @@ runtime-provides = provides("builtin://global",
     "_greaterequal", t-top,
     "string-equal", t-top,
     "string-contains", t-top,
+    "string-starts-with", t-top,
+    "string-ends-with", t-top,
     "string-append", t-top,
     "string-length", t-top,
     "string-isnumber", t-top,
@@ -2753,8 +3070,21 @@ runtime-provides = provides("builtin://global",
     "num-max", t-number-binop,
     "num-min", t-number-binop,
     "num-equal", t-arrow([list: t-number, t-number], t-boolean),
+    "num-truncate", t-number-unop,
+    "num-ceiling", t-number-unop,
+    "num-floor", t-number-unop,
     "num-round", t-number-unop,
     "num-round-even", t-number-unop,
+    "num-truncate-digits", t-number-binop,
+    "num-ceiling-digits", t-number-binop,
+    "num-floor-digits", t-number-binop,
+    "num-round-digits", t-number-binop,
+    "num-round-even-digits", t-number-binop,
+    "num-truncate-place", t-number-binop,
+    "num-ceiling-place", t-number-binop,
+    "num-floor-place", t-number-binop,
+    "num-round-place", t-number-binop,
+    "num-round-even-place", t-number-binop,
     "num-abs", t-number-unop,
     "num-sin", t-number-unop,
     "num-cos", t-number-unop,
@@ -2765,11 +3095,8 @@ runtime-provides = provides("builtin://global",
     "num-atan2", t-number-binop,
     "num-modulo", t-number-binop,
     "num-remainder", t-number-binop,
-    "num-truncate", t-number-unop,
     "num-sqrt", t-number-unop,
     "num-sqr", t-number-unop,
-    "num-ceiling", t-number-unop,
-    "num-floor", t-number-unop,
     "num-log", t-number-unop,
     "num-exp", t-number-unop,
     "num-exact", t-number-unop,
@@ -2834,6 +3161,11 @@ runtime-provides = provides("builtin://global",
     "equal-always3", t-top,
     "equal-now", t-pred2,
     "equal-now3", t-top,
+    "roughly-equal-always", t-pred2,
+    "roughly-equal-always3", t-top,
+    "roughly-equal-now", t-pred2,
+    "roughly-equal-now3", t-top,
+    "roughly-equal", t-pred2,
     "identical", t-pred2,
     "identical3", T.t-top,
     "exn-unwrap", T.t-top
@@ -2860,28 +3192,22 @@ runtime-provides = provides("builtin://global",
   [string-dict:])
 
 runtime-values = for SD.fold-keys(rb from [string-dict:], k from runtime-provides.values):
-  rb.set(k, "builtin(global)")
+  rb.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
 end
 
 runtime-types = for SD.fold-keys(rt from [string-dict:], k from runtime-provides.aliases):
-  rt.set(k, "builtin(global)")
+  rt.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
 end
 shadow runtime-types = for SD.fold-keys(rt from runtime-types, k from runtime-provides.data-definitions):
-  rt.set(k, "builtin(global)")
+  rt.set(k, bind-origin(SL.builtin("global"), SL.builtin("global"), true, "builtin://global", A.s-name(A.dummy-loc, k)))
 end
-
-# MARK(joe/ben): modules
-no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])
-
-# MARK(joe/ben): modules
-standard-globals = globals([string-dict:], runtime-values, runtime-types)
-
 minimal-imports = extra-imports(empty)
 
 standard-imports = extra-imports(
    [list:
       extra-import(builtin("global"), "$global", [list:], [list:]),
       extra-import(builtin("base"), "$base", [list:], [list:]),
+      extra-import(builtin("constants"), "$constants", [list: "PI"], [list:]),
       extra-import(builtin("arrays"), "arrays", [list:
           "array",
           "build-array",
@@ -2953,6 +3279,15 @@ standard-imports = extra-imports(
         ],
         [list: "Set"])
     ])
+
+# MARK(joe/ben): modules
+no-builtins = compile-env(globals([string-dict: ], [string-dict: ], [string-dict: ]), [mutable-string-dict:],[string-dict:])
+
+# MARK(joe/ben): modules
+standard-globals = globals([string-dict:], runtime-values, runtime-types)
+
+no-globals = globals([string-dict:], [string-dict:], [string-dict:])
+
 
 reactor-optional-fields = [SD.string-dict:
   "last-image",       {(l): A.a-name(l, A.s-type-global("Function"))},

@@ -2,12 +2,28 @@
   requires: [
     { "import-type": "builtin", name: "string-dict" },
   ],
-  provides: {},
+  provides: {
+    values: {
+      "open-input-file": "tany",
+      "open-output-file": "tany",
+      "read-file": "tany",
+      "display": "tany",
+      "flush-output-file": "tany",
+      "file-times": "tany",
+      "real-path": "tany",
+      "exists": "tany",
+      "close-output-file": "tany",
+      "close-input-file": "tany",
+      "create-dir": "tany",
+      "create-dir-tree": "tany",
+      "list-files": "tany"
+    }
+  },
   nativeRequires: ["fs"],
   theModule: function(RUNTIME, NAMESPACE, uri, SD, fs) {
     function InputFile(name) {
       this.name = name;
-      this.fd = fs.openSync(name, "r")
+      this.fd = fs.openSync(name, "r");
     }
 
     function OutputFile(name, append) {

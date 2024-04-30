@@ -130,7 +130,7 @@ showpath:
 	@echo `which browserify`
 
 $(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
-	browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
+	npx browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
@@ -231,11 +231,11 @@ TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
 test-all: test
 
 .PHONY : test
-test: pyret-test type-check-test
+test: pyret-test type-check-test pyret-io-test
 
 .PHONY : parse-test
 parse-test: tests/parse/parse.js build/phaseA/js/pyret-tokenizer.js build/phaseA/js/pyret-parser.js
-	cd tests/parse/ && $(NODE) test.js require-test-runner/
+	cd tests/parse/ && $(NODE) parse.js
 
 TEST_FILES := $(wildcard tests/pyret/tests/*.arr)
 TYPE_TEST_FILES := $(wildcard tests/type-check/bad/*.arr) $(wildcard tests/type-check/good/*.arr) $(wildcard tests/type-check/should/*.arr) $(wildcard tests/type-check/should-not/*.arr)
@@ -249,7 +249,7 @@ tests/pyret/all.jarr: phaseA $(TEST_FILES) $(TYPE_TEST_FILES) $(REG_TEST_FILES) 
 		-check-all
 
 .PHONY : all-pyret-test
-all-pyret-test: tests/pyret/all.jarr parse-test
+all-pyret-test: tests/pyret/all.jarr parse-test pyret-io-test
 	$(NODE) tests/pyret/all.jarr
 
 tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
@@ -262,6 +262,10 @@ tests/pyret/main2.jarr: phaseA tests/pyret/main2.arr  $(TEST_FILES)
 .PHONY : pyret-test
 pyret-test: phaseA tests/pyret/main2.jarr
 	$(NODE) tests/pyret/main2.jarr
+
+.PHONY : pyret-io-test
+pyret-io-test: phaseA
+	npx jest --verbose "tests/io-tests/io.test.js"
 
 .PHONY : regression-test
 regression-test: tests/pyret/regression.jarr

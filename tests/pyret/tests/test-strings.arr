@@ -137,6 +137,11 @@ check:
   string-to-code-points("abcd") is [list: 97, 98, 99, 100]
   string-to-code-points("") is [list:]
 
+  # octal escape sequences
+  string-to-code-point("\0") is 0
+  string-to-code-point("\77") is 63
+  string-to-code-point("\101") is 65
+
   string-from-code-points([list: 955, 97, 10]) is "λa\n"
   string-from-code-points([list: 955, -1]) raises "Natural Number"
   string-from-code-points([list:]) is ""
@@ -168,4 +173,14 @@ check "case":
   string-to-lower("I'M NOT YELLING!") is "i'm not yelling!"
   string-to-lower("SS") is "ss"
   string-to-lower("ΛΑΜΒΔΑ") is "λαμβδα"
+end
+
+check "starts/ends":
+  string-starts-with("abc", "a") is true
+  string-starts-with("abc", "ab") is true
+  string-starts-with("abc", "b") is false
+
+  string-ends-with("abc", "c") is true
+  string-ends-with("abc", "bc") is true
+  string-ends-with("abc", "b") is false
 end

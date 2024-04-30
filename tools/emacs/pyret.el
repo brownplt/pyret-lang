@@ -132,11 +132,11 @@
 (defconst pyret-keywords-test
   '("is==" "is=~" "is<=>" "is-not==" "is-not=~" "is-not<=>"))
 (defconst pyret-keywords
-   '("fun" "lam" "method" "spy" "var" "when" "include" "import" "provide" "type" "newtype" "check" "examples"
+   '("fun" "lam" "method" "spy" "var" "when" "include" "import" "provide" "module" "type" "newtype" "check" "examples"
      "data" "end" "except" "for" "from" "cases" "shadow" "let" "letrec" "rec" "ref"
      "and" "or" "is" "raises" "satisfies" "violates" "mutable" "cyclic" "lazy"
      "as" "if" "else" "deriving" "select" "extend" "transform" "extract" "sieve" "order"
-     "of" "ascending" "descending" "sanitize" "using"))
+     "of" "ascending" "descending" "sanitize" "using" "because"))
 (defconst pyret-keywords-hyphen
   '("provide-types" "type-let" 
     "is-not" "is-roughly" "raises-other-than"
@@ -156,7 +156,7 @@
 (defconst pyret-initial-operator-regex
   (concat "^[ \t]*\\(?:\\_<"
           (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>"
-                        "is" "is%" "is==" "is=~" "is<=>" 
+                        "is" "is%" "is==" "is=~" "is<=>" "because"
                         "is-not" "is-not%" "is-not==" "is-not=~" "is-not<=>" "is-roughly"
                         "satisfies" "violates" "raises" "raises-other-than"
                         "does-not-raise" "raises-satisfies" "raises-violates"))
@@ -697,6 +697,7 @@ the number of quote characters in the match."
 (defsubst pyret-DOES-NOT-RAISE () (pyret-keyword "does-not-raise"))
 (defsubst pyret-RAISES-SATISFIES () (pyret-keyword "raises-satisfies"))
 (defsubst pyret-RAISES-VIOLATES () (pyret-keyword "raises-VIOLATES"))
+(defsubst pyret-BECAUSE () (pyret-keyword "because"))
 (defsubst pyret-DOC () (pyret-keyword "doc:"))
 (defsubst pyret-ELSEIF () (pyret-keyword "else if"))
 (defsubst pyret-ELSE () (pyret-keyword "else:"))
@@ -744,14 +745,14 @@ the number of quote characters in the match."
 (defsubst pyret-SEMI () (pyret-char ?\;))
 (defsubst pyret-COLON () (pyret-char ?:))
 (defsubst pyret-COMMA () (pyret-char ?,))
-(defsubst pyret-LBRACK () (pyret-char ?[))
-(defsubst pyret-RBRACK () (pyret-char ?]))
+(defsubst pyret-LBRACK () (pyret-char ?\[))
+(defsubst pyret-RBRACK () (pyret-char ?\]))
 (defsubst pyret-LBRACE () (pyret-char ?{))
 (defsubst pyret-RBRACE () (pyret-char ?}))
 (defsubst pyret-LANGLE () (pyret-char ?<))
 (defsubst pyret-RANGLE () (pyret-char ?>))
-(defsubst pyret-LPAREN () (pyret-char ?())
-(defsubst pyret-RPAREN () (pyret-char ?)))
+(defsubst pyret-LPAREN () (pyret-char ?\())
+(defsubst pyret-RPAREN () (pyret-char ?\)))
 (defsubst pyret-EQUALS () (and (not (pyret-in-string)) (looking-at "=[^>]")))
 (defsubst pyret-BLOCK-COMMENT () (and (not (pyret-in-string)) (looking-at "[ \t]*#|")))
 (defsubst pyret-COMMENT () (and (not (pyret-in-string)) (looking-at "[ \t]*#.*$")))
@@ -940,6 +941,11 @@ the number of quote characters in the match."
             (pop opens)
             (incf (pyret-indent-shared defered-closed))
             (forward-char))
+           ((and (pyret-FROM) (pyret-has-top opens '(provide)))
+            (pop opens)
+            (push 'new-provide opens)
+            (push 'wantcolon opens)
+            (forward-char 4))
            ((and (looking-at pyret-initial-operator-regex) (not (pyret-in-string)))
             (incf (pyret-indent-initial-period cur-opened))
             (incf (pyret-indent-initial-period defered-closed))
@@ -948,7 +954,8 @@ the number of quote characters in the match."
             (cond
              ((or (pyret-has-top opens '(wantcolon))
                   (pyret-has-top opens '(wantcolonorequal))
-                  (pyret-has-top opens '(wantcolonorblock)))
+                  (pyret-has-top opens '(wantcolonorblock))
+                  (pyret-has-top opens '(wantcolonoras)))
               (pop opens))
              ((or (pyret-has-top opens '(object))
                   (pyret-has-top opens '(reactor))
@@ -1052,7 +1059,7 @@ the number of quote characters in the match."
             (push 'wantcloseparen opens)
             (push 'wantopenparen opens)
             (forward-char 5))
-           ((pyret-DATA)
+           ((and (pyret-DATA) (not (pyret-has-top opens '(new-provide))) (not (pyret-has-top opens '(import))))
             (incf (pyret-indent-data defered-opened))
             (push 'data opens)
             (push 'wantcolon opens)
@@ -1183,6 +1190,25 @@ the number of quote characters in the match."
              (push 'provide opens)
              (incf (pyret-indent-shared defered-opened))
              (forward-char 7))
+           ((pyret-IMPORT)
+            (push 'import opens)
+            (push 'wantcolonoras opens)
+            (incf (pyret-indent-shared defered-opened))
+            (forward-char 6))
+           ((and (pyret-FROM) (pyret-has-top opens '(wantcolonoras import)))
+            (pop opens)
+            (push 'wantcolon opens)
+            (forward-char 4))
+           ((and (pyret-AS) (pyret-has-top opens '(wantcolonoras import)))
+            (pop opens) (pop opens)
+            (cond
+             ((> (pyret-indent-shared cur-opened) 0)
+              (decf (pyret-indent-shared cur-opened)))
+             ((> (pyret-indent-shared defered-opened) 0)
+              (decf (pyret-indent-shared defered-opened)))
+             (t
+              (incf (pyret-indent-shared defered-closed))))
+            (forward-char 2))
            ((pyret-SHARING)
             (incf (pyret-indent-data cur-closed))
             (incf (pyret-indent-shared defered-opened))
@@ -1454,6 +1480,11 @@ the number of quote characters in the match."
                    ((> (pyret-indent-vars cur-opened) 0) (decf (pyret-indent-vars cur-opened)))
                    ((> (pyret-indent-vars defered-opened) 0) (decf (pyret-indent-vars defered-opened)))
                    (t (incf (pyret-indent-vars cur-closed)))))
+                 ((or (equal h 'new-provide) (equal h 'import))
+                  (cond
+                   ((> (pyret-indent-shared cur-opened) 0) (decf (pyret-indent-shared cur-opened)))
+                   ((> (pyret-indent-shared defered-opened) 0) (decf (pyret-indent-shared defered-opened)))
+                   (t (incf (pyret-indent-shared cur-closed)))))
                  ((equal h 'provide)
                   (cond
                    ((> (pyret-indent-vars cur-opened) 0) (decf (pyret-indent-vars cur-opened)))

@@ -6,23 +6,11 @@ import pprint as PP
 import srcloc as S
 import contracts as C
 import valueskeleton as VS
+include lists
 import lists as lists
-import option as option
+include option
 import global as _
 import base as _
-
-type List = lists.List
-link = lists.link
-empty = lists.empty
-list = lists.list
-is-empty = lists.is-empty
-is-link = lists.is-link
-fold = lists.fold
-
-type Option = option.Option
-some = option.some
-none = option.none
-is-none = option.is-none
 
 type Loc = S.Srcloc
 
@@ -36,6 +24,7 @@ str-arrow = PP.str("->")
 str-arrowspace = PP.str("-> ")
 str-as = PP.str("as")
 str-blank = PP.str("")
+str-because = PP.str("because")
 str-let = PP.str("let")
 str-type-let = PP.str("type-let")
 str-letrec = PP.str("letrec")
@@ -108,6 +97,7 @@ str-tablecolon = PP.str("table:")
 str-rowcolon = PP.str("row:")
 str-extend = PP.str("extend")
 str-transform = PP.str("transform")
+str-use = PP.str("use")
 str-using = PP.str("using")
 str-select = PP.str("select")
 str-sieve = PP.str("sieve")
@@ -142,6 +132,14 @@ data Name:
     method toname(self): self.s end,
     method key(self): "global#" + self.s end
 
+  | s-module-global(s :: String) with:
+    method to-compiled-source(self): PP.str(self.to-compiled()) end,
+    method to-compiled(self): "$module$" + self.s end,
+    method tosource(self): PP.str(self.s) end,
+    method tosourcestring(self): "$module$" + self.s end,
+    method toname(self): self.s end,
+    method key(self): "mglobal#" + self.s end
+
   | s-type-global(s :: String) with:
     method to-compiled-source(self): PP.str(self.to-compiled()) end,
     method to-compiled(self): "$type$" + self.s end,
@@ -163,7 +161,6 @@ sharing:
   method _greaterthan(self, other): self.key() > other.key() end,
   method _greaterequal(self, other): self.key() >= other.key() end,
   method _equals(self, other, eq): eq(self.key(), other.key()) end,
-  method _output(self): VS.vs-str(self.tosourcestring()) end,
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + tostring(self)) end)
   end
@@ -180,11 +177,13 @@ fun MakeName(start):
     s-underscore: s-underscore,
     s-name: s-name,
     s-global: s-global,
+    s-module-global: s-module-global,
     s-type-global: s-type-global,
     make-atom: atom,
     is-s-underscore: is-s-underscore,
     is-s-name: is-s-name,
     is-s-global: is-s-global,
+    is-s-module-global: is-s-module-global,
     is-s-atom: is-s-atom,
   }
 end
@@ -240,18 +239,34 @@ fun blocky-colon(blocky):
   if blocky: break-one + str-block else: str-colon end
 end
 
+data Use:
+  | s-use(l :: Loc, n :: Name, mod :: ImportType) with:
+    method label(self): "s-use" end,
+    method tosource(self):
+      PP.flow([list: str-use, self.n.tosource(), self.mod.tosource()])
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 data Program:
-  | s-program(l :: Loc, _provide :: Provide, provided-types :: ProvideTypes, imports :: List<Import>, block :: Expr) with:
+  | s-program(l :: Loc, _use :: Option<Use>, _provide :: Provide, provided-types :: ProvideTypes, provides :: List<ProvideBlock>, imports :: List<Import>, block :: Expr) with:
     method label(self): "s-program" end,
     method tosource(self):
-      PP.group(
-        PP.vert(
+      parts = 
           [list:
             self._provide.tosource(),
             self.provided-types.tosource()]
+            + self.provides.map(_.tosource())
             + self.imports.map(_.tosource())
             + [list: self.block.tosource()]
-          ))
+      with-use = cases(Option) self._use:
+        | none => parts
+        | some(u) => link(u.tosource(), parts)
+      end
+      PP.group(PP.vert(with-use))
     end
 sharing:
   method visit(self, visitor):
@@ -264,6 +279,12 @@ data Import:
     method label(self): "s-include" end,
     method tosource(self):
       PP.flow([list: str-include, self.mod.tosource()])
+    end
+  | s-include-from(l :: Loc, mod :: List<Name>, specs :: List<IncludeSpec>) with:
+    method label(self): "s-include" end,
+    method tosource(self):
+      PP.flow([list: str-include, str-from, PP.separate(str-period, self.mod.map(_.tosource())), str-colon,
+        PP.separate(PP.commabreak, self.specs.map(_.tosource()))])
     end
   | s-import(l :: Loc, file :: ImportType, name :: Name) with:
     method label(self): "s-import" end,
@@ -282,27 +303,41 @@ data Import:
           PP.flow-map(PP.commabreak, _.tosource(), self.fields),
           str-from, self.file.tosource()])
     end
-  | s-import-complete(
-      l :: Loc,
-      values :: List<Name>,
-      types :: List<Name>,
-      import-type :: ImportType,
-      vals-name :: Name,
-      types-name :: Name) with:
-    method label(self): "s-import-complete" end,
-    method tosource(self):
-      PP.flow([list: str-import,
-          PP.flow-map(PP.commabreak, _.tosource(), self.values + self.types),
-          str-from,
-          self.import-type.tosource(),
-          str-as,
-          self.vals-name.tosource(),
-          self.types-name.tosource()])
-    end
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
+end
+
+data IncludeSpec:
+  | s-include-name(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-include-name" end,
+    method tosource(self): self.name-spec.tosource() end
+  | s-include-data(l :: Loc, name-spec :: NameSpec, hidden :: List<Name>) with:
+    method label(self): "s-include-data" end,
+    method tosource(self): PP.flow([list: self.name-spec.tosource(), PP.str("hiding"), PP.separate(PP.str(","), self.hidden.map(_.tosource()))]) end
+  | s-include-type(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-include-type" end,
+    method tosource(self): self.name-spec.tosource() end
+  | s-include-module(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-include-module" end,
+    method tosource(self): self.name-spec.tosource() end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+
+
+data ProvidedModule:
+  | p-module(l :: Loc, name :: String, v :: Name, uri :: String) with:
+    method label(self):
+      "p-module"
+    end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-coloncolon, PP.str(self.v.toname()), self.ann.tosource())
+    end
 end
 
 data ProvidedValue:
@@ -344,22 +379,6 @@ data Provide:
       PP.soft-surround(INDENT, 1, str-provide,
         self.block.tosource(), str-end)
     end
-  | s-provide-complete(
-      l :: Loc,
-      values :: List<ProvidedValue>,
-      aliases :: List<ProvidedAlias>,
-      data-definitions :: List<ProvidedDatatype>
-    ) with:
-    method label(self): "s-provide" end,
-    method tosource(self):
-      PP.str("provide-complete") + PP.parens(PP.flow-map(PP.commabreak, lam(x): x end, [list:
-            PP.infix(INDENT, 1, str-colon,PP.str("Values"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.values))),
-            PP.infix(INDENT, 1, str-colon,PP.str("Aliases"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.aliases))),
-            PP.infix(INDENT, 1, str-colon,PP.str("Data"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.data-definitions)))]))
-    end
   | s-provide-all(l :: Loc) with:
     method label(self): "s-provide-all" end,
     method tosource(self): str-provide-star end
@@ -371,6 +390,81 @@ sharing:
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
+
+data ProvideBlock:
+  | s-provide-block(l :: Loc, path :: List<Name>, specs :: List<ProvideSpec>) with:
+    method label(self): "s-provide-block" end,
+    method tosource(self):
+      start = 
+        if is-empty(self.path):
+          PP.str("provide:")
+        else:
+          PP.flow([list: PP.str("provide from"), PP.separate(PP.str("."), self.path.map(_.tosource()))]) + str-colon
+        end
+      PP.surround-separate(INDENT, 1, start + str-space + str-end, start, PP.commabreak, str-end,
+        self.specs.map(_.tosource()))
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data ProvideSpec:
+  | s-provide-name(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-provide-name" end,
+    method tosource(self): self.name-spec.tosource() end
+  | s-provide-data(l :: Loc, name-spec :: NameSpec, hidden :: List<Name>) with:
+    method label(self): "s-provide-data" end,
+    method tosource(self):
+      PP.flow([list: PP.str("data"), self.name-spec.tosource(), PP.str("hiding"),
+          PP.parens(PP.separate(PP.str(","), self.hidden.map(_.tosource())))])
+    end
+  | s-provide-type(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-provide-type" end,
+    method tosource(self): PP.flow([list: PP.str("type"), self.name-spec.tosource()]) end
+  | s-provide-module(l :: Loc, name-spec :: NameSpec) with:
+    method label(self): "s-provide-module" end,
+    method tosource(self): PP.flow([list: PP.str("module"), self.name-spec.tosource()]) end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+data NameSpec:
+  | s-star(l :: Loc, hidden :: List<Name>) with:
+    method label(self): "s-star" end,
+    method tosource(self): PP.flow([list: PP.str("*"), PP.str("hiding"),
+        PP.parens(PP.separate(PP.str(","), self.hidden.map(_.tosource())))]) end
+  | s-module-ref(l :: Loc, path :: List<Name>, as-name :: Option<Name>) with:
+    method label(self): "s-module-ref" end,
+    method tosource(self):
+      cases(Option) self.as-name:
+        | none => 
+          PP.flow([list: PP.separate(PP.str(","), self.path.map(_.tosource()))])
+        | some(name) =>
+          PP.flow([list: PP.separate(PP.str(","), self.path.map(_.tosource())), PP.str("as"), name.tosource()])
+      end
+    end
+  | s-remote-ref(l :: Loc, uri :: String, name :: Name, as-name :: Name) with:
+    method label(self): "s-remote-ref" end,
+    method tosource(self):
+      PP.flow([list: self.name.tosource(), PP.str("@") + PP.str(self.uri), PP.str("as"), self.as-name.tosource()])
+    end
+  | s-local-ref(l :: Loc, name :: Name, as-name :: Name) with:
+    method label(self): "s-local-ref" end,
+    method tosource(self):
+      PP.flow([list: self.name.tosource(), PP.str("as"), self.as-name.tosource()])
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
+
+
 
 data ProvideTypes:
   | s-provide-types(l :: Loc, ann :: List<AField>) with:
@@ -466,6 +560,18 @@ sharing:
   end
 end
 
+data DefinedModule:
+  | s-defined-module(name :: String, value :: Name, uri :: String) with:
+    method label(self): "s-defined-module" end,
+    method tosource(self):
+      PP.infix(INDENT, 1, str-colon, PP.str(self.name), PP.str(self.uri))
+    end
+sharing:
+  method visit(self, visitor):
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end
+end
+
 data DefinedValue:
   | s-defined-value(name :: String, value :: Expr) with:
     method label(self): "s-defined-value" end,
@@ -502,10 +608,9 @@ data Expr:
   | s-module(
       l :: Loc,
       answer :: Expr,
+      defined-modules :: List<DefinedModule>,
       defined-values :: List<DefinedValue>,
       defined-types :: List<DefinedType>,
-      provided-values :: Expr,
-      provided-types :: List<AField>,
       checks :: Expr) with:
     method label(self): "s-module" end,
     method tosource(self):
@@ -515,9 +620,6 @@ data Expr:
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-values))),
             PP.infix(INDENT, 1, str-colon,PP.str("DefinedTypes"),
               PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.defined-types))),
-            PP.infix(INDENT, 1, str-colon, PP.str("Provides"), self.provided-values.tosource()),
-            PP.infix(INDENT, 1, str-colon,PP.str("Types"),
-              PP.brackets(PP.flow-map(PP.commabreak, _.tosource(), self.provided-types))),
             PP.infix(INDENT, 1, str-colon, PP.str("checks"), self.checks.tosource())]))
     end
   | s-template(l :: Loc) with:
@@ -749,14 +851,14 @@ data Expr:
             | empty => first.tosource()
             | link(second, rest2) =>
               op = break-one + PP.str(string-substring(self.op, 2, string-length(self.op))) + break-one
-              nested = for lists.fold(acc from second.tosource(), operand from rest2):
+              nested = for fold(acc from second.tosource(), operand from rest2):
                 acc + PP.group(op + operand.tosource())
               end
               PP.group(first.tosource() + op + PP.nest(INDENT, nested))
           end
       end
     end
-  | s-check-test(l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>) with:
+  | s-check-test(l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>, cause :: Option<Expr>) with:
     # Only 's-op-is' and 's-op-is-not' can have a refinement. (Checked in wf)
     # Only 's-op-raises-not' can lack a RHS. (Guaranteed by parsing; maintain this invariant!)
     method label(self): "s-check-test" end,
@@ -767,13 +869,15 @@ data Expr:
           | some(ast) => ast.tosource()
         end
       end
-      cases(Option) self.refinement:
-        | none =>
-          PP.infix(INDENT, 1, self.op.tosource(), self.left.tosource(), option-tosource(self.right))
-        | some(refinement) =>
-          PP.infix(INDENT, 1,
-            PP.infix(INDENT, 0, str-percent, self.op.tosource(), PP.parens(refinement.tosource())),
-            self.left.tosource(), option-tosource(self.right))
+      left = self.left.tosource()
+      op = cases(Option) self.refinement:
+        | none => self.op.tosource()
+        | some(r) => PP.infix(INDENT, 0, str-percent, self.op.tosource(), PP.parens(r.tosource()))
+      end
+      main = PP.infix(INDENT, 1, op, left, option-tosource(self.right))
+      cases(Option) self.cause:
+        | none => main
+        | some(cause) => PP.infix(INDENT, 1, str-because, main, cause.tosource())
       end
     end
   | s-check-expr(l :: Loc, expr :: Expr, ann :: Ann) with:
@@ -888,16 +992,16 @@ data Expr:
           self.l.end-column,
           self.l.end-char)
       else:
-        first = self.args.first.l
-        last = self.args.last().l
+        first-elem = self.args.first.l
+        last-elem = self.args.last().l
         S.srcloc(
           self.l.source,
-          first.start-line,
-          first.start-column,
-          first.start-char,
-          last.end-line,
-          last.end-column,
-          last.end-char)
+          first-elem.start-line,
+          first-elem.start-column,
+          first-elem.start-char,
+          last-elem.end-line,
+          last-elem.end-column,
+          last-elem.end-char)
       end
     end,
     method tosource(self):
@@ -932,6 +1036,13 @@ data Expr:
   | s-id-letrec(l :: Loc, id :: Name, safe :: Boolean) with:
     method label(self): "s-id-letrec" end,
     method tosource(self): PP.str("~") + self.id.tosource() end
+  | s-id-var-modref(l :: Loc, id :: Name, uri :: String, name :: String) with:
+    method label(self): "s-id-var-modref" end,
+    method tosource(self): self.id.tosource() + PP.str("@!") + PP.parens(PP.str(self.uri)) + PP.str("." + self.name) end
+  # A fully-resolved reference to a module
+  | s-id-modref(l :: Loc, id :: Name, uri :: String, name :: String) with:
+    method label(self): "s-id-modref" end,
+    method tosource(self): self.id.tosource() + PP.str("@") + PP.parens(PP.str(self.uri)) + PP.str("." + self.name) end
   | s-undefined(l :: Loc) with:
     method label(self): "s-undefined" end,
     method tosource(self): PP.str("undefined") end
@@ -998,7 +1109,7 @@ data Expr:
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(lam(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank ^ lists.link(_, self.variants.map(lam(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank ^ link(_, self.variants.map(lam(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
         PP.separate(PP.commabreak, self.shared-members.map(lam(s): s.tosource() end)))
       _check = cases(Option) self._check:
@@ -1032,7 +1143,7 @@ data Expr:
       _deriving =
         PP.surround-separate(INDENT, 0, PP.mt-doc, break-one + str-deriving, PP.commabreak, PP.mt-doc, self.mixins.map(lam(m): m.tosource() end))
       variants = PP.separate(break-one + str-pipespace,
-        str-blank ^ lists.link(_, self.variants.map(lam(v): PP.nest(INDENT, v.tosource()) end)))
+        str-blank ^ link(_, self.variants.map(lam(v): PP.nest(INDENT, v.tosource()) end)))
       shared = optional-section(str-sharing,
         PP.separate(PP.commabreak, self.shared-members.map(lam(s): s.tosource() end)))
       _check = cases(Option) self._check:
@@ -1200,7 +1311,7 @@ data Expr:
     end
 sharing:
   method visit(self, visitor):
-    self._match(visitor, lam(): raise("No visitor field for " + self.label()) end)
+    self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
   end
 end
 
@@ -1472,7 +1583,7 @@ data Variant:
         self.members.map(lam(b): b.tosource() end))
       header = PP.group(header-nowith + break-one + str-with)
       withs = self.with-members.map(lam(m): m.tosource() end)
-      if lists.is-empty(withs): header-nowith
+      if is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
     end
@@ -1486,7 +1597,7 @@ data Variant:
       header-nowith = PP.str(self.name)
       header = PP.group(header-nowith + break-one + str-with)
       withs = self.with-members.map(lam(m): m.tosource() end)
-      if lists.is-empty(withs): header-nowith
+      if is-empty(withs): header-nowith
       else: header + PP.group(PP.nest(INDENT, break-one + PP.separate(PP.commabreak, withs)))
       end
     end
@@ -1585,9 +1696,9 @@ end
 
 fun get-op-fun-name(opname):
   ask:
-    | opname == "op==" then: "equal-always"
-    | opname == "op=~" then: "equal-now"
-    | opname == "op<=>" then: "identical"
+    | opname == "op==" then: "equal-always3"
+    | opname == "op=~" then: "equal-now3"
+    | opname == "op<=>" then: "identical3"
     | otherwise: raise("Unknown op: " + opname)
   end
 end
@@ -1685,7 +1796,7 @@ data Ann:
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.commabreak, PP.rbrace,
         self.fields.map(_.tosource()))
     end,
-  | a-tuple(l :: Loc, fields :: List<AField>) with:
+  | a-tuple(l :: Loc, fields :: List<Ann>) with:
     method label(self): "a-tuple" end,
     method tosource(self):
       PP.surround-separate(INDENT, 1, PP.lbrace + PP.rbrace, PP.lbrace, PP.semibreak, PP.rbrace,
@@ -1735,68 +1846,6 @@ fun flatten(list-of-lists :: List):
   end
 end
 
-fun binding-type-ids(stmt) -> List<Name>:
-  cases(Expr) stmt:
-    | s-newtype(l, name, _) => [list: {bind-type: "normal", name: name}]
-    | s-type(l, name, params,  _) => [list: {bind-type: "normal", name: name}]
-    | s-data(l, name, _, _, _, _, _, _) => [list: {bind-type: "data", name: s-name(l, name)}]
-    | else => empty
-  end
-end
-
-fun block-type-ids(b :: Expr%(is-s-block)) -> List<Name>:
-  cases(Expr) b:
-    | s-block(_, stmts) => flatten(stmts.map(binding-type-ids))
-    | else => raise("Non-block given to block-ids")
-  end
-end
-
-fun binding-ids(stmt) -> List<Name>:
-  fun variant-ids(variant):
-    cases(Variant) variant:
-      | s-variant(_, l2, name, _, _) => [list: s-name(l2, name), s-name(l2, make-checker-name(name))]
-      | s-singleton-variant(l, name, _) => [list: s-name(l, name), s-name(l, make-checker-name(name))]
-    end
-  end
-  fun bind-ids(b):
-    cases(Bind) b:
-      | s-bind(_,_,id,_) => [list: id]
-      | s-tuple-bind(_, fields, as-name) =>
-        extra = cases(Option) as-name:
-          | none => empty
-          | some(n) => [list: n.id]
-        end
-        tup-ids = for lists.foldr(acc from extra, f from fields):
-          bind-ids(f) + acc
-        end
-        tup-ids
-    end
-  end
-  cases(Expr) stmt:
-    | s-let(_, b, _, _) => bind-ids(b)
-    | s-var(_, b, _) => bind-ids(b)
-    | s-rec(_, b, _) => bind-ids(b)
-    | s-fun(l, name, _, _, _, _, _, _, _, _) => [list: s-name(l, name)]
-    | s-data(l, name, _, _, variants, _, _, _) =>
-      s-name(l, make-checker-name(name)) ^ link(_, flatten(variants.map(variant-ids)))
-    | else => [list: ]
-  end
-end
-
-fun block-ids(b :: Expr%(is-s-block)) -> List<Name>:
-  cases(Expr) b:
-    | s-block(_, stmts) => flatten(stmts.map(binding-ids))
-    | else => raise("Non-block given to block-ids")
-  end
-end
-
-fun toplevel-ids(program :: Program) -> List<Name>:
-  cases(Program) program:
-    | s-program(_, _, _, _, b) => block-ids(b)
-    | else => raise("Non-program given to toplevel-ids")
-  end
-end
-    
 default-map-visitor = {
   method option(self, opt):
     cases(Option) opt:
@@ -1817,6 +1866,10 @@ default-map-visitor = {
     s-type-global(s)
   end,
 
+  method s-module-global(self, s):
+    s-module-global(s)
+  end,
+
   method s-global(self, s):
     s-global(s)
   end,
@@ -1825,6 +1878,22 @@ default-map-visitor = {
     s-atom(base, serial)
   end,
 
+  method s-star(self, l, hidden):
+    s-star(l, hidden.map(_.visit(self)))
+  end,
+  method s-module-ref(self, l, path, as-name):
+    s-module-ref(l, path.map(_.visit(self)), self.option(as-name))
+  end,
+  method s-local-ref(self, l, name, as-name):
+    s-local-ref(l, name.visit(self), as-name.visit(self))
+  end,
+  method s-remote-ref(self, l, uri, name, as-name):
+    s-remote-ref(l, uri, name.visit(self), as-name.visit(self))
+  end,
+
+  method s-defined-module(self, name, val, uri):
+    s-defined-module(name, val.visit(self), uri)
+  end,
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
@@ -1835,12 +1904,32 @@ default-map-visitor = {
     s-defined-type(name, typ.visit(self))
   end,
 
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
-    s-module(l, answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+  method s-module(self, l, answer, dm, dv, dt, checks):
+    s-module(l, answer.visit(self), dm.map(_.visit(self)), dv.map(_.visit(self)), dt.map(_.visit(self)), checks.visit(self))
   end,
 
-  method s-program(self, l, _provide, provided-types, imports, body):
-    s-program(l, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
+  method s-program(self, l, _use, _provide, provided-types, provides, imports, body):
+    s-program(l, self.option(_use), _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
+  end,
+
+  method s-use(self, l, name, import-type):
+    s-use(l, name.visit(self), import-type.visit(self))
+  end,
+
+  method s-include-from(self, l, mod, specs):
+    s-include-from(l, mod.map(_.visit(self)), specs.map(_.visit(self)))
+  end,
+  method s-include-name(self, l, name-spec):
+    s-include-name(l, name-spec.visit(self))
+  end,
+  method s-include-data(self, l, name-spec, hidden):
+    s-include-data(l, name-spec.visit(self), hidden.map(_.visit(self)))
+  end,
+  method s-include-type(self, l, name-spec):
+    s-include-type(l, name-spec.visit(self))
+  end,
+  method s-include-module(self, l, name-spec):
+    s-include-module(l, name-spec.visit(self))
   end,
 
   method s-include(self, l, import-type):
@@ -1848,15 +1937,6 @@ default-map-visitor = {
   end,
   method s-import(self, l, import-type, name):
     s-import(l, import-type.visit(self), name.visit(self))
-  end,
-  method s-import-complete(self, l, values, types, mod, vals-name, types-name):
-    s-import-complete(
-      l,
-      values.map(_.visit(self)),
-      types.map(_.visit(self)),
-      mod.visit(self),
-      vals-name.visit(self),
-      types-name.visit(self))
   end,
   method s-const-import(self, l, mod):
     s-const-import(l, mod)
@@ -1869,9 +1949,6 @@ default-map-visitor = {
   end,
   method s-import-fields(self, l, fields, import-type):
     s-import-fields(l, fields.map(_.visit(self)), import-type)
-  end,
-  method s-provide-complete(self, l, vals, typs, datas):
-    s-provide-complete(l, vals, typs, datas)
   end,
   method s-provide(self, l, expr):
     s-provide(l, expr.visit(self))
@@ -1891,6 +1968,22 @@ default-map-visitor = {
   method s-provide-types-none(self, l):
     s-provide-types-none(l)
   end,
+  method s-provide-block(self, l, path, specs):
+    s-provide-block(l, path.map(_.visit(self)), specs.map(_.visit(self)))
+  end,
+  method s-provide-name(self, l, name-spec):
+    s-provide-name(l, name-spec.visit(self))
+  end,
+  method s-provide-data(self, l, name-spec, hidden):
+    s-provide-data(l, name-spec.visit(self), hidden.map(_.visit(self)))
+  end,
+  method s-provide-type(self, l, name-spec):
+    s-provide-type(l, name-spec.visit(self))
+  end,
+  method s-provide-module(self, l, name-spec):
+    s-provide-module(l, name-spec.visit(self))
+  end,
+
 
   method s-bind(self, l, shadows, name, ann):
     s-bind(l, shadows, name.visit(self), ann.visit(self))
@@ -2035,8 +2128,8 @@ default-map-visitor = {
     s-op(l, op-l, op, left.visit(self), right.visit(self))
   end,
 
-  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
-    s-check-test(l, op, self.option(refinement), left.visit(self), self.option(right))
+  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>, cause :: Option<Expr>):
+    s-check-test(l, op, self.option(refinement), left.visit(self), self.option(right), self.option(cause))
   end,
 
   method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
@@ -2133,6 +2226,12 @@ default-map-visitor = {
   end,
   method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     s-id-letrec(l, id.visit(self), safe)
+  end,
+  method s-id-var-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
+    s-id-var-modref(l, id.visit(self), uri, name)
+  end,
+  method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
+    s-id-modref(l, id.visit(self), uri, name)
   end,
   method s-undefined(self, l :: Loc):
     s-undefined(self)
@@ -2381,10 +2480,29 @@ default-iter-visitor = {
   method s-type-global(self, s):
     true
   end,
+  method s-module-global(self, s):
+    true
+  end,
   method s-atom(self, base, serial):
     true
   end,
 
+  method s-star(self, l, hidden):
+    hidden.all(_.visit(self))
+  end,
+  method s-module-ref(self, l, path, as-name):
+    path.all(_.visit(self)) and self.option(as-name)
+  end,
+  method s-local-ref(self, l, name, as-name):
+    name.visit(self) and as-name.visit(self)
+  end,
+  method s-remote-ref(self, l, uri, name, as-name):
+    name.visit(self) and as-name.visit(self)
+  end,
+
+  method s-defined-module(self, name, val, uri):
+    val.visit(self)
+  end,
   method s-defined-value(self, name, val):
     val.visit(self)
   end,
@@ -2395,30 +2513,46 @@ default-iter-visitor = {
     typ.visit(self)
   end,
 
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
-    answer.visit(self) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and provides.visit(self) and lists.all(_.visit(self), types) and checks.visit(self)
+  method s-module(self, l, answer, dm, dv, dt, checks):
+    answer.visit(self) and lists.all(_.visit(self), dm) and lists.all(_.visit(self), dv) and lists.all(_.visit(self), dt) and checks.visit(self)
   end,
 
-  method s-program(self, l, _provide, provided-types, imports, body):
-    _provide.visit(self)
+  method s-program(self, l, _use, _provide, provided-types, provides, imports, body):
+    self.option(_use)
+    and _provide.visit(self)
     and provided-types.visit(self)
+    and lists.all(_.visit(self), provides)
     and lists.all(_.visit(self), imports)
     and body.visit(self)
+  end,
+
+  method s-use(self, l, name, import-type):
+    name.visit(self) and import-type.visit(self)
   end,
 
   method s-import(self, l, import-type, name):
     import-type.visit(self) and name.visit(self)
   end,
-  method s-import-complete(self, l, values, types, mod, vals-name, types-name):
-    lists.all(_.visit(self), values) and
-      lists.all(_.visit(self), types) and
-      mod.visit(self) and
-      vals-name.visit(self) and
-      types-name.visit(self)
-  end,
   method s-include(self, l, import-type):
     import-type.visit(self)
   end,
+
+  method s-include-from(self, l, mod, specs):
+    mod.all(_.visit(self)) and specs.all(_.visit(self))
+  end,
+  method s-include-name(self, l, name-spec):
+    name-spec.visit(self)
+  end,
+  method s-include-data(self, l, name-spec, hidden):
+    name-spec.visit(self) and hidden.all(_.visit(self))
+  end,
+  method s-include-type(self, l, name-spec):
+    name-spec.visit(self)
+  end,
+  method s-include-module(self, l, name-spec):
+    name-spec.visit(self)
+  end,
+
   method s-const-import(self, l, mod):
     true
   end,
@@ -2429,10 +2563,7 @@ default-iter-visitor = {
     name.visit(self) and types.visit(self)
   end,
   method s-import-fields(self, l, fields, import-type):
-    lists.all(_.visit(self), fields)
-  end,
-  method s-provide-complete(self, l, vals, typs, datas):
-    true
+    all(_.visit(self), fields)
   end,
   method s-provide(self, l, expr):
     expr.visit(self)
@@ -2444,13 +2575,29 @@ default-iter-visitor = {
     true
   end,
   method s-provide-types(self, l, anns):
-    lists.all(_.visit(self), anns)
+    all(_.visit(self), anns)
   end,
   method s-provide-types-all(self, l):
     true
   end,
   method s-provide-types-none(self, l):
     true
+  end,
+  method s-provide-block(self, l, path, specs):
+    path.all(_.visit(self)) and specs.all(_.visit(self))
+  end,
+
+  method s-provide-name(self, l, name-spec):
+    name-spec.visit(self)
+  end,
+  method s-provide-data(self, l, name-spec, hidden):
+    name-spec.visit(self) and hidden.all(_.visit(self))
+  end,
+  method s-provide-type(self, l, name-spec):
+    name-spec.visit(self)
+  end,
+  method s-provide-module(self, l, name-spec):
+    name-spec.visit(self)
   end,
 
   method s-template(self, l):
@@ -2462,7 +2609,7 @@ default-iter-visitor = {
   end,
 
   method s-tuple-bind(self, l, fields, as-name):
-    lists.all(_.visit(self), fields) and self.option(as-name)
+    all(_.visit(self), fields) and self.option(as-name)
   end,
 
   method s-var-bind(self, l, bind, expr):
@@ -2473,7 +2620,7 @@ default-iter-visitor = {
   end,
 
   method s-type-bind(self, l, name, params, ann):
-    name.visit(self) and ann.visit(self) and lists.all(_.visit(self), params)
+    name.visit(self) and ann.visit(self) and all(_.visit(self), params)
   end,
 
   method s-newtype-bind(self, l, name, namet):
@@ -2481,11 +2628,11 @@ default-iter-visitor = {
   end,
 
   method s-type-let-expr(self, l, binds, body, blocky):
-    lists.all(_.visit(self), binds) and body.visit(self)
+    all(_.visit(self), binds) and body.visit(self)
   end,
 
   method s-let-expr(self, l, binds, body, blocky):
-    lists.all(_.visit(self), binds) and body.visit(self)
+    all(_.visit(self), binds) and body.visit(self)
   end,
 
   method s-letrec-bind(self, l, bind, expr):
@@ -2493,7 +2640,7 @@ default-iter-visitor = {
   end,
 
   method s-letrec(self, l, binds, body, blocky):
-    lists.all(_.visit(self), binds) and body.visit(self)
+    all(_.visit(self), binds) and body.visit(self)
   end,
 
   method s-hint-exp(self, l :: Loc, hints :: List<Hint>, exp :: Expr):
@@ -2501,11 +2648,11 @@ default-iter-visitor = {
   end,
 
   method s-instantiate(self, l :: Loc, expr :: Expr, params :: List<Ann>):
-    expr.visit(self) and lists.all(_.visit(self), params)
+    expr.visit(self) and all(_.visit(self), params)
   end,
 
   method s-block(self, l, stmts):
-    lists.all(_.visit(self), stmts)
+    all(_.visit(self), stmts)
   end,
 
   method s-user-block(self, l :: Loc, body :: Expr):
@@ -2513,12 +2660,12 @@ default-iter-visitor = {
   end,
 
   method s-fun(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky):
-    lists.all(_.visit(self), params)
-    and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    all(_.visit(self), params)
+    and all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
 
   method s-type(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
-    name.visit(self) and ann.visit(self) and lists.all(_.visit(self), params)
+    name.visit(self) and ann.visit(self) and all(_.visit(self), params)
   end,
 
   method s-newtype(self, l :: Loc, name :: Name, namet :: Name):
@@ -2546,7 +2693,7 @@ default-iter-visitor = {
   end,
 
   method s-contract(self, l :: Loc, name :: Name, params :: List<Name>, ann :: Ann):
-    name.visit(self) and lists.all(_.visit(self), params) and ann.visit(self)
+    name.visit(self) and all(_.visit(self), params) and ann.visit(self)
   end,
 
   method s-assign(self, l :: Loc, id :: Name, value :: Expr):
@@ -2562,24 +2709,24 @@ default-iter-visitor = {
   end,
 
   method s-if(self, l :: Loc, branches :: List<IfBranch>, blocky :: Boolean):
-    lists.all(_.visit(self), branches)
+    all(_.visit(self), branches)
   end,
   method s-if-else(self, l :: Loc, branches :: List<IfBranch>, _else :: Expr, blocky :: Boolean):
-    lists.all(_.visit(self), branches) and _else.visit(self)
+    all(_.visit(self), branches) and _else.visit(self)
   end,
 
   method s-if-pipe(self, l :: Loc, branches :: List<IfPipeBranch>, blocky :: Boolean):
-    lists.all(_.visit(self), branches)
+    all(_.visit(self), branches)
   end,
   method s-if-pipe-else(self, l :: Loc, branches :: List<IfPipeBranch>, _else :: Expr, blocky :: Boolean):
-    lists.all(_.visit(self), branches) and _else.visit(self)
+    all(_.visit(self), branches) and _else.visit(self)
   end,
 
   method s-cases-bind(self, l :: Loc, typ :: CasesBindType, bind :: Bind):
     bind.visit(self)
   end,
   method s-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, args :: List<CasesBind>, body :: Expr):
-    lists.all(_.visit(self), args) and body.visit(self)
+    all(_.visit(self), args) and body.visit(self)
   end,
 
   method s-singleton-cases-branch(self, l :: Loc, pat-loc :: Loc, name :: String, body :: Expr):
@@ -2587,18 +2734,18 @@ default-iter-visitor = {
   end,
 
   method s-cases(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, blocky :: Boolean):
-    typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches)
+    typ.visit(self) and val.visit(self) and all(_.visit(self), branches)
   end,
   method s-cases-else(self, l :: Loc, typ :: Ann, val :: Expr, branches :: List<CasesBranch>, _else :: Expr, blocky :: Boolean):
-    typ.visit(self) and val.visit(self) and lists.all(_.visit(self), branches) and _else.visit(self)
+    typ.visit(self) and val.visit(self) and all(_.visit(self), branches) and _else.visit(self)
   end,
 
   method s-op(self, l :: Loc, op-l :: Loc, op :: String, left :: Expr, right :: Expr):
     left.visit(self) and right.visit(self)
   end,
 
-  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
-    self.option(refinement) and left.visit(self) and self.option(right)
+  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>, cause :: Option<Expr>):
+    self.option(refinement) and left.visit(self) and self.option(right) and self.option(cause)
   end,
 
   method s-check-expr(self, l :: Loc, expr :: Expr, ann :: Ann):
@@ -2622,8 +2769,8 @@ default-iter-visitor = {
       _check :: Option<Expr>,
       blocky :: Boolean
       ):
-    lists.all(_.visit(self), params)
-    and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    all(_.visit(self), params)
+    and all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   method s-method(
       self,
@@ -2638,49 +2785,49 @@ default-iter-visitor = {
       _check :: Option<Expr>,
       blocky :: Boolean
       ):
-    lists.all(_.visit(self), params) and lists.all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
+    all(_.visit(self), params) and all(_.visit(self), args) and ann.visit(self) and body.visit(self) and self.option(_check)
   end,
   method s-extend(self, l :: Loc, supe :: Expr, fields :: List<Member>):
-    supe.visit(self) and lists.all(_.visit(self), fields)
+    supe.visit(self) and all(_.visit(self), fields)
   end,
   method s-update(self, l :: Loc, supe :: Expr, fields :: List<Member>):
-    supe.visit(self) and lists.all(_.visit(self), fields)
+    supe.visit(self) and all(_.visit(self), fields)
   end,
   method s-tuple(self, l :: Loc, fields :: List<Expr>):
-    lists.all(_.visit(self), fields)
+    all(_.visit(self), fields)
   end,
   method s-tuple-get(self, l :: Loc, tup :: Expr, index :: Number, index-loc :: Loc):
     tup.visit(self)
   end,
   method s-obj(self, l :: Loc, fields :: List<Member>):
-    lists.all(_.visit(self), fields)
+    all(_.visit(self), fields)
   end,
   method s-array(self, l :: Loc, values :: List<Expr>):
-    lists.all(_.visit(self), values)
+    all(_.visit(self), values)
   end,
   method s-construct(self, l :: Loc, mod :: ConstructModifier, constructor :: Expr, values :: List<Expr>):
-    constructor.visit(self) and lists.all(_.visit(self), values)
+    constructor.visit(self) and all(_.visit(self), values)
   end,
   method s-reactor(self, l :: Loc, fields :: List<Member>):
-    lists.all(_.visit(self), fields)
+    all(_.visit(self), fields)
   end,
   method s-table(self, l :: Loc, headers :: List<FieldName>, rows :: List<TableRow>):
-    lists.all(_.visit(self), headers) and lists.all(_.visit(self), rows)
+    all(_.visit(self), headers) and all(_.visit(self), rows)
   end,
   method s-table-row(self, l :: Loc, elems :: List<Expr>):
-    lists.all(_.visit(self), elems)
+    all(_.visit(self), elems)
   end,
   method s-load-table(self, l :: Loc, headers :: List<FieldName>, spec :: List<LoadTableSpec>):
-    lists.all(_.visit(self), headers) and lists.all(_.visit(self), spec)
+    all(_.visit(self), headers) and all(_.visit(self), spec)
   end,
   method s-field-name(self, l :: Loc, name :: String, ann :: Ann):
     true
   end,
   method s-app(self, l :: Loc, _fun :: Expr, args :: List<Expr>):
-    _fun.visit(self) and lists.all(_.visit(self), args)
+    _fun.visit(self) and all(_.visit(self), args)
   end,
   method s-prim-app(self, l :: Loc, _fun :: String, args :: List<Expr>, _):
-    lists.all(_.visit(self), args)
+    all(_.visit(self), args)
   end,
   method s-prim-val(self, l :: Loc, name :: String):
     true
@@ -2692,6 +2839,12 @@ default-iter-visitor = {
     id.visit(self)
   end,
   method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
+    id.visit(self)
+  end,
+  method s-id-var-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
+    id.visit(self)
+  end,
+  method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
     id.visit(self)
   end,
   method s-undefined(self, l :: Loc):
@@ -2735,10 +2888,10 @@ default-iter-visitor = {
       _check-loc :: Option<Loc>,
       _check :: Option<Expr>
       ):
-    lists.all(_.visit(self), params)
-    and lists.all(_.visit(self), mixins)
-    and lists.all(_.visit(self), variants)
-    and lists.all(_.visit(self), shared-members)
+    all(_.visit(self), params)
+    and all(_.visit(self), mixins)
+    and all(_.visit(self), variants)
+    and all(_.visit(self), shared-members)
     and self.option(_check)
   end,
   method s-data-expr(
@@ -2754,10 +2907,10 @@ default-iter-visitor = {
       _check :: Option<Expr>
       ):
     namet.visit(self)
-    and lists.all(_.visit(self), params)
-    and lists.all(_.visit(self), mixins)
-    and lists.all(_.visit(self), variants)
-    and lists.all(_.visit(self), shared-members)
+    and all(_.visit(self), params)
+    and all(_.visit(self), mixins)
+    and all(_.visit(self), variants)
+    and all(_.visit(self), shared-members)
     and self.option(_check)
   end,
   method s-for(
@@ -2769,7 +2922,7 @@ default-iter-visitor = {
       body :: Expr,
       blocky :: Boolean
       ):
-    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
+    iterator.visit(self) and all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
   end,
   method s-check(self, l :: Loc, name :: Option<String>, body :: Expr, keyword-check :: Boolean):
     body.visit(self)
@@ -2794,8 +2947,8 @@ default-iter-visitor = {
       _check :: Option<Expr>,
       blocky :: Boolean
       ):
-    lists.all(_.visit(self), args)
-    and lists.all(_.visit(self), args)
+    all(_.visit(self), args)
+    and all(_.visit(self), args)
     and ann.visit(self)
     and body.visit(self)
     and self.option(_check)
@@ -2818,7 +2971,7 @@ default-iter-visitor = {
       members :: List<VariantMember>,
       with-members :: List<Member>
       ):
-    lists.all(_.visit(self), members) and lists.all(_.visit(self), with-members)
+    all(_.visit(self), members) and all(_.visit(self), with-members)
   end,
   method s-singleton-variant(
       self,
@@ -2826,7 +2979,7 @@ default-iter-visitor = {
       name :: String,
       with-members :: List<Member>
       ):
-    lists.all(_.visit(self), with-members)
+    all(_.visit(self), with-members)
   end,
   method s-column-sort(self, l, column :: Name, direction :: ColumnSortOrder):
     column.visit(self)
@@ -2863,7 +3016,7 @@ default-iter-visitor = {
   end,
 
   method s-spy-block(self, l :: Loc, message :: Option<Expr>, contents :: List<SpyField>):
-    self.option(message) and lists.all(_.visit(self), contents)
+    self.option(message) and all(_.visit(self), contents)
   end,
   method s-spy-expr(self, l :: Loc, name :: String, value :: Expr, implicit-label :: Boolean):
     value.visit(self)
@@ -2882,22 +3035,22 @@ default-iter-visitor = {
     true
   end,
   method a-arrow(self, l, args, ret, _):
-    lists.all(_.visit(self), args) and ret.visit(self)
+    all(_.visit(self), args) and ret.visit(self)
   end,
   method a-arrow-argnames(self, l, args, ret, _):
-    lists.all(_.visit(self), args) and ret.visit(self)
+    all(_.visit(self), args) and ret.visit(self)
   end,
   method a-method(self, l, args, ret):
-    lists.all(_.visit(self), args) and ret.visit(self)
+    all(_.visit(self), args) and ret.visit(self)
   end,
   method a-record(self, l, fields):
-    lists.all(_.visit(self), fields)
+    all(_.visit(self), fields)
   end,
   method a-tuple(self, l, fields):
-    lists.all(_.visit(self), fields)
+    all(_.visit(self), fields)
   end,
   method a-app(self, l, ann, args):
-    ann.visit(self) and lists.all(_.visit(self), args)
+    ann.visit(self) and all(_.visit(self), args)
   end,
   method a-pred(self, l, ann, exp):
     ann.visit(self) and exp.visit(self)
@@ -2930,10 +3083,29 @@ dummy-loc-visitor = {
   method s-type-global(self, s):
     s-type-global(s)
   end,
+  method s-module-global(self, s):
+    s-module-global(s)
+  end,
   method s-atom(self, base, serial):
     s-atom(base, serial)
   end,
 
+  method s-star(self, _, hidden):
+    s-star(dummy-loc, hidden.map(_.visit(self)))
+  end,
+  method s-module-ref(self, _, path, as-name):
+    s-module-ref(dummy-loc, path.map(_.visit(self)), self.option(as-name))
+  end,
+  method s-local-ref(self, _, name, as-name):
+    s-local-ref(dummy-loc, name.visit(self), as-name.visit(self))
+  end,
+  method s-remote-ref(self, _, uri, name, as-name):
+    s-remote-ref(dummy-loc, uri, name.visit(self), as-name.visit(self))
+  end,
+
+  method s-defined-module(self, name, val, uri):
+    s-defined-module(name, val.visit(self), uri)
+  end,
   method s-defined-value(self, name, val):
     s-defined-value(name, val.visit(self))
   end,
@@ -2944,13 +3116,17 @@ dummy-loc-visitor = {
     s-defined-type(name, typ.visit(self))
   end,
 
-  method s-module(self, l, answer, dv, dt, provides, types, checks):
+  method s-module(self, l, answer, dm, dv, dt, checks):
     s-module(dummy-loc,
-      answer.visit(self), dv.map(_.visit(self)), dt.map(_.visit(self)), provides.visit(self), lists.map(_.visit(self), types), checks.visit(self))
+      answer.visit(self), dm.map(_.visit(self)), dv.map(_.visit(self)), dt.map(_.visit(self)), checks.visit(self))
   end,
 
-  method s-program(self, l, _provide, provided-types, imports, body):
-    s-program(dummy-loc, _provide.visit(self), provided-types.visit(self), imports.map(_.visit(self)), body.visit(self))
+  method s-program(self, l, _use, _provide, provided-types, provides, imports, body):
+    s-program(dummy-loc, self.option(_use), _provide.visit(self), provided-types.visit(self), provides.map(_.visit(self)), imports.map(_.visit(self)), body.visit(self))
+  end,
+
+  method s-use(self, l, name, import-type):
+    s-use(dummy-loc, name.visit(self), import-type.visit(self))
   end,
 
   method s-const-import(self, l :: Loc, mod :: String):
@@ -2962,15 +3138,22 @@ dummy-loc-visitor = {
   method s-import(self, l, import-type, name):
     s-import(dummy-loc, import-type.visit(self), name.visit(self))
   end,
-  method s-import-complete(self, l, values, types, mod, vals-name, types-name):
-    s-import-complete(
-      dummy-loc,
-      values.map(_.visit(self)),
-      types.map(_.visit(self)),
-      mod.visit(self),
-      vals-name.visit(self),
-      types-name.visit(self))
+  method s-include-from(self, l, mod, specs):
+    s-include-from(dummy-loc, mod.map(_.visit(self)), specs.map(_.visit(self)))
   end,
+  method s-include-name(self, l, name-spec):
+    s-include-name(dummy-loc, name-spec.visit(self))
+  end,
+  method s-include-data(self, l, name-spec, hidden):
+    s-include-data(dummy-loc, name-spec.visit(self), hidden.map(_.visit(self)))
+  end,
+  method s-include-type(self, l, name-spec):
+    s-include-type(dummy-loc, name-spec.visit(self))
+  end,
+  method s-include-module(self, l, name-spec):
+    s-include-module(dummy-loc, name-spec.visit(self))
+  end,
+
   method s-include(self, l, import-type):
     s-include(dummy-loc, import-type.visit(self))
   end,
@@ -2979,9 +3162,6 @@ dummy-loc-visitor = {
   end,
   method s-import-fields(self, l, fields, import-type):
     s-import-fields(dummy-loc, fields.map(_.visit(self)), import-type.visit(self))
-  end,
-  method s-provide-complete(self, l, vals, typs, datas):
-    s-provide-complete(dummy-loc, vals, typs, datas)
   end,
   method s-provide(self, l, expr):
     s-provide(dummy-loc, expr.visit(self))
@@ -3145,8 +3325,8 @@ dummy-loc-visitor = {
     s-op(dummy-loc, dummy-loc, op, left.visit(self), right.visit(self))
   end,
 
-  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>):
-    s-check-test(dummy-loc, op, self.option(refinement), left.visit(self), self.option(right))
+  method s-check-test(self, l :: Loc, op :: CheckOp, refinement :: Option<Expr>, left :: Expr, right :: Option<Expr>, cause :: Option<Expr>):
+    s-check-test(dummy-loc, op, self.option(refinement), left.visit(self), self.option(right), self.option(cause))
   end,
 
   method s-paren(self, l :: Loc, expr :: Expr):
@@ -3230,6 +3410,12 @@ dummy-loc-visitor = {
   end,
   method s-id-letrec(self, l :: Loc, id :: Name, safe :: Boolean):
     s-id-letrec(dummy-loc, id.visit(self), safe)
+  end,
+  method s-id-var-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
+    s-id-var-modref(dummy-loc, id.visit(self), uri, name)
+  end,
+  method s-id-modref(self, l :: Loc, id :: Name, uri :: String, name :: String):
+    s-id-modref(dummy-loc, id.visit(self), uri, name)
   end,
   method s-undefined(self, l :: Loc):
     s-undefined(self)

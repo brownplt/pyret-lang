@@ -53,7 +53,7 @@ tvf = t-var(A.global-names.make-atom("F"))
 tvg = t-var(A.global-names.make-atom("G"))
 tvh = t-var(A.global-names.make-atom("H"))
 
-t-image = t-name(module-uri("builtin://image"), A.s-type-global("Image"))
+t-image = t-name(module-uri("builtin://image-lib"), A.s-type-global("Image"))
 t-option = t-name(module-uri("builtin://option"), A.s-type-global("Option"))
 t-reactor = t-name(module-uri("builtin://reactors"), A.s-type-global("Reactor"))
 t-equality-result = t-name(module-uri("builtin://equality"), A.s-type-global("EqualityResult"))
@@ -61,6 +61,7 @@ t-value-skeleton = t-name(module-uri("builtin://valueskeleton"), A.s-type-global
 t-list = t-name(module-uri("builtin://lists"), A.s-type-global("List"))
 t-big-array = t-name(module-uri("builtin://arrays"), A.s-type-global("Array"))
 t-set = t-name(module-uri("builtin://sets"), A.s-type-global("Set"))
+t-avl = t-name(module-uri("builtin://sets"), A.s-type-global("AVLTree"))
 t-runtime-error = t-name(module-uri("builtin://error"), A.s-type-global("RuntimeError"))
 t-parse-error = t-name(module-uri("builtin://error"), A.s-type-global("ParseError"))
 t-either = t-name(module-uri("builtin://either"), A.s-type-global("Either"))
@@ -137,9 +138,14 @@ fun make-default-types() block:
   default-typs.set-now("makeSrcloc", t-arrow([list: t-srcloc], t-bot))
 
   default-typs.set-now("not", t-arrow([list: t-boolean], t-boolean))
+  default-typs.set-now("roughly-equal-always", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("roughly-equal-now", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("roughly-equal", t-arrow([list: t-top, t-top], t-boolean))
   default-typs.set-now("equal-always", t-arrow([list: t-top, t-top], t-boolean))
   default-typs.set-now("equal-now", t-arrow([list: t-top, t-top], t-boolean))
   default-typs.set-now("identical", t-arrow([list: t-top, t-top], t-boolean))
+  default-typs.set-now("roughly-equal-always3", t-arrow([list: t-top, t-top], t-equality-result))
+  default-typs.set-now("roughly-equal-now3", t-arrow([list: t-top, t-top], t-equality-result))
   default-typs.set-now("equal-always3", t-arrow([list: t-top, t-top], t-equality-result))
   default-typs.set-now("equal-now3", t-arrow([list: t-top, t-top], t-equality-result))
   default-typs.set-now("identical3", t-arrow([list: t-top, t-top], t-equality-result))
@@ -288,11 +294,20 @@ module-const-sets = t-module("builtin://sets",
     "list-to-set", t-list-to-set,
     "list-to-list-set", t-list-to-set,
     "list-to-tree-set", t-list-to-set,
+    "is-tree-set", t-arrow([list: t-set], t-boolean),
+    "is-list-set", t-arrow([list: t-set], t-boolean),
+    "is-leaf", t-arrow([list: t-avl], t-boolean),
+    "is-branch", t-arrow([list: t-avl], t-boolean),
+    "is-AVLTree", t-arrow([list: t-top], t-boolean),
+    "is-Set", t-arrow([list: t-top], t-boolean),
+    "leaf", t-avl,
+    "branch", t-arrow([list: t-top, t-number, t-avl, t-avl], t-avl),
     "fold", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tvb, tva], tvb), tvb, t-set-app(tva)], tvb)),
     "all", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-set-app(tva)], t-boolean)),
     "any", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-set-app(tva)], t-boolean))
   ]),
   SD.make-string-dict()
+    .set("AVLTree", t-data("AVLTree", [list:], [list:], [string-dict:]))
     .set("Set", t-data(
       "Set",
       [list: tva],
@@ -312,6 +327,7 @@ module-const-sets = t-module("builtin://sets",
       ])),
   SD.make-string-dict()
     .set("Set", t-set)
+    .set("AVLTree", t-avl)
     .set("List", t-list)
     .set("Pick", t-pick))
 
@@ -333,6 +349,7 @@ module-const-lists = t-module("builtin://lists",
     "push", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-list-app(tva))),
     "reverse-help", t-forall([list: tva], t-arrow([list: t-list-app(tva), t-list-app(tva)], t-list-app(tva))),
     "last", t-forall([list: tva], t-arrow([list: t-list-app(tva)], tva)),
+    "sort", t-forall([list: tva], t-arrow([list: t-list-app(tva)], t-list-app(tva))),
     "sort-by", t-forall([list: tva], t-arrow([list: t-list-app(tva), t-arrow([list: tva, tva], t-boolean), t-arrow([list: tva, tva], t-boolean)], t-list-app(tva))),
     "range", t-arrow([list: t-number, t-number], t-list-app(t-number)),
     "range-by", t-arrow([list: t-number, t-number, t-number], t-list-app(t-number)),
@@ -378,6 +395,7 @@ module-const-lists = t-module("builtin://lists",
     "member-always3", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-equality-result)),
     "member-always", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-boolean)),
     "member-now", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-boolean)),
+    "member-now3", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-equality-result)),
     "member-identical3", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-equality-result)),
     "member-identical", t-forall([list: tva], t-arrow([list: t-list-app(tva), tva], t-boolean)),
     "shuffle", t-forall([list: tva], t-arrow([list: t-list-app(tva)], t-list-app(tva))),
@@ -532,6 +550,12 @@ module-const-error = t-module("builtin://error",
     "is-invalid-array-index", t-arrow([list: t-top], t-boolean),
     "user-break", t-runtime-error,
     "is-user-break", t-arrow([list: t-top], t-boolean),
+    "user-exception", t-arrow([list: t-top], t-runtime-error),
+    "is-user-exception", t-arrow([list: t-top], t-boolean),
+    "exit", t-arrow([list: t-number], t-runtime-error),
+    "is-exit", t-arrow([list: t-top], t-boolean),
+    "exit-quiet", t-arrow([list: t-number], t-runtime-error),
+    "is-exit-quiet", t-arrow([list: t-top], t-boolean),
     "ParseError", t-arrow([list: t-top], t-boolean),
     "is-ParseError", t-arrow([list: t-top], t-boolean),
     "parse-error-next-token", t-arrow([list: t-top, t-string], t-parse-error),
@@ -596,7 +620,7 @@ module-const-error = t-module("builtin://error",
       [list: ],
       [list:
         t-variant("parse-error-next-token", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
-        t-variant("parse-error-bad-check-operator", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
+        t-variant("parse-error-bad-check-operator", [list: {"op"; t-top}], [string-dict: ]),
         t-variant("parse-error-bad-operator", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
         t-variant("parse-error-bad-number", [list: {"loc"; t-top}, {"next-token"; t-string}], [string-dict: ]),
         t-variant("parse-error-eof", [list: {"loc"; t-top}], [string-dict: ]),
@@ -788,18 +812,20 @@ module-const-json-structs = t-module("builtin://json-structs",
     .set("List", t-list)
     .set("JSON", t-json))
 
+default-modules = SD.make-mutable-string-dict()
+default-modules.set-now("builtin://equality", module-const-equality)
+default-modules.set-now("builtin://lists", module-const-lists)
+default-modules.set-now("builtin://option", module-const-option)
+default-modules.set-now("builtin://error", module-const-error)
+default-modules.set-now("builtin://either", module-const-either)
+default-modules.set-now("builtin://arrays", module-const-arrays)
+default-modules.set-now("builtin://pick", module-const-pick)
+default-modules.set-now("builtin://sets", module-const-sets)
+default-modules.set-now("builtin://s-exp", module-const-s-exp)
+default-modules.set-now("builtin://s-exp-structs", module-const-s-exp-structs)
+default-modules.set-now("builtin://json-structs", module-const-json-structs)
+shadow default-modules = default-modules.freeze()
+
 fun make-default-modules() block:
-  default-modules = SD.make-mutable-string-dict()
-  default-modules.set-now("builtin://equality", module-const-equality)
-  default-modules.set-now("builtin://lists", module-const-lists)
-  default-modules.set-now("builtin://option", module-const-option)
-  default-modules.set-now("builtin://error", module-const-error)
-  default-modules.set-now("builtin://either", module-const-either)
-  default-modules.set-now("builtin://arrays", module-const-arrays)
-  default-modules.set-now("builtin://pick", module-const-pick)
-  default-modules.set-now("builtin://sets", module-const-sets)
-  default-modules.set-now("builtin://s-exp", module-const-s-exp)
-  default-modules.set-now("builtin://s-exp-structs", module-const-s-exp-structs)
-  default-modules.set-now("builtin://json-structs", module-const-json-structs)
-  default-modules.freeze()
+  default-modules
 end

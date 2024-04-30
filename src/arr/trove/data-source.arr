@@ -2,7 +2,7 @@
 provide *
 provide-types *
 import global as _
-import option as O
+include option
 
 data CellContent<A>:
   | c-empty
@@ -32,8 +32,8 @@ type DataSourceLoader#|<A,B>|# = {
 fun option-sanitizer(val-sanitizer):
   lam(x, col, row):
     cases(CellContent) x:
-      | c-empty => O.none
-      | else => O.some(val-sanitizer(x, col, row))
+      | c-empty => none
+      | else => some(val-sanitizer(x, col, row))
     end
   end
 end
@@ -52,7 +52,7 @@ fun num-sanitizer(x, col, row):
   loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-str(s) =>
-      cases(O.Option) string-to-number(s):
+      cases(Option) string-to-number(s):
         | none => raise('Cannot sanitize the string "' + s
               + '" at ' + loc + ' as a number')
         | some(n) => n
@@ -95,7 +95,7 @@ fun strict-num-sanitizer(x, col, row):
   loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
     | c-str(s) =>
-      cases(O.Option) string-to-number(s):
+      cases(Option) string-to-number(s):
         | none => raise('Cannot sanitize the string "'
               + s + '" at ' + loc + ' as a number')
         | some(n) => n
@@ -161,7 +161,7 @@ end
 fun empty-only(x, col, row):
   loc = 'column ' + col + ', row ' + num-to-string(row)
   cases(CellContent) x:
-    | c-empty => O.none
+    | c-empty => none
     | else =>
       as-str = cases(CellContent) x:
         | c-num(n) => "number " + num-to-string(n)

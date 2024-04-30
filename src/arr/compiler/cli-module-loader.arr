@@ -82,17 +82,28 @@ fun uri-to-path(uri, name):
 end
 
 fun get-cached-if-available(basedir, loc) block:
+  get-cached-if-available-known-mtimes(basedir, loc, [SD.string-dict:])
+end
+fun get-cached-if-available-known-mtimes(basedir, loc, max-dep-times) block:
   saved-path = P.join(basedir, uri-to-path(loc.uri(), loc.name()))
   #print("Looking for builtin module " + loc.uri() + " at: " + saved-path + "\n")
+  dependency-based-mtime =
+    if max-dep-times.has-key(loc.uri()): max-dep-times.get-value(loc.uri())
+    else: loc.get-modified-time()
+    end
   if not(F.file-exists(saved-path + "-static.js")) or
-     (F.file-times(saved-path + "-static.js").mtime < loc.get-modified-time()) block:
+     (F.file-times(saved-path + "-static.js").mtime < dependency-based-mtime) block:
     #print("It wasn't there\n")
-    loc
+    cases(Option) loc.get-uncached():
+      | some(shadow loc) => loc
+      | none => loc
+    end
   else:
     uri = loc.uri()
     static-path = saved-path + "-static"
     raw = B.builtin-raw-locator(static-path)
     {
+      method get-uncached(self): some(loc) end,
       method needs-compile(_, _): false end,
       method get-modified-time(self):
         F.file-times(static-path + ".js").mtime
@@ -125,11 +136,12 @@ fun get-cached-if-available(basedir, loc) block:
       method get-compiled(self):
         provs = CS.provides-from-raw-provides(self.uri(), {
             uri: self.uri(),
+            modules: raw-array-to-list(raw.get-raw-module-provides()),
             values: raw-array-to-list(raw.get-raw-value-provides()),
             aliases: raw-array-to-list(raw.get-raw-alias-provides()),
             datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
           })
-        some(CS.module-as-string(provs, CS.no-builtins,
+        some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none,
             CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
       end,
 
@@ -157,21 +169,35 @@ fun get-builtin-test-locator(basedir, modname):
   get-cached-if-available(basedir, loc)
 end
 
-fun get-loadable(basedir, l) -> Option<Loadable>:
+fun get-loadable(basedir, l, max-dep-times) -> Option<Loadable>:
   locuri = l.locator.uri()
   saved-path = P.join(basedir, uri-to-path(locuri, l.locator.name()))
   if not(F.file-exists(saved-path + "-static.js")) or
-     (F.file-times(saved-path + "-static.js").mtime < l.locator.get-modified-time()):
-    none
+     (F.file-times(saved-path + "-static.js").mtime < max-dep-times.get-value(locuri)):
+    if not(F.file-exists(saved-path + ".js")) or
+       (F.file-times(saved-path + ".js").mtime < max-dep-times.get-value(locuri)):
+       none
+    else:
+      raw-static = B.builtin-raw-locator(saved-path)
+      provs = CS.provides-from-raw-provides(locuri, {
+        uri: locuri,
+        modules: raw-array-to-list(raw-static.get-raw-module-provides()),
+        values: raw-array-to-list(raw-static.get-raw-value-provides()),
+        aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
+        datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
+      })
+      some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(saved-path + ".js"))))
+    end
   else:
     raw-static = B.builtin-raw-locator(saved-path + "-static")
     provs = CS.provides-from-raw-provides(locuri, {
       uri: locuri,
+      modules: raw-array-to-list(raw-static.get-raw-module-provides()),
       values: raw-array-to-list(raw-static.get-raw-value-provides()),
       aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
       datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
     })
-    some(CS.module-as-string(provs, CS.no-builtins, CS.ok(JSP.ccp-file(saved-path + "-module.js"))))
+    some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(saved-path + "-module.js"))))
   end
 end
 
@@ -208,37 +234,26 @@ fun set-loadable(basedir, locator, loadable) -> String block:
   end
 end
 
-fun get-cli-module-storage(storage-dir :: String):
-  {
-    method load-modules(self, to-compile) block:
-      maybe-modules = for map(t from to-compile):
-        get-loadable(storage-dir, t)
-      end
-      modules = [SD.mutable-string-dict:]
-      for each2(m from maybe-modules, t from to-compile):
-        cases(Option<Loadable>) m:
-          | none => nothing
-          | some(shadow m) =>
-            modules.set-now(t.locator.uri(), m)
-        end
-      end
-      modules
-    end
-  }
-end
-
 type CLIContext = {
   current-load-path :: String,
   cache-base-dir :: String
 }
+
+fun get-real-path(current-load-path :: String, dep :: CS.Dependency):
+  this-path = dep.arguments.get(0)
+  if P.is-absolute(this-path):
+    P.relative(current-load-path, this-path)
+  else:
+    P.join(current-load-path, this-path)
+  end
+end
 
 fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
   cases(CS.Dependency) dep:
     | dependency(protocol, args) =>
       if protocol == "file":
         clp = ctxt.current-load-path
-        this-path = dep.arguments.get(0)
-        real-path = P.join(clp, this-path)
+        real-path = get-real-path(clp, dep)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         if F.file-exists(real-path):
           CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context)
@@ -255,8 +270,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         CL.located(force-check-mode, ctxt)
       else if protocol == "file-no-cache":
         clp = ctxt.current-load-path
-        this-path = dep.arguments.get(0)
-        real-path = P.join(clp, this-path)
+        real-path = get-real-path(clp, dep)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         if F.file-exists(real-path):
           CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
@@ -265,8 +279,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         end
       else if protocol == "js-file":
         clp = ctxt.current-load-path
-        this-path = dep.arguments.get(0)
-        real-path = P.join(clp, this-path)
+        real-path = get-real-path(clp, dep)
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         locator = JSF.make-jsfile-locator(real-path)
         CL.located(locator, new-context)
@@ -360,9 +373,15 @@ fun build-program(path, options, stats) block:
   clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
 
+  max-dep-times = CL.dep-times-from-worklist(wl)
+
+  shadow wl = for map(located from wl):
+    located.{ locator: get-cached-if-available-known-mtimes(options.compiled-cache, located.locator, max-dep-times) }
+  end
+
   clear-and-print("Loading existing compiled modules...")
-  storage = get-cli-module-storage(options.compiled-cache)
-  starter-modules = storage.load-modules(wl)
+
+  starter-modules = CL.modules-from-worklist(wl, get-loadable(options.compiled-cache, _, _))
 
   total-modules = wl.length()
   cached-modules = starter-modules.count-now()
@@ -396,8 +415,8 @@ fun build-program(path, options, stats) block:
         loadable
       else:
         cases(CS.Loadable) loadable:
-          | module-as-string(prov, env, rp) =>
-            CS.module-as-string(prov, env, CS.ok(JSP.ccp-file(module-path)))
+          | module-as-string(prov, env, post-env, rp) =>
+            CS.module-as-string(prov, env, post-env, CS.ok(JSP.ccp-file(module-path)))
           | else => loadable
         end
       end
@@ -408,12 +427,21 @@ end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
   stats = SD.make-mutable-string-dict()
+  config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
+  cases(Option) config.get-now("typable-builtins"):
+    | none => nothing
+    | some(tb) =>
+      cases(JSON.JSON) tb:
+        | j-arr(l) => 
+          BL.set-typable-builtins(l.map(_.s))
+        | else => raise("Expected a list for typable-builtins, but got: " + to-repr(tb))
+      end
+  end
   maybe-program = build-program(path, options, stats)
   cases(Either) maybe-program block:
     | left(problems) =>
       handle-compilation-errors(problems, options)
     | right(program) =>
-      config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
       config.set-now("out", JSON.j-str(outfile))
       when not(config.has-key-now("baseUrl")):
         config.set-now("baseUrl", JSON.j-str(options.compiled-cache))

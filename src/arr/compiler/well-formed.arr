@@ -4,6 +4,7 @@ provide {
 provide-types *
 
 import ast as A
+import file("ast-util.arr") as AU
 import srcloc as SL
 import error-display as ED
 import file("compile-structs.arr") as C
@@ -41,7 +42,7 @@ reserved-names = [SD.string-dict:
   "module", true,
   "package", true,
   "namespace", true,
-  "use", true,
+#  "use", true,
   "public", true,
   "private", true,
   "protected", true,
@@ -240,7 +241,7 @@ fun ensure-distinct-lines(loc :: Loc, prev-is-template :: Boolean, stmts :: List
                 if A.is-s-template(first) and prev-is-template:
                   add-error(C.template-same-line(loc, first.l))
                 else if not(A.is-s-template(first)) and not(prev-is-template):
-                  add-error(C.same-line(loc, first.l))
+                  add-error(C.same-line(loc, first.l, A.is-s-paren(first)))
                 else:
                   nothing
                 end
@@ -306,14 +307,18 @@ fun reachable-ops(self, l, op-l, op, ast):
         reachable-ops(self, l, op-l, op, left2)
         reachable-ops(self, l, op-l, op, right2)
       else:
-        add-error(C.mixed-binops(l, opname(op), op-l,  opname(op2), op-l2))
+        if op-l.before(op-l2):
+          add-error(C.mixed-binops(l, opname(op), op-l,  opname(op2), op-l2))
+        else:
+          add-error(C.mixed-binops(l, opname(op2), op-l2,  opname(op), op-l))
+        end
       end
       true
     | else => ast.visit(self)
   end
 end
 
-fun reject-standalone-exprs(stmts :: List%(is-link), ignore-last :: Boolean) block:
+fun reject-standalone-exprs(stmts :: List, ignore-last :: Boolean) block:
   to-examine = if ignore-last:
     # Ignore the last statement, because it might well be an expression
     stmts.reverse().rest.reverse()
@@ -371,18 +376,23 @@ fun wrap-reject-standalones-in-check(target) block:
   in-check-block := true
   ret = cases(Option) target:
     | none => true
-    | some(t) => reject-standalone-exprs(t.stmts, false)
+    | some(t) =>
+      if is-link(t.stmts):
+        reject-standalone-exprs(t.stmts, false)
+      else:
+        true
+      end
   end
   in-check-block := cur-in-check
   ret
 end
 
 
-fun wf-block-stmts(visitor, l, stmts :: List%(is-link)) block:
+fun wf-block-stmts(visitor, l, stmts :: List%(is-link), toplevel :: Boolean) block:
   bind-stmts = stmts.filter(lam(s): A.is-s-var(s) or A.is-s-let(s) or A.is-s-rec(s) end).map(_.name)
   ensure-unique-bindings(bind-stmts)
   ensure-distinct-lines(A.dummy-loc, false, stmts)
-  when not(in-check-block):
+  when not(in-check-block) and not(toplevel):
     reject-standalone-exprs(stmts, true)
   end
   lists.all(_.visit(visitor), stmts)
@@ -437,8 +447,16 @@ end
 var parent-block-loc = nothing
 
 well-formed-visitor = A.default-iter-visitor.{
-  method s-program(self, l, _provide, _provide-types, imports, body):
+  method s-program(self, l, _use, _provide, _provide-types, provides, imports, body):
     raise("Impossible")
+  end,
+  method s-use(self, l, n, import-type):
+    if not(n.toname() == "context") block:
+      wf-error([list: ED.text("The only supported type of "), ED.code(ED.text("use")), ED.text(" is "), ED.code(ED.text("context")), ED.text(", but this program used "), ED.code(ED.text(n.toname()))], n.l)
+      false
+    else:
+      true
+    end
   end,
   method s-special-import(self, l, kind, args) block:
     if kind == "my-gdrive":
@@ -591,13 +609,16 @@ well-formed-visitor = A.default-iter-visitor.{
       true
     else:
       wf-last-stmt(parent-block-loc, stmts.last())
-      wf-block-stmts(self, parent-block-loc, stmts)
+      wf-block-stmts(self, parent-block-loc, stmts, false)
       true
     end
   end,
   method s-user-block(self, l :: Loc, body :: A.Expr) block:
+    old-pbl = parent-block-loc
     parent-block-loc := l
-    body.visit(self)
+    ans = body.visit(self)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-tuple-bind(self, l, fields, as-name) block:
     true
@@ -611,7 +632,7 @@ well-formed-visitor = A.default-iter-visitor.{
     end
     name.visit(self) and ann.visit(self)
   end,
-  method s-check-test(self, l, op, refinement, left, right) block:
+  method s-check-test(self, l, op, refinement, left, right, cause) block:
     when not(in-check-block):
       add-error(C.unwelcome-test(l))
     end
@@ -623,7 +644,7 @@ well-formed-visitor = A.default-iter-visitor.{
           add-error(C.unwelcome-test-refinement(refinement.value, op))
       end
     end
-    left.visit(self) and self.option(right)
+    left.visit(self) and self.option(right) and self.option(cause)
   end,
   method s-method-field(self, l, name, params, args, ann, doc, body, _check-loc, _check, blocky) block:
     old-pbl = parent-block-loc
@@ -794,10 +815,14 @@ well-formed-visitor = A.default-iter-visitor.{
     when is-link(branches) and is-empty(branches.rest):
       add-error(C.single-branch-if(A.s-if(l, branches, blocky)))
     end
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     when not(blocky):
       wf-blocky-blocks(l, branches.map(_.body))
     end
-    lists.all(_.visit(self), branches)
+    ans = lists.all(_.visit(self), branches)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-if-else(self, l, branches, _else, blocky) block:
     old-pbl = parent-block-loc
@@ -852,10 +877,14 @@ well-formed-visitor = A.default-iter-visitor.{
     ans
   end,
   method s-for(self, l, iterator, bindings, ann, body, blocky) block:
+    old-pbl = parent-block-loc
+    parent-block-loc := l
     when not(blocky):
       wf-blocky-blocks(l, [list: body])
     end
-    iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
+    ans = iterator.visit(self) and lists.all(_.visit(self), bindings) and ann.visit(self) and body.visit(self)
+    parent-block-loc := old-pbl
+    ans
   end,
   method s-frac(self, l, num, den) block:
     when den == 0:
@@ -989,16 +1018,26 @@ well-formed-visitor = A.default-iter-visitor.{
       add-error(C.underscore-as-ann(l))
     end
     true
+  end,
+  method a-record(self, l, fields) block:
+    ensure-unique-fields(fields.reverse())
+    true
   end
 }
 
 top-level-visitor = A.default-iter-visitor.{
-  method s-program(self, l, _provide, _provide-types, imports, body):
+  method option(self, o):
+    cases(Option) o:
+      | some(v) => v.visit(self)
+      | none => true
+    end
+  end,
+  method s-program(self, l, _use, _provide, _provide-types, provides, imports, body):
     ok-body = cases(A.Expr) body:
-      | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts)
+      | s-block(l2, stmts) => wf-block-stmts(self, l2, stmts, true)
       | else => body.visit(self)
     end
-    ok-body and (_provide.visit(self)) and _provide-types.visit(self) and (lists.all(_.visit(self), imports))
+    ok-body and self.option(_use) and (_provide.visit(self)) and _provide-types.visit(self) and (lists.all(_.visit(self), imports))
   end,
   method s-type(self, l, name, params, ann):
     ann.visit(well-formed-visitor)
@@ -1095,6 +1134,9 @@ top-level-visitor = A.default-iter-visitor.{
   end,
 
   # Everything else delegates to the non-toplevel visitor
+  method s-use(_, l, n, import-type):
+    well-formed-visitor.s-use(l, n, import-type)
+  end,
   method s-import(_, l, import-type, name):
     well-formed-visitor.s-import(l, import-type, name)
   end,
@@ -1204,8 +1246,8 @@ top-level-visitor = A.default-iter-visitor.{
   method s-op(_, l :: Loc, op-loc :: Loc, op :: String, left :: A.Expr, right :: A.Expr):
     well-formed-visitor.s-op(l, op-loc, op, left, right)
   end,
-  method s-check-test(_, l :: Loc, op :: A.CheckOp, refinement :: Option<A.Expr>, left :: A.Expr, right :: Option<A.Expr>):
-    well-formed-visitor.s-check-test(l, op, refinement, left, right)
+  method s-check-test(_, l :: Loc, op :: A.CheckOp, refinement :: Option<A.Expr>, left :: A.Expr, right :: Option<A.Expr>, cause :: Option<A.Expr>):
+    well-formed-visitor.s-check-test(l, op, refinement, left, right, cause)
   end,
   method s-paren(_, l :: Loc, expr :: A.Expr):
     well-formed-visitor.s-paren(l, expr)
