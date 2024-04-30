@@ -289,6 +289,7 @@ fun wf-last-stmt(block-loc, stmt :: A.Expr):
     | s-fun(l, _, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, block-loc, "fun-binding"))
     | s-data(l, _, _, _, _, _, _, _)      => add-error(C.block-ending(l, block-loc, "data definition"))
     | s-contract(l, _, _, _)              => add-error(C.block-ending(l, block-loc, "contract"))
+    | s-spy-block(l, _, _)                => add-error(C.block-ending(l, block-loc, "spy block"))
     | else => nothing
   end
 end
