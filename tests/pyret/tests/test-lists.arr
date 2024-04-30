@@ -265,7 +265,7 @@ check "stable sort":
     raw-array-to-list(raw-array-build(lam(i):
           raw-array-to-list(raw-array-build(lam(j): {i; j; (i * (m + 1)) + j} end, n))
         end, m))
-      .foldl(append, empty)
+      .foldl(_.append(_), empty)
   end
   
   TOTAL = 1000
@@ -281,8 +281,8 @@ check "stable sort":
     p1.{0} == p2.{0}
   end
   
-  stable-sorted = stable-sort-by(pairs, pair-le, pair-eq)
-  unstable-sorted = sort-by(pairs, pair-le, pair-eq)
+  stable-sorted = pairs.stable-sort-by(pair-le, pair-eq)
+  unstable-sorted = pairs.sort-by(pair-le, pair-eq)
   for each(i from range(0, GROUPS)) block:
     stable-sorted.filter({(p): p.{0} == i}) is pairs.filter({(p): p.{0} == i})
     unstable-sorted is-not stable-sorted
