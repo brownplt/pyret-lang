@@ -36,6 +36,19 @@
         }
       });
 
+    var rowGet = runtime.makeMethod1(function(self, arg) {
+        ffi.checkArity(2, arguments, "get-value", true);
+        runtime.checkArgsInternal2("tables", "get-value",
+          self, annRow, arg, runtime.String);
+        var index = self.$underlyingTable.headerIndex["column:" + arg];
+        if(typeof index === "number") {
+          return ffi.makeSome(self.$rowData[index]);
+        }
+        else {
+          return ffi.makeNone();
+        }
+      });
+    
     var rowGetColumns = runtime.makeMethod0(function(self) {
         ffi.checkArity(1, arguments, "get-column-names", true);
         var cols = Object.keys(self.$underlyingTable.headerIndex).map(function(k) {
@@ -87,6 +100,7 @@
     function makeRow(underlyingTable, rowData) {
       var rowVal = runtime.makeObject({
         "get-value": rowGetValue,
+        "get": rowGet,
         "get-column-names": rowGetColumns,
         "_output": rowOutput,
         "_equals": rowEquals

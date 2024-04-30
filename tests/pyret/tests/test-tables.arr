@@ -264,6 +264,11 @@ check "raw-row":
   [raw-row: {"a"; 3}, {"a"; 5}] raises "Duplicate"
 
   r1["f"] raises "No such column"
+  r1.get("f") is none
+
+  r1.get("a") does-not-raise
+  r1.get("a") is some(3)
+  r1.get-value("a") is 3
 end
 
 
