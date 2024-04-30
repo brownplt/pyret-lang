@@ -834,7 +834,7 @@ the number of quote characters in the match."
 
 (defvar pyret-tokens-stack nil
   "Stores the token stack of the parse.  Should only be buffer-local.")
-(defvar pyret-nestings-dirty-at-char 0
+(defvar pyret-nestings-dirty-at-char 1
   "Stores the minimum dirty position of the buffer.  Should only be buffer-local.")
 (defvar pyret-nestings-at-line-end nil
   "Stores the deferred open information of the parse.  Should only be buffer-local.")
@@ -1818,7 +1818,7 @@ in (nil if we're not in a string).")
   (set (make-local-variable 'pyret-nestings-at-line-start) (vector))
   (set (make-local-variable 'pyret-nestings-at-line-end) (vector))
   (set (make-local-variable 'pyret-tokens-stack) (vector))
-  (set (make-local-variable 'pyret-nestings-dirty-at-char) 0)
+  (set (make-local-variable 'pyret-nestings-dirty-at-char) 1)
   (add-hook 'before-change-functions
                (function (lambda (beg end) 
                            (setq pyret-nestings-dirty-at-char 
