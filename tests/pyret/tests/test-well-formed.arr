@@ -93,6 +93,13 @@ check "bad objects":
   run-str("{__proto__: 42}") is%(output) compile-error(CS.is-reserved-name)
 end
 
+check "bad constructors":
+  run-str("data Foo: return end") is%(output) compile-error(CS.is-reserved-name)
+  run-str("data Foo: return(x) end") is%(output) compile-error(CS.is-reserved-name)
+  run-str("cases(Foo) 5: | return => 3 end") is%(output) compile-error(CS.is-reserved-name)
+  run-str("cases(Foo) 5: | return(x) => 3 end") is%(output) compile-error(CS.is-reserved-name)
+end
+
 check "malformed blocks":
   c("fun foo():\n" + 
        " x = 10\n" + 
