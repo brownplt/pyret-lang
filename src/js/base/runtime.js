@@ -231,21 +231,29 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
         return s;
       } else if (thisRuntime.ffi.isVSRow(val)) {
-        if (!AsciiTable){
-          AsciiTable = require("ascii-table");
-        }
         var headers = thisRuntime.getField(val, "headers");
         var rowVals = thisRuntime.getField(val, "values");
         headers = headers.map(function(h){ return renderValueSkeleton(h, values); });
         rowVals = rowVals.map(function(v) { return renderValueSkeleton(v, values); });
-        var row = [];
-        for (var i = 0; i < headers.length; i++) {
-          row.push(headers[i]);
-          row.push(rowVals[i]);
+        if (!util.isBrowser()) {
+          if (!AsciiTable){
+            AsciiTable = require("ascii-table");
+          }
+          var row = [];
+          for (var i = 0; i < headers.length; i++) {
+            row.push(headers[i]);
+            row.push(rowVals[i]);
+          }
+          var table = new AsciiTable();
+          table.addRow(row);
+          return table.toString();
+        } else {
+          var row = [];
+          for (var i = 0; i < headers.length; i++) {
+            row.push(JSON.stringify(headers[i]) + " => " + rowVals[i]);
+          }
+          return "[row: " + row.join(", ") + "]";
         }
-        var table = new AsciiTable();
-        table.addRow(row);
-        return table.toString();
       } else if (thisRuntime.ffi.isVSTable(val)) {
         // Do this for now until we decide on a string
         // representation
