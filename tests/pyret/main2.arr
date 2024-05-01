@@ -47,6 +47,7 @@ import file("./tests/test-import-variable.arr") as _
 import file("./tests/test-constants.arr") as _
 import file("./tests/test-constants-scope.arr") as _
 import file("./tests/test-modules.arr") as _
+import file("./tests/test-timing.arr") as _
 import file("./tests/modules/include-shadow-same.arr") as _
 import file("./tests/modules/import-re-provided.arr") as _
 import file("./tests/modules/test-import-re-provided-data.arr") as _
