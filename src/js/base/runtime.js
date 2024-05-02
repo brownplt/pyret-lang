@@ -4887,6 +4887,23 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         s, thisRuntime.String, find, thisRuntime.String);
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
+    var string_findIndex = function(s, find) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-find-index"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-find-index",
+        s, thisRuntime.String, find, thisRuntime.String);
+      var idx = s.indexOf(find);
+      if (jsnums.lessThan(idx, 0)) return thisRuntime.ffi.makeNone();
+      return thisRuntime.ffi.makeSome(thisRuntime.makeNumberBig(idx));
+    }
+    var string_getIndex = function(s, find) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-index-of"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-index-of",
+        s, thisRuntime.String, find, thisRuntime.String);
+      var idx = s.indexOf(find);
+      if (jsnums.lessThan(idx, 0))
+        thisRuntime.ffi.throwMessageException("Could not find target string inside source string");
+      return thisRuntime.makeNumberBig(idx);
+    }
     var string_to_code_point = function(s) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-to-code-point"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Strings", "string-to-code-point",
@@ -5855,6 +5872,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'string-to-lower': makeFunction(string_tolower, "string-to-lower"),
       'string-explode': makeFunction(string_explode, "string-explode"),
       'string-index-of': makeFunction(string_indexOf, "string-index-of"),
+      'string-find-index': makeFunction(string_findIndex, "string-find-index"),
+      'string-get-index': makeFunction(string_getIndex, "string-get-index"),
       'string-to-code-point': makeFunction(string_to_code_point, "string-to-code-point"),
       'string-from-code-point': makeFunction(string_from_code_point, "string-from-code-point"),
       'string-to-code-points': makeFunction(string_to_code_points, "string-to-code-points"),
