@@ -50,29 +50,64 @@ fun median(l :: List) -> Number:
   end
 end
 
-fun group-and-count(l :: List<Number>) -> List<{Number; Number}> block:
-  doc: "Returns a list of all the values in the list, together with their counts, sorted descending by value"
-  
+all-strings = all(is-string, _)
+all-nums = all(is-number, _)
+
+sort-pair-by-count-then-val = lam(p1, p2): (p1.{0} > p2.{0}) or ((p1.{0} == p2.{0}) and (p1.{1} < p2.{1})) end
+
+fun group-and-count-strs(l :: List<String>) -> List<{String; Number}> block:
+  msd = [SD.mutable-string-dict: ]
+  for each(s from l):
+    if msd.has-key-now(s):
+      msd.set-now(s, msd.get-value-now(s) + 1)
+    else:
+      msd.set-now(s, 1)
+    end
+  end
+  pairs = msd.map-keys-now({(k): {k; msd.get-value-now(k)}})
+  pairs.sort-by(sort-pair-by-count-then-val, equal-always)
+end
+
+fun group-and-count-nums(l :: List<Number>) -> List<{Number; Number}> block:
   sorted = builtins.raw-array-sort-nums(raw-array-from-list(l), false)
   size = raw-array-length(sorted)
-
+  
   if size == 0: empty
   else:
     first = raw-array-get(sorted, 0)
     {front; acc} = for raw-array-fold({{cur; count}; lst} from {{first; 0}; empty}, n from sorted, _ from 0):
-        if within(~0.0)(cur, n):
-          {{cur; count + 1}; lst}
-        else:
-          {{n; 1}; link({cur; count}, lst)}
-        end
+      if within(~0.0)(cur, n):
+        {{cur; count + 1}; lst}
+      else:
+        {{n; 1}; link({cur; count}, lst)}
       end
+    end
     link(front, acc)
   end
 end
+
+fun group-and-count-equal<a>(l :: List<a>) -> List<{a; Number}> block:
+  if is-empty(l): empty
+  else:
+    split = l.partition(equal-always(l.first, _))
+    link({split.is-true.first; split.is-true.length()}, group-and-count-equal(split.is-false))
+  end
+end
+
+fun group-and-count<a>(l :: List<a>) -> List<{a; Number}>:
+  doc: "Returns a list of all the values in the list, together with their counts, sorted descending by value"
+  if all-strings(l):
+    group-and-count-strs(l)
+  else if all-nums(l):
+    group-and-count-nums(l)
+  else:
+    group-and-count-equal(l)
+  end
+end
   
-fun modes-helper(l :: List<Number>) -> {Number; List<Number>}:
+fun modes-helper<a>(l :: List<a>) -> {Number; List<a>}:
   doc: ```Returns the frequency of the modes and a list containing each mode of the input list, 
-       or an empty list if the input list is empty.  The modes are returned in sorted order```
+       or an empty list if the input list is empty.  The modes are returned in sorted order if possible```
 
   num-counts = group-and-count(l)
   max-repeat = for fold(max from 0, {_; count} from num-counts):
@@ -89,7 +124,7 @@ fun modes-helper(l :: List<Number>) -> {Number; List<Number>}:
     end }
 end
 
-fun modes(l :: List<Number>) -> List<Number>:
+fun modes<a>(l :: List<a>) -> List<a>:
   doc: ```returns a list containing each mode of the input list, or empty if there are no duplicate values```
   {max-repeat; ms} = modes-helper(l)
   if max-repeat < 2:
@@ -99,7 +134,7 @@ fun modes(l :: List<Number>) -> List<Number>:
   end
 end
 
-fun has-mode(l :: List<Number>) -> Boolean:
+fun has-mode<a>(l :: List<a>) -> Boolean:
   doc: "Returns true if the list contains at least one mode, i.e. a duplicated value"
   num-counts = group-and-count(l)
   max-repeat = for fold(max from 0, {_; count} from num-counts):
