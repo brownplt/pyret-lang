@@ -1883,9 +1883,8 @@ in (nil if we're not in a string).")
 (defun pyret-smartparens-setup ()
   (message "Setting up smartparens...")
   (when (require 'smartparens nil 'noerror)
-    (sp-with-modes '(pyret-mode)
-      (sp-local-pair "`" nil :actions nil)
-      (sp-local-pair "```" "```" :actions '(insert wrap) :unless '(pyret-point-not-at-last-tqs-opener-p)))))
+    (sp-local-pair '(pyret-mode) "`" nil :actions nil)
+    (sp-local-pair '(pyret-mode) "```" "```" :actions '(insert wrap) :unless '(pyret-point-not-at-last-tqs-opener-p))))
 
 (add-hook 'pyret-mode-startup-hook 'pyret-smartparens-setup)
 
