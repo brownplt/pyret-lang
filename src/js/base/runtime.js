@@ -6279,6 +6279,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     makePrimAnn("Exactnum", jsnums.isRational);
     makePrimAnn("Roughnum", jsnums.isRoughnum);
     makePrimAnn("NumInteger", jsnums.isInteger);
+    makePrimAnn("NumNatural", function(v) {
+      return isNumber(v) && jsnums.isInteger(v) && jsnums.isNonNegative(v);
+    });
     makePrimAnn("NumRational", jsnums.isRational);
     makePrimAnn("NumPositive", jsnums.isPositive);
     makePrimAnn("NumNegative", jsnums.isNegative);

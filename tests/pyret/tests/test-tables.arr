@@ -396,7 +396,7 @@ check "row-n":
   t.row-n(1) is [t.new-row: "beijing", 43]
 
   t.row-n(45) raises-satisfies E.is-message-exception
-  t.row-n(-4) raises-satisfies E.is-generic-type-mismatch
+  t.row-n(-4) raises-satisfies contract(_, C.is-failure-at-arg)
   t.row-n(4.3) raises-satisfies contract(_, C.is-failure-at-arg)
   t.row-n("a") raises-satisfies contract(_, C.is-failure-at-arg)
   t.row-n(44, 45) raises-satisfies E.is-arity-mismatch

@@ -453,8 +453,7 @@
 
         'row-n': runtime.makeMethod1(function(self, row) {
           ffi.checkArity(2, arguments, "row-n", true);
-          runtime.checkArgsInternal2("tables", "row-n", self, annTable, row, runtime.NumInteger);
-          runtime.checkNumNonNegative(row); // NOTE(Ben): These should be converted to a call to checkArgsInternal
+          runtime.checkArgsInternal2("tables", "row-n", self, annTable, row, runtime.NumNatural);
           var rowFix = runtime.num_to_fixnum(row);
           if(rowFix >= rows.length) {
             throw runtime.ffi.throwMessageException("row-n-too-large");
@@ -488,8 +487,7 @@
 
         'column-n': runtime.makeMethod1(function(self, n) {
           ffi.checkArity(2, arguments, "column-n", true);
-          runtime.checkArgsInternal2("tables", "column-n", self, annTable, n, runtime.NumInteger);
-          runtime.checkNumNonNegative(n); // NOTE(Ben): These should be converted to checkArgsInternal1
+          runtime.checkArgsInternal2("tables", "column-n", self, annTable, n, runtime.NumNatural);
           var lookupIndex = runtime.num_to_fixnum(n);
           if(lookupIndex >= headers.length) {
             throw runtime.ffi.throwMessageException("column-n-too-large");
