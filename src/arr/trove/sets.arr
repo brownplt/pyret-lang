@@ -76,34 +76,46 @@ data AVLTree:
       end
     end,
     method preorder(self) -> List:
-      doc: "Returns a list of all elements from a left-to-right preorder traversal"
+      doc: ```Returns a list of all elements from a left-to-right preorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order L, R, val.
+           ```
       fun knil(l, x): link(x, l) end # needed because argument order of link is backwards to fold
-      self.fold-revpreorder(knil, empty) # reversed because knil is reversed
+      self.fold-revpostorder(knil, empty) # reversed because knil is reversed
     end,
     method inorder(self) -> List:
-      doc: "Returns a list of all elements from a left-to-right inorder traversal"
+      doc: ```Returns a list of all elements from a left-to-right inorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order L, val, R.
+           ```
       fun knil(l, x): link(x, l) end
       self.fold-revinorder(knil, empty)
     end,
     method postorder(self) -> List:
-      doc: "Returns a list of all elements from a left-to-right postorder traversal"
+      doc: ```Returns a list of all elements from a left-to-right postorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order val, L, R.
+           ```
       fun knil(l, x): link(x, l) end
-      self.fold-revpostorder(knil, empty)
+      self.fold-revpreorder(knil, empty)
     end,
     method revpreorder(self) -> List:
-      doc: "Returns a list of all elements from a right-to-left preorder traversal"
+      doc: ```Returns a list of all elements from a right-to-left preorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order val, R, L.
+           ```
       fun knil(l, x): link(x, l) end
-      self.fold-preorder(knil, empty)
+      self.fold-postorder(knil, empty)
     end,
     method revinorder(self) -> List:
-      doc: "Returns a list of all elements from a right-to-leftinorder traversal"
+      doc: ```Returns a list of all elements from a right-to-left inorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order R, val, L.
+           ```
       fun knil(l, x): link(x, l) end
       self.fold-inorder(knil, empty)
     end,
     method revpostorder(self) -> List:
-      doc: "Returns a list of all elements from a roght-to-left postorder traversal"
+      doc: ```Returns a list of all elements from a right-to-left postorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order R, L, val.
+           ```
       fun knil(l, x): link(x, l) end
-      self.fold-postorder(knil, empty)
+      self.fold-preorder(knil, empty)
     end,
     method fold-preorder(self, f, base):
       doc: ```Folds the elements contained in the tree into a single value with f.
@@ -246,12 +258,24 @@ check:
   tree1 =
     branch(4, 666, branch(2, 666, branch(1, 666, leaf, leaf), branch(3, 666, leaf, leaf)),
       branch(6, 666, branch(5, 666, leaf, leaf), leaf))
-  tree1.inorder() is   [list: 1, 2, 3, 4, 5, 6]
-  tree1.preorder() is  [list: 4, 2, 1, 3, 6, 5]
-  tree1.postorder() is [list: 1, 3, 2, 5, 6, 4]
-  tree1.revinorder() is   [list: 6, 5, 4, 3, 2, 1]
-  tree1.revpreorder() is  [list: 5, 6, 3, 1, 2, 4]
-  tree1.revpostorder() is [list: 4, 6, 5, 2, 3, 1]
+  tree1.preorder() 
+    is [list: 4, 2, 1, 3, 6, 5]
+    because [list: tree1.value] + tree1.left.preorder() + tree1.right.preorder()
+  tree1.inorder() 
+    is [list: 1, 2, 3, 4, 5, 6] 
+    because tree1.left.inorder() + [list: tree1.value] + tree1.right.inorder()
+  tree1.postorder()
+    is [list: 1, 3, 2, 5, 6, 4]
+    because tree1.left.postorder() + tree1.right.postorder() + [list: tree1.value]
+  tree1.revpreorder() 
+    is [list: 4, 6, 5, 2, 3, 1]
+    because [list: tree1.value] + tree1.right.revpreorder() + tree1.left.revpreorder()
+  tree1.revinorder()
+    is [list: 6, 5, 4, 3, 2, 1]
+    because tree1.right.revinorder() + [list: tree1.value] + tree1.left.revinorder()
+  tree1.revpostorder()
+    is [list: 5, 6, 3, 1, 2, 4]
+    because tree1.right.revpostorder() + tree1.left.revpostorder() + [list: tree1.value]
 end
 
 data Set:
