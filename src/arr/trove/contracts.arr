@@ -181,6 +181,18 @@ data FailureReason:
     end
   | type-mismatch(val, name :: String) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
+      ann-name =
+        if src-available(loc):
+          cases(Option) maybe-ast(loc):
+            | some(ast) =>
+              if ast.label() == "a-name": ast.tosource().pretty(1000).join-str(" ")
+              else: self.name
+              end
+            | none => self.name
+          end
+        else:
+          self.name
+        end
       [ED.error:
         if loc.is-builtin():
           [ED.para:
@@ -192,7 +204,7 @@ data FailureReason:
           [ED.sequence:
             [ED.para:
               ED.text("The "),
-              ED.highlight(ED.text(self.name + " annotation"), [ED.locs: loc], 0)],
+              ED.highlight(ED.text(ann-name + " annotation"), [ED.locs: loc], 0)],
             ED.cmcode(loc)]
         else:
           [ED.para:
@@ -300,20 +312,32 @@ data FailureReason:
     end
   | record-fields-fail(val, field-failures :: List<FieldFailure>) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
+      ann-name =
+        if src-available(loc):
+          cases(Option) maybe-ast(loc):
+            | some(ast) =>
+              if ast.label() == "a-name": ast.tosource().pretty(1000).join-str(" ")
+              else: "record"
+              end
+            | none => "record"
+          end
+        else:
+          "record"
+        end
       [ED.error:
         if loc.is-builtin():
           [ED.para:
-            ED.text("A record annotation in "),
+            ED.text("A " + ann-name + " annotation in "),
             ED.loc(loc)]
         else if src-available(loc):
           [ED.sequence:
             [ED.para:
               ED.text("The "),
-              ED.highlight(ED.text("record annotation"), [ED.locs: loc], -1)],
+              ED.highlight(ED.text(ann-name + " annotation"), [ED.locs: loc], -1)],
             ED.cmcode(loc)]
         else:
           [ED.para:
-            ED.text("The record annotation at "),
+            ED.text("The " + ann-name + " annotation at "),
             ED.loc(loc)]
         end,
         [ED.para:
@@ -371,20 +395,32 @@ data FailureReason:
     end
   | tuple-anns-fail(val, anns-failures :: List<FieldFailure>) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
+      ann-name =
+        if src-available(loc):
+          cases(Option) maybe-ast(loc):
+            | some(ast) =>
+              if ast.label() == "a-name": ast.tosource().pretty(1000).join-str(" ")
+              else: "tuple"
+              end
+            | none => "tuple"
+          end
+        else:
+          "tuple"
+        end
       [ED.error:
         if loc.is-builtin():
           [ED.para:
-            ED.text("The tuple annotation at "),
+            ED.text("The " + ann-name + " annotation at "),
             ED.loc(loc)]
         else if src-available(loc):
           [ED.sequence:
             [ED.para:
-              ED.text("The tuple annotation in the "),
+              ED.text("The " + ann-name + " annotation in the "),
               ED.highlight(ED.text("annotation"), [ED.locs: loc], 0)],
             ED.cmcode(loc)]
         else:
           [ED.para:
-            ED.text("The tuple annotation at "),
+            ED.text("The " + ann-name + " annotation at "),
             ED.loc(loc)]
         end,
         [ED.para: ED.text("was not satisfied by the value")],
@@ -442,20 +478,32 @@ data FailureReason:
     end
   | tup-length-mismatch(loc, val, annLength, tupleLength) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
+      ann-name =
+        if src-available(loc):
+          cases(Option) maybe-ast(loc):
+            | some(ast) =>
+              if ast.label() == "a-name": ast.tosource().pretty(1000).join-str(" ")
+              else: "tuple"
+              end
+            | none => "tuple"
+          end
+        else:
+          "tuple"
+        end
       [ED.error:
           if loc.is-builtin():
             [ED.para:
-              ED.text("The tuple annotation at "),
+              ED.text("The " + ann-name + " annotation at "),
               ED.loc(loc)]
           else if src-available(loc):
             [ED.sequence:
               [ED.para:
                 ED.text("The "),
-                ED.highlight(ED.text("tuple annotation"), [ED.locs: loc], 0)],
+                ED.highlight(ED.text(ann-name + " annotation"), [ED.locs: loc], 0)],
               ED.cmcode(loc)]
           else:
             [ED.para:
-              ED.text("The tuple annotation at "),
+              ED.text("The " + ann-name + " annotation at "),
               ED.loc(loc)]
           end,
           [ED.para:

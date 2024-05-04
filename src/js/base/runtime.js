@@ -3195,7 +3195,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if(!isObject(val)) {
         return thisRuntime.ffi.contractFail(
           makeSrcloc(compilerLoc),
-          thisRuntime.ffi.makeTypeMismatch(val, "Object")
+          thisRuntime.ffi.makeTypeMismatch(val, "record")
         );
       }
       for(var i = 0; i < that.fields.length; i++) {
