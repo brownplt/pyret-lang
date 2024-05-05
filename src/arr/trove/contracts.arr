@@ -181,18 +181,6 @@ data FailureReason:
     end
   | type-mismatch(val, name :: String) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
-      ann-name =
-        if src-available(loc):
-          cases(Option) maybe-ast(loc):
-            | some(ast) =>
-              if ast.label() == "a-name": ast.tosource().pretty(1000).join-str(" ")
-              else: self.name
-              end
-            | none => self.name
-          end
-        else:
-          self.name
-        end
       [ED.error:
         if loc.is-builtin():
           [ED.para:
@@ -204,7 +192,7 @@ data FailureReason:
           [ED.sequence:
             [ED.para:
               ED.text("The "),
-              ED.highlight(ED.text(ann-name + " annotation"), [ED.locs: loc], 0)],
+              ED.highlight(ED.text(self.name + " annotation"), [ED.locs: loc], 0)],
             ED.cmcode(loc)]
         else:
           [ED.para:
@@ -310,19 +298,12 @@ data FailureReason:
         [ED.error: message, ED.embed(self.val)]
       end
     end
-  | record-fields-fail(val, field-failures :: List<FieldFailure>) with:
+  | record-fields-fail(val, opt-name, field-failures :: List<FieldFailure>) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
       ann-name =
-        if src-available(loc):
-          cases(Option) maybe-ast(loc):
-            | some(ast) =>
-              if ast.label() == "a-name": ast.tosource().pretty(1000).join-str(" ")
-              else: "record"
-              end
-            | none => "record"
-          end
-        else:
-          "record"
+        cases(Option) self.opt-name:
+          | some(n) => n
+          | none => "record"
         end
       [ED.error:
         if loc.is-builtin():
@@ -383,9 +364,14 @@ data FailureReason:
           end, 1, self.field-failures) ^ ED.bulleted-sequence]]
     end,
     method render-reason(self, loc, from-fail-arg):
+      ann-name =
+        cases(Option) self.opt-name:
+          | some(n) => n
+          | none => "record"
+        end
       [ED.vert:
         [ED.para:
-          ED.text("The record annotation at "),
+          ED.text("The " + ann-name + " annotation at "),
           ED.loc(loc),
           ED.text(" failed on this value:")],
         ED.embed(self.val),
@@ -393,19 +379,12 @@ data FailureReason:
         ED.bulleted-sequence(self.field-failures.map(_.render-reason(loc, false)))
       ]
     end
-  | tuple-anns-fail(val, anns-failures :: List<FieldFailure>) with:
+  | tuple-anns-fail(val, opt-name :: Option<String>, anns-failures :: List<FieldFailure>) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
       ann-name =
-        if src-available(loc):
-          cases(Option) maybe-ast(loc):
-            | some(ast) =>
-              if ast.label() == "a-name": ast.tosource().pretty(1000).join-str(" ")
-              else: "tuple"
-              end
-            | none => "tuple"
-          end
-        else:
-          "tuple"
+        cases(Option) self.opt-name:
+          | some(n) => n
+          | none => "tuple"
         end
       [ED.error:
         if loc.is-builtin():
@@ -466,9 +445,14 @@ data FailureReason:
           end, 0, self.anns-failures) ^ ED.bulleted-sequence]]
     end,
     method render-reason(self, loc, from-fail-arg):
+      ann-name =
+        cases(Option) self.opt-name:
+          | some(n) => n
+          | none => "tuple"
+        end
       [ED.vert:
         [ED.para:
-          ED.text("The tuple annotation at "),
+          ED.text("The " + ann-name + " annotation at "),
           ED.loc(loc),
           ED.text(" failed on this value:")],
         ED.embed(self.val),
@@ -476,19 +460,12 @@ data FailureReason:
         ED.bulleted-sequence(self.anns-failures.map(_.render-reason(loc, false)))
       ]
     end
-  | tup-length-mismatch(loc, val, annLength, tupleLength) with:
+  | tup-length-mismatch(loc, val, opt-name, annLength, tupleLength) with:
     method render-fancy-reason(self, loc, from-fail-arg, maybe-stack-loc, src-available, maybe-ast):
       ann-name =
-        if src-available(loc):
-          cases(Option) maybe-ast(loc):
-            | some(ast) =>
-              if ast.label() == "a-name": ast.tosource().pretty(1000).join-str(" ")
-              else: "tuple"
-              end
-            | none => "tuple"
-          end
-        else:
-          "tuple"
+        cases(Option) self.opt-name:
+          | some(n) => n
+          | none => "record"
         end
       [ED.error:
           if loc.is-builtin():
@@ -532,10 +509,15 @@ data FailureReason:
           else: [ED.sequence:] end]
     end,
     method render-reason(self, loc, fail-from-arg):
+      ann-name =
+        cases(Option) self.opt-name:
+          | some(n) => n
+          | none => "tuple"
+        end
       [ED.error:
         [ED.para:
-          ED.text("The tuple annotation at "),
-          ED.embed(loc),
+          ED.text("The " + ann-name + " annotation at "),
+          ED.loc(loc),
           ED.text(" expected the given tuple to be of length "),
           ED.embed(self.annLength)],
         [ED.para:
