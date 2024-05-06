@@ -159,7 +159,7 @@ function handleLoadFileSuccess(state: State): State {
 }
 
 function handleSaveFileSuccess(state: State): State {
-  console.log('saved a file successfully', state, getCurrentFileContents(state));
+  // console.log('saved a file successfully', state, getCurrentFileContents(state));
 
   return {
     ...state,
@@ -745,6 +745,8 @@ function handleRunSessionFailure(state: State, id: string, error: string, errorV
 }
 
 function handleRunExamplarFailure(state: State, error: string) : State {
+  // console.log('** handleRunExamplarFailure', error);
+  const failureObj : any = { $name: 'text', str: error };
   return {
     ...state,
     definitionsHighlights: [],
@@ -753,7 +755,7 @@ function handleRunExamplarFailure(state: State, error: string) : State {
       editor: state.definitionsEditor,
       results: {
         status: 'failed',
-        failures: [JSON.parse(error)],
+        failures: [failureObj],
       },
       id: "topChunk",
       outdated: false,
@@ -901,9 +903,12 @@ function handleRunProgramSuccess(state : State, result : any) : State {
   };
 }
 
+function numFailures(resultArray: ExamplarResult[]) {
+  const fails = resultArray.filter((result) => !(result.success));
+  return fails.length;
+}
 
-
-function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffResultArray: any[], sampleResult: any, reprFile: string) : State {
+function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffResultArray: any[], hintMessage: string, qtmVariations: number, sampleResult: any, reprFile: string) : State {
   if (!sampleResult) {
     console.log('examplar all wheats and chaffs were ill-formed');
   }
@@ -915,7 +920,9 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
     tag: 'examplar',
     srcloc: (<Location>rhs0).srcloc,
     wheatResults: wheatResultArray,
-    chaffResults: chaffResultArray
+    chaffResults: chaffResultArray,
+    hintMessage: hintMessage,
+    qtmVariations: qtmVariations
   };
   return {
     ...state,
@@ -935,6 +942,7 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
 async function runTextProgram(
   typeCheck: boolean, runKind: RunKind, saveFile: string, programText: string,
 ) : Promise<CompileAndRunResult> {
+  //console.log('### runTextProgram', saveFile);
   if (fs.existsSync(saveFile)) {
     fs.unlinkSync(saveFile);
   }
@@ -1115,35 +1123,86 @@ function runProgramOrSegments(
   return updater(state);
 }
 
-function handleRunExamplarSuccessFull(state: State, wheatResultArray: any[], chaffResultArray: any[], sampleResult: any, reprFile: string) : State {
-  const state2 = handleRunExamplarSuccess(state, wheatResultArray, chaffResultArray, sampleResult, reprFile);
+function handleRunExamplarSuccessFull(state: State, wheatResultArray: any[], chaffResultArray: any[], hintMessage: string, qtmVariations: number, sampleResult: any, reprFile: string) : State {
+  const state2 = handleRunExamplarSuccess(state, wheatResultArray, chaffResultArray, hintMessage, qtmVariations, sampleResult, reprFile);
   // const state3 = runProgramOrSegments(state2, runSegmentsAsync, setupRunSegmentsAsync);
   return state2;
 }
 
 function insertUserImpl(s: string, newFile: string) {
+  //console.log('### insertUserImpl', s, newFile);
   const ll = s.split('\n');
   const llOut = ll.map((x) => x);
   for (let i = 0; i < ll.length; i += 1) {
     const line = ll[i];
-    if (/^ *include +file\(/.test(line)) {
+    if (/^ *(include|import) +file\(".*?-code.arr"\)/.test(line)) {
       // eslint-disable-next-line
-      llOut[i] = line.replace(/^ *include +file\(".*?"\)/, 'include file("' + newFile + '")');
-      break;
-    } else if (/^ *import +file\(/.test(line)) {
-      // eslint-disable-next-line
-      llOut[i] = line.replace(/^ *import +file\(".*?"\)/, 'import file("' + newFile + '")');
+      llOut[i] = line.replace(/file\(".*?-code.arr"\)/, 'file("' + newFile + '")');
       break;
     }
   }
   return llOut.join('\n');
 }
 
+function stringPart(str: string, loc: string): string {
+  let e = /(\d+):(\d+)-(\d+):(\d+)/.exec(loc);
+  if (!e) {
+    return '';
+  } else {
+    let l1 : number = Number(e[1]) - 1;
+    let c1 : number = Number(e[2]) - 1;
+    let l2 : number = Number(e[3]) - 1;
+    let c2 : number = Number(e[4]) - 1;
+    const ss = str.split('\n');
+    let x : string;
+    if (l1 == l2) {
+      x = ss[l1].substring(c1, c2 + 1);
+    } else {
+      x = ss[l1].substring(c1);
+      for (let j = l1 + 1; j < l2; j += 1) {
+        x += ss[j];
+      }
+      x += ss[l2].substring(0, c2 + 1);
+    }
+    return x;
+  }
+}
+
+function addCodeToCheckArray(checkArray: any[], fileString: string): any[] {
+  const n = checkArray.length;
+  const A = new Array(n);
+  for (let i = 0; i < n; i += 1) {
+    const check = checkArray[i];
+    const excn = check.exception;
+    const relevantCode = stringPart(fileString, check.loc);
+    const qtm = ((/-in-ok/.test(relevantCode) || /-out-ok/.test(relevantCode)) && (/satisfies/.test(relevantCode) || /violates/.test(relevantCode)))
+    A[i] = {
+      success: check.success,
+      exception: check.exception,
+      code: relevantCode,
+      qtm: qtm
+    }
+  }
+  return A;
+}
+
+
 async function runExamplarAsync(state: State) : Promise<any> {
   // currentFile is just the standard program.arr, we'll use it to get at
   // our relevant files
   const { typeCheck, runKind, currentFile } = state;
   const { dir } = bfsSetup.path.parse(currentFile);
+  let hintMessage: string = '';
+  let qtmVariationsArr: any[] = [];
+
+  function getQtmVariations(checkArrayWithCode: any[]) {
+    checkArrayWithCode.filter((check: any) => check.qtm).map((check) => check.success || check.exception).forEach(function(x) {
+      if (!qtmVariationsArr.includes(x)) {
+        qtmVariationsArr.push(x);
+      }
+    });
+    //console.log('***** qtmvars array = ', qtmVariationsArr);
+  }
 
   // eslint-disable-next-line
   const dirWheats: string = dir + '/wheats';
@@ -1154,9 +1213,18 @@ async function runExamplarAsync(state: State) : Promise<any> {
   const testFile: string = dir + '/test.arr';
 
   // eslint-disable-next-line
+  const hintsFile: string = dir + '/hints.json';
+  let hintsFileContents: string = (fs.existsSync(hintsFile) ? fs.readFileSync(hintsFile, { encoding: 'utf8' }) : "{}");
+  hintsFileContents = hintsFileContents.replace(/#\.CHUNK#/g, '');
+  // console.log('hintsFileContents is', hintsFileContents);
+  const hints =  JSON.parse(hintsFileContents);
+
+  // eslint-disable-next-line
   const testWheatFile = dir + '/testwheat.arr';
   // eslint-disable-next-line
   const testChaffFile = dir + '/testchaff.arr';
+  // eslint-disable-next-line
+  const testMutantFile = dir + '/testmutant.arr';
 
   if (fs.existsSync(testWheatFile)) {
     fs.unlinkSync(testWheatFile);
@@ -1164,17 +1232,24 @@ async function runExamplarAsync(state: State) : Promise<any> {
   if (fs.existsSync(testChaffFile)) {
     fs.unlinkSync(testChaffFile);
   }
+  if (fs.existsSync(testMutantFile)) {
+    fs.unlinkSync(testMutantFile);
+  }
 
   // eslint-disable-next-line
   const wheatFileBasenames: string[] = (fs.existsSync(dirWheats) ? fs.readdirSync(dirWheats) : []).filter((f: string) => !(fs.lstatSync(dirWheats + '/' + f).isDirectory()));
   // eslint-disable-next-line
   const chaffFileBasenames: string[] = (fs.existsSync(dirChaffs) ? fs.readdirSync(dirChaffs) : []).filter((f: string) => !(fs.lstatSync(dirChaffs + '/' + f).isDirectory()));
+  // eslint-disable-next-line
+  const mutantFileBasenames: string[] = Object.keys(hints);
 
   const numWheats = wheatFileBasenames.length;
   const numChaffs = chaffFileBasenames.length;
+  const numMutants = mutantFileBasenames.length;
 
   const wheatFiles: string[] = [];
   const chaffFiles: string[] = [];
+  const mutantFiles: string[] = [];
 
   for (let i = 0; i < numWheats; i += 1) {
     // eslint-disable-next-line
@@ -1183,6 +1258,10 @@ async function runExamplarAsync(state: State) : Promise<any> {
   for (let i = 0; i < numChaffs; i += 1) {
     // eslint-disable-next-line
     chaffFiles.push('chaffs/' + chaffFileBasenames[i]);
+  }
+  for (let i = 0; i < numMutants; i += 1) {
+    // eslint-disable-next-line
+    mutantFiles.push('chaffs/' + mutantFileBasenames[i] + '.arr');
   }
 
   // test if numPrograms > 0 and testFile exists
@@ -1227,54 +1306,116 @@ async function runExamplarAsync(state: State) : Promise<any> {
         correspondingFile = testProgramFile;
       }
       const checkArray = result.result.result.$checks;
-      const failureArray = checkArray.filter((check: any) => (check.success === false));
-      const success = failureArray.length === 0;
-      wheatResultArray.push({
-        success,
-        result
-      });
+      const checkArrayWithCode = addCodeToCheckArray(checkArray, testProgram);
+      getQtmVariations(checkArrayWithCode);
+      // console.log('checkArrayWithCode=', checkArrayWithCode);
+      const failureArray = checkArrayWithCode.filter((check: any) => (check.success === false));
+      const success = (failureArray.length === 0);
+      wheatResultArray.push({ success, result });
     }
   }
 
-  for (let i = 0; i < numChaffs; i += 1) {
-    const chaffFile = chaffFiles[i];
-    const testProgram = insertUserImpl(testTemplate, chaffFile);
-    // eslint-disable-next-line
-    const testProgramFile = segmentName(testChaffFile, Number(i).toString())
-    // eslint-disable-next-line
-    result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
-    if (result.type === 'compile-failure') {
-      console.log('examplar error in', chaffFile, result);
-      if (!firstFailureResult) {
-        firstFailureResult = result;
+  const wheatFails = numFailures(wheatResultArray);
+
+  // console.log('### numWheats=', numWheats, '; wheatFails=', wheatFails);
+
+  // if wheatFails == 0, do chaffs, else do mutants
+
+  if (numWheats > 0) {
+    if (wheatFails === 0) {
+      for (let i = 0; i < numChaffs; i += 1) {
+        const chaffFile = chaffFiles[i];
+        const testProgram = insertUserImpl(testTemplate, chaffFile);
+        // eslint-disable-next-line
+        const testProgramFile = segmentName(testChaffFile, Number(i).toString())
+        // eslint-disable-next-line
+        result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+        if (result.type === 'compile-failure') {
+          console.log('examplar error in', chaffFile, result);
+          if (!firstFailureResult) {
+            firstFailureResult = result;
+          }
+          chaffResultArray.push({
+            success: false,
+            result
+          });
+        } else if (result.type === 'run-failure') {
+          console.log('examplar error in', chaffFile, result);
+          if (!firstFailureResult) {
+            firstFailureResult = result;
+          }
+          chaffResultArray.push({
+            success: false,
+            result
+          });
+        } else {
+          if (!firstUsableResult) {
+            firstUsableResult = result.result;
+            correspondingFile = testProgramFile;
+          }
+          const checkArray = result.result.result.$checks;
+          const checkArrayWithCode = addCodeToCheckArray(checkArray, testProgram);
+          getQtmVariations(checkArrayWithCode);
+          const failureArray = checkArrayWithCode.filter((check: any) => (check.success === false));
+          const success = failureArray.length === 0;
+          chaffResultArray.push({ success, result });
+        }
       }
-      chaffResultArray.push({
-        success: false,
-        result
-      });
-    } else if (result.type === 'run-failure') {
-      console.log('examplar error in', chaffFile, result);
-      if (!firstFailureResult) {
-        firstFailureResult = result;
+    } else { // i.e., at least one wheat failed
+      //
+      for (let i = 0; i < numMutants; i += 1) {
+        // console.log('TRYING MUTANTS NOW');
+        const mutantFile = mutantFiles[i];
+        const testProgram = insertUserImpl(testTemplate, mutantFile);
+        // eslint-disable-next-line
+        const testProgramFile = segmentName(testMutantFile, Number(i).toString())
+        // eslint-disable-next-line
+        result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+        if (result.type === 'compile-failure') {
+          console.log('examplar error in', mutantFile, result);
+          if (!firstFailureResult) {
+            firstFailureResult = result;
+          }
+        } else if (result.type === 'run-failure') {
+          console.log('examplar error in', mutantFile, result);
+          if (!firstFailureResult) {
+            firstFailureResult = result;
+          }
+        } else {
+          if (!firstUsableResult) {
+            firstUsableResult = result.result;
+            correspondingFile = testProgramFile;
+          }
+          const checkArray = result.result.result.$checks;
+          const checkArrayWithCode = addCodeToCheckArray(checkArray, testProgram);
+          getQtmVariations(checkArrayWithCode);
+          const failureArray = checkArrayWithCode.filter((check: any) => (check.success === false));
+          const mutantSucceeded = (failureArray.length === 0);
+          // console.log('mutantSucceeded is', mutantSucceeded);
+          if (mutantSucceeded) {
+            // console.log('hintsfile is', hintsFile);
+            // console.log('hints are', hints);
+            // console.log('found succeeding mutant in', mutantFile);
+            const mutantFileBasename = mutantFile.replace(/^chaffs\/(.+?)\.arr$/, '$1');
+            // console.log('mutantFileBasename is', mutantFileBasename);
+            // eslint-disable-next-line
+            const mutantHint = hints[mutantFileBasename];
+            if (mutantHint) {
+              // eslint-disable-next-line
+              hintMessage = "Hint: " + mutantHint.hint + '\n';
+            } else {
+              hintMessage = `${mutantFileBasename} has no hint\n`;
+            }
+            // console.log('hintMessage is', hintMessage);
+            break;
+          }
+        }
       }
-      chaffResultArray.push({
-        success: false,
-        result
-      });
-    } else {
-      if (!firstUsableResult) {
-        firstUsableResult = result.result;
-        correspondingFile = testProgramFile;
-      }
-      const checkArray = result.result.result.$checks;
-      const failureArray = checkArray.filter((check: any) => (check.success === false));
-      const success = failureArray.length === 0;
-      chaffResultArray.push({ success, result });
     }
   }
 
   if (firstUsableResult) {
-    update((s: State) => handleRunExamplarSuccessFull(s, wheatResultArray, chaffResultArray, firstUsableResult, correspondingFile));
+    update((s: State) => handleRunExamplarSuccessFull(s, wheatResultArray, chaffResultArray, hintMessage, qtmVariationsArr.length, firstUsableResult, correspondingFile));
   } else if (firstFailureResult) {
     if (firstFailureResult.type === 'compile-failure') {
       update((s: State) => handleCompileExamplarFailure(s, firstFailureResult.errors));

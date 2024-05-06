@@ -12,11 +12,13 @@ type ExamplarResult = { success: boolean, result: CompileAndRunResult };
 type ExamplarReportProps = {
     wheatResults: ExamplarResult[],
     chaffResults: ExamplarResult[],
-    editor: UninitializedEditor | CMEditor
+    editor: UninitializedEditor | CMEditor,
+    hintMessage: string,
+    qtmVariations: number
 };
 type ExamplarReportState = {};
 
-function resultSummary(wheatResultArray: ExamplarResult[], chaffResultArray: ExamplarResult[]) {
+function resultSummary(wheatResultArray: ExamplarResult[], chaffResultArray: ExamplarResult[], hintMessage: string, qtmVariations: number) {
   function numFailures(resultArray: any[]) {
     const fails = resultArray.filter((result) => !result.success);
     return fails.length;
@@ -27,44 +29,70 @@ function resultSummary(wheatResultArray: ExamplarResult[], chaffResultArray: Exa
   const chaffFails = numFailures(chaffResultArray);
   const wheatSuccs = numWheats - wheatFails;
   const chaffSuccs = numChaffs - chaffFails;
+  let qtmMessage = '';
   let introMessage = '';
   let wheatMessage = '';
   let chaffMessage = '';
   //
-  if (wheatFails === 0 && chaffSuccs === 0) {
-    introMessage = 'Congratulations! Your tests are correct and comprehensive.';
-  } else if (wheatFails === 0 && chaffSuccs >= 1) {
-    introMessage = 'Your tests are correct but not comprehensive.';
-  } else if (wheatFails > 0) {
-    introMessage = 'Sorry. Your tests are incorrect.';
-  }
-  //
-  if (wheatFails === 0 && numWheats === 1) {
-    wheatMessage = 'The only wheat succeeded.';
-  } else if (wheatFails === 1 && numWheats === 1) {
-    wheatMessage = 'The only wheat failed.';
+  if (numWheats === 0) {
+    introMessage = 'There are no wheats.';
   } else if (wheatFails === 0) {
-    wheatMessage = `All ${numWheats} wheats succeeded.`;
-  } else if (wheatFails > 0 && wheatFails === numWheats) {
-    wheatMessage = `All ${numWheats} wheats failed.`;
-  } else if (wheatFails > 0) {
-    wheatMessage = `Only ${wheatSuccs} out of ${numWheats} wheats succeeded.`;
+    if (numChaffs === 0) {
+      introMessage = 'Your tests passed but there are no chaffs.';
+    } else if (chaffSuccs === 0) {
+      introMessage = 'Congratulations! Your tests are correct and comprehensive.';
+    } else {
+      introMessage = 'Your tests are correct but not comprehensive.';
+    }
+  } else {
+    introMessage = 'Sorry, your tests are incorrect.';
   }
   //
-  if (chaffFails === 1 && numChaffs === 1) {
-    chaffMessage = 'You caught the only chaff.';
-  } else if (chaffFails === 0 && numChaffs === 1) {
-    chaffMessage = 'You didn\'t catch the only chaff.';
-  } else if (chaffFails === 0) {
-    chaffMessage = `You didn't catch any of the ${numChaffs} chaffs.`;
-  } else if (chaffFails > 0 && chaffFails === numChaffs) {
-    chaffMessage = `You caught all ${numChaffs} chaffs.`;
-  } else if (chaffFails > 0) {
-    chaffMessage = `You caught only ${chaffFails} out of ${numChaffs} chaffs.`;
+  if (numWheats > 0 && wheatFails === 0 && numChaffs > 0) {
+    // chaffMessage is set only if there's
+    // at least one wheat, no wheat failures, and at least one chaff
+    if (chaffSuccs === 0) {
+      if (numChaffs === 1) {
+        chaffMessage = 'Your test caught the only chaff.';
+      } else {
+        chaffMessage = `Your test caught all ${numChaffs} chaffs.`;
+      }
+    } else {
+      if (chaffSuccs === numChaffs) {
+        if (numChaffs === 1) {
+          chaffMessage = 'Your didn\'t catch the only chaff.';
+        } else {
+          chaffMessage = `Your didn\'t catch any of the ${numChaffs} chaffs.`;
+        }
+      } else {
+        chaffMessage = `Your tests caught only ${chaffFails} of the ${numChaffs} chaffs.`;
+      }
+    }
   }
   //
   // eslint-disable-next-line
-  return `${introMessage}\n${wheatMessage}\n${chaffMessage}`;
+  if (qtmVariations >= 0) {
+    qtmMessage = `Quartermaster: ${qtmVariations} variants of input/output found. `;
+  }
+  if (introMessage !== '') {
+    if (wheatMessage !== '' || chaffMessage !== '' || hintMessage !== '') {
+      introMessage += ' ';
+    }
+  }
+  if (wheatMessage !== '') {
+    if (chaffMessage !== '' || hintMessage !== '') {
+      wheatMessage += ' ';
+    }
+  }
+  if (chaffMessage !== '') {
+    if (hintMessage !== '') {
+      chaffMessage += ' ';
+    }
+  }
+  if (hintMessage !== '') {
+    hintMessage += ' ';
+  }
+  return `${qtmMessage}${introMessage}${wheatMessage}${chaffMessage}${hintMessage}`;
 }
 
 function missingBug() {
@@ -121,24 +149,25 @@ function wheatFailureEmbed(location : any, editor : any) {
     </CodeEmbed>;
 }
 
-function showFirstWheatFailure(wheatResults : ExamplarResult[], editor : any) {
+function showFirstWheatFailure(wheatResults : ExamplarResult[], hintMessage: string, editor : any) {
     const first = parseLocation(firstFailingWheatTest(wheatResults));
     console.log("wheatFailure ", first);
     return <div>This test is invalid (it did not match the behavior of a wheat):
         <div>{wheatFailureEmbed(first, editor)}</div>
+        <div>{hintMessage}</div>
     </div>;
 }
 
 
 export default class ExamplarReportWidget extends React.Component<ExamplarReportProps, ExamplarReportState> {
   render() {
-    const { wheatResults, chaffResults, editor } = this.props;
+    const { wheatResults, chaffResults, hintMessage, qtmVariations, editor } = this.props;
     const failures = failingWheatTests(wheatResults);
     if(failures.length !== 0) {
-        return <div>{showFirstWheatFailure(wheatResults, editor)}</div>
+        return <div>{showFirstWheatFailure(wheatResults, hintMessage, editor)}</div>
     }
     return (
-      <div>{chaffWidget(chaffResults)}<p>{resultSummary(wheatResults, chaffResults)}</p></div>
+      <div>{chaffWidget(chaffResults)}<p>{resultSummary(wheatResults, chaffResults, hintMessage, qtmVariations)}</p></div>
     );
   }
 }

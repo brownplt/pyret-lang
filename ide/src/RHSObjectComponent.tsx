@@ -69,7 +69,7 @@ export default function RHSObjectComponent({
   }
 
   if (isExamplarReport(rhsObject)) {
-    return <ExamplarReportWidget editor={editor} wheatResults={rhsObject.wheatResults} chaffResults={rhsObject.chaffResults}/>
+    return <ExamplarReportWidget editor={editor} wheatResults={rhsObject.wheatResults} chaffResults={rhsObject.chaffResults} hintMessage={rhsObject.hintMessage} qtmVariations={rhsObject.qtmVariations}/>
   }
 
   throw new NeverError(rhsObject);
