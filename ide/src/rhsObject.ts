@@ -51,6 +51,8 @@ export type ExamplarReport = {
   key?: string,
   wheatResults: ExamplarResult[],
   chaffResults: ExamplarResult[],
+  hintMessage: string,
+  qtmVariations: number,
   srcloc: SrcLoc
   // TODO(joe): add much more here to report on wheat/chaff specifics
 }
