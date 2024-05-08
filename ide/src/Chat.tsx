@@ -14,7 +14,7 @@
 import React from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import { UnControlled as ReactCM } from 'react-codemirror2';
-import { State } from './state';
+import { EditorMode, State } from './state';
 import {
   CMEditor, enterShouldSend, isWrapFirst, isWrapLast,
 } from './utils';
@@ -32,6 +32,7 @@ import {
 import ChatResult from './ChatResult';
 
 import {
+  CornerDownLeft,
   LogIn,
   Plus,
   Trash2
@@ -42,7 +43,8 @@ type StateProps = {
   enterNewline: boolean,
   technicallyOutdated: boolean,
   fontSize: number,
-  focusedChunk: number | false
+  focusedChunk: number | false,
+  editorMode: EditorMode
 };
 
 function mapStateToProps(state: State, ownProps: any): StateProps {
@@ -51,7 +53,8 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     enterNewline,
     firstOutdatedChunk,
     fontSize,
-    focusedChunk
+    focusedChunk,
+    editorMode
   } = state;
 
   const {
@@ -65,7 +68,8 @@ function mapStateToProps(state: State, ownProps: any): StateProps {
     enterNewline,
     technicallyOutdated,
     fontSize,
-    focusedChunk
+    focusedChunk,
+    editorMode
   };
 }
 
@@ -81,6 +85,7 @@ type DispatchProps = {
   mergeChunks: (top: number, bottom: number) => void,
   insertChunk: (index: number, text?: string) => void,
   focusChunk: (index: number | false) => void,
+  appendToDefinitions: (index : number) => void,
 };
 
 function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
@@ -100,6 +105,11 @@ function mapDispatchToProps(dispatch: (action: Action) => any): DispatchProps {
     insertChunk(index: number, text?: string) {
       dispatch({
         type: 'chunk', key: 'insert', index, grabFocus: true, text
+      });
+    },
+    appendToDefinitions(index: number) {
+      dispatch({
+        type: 'chunk', key: 'appendToDefinitions', index
       });
     },
     focusChunk(index : number | false) {
@@ -226,6 +236,11 @@ class Chat extends React.Component<ChatProps, {}> {
     mergeChunks(index - 1, index);
   }
 
+  appendToDefinitions() {
+    const { appendToDefinitions, index } = this.props;
+    appendToDefinitions(index);
+  }
+
   /* Delete this chunk and move every chunk below it up by one */
   deleteChunk(index: number) {
     const { deleteChunk, run } = this.props;
@@ -344,10 +359,13 @@ class Chat extends React.Component<ChatProps, {}> {
     const isErrorClass = isError ? 'chatitor-error' : '';
     const focusedClass = this.props.focusedChunk === this.props.index ? 'focused-chunk' : '';
 
-    const merge = this.props.index === 0 ? <></> :
+    const merge = this.props.index !== 0 &&
       <button title='Merge with previous' className="text-button chunk-menu-icon" onClick={() => this.merge()} type="button">
         <LogIn style={{ transform: "rotate(270deg)" }} className="icon"/>
       </button>;
+    const left = this.props.editorMode !== EditorMode.Chatitor && <button title='Move to end of definitions' className="text-button chunk-menu-icon" onClick={() => this.appendToDefinitions()} type="button">
+        <CornerDownLeft className="icon"/>
+    </button>
     return (
       <>
         <div className={`chat-and-result ${outdatedClass} ${pendingRerunClass} ${isErrorClass} ${focusedClass}`}>
@@ -358,6 +376,7 @@ class Chat extends React.Component<ChatProps, {}> {
             <button title='Delete' className="text-button chunk-menu-icon" onClick={() => this.deleteChunk(this.props.index)} type="button">
               <Trash2 className="icon"/>
             </button>
+            {left}
             {merge}
           </div>
           { chunkEditorPart }

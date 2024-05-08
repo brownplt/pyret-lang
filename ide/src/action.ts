@@ -26,6 +26,7 @@ export type UIChunksUpdate =
   | { key: 'insert', index: number, grabFocus?: boolean, text?: string }
   | { key: 'delete', index: number }
   | { key: 'merge', top: number, bottom: number }
+  | { key: 'appendToDefinitions', index: number }
   | { key: 'clear' };
 
 export type SuccessForEffect<E extends EffectKey> =

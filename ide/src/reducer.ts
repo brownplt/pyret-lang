@@ -37,10 +37,10 @@ import {
 
 import {
   Chunk,
-  ChunkResults,
   CHUNKSEP,
   emptyChunk,
   makeChunksFromString,
+  UninitializedEditor,
 } from './chunk';
 
 import {
@@ -53,6 +53,7 @@ import {
 import {
   CHATITOR_SESSION,
   cleanStopify,
+  CMEditor,
   NeverError,
   Srcloc,
   TEXT_SESSION,
@@ -230,6 +231,8 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         definitionsEditor: newDefsEditor,
         chunks: allChunks.slice(1),
         editorMode: newEditorMode,
+        past: [],
+        future: []
       };
     }
     case EditorMode.Chatitor: {
@@ -238,6 +241,8 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
         editorMode: newEditorMode,
         chunks: allChunks,
         topChunk: undefined,
+        past: [],
+        future: []
       };
     }
     default:
@@ -346,10 +351,12 @@ function resolveOutdates(firstOutdatedChunk: number, outdates: Outdates): Outdat
 // TODO(luna): outdating is done wrong. for example, delete the last chunk and
 // firstOutdatedChunk becomes 0, which is wrong(?)
 function handleUIChunkUpdate(state: State, chunksUpdate: UIChunksUpdate): State {
-  const { chunks, past, firstOutdatedChunk } = state;
+  const { chunks, past, firstOutdatedChunk, editorMode, definitionsEditor } = state;
   let newChunks: Chunk[];
   let outdates: Outdates;
   let nowOutdated;
+  let newDefs: UninitializedEditor | CMEditor = definitionsEditor;
+  const oldDefs = definitionsEditor.getValue();
   switch (chunksUpdate.key) {
     case 'clear':
       newChunks = [emptyChunk({
@@ -396,17 +403,32 @@ function handleUIChunkUpdate(state: State, chunksUpdate: UIChunksUpdate): State 
       outdates = { type: 'outdates', index: chunksUpdate.index };
       nowOutdated = chunksUpdate.text ? chunksUpdate.index : firstOutdatedChunk;
       break;
+    case 'appendToDefinitions':
+      if(editorMode === EditorMode.Chatitor) {
+        return state;
+      }
+      newChunks = [
+        ...chunks.slice(0, chunksUpdate.index),
+        ...chunks.slice(chunksUpdate.index + 1, chunks.length),
+      ];
+      outdates = { type: 'outdates', index: chunksUpdate.index };
+      nowOutdated = 0;
+      const currentDefs = definitionsEditor.getValue();
+      newDefs = { getValue() { return currentDefs + "\n\n" + chunks[chunksUpdate.index].editor.getValue() } };
+      break;
     default:
       throw new NeverError(chunksUpdate);
   }
   const undo = {
     chunks,
     outdates,
+    definitions: oldDefs,
   };
-  const rerunAllChunks = ['clear', 'delete', 'merge'].indexOf(chunksUpdate.key) >= 0;
+  const rerunAllChunks = ['clear', 'delete', 'merge', 'appendToDefinitions'].indexOf(chunksUpdate.key) >= 0;
   return {
     ...state,
     chunks: newChunks,
+    definitionsEditor: newDefs,
     past: [...past, undo],
     future: [],
     rerunAllChunks,
@@ -417,7 +439,7 @@ function handleUIChunkUpdate(state: State, chunksUpdate: UIChunksUpdate): State 
 
 function handleUndo(state: State): State {
   const {
-    chunks, past, future, firstOutdatedChunk,
+    definitionsEditor, chunks, past, future, firstOutdatedChunk,
   } = state;
   if (past.length === 0) {
     return state;
@@ -425,6 +447,7 @@ function handleUndo(state: State): State {
   const event = past[past.length - 1];
   const outdates = resolveOutdates(firstOutdatedChunk, event.outdates);
   const undo = {
+    definitions: definitionsEditor.getValue(),
     chunks,
     outdates,
   };
@@ -432,6 +455,7 @@ function handleUndo(state: State): State {
     ...state,
     chunks: event.chunks,
     firstOutdatedChunk: outdates.index,
+    definitionsEditor: { getValue() { return event.definitions; } },
     past: past.slice(0, -1),
     future: [...future, undo],
     effectQueue: [ ...state.effectQueue, { effectKey: 'saveFile' }]
@@ -440,7 +464,7 @@ function handleUndo(state: State): State {
 
 function handleRedo(state: State): State {
   const {
-    chunks, past, future, firstOutdatedChunk,
+    definitionsEditor, chunks, past, future, firstOutdatedChunk,
   } = state;
   if (future.length === 0) {
     return state;
@@ -448,6 +472,7 @@ function handleRedo(state: State): State {
   const event = future[future.length - 1];
   const outdates = resolveOutdates(firstOutdatedChunk, event.outdates);
   const entry = {
+    definitions: definitionsEditor.getValue(),
     chunks,
     outdates,
   };
@@ -455,6 +480,7 @@ function handleRedo(state: State): State {
     ...state,
     chunks: event.chunks,
     firstOutdatedChunk: outdates.index,
+    definitionsEditor: { getValue() { return event.definitions } },
     past: [...past, entry],
     future: future.slice(0, -1),
     effectQueue: [ ...state.effectQueue, { effectKey: 'saveFile' }]

@@ -25,6 +25,7 @@ export type Outdates =
 // me wonder if that should be a computed property! The trouble is if we, say,
 // delete a chunk, who holds the invalidation?)
 type UndoState = {
+  definitions: string,
   chunks: Chunk[],
   outdates: Outdates,
 };
