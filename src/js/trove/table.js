@@ -325,7 +325,7 @@
           return runtime.equal_always(l[index], r[index]);
         });
         return runtime.safeCall(function() {
-          return runtime.getField(asList, "sort-by").app(compare, equal);
+          return runtime.getField(asList, "stable-sort-by").app(compare, equal);
         }, function(sortedList) {
           return makeTable(headers, runtime.ffi.toArray(sortedList));
         }, "order-sort-by");

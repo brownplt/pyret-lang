@@ -260,6 +260,35 @@ check "sort as a function":
       { name: "Joan", age: 43 }]
 end
 
+check "stable sort":
+  fun build-pairs(m, n):
+    raw-array-to-list(raw-array-build(lam(i):
+          raw-array-to-list(raw-array-build(lam(j): {i; j; (i * (m + 1)) + j} end, n))
+        end, m))
+      .foldl(_.append(_), empty)
+  end
+  
+  TOTAL = 1000
+  GROUPS = 250
+  
+  pairs = (build-pairs(GROUPS, TOTAL / GROUPS))
+  
+  fun pair-le(p1, p2):
+    (p1.{0} < p2.{0})
+  end
+  
+  fun pair-eq(p1, p2): 
+    p1.{0} == p2.{0}
+  end
+  
+  stable-sorted = pairs.stable-sort-by(pair-le, pair-eq)
+  unstable-sorted = pairs.sort-by(pair-le, pair-eq)
+  for each(i from range(0, GROUPS)) block:
+    stable-sorted.filter({(p): p.{0} == i}) is pairs.filter({(p): p.{0} == i})
+    unstable-sorted is-not stable-sorted
+  end
+end
+
 check "distinct":
   lists.distinct([list: ~1, ~1]) is-roughly [list: ~1, ~1]
   lists.distinct([list: ~1, ~1, 1]) is-roughly [list: ~1, ~1, 1]

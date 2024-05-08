@@ -64,6 +64,13 @@ data List<a>:
       raise('last: took last of empty list')
     end,
 
+    method stable-sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
+      doc: ```Takes a comparator to check for elements that are strictly greater
+            or less than one another, and an equality procedure for elements that are
+            equal, and sorts the list accordingly.  The sort is guaranteed to be stable.```
+      self
+    end,
+
     method sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
       doc: ```Takes a comparator to check for elements that are strictly greater
             or less than one another, and an equality procedure for elements that are
@@ -132,6 +139,13 @@ data List<a>:
       if is-empty(self.rest): self.first
       else: self.rest.last()
       end
+    end,
+
+    method stable-sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
+      doc: ```Takes a comparator to check for elements that are strictly greater
+            or less than one another, and an equality procedure for elements that are
+            equal, and sorts the list accordingly.  The sort is guaranteed to be stable.```
+      stable-sort-by(self, cmp, eq)
     end,
 
     method sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:
@@ -339,6 +353,77 @@ fun last<a>(lst :: List<a>) -> a:
   else:
     helper(lst)
   end
+end
+
+fun stable-sort-by<a>(lst :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
+  doc: ```Takes a comparator to check for elements that are strictly greater
+       or less than one another, and an equality procedure for elements that are
+       equal, and sorts the given list accordingly.  The sort is guaranteed to be stable.```
+  fun mergesort(arr, scratch, low, high):
+    if ((high - low) <= 1) block:
+      arr
+    else:
+      mid = num-floor((low + high) / 2)
+      mergesort(arr, scratch, low, mid)
+      mergesort(arr, scratch, mid, high)
+      merge(arr, scratch, low, mid, high)
+      arr
+    end
+  end
+  fun merge(source, scratch, low, mid, high) block:
+    var curLowIdx = low
+    var curHiIdx = mid
+    var curCopyIdx = low
+    fun copyPart1():
+      when (curLowIdx < mid) and (curHiIdx < high) block:
+        curLow = raw-array-get(source, curLowIdx)
+        curHi = raw-array-get(source, curHiIdx)
+        if cmp(curLow, curHi) or eq(curLow, curHi) block:
+          raw-array-set(scratch, curCopyIdx, curLow)
+          curLowIdx := curLowIdx + 1
+        else:
+          raw-array-set(scratch, curCopyIdx, curHi)
+          curHiIdx := curHiIdx + 1
+        end
+        curCopyIdx := curCopyIdx + 1
+        copyPart1()
+      end
+    end
+    fun copyPart2():
+      when (curLowIdx < mid) block:
+        raw-array-set(scratch, curCopyIdx, raw-array-get(source, curLowIdx))
+        curLowIdx := curLowIdx + 1
+        curCopyIdx := curCopyIdx + 1
+        copyPart2()
+      end
+    end
+    fun copyPart3():
+      when (curHiIdx < high) block:
+        raw-array-set(scratch, curCopyIdx, raw-array-get(source, curHiIdx))
+        curHiIdx := curHiIdx + 1
+        curCopyIdx := curCopyIdx + 1
+        copyPart2()
+      end
+    end
+    fun copyPart4(cur):
+      when cur < high block:
+        raw-array-set(source, cur, raw-array-get(scratch, cur))
+        copyPart4(cur + 1)
+      end
+    end
+    copyPart1()
+    copyPart2()
+    copyPart3()
+    copyPart4(low)
+    source
+  end
+  arr = raw-array-from-list(lst)
+  scratch = raw-array-from-list(lst)
+  raw-array-to-list(mergesort(arr, scratch, 0, raw-array-length(arr)))
+end
+
+fun stable-sort<a>(lst :: List<a>) -> List<a>:
+  stable-sort-by(lst, lam(e1,e2): e1 < e2 end, within(~0))
 end
 
 fun sort-by<a>(lst :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
