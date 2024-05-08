@@ -233,16 +233,6 @@ function handleSetEditorMode(state: State, newEditorMode: EditorMode): State {
       };
     }
     case EditorMode.Chatitor: {
-      if (state.editorMode === EditorMode.Text) {
-        const { definitionsEditor } = state;
-        const currentFileContents = definitionsEditor.getValue();
-        if(currentFileContents !== "") {
-          allChunks.unshift(emptyChunk({
-            editor: { getValue: () => currentFileContents }
-          }))
-        }
-      }
-
       return {
         ...state,
         editorMode: newEditorMode,
