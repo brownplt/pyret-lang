@@ -3062,24 +3062,30 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
 
 
-    function PTupleAnn(locs, anns) {
+    function PTupleAnn(locs, anns, optName) {
       this.locs = locs;
       this.anns = anns;
       this.flat = true;
+      this.optName = optName;
       for (var i = 0; i < anns.length; i++) {
         if(!anns[i].flat) { this.flat = false; }
       }
     }
 
-    function makeTupleAnn(locs, anns) {
-      return new PTupleAnn(locs, anns);
+    function makeTupleAnn(locs, anns, optName) {
+      return new PTupleAnn(locs, anns, optName);
+    }
+    PTupleAnn.prototype.nameAsOpt = function() {
+      if (this.optName === undefined) { return thisRuntime.ffi.makeNone(); }
+      return thisRuntime.ffi.makeSome(this.optName);
     }
     PTupleAnn.prototype.check = function(compilerLoc, val) {
       var that = this;
+      var name = this.optName !== undefined ? this.optName : "Tuple";
       if(!isTuple(val)) {
         return thisRuntime.ffi.contractFail(
             makeSrcloc(compilerLoc),
-            thisRuntime.ffi.makeTypeMismatch(val, "Tuple")
+            thisRuntime.ffi.makeTypeMismatch(val, name)
           );
       }
       if(that.anns.length != val.vals.length) {
@@ -3120,14 +3126,16 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       else { return deepCheckFields(0); }
     }
     PTupleAnn.prototype.createTupleLengthMismatch = function(compilerLoc, val, annLength, tupLength) {
-      return thisRuntime.ffi.contractFail(compilerLoc, thisRuntime.ffi.makeTupleLengthMismatch(compilerLoc, val, annLength, tupLength));
+      return thisRuntime.ffi.contractFail(
+        compilerLoc,
+        thisRuntime.ffi.makeTupleLengthMismatch(compilerLoc, val, this.nameAsOpt(), annLength, tupLength));
     };
     PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, fieldIndex, result) {
       var loc = this.locs[fieldIndex];
       var ann = this.anns[fieldIndex];
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
-        thisRuntime.ffi.makeTupleAnnsFail(val, thisRuntime.ffi.makeList([
+        thisRuntime.ffi.makeTupleAnnsFail(val, this.nameAsOpt(), thisRuntime.ffi.makeList([
             thisRuntime.ffi.makeAnnFailure(
               makeSrcloc(loc),
               ann,
@@ -3144,17 +3152,22 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
 
 
-    function PRecordAnn(fields, locs, anns) {
+    function PRecordAnn(fields, locs, anns, optName) {
       this.fields = fields;
       this.locs = locs;
       this.anns = anns;
       this.flat = true;
+      this.optName = optName;
       for (var i = 0; i < fields.length; i++) {
         if(!anns[fields[i]].flat) { this.flat = false; }
       }
     }
-    function makeRecordAnn(fields, locs, anns) {
-      return new PRecordAnn(fields, locs, anns);
+    function makeRecordAnn(fields, locs, anns, optName) {
+      return new PRecordAnn(fields, locs, anns, optName);
+    }
+    PRecordAnn.prototype.nameAsOpt = function() {
+      if (this.optName === undefined) { return thisRuntime.ffi.makeNone(); }
+      return thisRuntime.ffi.makeSome(this.optName);
     }
     PRecordAnn.prototype.createMissingFieldsError = function(compilerLoc, val) {
       var that = this;
@@ -3170,7 +3183,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
-        thisRuntime.ffi.makeRecordFieldsFail(val, thisRuntime.ffi.makeList(missingFields))
+        thisRuntime.ffi.makeRecordFieldsFail(val, this.nameAsOpt(), thisRuntime.ffi.makeList(missingFields))
       );
     };
     PRecordAnn.prototype.createRecordFailureError = function(compilerLoc, val, field, result) {
@@ -3181,7 +3194,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
-        thisRuntime.ffi.makeRecordFieldsFail(val, thisRuntime.ffi.makeList([
+        thisRuntime.ffi.makeRecordFieldsFail(val, this.nameAsOpt(), thisRuntime.ffi.makeList([
           thisRuntime.ffi.makeFieldFailure(
             makeSrcloc(loc),
             field,
@@ -3192,10 +3205,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     };
     PRecordAnn.prototype.check = function(compilerLoc, val) {
       var that = this;
+      var name = this.optName !== undefined ? this.optName : "record";
       if(!isObject(val)) {
         return thisRuntime.ffi.contractFail(
           makeSrcloc(compilerLoc),
-          thisRuntime.ffi.makeTypeMismatch(val, "Object")
+          thisRuntime.ffi.makeTypeMismatch(val, name)
         );
       }
       for(var i = 0; i < that.fields.length; i++) {

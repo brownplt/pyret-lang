@@ -517,17 +517,13 @@
     }
     
     
-    function makeRecordFieldsFail(value, failures) {
+    function makeRecordFieldsFail(value, optName, failures) {
       runtime.checkPyretVal(value);
-      return contract("record-fields-fail")(value, failures);
+      return contract("record-fields-fail")(value, optName, failures);
     }
   
-    function makeTupleAnnsFail(value, failures) {
-      return contract("tuple-anns-fail")(value, failures);
-    }
-
-    function makeTupleAnnsFail(value, failures) {
-      return contract("tuple-anns-fail")(value, failures);
+    function makeTupleAnnsFail(value, optName, failures) {
+      return contract("tuple-anns-fail")(value, optName, failures);
     }
 
     function makeFieldFailure(loc, field, reason) {
@@ -547,11 +543,11 @@
       return contract("missing-field")(loc, field);
     }
 
-    function makeTupleLengthMismatch(loc, val, annLength, tupLength) {
+    function makeTupleLengthMismatch(loc, val, optName, annLength, tupLength) {
       checkSrcloc(loc);
       runtime.checkNumber(annLength);
       runtime.checkNumber(tupLength);
-      return contract("tup-length-mismatch")(loc, val, annLength, tupLength);
+      return contract("tup-length-mismatch")(loc, val, optName, annLength, tupLength);
     }
 
     function makeTypeMismatch(val, name) {

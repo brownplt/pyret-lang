@@ -101,6 +101,7 @@ j-continue = J.j-continue
 j-while = J.j-while
 j-for = J.j-for
 j-raw-code = J.j-raw-code
+j-undefined = J.j-undefined
 is-j-assign = J.is-j-assign
 make-label-sequence = J.make-label-sequence
 
@@ -347,19 +348,19 @@ end
 
 
 
-fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
+fun compile-ann(ann :: A.Ann, opt-name :: Option<String>, visitor) -> DAG.CaseResults%(is-c-exp):
   cases(A.Ann) ann:
     | a-name(_, n) => c-exp(j-id(js-id-of(n)), cl-empty)
     | a-type-var(_, _) => c-exp(rt-field("Any"), cl-empty)
     | a-arrow(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
     | a-arrow-argnames(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
     | a-method(_, _, _) => c-exp(rt-field("Method"), cl-empty)
-    | a-app(l, base, _) => compile-ann(base, visitor)
+    | a-app(l, base, _) => compile-ann(base, opt-name, visitor)
     | a-record(l, fields) =>
       comp-fields =
         for fold(acc from {names: cl-empty, locs: cl-empty, fields: cl-empty, others: cl-empty},
             field from fields):
-          compiled = compile-ann(field.ann, visitor)
+          compiled = compile-ann(field.ann, none, visitor)
           {
             names: cl-snoc(acc.names, j-str(field.name)),
             locs: cl-snoc(acc.locs, visitor.get-loc(field.l)),
@@ -371,27 +372,29 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         rt-method("makeRecordAnn", [clist:
             j-list(false, comp-fields.names),
             j-list(false, comp-fields.locs),
-            j-obj(comp-fields.fields)
+            j-obj(comp-fields.fields),
+            if is-some(opt-name): j-str(opt-name.value) else: j-undefined end
           ]),
         comp-fields.others
         )
     | a-tuple(l, tuple-fields) =>
       comp-fields = for fold(acc from {locs: cl-empty, fields: cl-empty, others: cl-empty},
-         field from tuple-fields):
-       compiled = compile-ann(field, visitor)
-       {
+          field from tuple-fields):
+        compiled = compile-ann(field, opt-name, visitor)
+        {
           locs: cl-snoc(acc.locs, visitor.get-loc(ann-loc(field))),
           fields: cl-snoc(acc.fields, compiled.exp),
           others: cl-append(acc.others, compiled.other-stmts)
-       }
-       end
-     c-exp(
-       rt-method("makeTupleAnn", [clist:
-           j-list(false, comp-fields.locs),
-           j-list(false, comp-fields.fields)
-        ]),
-       comp-fields.others
-      )
+        }
+      end
+      c-exp(
+        rt-method("makeTupleAnn", [clist:
+            j-list(false, comp-fields.locs),
+            j-list(false, comp-fields.fields),
+            if is-some(opt-name): j-str(opt-name.value) else: j-undefined end
+          ]),
+        comp-fields.others
+        )
     | a-pred(l, base, exp) =>
       name = cases(A.Expr) exp:
         | s-id(_, id) => id.toname()
@@ -401,7 +404,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         | s-id(l2, id) => N.a-id(l2, id)
         | s-id-letrec(l2, id, ok) => N.a-id-letrec(l2, id, ok)
       end
-      compiled-base = compile-ann(base, visitor)
+      compiled-base = compile-ann(base, opt-name, visitor)
       compiled-exp = expr-to-compile.visit(visitor)
       is-flat = is-flat-enough(FL.ann-flatness(base, visitor.flatness-env, visitor.type-flatness-env, visitor.module-bindings, visitor.env))
         and is-function-flat(visitor.flatness-env, exp.id.key())
@@ -815,7 +818,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
       cur-target := new-label
       cl-snoc(acc, new-case)
     else if is-flat-enough(FL.ann-flatness(b.ann, visitor.flatness-env, visitor.type-flatness-env, visitor.module-bindings, visitor.env)):
-      compiled-ann = compile-ann(b.ann, visitor)
+      compiled-ann = compile-ann(b.ann, none, visitor)
       new-label = visitor.make-label()
       new-case = j-case(cur-target,
         j-block(cl-append(compiled-ann.other-stmts,
@@ -829,7 +832,7 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
       cl-snoc(acc, new-case)
     else:
       ann-result = fresh-id(compiler-name("ann-check"))
-      compiled-ann = compile-ann(b.ann, visitor)
+      compiled-ann = compile-ann(b.ann, none, visitor)
       new-label = visitor.make-label()
       new-case = j-case(cur-target,
         j-block(cl-append(compiled-ann.other-stmts,
@@ -889,7 +892,7 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
     step = visitor.cur-step
     after-ann = visitor.make-label()
     after-ann-case = j-case(after-ann, j-block(compiled-body.block.stmts))
-    compiled-ann = compile-ann(b.ann, visitor)
+    compiled-ann = compile-ann(b.ann, none, visitor)
     ann-result = fresh-id(compiler-name("ann-check"))
     c-block(
       j-block(
@@ -1480,7 +1483,7 @@ compiler-visitor = {
     {alias-fields; alias-stmts} = for fold(acc from {cl-empty; cl-empty}, tp from tp-specs):
       cases(A.NameSpec) tp.name-spec:
         | s-local-ref(_, name, as-name) =>
-          compiled = compile-ann(A.a-name(l, name), self)
+          compiled = compile-ann(A.a-name(l, name), none, self) # TODO(Ben): should be none, or name, or as-name?
           {
             cl-snoc(acc.{0}, j-field(as-name.toname(), compiled.exp));
             cl-append(acc.{1}, compiled.other-stmts)
@@ -1556,7 +1559,7 @@ compiler-visitor = {
               j-field("defined-types",
                 j-obj(
                   for CL.map_list(dt from dts):
-                    compiled-ann = compile-ann(dt.typ, self).exp
+                    compiled-ann = compile-ann(dt.typ, none, self).exp
                     j-field(dt.name, compiled-ann)
                   end)),
               j-field("provide-plus-types",
@@ -1575,7 +1578,7 @@ compiler-visitor = {
     cases(N.ATypeBind) bind:
       | a-type-bind(l2, name, ann) =>
         visited-body = body.visit(self)
-        compiled-ann = compile-ann(ann, self)
+        compiled-ann = compile-ann(ann, some(name.toname()), self)
         c-block(
           j-block(
             compiled-ann.other-stmts ^
@@ -1833,7 +1836,7 @@ compiler-visitor = {
         not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
       end
       compiled-anns = for fold(acc from {anns: cl-empty, others: cl-empty}, m from nonblank-anns):
-        compiled = compile-ann(m.bind.ann, self)
+        compiled = compile-ann(m.bind.ann, none, self)
         {
           anns: cl-snoc(acc.anns, compiled.exp),
           others: cl-append(acc.others, compiled.other-stmts)
