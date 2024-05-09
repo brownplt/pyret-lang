@@ -63,6 +63,20 @@ check "numeric helpers":
 
 end
 
+check "polymorphic modes":
+  has-mode([list: "a", "b", "c", "b", "c"]) is true
+  has-mode([list: true, true, false]) is true
+  has-mode([list: {1;2}, {1;3}, {1;2}]) is true
+  has-mode([list: "a", true, true]) is true
+  has-mode([list: "a", "b", "c"]) is false
+
+  modes([list: "a", "b", "c", "b", "c"]) is [list: "b", "c"]
+  modes([list: true, true, false]) is [list: true]
+  modes([list: {1;2}, {1;3}, {1;2}]) is [list: {1;2}]
+  modes([list: "a", true, true]) is [list: true]
+  modes([list: "a", "b", "c"]) is [list: ]
+end
+
 check "linear regression":
 	linear-regression([list: 0], [list: ]) raises "lists must have equal lengths"
 	linear-regression([list: 0], [list: 1]) raises "lists must have at least 2 elements each"
