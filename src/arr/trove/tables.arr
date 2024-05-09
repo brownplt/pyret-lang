@@ -62,18 +62,20 @@ running-min :: Reducer<Number, Number, Number> = running-reduce(num-min)
 
 running-sum :: Reducer<Number, Number, Number> = running-reduce(_ + _)
 
+type KeyValPair<V> = { String; V }
+
 fun is-kv-pairs(arr :: RawArray<Any>) -> Boolean:
-  raw-array-and-mapi(lam<C>(kv :: {String; C}): true end, arr, 0)
+  raw-array-and-mapi(lam<C>(kv :: KeyValPair<C>): true end, arr, 0)
 end
 
 raw-row = {
   make: lam(arr :: RawArray<Any>%(is-kv-pairs)): builtins.raw-make-row(arr) end,
   make0: lam(): builtins.raw-make-row([raw-array:]) end,
-  make1: lam<C1>(t :: {String; C1}): builtins.raw-make-row([raw-array: t]) end,
-  make2: lam<C1, C2>(t1 :: {String; C1}, t2 :: {String; C2}): builtins.raw-make-row([raw-array: t1, t2]) end,
-  make3: lam<C1, C2, C3>(t1 :: {String; C1}, t2 :: {String; C2}, t3 :: {String; C3}): builtins.raw-make-row([raw-array: t1, t2, t3]) end,
-  make4: lam<C1, C2, C3, C4>(t1 :: {String; C1}, t2 :: {String; C2}, t3 :: {String; C3}, t4 :: {String; C4}): builtins.raw-make-row([raw-array: t1, t2, t3, t4]) end,
-  make5: lam<C1, C2, C3, C4, C5>(t1 :: {String; C1}, t2 :: {String; C2}, t3 :: {String; C3}, t4 :: {String; C4}, t5 :: {String; C5}): builtins.raw-make-row([raw-array: t1, t2, t3, t4, t5]) end,
+  make1: lam<C1>(t :: KeyValPair<C1>): builtins.raw-make-row([raw-array: t]) end,
+  make2: lam<C1, C2>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>): builtins.raw-make-row([raw-array: t1, t2]) end,
+  make3: lam<C1, C2, C3>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>, t3 :: KeyValPair<C3>): builtins.raw-make-row([raw-array: t1, t2, t3]) end,
+  make4: lam<C1, C2, C3, C4>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>, t3 :: KeyValPair<C3>, t4 :: KeyValPair<C4>): builtins.raw-make-row([raw-array: t1, t2, t3, t4]) end,
+  make5: lam<C1, C2, C3, C4, C5>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>, t3 :: KeyValPair<C3>, t4 :: KeyValPair<C4>, t5 :: KeyValPair<C5>): builtins.raw-make-row([raw-array: t1, t2, t3, t4, t5]) end,
 }
 
 fun empty-table(col-names :: List<String>) -> Table:
