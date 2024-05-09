@@ -261,6 +261,20 @@ check "sort as a function":
 end
 
 check "stable sort":
+  #|
+     Builds a collection of triples {0;0;_}, {0;1;_}, ... {0;n;_}, {1;0;_}, {1;1;_}...
+     The first two components are a Cartesian product of [0,250)x[0;4).
+     The third component is simply a sequential number, [0, TOTAL).
+
+     This list is *actually* constructed in the order
+          {249;0;_}, {249;1;_}, ... {248;0,_}, {248;1;_}, ... {0;0;_}...,
+     such that it is in *decreasing* order on the first component of each tuple, and
+     *increasing* order on the other two components.
+
+     The idea is to sort the list by only comparing the first components, both stably and unstably.
+     The *third* component of each tuple helps to tell apart the original items, despite the comparison
+     being agnostic to them.
+  |#
   fun build-pairs(m, n):
     raw-array-to-list(raw-array-build(lam(i):
           raw-array-to-list(raw-array-build(lam(j): {i; j; (i * (m + 1)) + j} end, n))
@@ -283,9 +297,9 @@ check "stable sort":
   
   stable-sorted = pairs.stable-sort-by(pair-le, pair-eq)
   unstable-sorted = pairs.sort-by(pair-le, pair-eq)
-  for each(i from range(0, GROUPS)) block:
+  unstable-sorted is-not stable-sorted
+  for each(i from range(0, GROUPS)):
     stable-sorted.filter({(p): p.{0} == i}) is pairs.filter({(p): p.{0} == i})
-    unstable-sorted is-not stable-sorted
   end
 end
 
