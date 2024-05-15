@@ -112,7 +112,7 @@ export type Exports = {
     }
     function jsIdOf(id : A.Name) : A.Name {
       const s = nameToKey(id);
-      if (jsIds.has(s)) { return jsIds.get(s); }
+      if (jsIds.has(s)) { return jsIds.get(s)!; }
       else {
         const safeId = freshId(id);
         jsIds.set(s, safeId);
@@ -1616,9 +1616,7 @@ export type Exports = {
       const globalURIs = new Set<[A.Name, string]>();
       visit<A.Expr | A.Program>({
         "s-id-modref": (_, g : (Variant<A.Expr, "s-id-modref">)) => {
-          if(g.dict.id.$name === 's-module-global') {
-            globalURIs.add([ g.dict.id, g.dict.uri ]);
-          }
+          globalURIs.add([ g.dict.id, g.dict.uri ]);
         }
       }, prog);
       return globalURIs;
@@ -1707,6 +1705,9 @@ export type Exports = {
             ExpressionStatement(rtMethod("addModule", [Literal(uri), Identifier(jsIdOf(name))]))
           ];
         }
+        else {
+          throw new InternalCompilerError("Path for uriToImport did not look like builtin://, file://, or jsfile://");
+        }
       }
 
       const globalNames = getGlobals(prog);
@@ -1769,7 +1770,7 @@ export type Exports = {
         return !(uriToLocalJsName.has(envUriByValueNameValue(env, g)));
       });
 
-      const implicitImports = [];
+      const implicitImports : J.Statement[] = [];
       nonImportedGlobalNames.forEach(g => {
         const uri = envUriByValueNameValue(env, g);
         if (!uriToLocalJsName.has(uri)) {
