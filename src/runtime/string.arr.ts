@@ -204,15 +204,17 @@ module.exports = {
 
         const LISTS = require("./" + "lists.arr.js");
         const rawArrayPoints = LISTS["to-raw-array"](points);
-        const stringArray = rawArrayPoints.map((pyNum) => {
+        
+        const stringArray : string[] = [];
+        for(let i = 0; i < rawArrayPoints.length; i += 1) {
+            const pyNum = rawArrayPoints[i];
             if(!(NUMBER["isInteger"](pyNum) && NUMBER["isNonNegative"](pyNum))) {
                 throw new Error(`string-from-code-point expects a Natural Number, got ${pyNum}`)
             }
             const fixedNum = NUMBER["toFixnum"](NUMBER["floor"](pyNum));
             check_astral(fixedNum);
-            return String.fromCodePoint(fixedNum);
-        });
-
+            stringArray.push(String.fromCodePoint(fixedNum));
+        }
         return stringArray.join("");
     },
     'string-starts-with': function(s: string, fragment: string) {
