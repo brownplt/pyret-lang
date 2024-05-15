@@ -7,7 +7,10 @@ var require = require("requirejs");
 require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, stackLib, program) {
 
 */
+
 // TODO: Change to myrequire
+self.GLOBAL_DEPS_READY.then(() => {
+
 requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "program"], function(Q, loader, runtimeLib, loadHooksLib, stackLib, program) {
 
   const genericLog = function(tag, ...args) {
@@ -234,3 +237,7 @@ requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-b
     return runtime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
   }, onComplete);
 });
+
+}).catch((error) => {
+  console.error("BrowserFS configuration failed", error);
+})

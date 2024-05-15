@@ -57,6 +57,8 @@ function polyfillCreateReadStream(fs) {
 BrowserFS = require("browserfs");
 BrowserFS.install({});
 
+const {promise, resolve, reject} = Promise.withResolvers();
+
 BrowserFS.configure({
     fs: "WorkerFS",
     // Web Workers do not have access to LocalStorage.
@@ -67,6 +69,8 @@ BrowserFS.configure({
     }
   }, function(e) {
     // NOTE(alex): configure() is async
+
+    if(e) { reject(e); }
 
     // Source: https://jvilk.com/browserfs/1.3.0/interfaces/browserfs.html#bfsrequire
     self.fs = BrowserFS.BFSRequire("fs");
@@ -80,7 +84,10 @@ BrowserFS.configure({
     Object.assign(self.fsPlaceholder, self.fs.__proto__);
     polyfillCreateReadStream(requiredfs);
     polyfillCreateReadStream(self.fsPlaceholder);
+    resolve();
   });
+
+self.GLOBAL_DEPS_READY = promise;
 
 define("fs", [], function () {
   return fsPlaceholder;
