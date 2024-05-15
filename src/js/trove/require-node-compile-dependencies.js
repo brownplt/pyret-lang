@@ -84,7 +84,7 @@ BrowserFS.configure({
     Object.assign(self.fsPlaceholder, self.fs.__proto__);
     polyfillCreateReadStream(requiredfs);
     polyfillCreateReadStream(self.fsPlaceholder);
-    resolve();
+    resolve('GLOBAL_DEPS_READY');
   });
 
 self.GLOBAL_DEPS_READY = promise;

@@ -169,7 +169,7 @@ WORKER_BUILD_DIR := build/worker
 $(WORKER_BUILD_DIR):
 	mkdir -p $(WORKER_BUILD_DIR)
 
-build/worker/pyret.js: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js $(WORKER_BUILD_DIR) $(PYRET_JARR_DEPS)
+build/worker/pyret.js: build/worker/pyret-grammar.js src/arr/compiler/pyret-parser.js build/worker/bundled-node-compile-deps.js $(shell pwd)/src/webworker/worker-standalone.js $(WORKER_BUILD_DIR) $(PYRET_JARR_DEPS)
 	npx pyret --checks none --standalone-file "$(shell pwd)/src/webworker/worker-standalone.js" --deps-file "$(shell pwd)/build/worker/bundled-node-compile-deps.js" -c src/arr/compiler/webworker.arr -o build/worker/pyret.js
 
 lsp/lsp.js: build/lsp/pyret-grammar.js src/arr/compiler/pyret-parser.js $(PYRET_JARR_DEPS)
