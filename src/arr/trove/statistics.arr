@@ -13,6 +13,7 @@ provide {
     variance-sample: variance-sample,
     stdev-sample: stdev-sample,
     linear-regression: linear-regression,
+    multiple-regression: multiple-regression,
     r-squared: r-squared,
     t-test-paired: t-test-paired,
     t-test-pooled: t-test-pooled,
@@ -26,6 +27,7 @@ include lists
 import error as E
 import math as math
 import string-dict as SD
+import multiple-regression as MR
 
 fun mean(l :: List<Number>) -> Number:
   doc: "Find the average of a list of numbers"
@@ -206,6 +208,11 @@ fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number
 
     predictor
   end
+end
+
+fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (List<Number> -> Number):
+  doc: "multiple-regression"
+  MR.multiple-regression(x_s_s, y_s)
 end
 
 fun r-squared(x :: List<Number>, y :: List<Number>, f :: (Number -> Number)) -> Number:
