@@ -163,7 +163,9 @@
         }
         let result = B[0][0];
         for (let i = 0; i < x_s_len; i++) {
-          result += runtime.num_to_fixnum(js_x_s[i]) * B[i+1][0]
+          let x = js_x_s[i];
+          runtime.checkNumber(x);
+          result += runtime.num_to_fixnum(x) * B[i+1][0]
         }
         return runtime.makeNumber(result);
       }
