@@ -126,7 +126,7 @@
       let js_y_s = runtime.ffi.toArray(y_s);
       let num_mappings = js_x_s_s.length;
       if (js_y_s.length !== num_mappings) {
-        throw runtime.ffi.throwMessageException("multiple-regression: number of mappings incorrect");
+        throw runtime.ffi.throwMessageException("multiple-regression: number of inputs doesn't match number of outputs");
       }
       let X = new Array(num_mappings);
       let Y = new Array(num_mappings);
@@ -138,7 +138,7 @@
         if (x_s_len === false) {
           x_s_len = x_s_n;
         } else if (x_s_n !== x_s_len) {
-          throw runtime.ffi.throwMessageException("multiple-regression: bad mapping");
+          throw runtime.ffi.throwMessageException("multiple-regression: lengths of input tuples are different");
         }
         X[r] = new Array(x_s_len + 1)
         let Xr = X[r];
