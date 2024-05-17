@@ -210,6 +210,8 @@ fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number
   end
 end
 
+# please see: https://online.stat.psu.edu/stat462/
+
 fun multiple-regression(x_s_s :: List<Any>, y_s :: List<Number>) -> (Any -> Number):
   doc: "multiple-regression"
   MR.multiple-regression(x_s_s, y_s)
@@ -245,6 +247,10 @@ fun t-test-paired(l1 :: List, l2 :: List) -> Number:
     diffs-mean / (s-hat / num-sqrt(n1))
   end
 end
+
+# please see:
+#   https://en.wikipedia.org/wiki/Student's_t-test
+#   https://www.investopedia.com/terms/t/t-test.asp
 
 fun t-test-pooled(l1 :: List, l2 :: List) -> Number:
   doc: "t-test-pooled"

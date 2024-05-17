@@ -114,11 +114,20 @@ check "linear regression":
 end
 
 check "multiple regression":
+  # multiple-regression function for single independent variable
   x-s-s = [list: {4}, {4.5}, {5}, {5.5}, {6}, {6.5}, {7}]
   y-s   = [list: 33, 42, 45, 51, 53, 61, 62]
-  pf = multiple-regression(x-s-s, y-s)
-  pf({8}) is%(within-abs(0.001)) 73.3214
+  pf1   = multiple-regression(x-s-s, y-s)
+  pf1({8}) is-roughly 73.3214
+  #
+  # check it matches linear-regression function on the same single variable
+  x-s = [list: 4, 4.5, 5, 5.5, 6, 6.5, 7]
+  pf2 = linear-regression(x-s, y-s)
+  pf2(8) is-roughly 73.3214
+  #
+  # multiple-regression with two independent variables
+  x-s-s-i = [list: {4; 3}, {4.5; 2}, {5; 1.2}, {5.5; 4.5}, {6; 3.3}, {6.5; 10}, {7; 0}]
+  y-s-i   = [list: 33, 42, 45, 51, 53, 61, 62]
+  pf-i    = multiple-regression(x-s-s-i, y-s-i)
+  pf-i({8; 9}) is-roughly 74.52888
 end
-
-
-
