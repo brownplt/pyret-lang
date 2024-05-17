@@ -132,8 +132,8 @@
       let Y = new Array(num_mappings);
       let x_s_len = false;
       js_x_s_s.forEach(function(x_s, i) {
-        runtime.checkList(x_s);
-        let js_x_s = runtime.ffi.toArray(x_s);
+        runtime.checkTuple(x_s);
+        let js_x_s = x_s.vals;
         let x_s_n = js_x_s.length;
         if (x_s_len === false) {
           x_s_len = x_s_n;
@@ -156,8 +156,8 @@
       let XT = matrixTranspose(X);
       let B = matrixMultiply2(matrixInverse(matrixMultiply2(XT, X)), matrixMultiply2(XT, Y));
       let Bfunc = function(x_s) {
-        runtime.checkList(x_s);
-        let js_x_s = runtime.ffi.toArray(x_s);
+        runtime.checkTuple(x_s);
+        let js_x_s = x_s.vals;
         if (js_x_s.length !== x_s_len) {
           throw runtime.ffi.throwMessageException("predictor: wrong number of arguments");
         }

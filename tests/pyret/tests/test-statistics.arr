@@ -114,10 +114,10 @@ check "linear regression":
 end
 
 check "multiple regression":
-  x-s-s = [list: [list: 4], [list: 4.5], [list: 5], [list: 5.5], [list: 6], [list: 6.5], [list: 7]]
+  x-s-s = [list: {4}, {4.5}, {5}, {5.5}, {6}, {6.5}, {7}]
   y-s   = [list: 33, 42, 45, 51, 53, 61, 62]
   pf = multiple-regression(x-s-s, y-s)
-  pf([list: 8]) is%(within-abs(0.001)) 73.3214
+  pf({8}) is%(within-abs(0.001)) 73.3214
 end
 
 
