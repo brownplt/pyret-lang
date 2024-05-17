@@ -210,7 +210,7 @@ fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number
   end
 end
 
-fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (List<Number> -> Number):
+fun multiple-regression(x_s_s :: List<Any>, y_s :: List<Number>) -> (Any -> Number):
   doc: "multiple-regression"
   MR.multiple-regression(x_s_s, y_s)
 end
@@ -257,7 +257,10 @@ fun t-test-pooled(l1 :: List, l2 :: List) -> Number:
     m2 = mean(l2)
     v1 = variance-sample(l1)
     v2 = variance-sample(l2)
-    (m1 - m2) / (((((n1 - 1) * num-expt(v1, 2)) + ((n2 - 1) * num-expt(v2, 2))) / ((n1 + n2) - 2)) * num-sqrt((1 / n1) + (1 / n2)))
+    v1-squared = num-sqr(v1)
+    v2-squared = num-sqr(v2)
+    (m1 - m2) / (((((n1 - 1) * v1-squared) + ((n2 - 1) * v2-squared)) / ((n1 + n2) - 2)) *
+                 num-sqrt((1 / n1) + (1 / n2)))
   end
 end
 

@@ -9,22 +9,22 @@
   theModule: function(runtime, namespace, uri) {
 
     function makeColumnMatrix(y_s) {
-      let n = y_s.length;
-      let M = new Array(n);
-      for (let i = 0; i < n; i++) {
-        M[i][0] = y_s[i];
+      let size = y_s.length;
+      let M = new Array(size);
+      for (let r = 0; r < size; r++) {
+        M[r][0] = y_s[r];
       }
       return M;
     }
 
     function matrixTranspose(m) {
-      let numrows = m.length;
-      let numcols = m[0].length;
-      let mT = new Array(numcols);
-      for (let i = 0; i < numcols; i++) {
-        mT[i] = new Array(m);
-        for (let j = 0; j < numrows; j++) {
-          mT[i][j] = m[j][i];
+      let numRows = m.length;
+      let numCols = m[0].length;
+      let mT = new Array(numCols);
+      for (let r = 0; r < numCols; r++) {
+        mT[r] = new Array(numRows);
+        for (let c = 0; c < numRows; c++) {
+          mT[r][c] = m[c][r];
         }
       }
       return mT;
@@ -45,13 +45,13 @@
         return (m[0][0] * m[1][1] - m[1][0] * m[0][1]);
       }
       let det = 0;
-      for (let i = 0; i < size; i++) {
-        det += m[0][i] * matrixCofactor(m, 0, i);
+      for (let c = 0; c < size; c++) {
+        det += m[0][c] * matrixCofactor(m, 0, c);
       }
       return det;
     }
 
-    function matrixCofactor(m, i, j) {
+    function matrixCofactor(m, r, c) {
       let size = m.length;
       if (size === 0) {
         return 0;
@@ -60,17 +60,17 @@
         return 0;
       }
       let mm = new Array(size - 1);
-      for (let ii = 0; ii < size; ii++) {
-        if (ii === i) { continue; }
-        let iii = (ii > i ? ii - 1 : ii)
-        mm[iii] = new Array(size - 1);
-        for (let jj = 0; jj < size; jj++) {
-          if (jj === j) { continue; }
-          let jjj = (jj > j ? jj - 1 : jj)
-          mm[iii][jjj] = m[ii][jj];
+      for (let ri = 0; ri < size; ri++) {
+        if (ri === r) { continue; }
+        let rii = (ri > r ? ri - 1 : ri)
+        mm[rii] = new Array(size - 1);
+        for (let ci = 0; ci < size; ci++) {
+          if (ci === c) { continue; }
+          let cii = (ci > c ? ci - 1 : ci)
+          mm[rii][cii] = m[ri][ci];
         }
       }
-      let sign = (i + j) % 2;
+      let sign = (r + c) % 2;
       sign = (sign === 0) ? 1 : -1;
       return sign * matrixDeterminant(mm)
     }
@@ -78,10 +78,10 @@
     function matrixAdjoint(m) {
       let size = m.length;
       let mc = new Array(size);
-      for (let i = 0; i < size; i++) {
-        mc[i] = new Array(size);
-        for (let j = 0; j < size; j++) {
-          mc[i][j] = matrixCofactor(m, i, j);
+      for (let r = 0; r < size; r++) {
+        mc[r] = new Array(size);
+        for (let c = 0; c < size; c++) {
+          mc[r][c] = matrixCofactor(m, r, c);
         }
       }
       return matrixTranspose(mc)
@@ -90,29 +90,29 @@
     function matrixInverse(m) {
       let det = matrixDeterminant(m);
       let mI = matrixAdjoint(m);
-      let k = m.length;
-      for (let i = 0; i < k; i++) {
-        for (let j = 0; j < k; j++) {
-          let x = mI[i][j]
-          mI[i][j] = x/det
+      let size = m.length;
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          let x = mI[r][c]
+          mI[r][c] = x/det
         }
       }
       return mI;
     }
 
     function matrixMultiply2(m1, m2) {
-      let m1r = m1.length;
-      let m1c = m1[0].length;
-      let m2c = m2[0].length;
-      let mP = new Array(m1r);
-      for (let i = 0; i < m1r; i++) {
-        mP[i] = new Array(m2c);
-        for (let j = 0; j < m2c; j++) {
+      let m1numRows = m1.length;
+      let m1numCols = m1[0].length; // this will be === m2numRows
+      let m2numCols = m2[0].length;
+      let mP = new Array(m1numRows);
+      for (let r = 0; r < m1numRows; r++) {
+        mP[r] = new Array(m2numCols);
+        for (let c = 0; c < m2numCols; c++) {
           let x = 0;
-          for (let k = 0; k < m1c; k++) {
-            x += m1[i][k] * m2[k][j];
+          for (let k = 0; k < m1numCols; k++) {
+            x += m1[r][k] * m2[k][c];
           }
-          mP[i][j] = x;
+          mP[r][c] = x;
         }
       }
       return mP;
@@ -131,7 +131,7 @@
       let X = new Array(num_mappings);
       let Y = new Array(num_mappings);
       let x_s_len = false;
-      js_x_s_s.forEach(function(x_s, i) {
+      js_x_s_s.forEach(function(x_s, r) {
         runtime.checkTuple(x_s);
         let js_x_s = x_s.vals;
         let x_s_n = js_x_s.length;
@@ -140,17 +140,17 @@
         } else if (x_s_n !== x_s_len) {
           throw runtime.ffi.throwMessageException("multiple-regression: bad mapping");
         }
-        X[i] = new Array(x_s_len + 1)
-        let Xi = X[i];
-        Xi[0] = 1;
-        js_x_s.forEach(function(x, j) {
+        X[r] = new Array(x_s_len + 1)
+        let Xr = X[r];
+        Xr[0] = 1;
+        js_x_s.forEach(function(x, c) {
           runtime.checkNumber(x);
-          Xi[j+1] = runtime.num_to_fixnum(x);
+          Xr[c+1] = runtime.num_to_fixnum(x);
         });
       });
-      js_y_s.forEach(function(y, i) {
+      js_y_s.forEach(function(y, r) {
         runtime.checkNumber(y);
-        Y[i] = [runtime.num_to_fixnum(y)];
+        Y[r] = [runtime.num_to_fixnum(y)];
       });
 
       let XT = matrixTranspose(X);
