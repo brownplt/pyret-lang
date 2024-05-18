@@ -4896,8 +4896,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.ffi.makeSome(thisRuntime.makeNumberBig(idx));
     }
     var string_getIndex = function(s, find) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-index-of"], 2, $a, false); }
-      thisRuntime.checkArgsInternal2("Strings", "string-index-of",
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-get-index"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-get-index",
         s, thisRuntime.String, find, thisRuntime.String);
       var idx = s.indexOf(find);
       if (jsnums.lessThan(idx, 0))
