@@ -72,7 +72,7 @@
       }
       let sign = (r + c) % 2;
       sign = (sign === 0) ? 1 : -1;
-      return sign * matrixDeterminant(mm)
+      return sign * matrixDeterminant(mm);
     }
 
     function matrixAdjoint(m) {
@@ -84,7 +84,7 @@
           mc[r][c] = matrixCofactor(m, r, c);
         }
       }
-      return matrixTranspose(mc)
+      return matrixTranspose(mc);
     }
 
     function matrixInverse(m) {
@@ -93,8 +93,8 @@
       let size = m.length;
       for (let r = 0; r < size; r++) {
         for (let c = 0; c < size; c++) {
-          let x = mI[r][c]
-          mI[r][c] = x/det
+          let x = mI[r][c];
+          mI[r][c] = x/det;
         }
       }
       return mI;
@@ -126,7 +126,10 @@
       let js_y_s = runtime.ffi.toArray(y_s);
       let num_mappings = js_x_s_s.length;
       if (js_y_s.length !== num_mappings) {
-        throw runtime.ffi.throwMessageException("multiple-regression: number of inputs doesn't match number of outputs");
+        throw runtime.ffi.throwMessageException("multiple-regression: lists must have equal lengths");
+        if (num_mappings < 2) {
+          throw runtime.ffi.throwMessageException("multiple-regression: lists must have at least 2 elements each");
+        }
       }
       let X = new Array(num_mappings);
       let Y = new Array(num_mappings);
@@ -140,7 +143,7 @@
         } else if (x_s_n !== x_s_len) {
           throw runtime.ffi.throwMessageException("multiple-regression: lengths of input tuples are different");
         }
-        X[r] = new Array(x_s_len + 1)
+        X[r] = new Array(x_s_len + 1);
         let Xr = X[r];
         Xr[0] = 1;
         js_x_s.forEach(function(x, c) {

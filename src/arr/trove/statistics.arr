@@ -184,37 +184,27 @@ fun stdev-sample(l :: List) -> Number:
   num-sqrt(variance-sample(l))
 end
 
-fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number):
-  doc: "returns a linear predictor function calculated with ordinary least squares regression"
-  if x.length() <> y.length():
-    raise(E.message-exception("linear-regression: input lists must have equal lengths"))
-  else if x.length() < 2:
-    raise(E.message-exception("linear-regression: input lists must have at least 2 elements each"))
-  else:
-    shadow y = map(num-to-roughnum, y)
-    shadow x = map(num-to-roughnum, x)
-    xpt-xy = math.sum(map2(lam(xi, yi): xi * yi end, x, y))
-    xpt-x-xpt-y = (math.sum(x) * math.sum(y)) / x.length()
-    covariance = xpt-xy - xpt-x-xpt-y
-    v1 = math.sum(map(lam(n): n * n end, x))
-    v2 = (math.sum(x) * math.sum(x)) / x.length()
-    variance1 = v1 - v2
-    beta = covariance / variance1
-    alpha = mean(y) - (beta * mean(x))
-
-    fun predictor(in :: Number) -> Number:
-      (beta * in) + alpha
-    end
-
-    predictor
-  end
-end
-
 # please see: https://online.stat.psu.edu/stat462/
 
 fun multiple-regression(x_s_s :: List<Any>, y_s :: List<Number>) -> (Any -> Number):
   doc: "multiple-regression"
   MR.multiple-regression(x_s_s, y_s)
+end
+
+fun linear-regression(x-s :: List<Number>, y-s :: List<Number>) -> (Number -> Number):
+  doc: "returns a linear predictor function for a single independent variable"
+  x-s-n = x-s.length()
+  if x-s-n <> y-s.length():
+    raise(E.message-exception("linear-regression: input lists must have equal lengths"))
+  else if x-s-n < 2:
+    raise(E.message-exception("linear-regression: input lists must have at least 2 elements each"))
+  else:
+    predictor1 = MR.multiple-regression(x-s.map(lam(x1 :: Number): {x1} end), y-s)
+    fun predictor2(x2 :: Number) -> Number:
+      predictor1({x2})
+    end
+    predictor2
+  end
 end
 
 fun r-squared(x :: List<Number>, y :: List<Number>, f :: (Number -> Number)) -> Number:
