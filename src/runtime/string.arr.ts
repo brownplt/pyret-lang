@@ -201,20 +201,18 @@ module.exports = {
 
     // points is a PyretList<PyretNumber>
     'string-from-code-points': function(points): string {
-
+        debugger;
         const LISTS = require("./" + "lists.arr.js");
         const rawArrayPoints = LISTS["to-raw-array"](points);
-        
-        const stringArray : string[] = [];
-        for(let i = 0; i < rawArrayPoints.length; i += 1) {
-            const pyNum = rawArrayPoints[i];
+        const stringArray = rawArrayPoints.map((pyNum) => {
             if(!(NUMBER["isInteger"](pyNum) && NUMBER["isNonNegative"](pyNum))) {
                 throw new Error(`string-from-code-point expects a Natural Number, got ${pyNum}`)
             }
             const fixedNum = NUMBER["toFixnum"](NUMBER["floor"](pyNum));
             check_astral(fixedNum);
-            stringArray.push(String.fromCodePoint(fixedNum));
-        }
+            return String.fromCodePoint(fixedNum);
+        });
+
         return stringArray.join("");
     },
     'string-starts-with': function(s: string, fragment: string) {

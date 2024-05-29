@@ -9,10 +9,10 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
 */
 
 // TODO: Change to myrequire
-self.GLOBAL_DEPS_READY.then(() => {
+self.GLOBAL_DEPS_READY.then((ready) => {
+  console.log(ready);
 
 requirejs(["q", "pyret-base/js/secure-loader", "pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "program"], function(Q, loader, runtimeLib, loadHooksLib, stackLib, program) {
-
   const genericLog = function(tag, ...args) {
     let outputLine = "";
     let logArgs = args[0];

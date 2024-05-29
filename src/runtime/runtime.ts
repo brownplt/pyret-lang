@@ -1,9 +1,13 @@
+
+import { stopifyArrayPrototype } from "./hof-array-polyfill";
 import { NumericErrorCallbacks } from "./equality";
 import { CheckResult, CheckExprEvalResult, CheckTestResult } from "./common-runtime-types";
 import { $PMethodBrand, applyBrand } from "./primitives";
 
+
 type Variant<T, V> = T & { $name: V };
 
+console.log(stopifyArrayPrototype);
 
 // TODO(alex): `import type` syntax is causing a parsing error
 // import type { NumericErrorCallbacks } from "equality";

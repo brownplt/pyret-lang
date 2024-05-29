@@ -34,7 +34,7 @@ const nodeModules = {
   'csv-parse/lib/sync': csv,
   fs: browserFS.fs,
   immutable,
-  seedrandom
+  seedrandom,
 };
 
 
@@ -88,7 +88,36 @@ function wrapContent(content: string): string {
 let asyncCache : {[key:string]: any} = {};
 let currentRunner: any = null;
 currentRunner = stopify.stopifyLocally("", { newMethod: 'direct' });
-currentRunner.run(() => { console.log("initialized stopify runner")});
+
+let originalPauseK = currentRunner.pauseK;
+/**
+ * Stopify has a few state management issues related to eventMode. The relevant enum is
+ * 
+ * enum EventMode { RUNNING, PAUSED, WAITING }
+ * 
+ * First, in its initial state, the runner is set to `RUNNING` when it should be set to `WAITING`
+ * 
+ * Second, when pausing with pauseK, it doesn't set the mode to `PAUSED` (there is a comment that this has to do with the debugger)
+ * 
+ * The pauseK wrapper handles pausing/unpausing, and doing the run on the empty program sets things to `WAITING`.
+ */
+currentRunner.pauseK = function patchedPauseK(k : any) {
+  return originalPauseK.call(this, (resumer : (result: any) => void) => {
+    const oldMode = currentRunner.eventMode;
+    currentRunner.eventMode = 2;
+    return k((result : any) => {
+      currentRunner.eventMode = oldMode;
+      return resumer(result);
+    });
+  })
+}
+console.log("Event Mode before run(): ", currentRunner.eventMode);
+currentRunner.run(() => {
+  console.log("Event Mode during run(): ", currentRunner.eventMode);
+  console.log("initialized stopify runner")
+});
+
+console.log("Event Mode after run(): ", currentRunner.eventMode);
 
 export function runStopify<A>(f : () => A) {
   return new Promise((resolve, reject) => {
@@ -171,6 +200,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
       Buffer,
       URL,
       Blob,
+      TypeError,
       decodeURIComponent,
       require: requireAsyncFromDir(cwd),
       module: stopifyModuleExports,
@@ -204,6 +234,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
         timings.$makeRootRequires = endRootRequires - startRootRequires;
         const startRootExecution = endRootRequires;
         const cb =  (result : any) => {
+          currentRunner.eventMode = 2;
           if (result.type !== 'normal') {
             process.chdir(oldCwd);
             reject(result);
