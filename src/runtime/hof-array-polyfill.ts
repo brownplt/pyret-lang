@@ -361,7 +361,7 @@ function array_map(obj: any, callback: any, thisArg?: any) {
      * Waiting means “we are between/after a completed run of a stopify program/event handler”
      */
     // @ts-ignore
-    return typeof $STOPIFY !== undefined && $STOPIFY.eventMode === 0;
+    return typeof $STOPIFY !== "undefined" && $STOPIFY.eventMode === 0;
   }
 
   /* @stopify flat */
