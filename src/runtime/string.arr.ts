@@ -201,7 +201,6 @@ module.exports = {
 
     // points is a PyretList<PyretNumber>
     'string-from-code-points': function(points): string {
-        debugger;
         const LISTS = require("./" + "lists.arr.js");
         const rawArrayPoints = LISTS["to-raw-array"](points);
         const stringArray = rawArrayPoints.map((pyNum) => {

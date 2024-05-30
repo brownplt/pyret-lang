@@ -26,7 +26,7 @@ export default class RenderedValueWithOutput extends React.Component<RVWOProps, 
     const runtime = getAsyncRuntime();
     const { value } = this.props;
     const vsp : any = runStopify(() => runtime.$tooutput(value));
-    vsp.then((vs : R.ValueSkeleton) => this.setState({ value: vs }));
+    vsp.then((vs : { value: R.ValueSkeleton }) => this.setState({ value: vs.value }));
   }
 
   shouldComponentUpdate(nextProps : RVWOProps, nextState : RVWOState) {
@@ -40,7 +40,7 @@ export default class RenderedValueWithOutput extends React.Component<RVWOProps, 
       const runtime = getAsyncRuntime();
       const { value } = this.props;
       const vsp : any = runStopify(() => runtime.$tooutput(value));
-      vsp.then((vs : R.ValueSkeleton) => this.setState({ value: vs }));
+      vsp.then((vs : { value: R.ValueSkeleton }) => this.setState({ value: vs.value }));
     }
   }
 

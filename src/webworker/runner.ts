@@ -104,7 +104,7 @@ let originalPauseK = currentRunner.pauseK;
 currentRunner.pauseK = function patchedPauseK(k : any) {
   return originalPauseK.call(this, (resumer : (result: any) => void) => {
     const oldMode = currentRunner.eventMode;
-    currentRunner.eventMode = 2;
+    currentRunner.eventMode = 1;
     return k((result : any) => {
       currentRunner.eventMode = oldMode;
       return resumer(result);
@@ -116,16 +116,16 @@ currentRunner.run(() => {
   console.log("Event Mode during run(): ", currentRunner.eventMode);
   console.log("initialized stopify runner")
 });
-
 console.log("Event Mode after run(): ", currentRunner.eventMode);
 
-export function runStopify<A>(f : () => A) {
+
+export function runStopify<A>(f : () => A) : Promise<{ type: 'normal', value: A }> {
   return new Promise((resolve, reject) => {
-    currentRunner.runStopifiedCode(f, (result : any) => {
+    currentRunner.processEvent(f, (result : any) => {
       if (result.type !== 'normal') {
         reject(result);
       } else {
-        resolve(result.value);
+        resolve(result);
       }
     });
   });
@@ -234,7 +234,6 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
         timings.$makeRootRequires = endRootRequires - startRootRequires;
         const startRootExecution = endRootRequires;
         const cb =  (result : any) => {
-          currentRunner.eventMode = 2;
           if (result.type !== 'normal') {
             process.chdir(oldCwd);
             reject(result);
@@ -251,10 +250,7 @@ export const makeRequireAsync = (basePath: string, rtCfg?: RuntimeConfig): ((imp
             resolve(toReturn);
           }
         };
-        currentRunner.runInit(cb);
-        currentRunner.onYieldFlag = { kind: 'resume' };
-        currentRunner.mayYieldFlag = { kind: 'resume' };
-        currentRunner.evalCompiled(toWrite, cb);
+        runStopify(eval(toWrite)).then(cb, cb);
       }),
       pause: (callback: (line: number) => void): void => {
         currentRunner.pause(callback);

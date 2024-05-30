@@ -67,15 +67,15 @@ function Reactor({ reactor, RenderedValue }: Props) {
     runStopify(() => { reactor.$shutdown(); }).then(() => setOpen(false));
   };
 
-  function runGetValue(r : any) {
+  function runDraw(r : any) : Promise<any> {
     return runStopify(() => r.draw());
   }
 
   function setInitialValue() {
     try {
-      runGetValue(reactor).then((v) => {
-        console.log('setInitialValue: covert', v);
-        setValue(v);
+      runDraw(reactor).then((v : { value: any }) => {
+        console.log('setInitialValue: covert', v.value);
+        setValue(v.value);
       });
     } catch (e) {
       console.log('failed draw with', e);

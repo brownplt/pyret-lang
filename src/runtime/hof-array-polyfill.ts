@@ -351,6 +351,15 @@ function array_map(obj: any, callback: any, thisArg?: any) {
   }
 
   function isStopifyRunning() {
+    /**
+     * The relevant enum is
+     * 
+     * enum EventMode { Running = 0, Paused = 1, Waiting = 2 }
+     * 
+     * The check below returns true when that mode is Running, indicating the Stopify stack is live.
+     * Paused means “a stack is captured and waiting to be resumed”
+     * Waiting means “we are between/after a completed run of a stopify program/event handler”
+     */
     // @ts-ignore
     return typeof $STOPIFY !== undefined && $STOPIFY.eventMode === 0;
   }
@@ -457,12 +466,5 @@ export const stopifyArrayPrototype = {
     }
     */
   };
-  
-  export function stopifyArray(arr: any) {
-    // @stopify flat
-    Reflect.setPrototypeOf(arr, stopifyArrayPrototype);
-    return arr;
-  }
 
   Object.assign(Array.prototype, stopifyArrayPrototype);
-  //(Array as any)['prototype'] = stopifyArrayPrototype;
