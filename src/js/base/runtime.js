@@ -231,21 +231,29 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
         return s;
       } else if (thisRuntime.ffi.isVSRow(val)) {
-        if (!AsciiTable){
-          AsciiTable = require("ascii-table");
-        }
         var headers = thisRuntime.getField(val, "headers");
         var rowVals = thisRuntime.getField(val, "values");
         headers = headers.map(function(h){ return renderValueSkeleton(h, values); });
         rowVals = rowVals.map(function(v) { return renderValueSkeleton(v, values); });
-        var row = [];
-        for (var i = 0; i < headers.length; i++) {
-          row.push(headers[i]);
-          row.push(rowVals[i]);
+        if (!util.isBrowser()) {
+          if (!AsciiTable){
+            AsciiTable = require("ascii-table");
+          }
+          var row = [];
+          for (var i = 0; i < headers.length; i++) {
+            row.push(headers[i]);
+            row.push(rowVals[i]);
+          }
+          var table = new AsciiTable();
+          table.addRow(row);
+          return table.toString();
+        } else {
+          var row = [];
+          for (var i = 0; i < headers.length; i++) {
+            row.push(JSON.stringify(headers[i]) + " => " + rowVals[i]);
+          }
+          return "[row: " + row.join(", ") + "]";
         }
-        var table = new AsciiTable();
-        table.addRow(row);
-        return table.toString();
       } else if (thisRuntime.ffi.isVSTable(val)) {
         // Do this for now until we decide on a string
         // representation
@@ -3054,24 +3062,30 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
 
 
-    function PTupleAnn(locs, anns) {
+    function PTupleAnn(locs, anns, optName) {
       this.locs = locs;
       this.anns = anns;
       this.flat = true;
+      this.optName = optName;
       for (var i = 0; i < anns.length; i++) {
         if(!anns[i].flat) { this.flat = false; }
       }
     }
 
-    function makeTupleAnn(locs, anns) {
-      return new PTupleAnn(locs, anns);
+    function makeTupleAnn(locs, anns, optName) {
+      return new PTupleAnn(locs, anns, optName);
+    }
+    PTupleAnn.prototype.nameAsOpt = function() {
+      if (this.optName === undefined) { return thisRuntime.ffi.makeNone(); }
+      return thisRuntime.ffi.makeSome(this.optName);
     }
     PTupleAnn.prototype.check = function(compilerLoc, val) {
       var that = this;
+      var name = this.optName !== undefined ? this.optName : "Tuple";
       if(!isTuple(val)) {
         return thisRuntime.ffi.contractFail(
             makeSrcloc(compilerLoc),
-            thisRuntime.ffi.makeTypeMismatch(val, "Tuple")
+            thisRuntime.ffi.makeTypeMismatch(val, name)
           );
       }
       if(that.anns.length != val.vals.length) {
@@ -3112,14 +3126,16 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       else { return deepCheckFields(0); }
     }
     PTupleAnn.prototype.createTupleLengthMismatch = function(compilerLoc, val, annLength, tupLength) {
-      return thisRuntime.ffi.contractFail(compilerLoc, thisRuntime.ffi.makeTupleLengthMismatch(compilerLoc, val, annLength, tupLength));
+      return thisRuntime.ffi.contractFail(
+        compilerLoc,
+        thisRuntime.ffi.makeTupleLengthMismatch(compilerLoc, val, this.nameAsOpt(), annLength, tupLength));
     };
     PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, fieldIndex, result) {
       var loc = this.locs[fieldIndex];
       var ann = this.anns[fieldIndex];
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
-        thisRuntime.ffi.makeTupleAnnsFail(val, thisRuntime.ffi.makeList([
+        thisRuntime.ffi.makeTupleAnnsFail(val, this.nameAsOpt(), thisRuntime.ffi.makeList([
             thisRuntime.ffi.makeAnnFailure(
               makeSrcloc(loc),
               ann,
@@ -3136,17 +3152,22 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
 
 
-    function PRecordAnn(fields, locs, anns) {
+    function PRecordAnn(fields, locs, anns, optName) {
       this.fields = fields;
       this.locs = locs;
       this.anns = anns;
       this.flat = true;
+      this.optName = optName;
       for (var i = 0; i < fields.length; i++) {
         if(!anns[fields[i]].flat) { this.flat = false; }
       }
     }
-    function makeRecordAnn(fields, locs, anns) {
-      return new PRecordAnn(fields, locs, anns);
+    function makeRecordAnn(fields, locs, anns, optName) {
+      return new PRecordAnn(fields, locs, anns, optName);
+    }
+    PRecordAnn.prototype.nameAsOpt = function() {
+      if (this.optName === undefined) { return thisRuntime.ffi.makeNone(); }
+      return thisRuntime.ffi.makeSome(this.optName);
     }
     PRecordAnn.prototype.createMissingFieldsError = function(compilerLoc, val) {
       var that = this;
@@ -3162,7 +3183,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
-        thisRuntime.ffi.makeRecordFieldsFail(val, thisRuntime.ffi.makeList(missingFields))
+        thisRuntime.ffi.makeRecordFieldsFail(val, this.nameAsOpt(), thisRuntime.ffi.makeList(missingFields))
       );
     };
     PRecordAnn.prototype.createRecordFailureError = function(compilerLoc, val, field, result) {
@@ -3173,7 +3194,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
-        thisRuntime.ffi.makeRecordFieldsFail(val, thisRuntime.ffi.makeList([
+        thisRuntime.ffi.makeRecordFieldsFail(val, this.nameAsOpt(), thisRuntime.ffi.makeList([
           thisRuntime.ffi.makeFieldFailure(
             makeSrcloc(loc),
             field,
@@ -3184,10 +3205,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     };
     PRecordAnn.prototype.check = function(compilerLoc, val) {
       var that = this;
+      var name = this.optName !== undefined ? this.optName : "record";
       if(!isObject(val)) {
         return thisRuntime.ffi.contractFail(
           makeSrcloc(compilerLoc),
-          thisRuntime.ffi.makeTypeMismatch(val, "Object")
+          thisRuntime.ffi.makeTypeMismatch(val, name)
         );
       }
       for(var i = 0; i < that.fields.length; i++) {
@@ -4865,6 +4887,23 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         s, thisRuntime.String, find, thisRuntime.String);
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
+    var string_findIndex = function(s, find) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-find-index"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-find-index",
+        s, thisRuntime.String, find, thisRuntime.String);
+      var idx = s.indexOf(find);
+      if (jsnums.lessThan(idx, 0)) return thisRuntime.ffi.makeNone();
+      return thisRuntime.ffi.makeSome(thisRuntime.makeNumberBig(idx));
+    }
+    var string_getIndex = function(s, find) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-get-index"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-get-index",
+        s, thisRuntime.String, find, thisRuntime.String);
+      var idx = s.indexOf(find);
+      if (jsnums.lessThan(idx, 0))
+        thisRuntime.ffi.throwMessageException("Could not find target string inside source string");
+      return thisRuntime.makeNumberBig(idx);
+    }
     var string_to_code_point = function(s) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-to-code-point"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Strings", "string-to-code-point",
@@ -5833,6 +5872,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'string-to-lower': makeFunction(string_tolower, "string-to-lower"),
       'string-explode': makeFunction(string_explode, "string-explode"),
       'string-index-of': makeFunction(string_indexOf, "string-index-of"),
+      'string-find-index': makeFunction(string_findIndex, "string-find-index"),
+      'string-get-index': makeFunction(string_getIndex, "string-get-index"),
       'string-to-code-point': makeFunction(string_to_code_point, "string-to-code-point"),
       'string-from-code-point': makeFunction(string_from_code_point, "string-from-code-point"),
       'string-to-code-points': makeFunction(string_to_code_points, "string-to-code-points"),
@@ -6271,6 +6312,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     makePrimAnn("Exactnum", jsnums.isRational);
     makePrimAnn("Roughnum", jsnums.isRoughnum);
     makePrimAnn("NumInteger", jsnums.isInteger);
+    makePrimAnn("NumNatural", function(v) {
+      return isNumber(v) && jsnums.isInteger(v) && jsnums.isNonNegative(v);
+    });
     makePrimAnn("NumRational", jsnums.isRational);
     makePrimAnn("NumPositive", jsnums.isPositive);
     makePrimAnn("NumNegative", jsnums.isNegative);

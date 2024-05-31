@@ -26,7 +26,7 @@ check:
   #   "make-mutable-string-dict", "mutable-string-dict"]
 end
 
-NUM-BUILTIN-MODULES = 25
+NUM-BUILTIN-MODULES = 26
 
 check:
   modules = SD.make-mutable-string-dict()
