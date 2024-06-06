@@ -96,6 +96,10 @@ fun table-from-raw-array(arr):
   end
 end
 
+fun raw-array-from-table(table):
+  raw-array-map(raw-array-duplicate, table._rows-raw-array)
+end
+
 table-from-rows = {
   make: table-from-raw-array,
   make0: lam(): table-from-raw-array([raw-array:]) end,

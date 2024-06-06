@@ -768,7 +768,17 @@ module-const-valueskeleton = t-module("builtin://valueskeleton",
           [string-dict:
             "_match", t-top,
           ]
-            ),
+          ),
+        t-variant("vs-matrix",
+          [list:
+            {"rows"; t-number},
+            {"cols"; t-number},
+            {"items"; t-array(t-top)}
+          ],
+          [string-dict:
+            "_match", t-top,
+          ]
+          ),
       ],
         [string-dict:
         "_match", t-top

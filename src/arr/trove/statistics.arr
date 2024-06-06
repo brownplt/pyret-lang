@@ -1,19 +1,21 @@
 #lang pyret/library
 
-provide {
-    mean: mean,
-    median: median,
-    modes: modes,
-    has-mode: has-mode,
-    mode-smallest: mode-smallest,
-    mode-largest: mode-largest,
-    mode-any: mode-any,
-    stdev: stdev,
-    stdev-sample: stdev-sample,
-    linear-regression: linear-regression,
-    r-squared: r-squared
-} end
-provide-types *
+provide:
+  mean,
+  median,
+  modes,
+  has-mode,
+  mode-smallest,
+  mode-largest,
+  mode-any,
+  stdev,
+  stdev-sample,
+  linear-regression,
+  r-squared,
+  group-and-count,
+  type *
+end
+
 import global as _
 include lists
 import error as E
@@ -69,7 +71,7 @@ fun group-and-count-strs(l :: List<String>) -> List<{String; Number}> block:
 end
 
 fun group-and-count-nums(l :: List<Number>) -> List<{Number; Number}> block:
-  sorted = builtins.raw-array-sort-nums(raw-array-from-list(l), false)
+  sorted = builtins.raw-array-sort-nums(raw-array-from-list(l), true)
   size = raw-array-length(sorted)
   
   if size == 0: empty

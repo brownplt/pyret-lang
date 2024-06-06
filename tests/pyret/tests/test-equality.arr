@@ -24,13 +24,23 @@ check "numbers":
   roughly-equal(3, 3) is true
   roughly-equal(3, 3.000003) is true
   roughly-equal-now(3, 3.000003) is true
-  roughly-equal-now(3, 3.000004) is false
+  roughly-equal-now(3, 3.000004) is true
+  roughly-equal-now(3, 3.000005) is false
+  within-rel-now(1e-6)(3, 3.000003) is true
+  within-rel-now(1e-6)(3, 3.000004) is false
+  within-rel-now(1e-6)(3, 3.000005) is false
   roughly-equal-now3(3, 3.000003) satisfies E.is-Equal
-  roughly-equal-now3(3, 3.000004) satisfies E.is-NotEqual
+  roughly-equal-now3(3, 3.000004) satisfies E.is-Equal
+  roughly-equal-now3(3, 3.000005) satisfies E.is-NotEqual
+  within-rel-now3(1e-6)(3, 3.000003) satisfies E.is-Equal
+  within-rel-now3(1e-6)(3, 3.000004) satisfies E.is-NotEqual
+  within-rel-now3(1e-6)(3, 3.000005) satisfies E.is-NotEqual
   roughly-equal-always(3, 3.000003) is true
-  roughly-equal-always(3, 3.000004) is false
+  roughly-equal-always(3, 3.000004) is true
+  roughly-equal-always(3, 3.000005) is false
   roughly-equal-always3(3, 3.000003) satisfies E.is-Equal
-  roughly-equal-always3(3, 3.000004) satisfies E.is-NotEqual
+  roughly-equal-always3(3, 3.000004) satisfies E.is-Equal
+  roughly-equal-always3(3, 3.000005) satisfies E.is-NotEqual
 end
 
 data Nat:
