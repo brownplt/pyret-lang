@@ -15,10 +15,11 @@ provide {
     linear-regression: linear-regression,
     multiple-regression: multiple-regression,
     r-squared: r-squared,
+    z-test: z-test,
+    t-test: t-test,
     t-test-paired: t-test-paired,
     t-test-pooled: t-test-pooled,
     t-test-independent: t-test-independent,
-    z-test: z-test,
     chi-square: chi-square
 } end
 provide-types *
@@ -222,69 +223,78 @@ fun r-squared(x :: List<Number>, y :: List<Number>, f :: (Number -> Number)) -> 
   end
 end
 
-fun t-test-paired(l1 :: List, l2 :: List) -> Number:
-  doc: "t-test-paired"
-  n1 = l1.length()
-  n2 = l2.length()
-  if n1 <> n2:
-    raise(E.message-exception("t-test-paired: input lists must have equal lengths"))
-  else if n1 == 0:
-    raise(E.message-exception("t-test-paired: input lists must have at least one element"))
-  else:
-    diffs = map2(lam(x1, x2): x1 - x2 end, l1, l2)
-    diffs-mean = mean(diffs)
-    s-hat = stdev-sample(diffs)
-    diffs-mean / (s-hat / num-sqrt(n1))
-  end
+fun z-test(sample-list :: List, population-sd :: Number, population-mean :: Number) -> Number:
+  doc: "z-test"
+  sample-size = sample-list.length()
+  sample-mean = mean(sample-list)
+  sd-of-mean = population-sd / num-sqrt(sample-size)
+  (sample-mean - population-mean) / sd-of-mean
+end
+
+fun t-test(sample-list :: List, population-mean :: Number) -> Number:
+  doc: "t-test"
+  sample-size = sample-list.length()
+  sample-mean = mean(sample-list)
+  estimated-population-variance = variance-sample(sample-list)
+  variance-of-mean = estimated-population-variance / sample-size
+  (sample-mean - population-mean) / num-sqrt(variance-of-mean)
 end
 
 # please see:
 #   https://en.wikipedia.org/wiki/Student's_t-test
 #   https://www.investopedia.com/terms/t/t-test.asp
+#     (this has a typo for the pooled t-test, corrected here)
 
-fun t-test-pooled(l1 :: List, l2 :: List) -> Number:
-  doc: "t-test-pooled"
-  n1 = l1.length()
+fun t-test-paired(l1 :: List, l2 :: List) -> Number:
+  doc: "t-test-paired"
+  n = l1.length()
   n2 = l2.length()
-  if (n1 == 0) or (n2 == 0):
-    raise(E.message-exception("t-test-pooled: input lists must have at least one element"))
+  if n <> n2:
+    raise(E.message-exception("t-test-paired: input lists must have equal lengths"))
+  else if n == 0:
+    raise(E.message-exception("t-test-paired: input lists must have at least one element"))
   else:
-    m1 = mean(l1)
-    m2 = mean(l2)
-    v1 = variance-sample(l1)
-    v2 = variance-sample(l2)
-    v1-squared = num-sqr(v1)
-    v2-squared = num-sqr(v2)
-    (m1 - m2) / (((((n1 - 1) * v1-squared) + ((n2 - 1) * v2-squared)) / ((n1 + n2) - 2)) *
-                 num-sqrt((1 / n1) + (1 / n2)))
+    diffs = map2(lam(x1, x2): x1 - x2 end, l1, l2)
+    diffs-mean = mean(diffs)
+    s-hat = stdev-sample(diffs)
+    diffs-mean / (s-hat / num-sqrt(n))
   end
 end
 
-fun t-test-independent(l1 :: List, l2 :: List) -> Number:
+fun t-test-pooled(sample-list-1 :: List, sample-list-2 :: List) -> Number:
+  doc: "t-test-pooled"
+  n1 = sample-list-1.length()
+  n2 = sample-list-2.length()
+  if (n1 == 0) or (n2 == 0):
+    raise(E.message-exception("t-test-pooled: input lists must have at least one element"))
+  else:
+    m1 = mean(sample-list-1)
+    m2 = mean(sample-list-2)
+    v1 = variance-sample(sample-list-1)
+    v2 = variance-sample(sample-list-2)
+    v = (((n1 - 1) * v1) + ((n2 - 1) * v2)) / ((n1 + n2) - 2)
+    (m1 - m2) / num-sqrt((v / n1) + (v / n2))
+  end
+end
+
+fun t-test-independent(sample-list-1 :: List, sample-list-2 :: List) -> Number:
   doc: "t-test-independent"
-  n1 = l1.length()
-  n2 = l2.length()
+  n1 = sample-list-1.length()
+  n2 = sample-list-2.length()
   if (n1 == 0) or (n2 == 0):
     raise(E.message-exception("t-test-independent: input lists must have at least one element"))
   else:
-    m1 = mean(l1)
-    m2 = mean(l2)
-    v1 = variance-sample(l1)
-    v2 = variance-sample(l2)
+    m1 = mean(sample-list-1)
+    m2 = mean(sample-list-2)
+    v1 = variance-sample(sample-list-1)
+    v2 = variance-sample(sample-list-2)
     (m1 - m2) / num-sqrt((v1 / n1) + (v2 / n2))
   end
 end
 
-fun z-test(l1 :: List, l2 :: List, sd1 :: Number, sd2 :: Number) -> Number:
-  doc: "z-test"
-  n1 = l1.length()
-  n2 = l2.length()
-  x-bar-1 = mean(l1)
-  x-bar-2 = mean(l2)
-  (x-bar-1 - x-bar-2) / num-sqrt((num-expt(sd1, 2) / n1) + (num-expt(sd2, 2) / n2))
-end
-
-fun chi-square(obs :: List, exp :: List) -> Number:
+fun chi-square(observed-values :: List, predicted-values :: List) -> Number:
   doc: "chi-square"
-  math.sum(map2(lam(o, e): num-expt(o - e, 2) / e end, obs, exp))
+  math.sum(map2(lam(observed-value, predicted-value):
+                  num-expt(observed-value - predicted-value, 2) / predicted-value end,
+                observed-values, predicted-values))
 end

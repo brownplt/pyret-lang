@@ -69,19 +69,22 @@ check "numeric helpers":
   stdev-sample([list: 1, 1, 1, 1]) is-roughly ~0
   stdev-sample([list:]) raises "empty"
 
+  z-test([list: 1, 2, 3], 1.58, 2.58) is%(within(0.01)) -0.6358
+
+  t-test([list: 1, 2, 3], 2.58) is%(within(0.01)) -1.0046
+
   t-test-paired([list: 1], [list: 2, 3]) raises "lists must have equal lengths"
   t-test-paired([list:], [list:]) raises "lists must have at least one element"
   t-test-paired([list: 1, 2, 3], [list: 4, 6, 8]) is%(within(0.01)) -6.928
 
   t-test-pooled([list:], [list: 1, 2, 3]) raises "lists must have at least one element"
   t-test-pooled([list: 1, 2, 3], [list: 4, 5, 6]) is%(within(0.01)) -3.674
-  t-test-pooled([list: 1, 2, 3], [list: 4, 5, 6, 7]) is%(within(0.01)) -2.217
+  t-test-pooled([list: 1, 2, 3], [list: 4, 5, 6, 7]) is%(within(0.01)) -3.873
 
   t-test-independent([list:], [list: 1, 2, 3]) raises "lists must have at least one element"
   t-test-independent([list: 1, 2, 3], [list: 4, 5, 6]) is%(within(0.01)) -3.674
   t-test-independent([list: 1, 2, 3], [list: 4, 5, 6, 7]) is%(within(0.01)) -4.041
 
-  z-test([list: 1, 2, 3], [list: 4, 5, 6], 1.58, 2.58) is%(within(0.01)) -1.718
 
   chi-square([list: 1, 2, 3, 4], [list: 1, 2, 3, 4]) is 0
   chi-square([list: 1, 2, 3, 4], [list: 0.9, 1.8, 3.5, 4.7]) is%(within(0.01)) 0.209
