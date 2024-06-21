@@ -789,7 +789,7 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     end,
     method check-is-roughly(self, left, right, loc) block:
       for left-right-check(loc)(lv from left, rv from right):
-        eq-lv-rv = builtins.within-rel3(~0.000001)(lv, rv)
+        eq-lv-rv = builtins.within3(~0.000001)(lv, rv)
         cases(EqualityResult) eq-lv-rv:
           | Unknown(_, _, _)  => add-result(failure-is-incomparable(loc, eq-lv-rv, lv, on-left, rv, on-right))
           | NotEqual(_, _, _) => add-result(failure-not-equal(loc, none, lv, on-left, rv, on-right))
@@ -801,12 +801,12 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
     method check-is-roughly-cause(self, left, right, cause, loc) block:
       for left-right-cause-check(loc)(lv from left, rv from right, cv from cause):
         tol = ~0.000001
-        eq-cv-rv = builtins.within-rel3(tol)(cv, rv) # Note: same order as within(tol)(lv, rv) below
+        eq-cv-rv = builtins.within3(tol)(cv, rv) # Note: same order as within(tol)(lv, rv) below
         cases(EqualityResult) eq-cv-rv:
           | Unknown(_, _, _)  => add-result(failure-is-incomparable(loc, eq-cv-rv, cv, on-cause, rv, on-right))
           | NotEqual(_, _, _) => add-result(failure-not-equal(loc, none, cv, on-cause, rv, on-right))
           | Equal =>
-            eq-lv-rv = builtins.within-rel3(tol)(lv, rv)
+            eq-lv-rv = builtins.within3(tol)(lv, rv)
             cases(EqualityResult) eq-lv-rv:
               | Unknown(_, _, _)  => add-result(failure-is-incomparable(loc, eq-lv-rv, lv, on-left, rv, on-right))
               | NotEqual(_, _, _) => add-result(failure-not-equal(loc, none, lv, on-left, rv, on-right))

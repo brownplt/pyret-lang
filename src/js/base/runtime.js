@@ -5776,6 +5776,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'spy': makeFunction(spy, "spy"),
 
       'within-rel3' : makeFunction(equalWithinRel3, "within-rel3"),
+      'within3' : makeFunction(equalWithin3, "within3"),
     });
 
 
