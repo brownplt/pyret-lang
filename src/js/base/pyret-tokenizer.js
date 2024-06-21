@@ -124,6 +124,7 @@ define("pyret-base/js/pyret-tokenizer", ["jglr/jglr"], function(E) {
     {name: "ISNOTEQUALTILDE", val: "is-not=~", parenIsForExp: true},
     {name: "ISNOTSPACESHIP", val: "is-not<=>", parenIsForExp: true},
     {name: "ISROUGHLY", val: "is-roughly", parenIsForExp: true},
+    {name: "ISNOTROUGHLY", val: "is-not-roughly", parenIsForExp: true},
     {name: "ISSPACESHIP", val: "is<=>", parenIsForExp: true},
     {name: "BECAUSE", val: "because", parenIsForExp: true},
     {name: "LAM", val: "lam"},

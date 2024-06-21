@@ -92,6 +92,11 @@ check-stmts-visitor = A.default-map-visitor.{
               | some(shadow cause)  => check-refinement-cause(refinement, cause, "check-is-not-refinement-cause")
             end
         end
+      | s-op-is-not-roughly(_) =>
+        cases(Option) cause:
+          | none               => check-op("check-is-not-roughly")
+          | some(shadow cause) => check-op-cause(cause, "check-is-not-roughly-cause")
+        end
       | s-op-is-op(_, opname)     =>
         shadow refinement = A.s-id(l, A.s-name(l, A.get-op-fun-name(opname)))
         cases(Option) cause:

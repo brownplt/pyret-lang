@@ -2517,6 +2517,7 @@ fun synthesis-s-check-test(e :: Expr, loc :: Loc, op :: A.CheckOp, refinement ::
   cases(A.CheckOp) op:
     | s-op-is(l) => synthesis-refinement(l)
     | s-op-is-roughly(l) => synthesis-equivalent(l)
+    | s-op-is-not-roughly(l) => synthesis-equivalent(l)
     | s-op-is-op(l, _) => synthesis-equivalent(l)
     | s-op-is-not(l) => synthesis-refinement(l)
     | s-op-is-not-op(l, _) => synthesis-equivalent(l)

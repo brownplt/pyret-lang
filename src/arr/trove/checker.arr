@@ -254,6 +254,10 @@ data TestResult:
               ED.cmcode(self.loc),
               [ED.para:
                 cases(Any) test-ast.op:
+                  | s-op-is-not-roughly(_) =>
+                    [ED.sequence:
+                      ED.text("It succeeds only if the "),
+                      ed-lhs, ED.text(" and "), ed-rhs, ED.text(" are not equal (allowing for rough equality).")]
                   | s-op-is-not(_) =>
                     cases(Option) test-ast.refinement:
                       | none =>
@@ -835,6 +839,34 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
           | Equal             => add-result(failure-not-different(loc, none, cv, on-cause, rv, on-right))
           | NotEqual(_, _, _) =>
             eq-lv-rv = equal-always3(lv, rv)
+            cases(EqualityResult) eq-lv-rv:
+              | Unknown(_, _, _)  => add-result(failure-is-incomparable(loc, eq-lv-rv, lv, on-left, rv, on-right))
+              | Equal             => add-result(failure-not-different(loc, none, lv, on-left, rv, on-right))
+              | NotEqual(_, _, _) => add-result(success(loc))
+            end
+        end
+      end
+      nothing
+    end,
+    method check-is-not-roughly(self, left, right, loc) block:
+      for left-right-check(loc)(lv from left, rv from right):
+        eq-lv-rv = builtins.within3(~0.000001)(lv, rv)
+        cases(EqualityResult) eq-lv-rv:
+          | Unknown(_, _, _)  => add-result(failure-is-incomparable(loc, eq-lv-rv, lv, on-left, rv, on-right))
+          | Equal             => add-result(failure-not-different(loc, none, lv, on-left, rv, on-right))
+          | NotEqual(_, _, _) => add-result(success(loc))
+        end
+      end
+      nothing
+    end,
+    method check-is-not-roughly-cause(self, left, right, cause, loc) block:
+      for left-right-cause-check(loc)(lv from left, rv from right, cv from cause):
+        eq-cv-rv = builtins.within3(~0.000001)(cv, rv) # Note: same order as lv == rv below
+        cases(EqualityResult) eq-cv-rv:
+          | Unknown(_, _, _)  =>  add-result(failure-is-incomparable(loc, eq-cv-rv, cv, on-cause, rv, on-right))
+          | Equal             => add-result(failure-not-different(loc, none, cv, on-cause, rv, on-right))
+          | NotEqual(_, _, _) =>
+            eq-lv-rv = builtins.within3(~0.000001)(lv, rv)
             cases(EqualityResult) eq-lv-rv:
               | Unknown(_, _, _)  => add-result(failure-is-incomparable(loc, eq-lv-rv, lv, on-left, rv, on-right))
               | Equal             => add-result(failure-not-different(loc, none, lv, on-left, rv, on-right))
