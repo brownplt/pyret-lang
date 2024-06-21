@@ -3,6 +3,8 @@
 import equality as E
 
 check "numbers":
+  TOL = 1e-6
+  
   identical(4/5, ~0.8) is false
   identical3(4/5, ~0.8) satisfies E.is-NotEqual
   identical(4/5, 4/5) is true
@@ -26,22 +28,84 @@ check "numbers":
   roughly-equal-now(3, 3.000003) is true
   roughly-equal-now(3, 3.000004) is true
   roughly-equal-now(3, 3.000005) is false
-  within-rel-now(1e-6)(3, 3.000003) is true
-  within-rel-now(1e-6)(3, 3.000004) is false
-  within-rel-now(1e-6)(3, 3.000005) is false
+  within-rel-now(TOL)(3, 3.000003) is true
+  within-rel-now(TOL)(3, 3.000004) is false
+  within-rel-now(TOL)(3, 3.000005) is false
   roughly-equal-now3(3, 3.000003) satisfies E.is-Equal
   roughly-equal-now3(3, 3.000004) satisfies E.is-Equal
   roughly-equal-now3(3, 3.000005) satisfies E.is-NotEqual
-  within-rel-now3(1e-6)(3, 3.000003) satisfies E.is-Equal
-  within-rel-now3(1e-6)(3, 3.000004) satisfies E.is-NotEqual
-  within-rel-now3(1e-6)(3, 3.000005) satisfies E.is-NotEqual
+  within-rel-now3(TOL)(3, 3.000003) satisfies E.is-Equal
+  within-rel-now3(TOL)(3, 3.000004) satisfies E.is-NotEqual
+  within-rel-now3(TOL)(3, 3.000005) satisfies E.is-NotEqual
   roughly-equal-always(3, 3.000003) is true
   roughly-equal-always(3, 3.000004) is true
   roughly-equal-always(3, 3.000005) is false
   roughly-equal-always3(3, 3.000003) satisfies E.is-Equal
   roughly-equal-always3(3, 3.000004) satisfies E.is-Equal
   roughly-equal-always3(3, 3.000005) satisfies E.is-NotEqual
+  within-rel(TOL)(3, 3.000003) is within(TOL)(3, 3.000003) because true
+  within-rel(TOL)(3, 3.000004) is-not within(TOL)(3, 3.000004) because false
+  within-rel(TOL)(3, 3.000005) is within(TOL)(3, 3.000005) because false
 end
+
+check "is-roughly semantics":
+  BIG = 1e6
+  TOL = ~1 / BIG
+
+  3 is%(within-rel(TOL)) 3.000003
+  3 is-roughly 3.000003
+  3 is-not%(within-rel(TOL)) 3.000004
+  3 is%(within(TOL)) 3.000004
+  3 is-roughly 3.000004
+  3 is-not%(within-rel(TOL)) 3.000005
+  3 is-not%(within(TOL)) 3.000005
+  3 is-not-roughly 3.000005
+
+
+
+  # DEALING WITH NON-ZERO NUMBERS...
+  1 is%(within-rel(TOL)) (1 + TOL)
+  1 is-not%(within-rel(TOL)) 1.01
+  BIG is%(within-rel(TOL)) BIG * (1 + TOL) # relative ==> by percentages
+  BIG is-not%(within-rel(TOL)) 1.01 * BIG
+  
+  1 is%(within-abs(TOL)) (1 + TOL)
+  1 is-not%(within-abs(TOL)) 1.01
+  BIG is-not%(within-abs(TOL)) BIG * (1 + TOL) # abs ==> by magnitude difference
+  BIG is-not%(within-abs(TOL)) 1.01 * BIG
+
+  # within matches the behavior of within-rel, pretty much
+  1 is%(within(TOL)) (1 + TOL)
+  1 is-not%(within(TOL)) 1.01
+  BIG is%(within(TOL)) BIG * (1 + TOL) # 'within' ==> more like percentages when big
+  BIG is-not%(within(TOL)) 1.01 * BIG
+
+  # DEALING WITH ZERO:
+  0 is-not%(within-rel(TOL)) TOL
+  0 is-not%(within-rel(TOL)) TOL
+  0 is%(within-abs(TOL)) TOL
+  0 is%(within(TOL)) TOL
+  0 is-roughly TOL
+  0 is-not%(within(TOL)) 2 * TOL
+  0 is-not-roughly 2 * TOL
+  0 is%(within(TOL)) TOL / 2
+  0 is-roughly TOL / 2
+  
+  # More general cases
+  # Every number N is within 1/Nth of (N+1)
+  for each(n from range(1, 1000)) block:
+    n is%(within(1 / n)) n + 1
+    (n / BIG) is%(within(1 / n)) (n + 1) / BIG
+    (n * BIG) is%(within(1 / n)) (n + 1) * BIG
+    (n / BIG) is%(within(n / BIG)) (n + 1) / BIG
+    (n * BIG) is-not%(within(n / BIG)) (n + 1) * BIG
+  end
+  # Every number N is within 2/Nth of (N+2)
+  for each(n from range(1, 1000)):
+    n is%(within(2 / n)) n + 2
+  end
+end
+
 
 data Nat:
   | Z
