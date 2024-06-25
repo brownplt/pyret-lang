@@ -364,6 +364,7 @@ function getModuleValue(uri : string, k : string) {
   return allModules[uri].values[k];
 }
 
+/* @stopify flat */
 function installMethod(obj : any, name : any, method : any) {
   applyBrand($PMethodBrand, method);
   Object.defineProperty(obj, name, {enumerable: true, value: method, writable: false});
@@ -965,3 +966,6 @@ module.exports["checkNumPositive"] = checkNumPositive;
 module.exports["checkNumNegative"] = checkNumNegative;
 module.exports["checkNumNonPositive"] = checkNumNonPositive;
 module.exports["checkNumNonNegative"] = checkNumNonNegative;
+
+module.exports["debug"] = /* @stopify flat */ function() { debugger; };
+

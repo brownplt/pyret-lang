@@ -55,7 +55,9 @@
 
       "raise": ["arrow", ["Any"], "tbot"],
       "not": ["arrow", ["Boolean"], "Boolean"],
-      "typecast": ["forall", ["a", "b"], ["arrow", ["tva"], "tvb"]]
+      "typecast": ["forall", ["a", "b"], ["arrow", ["tva"], "tvb"]],
+      "debug": { "bind": "fun", "flatness": 0, "name": "debug", "typ": ["arrow", [], "Nothing"] }
+
     },
     "aliases": { },
     "datatypes": { }

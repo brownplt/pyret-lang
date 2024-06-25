@@ -195,7 +195,7 @@ export type Exports = {
         const [first, firstStmts] = compileExpr(context, cur.dict.first);
         ans = first;
         stmts.push(...firstStmts);
-        if (first !== undefined && !(first.type === 'Identifier')) {
+        if (cur.dict.rest.$name !== 'empty' && first !== undefined && !(first.type === 'Identifier')) {
           stmts.push(ExpressionStatement(first));
         }
         cur = cur.dict.rest;
@@ -220,7 +220,8 @@ export type Exports = {
         Var(self, { type: "ThisExpression"}),
         ReturnStatement(install)
       ];
-      return FunctionExpression(jsIdOf(constId(`getWrapper_${method.dict.name}`)), [], BlockStatement(body));
+      const f = FunctionExpression(jsIdOf(constId(`getWrapper_${method.dict.name}`)), [], BlockStatement(body));
+      return { ...f, leadingComments: [{ type: "Block" as "Block", value: ` @stopify flat ` }] };
     }
 
     function compileObj(context : Context, expr : Variant<A.Expr, 's-obj'>) : [J.Expression, Array<J.Statement>] {
@@ -1956,7 +1957,8 @@ export type Exports = {
 
       const moduleBody = Program([...prelude, ...stmts, ReturnStatement(ans)]);
       const jsonOptions : Escodegen.GenerateOptions = {
-        format: { json: true },
+        format: { json: true, },
+        comment: true
       };
       return ({
         requires: escodegen.generate(ArrayExpression(serializeRequires(env, options)), jsonOptions),

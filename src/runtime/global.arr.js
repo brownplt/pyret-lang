@@ -87,4 +87,6 @@ module.exports = {
   'runtime': runtime,
 
   'raise': runtime["raise"],
+
+  'debug': runtime["debug"],
 };

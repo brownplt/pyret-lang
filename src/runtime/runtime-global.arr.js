@@ -45,4 +45,6 @@ module.exports = {
   'raise': runtime["raise"],
 
   'typecast': function(x) { return x; },
+  'debug': runtime["debug"],
+
 };

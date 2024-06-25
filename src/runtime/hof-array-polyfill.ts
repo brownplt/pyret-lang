@@ -342,11 +342,11 @@ function array_map(obj: any, callback: any, thisArg?: any) {
     }
   }
   
-  export function filter(o: any, args: any): any {
+  export function filter(o: any, pred: any): any {
     if (o instanceof Array) {
-      return array_filter(o, args);
+      return array_filter(o, pred);
     } else {
-      return o.filter.call(o, args);
+      return o.filter.call(o, pred);
     }
   }
 
@@ -381,6 +381,7 @@ function array_map(obj: any, callback: any, thisArg?: any) {
 export const stopifyArrayPrototype = {
     //__proto__: Array.prototype,
     map: stopifyDispatch(array_map, Array.prototype.map),
+    filter: stopifyDispatch(array_filter, Array.prototype.filter),
     /*
     filter: function(f: any) { return stopifyArray(filter(this, f)); },
     reduceRight: function(this: any[], f: any, init: any): any {
