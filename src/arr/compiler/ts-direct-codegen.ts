@@ -390,6 +390,7 @@ export type Exports = {
         case "op<=": return rtMethod("_lessequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
         case "op>=": return rtMethod("_greaterequal", [lv, rv, rtField(NUMBER_ERR_CALLBACKS)]); break;
         case "op==": return CallExpression(rtField(EQUAL_ALWAYS), [lv, rv]); break;
+        case "op=~": return CallExpression(rtField(EQUAL_NOW), [lv, rv]); break;
         case "op<>": return UnaryExpression("!", CallExpression(rtField(EQUAL_ALWAYS), [lv, rv])); break;
         case "op<=>": return CallExpression(rtField(IDENTICAL), [lv, rv]); break;
         case "opor": return LogicalExpression("||", lv, rv); break;

@@ -88,6 +88,8 @@ type DesugarInfo = {
       const names = A['global-names'].dict;
       const generatedBinds = new Map<string, CS.ValueBind>();
       const flatPrimApp = A['prim-app-info-c'].app(false);
+      const nonflatPrimApp = A['prim-app-info-c'].app(true);
+
   
       function boLocal(l: A.Srcloc, originalName: A.Name): CS.BindOrigin {
         switch (l.$name) {
@@ -153,6 +155,10 @@ type DesugarInfo = {
       }
       function isUnderscore(e: A.Expr): boolean {
         return A['is-s-id'].app(e) && A['is-s-underscore'].app(e.dict.id);
+      }
+      function curryable(str : string) : boolean {
+        const curryables = ["op+", "op-", "op*", "op/", "op<", "op>", "op<=", "op>=", "op==", "op=~", "op<>", "op<=>"]
+        return curryables.includes(str);
       }
       function dsCurryArgs(l: A.Srcloc, args: Array<A.Expr>): [A.Bind[], A.Expr[]] {
         const binds: Array<A.Bind> = [];
@@ -361,6 +367,39 @@ type DesugarInfo = {
         's-extend': (visitor : DSVisitor, expr: TJ.Variant<A.Expr, 's-extend'>) => {
           const dsFields = runtime.ffi.makeList(listToArray(expr.dict.fields).map(field => map<A.Member>(visitor, field)));
           return dsCurryNullary(A['s-extend'].app, expr.dict.l, expr.dict.supe, dsFields, visitor);
+        },
+        's-op': (visitor : DSVisitor, expr: TJ.Variant<A.Expr, 's-op'>) => {
+          if (curryable(expr.dict.op)) {
+            return dsCurryBinop(
+              expr.dict.l,
+              map<A.Expr>(visitor, expr.dict.left),
+              map<A.Expr>(visitor, expr.dict.right),
+              (e1: A.Expr, e2: A.Expr) =>
+                A['s-op'].app(expr.dict.l, expr.dict['op-l'], expr.dict.op, e1, e2));
+          } else {
+            function collectOp(opName : string, exp : A.Expr) {
+              if(exp.$name === 's-op' && exp.dict.op === opName) {
+                return collectOp(opName, exp.dict.left).concat(collectOp(opName, exp.dict.right));
+              } else {
+                return [exp];
+              }
+            }
+            switch(expr.dict.op) {
+              case "op^": {
+                const carets = collectOp("op^", expr);
+                let resultExpr = carets[0];
+                for(let i = 1; i < carets.length; i++) {
+                  resultExpr = A['s-app'].app(
+                    expr.dict.l,
+                    map(visitor, carets[i]),
+                    runtime.ffi.makeList([resultExpr]));
+                }
+                return resultExpr;
+              }
+              default:
+                return A['s-op'].app(expr.dict.l, expr.dict['op-l'], expr.dict.op, map<A.Expr>(visitor, expr.dict.left), map<A.Expr>(visitor, expr.dict.right));
+            }
+          }
         },
         // s-for is uniform
         // s-op is uniform

@@ -153,7 +153,7 @@ export interface Exports {
                   case 'a-any':
                     return A['s-let-expr'].app(l, runtime.ffi.makeList(letBinds), map(visitor, body), false);
                   default: {
-                    letBinds.push(A['s-let-bind'].app(body.dict.l, A['s-bind'].app(body.dict.l, false, a, ann), body));
+                    letBinds.push(A['s-let-bind'].app(body.dict.l, A['s-bind'].app(body.dict.l, false, a, ann), map(visitor, body)));
                     return A['s-let-expr'].app(l, runtime.ffi.makeList(letBinds), A['s-id'].app(l, a), false);
                   }
                 }
