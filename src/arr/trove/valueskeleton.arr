@@ -13,4 +13,5 @@ data ValueSkeleton:
   | vs-table(headers :: RawArray, rows #| :: RawArray<RawArray>|#)
   | vs-row(headers :: RawArray, values :: RawArray)
   | vs-seq(items)
+  | vs-matrix(rows :: Number, cols :: Number, items :: RawArray)
 end
