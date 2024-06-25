@@ -4,6 +4,7 @@ provide:
 end
 
 import global as G
+include from G: raw-array-duplicate end
 include lists
 
 type Reducer<Acc, InVal, OutVal> = {
