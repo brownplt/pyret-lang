@@ -3,6 +3,9 @@ provide:
   type *
 end
 
+# NOTE(joe & ben): need this ffi import for builtins that use some toplevel globals
+# In particular this is for the definition of close-enough below
+import ffi as _
 import lists as L
 import global as G
 include from G:
