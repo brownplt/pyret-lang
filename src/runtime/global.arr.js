@@ -42,6 +42,7 @@ module.exports = {
   $setMakeReactor: (f) => {
     realMakeReactor = f;
   },
+  'run-task' : runtime.runTask,
   'time-now' : timeNow,
   'js-to-string': function(v) { return String(v); },
   'display-string': function(s) { process.stdout.write(s); },

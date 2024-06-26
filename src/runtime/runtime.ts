@@ -370,6 +370,7 @@ function installMethod(obj : any, name : any, method : any) {
   Object.defineProperty(obj, name, {enumerable: true, value: method, writable: false});
   return method;
 }
+/* @stopify flat */
 function setupMethodGetters(obj : any) {
   const extension : any = {};
   for (let k in obj.$methods) {
@@ -827,6 +828,16 @@ export function $imgUrlProxy(url: string): string {
   return imageUrlProxyWrapper(url);
 }
 
+export function runTask<A>(f : (() => A)) {
+  const Either = require("./either" + ".arr.js");
+  try {
+    return Either.left(f());
+  }
+  catch(e) {
+    return Either.right(e);
+  }
+}
+
 module.exports["addModule"] = addModule;
 module.exports["getModuleValue"] = getModuleValue;
 
@@ -968,4 +979,6 @@ module.exports["checkNumNonPositive"] = checkNumNonPositive;
 module.exports["checkNumNonNegative"] = checkNumNonNegative;
 
 module.exports["debug"] = /* @stopify flat */ function() { debugger; };
+
+module.exports["run-task"] = runTask;
 

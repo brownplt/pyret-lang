@@ -28,6 +28,9 @@
       "lOfA": ["tyapp", { "tag": "name",
                 "origin": { "import-type": "uri", "uri": "builtin://lists" },
                 "name": "List" }, [["tid", "a"]]],
+      "EitherOfA_Any": ["tyapp", { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://either" },
+                "name": "Either" }, [["tid", "a"], "Any"]],
       "tva": ["tid", "a"],
       "tvb": ["tid", "b"],
       "EqualityResult": { "tag": "name",
@@ -92,7 +95,8 @@
       "identical": ["arrow", ["Any", "Any"], "Boolean"],
       "identical3": ["arrow", ["Any", "Any"], "EqualityResult"],
       "not": ["arrow", ["Boolean"], "Boolean"],
-      "debug": { "bind": "fun", "flatness": 0, "name": "debug", "typ": ["arrow", [], "Nothing"] }
+      "debug": { "bind": "fun", "flatness": 0, "name": "debug", "typ": ["arrow", [], "Nothing"] },
+      "run-task": ["forall", ["a"], ["arrow", [["arrow", [], "tva"]], "EitherOfA_Any"]]
     },
     "aliases": {
       "Any": "tany",
@@ -106,6 +110,7 @@
       "NumInteger": "Number",
       "Roughnum": "Number",
       "Exactnum": "Number",
+      
       "Function": { "tag": "name",
                     "origin": { "import-type": "uri", "uri": "builtin://primitive-types" },
                     "name": "Function" },
@@ -132,7 +137,10 @@
                 "name": "String" },
       "Number": { "tag": "name",
                "origin": { "import-type": "uri", "uri": "builtin://primitive-types" },
-                "name": "Number" }
+                "name": "Number" },
+      "Either": { "tag": "name",
+                "origin": { "import-type": "uri", "uri": "builtin://either" },
+                "name": "Either" }
     },
     "datatypes": {
       "Method": ["data", "Method", [], [], {}],

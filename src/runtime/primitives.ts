@@ -167,10 +167,12 @@ export function makeMethodBinder(inner: any): any {
   };
 }
 
+/* @stopify flat */
 export function hasBrand(brand: any, val: object): boolean {
     return (typeof val === "object") && ("$brand" in val) && (val["$brand"] === brand);
 }
 
+/* @stopify flat */
 export function applyBrand(brand: any, val: any): any {
     val["$brand"] = brand;
     return val;
