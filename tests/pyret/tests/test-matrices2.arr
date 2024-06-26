@@ -342,10 +342,10 @@ check "matrix-col":
   mtx-col(A, ~1) raises ""
 end
 
-check "matrix-rows and matrix-cols":
-  mtx-rows([matrix(2, 3): 1, 2, 3, 4, 5, 6])
+check "matrix-row-list and matrix-col-list":
+  mtx-row-list([matrix(2, 3): 1, 2, 3, 4, 5, 6])
     is [list: [row-matrix: 1, 2, 3], [row-matrix: 4, 5, 6]]
-  mtx-cols([matrix(2, 3): 1, 2, 3, 4, 5, 6])
+  mtx-col-list([matrix(2, 3): 1, 2, 3, 4, 5, 6])
     is [list: [col-matrix: 1, 4], [col-matrix: 2, 5], [col-matrix: 3, 6]]
 end
 

@@ -49,7 +49,7 @@ provide:
   matrix-to-2d-array,
   matrix-from-2d-array,
   mk-mtx as matrix,
-  vector,
+  mk-vector as vector,
   vector3d,
   vector-within,
   is-row-matrix,
@@ -81,6 +81,8 @@ provide:
   vec-scale,
   vec-add,
   vec-sub,
+  vec-to-row-matrix,
+  vec-to-col-matrix,
   mtx-get,
   mtx-to-list,
   mtx-to-vector,
@@ -88,8 +90,6 @@ provide:
   mtx-to-vectors,
   mtx-row,
   mtx-col,
-  mtx-rows,
-  mtx-cols,
   mtx-submatrix,
   mtx-transpose,
   mtx-hermitian,
@@ -244,18 +244,26 @@ sharing:
     doc: "Returns the length of this vector"
     raw-array-length(self._contents)
   end,
+
+  method to-row-matrix(self) -> Matrix:
+    doc: "Returns the equivalent 1-row matrix containing this vector's contents"
+    matrix(1, self.length(), raw-array-duplicate(self._contents))
+  end,
+
+  method to-col-matrix(self) -> Matrix:
+    doc: "Returns the equivalent 1-column matrix containing this vector's contents"
+    matrix(self.length(), 1, raw-array-duplicate(self._contents))
+  end,
   
   method _output(self) -> VS.ValueSkeleton:
     VS.vs-collection("vector", raw-array-to-list(self._contents).map(VS.vs-value))
   end
 end
 
-type Vector3D = Vector%(length3)
-
 # Internal use only!
-vector-of-raw-array = vector
+rec vector-of-raw-array = vector
 
-shadow vector = {
+rec mk-vector = {
   make0: lam(): raise("Cannot construct a Vector with 0 elements") end,
   make1: lam(a :: Number): vector-of-raw-array([raw-array: a]) end,
   make2: lam(a :: Number, b :: Number): vector-of-raw-array([raw-array: a, b]) end,
@@ -268,7 +276,7 @@ shadow vector = {
   make : lam(arr :: RawArray<Number>): vector-of-raw-array(arr) end
 }
 
-vector3d = block:
+rec vector3d = block:
   fun bad-arity(n):
     "Cannot construct a 3D Vector with " + tostring(n) + " element"
       + (if (n <> 1): "s" else: "" end)
@@ -277,7 +285,7 @@ vector3d = block:
     make0: lam(): raise(bad-arity(0)) end,
     make1: lam(a :: Number): raise(bad-arity(1)) end,
     make2: lam(a :: Number, b :: Number): raise(bad-arity(2)) end,
-    make3: lam(a :: Number, b :: Number, c :: Number): [vector: a, b, c] end,
+    make3: lam(a :: Number, b :: Number, c :: Number): [mk-vector: a, b, c] end,
     make4: lam(a :: Number, b :: Number, c :: Number, d :: Number): raise(bad-arity(4)) end,
     make5: lam(a :: Number, b :: Number, c :: Number, d :: Number, e :: Number): raise(bad-arity(5)) end,
     make : lam(arr :: RawArray<Number>): raise(bad-arity(raw-array-length(arr))) end
@@ -367,18 +375,12 @@ sharing:
     end
     matrix(1, self.cols, raw-arr)
   end,
-  method all-rows(self) -> List<Matrix>:
-    range(0, self.rows).map(self.row(_))
-  end,
   method col(self, j :: Number) -> Matrix:
     doc: "Returns a one-column matrix with the matrix's j'th column"
     raw-arr = for raw-array-build(n from self.rows):
       raw-array-get(self.elts, rc-to-index(n, j, self.cols))
     end
     matrix(self.rows, 1, raw-arr)
-  end,
-  method all-cols(self) -> List<Matrix>:
-    range(0, self.cols).map(self.col(_))
   end,
   
   method submatrix(self, loi :: List<Number>, loj :: List<Number>) -> Matrix block:
@@ -904,13 +906,13 @@ fun mk-mtx(rows :: NonZeroNat, cols :: NonZeroNat) -> MatrixMaker block:
   fun make-unexpected(n :: Number):
     lam(arr): raise(invalid-msg(raw-array-length(arr))) end
   end
-  {
+  rec ans = {
     make0: lam(): raise(invalid-msg(0)) end,
-    make1: lam(a :: Number): matrix(rows, cols, [raw-array: a]) end,
-    make2: lam(a :: Number, b :: Number): matrix(rows, cols, [raw-array: a, b]) end,
-    make3: lam(a :: Number, b :: Number, c :: Number): matrix(rows, cols, [raw-array: a, b, c]) end,
-    make4: lam(a :: Number, b :: Number, c :: Number, d :: Number): matrix(rows, cols, [raw-array: a, b, c, d]) end,
-    make5: lam(a :: Number, b :: Number, c :: Number, d :: Number, e :: Number): matrix(rows, cols, [raw-array: a, b, c, d, e]) end,
+    make1: lam(a :: Number): ans.make([raw-array: a]) end,
+    make2: lam(a :: Number, b :: Number): ans.make([raw-array: a, b]) end,
+    make3: lam(a :: Number, b :: Number, c :: Number): ans.make([raw-array: a, b, c]) end,
+    make4: lam(a :: Number, b :: Number, c :: Number, d :: Number): ans.make([raw-array: a, b, c, d]) end,
+    make5: lam(a :: Number, b :: Number, c :: Number, d :: Number, e :: Number): ans.make([raw-array: a, b, c, d, e]) end,
     make : lam(arr :: RawArray<Number>) -> Matrix:
         if not(raw-array-length(arr) == (rows * cols)):
           raise(invalid-msg(raw-array-length(arr)))
@@ -919,6 +921,7 @@ fun mk-mtx(rows :: NonZeroNat, cols :: NonZeroNat) -> MatrixMaker block:
         end
       end
   }
+  ans
 where:
   [mk-mtx(1, 1): 1] is matrix(1, 1, [raw-array: 1])
   [mk-mtx(3, 1): 1, 
@@ -967,7 +970,7 @@ fun vector-to-matrix(v :: Vector):
   doc: "Converts the given vector into a one-row matrix"
   matrix(1, raw-array-length(v._contents), raw-array-duplicate(v._contents))
 where:
-  vector-to-matrix([vector: 1, 2, 3]) is
+  vector-to-matrix([mk-vector: 1, 2, 3]) is
   [mk-mtx(1, 3): 1, 2, 3]
 end
 
@@ -1054,7 +1057,7 @@ fun vectors-to-matrix(lst :: List<Vector>) block:
   end
   matrix(rows, cols, raw-arr)
 where:
-  vectors-to-matrix([list: [vector: 1, 2, 3], [vector: 4, 5, 6]]) is
+  vectors-to-matrix([list: [mk-vector: 1, 2, 3], [mk-vector: 4, 5, 6]]) is
   [mk-mtx(3, 2): 1, 4, 2, 5, 3, 6]
 end
 
@@ -1086,6 +1089,9 @@ end
 ## FUNCTION-STYLE METHOD WRAPPERS
 
 # VECTORS
+
+type Vector3D = Vector%(length3)
+
 fun vec-get(v :: Vector, i :: Nat):
   v.get(i)
 end
@@ -1114,6 +1120,13 @@ fun vec-sub(v1 :: Vector, v2 :: Vector):
   v1 - v2
 end
 
+fun vec-to-row-matrix(v :: Vector):
+  v.to-row-matrix()
+end
+fun vec-to-col-matrix(v :: Vector):
+  v.to-col-matrix()
+end
+
 # MATRICES
 fun mtx-get(m :: Matrix, i :: Nat, j :: Nat):
   m.get(i, j)
@@ -1135,12 +1148,6 @@ fun mtx-row(m :: Matrix, i :: Number):
 end
 fun mtx-col(m :: Matrix, j :: Number):
   m.col(j)
-end
-fun mtx-rows(m :: Matrix):
-  m.all-rows()
-end
-fun mtx-cols(m :: Matrix):
-  m.all-cols()
 end
 fun mtx-submatrix(m :: Matrix, loi :: List<Number>, loj :: List<Number>):
   m.submatrix(loi, loj)
