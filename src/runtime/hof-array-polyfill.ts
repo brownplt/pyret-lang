@@ -350,6 +350,7 @@ function array_map(obj: any, callback: any, thisArg?: any) {
     }
   }
 
+  /* @stopify flat */
   function isStopifyRunning() {
     /**
      * The relevant enum is

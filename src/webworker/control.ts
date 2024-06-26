@@ -10,11 +10,21 @@ const runtimeFiles = require('./runtime-files.json');
 
 export { backend, path, bfsSetup };
 
-export const worker = new Worker(path.pyretJarr);
+let resolve : ((w: Worker) => void), reject;
+export const worker = new Promise<Worker>((res, rej) => {
+  resolve = res;
+  reject = rej;
+});
+
+function instantiateWorker() : Promise<Worker> {
+  resolve(new Worker(path.pyretJarr));
+  return worker;
+}
+
 
 export async function installFileSystem() : Promise<void> {
   bfsSetup.install();
-  return bfsSetup.configure(worker /* , path.compileBase */);
+  return bfsSetup.configure(instantiateWorker /* , path.compileBase */);
 };
 
 export const loadBuiltins = (): void => {
@@ -87,12 +97,13 @@ export const removeRootDirectory = (): void => {
   deleteDir(path.root);
 };
 
-export const lint = (
+export const lint = async (
   programText: string,
   programName: string,
-): void => {
+): Promise<void> => {
+  const w = await worker;
   backend.lintProgram(
-    worker,
+    w,
     {
       program: programText,
       programSource: programName,
@@ -100,13 +111,14 @@ export const lint = (
   );
 };
 
-export const compile = (
+export const compile = async (
   baseDirectory: string,
   programFileName: string,
   typeCheck: boolean,
-): void => {
+): Promise<void> => {
+  const w = await(worker);
   backend.compileProgram(
-    worker,
+    w,
     {
       program: programFileName,
       baseDir: baseDirectory,
@@ -154,8 +166,9 @@ export const run = (
     });
 };
 
-export const createRepl = () => {
-  backend.createRepl(worker);
+export const createRepl = async () => {
+  const w = await worker;
+  backend.createRepl(w);
 };
 
 export const setupWorkerMessageHandler = (
@@ -211,7 +224,8 @@ export type CompileAndRunResult =
   | { type: 'run-failure', error: string, errorVal: any }
   | { type: 'run-result', result: any };
 
-export function makeServerAPI(echoLog : (l : string) => void, setupFinished : () => void) {
+export async function makeServerAPI(echoLog : (l : string) => void, setupFinished : () => void) {
+  const w = await worker;
   const queue : ServerAPIEvent[] = [];
   let hasInit = false;
   type RunActions = {
@@ -289,7 +303,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
     return null;
   }
 
-  worker.addEventListener('message', serverAPIMessageHandler);
+  w.addEventListener('message', serverAPIMessageHandler);
 
   function deleteSession(session : String) : Promise<any> {
     function deleteAction() {
@@ -298,7 +312,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
         session,
         'session-delete': true,
       };
-      worker.postMessage(message);
+      w.postMessage(message);
     }
     return new Promise((resolve, reject) => {
       addEvent({
@@ -317,7 +331,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
         session,
         'session-filter': pattern,
       };
-      worker.postMessage(message);
+      w.postMessage(message);
     }
     return new Promise((resolve, reject) => {
       addEvent({
@@ -343,7 +357,7 @@ export function makeServerAPI(echoLog : (l : string) => void, setupFinished : ()
         session: options.session,
       };
 
-      worker.postMessage(message);
+      w.postMessage(message);
     }
     return new Promise((resolve) => {
       addEvent({

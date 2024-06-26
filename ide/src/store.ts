@@ -388,24 +388,26 @@ function setup() {
     fs.writeFileSync(saveFile, programText);
     const sessionId = store.getState().editorMode === 'Chatitor' ? CHATITOR_SESSION : TEXT_SESSION;
     const { dir, base } = bfsSetup.path.parse(saveFile);
-    serverAPI.compileAndRun({
-      baseDir: dir,
-      program: base,
-      builtinJSDir: control.path.compileBuiltinJS,
-      checks: 'none',
-      typeCheck: false,
-      recompileBuiltins: false,
-      session: sessionId,
-    }, runKind, {
-      cwd: dir,
-      spyMessgeHandler: ideRt.defaultSpyMessage,
-      spyExprHandler: ideRt.defaultSpyExpr,
-      imgUrlProxy: ideRt.defaultImageUrlProxy,
-      checkBlockFilter: ideRt.checkBlockFilter,
-    }).then(() => {
-      console.log('compiled and run `include cpo`');
-      store.dispatch({ type: 'update', key: 'updater', value: (s: State) => ({ ...s, footerMessage: '' }) });
-      store.dispatch({ type: 'ready' });
+    serverAPI.then(serverAPI => {
+      serverAPI.compileAndRun({
+        baseDir: dir,
+        program: base,
+        builtinJSDir: control.path.compileBuiltinJS,
+        checks: 'none',
+        typeCheck: false,
+        recompileBuiltins: false,
+        session: sessionId,
+      }, runKind, {
+        cwd: dir,
+        spyMessgeHandler: ideRt.defaultSpyMessage,
+        spyExprHandler: ideRt.defaultSpyExpr,
+        imgUrlProxy: ideRt.defaultImageUrlProxy,
+        checkBlockFilter: ideRt.checkBlockFilter,
+      }).then(() => {
+        console.log('compiled and run `include cpo`');
+        store.dispatch({ type: 'update', key: 'updater', value: (s: State) => ({ ...s, footerMessage: '' }) });
+        store.dispatch({ type: 'ready' });
+      });
     });
   }
   

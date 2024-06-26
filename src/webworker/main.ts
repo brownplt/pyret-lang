@@ -92,40 +92,42 @@ function compileSuccess() {
 
 const backendMessageHandler = control.backend.makeBackendMessageHandler(echoLog, () => {}, compileFailure, echoLog, () => {}, () => {}, compileSuccess, () => {}, () => {}, () => {});
 
-control.worker.onmessage = function(e) {
-
-  // Handle BrowserFS messages
-  if (e.data.browserfsMessage === true && showBFS.checked === false) {
-    return;
-  }
-
-  try {
-    var msgObject = JSON.parse(e.data);
+control.worker.then(worker => {
+  worker.onmessage = function(e) {
 
     // Handle BrowserFS messages
-    try {
-      let innerData = JSON.parse(msgObject.data);
-      if (innerData.browserfsMessage === true && showBFS.checked === false) {
-        return;
-      }
-
-    } catch(error) { }
-
-    var tag = msgObject["tag"];
-    if (tag !== undefined) {
-      if (tag === "log") {
-        consoleSetup.workerLog(msgObject.data);
-      } else if (tag === "error") {
-        consoleSetup.workerError(msgObject.data);
-      } else {
-        consoleSetup.workerLog(msgObject.data);
-      }
-    } else {
-      if (backendMessageHandler(e) === null) {
-        consoleSetup.workerLog("FALLEN THROUGH:", e.data);
-      }
+    if (e.data.browserfsMessage === true && showBFS.checked === false) {
+      return;
     }
-  } catch(error) {
-    consoleSetup.workerLog("Error occurred: ", error, e.data);
+
+    try {
+      var msgObject = JSON.parse(e.data);
+
+      // Handle BrowserFS messages
+      try {
+        let innerData = JSON.parse(msgObject.data);
+        if (innerData.browserfsMessage === true && showBFS.checked === false) {
+          return;
+        }
+
+      } catch(error) { }
+
+      var tag = msgObject["tag"];
+      if (tag !== undefined) {
+        if (tag === "log") {
+          consoleSetup.workerLog(msgObject.data);
+        } else if (tag === "error") {
+          consoleSetup.workerError(msgObject.data);
+        } else {
+          consoleSetup.workerLog(msgObject.data);
+        }
+      } else {
+        if (backendMessageHandler(e) === null) {
+          consoleSetup.workerLog("FALLEN THROUGH:", e.data);
+        }
+      }
+    } catch(error) {
+      consoleSetup.workerLog("Error occurred: ", error, e.data);
+    }
   }
-};
+});

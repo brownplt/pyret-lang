@@ -59,7 +59,10 @@ BrowserFS.install({});
 
 const {promise, resolve, reject} = Promise.withResolvers();
 
-BrowserFS.configure({
+
+console.log("Configuring browserfs");
+try {
+  BrowserFS.configure({
     fs: "WorkerFS",
     // Web Workers do not have access to LocalStorage.
     // Source: https://stackoverflow.com/questions/6179159/accessing-localstorage-from-a-webworker 
@@ -68,9 +71,11 @@ BrowserFS.configure({
       worker: self,
     }
   }, function(e) {
+    console.log("Configuring browserfs error arg was ", e);
+
     // NOTE(alex): configure() is async
 
-    if(e) { reject(e); }
+    if(e) { console.error("Browserfs config failed with" , e); reject(e); }
 
     // Source: https://jvilk.com/browserfs/1.3.0/interfaces/browserfs.html#bfsrequire
     self.fs = BrowserFS.BFSRequire("fs");
@@ -84,8 +89,15 @@ BrowserFS.configure({
     Object.assign(self.fsPlaceholder, self.fs.__proto__);
     polyfillCreateReadStream(requiredfs);
     polyfillCreateReadStream(self.fsPlaceholder);
+    console.log("Loaded browserfs and triggering GLOBAL_DEPS_READY");
     resolve('GLOBAL_DEPS_READY');
   });
+}
+catch(e) {
+  console.error("BrowserFS threw an error: ", e);
+}
+console.log("After call to configure browserfs");
+
 
 self.GLOBAL_DEPS_READY = promise;
 

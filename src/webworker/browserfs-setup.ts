@@ -11,7 +11,7 @@ export const install = (): void => {
   BrowserFS.install(window);
 };
 
-export async function configure(worker: Worker /* , projectsDirectory: string */) : Promise<void> {
+export async function configure(instantiateWorker : (() => Promise<Worker>) /* , projectsDirectory: string */) : Promise<void> {
   return new Promise((resolve, reject) => {
       BrowserFS.configure({
         fs: 'MountableFileSystem',
@@ -46,10 +46,12 @@ export async function configure(worker: Worker /* , projectsDirectory: string */
           reject(e);
           throw e;
         }
-    
-        BrowserFS.FileSystem.WorkerFS.attachRemoteListener(worker);
-        (window as any).bfs = BrowserFS.BFSRequire('fs');
-        resolve();
+        instantiateWorker().then((w : Worker) => {
+          BrowserFS.FileSystem.WorkerFS.attachRemoteListener(w);
+          (window as any).bfs = BrowserFS.BFSRequire('fs');
+          resolve();
+        });
+
     });
   });
 };

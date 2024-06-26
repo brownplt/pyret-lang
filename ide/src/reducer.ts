@@ -966,8 +966,8 @@ async function runTextProgram(
   const sessionId = TEXT_SESSION;
   const { dir, base } = bfsSetup.path.parse(saveFile);
 
-  await serverAPI.filterSession(sessionId, 'builtin://');
-  const result = await serverAPI.compileAndRun({
+  await (await serverAPI).filterSession(sessionId, 'builtin://');
+  const result = await (await serverAPI).compileAndRun({
     baseDir: dir,
     program: base,
     builtinJSDir: path.compileBuiltinJS,
@@ -1049,7 +1049,7 @@ async function runSegmentsAsyncWithSession(state : State, sessionId : string, al
   });
 
   if (!onlyLastSegmentChanged && !alwaysKeepCache) {
-    await serverAPI.filterSession(sessionId, 'builtin://');
+    await (await serverAPI).filterSession(sessionId, 'builtin://');
   }
 
   for (let i = 0; i < chunks.length; i += 1) {
@@ -1060,7 +1060,7 @@ async function runSegmentsAsyncWithSession(state : State, sessionId : string, al
     const filename = segmentName(state.currentFile, c.id);
     const { dir, base } = bfsSetup.path.parse(filename);
     // eslint-disable-next-line
-    const result = await serverAPI.compileAndRun({
+    const result = await (await serverAPI).compileAndRun({
       baseDir: dir,
       program: base,
       builtinJSDir: path.compileBuiltinJS,
@@ -1444,12 +1444,14 @@ async function runExamplarAsync(state: State) : Promise<any> {
 function stopSession(state: State): State {
   console.log('stopSession');
   console.assert(state.running);
-  serverAPI.stop().then((wasRunning) => {
-    console.log('serverAPI.stop().then(console.log)', wasRunning);
-    if (!wasRunning) {
-      stopFlag = true;
-    }
-    update((s: State) => ({ ...s, running: { type: 'idle' } }));
+  serverAPI.then(serverAPI => {
+    serverAPI.stop().then((wasRunning) => {
+      console.log('serverAPI.stop().then(console.log)', wasRunning);
+      if (!wasRunning) {
+        stopFlag = true;
+      }
+      update((s: State) => ({ ...s, running: { type: 'idle' } }));
+    });
   });
   return state;
 }
