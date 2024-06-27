@@ -88,6 +88,10 @@ function wrapContent(content: string): string {
 let asyncCache : {[key:string]: any} = {};
 let currentRunner: any = null;
 currentRunner = stopify.stopifyLocally("", { newMethod: 'direct' });
+const rts = stopify.newRTS('lazy');
+rts.stackSize = 1500;
+rts.restoreFrames = 1;
+rts.remainingStack = 1500;
 
 let originalPauseK = currentRunner.pauseK;
 /**
