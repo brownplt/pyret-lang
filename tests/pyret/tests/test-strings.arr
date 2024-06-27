@@ -2,6 +2,11 @@
 
 provide *
 import error as E
+import global as G
+include from G:
+  string-find-index,
+  string-get-index
+end
 
 check:
   string-char-at("", 0) raises "index"
@@ -17,6 +22,26 @@ end
 check:
   string-to-number("asdf").or-else("worked") is "worked"
   string-to-number("100").or-else("failed") is 100
+end
+
+check "string index functions":
+  string-index-of("abc", "b") is 1
+  string-index-of("abc", "z") is -1
+
+  string-find-index("abc", "b") is some(1)
+  string-find-index("abc", "z") is none
+
+  string-get-index("abc", "b") is 1
+  string-get-index("abc", "z") raises ""
+
+  string-index-of("headache", "adac") is 2
+  string-index-of("headache", "add") is -1
+
+  string-find-index("headache", "adac") is some(2)
+  string-find-index("headache", "add") is none
+
+  string-get-index("headache", "adac") is 2
+  string-get-index("headache", "add") raises ""
 end
 
 check:

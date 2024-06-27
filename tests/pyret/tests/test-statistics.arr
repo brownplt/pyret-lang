@@ -90,6 +90,20 @@ check "numeric helpers":
   chi-square([list: 1, 2, 3, 4], [list: 0.9, 1.8, 3.5, 4.7]) is%(within(0.01)) 0.209
 end
 
+check "polymorphic modes":
+  has-mode([list: "a", "b", "c", "b", "c"]) is true
+  has-mode([list: true, true, false]) is true
+  has-mode([list: {1;2}, {1;3}, {1;2}]) is true
+  has-mode([list: "a", true, true]) is true
+  has-mode([list: "a", "b", "c"]) is false
+
+  modes([list: "a", "b", "c", "b", "c"]) is [list: "b", "c"]
+  modes([list: true, true, false]) is [list: true]
+  modes([list: {1;2}, {1;3}, {1;2}]) is [list: {1;2}]
+  modes([list: "a", true, true]) is [list: true]
+  modes([list: "a", "b", "c"]) is [list: ]
+end
+
 check "linear regression":
 	linear-regression([list: 0], [list: ]) raises "lists must have equal lengths"
 	linear-regression([list: 0], [list: 1]) raises "lists must have at least 2 elements each"
@@ -118,10 +132,10 @@ end
 
 check "multiple regression":
   # multiple-regression function for single independent variable
-  x-s-s = [list: {4}, {4.5}, {5}, {5.5}, {6}, {6.5}, {7}]
+  x-s-s = [list: [list: 4], [list: 4.5], [list: 5], [list: 5.5], [list: 6], [list: 6.5], [list: 7]]
   y-s   = [list: 33, 42, 45, 51, 53, 61, 62]
   pf1   = multiple-regression(x-s-s, y-s)
-  pf1({8}) is-roughly 73.3214
+  pf1([list: 8]) is-roughly 73.3214
   #
   # check it matches linear-regression function on the same single variable
   x-s = [list: 4, 4.5, 5, 5.5, 6, 6.5, 7]
@@ -129,8 +143,8 @@ check "multiple regression":
   pf2(8) is-roughly 73.3214
   #
   # multiple-regression with two independent variables
-  x-s-s-i = [list: {4; 3}, {4.5; 2}, {5; 1.2}, {5.5; 4.5}, {6; 3.3}, {6.5; 10}, {7; 0}]
+  x-s-s-i = [list: [list: 4, 3], [list: 4.5, 2], [list: 5, 1.2], [list: 5.5, 4.5], [list: 6, 3.3], [list: 6.5, 10], [list: 7, 0]]
   y-s-i   = [list: 33, 42, 45, 51, 53, 61, 62]
   pf-i    = multiple-regression(x-s-s-i, y-s-i)
-  pf-i({8; 9}) is-roughly 74.52888
+  pf-i([list: 8, 9]) is-roughly 74.52888
 end

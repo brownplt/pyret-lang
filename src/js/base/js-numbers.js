@@ -548,7 +548,7 @@ define("pyret-base/js/js-numbers", function() {
     return approxEquals(ratx, raty, ratdelta, errbacks);
   };
 
-  var roughlyEqualsRel = function(computedValue, trueValue, delta, errbacks) {
+  var roughlyEqualsRel = function(computedValue, trueValue, delta, smoothed, errbacks) {
     if (isNegative(delta)) {
       errbacks.throwRelToleranceError('negative relative tolerance ' + delta)
     }
@@ -566,9 +566,13 @@ define("pyret-base/js/js-numbers", function() {
     var ratDelta = isRoughnum(delta) ? delta.toRational(errbacks): delta
 
     var err = abs(subtract(ratCv, ratTv, errbacks), errbacks)
+    var denom = min(abs(ratCv, errbacks), abs(ratTv, errbacks), errbacks)
+    if (smoothed) {
+      denom = add(denom, 1, errbacks);
+    }
 
     if (lessThanOrEqual(ratDelta, 1, errbacks)) {
-      var absDelta = multiply(ratDelta, abs(ratTv, errbacks), errbacks)
+      var absDelta = multiply(ratDelta, denom, errbacks)
       if (deltaIsRough && toRoughnum(absDelta, errbacks).n === Number.MIN_VALUE) {
         if (argNumsAreRough && Math.abs(toRoughnum(err, errbacks).n) === Number.MIN_VALUE) {
           errbacks.throwRelToleranceError('roughnum tolerance too small for meaningful comparison, ' +
@@ -578,7 +582,7 @@ define("pyret-base/js/js-numbers", function() {
 
       return lessThanOrEqual(err, absDelta, errbacks)
     } else {
-      var errRatio = divide(err, abs(ratTv, errbacks), errbacks)
+      var errRatio = divide(err, denom, errbacks)
 
       if (deltaIsRough && delta.n === Number.MIN_VALUE) {
         if (argNumsAreRough && Math.abs(toRoughnum(errRatio, errbacks).n) === Number.MIN_VALUE) {
@@ -769,6 +773,15 @@ define("pyret-base/js/js-numbers", function() {
     }
     return n.abs(errbacks);
   };
+
+  // min :: pyretnum, pyretnum -> pyretnum
+  var min = function(n, m, errbacks) {
+    if (lessThan(n, m, errbacks)) {
+      return n;
+    }
+    return m;
+  }
+  
 
   // floor: pyretnum -> pyretnum
   var floor = function(n, errbacks) {

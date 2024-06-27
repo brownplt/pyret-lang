@@ -104,7 +104,8 @@
                   (or N (setq N 1))
                   (self-insert-command N)
                   (ignore-errors
-                    (when (save-excursion (forward-char -10) (pyret-IS-ROUGHLY))
+                    (when (or (save-excursion (forward-char -10) (pyret-IS-ROUGHLY))
+                              (save-excursion (forward-char -14) (pyret-IS-NOT-ROUGHLY)))
                       (pyret-smart-tab))))))
       
     (define-key map (kbd ":")
@@ -139,14 +140,14 @@
      "of" "ascending" "descending" "sanitize" "using" "because"))
 (defconst pyret-keywords-hyphen
   '("provide-types" "type-let" 
-    "is-not" "is-roughly" "raises-other-than"
+    "is-not" "is-roughly" "is-not-roughly" "raises-other-than"
     "does-not-raise" "raises-satisfies" "raises-violates"))
 (defconst pyret-keywords-colon
   '("doc" "try" "with" "then" "else" "sharing" "where" "case" "graph" "block" "ask" "otherwise"
     "table" "load-table" "reactor" "row" "source" "on-tick" "on-mouse" "on-key" "to-draw"
     "stop-when" "title" "close-when-stop" "seconds-per-tick" "init"))
 (defconst pyret-keywords-percent
-   '("is" "is-not" "is-roughly"))
+   '("is" "is-not"))
 (defconst pyret-paragraph-starters
   '("|" "fun" "lam" "cases" "data" "for" "sharing" "try" "except" "when" "check" "examples" "ask:" "reactor" "table" "load-table"))
 
@@ -157,7 +158,7 @@
   (concat "^[ \t]*\\(?:\\_<"
           (regexp-opt '("-" "+" "*" "/" "<" "<=" ">" ">=" "==" "<>"
                         "is" "is%" "is==" "is=~" "is<=>" "because"
-                        "is-not" "is-not%" "is-not==" "is-not=~" "is-not<=>" "is-roughly"
+                        "is-not" "is-not%" "is-not==" "is-not=~" "is-not<=>" "is-roughly" "is-not-roughly"
                         "satisfies" "violates" "raises" "raises-other-than"
                         "does-not-raise" "raises-satisfies" "raises-violates"))
           "\\_>\\|" 
@@ -690,6 +691,7 @@ the number of quote characters in the match."
 (defsubst pyret-IS () (pyret-keyword "is"))
 (defsubst pyret-IS-NOT () (pyret-keyword "is-not"))
 (defsubst pyret-IS-ROUGHLY () (pyret-keyword "is-roughly"))
+(defsubst pyret-IS-NOT-ROUGHLY () (pyret-keyword "is-not-roughly"))
 (defsubst pyret-SATISFIES () (pyret-keyword "satisfies"))
 (defsubst pyret-VIOLATES () (pyret-keyword "violates"))
 (defsubst pyret-RAISES () (pyret-keyword "raises"))
@@ -834,7 +836,7 @@ the number of quote characters in the match."
 
 (defvar pyret-tokens-stack nil
   "Stores the token stack of the parse.  Should only be buffer-local.")
-(defvar pyret-nestings-dirty-at-char 0
+(defvar pyret-nestings-dirty-at-char 1
   "Stores the minimum dirty position of the buffer.  Should only be buffer-local.")
 (defvar pyret-nestings-at-line-end nil
   "Stores the deferred open information of the parse.  Should only be buffer-local.")
@@ -1818,7 +1820,7 @@ in (nil if we're not in a string).")
   (set (make-local-variable 'pyret-nestings-at-line-start) (vector))
   (set (make-local-variable 'pyret-nestings-at-line-end) (vector))
   (set (make-local-variable 'pyret-tokens-stack) (vector))
-  (set (make-local-variable 'pyret-nestings-dirty-at-char) 0)
+  (set (make-local-variable 'pyret-nestings-dirty-at-char) 1)
   (add-hook 'before-change-functions
                (function (lambda (beg end) 
                            (setq pyret-nestings-dirty-at-char 
@@ -1883,9 +1885,8 @@ in (nil if we're not in a string).")
 (defun pyret-smartparens-setup ()
   (message "Setting up smartparens...")
   (when (require 'smartparens nil 'noerror)
-    (sp-with-modes '(pyret-mode)
-      (sp-local-pair "`" nil :actions nil)
-      (sp-local-pair "```" "```" :actions '(insert wrap) :unless '(pyret-point-not-at-last-tqs-opener-p)))))
+    (sp-local-pair '(pyret-mode) "`" nil :actions nil)
+    (sp-local-pair '(pyret-mode) "```" "```" :actions '(insert wrap) :unless '(pyret-point-not-at-last-tqs-opener-p))))
 
 (add-hook 'pyret-mode-startup-hook 'pyret-smartparens-setup)
 

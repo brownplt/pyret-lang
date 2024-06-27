@@ -1710,6 +1710,9 @@ data CheckOp:
   | s-op-is-roughly(l :: Loc) with:
     method label(self): "s-op-is-roughly" end,
     method tosource(self): PP.str("is-roughly") end
+  | s-op-is-not-roughly(l :: Loc) with:
+    method label(self): "s-op-is-not-roughly" end,
+    method tosource(self): PP.str("is-not-roughly") end
   | s-op-is-op(l :: Loc, op :: String) with:
     method label(self): "s-op-is-op" end,
     method tosource(self): str-is + PP.str(string-substring(self.op, 2, string-length(self.op))) end

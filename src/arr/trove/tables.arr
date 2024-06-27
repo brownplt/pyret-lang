@@ -1,7 +1,10 @@
-provide *
-provide-types *
+provide:
+  * hiding (is-kv-pairs),
+  type *
+end
 
-import global as _
+import global as G
+include from G: raw-array-duplicate end
 include lists
 
 type Reducer<Acc, InVal, OutVal> = {
@@ -62,14 +65,20 @@ running-min :: Reducer<Number, Number, Number> = running-reduce(num-min)
 
 running-sum :: Reducer<Number, Number, Number> = running-reduce(_ + _)
 
+type KeyValPair<V> = { String; V }
+
+fun is-kv-pairs(arr :: RawArray<Any>) -> Boolean:
+  raw-array-and-mapi(lam<C>(kv :: KeyValPair<C>, _): true end, arr, 0)
+end
+
 raw-row = {
-  make: lam(arr): builtins.raw-make-row(arr) end,
+  make: lam(arr :: RawArray<Any>%(is-kv-pairs)): builtins.raw-make-row(arr) end,
   make0: lam(): builtins.raw-make-row([raw-array:]) end,
-  make1: lam(t): builtins.raw-make-row([raw-array: t]) end,
-  make2: lam(t1, t2): builtins.raw-make-row([raw-array: t1, t2]) end,
-  make3: lam(t1, t2, t3): builtins.raw-make-row([raw-array: t1, t2, t3]) end,
-  make4: lam(t1, t2, t3, t4): builtins.raw-make-row([raw-array: t1, t2, t3, t4]) end,
-  make5: lam(t1, t2, t3, t4, t5): builtins.raw-make-row([raw-array: t1, t2, t3, t4, t5]) end,
+  make1: lam<C1>(t :: KeyValPair<C1>): builtins.raw-make-row([raw-array: t]) end,
+  make2: lam<C1, C2>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>): builtins.raw-make-row([raw-array: t1, t2]) end,
+  make3: lam<C1, C2, C3>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>, t3 :: KeyValPair<C3>): builtins.raw-make-row([raw-array: t1, t2, t3]) end,
+  make4: lam<C1, C2, C3, C4>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>, t3 :: KeyValPair<C3>, t4 :: KeyValPair<C4>): builtins.raw-make-row([raw-array: t1, t2, t3, t4]) end,
+  make5: lam<C1, C2, C3, C4, C5>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>, t3 :: KeyValPair<C3>, t4 :: KeyValPair<C4>, t5 :: KeyValPair<C5>): builtins.raw-make-row([raw-array: t1, t2, t3, t4, t5]) end,
 }
 
 fun empty-table(col-names :: List<String>) -> Table:
@@ -85,6 +94,10 @@ fun table-from-raw-array(arr):
   for raw-array-fold(t from with-cols, r from arr, _ from 0):
     t.add-row(r)
   end
+end
+
+fun raw-array-from-table(table):
+  raw-array-map(raw-array-duplicate, table._rows-raw-array)
 end
 
 table-from-rows = {

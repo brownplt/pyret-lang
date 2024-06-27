@@ -1354,7 +1354,7 @@ data CompileError:
             [ED.para:
               ED.text("It is "),
               ED.highlight(ED.text("used"), [ED.locs: self.id.l], 0),
-              ED.text(" but not previously defined.")]]
+              ED.text(" but not previously defined.  You may need to run the program, or check dashes and capitalization in the name.")]]
       end
     end,
     method render-reason(self):
@@ -1372,7 +1372,7 @@ data CompileError:
               ED.text(" at "),
               ED.loc(self.id.l),
               ED.text(" is unbound. It is "),
-              ED.text("used but not previously defined.")]]
+              ED.text("used but not previously defined.  You may need to run the program, or check dashes and capitalization in the name.")]]
       end
     end
   | unbound-var(id :: String, loc :: Loc) with:
@@ -1390,7 +1390,7 @@ data CompileError:
               ED.code(ED.highlight(ED.text(self.id), [ED.locs: self.loc], 0)),
               ED.text(" is unbound. It is "),
               ED.highlight(ED.text("assigned to"), [ED.locs: self.loc], 0),
-              ED.text(" but not previously defined.")]]
+              ED.text(" but not previously defined.  You may need to run the program, or check dashes and capitalization in the name.")]]
       end
     end,
     method render-reason(self):
@@ -1408,7 +1408,7 @@ data CompileError:
               ED.text(" at "),
               ED.loc(self.loc),
               ED.text(" is unbound. It is "),
-              ED.text("used but not previously defined.")]]
+              ED.text("used but not previously defined.  You may need to run the program, or check dashes and capitalization in the name.")]]
       end
     end
   | unbound-type-id(ann :: A.Ann) with:

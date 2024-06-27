@@ -1,34 +1,36 @@
 #lang pyret/library
 
-provide {
-    mean: mean,
-    median: median,
-    modes: modes,
-    has-mode: has-mode,
-    mode-smallest: mode-smallest,
-    mode-largest: mode-largest,
-    mode-any: mode-any,
-    variance: variance,
-    stdev: stdev,
-    variance-sample: variance-sample,
-    stdev-sample: stdev-sample,
-    linear-regression: linear-regression,
-    multiple-regression: multiple-regression,
-    r-squared: r-squared,
-    z-test: z-test,
-    t-test: t-test,
-    t-test-paired: t-test-paired,
-    t-test-pooled: t-test-pooled,
-    t-test-independent: t-test-independent,
-    chi-square: chi-square
-} end
-provide-types *
+provide:
+  mean,
+  median,
+  modes,
+  has-mode,
+  mode-smallest,
+  mode-largest,
+  mode-any,
+  variance,
+  stdev,
+  variance-sample,
+  stdev-sample,
+  linear-regression,
+  multiple-regression,
+  r-squared,
+  z-test,
+  t-test,
+  t-test-paired,
+  t-test-pooled,
+  t-test-independent,
+  chi-square,
+  group-and-count,
+  type *
+end
+
 import global as _
 include lists
 import error as E
 import math as math
 import string-dict as SD
-import multiple-regression as MR
+import matrices as MX
 
 fun mean(l :: List<Number>) -> Number:
   doc: "Find the average of a list of numbers"
@@ -60,29 +62,64 @@ fun median(l :: List) -> Number:
   end
 end
 
-fun group-and-count(l :: List<Number>) -> List<{Number; Number}> block:
-  doc: "Returns a list of all the values in the list, together with their counts, sorted descending by value"
-  
-  sorted = builtins.raw-array-sort-nums(raw-array-from-list(l), false)
-  size = raw-array-length(sorted)
+all-strings = all(is-string, _)
+all-nums = all(is-number, _)
 
+sort-pair-by-count-then-val = lam(p1, p2): (p1.{0} > p2.{0}) or ((p1.{0} == p2.{0}) and (p1.{1} < p2.{1})) end
+
+fun group-and-count-strs(l :: List<String>) -> List<{String; Number}> block:
+  msd = [SD.mutable-string-dict: ]
+  for each(s from l):
+    if msd.has-key-now(s):
+      msd.set-now(s, msd.get-value-now(s) + 1)
+    else:
+      msd.set-now(s, 1)
+    end
+  end
+  pairs = msd.map-keys-now({(k): {k; msd.get-value-now(k)}})
+  pairs.sort-by(sort-pair-by-count-then-val, equal-always)
+end
+
+fun group-and-count-nums(l :: List<Number>) -> List<{Number; Number}> block:
+  sorted = builtins.raw-array-sort-nums(raw-array-from-list(l), true)
+  size = raw-array-length(sorted)
+  
   if size == 0: empty
   else:
     first = raw-array-get(sorted, 0)
     {front; acc} = for raw-array-fold({{cur; count}; lst} from {{first; 0}; empty}, n from sorted, _ from 0):
-        if within(~0.0)(cur, n):
-          {{cur; count + 1}; lst}
-        else:
-          {{n; 1}; link({cur; count}, lst)}
-        end
+      if within(~0.0)(cur, n):
+        {{cur; count + 1}; lst}
+      else:
+        {{n; 1}; link({cur; count}, lst)}
       end
+    end
     link(front, acc)
   end
 end
+
+fun group-and-count-equal<a>(l :: List<a>) -> List<{a; Number}> block:
+  if is-empty(l): empty
+  else:
+    split = l.partition(equal-always(l.first, _))
+    link({split.is-true.first; split.is-true.length()}, group-and-count-equal(split.is-false))
+  end
+end
+
+fun group-and-count<a>(l :: List<a>) -> List<{a; Number}>:
+  doc: "Returns a list of all the values in the list, together with their counts, sorted descending by value"
+  if all-strings(l):
+    group-and-count-strs(l)
+  else if all-nums(l):
+    group-and-count-nums(l)
+  else:
+    group-and-count-equal(l)
+  end
+end
   
-fun modes-helper(l :: List<Number>) -> {Number; List<Number>}:
+fun modes-helper<a>(l :: List<a>) -> {Number; List<a>}:
   doc: ```Returns the frequency of the modes and a list containing each mode of the input list, 
-       or an empty list if the input list is empty.  The modes are returned in sorted order```
+       or an empty list if the input list is empty.  The modes are returned in sorted order if possible```
 
   num-counts = group-and-count(l)
   max-repeat = for fold(max from 0, {_; count} from num-counts):
@@ -99,7 +136,7 @@ fun modes-helper(l :: List<Number>) -> {Number; List<Number>}:
     end }
 end
 
-fun modes(l :: List<Number>) -> List<Number>:
+fun modes<a>(l :: List<a>) -> List<a>:
   doc: ```returns a list containing each mode of the input list, or empty if there are no duplicate values```
   {max-repeat; ms} = modes-helper(l)
   if max-repeat < 2:
@@ -109,7 +146,7 @@ fun modes(l :: List<Number>) -> List<Number>:
   end
 end
 
-fun has-mode(l :: List<Number>) -> Boolean:
+fun has-mode<a>(l :: List<a>) -> Boolean:
   doc: "Returns true if the list contains at least one mode, i.e. a duplicated value"
   num-counts = group-and-count(l)
   max-repeat = for fold(max from 0, {_; count} from num-counts):
@@ -187,9 +224,15 @@ end
 
 # please see: https://online.stat.psu.edu/stat462/
 
-fun multiple-regression(x_s_s :: List<Any>, y_s :: List<Number>) -> (Any -> Number):
+fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (Any -> Number):
   doc: "multiple-regression"
-  MR.multiple-regression(x_s_s, y_s)
+  mx_X = MX.lists-to-matrix(x_s_s.map(lam(x_s): x_s.push(1) end))
+  mx_Y = MX.lists-to-matrix(y_s.map(lam(y): [list: y] end))
+  B = MX.mtx-to-list(MX.mtx-least-squares-solve(mx_X, mx_Y))
+  fun B_pred_fn(x_s :: List<Number>) -> Number:
+    math.sum(map2(lam(b_i, x_i): b_i * x_i end, B, x_s.push(1)))
+  end
+  B_pred_fn
 end
 
 fun linear-regression(x-s :: List<Number>, y-s :: List<Number>) -> (Number -> Number):
@@ -200,9 +243,9 @@ fun linear-regression(x-s :: List<Number>, y-s :: List<Number>) -> (Number -> Nu
   else if x-s-n < 2:
     raise(E.message-exception("linear-regression: input lists must have at least 2 elements each"))
   else:
-    predictor1 = MR.multiple-regression(x-s.map(lam(x1 :: Number): {x1} end), y-s)
+    predictor1 = multiple-regression(x-s.map(lam(x1 :: Number): [list: x1] end), y-s)
     fun predictor2(x2 :: Number) -> Number:
-      predictor1({x2})
+      predictor1([list: x2])
     end
     predictor2
   end

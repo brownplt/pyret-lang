@@ -517,17 +517,13 @@
     }
     
     
-    function makeRecordFieldsFail(value, failures) {
+    function makeRecordFieldsFail(value, optName, failures) {
       runtime.checkPyretVal(value);
-      return contract("record-fields-fail")(value, failures);
+      return contract("record-fields-fail")(value, optName, failures);
     }
   
-    function makeTupleAnnsFail(value, failures) {
-      return contract("tuple-anns-fail")(value, failures);
-    }
-
-    function makeTupleAnnsFail(value, failures) {
-      return contract("tuple-anns-fail")(value, failures);
+    function makeTupleAnnsFail(value, optName, failures) {
+      return contract("tuple-anns-fail")(value, optName, failures);
     }
 
     function makeFieldFailure(loc, field, reason) {
@@ -547,11 +543,11 @@
       return contract("missing-field")(loc, field);
     }
 
-    function makeTupleLengthMismatch(loc, val, annLength, tupLength) {
+    function makeTupleLengthMismatch(loc, val, optName, annLength, tupLength) {
       checkSrcloc(loc);
       runtime.checkNumber(annLength);
       runtime.checkNumber(tupLength);
-      return contract("tup-length-mismatch")(loc, val, annLength, tupLength);
+      return contract("tup-length-mismatch")(loc, val, optName, annLength, tupLength);
     }
 
     function makeTypeMismatch(val, name) {
@@ -750,6 +746,7 @@
       isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
       isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str").app(v)); },
       isVSSeq: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-seq").app(v)); },
+      isVSMatrix: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-matrix").app(v)); },
       vsStr: function(s) {
         runtime.checkString(s);
         return runtime.getField(VS, "vs-str").app(s);
@@ -772,6 +769,7 @@
         var isConstr = runtime.getField(VS, "is-vs-constr");
         var isStr = runtime.getField(VS, "is-vs-str");
         var isSeq = runtime.getField(VS, "is-vs-seq");
+        var isMatrix = runtime.getField(VS, "is-vs-matrix");
         if(!(runtime.unwrap(isValueSkeleton.app(skel)) === true)) {
           throwTypeMismatch(skel, "ValueSkeleton");
         }
@@ -797,6 +795,8 @@
               // nothing
             } else if (runtime.unwrap(isSeq.app(cur)) === true) {
               Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
+            } else if (runtime.unwrap(isMatrix.app(cur)) === true) {
+              Array.prototype.push.apply(worklist, runtime.getField(cur, "items"));
             } else {
               throwMessageException("Non-value appeared in skeleton: " + String(cur));
             }
