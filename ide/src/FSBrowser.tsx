@@ -94,12 +94,14 @@ function structureFromBrowseRoot(browseRoot : string) {
     const childStats = control.fs.statSync(childPath);
     if (childStats.isDirectory()) {
       return {
+        id: childPath,
         name: child,
         metadata: { directory: true, path: childPath },
         children: structureFromBrowseRoot(childPath),
       };
     }
     return {
+      id: childPath,
       metadata: { directory: false, path: childPath },
       name: child,
     };
