@@ -204,6 +204,7 @@ module.exports = {
         const LISTS = require("./" + "lists.arr.js");
         const rawArrayPoints = LISTS["to-raw-array"](points);
         const stringArray = rawArrayPoints.map((pyNum) => {
+            RUNTIME.checkNumNonNegative(pyNum);
             if(!(NUMBER["isInteger"](pyNum) && NUMBER["isNonNegative"](pyNum))) {
                 throw new Error(`string-from-code-point expects a Natural Number, got ${pyNum}`)
             }

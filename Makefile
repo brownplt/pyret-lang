@@ -101,6 +101,9 @@ RUNTIME_PRELUDE_FILES_SRCS := \
 	$(wildcard $(RUNTIME_PRELUDE_FILES_SRC_DIR)/*.arr)
 RUNTIME_PRELUDE_COMPILED_FILES := $(RUNTIME_PRELUDE_FILES_SRCS:$(RUNTIME_PRELUDE_FILES_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
 
+RUNTIME_UNTYPED_ARR_SRC_DIR := src/runtime-arr-untyped
+RUNTIME_UNTYPED_FILES_SRCS := $(wildcard $(RUNTIME_UNTYPED_ARR_SRC_DIR)/*.arr)
+RUNTIME_UNTYPED_COMPILED_FILES := $(RUNTIME_UNTYPED_FILES_SRCS:$(RUNTIME_UNTYPED_ARR_SRC_DIR)/%.arr=$(RUNTIME_BUILD_DIR)/%.arr.js)
 
 STOPIFIED_BUILTINS := \
 	$(RUNTIME_JS_SRCS:$(RUNTIME_SRC_DIR)/%.js=$(RUNTIME_BUILD_DIR)/%.js.stopped) \
@@ -150,6 +153,16 @@ $(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_PRELUDE_FILES_SRC_DIR)/%.arr
 	mv $(RUNTIME_PRELUDE_FILES_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
 	mv $(RUNTIME_PRELUDE_FILES_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
 
+$(RUNTIME_BUILD_DIR)/%.arr.js : $(RUNTIME_UNTYPED_ARR_SRC_DIR)/%.arr
+	cd $(RUNTIME_UNTYPED_ARR_SRC_DIR) && node ../../build/phaseA/pyret.jarr \
+		--build-runnable $*.arr \
+		--builtin-js-dir "$(shell pwd)/$(RUNTIME_BUILD_DIR)" \
+		--runtime-builtin-relative-path "./" \
+		--type-check false \
+		--compile-mode "builtin-general"
+	mv $(RUNTIME_UNTYPED_ARR_SRC_DIR)/compiled/project/$*.arr.js $(RUNTIME_BUILD_DIR)
+	mv $(RUNTIME_UNTYPED_ARR_SRC_DIR)/compiled/project/$*.arr.json $(RUNTIME_BUILD_DIR)
+
 
 RUNTIME_DEPS := \
 	$(BUILD_DEPS) \
@@ -160,6 +173,7 @@ RUNTIME_DEPS := \
 	$(RUNTIME_COPIED_BUILTINS) \
 	$(RUNTIME_ARR_COMPILED_FILES) \
 	$(RUNTIME_PRELUDE_COMPILED_FILES) \
+	$(RUNTIME_UNTYPED_COMPILED_FILES) \
 	$(STOPIFIED_BUILTINS) \
 
 runtime: $(RUNTIME_DEPS)

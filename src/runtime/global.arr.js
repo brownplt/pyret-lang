@@ -84,6 +84,9 @@ module.exports = {
 
   'trace-value': runtime['traceValue'],
 
+  'is-boolean': runtime['is-boolean'],
+  'is-function': runtime['is-function'],
+
    // TODO(alex): Think of better way to expose runtime
   'runtime': runtime,
 

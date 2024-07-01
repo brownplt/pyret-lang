@@ -24,6 +24,30 @@ let opts = {
 };
 
 // Hack (?) to compile modules in non-top-level stopify context
-let runner = stopify.stopifyLocally("(function() {})();", opts);
+let runner = stopify.stopifyLocally("(function() {})();", opts, { stackSize: 30, restoreFrames: 10 });
 
-fs.writeFileSync(output, runner.compile(wrapped));
+
+
+if(output === undefined) {
+  const rts = stopify.newRTS('lazy');
+  rts.stackSize = 30;
+  rts.restoreFrames = 10;
+  rts.remainingStack = 30;
+
+  runner.g = { console };
+
+  const start = eval(runner.compile(wrapped));
+
+  runner.eventMode = 0;
+
+  runner.continuationsRTS.runtime(start, result => {
+    console.log(result);
+  });
+}
+else {
+  fs.writeFileSync(output, runner.compile(wrapped));
+
+}
+
+
+

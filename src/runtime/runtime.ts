@@ -789,13 +789,14 @@ function throwError(name : string, ...args : any[]) {
 
 function checkType(val : any, test : (v : any) => boolean, typeName : string) {
   if(!test(val)) {
-    throwError("type-mismatch", val, typeName);
+    throwError("generic-type-mismatch", val, typeName);
   }
   return true;
 }
 
 function makeCheckType(test : (v : any) => boolean, typeName : string) {
   return function(val : any) {
+    debugger;
     return checkType(val, test, typeName);
   };
 }
@@ -982,3 +983,5 @@ module.exports["debug"] = /* @stopify flat */ function() { debugger; };
 
 module.exports["run-task"] = runTask;
 
+module.exports["is-boolean"] = _PRIMITIVES.isBoolean;
+module.exports["is-function"] = _PRIMITIVES.isFunction;

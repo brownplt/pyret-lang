@@ -95,6 +95,8 @@
       "identical": ["arrow", ["Any", "Any"], "Boolean"],
       "identical3": ["arrow", ["Any", "Any"], "EqualityResult"],
       "not": ["arrow", ["Boolean"], "Boolean"],
+      "is-boolean": ["arrow", ["Any"], "Boolean"],
+      "is-function": ["arrow", ["Any"], "Boolean"],
       "debug": { "bind": "fun", "flatness": 0, "name": "debug", "typ": ["arrow", [], "Nothing"] },
       "run-task": ["forall", ["a"], ["arrow", [["arrow", [], "tva"]], "EitherOfA_Any"]]
     },

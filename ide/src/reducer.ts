@@ -69,7 +69,7 @@ import {
 
 import * as path from './path';
 import { bfsSetup, makeServerAPI, CompileAndRunResult } from './control';
-import { getLocs } from './failure';
+import { Failure, getLocs } from './failure';
 import { RunKind } from './backend';
 import GoogleAPI from './Drive';
 import { resetAsyncCacheToBuiltins } from './runner';
@@ -745,7 +745,7 @@ function handleRunSessionFailure(state: State, id: string, error: string, errorV
   cleanStopify();
   const newChunks = removeReferencesFrom(state.chunks, id);
   const index = newChunks.findIndex((c) => c.id === id);
-  const failureAsED : any = errorVal.errorDisplay ?? { $name: 'text', str: error };
+  const failureAsED : Failure = errorVal.errorDisplay ?? { $name: 'text', str: error };
   newChunks[index] = {
     ...newChunks[index],
     results: {
