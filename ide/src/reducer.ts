@@ -1038,14 +1038,29 @@ async function runSegmentsAsyncWithSession(state : State, sessionId : string, al
     resetAsyncCacheToBuiltins();
   }
   console.log('RUNNING THESE CHUNKS:');
+  // gather all segment filenames
+  const { dir } = bfsSetup.path.parse(state.currentFile);
+  const outdatedSegments = new Set<string>();
+  fs.readdirSync(dir).forEach((p: string) => {
+    if(p.endsWith("-segment")) {
+      const maybeSegmentPath = bfsSetup.path.join(dir, p);
+      outdatedSegments.add(maybeSegmentPath);
+    }
+  });
+  console.log("outdatedSegments before looking at chiunks:", outdatedSegments);
   chunks.forEach((c, i) => {
+    const filename = segmentName(state.currentFile, c.id);
+    outdatedSegments.delete(filename);
     const isLastSegment = (i === chunks.length - 1);
     if (!onlyLastSegmentChanged || isLastSegment) {
-      const filename = segmentName(state.currentFile, c.id);
       filenames.push(filename);
       const value = c.editor.getValue();
       fs.writeFileSync(filename, value);
     }
+  });
+  console.log("after:" , outdatedSegments);
+  outdatedSegments.forEach(p => {
+    fs.unlinkSync(p);
   });
 
   if (!onlyLastSegmentChanged && !alwaysKeepCache) {
@@ -1098,10 +1113,11 @@ async function runSegmentsAsyncWithSession(state : State, sessionId : string, al
       running: { ...s.running, done: i + 1 },
     }));
   }
-  filenames.forEach((f) => {
-    fs.unlinkSync(f);
-    console.log(f);
-  });
+  if(!state.developerMode) {
+    filenames.forEach((f) => {
+      fs.unlinkSync(f);
+    });
+  }
 
 }
 
