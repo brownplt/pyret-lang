@@ -801,6 +801,10 @@ function makeCheckType(test : (v : any) => boolean, typeName : string) {
   };
 }
 
+function isNatural(n : any) {
+  return _NUMBER.isInteger(n) && _NUMBER.isNonNegative(n);
+}
+
 var checkString = makeCheckType(_PRIMITIVES.isString, "String");
 var checkNumber = makeCheckType(_PRIMITIVES.isNumber, "Number");
 var checkExactnum = makeCheckType(_NUMBER.isRational, "Exactnum");
@@ -811,6 +815,7 @@ var checkNumPositive = makeCheckType(_NUMBER.isPositive, "NumPositive");
 var checkNumNegative = makeCheckType(_NUMBER.isNegative, "NumNegative");
 var checkNumNonPositive = makeCheckType(_NUMBER.isNonPositive, "NumNonPositive");
 var checkNumNonNegative = makeCheckType(_NUMBER.isNonNegative, "NumNonNegative");
+var checkNumNatural = makeCheckType(isNatural, "Natural Number");
 
 function customThrow(exn : any) {
   exn.toString = function() { return JSON.stringify(this); }
@@ -978,6 +983,7 @@ module.exports["checkNumPositive"] = checkNumPositive;
 module.exports["checkNumNegative"] = checkNumNegative;
 module.exports["checkNumNonPositive"] = checkNumNonPositive;
 module.exports["checkNumNonNegative"] = checkNumNonNegative;
+module.exports["checkNumNatural"] = checkNumNatural;
 
 module.exports["debug"] = /* @stopify flat */ function() { debugger; };
 

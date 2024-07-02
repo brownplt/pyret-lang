@@ -191,9 +191,7 @@ module.exports = {
 
     // point is a PyretNumber
     'string-from-code-point': function(point): string {
-        if(!(NUMBER["isInteger"](point) && NUMBER["isNonNegative"](point))) {
-            throw new Error(`string-from-code-point expects a Natural Number, got ${point}`)
-        }
+        RUNTIME.checkNumNatural(point);
         point = NUMBER["toFixnum"](NUMBER["floor"](point));
         check_astral(point);
         return String.fromCodePoint(point);
@@ -204,10 +202,7 @@ module.exports = {
         const LISTS = require("./" + "lists.arr.js");
         const rawArrayPoints = LISTS["to-raw-array"](points);
         const stringArray = rawArrayPoints.map((pyNum) => {
-            RUNTIME.checkNumNonNegative(pyNum);
-            if(!(NUMBER["isInteger"](pyNum) && NUMBER["isNonNegative"](pyNum))) {
-                throw new Error(`string-from-code-point expects a Natural Number, got ${pyNum}`)
-            }
+            RUNTIME.checkNumNatural(pyNum);
             const fixedNum = NUMBER["toFixnum"](NUMBER["floor"](pyNum));
             check_astral(fixedNum);
             return String.fromCodePoint(fixedNum);
