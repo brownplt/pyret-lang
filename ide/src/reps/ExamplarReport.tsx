@@ -6,6 +6,7 @@ import { FaBug, FaBugSlash } from "react-icons/fa6";
 import CodeEmbed from '../CodeEmbed';
 import { CMEditor, parseLocation } from '../utils';
 import { UninitializedEditor } from '../chunk';
+import CheckResults from '../CheckResults';
 
 type ExamplarResult = { success: boolean, result: CompileAndRunResult };
 
@@ -122,8 +123,7 @@ function failingWheatTests(wheatResults: ExamplarResult[]) {
         const checks = wr.result.result.result.$checks;
         const failed = checks.filter((c : any) => c.success === false);
         if(failed.length === 0) { return []; }
-        const failingLoc = failed[0].loc;
-        return [failingLoc];
+        return [failed[0]];
     });
     return failResults;
 }
@@ -150,11 +150,13 @@ function wheatFailureEmbed(location : any, editor : any) {
 }
 
 function showFirstWheatFailure(wheatResults : ExamplarResult[], hintMessage: string, editor : any) {
-    const first = parseLocation(firstFailingWheatTest(wheatResults));
-    console.log("wheatFailure ", first);
+    const firstFail = firstFailingWheatTest(wheatResults);
+    const first = parseLocation(firstFail.loc);
+    console.log("wheatFailure ", firstFail);
     return <div>This test is invalid (it did not match the behavior of a wheat):
         <div>{wheatFailureEmbed(first, editor)}</div>
         <div>{hintMessage}</div>
+        <CheckResults checks={[firstFail]} className="chatitor-rhs"/>
     </div>;
 }
 
