@@ -544,12 +544,12 @@ sharing:
       new-size = ((self.cols + other.cols) * self.rows)
       raw-arr = raw-array-of(0, new-size)
       fun get-el(n :: Number):
-        col = num-modulo(n, (self.cols + other.cols))
-        row = num-floor(n / (self.cols + other.cols))
+        col = index-to-col(n, (self.cols + other.cols))
+        row = index-to-row(n, (self.cols + other.cols))
         if col >= self.cols:
-          raw-array-get(other.elts, (other.cols * row) + num-modulo(col, self.cols))
+          raw-array-get(other.elts, rc-to-index(row, col - self.cols, other.cols))
         else:
-          raw-array-get(self.elts, (self.cols * row) + col)
+          raw-array-get(self.elts, rc-to-index(row, col, self.cols))
         end
       end
       matrix(self.rows, (self.cols + other.cols), raw-array-build(get-el, new-size))
