@@ -13,6 +13,7 @@ import global as G
 import number as N
 include from N: random end
 include from G: not, raise, to-repr end
+import equality as E
 
 type SetMaker = { make :: (RawArray<Number> -> Set<Number>) }
 
@@ -192,4 +193,13 @@ check "to-repr":
   to-repr([tree-set: 1, 2]) is "[tree-set: 1, 2]"
   to-repr([tree-set: 1, 2, 2]) is "[tree-set: 1, 2]"
   to-repr([list-set: {1;2}]) is "[list-set: {1; 2}]"
+end
+
+check "equality":
+  l1 = [list-set: [list: "a"], [list: "b"]]
+  l2 = [list-set: [list: "b"], [list: "a"]]
+  l1 is l2
+
+  rec-equal = lam(a :: List<String>, b :: List<String>): E.equal-always3(a, b) end
+  l1._equals(l2, rec-equal) is E.Equal
 end
