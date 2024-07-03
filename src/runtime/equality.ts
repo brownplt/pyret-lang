@@ -389,7 +389,9 @@ function equalCore3(left: any, right: any, alwaysFlag: boolean, tol: number, rel
   }
 
   function equalRec(l: any, r: any): EQ.EqualityResult {
-    return equalHelp(l, r);
+    const result = equalCore3(l, r, alwaysFlag, tol, rel, fromWithin);
+    console.log("equalRec: ", l, r, result);
+    return result;
   }
 
   // Actual equality implementation on individual items
