@@ -123,7 +123,7 @@ export function srclocToCodeMirrorPosition(
 }
 
 // file:///projects/examplar/testwheat.arr-0-segment:8:2-8:14
-const matchLocation = /.*:(\d)+:(\d)+-(\d)+:(\d)+$/;
+const matchLocation = /.*:(\d+):(\d+)-(\d+):(\d+)$/;
 export function parseLocation(location : string) : Srcloc {
   const locPieces = location.match(matchLocation);
   if(locPieces === null) { throw new Error(`Cannot match ${location} as a location`); }
