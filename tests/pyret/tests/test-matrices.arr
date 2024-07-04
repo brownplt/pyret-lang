@@ -246,6 +246,19 @@ check "Matrix Concatenation":
 
 end
 
+check "Regression in Matrix augment":
+  # When finding the appropriate column in the second matrix,
+  # should use subtraction rather than modulo...
+  A = [matrix(5, 2): 0,1,2,3,4,5,6,7,8,9]
+  B = [matrix(5, 1): 10, 20, 30, 40, 50]
+
+  A.augment(B) is [matrix(5,3): 0,1,10, 2,3,20, 4,5,30, 6,7,40, 8,9,50]
+  B.augment(A) is [matrix(5,3): 10,0,1, 20,2,3, 30,4,5, 40,6,7, 50,8,9]
+  M.mtx-augment(A, B) is A.augment(B)
+  M.mtx-augment(B, A) is B.augment(A)
+end
+
+
 check "Matrix Scaling and Trace":
   mtx1.scale(2) is [matrix(2,3): 2,  4,  6,
                                  8, 10, 12]
