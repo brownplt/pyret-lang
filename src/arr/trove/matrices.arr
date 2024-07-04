@@ -61,6 +61,7 @@ provide:
   make-matrix,
   build-matrix,
   vector-to-matrix,
+  list-to-vector,
   list-to-matrix,
   list-to-row-matrix,
   list-to-col-matrix,
@@ -351,7 +352,7 @@ sharing:
   
   method to-vector(self) -> Vector:
     doc: "Returns the one-row/one-column matrix as a vector"
-    if ((self.cols == 1) <> (self.rows == 1)):
+    if ((self.cols == 1) or (self.rows == 1)):
       vector-of-raw-array(self.elts)
     else:
       raise("Cannot convert non-vector matrix to vector")
@@ -972,6 +973,11 @@ fun vector-to-matrix(v :: Vector):
 where:
   vector-to-matrix([mk-vector: 1, 2, 3]) is
   [mk-mtx(1, 3): 1, 2, 3]
+end
+
+fun list-to-vector(lst :: List<Number>):
+  doc: "Converts the given list of numbers into a vector"
+  list-to-row-matrix(lst).to-vector()
 end
 
 fun list-to-matrix(rows :: NonZeroNat, cols :: NonZeroNat, lst :: List<Number>) block:
