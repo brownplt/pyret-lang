@@ -8,10 +8,19 @@ provide:
   mode-smallest,
   mode-largest,
   mode-any,
+  variance,
   stdev,
+  variance-sample,
   stdev-sample,
   linear-regression,
+  multiple-regression,
   r-squared,
+  z-test,
+  t-test,
+  t-test-paired,
+  t-test-pooled,
+  t-test-independent,
+  chi-square,
   group-and-count,
   type *
 end
@@ -21,6 +30,7 @@ include lists
 import error as E
 import math as math
 import string-dict as SD
+import matrices as MX
 
 fun mean(l :: List<Number>) -> Number:
   doc: "Find the average of a list of numbers"
@@ -180,53 +190,76 @@ fun mode-any(l :: List<Number>) -> Number:
     ms.get(num-random(ms.length()))
   end
 end
-  
-fun stdev(l :: List) -> Number:
-  doc: ```returns the standard deviation of the list 
+
+fun variance(l :: List) -> Number:
+  doc: ```returns the variance of the list
        of numbers, or raises an error if the list is empty```
   reg-mean = mean(l)
   sq-diff = l.map(lam(k): num-expt((k - reg-mean), 2) end)
   sq-mean = mean(sq-diff)
-  num-sqrt(sq-mean)
+  sq-mean
 end
 
-fun stdev-sample(l :: List) -> Number:
-  doc: ```returns the standard deviation of the list 
+fun stdev(l :: List) -> Number:
+  doc: ```returns the standard deviation of the list
+       of numbers, or raises an error if the list is empty```
+  num-sqrt(variance(l))
+end
+
+fun variance-sample(l :: List) -> Number:
+  doc: ```returns the variance of the list
        of numbers, or raises an error if the list is empty```
   len = l.length()
   reg-mean = mean(l)
   sq-diff = l.map(lam(k): num-expt((k - reg-mean), 2) end)
   sq-mean = math.sum(sq-diff) / (len - 1)
-  num-sqrt(sq-mean)
+  sq-mean
 end
 
-fun linear-regression(x :: List<Number>, y :: List<Number>) -> (Number -> Number):
-  doc: "returns a linear predictor function calculated with ordinary least squares regression"
-  if x.length() <> y.length():
+fun stdev-sample(l :: List) -> Number:
+  doc: ```returns the standard deviation of the list
+       of numbers, or raises an error if the list is empty```
+  num-sqrt(variance-sample(l))
+end
+
+# please see: https://online.stat.psu.edu/stat462/
+
+fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (List<Number> -> Number):
+  doc: "returns a predictor function given a list of list of independent inputs and the correspoinding list of outputs"
+  intercepts = MX.col-matrix.make(raw-array-of(1, y_s.length()))
+  mx_X = intercepts.augment(MX.lists-to-matrix(x_s_s))
+  mx_Y = MX.col-matrix.make(raw-array-from-list(y_s))
+  B = MX.mtx-to-vector(MX.mtx-least-squares-solve(mx_X, mx_Y))
+  B_n = B.length() - 1
+  fun B_pred_fn(x_s :: List<Number>) -> Number:
+    x_s_n = x_s.length()
+    if B_n <> x_s_n:
+      raise(E.message-exception("multiple-regression: the regression expected " + tostring(B_n) + " inputs, but received " + tostring(x_s_n) + " instead"))
+    else:
+      B.dot(MX.list-to-vector(x_s.push(1)))
+    end
+  end
+  B_pred_fn
+end
+
+fun linear-regression(x-s :: List<Number>, y-s :: List<Number>) -> (Number -> Number):
+  doc: "returns a linear predictor function given a list of single inputs and the corresponding list of outputs"
+  x-s-n = x-s.length()
+  if x-s-n <> y-s.length():
     raise(E.message-exception("linear-regression: input lists must have equal lengths"))
-  else if x.length() < 2:
+  else if x-s-n < 2:
     raise(E.message-exception("linear-regression: input lists must have at least 2 elements each"))
   else:
-    shadow y = map(num-to-roughnum, y)
-    shadow x = map(num-to-roughnum, x)
-    xpt-xy = math.sum(map2(lam(xi, yi): xi * yi end, x, y))
-    xpt-x-xpt-y = (math.sum(x) * math.sum(y)) / x.length()
-    covariance = xpt-xy - xpt-x-xpt-y
-    v1 = math.sum(map(lam(n): n * n end, x))
-    v2 = (math.sum(x) * math.sum(x)) / x.length()
-    variance = v1 - v2
-    beta = covariance / variance
-    alpha = mean(y) - (beta * mean(x))
-
-    fun predictor(in :: Number) -> Number:
-      (beta * in) + alpha
+    predictor1 = multiple-regression(x-s.map(lam(x1 :: Number): [list: x1] end), y-s)
+    fun predictor2(x2 :: Number) -> Number:
+      predictor1([list: x2])
     end
-
-    predictor
+    predictor2
   end
 end
 
 fun r-squared(x :: List<Number>, y :: List<Number>, f :: (Number -> Number)) -> Number:
+  doc: "given a list of inputs, a list of outputs, and a model predictor, finds the r-squared of the model"
   shadow x = map(num-to-roughnum, x)
   shadow y = map(num-to-roughnum, y)
   y-mean = mean(y)
@@ -241,3 +274,78 @@ fun r-squared(x :: List<Number>, y :: List<Number>, f :: (Number -> Number)) -> 
   end
 end
 
+fun z-test(sample-list :: List, population-sd :: Number, population-mean :: Number) -> Number:
+  doc: "given a sample and the population SD and mean, find the z-score of the sample's mean"
+  sample-size = sample-list.length()
+  sample-mean = mean(sample-list)
+  sd-of-mean = population-sd / num-sqrt(sample-size)
+  (sample-mean - population-mean) / sd-of-mean
+end
+
+fun t-test(sample-list :: List, population-mean :: Number) -> Number:
+  doc: "given a sample and the population mean, find the t-score of the sample's mean"
+  sample-size = sample-list.length()
+  sample-mean = mean(sample-list)
+  estimated-population-variance = variance-sample(sample-list)
+  variance-of-mean = estimated-population-variance / sample-size
+  (sample-mean - population-mean) / num-sqrt(variance-of-mean)
+end
+
+# please see:
+#   https://en.wikipedia.org/wiki/Student's_t-test
+#   https://www.investopedia.com/terms/t/t-test.asp
+#     (this has a typo for the pooled t-test, corrected here)
+
+fun t-test-paired(l1 :: List, l2 :: List) -> Number:
+  doc: "given two paired samples, find the t-score of the difference of their means"
+  n = l1.length()
+  n2 = l2.length()
+  if n <> n2:
+    raise(E.message-exception("t-test-paired: input lists must have equal lengths"))
+  else if n == 0:
+    raise(E.message-exception("t-test-paired: input lists must have at least one element"))
+  else:
+    diffs = map2(lam(x1, x2): x1 - x2 end, l1, l2)
+    diffs-mean = mean(diffs)
+    s-hat = stdev-sample(diffs)
+    diffs-mean / (s-hat / num-sqrt(n))
+  end
+end
+
+fun t-test-pooled(sample-list-1 :: List, sample-list-2 :: List) -> Number:
+  doc: "given two independent samples of different sizes or variances, find the t-score of the difference of their means"
+  n1 = sample-list-1.length()
+  n2 = sample-list-2.length()
+  if (n1 == 0) or (n2 == 0):
+    raise(E.message-exception("t-test-pooled: input lists must have at least one element"))
+  else:
+    m1 = mean(sample-list-1)
+    m2 = mean(sample-list-2)
+    v1 = variance-sample(sample-list-1)
+    v2 = variance-sample(sample-list-2)
+    v = (((n1 - 1) * v1) + ((n2 - 1) * v2)) / ((n1 + n2) - 2)
+    (m1 - m2) / num-sqrt((v / n1) + (v / n2))
+  end
+end
+
+fun t-test-independent(sample-list-1 :: List, sample-list-2 :: List) -> Number:
+  doc: "given two independent samples of similar size or variance, find the t-score of the difference of their means"
+  n1 = sample-list-1.length()
+  n2 = sample-list-2.length()
+  if (n1 == 0) or (n2 == 0):
+    raise(E.message-exception("t-test-independent: input lists must have at least one element"))
+  else:
+    m1 = mean(sample-list-1)
+    m2 = mean(sample-list-2)
+    v1 = variance-sample(sample-list-1)
+    v2 = variance-sample(sample-list-2)
+    (m1 - m2) / num-sqrt((v1 / n1) + (v2 / n2))
+  end
+end
+
+fun chi-square(observed-values :: List, predicted-values :: List) -> Number:
+  doc: "given a list of observed and predicted values, returns the chi-square statistic"
+  for fold2(sum from 0, obs from observed-values, pred from predicted-values):
+    sum + (num-sqr(obs - pred) / pred)
+  end
+end

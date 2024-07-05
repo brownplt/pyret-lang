@@ -57,6 +57,8 @@ check "Vector Operations":
 
   M.vec-normalize([vector: 1, 2, 3]) is%(vector-within(0.001))
   [vector: (1 / num-sqrt(14)), (2 / num-sqrt(14)), (3 / num-sqrt(14))]
+
+  M.list-to-vector([list: 1, 2, 3]) is [vector: 1, 2, 3]
 end
 
 check "Basic Matrix Accessors":
@@ -95,6 +97,8 @@ check "Basic Matrix Accessors":
   M.mtx-row(mtx1, 0).to-vector() is [vector: 1, 2, 3]
   M.mtx-col(mtx1, 1).to-vector() is [vector: 2, 5]
 
+  [row-matrix: 1, 2, 3].to-vector() is [vector: 1, 2, 3]
+  [col-matrix: 1, 2, 3].to-vector() is [vector: 1, 2, 3]
 end
 
 check "Submatrices":

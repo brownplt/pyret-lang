@@ -49,18 +49,45 @@ check "numeric helpers":
   modes([list: -1, 2, -1, 2, -1]) is [list: -1]
   modes([list: 1, 1, 2, 2, 3, 3, 3]) is [list: 3]
 
+  variance([list:]) raises "empty"
+  variance([list: 5]) is 0
+  variance([list: 3, 4, 5, 6, 7]) is%(within(0.01)) 2.0
+  variance([list: 1, 1, 1, 1]) is-roughly ~0
+
   stdev([list:]) raises "empty"
   stdev([list: 5]) is 0
-
   stdev([list: 3, 4, 5, 6, 7]) is%(within(0.01)) 1.41
   stdev([list: 1, 1, 1, 1]) is-roughly ~0
-  stdev([list:]) raises "empty"
-  
+
+  variance-sample([list: 3, 4, 5, 6, 7]) is%(within(0.01)) (10 / 4)
+  variance-sample([list: 3]) raises "division by zero"
+  variance-sample([list: 1, 1, 1, 1]) is-roughly ~0
+  variance-sample([list:]) raises "empty"
+
   stdev-sample([list: 3, 4, 5, 6, 7]) is%(within(0.01)) num-sqrt(10 / 4)
   stdev-sample([list: 3]) raises "division by zero"
   stdev-sample([list: 1, 1, 1, 1]) is-roughly ~0
   stdev-sample([list:]) raises "empty"
 
+  z-test([list: 1, 2, 3], 1.58, 2.58) is-roughly ~-0.635816119
+
+  t-test([list: 1, 2, 3], 2.58) is-roughly ~-1.004589468
+
+  t-test-paired([list: 1], [list: 2, 3]) raises "lists must have equal lengths"
+  t-test-paired([list:], [list:]) raises "lists must have at least one element"
+  t-test-paired([list: 1, 2, 3], [list: 4, 6, 8]) is-roughly ~-6.928203230
+
+  t-test-pooled([list:], [list: 1, 2, 3]) raises "lists must have at least one element"
+  t-test-pooled([list: 1, 2, 3], [list: 4, 5, 6]) is%(within(0.01)) -3.674234614
+  t-test-pooled([list: 1, 2, 3], [list: 4, 5, 6, 7]) is-roughly ~-3.872983346
+
+  t-test-independent([list:], [list: 1, 2, 3]) raises "lists must have at least one element"
+  t-test-independent([list: 1, 2, 3], [list: 4, 5, 6]) is-roughly ~-3.674234614
+  t-test-independent([list: 1, 2, 3], [list: 4, 5, 6, 7]) is-roughly ~-4.041451884
+
+
+  chi-square([list: 1, 2, 3, 4], [list: 1, 2, 3, 4]) is 0
+  chi-square([list: 1, 2, 3, 4], [list: 0.9, 1.8, 3.5, 4.7]) is-roughly ~0.2090172239
 end
 
 check "polymorphic modes":
@@ -103,3 +130,22 @@ check "linear regression":
 
 end
 
+check "multiple regression":
+  # multiple-regression function for single independent variable
+  x-s-s = [list: [list: 4], [list: 4.5], [list: 5], [list: 5.5], [list: 6], [list: 6.5], [list: 7]]
+  y-s   = [list: 33, 42, 45, 51, 53, 61, 62]
+  pf1   = multiple-regression(x-s-s, y-s)
+  pf1([list: 8]) is-roughly 73.3214
+  pf1([list: 8, 9]) raises "received"
+  #
+  # check it matches linear-regression function on the same single variable
+  x-s = [list: 4, 4.5, 5, 5.5, 6, 6.5, 7]
+  pf2 = linear-regression(x-s, y-s)
+  pf2(8) is-roughly 73.3214
+  #
+  # multiple-regression with two independent variables
+  x-s-s-i = [list: [list: 4, 3], [list: 4.5, 2], [list: 5, 1.2], [list: 5.5, 4.5], [list: 6, 3.3], [list: 6.5, 10], [list: 7, 0]]
+  y-s-i   = [list: 33, 42, 45, 51, 53, 61, 62]
+  pf-i    = multiple-regression(x-s-s-i, y-s-i)
+  pf-i([list: 8, 9]) is-roughly 74.52888
+end
