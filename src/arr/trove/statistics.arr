@@ -228,7 +228,7 @@ fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (An
   doc: "multiple-regression"
   intercepts = MX.col-matrix.make(raw-array-of(1, y_s.length()))
   mx_X = intercepts.augment(MX.lists-to-matrix(x_s_s))
-  mx_Y = MX.lists-to-matrix(y_s.map(lam(y): [list: y] end))
+  mx_Y = MX.col-matrix.make(raw-array-from-list(y_s))
   B = MX.mtx-to-vector(MX.mtx-least-squares-solve(mx_X, mx_Y))
   fun B_pred_fn(x_s :: List<Number>) -> Number:
     B.dot(MX.list-to-vector(x_s.push(1)))

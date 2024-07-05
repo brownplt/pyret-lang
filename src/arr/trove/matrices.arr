@@ -977,7 +977,7 @@ end
 
 fun list-to-vector(lst :: List<Number>):
   doc: "Converts the given list of numbers into a vector"
-  list-to-row-matrix(lst).to-vector()
+  vector(raw-array-from-list(lst))
 end
 
 fun list-to-matrix(rows :: NonZeroNat, cols :: NonZeroNat, lst :: List<Number>) block:
