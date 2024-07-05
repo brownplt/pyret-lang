@@ -97,6 +97,8 @@ check "Basic Matrix Accessors":
   M.mtx-row(mtx1, 0).to-vector() is [vector: 1, 2, 3]
   M.mtx-col(mtx1, 1).to-vector() is [vector: 2, 5]
 
+  [row-matrix: 1, 2, 3].to-vector() is [vector: 1, 2, 3]
+  [col-matrix: 1, 2, 3].to-vector() is [vector: 1, 2, 3]
 end
 
 check "Submatrices":

@@ -69,25 +69,25 @@ check "numeric helpers":
   stdev-sample([list: 1, 1, 1, 1]) is-roughly ~0
   stdev-sample([list:]) raises "empty"
 
-  z-test([list: 1, 2, 3], 1.58, 2.58) is%(within(0.01)) -0.6358
+  z-test([list: 1, 2, 3], 1.58, 2.58) is-roughly ~-0.635816119
 
-  t-test([list: 1, 2, 3], 2.58) is%(within(0.01)) -1.0046
+  t-test([list: 1, 2, 3], 2.58) is-roughly ~-1.004589468
 
   t-test-paired([list: 1], [list: 2, 3]) raises "lists must have equal lengths"
   t-test-paired([list:], [list:]) raises "lists must have at least one element"
-  t-test-paired([list: 1, 2, 3], [list: 4, 6, 8]) is%(within(0.01)) -6.928
+  t-test-paired([list: 1, 2, 3], [list: 4, 6, 8]) is-roughly ~-6.928203230
 
   t-test-pooled([list:], [list: 1, 2, 3]) raises "lists must have at least one element"
-  t-test-pooled([list: 1, 2, 3], [list: 4, 5, 6]) is%(within(0.01)) -3.674
-  t-test-pooled([list: 1, 2, 3], [list: 4, 5, 6, 7]) is%(within(0.01)) -3.873
+  t-test-pooled([list: 1, 2, 3], [list: 4, 5, 6]) is%(within(0.01)) -3.674234614
+  t-test-pooled([list: 1, 2, 3], [list: 4, 5, 6, 7]) is-roughly ~-3.872983346
 
   t-test-independent([list:], [list: 1, 2, 3]) raises "lists must have at least one element"
-  t-test-independent([list: 1, 2, 3], [list: 4, 5, 6]) is%(within(0.01)) -3.674
-  t-test-independent([list: 1, 2, 3], [list: 4, 5, 6, 7]) is%(within(0.01)) -4.041
+  t-test-independent([list: 1, 2, 3], [list: 4, 5, 6]) is-roughly ~-3.674234614
+  t-test-independent([list: 1, 2, 3], [list: 4, 5, 6, 7]) is-roughly ~-4.041451884
 
 
   chi-square([list: 1, 2, 3, 4], [list: 1, 2, 3, 4]) is 0
-  chi-square([list: 1, 2, 3, 4], [list: 0.9, 1.8, 3.5, 4.7]) is%(within(0.01)) 0.209
+  chi-square([list: 1, 2, 3, 4], [list: 0.9, 1.8, 3.5, 4.7]) is-roughly ~0.2090172239
 end
 
 check "polymorphic modes":
@@ -136,6 +136,7 @@ check "multiple regression":
   y-s   = [list: 33, 42, 45, 51, 53, 61, 62]
   pf1   = multiple-regression(x-s-s, y-s)
   pf1([list: 8]) is-roughly 73.3214
+  pf1([list: 8, 9]) raises "received"
   #
   # check it matches linear-regression function on the same single variable
   x-s = [list: 4, 4.5, 5, 5.5, 6, 6.5, 7]

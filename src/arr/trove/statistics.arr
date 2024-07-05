@@ -224,20 +224,26 @@ end
 
 # please see: https://online.stat.psu.edu/stat462/
 
-fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (Any -> Number):
-  doc: "multiple-regression"
+fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (List<Number> -> Number):
+  doc: "returns a predictor function given a list of list of independent inputs and the correspoinding list of outputs"
   intercepts = MX.col-matrix.make(raw-array-of(1, y_s.length()))
   mx_X = intercepts.augment(MX.lists-to-matrix(x_s_s))
   mx_Y = MX.col-matrix.make(raw-array-from-list(y_s))
   B = MX.mtx-to-vector(MX.mtx-least-squares-solve(mx_X, mx_Y))
+  B_n = B.length() - 1
   fun B_pred_fn(x_s :: List<Number>) -> Number:
-    B.dot(MX.list-to-vector(x_s.push(1)))
+    x_s_n = x_s.length()
+    if B_n <> x_s_n:
+      raise(E.message-exception("multiple-regression: the regression expected " + tostring(B_n) + " inputs, but received " + tostring(x_s_n) + " instead"))
+    else:
+      B.dot(MX.list-to-vector(x_s.push(1)))
+    end
   end
   B_pred_fn
 end
 
 fun linear-regression(x-s :: List<Number>, y-s :: List<Number>) -> (Number -> Number):
-  doc: "returns a linear predictor function for a single independent variable"
+  doc: "returns a linear predictor function given a list of single inputs and the corresponding list of outputs"
   x-s-n = x-s.length()
   if x-s-n <> y-s.length():
     raise(E.message-exception("linear-regression: input lists must have equal lengths"))
@@ -253,6 +259,7 @@ fun linear-regression(x-s :: List<Number>, y-s :: List<Number>) -> (Number -> Nu
 end
 
 fun r-squared(x :: List<Number>, y :: List<Number>, f :: (Number -> Number)) -> Number:
+  doc: "given a list of inputs, a list of outputs, and a model predictor, finds the r-squared of the model"
   shadow x = map(num-to-roughnum, x)
   shadow y = map(num-to-roughnum, y)
   y-mean = mean(y)
@@ -268,7 +275,7 @@ fun r-squared(x :: List<Number>, y :: List<Number>, f :: (Number -> Number)) -> 
 end
 
 fun z-test(sample-list :: List, population-sd :: Number, population-mean :: Number) -> Number:
-  doc: "z-test"
+  doc: "given a sample and the population SD and mean, find the z-score of the sample's mean"
   sample-size = sample-list.length()
   sample-mean = mean(sample-list)
   sd-of-mean = population-sd / num-sqrt(sample-size)
@@ -276,7 +283,7 @@ fun z-test(sample-list :: List, population-sd :: Number, population-mean :: Numb
 end
 
 fun t-test(sample-list :: List, population-mean :: Number) -> Number:
-  doc: "t-test"
+  doc: "given a sample and the population mean, find the t-score of the sample's mean"
   sample-size = sample-list.length()
   sample-mean = mean(sample-list)
   estimated-population-variance = variance-sample(sample-list)
@@ -290,7 +297,7 @@ end
 #     (this has a typo for the pooled t-test, corrected here)
 
 fun t-test-paired(l1 :: List, l2 :: List) -> Number:
-  doc: "t-test-paired"
+  doc: "given two paired samples, find the t-score of the difference of their means"
   n = l1.length()
   n2 = l2.length()
   if n <> n2:
@@ -306,7 +313,7 @@ fun t-test-paired(l1 :: List, l2 :: List) -> Number:
 end
 
 fun t-test-pooled(sample-list-1 :: List, sample-list-2 :: List) -> Number:
-  doc: "t-test-pooled"
+  doc: "given two independent samples of different sizes or variances, find the t-score of the difference of their means"
   n1 = sample-list-1.length()
   n2 = sample-list-2.length()
   if (n1 == 0) or (n2 == 0):
@@ -322,7 +329,7 @@ fun t-test-pooled(sample-list-1 :: List, sample-list-2 :: List) -> Number:
 end
 
 fun t-test-independent(sample-list-1 :: List, sample-list-2 :: List) -> Number:
-  doc: "t-test-independent"
+  doc: "given two independent samples of similar size or variance, find the t-score of the difference of their means"
   n1 = sample-list-1.length()
   n2 = sample-list-2.length()
   if (n1 == 0) or (n2 == 0):
@@ -337,8 +344,8 @@ fun t-test-independent(sample-list-1 :: List, sample-list-2 :: List) -> Number:
 end
 
 fun chi-square(observed-values :: List, predicted-values :: List) -> Number:
-  doc: "chi-square"
-  math.sum(map2(lam(observed-value, predicted-value):
-                  num-expt(observed-value - predicted-value, 2) / predicted-value end,
-                observed-values, predicted-values))
+  doc: "given a list of observed and predicted values, returns the chi-square statistic"
+  for fold2(sum from 0, obs from observed-values, pred from predicted-values):
+    sum + (num-sqr(obs - pred) / pred)
+  end
 end
