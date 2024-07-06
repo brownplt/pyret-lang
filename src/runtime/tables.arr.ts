@@ -310,7 +310,7 @@ function convertCell(c : CellType, s : string) {
 }
 
 function _makeTableSkeletonFromCSVString(s: string): TableSkeleton {
-  const headers = [];
+  const headers: string[] = [];
 
   const csv = parse(s, {
     columns: (header: string[]) => {
@@ -321,10 +321,10 @@ function _makeTableSkeletonFromCSVString(s: string): TableSkeleton {
     }
   });
 
-  var converters = [];
+  var converters: CellType[] = [];
 
   const rows: any[][] = csv.map((row: object) => {
-    const result = [];
+    const result: any[][] = [];
 
     if(converters.length === 0) {
       for (let i = 0; i < headers.length; i++) {
@@ -428,10 +428,10 @@ function _tableFilter(table: Table, predicate: (row: any[]) => boolean): Table {
 // filter :: (Table, (Row -> Boolean)) -> Table
 // creates a new table containing only the rows for which the predicate
 // returned true
-function filter(table, predicate) {
+function filter(table: Table, predicate: ((row: Row) => boolean)) {
   var headers = table._headers;
   var rows = table._rows;
-  var newRows = [];
+  var newRows: any[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     if (predicate(_rowN(table, i))) {
@@ -447,7 +447,7 @@ function filter(table, predicate) {
 // returned true for that column
 function filterBy(table, columnName, predicate) {
   var headers = table._headers;
-  var newRows = [];
+  var newRows: any[][] = [];
   var column = _getRawColumn(table, columnName);
 
     console.log(column.length);
@@ -538,7 +538,7 @@ function _selectColumns(table: Table, columnNames: string[]): Table {
    }
   }
 
-  var newRows = [];
+  var newRows: any[][] = [];
   for(var i = 0; i < table['_rows'].length; i += 1) {
     console.log(i);
     newRows[i] = [];
@@ -639,7 +639,7 @@ function _tableReduce(table: Table, extensions: Array<TableExtension>): Table {
     return newTable;
   }
 
-  let accumulators = [];
+  let accumulators: any[] = [];
 
   for (let i = 0; i < extensions.length; i++) {
     const extension: TableExtension = extensions[i];
