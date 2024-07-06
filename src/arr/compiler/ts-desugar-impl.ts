@@ -15,7 +15,7 @@ export type Exports = {
   }
 }
 
-type DesugarInfo = {
+export type DesugarInfo = {
   dict: {
     ast: A.Program,
     'new-binds': MutableStringDict<CS.ValueBind>,

@@ -367,7 +367,7 @@ type WFContext = {
                 return
               }
               if (ad.has(nameToName(id))) {
-                addError(C['duplicate-id'].app(nameToSourceString(id), l, ad.get(nameToName(id))));
+                addError(C['duplicate-id'].app(nameToSourceString(id), l, ad.get(nameToName(id))!));
               } else {
                 ad.set(nameToName(id), l);
               }
@@ -671,7 +671,7 @@ type WFContext = {
             }
           }
         }
-        const bindStmts: A.Bind[] = stmts.map(mapStmts).filter(stmt => stmt);
+        const bindStmts: A.Bind[] = stmts.map(mapStmts).filter(stmt => stmt) as A.Bind[];
         ensureUniqueBindings(bindStmts, true);
         ensureDistinctLines(A['dummy-loc'], false, stmts);
         if (!wfContext.inCheckBlock && !topLevel) {

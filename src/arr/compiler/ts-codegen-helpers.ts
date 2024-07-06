@@ -35,7 +35,9 @@ type SDExports = {
 }
 
 export type Visitor<T extends PyretDataValue, Ret = any, E = any> = {
-  [method in T["$name"]]?: (self: Visitor<T, Ret, E>, val: Variant<T, method>, extra?: E) => Ret;
+  [method in T["$name"]]?: 
+    ((self: Visitor<T, Ret, E>, val: Variant<T, method>) => Ret) |
+    ((self: Visitor<T, Ret, E>, val: Variant<T, method>, extra: E) => Ret);
 };
 export interface Exports {
   ArrayExpression : (values : J.Expression[]) => J.ArrayExpression,
@@ -54,7 +56,7 @@ export interface Exports {
   FunctionExpression : (id: A.Name, args: A.Name[], body: J.BlockStatement) => J.FunctionExpression,
   Getter : (name: string, value: J.Expression) => J.Property,
   Identifier : (id: A.Name) => J.Identifier,
-  IfStatement : (test: J.Expression, thn: J.Statement, els: J.Statement) => J.IfStatement,
+  IfStatement : (test: J.Expression, thn: J.Statement, els: J.Statement | null) => J.IfStatement,
   InternalCompilerError : new(message?: string) => Error,
   Literal : (a: any) => J.Literal | J.UnaryExpression,
   LogicalExpression : (operator : J.LogicalOperator, left: J.Expression, right: J.Expression) => J.LogicalExpression,
@@ -81,7 +83,7 @@ export interface Exports {
   SwitchStatement : (value: J.Expression, cases: J.SwitchCase[]) => J.SwitchStatement,
   TODOError : new(message?: string) => Error,
   UnaryExpression : (operator: J.UnaryOperator, argument : J.Expression) => J.UnaryExpression,
-  Var : (id : A.Name, expr : J.Expression) => J.Declaration,
+  Var : (id : A.Name, expr : J.Expression | undefined | null) => J.Declaration,
   bindToName: (b: A.Bind) => A.Name,
   listToArray : <T>(list: List<T>) => T[],
   nameToKey : (name: A.Name) => string,
@@ -234,7 +236,7 @@ export interface Exports {
         argument: e
       }
     }
-    function Var(id : A.Name, expr : J.Expression) : J.Declaration {
+    function Var(id : A.Name, expr : J.Expression | null) : J.Declaration {
       return {
         type: "VariableDeclaration",
         kind: "var",
@@ -365,7 +367,7 @@ export interface Exports {
       }
     }
     
-    function IfStatement(test: J.Expression, thn: J.Statement, els: J.Statement): J.IfStatement {
+    function IfStatement(test: J.Expression, thn: J.Statement, els: J.Statement | null): J.IfStatement {
       return {
         type: 'IfStatement',
         test,
@@ -499,7 +501,7 @@ export interface Exports {
     }
     
     function listToArray<T>(list: List<T>): T[] {
-      const ret = [];
+      const ret: T[] = [];
       let cur = list;
       while (cur.$name === 'link') {
         ret.push(cur.dict.first);

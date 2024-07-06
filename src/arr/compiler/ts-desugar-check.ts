@@ -70,7 +70,7 @@ class CheckInfo {
         's-check': (visitor, check) => {
           return map(visitor, check.dict.body);
         },
-        's-check-test': (_visitor, checkTest) => {
+        's-check-test': (_visitor, checkTest: TJ.Variant<A.Expr, 's-check-test'>) => {
           const { l, op, refinement, left, right, cause } = checkTest.dict;
           function checkOp(fieldName: string): TJ.Variant<A.Expr, 's-app'> {
             if (right.$name === 'none') { throw new InternalCompilerError('right is none in checkOp'); }
@@ -316,7 +316,7 @@ class CheckInfo {
     */
     function desugarCheck(prog: A.Program): A.Program {
       const ret = map<A.Program | A.Expr, A.Program>({
-        's-block': (visitor, block) => {
+        's-block': (visitor, block: TJ.Variant<A.Expr, 's-block'>) => {
           const l = block.dict.l;
           const stmts = listToArray(block.dict.stmts);
           const checksToPerform = getChecks(stmts);
@@ -328,7 +328,7 @@ class CheckInfo {
             throw new InternalCompilerError("Empty block");
           } else {
             const idResult = A['s-name'].app(l, G['make-name'].app("$result-after-checks"))
-            const lastExpr = dsStmts.pop();
+            const lastExpr = dsStmts.pop()!;
             return A['s-block'].app(
               l,
               runtime.ffi.makeList([
@@ -345,7 +345,7 @@ class CheckInfo {
 
     function desugarNoChecks(prog: A.Program): A.Program {
       return map<A.Program | A.Expr, A.Program>({
-        's-block': (visitor, block) => {
+        's-block': (visitor, block: TJ.Variant<A.Expr, 's-block'>) => {
           const l = block.dict.l;
           const stmts = listToArray(block.dict.stmts);
           const newStmts: A.Expr[] = [];
