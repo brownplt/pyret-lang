@@ -292,8 +292,9 @@ type ResolveScopeExports = {
 
     function getStandardDependencies(p: PyretCode, uri: string): Dependency[] {
       const ret = getDependencies(p, uri);
-      // NOTE that CS.minimal-imports is actually empty
-      return ret;
+      const fromImports = listToArray((CS['minimal-imports'] as TCS.ExtraImports).dict.imports);
+      const deps = fromImports.map((imp : TCS.ExtraImport) => imp.dict.dependency);
+      return ret.concat(deps);
     }
 
 
