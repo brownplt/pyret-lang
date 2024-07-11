@@ -580,7 +580,7 @@ export type Exports = {
         return IfStatement(exceptionFlag, checkBody, null);
       }
 
-      const testLoc = compileSrcloc(context, chooseSrcloc(l, context));
+      const testLoc = Literal(formatSrcloc(chooseSrcloc(l, context), true));
 
       let checkOp: CheckOpDesugar, checkOpStmts: J.Statement[];
       switch(op.$name) {
@@ -636,7 +636,7 @@ export type Exports = {
         default: throw new ExhaustiveSwitchError(op);
       }
 
-      function defineBinTest(rightExpr: A.Expr, binOp: (lhs: J.Expression, rhs: J.Expression) => J.Expression, checkType: string): CompileResult {
+      function defineBinTest(rightExpr: A.Expr, binOp: (lhs: J.Expression, rhs: J.Expression) => J.Expression): CompileResult {
         // Thunk the lhs
         const [ lhs, lhsStmts ] = compileExpr(context, left);
         const lhFunc = thunkIt("LHS", lhs, lhsStmts);
@@ -668,7 +668,7 @@ export type Exports = {
         const testBody = BlockStatement(testBodyStmts);
         const testFunc = FunctionExpression(compilerName("TEST"), [lhsParamName, rhsParamName], testBody);
 
-        const testerCallArgs = [lhFunc, rhFunc, testFunc, testLoc, Literal(checkType)];
+        const testerCallArgs = [lhFunc, rhFunc, testFunc, testLoc];
         const testerCall = ExpressionStatement(rtMethod("$checkTest", testerCallArgs));
 
         return [UNDEFINED, [testerCall]];
@@ -680,7 +680,7 @@ export type Exports = {
           const right = unwrap(rightOpt, 'Attempting to use a binary check op without the RHS');
           return defineBinTest(right, (left, right) => {
             return compileSOp(context, binOp, left, right);
-          }, op.$name);
+          });
         }
         case 'expect-raises': {
           // Transforms the following Pyret test expression:
@@ -775,7 +775,7 @@ export type Exports = {
             } else {
               return CallExpression(refinement, [left, right]);
             }
-          }, op.$name);
+          });
         }
         case 'predicate-result': {
           const { negate } = checkOp;
@@ -786,7 +786,7 @@ export type Exports = {
             } else {
               return CallExpression(rhs, [lhs]);
             }
-          }, op.$name);
+          });
 
         }
       }
@@ -1810,7 +1810,6 @@ export type Exports = {
       const setupRuntime = [
         runtimeImport,
         ExpressionStatement(rtMethod("$claimMainIfLoadedFirst", [Literal(provides.dict['from-uri'])])),
-        ExpressionStatement(rtMethod("$initializeCheckContext", [Literal(provides.dict['from-uri']), Literal(false)])),
         ExpressionStatement(rtMethod("$clearTraces", [Literal(provides.dict['from-uri'])])),
         ExpressionStatement(rtMethod("$clearChecks", [Literal(provides.dict['from-uri'])]))
       ];

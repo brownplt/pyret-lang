@@ -106,55 +106,6 @@ function getCheckResults(uri : string): CheckResult[] {
   return _globalCheckResults[uri].slice();
 }
 
-function stubCheck(args : any[]) {
-  console.log("Stubbed out check function", args);
-}
-
-const stubCheckContext = {
-    'run-checks': function(...args: any[]) { stubCheck(args); },
-    'check-is': function(...args: any[]) { stubCheck(args); },
-    'check-is-cause': function(...args: any[]) { stubCheck(args); },
-    'check-is-roughly': function(...args: any[]) { stubCheck(args); },
-    'check-is-roughly-cause': function(...args: any[]) { stubCheck(args); },
-    'check-is-not': function(...args: any[]) { stubCheck(args); },
-    'check-is-not-cause': function(...args: any[]) { stubCheck(args); },
-    'check-is-not-roughly': function(...args: any[]) { stubCheck(args); },
-    'check-is-not-roughly-cause': function(...args: any[]) { stubCheck(args); },
-    'check-is-refinement': function(...args: any[]) { stubCheck(args); },
-    'check-is-refinement-cause': function(...args: any[]) { stubCheck(args); },
-    'check-is-not-refinement': function(...args: any[]) { stubCheck(args); },
-    'check-is-not-refinement-cause': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies-delayed': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies-delayed-cause': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies-not-delayed': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies-not-delayed-cause': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies-not': function(...args: any[]) { stubCheck(args); },
-    'check-raises-str': function(...args: any[]) { stubCheck(args); },
-    'check-raises-str-cause': function(...args: any[]) { stubCheck(args); },
-    'check-raises-other-str': function(...args: any[]) { stubCheck(args); },
-    'check-raises-other-str-cause': function(...args: any[]) { stubCheck(args); },
-    'check-raises-not': function(...args: any[]) { stubCheck(args); },
-    'check-raises-not-cause': function(...args: any[]) { stubCheck(args); },
-    'check-raises-satisfies': function(...args: any[]) { stubCheck(args); },
-    'check-raises-satisfies-cause': function(...args: any[]) { stubCheck(args); },
-    'check-raises-violates': function(...args: any[]) { stubCheck(args); },
-    'check-raises-violates-cause': function(...args: any[]) { stubCheck(args); },
-    'results': function() { return []; },
-};
-let checkContext = stubCheckContext;
-function initializeCheckContext(uri : string, all : boolean) {
-  if(checkContext === stubCheckContext) {
-    const checker = require("./checker" + ".arr.js");
-    checkContext = checker['make-check-context'](uri, all);
-  }
-  return checkContext;
-}
-
-function currentCheckContext() {
-  return checkContext;
-}
-
 let currentMainURI : boolean | string = false;
 function claimMainIfLoadedFirst(uri : string) {
   if(currentMainURI === false) {
@@ -204,43 +155,13 @@ function checkResults(uri : string): CheckResult[] {
     }
   });
 
-  console.log("Check results from checker: ", currentCheckContext().results());
-
   return getCheckResults(uri);
-}
-
-type CompiledSrcloc = [string, number, number, number, number, number, number] | string;
-
-function srclocToPyretLoc(loc: CompiledSrcloc) {
-  const srcloc = require("./srcloc" + ".arr.js");
-  if(typeof loc === 'string') {
-    return srcloc.builtin(loc);
-  }
-  else {
-    return srcloc.srcloc(loc[0], loc[1], loc[2], loc[3], loc[4], loc[5], loc[6]);
-  }
 }
 
 function eagerCheckTest(lhs: () => any,  rhs: () => any,
   test: (lhs: CheckExprEvalResult, rhs: CheckExprEvalResult) => CheckTestResult,
-  compiledLoc: CompiledSrcloc, op: string): void {
+  loc: string): void {
   
-  const checker = currentCheckContext();
-  const realLoc = srclocToPyretLoc(compiledLoc);
-  const loc = realLoc.format(true);
-  try {
-    console.log("The check-op is: ", op);
-    switch(op) {
-      case 's-op-is': {
-        debugger;
-        checker['check-is'](lhs, rhs, realLoc);
-        break;
-      }
-    }
-  }
-  catch(e) {
-    console.error("check-is threw an exception:", e);
-  }
   const uri = getUriForCheckLoc(loc);
   if(!(uri in _globalCheckResults)) {
     _globalCheckResults[uri] = [];
@@ -302,19 +223,14 @@ function eagerCheckBlockRunner(srcloc: string, name: string, checkBlock: () => v
 
   _globalCheckContext.push(name);
 
-  const lists = require("./lists" + ".arr.js");
   try {
-    currentCheckContext()['run-checks'](srcloc, lists['raw-array-to-list']([{
-      run: checkBlock,
-      name: name,
-      location: srcloc,
-      'keyword-check': true
-    }]));
+    checkBlock();
 
   } catch(e) {
-    console.error("The check block ended in exception: ", e);
     throw e;
+
   } finally {
+
     _globalCheckContext.pop();
   }
 }
@@ -970,7 +886,6 @@ module.exports["$makeDataValue"] = _PRIMITIVES.makeDataValue;
 module.exports["$createVariant"] = _PRIMITIVES.createVariant;
 
 module.exports["$claimMainIfLoadedFirst"] = claimMainIfLoadedFirst;
-module.exports["$initializeCheckContext"] = initializeCheckContext;
 
 module.exports["$checkTest"] = eagerCheckTest;
 module.exports["$checkBlock"] = checkBlockHandler;
