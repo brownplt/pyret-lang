@@ -20,7 +20,7 @@ export type PObject<T extends {}> = { dict: T }
 export type POpaque<T> = { val: T }
 
 export interface ImmutableMap<T> {
-  get: (key: string, notSetValue: T) => T,
+  get: (key: string, notSetValue: T | null) => T,
   set: (key: string, value: T) => ImmutableMap<T>,
   remove: (key: string) => ImmutableMap<T>,
   keys: () => string[],
@@ -98,8 +98,8 @@ export type Runtime = {
   pauseStack: <A>(thunk: (restarter: PausePackage<A>) => void) => A,
   runThunk: <A, B>(thunk: () => A, then: (val: RunResult<A>) => B) => never,
   safeCall: <A, B>(thunk: () => A, then: (val: A) => B, name?: string) => B,
-  isSuccessResult: <A>(val: any) => val is SuccessResult<A>,
-  isFailureResult: <A>(val: any) => val is FailureResult<A>,
+  isSuccessResult: <A>(val: RunResult<A>) => val is SuccessResult<A>,
+  isFailureResult: <A>(val: RunResult<A>) => val is FailureResult<A>,
   raw_array_map: <A, B>(f: PFunction<(arg: A) => B>, arr: A[]) => B[],
   makeTuple: (<T1, T2>(vals : [T1, T2]) => PTuple<[T1, T2]>) 
            & (<T1, T2, T3>(vals : [T1, T2, T3]) => PTuple<[T1, T2, T3]>)

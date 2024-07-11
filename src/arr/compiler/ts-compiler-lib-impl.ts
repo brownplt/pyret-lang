@@ -1,7 +1,7 @@
 import * as J from 'estree';
 import type * as A from './ts-ast'
 import { NativeModule, Loadable, URI, Provides, CompileResult, Dependency, ExtraImports, Globals } from './ts-compile-structs';
-import { List, PFunction, MutableStringDict, StringDict, Either, PMethod, Runtime, Option, PausePackage, PTuple } from './ts-impl-types';
+import { List, PFunction, MutableStringDict, StringDict, Either, PMethod, Runtime, Option, PausePackage, PTuple, SuccessResult } from './ts-impl-types';
 import type * as TAU from './ts-ast-util';
 import type * as TJ from './ts-codegen-helpers';
 import type * as TCSH from './ts-compile-structs-helpers';
@@ -400,7 +400,7 @@ type ResolveScopeExports = {
         (maybeModulesResult) => {
           runtime['RUNGAS'] = 500000000; // HACK! to make sure that compilation itself doesn't become asynchronous due to fuel-exhaustion
           if (runtime.isFailureResult(maybeModulesResult)) { return restarter.error(maybeModulesResult.exn); }
-          const maybeModules = maybeModulesResult.result;
+          const maybeModules = (maybeModulesResult as SuccessResult<Option<Loadable>[]>).result;
           for (let i = 0; i < wl.length; i++) {
             const m = maybeModules[i];
             switch(m.$name) {
@@ -425,7 +425,7 @@ type ResolveScopeExports = {
           // so modTimes[i] = wl[i].locator.get-modified-time()
           runtime['RUNGAS'] = 500000000; // HACK! to make sure that compilation itself doesn't become asynchronous due to fuel-exhaustion
           if (runtime.isFailureResult(modTimesResult)) { return restarter.error(modTimesResult.exn); }
-          const modTimes = modTimesResult.result;
+          const modTimes = (modTimesResult as SuccessResult<number[]>).result;
           const ret = new Map<string, number>();
           for (let i = 0; i < wl.length; i++) {
             const located = wl[i];
@@ -476,7 +476,7 @@ type ResolveScopeExports = {
         }), wl),
         (loadablesResult) => {
           if (runtime.isFailureResult(loadablesResult)) { return restarter.error(loadablesResult.exn); }
-          const loadables = loadablesResult.result;
+          const loadables = (loadablesResult as SuccessResult<Loadable[]>).result;
           restarter.resume(runtime.makeObject({ loadables: runtime.ffi.makeList(loadables), modules }));
         })
       });
@@ -504,7 +504,7 @@ type ResolveScopeExports = {
         (todoResult) => {
           runtime['RUNGAS'] = 500000000; // HACK! to make sure that compilation itself doesn't become asynchronous due to fuel-exhaustion
           if (runtime.isFailureResult(todoResult)) { return restarter.error(todoResult.exn); }
-          const todo = todoResult.result;
+          const todo = (todoResult as SuccessResult<CompileTODO>).result;
           switch(todo.$name) {
             case 'already-done': {
               const { provides, "compile-env": ceUnused, "post-compile-env": postEnv, "result-printer": resultPrinter } = todo.dict.result.dict;

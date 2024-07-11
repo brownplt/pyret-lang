@@ -104,6 +104,7 @@ export interface Exports {
           }
         }
       }
+      return prog;
     }
 
     function wrapIfNeeded(exp: A.Expr): A.Expr {
@@ -374,7 +375,7 @@ export interface Exports {
         },
         's-block': (visitor, block: TJ.Variant<A.Expr, 's-block'>, isTail) => {
           const stmts = listToArray(block.dict.stmts);
-          const lastStmt = stmts.pop();
+          const lastStmt = stmts.pop()!;
           return A['s-block'].app(
             block.dict.l,
             runtime.ffi.makeList([
@@ -498,7 +499,7 @@ export interface Exports {
           return A['s-letrec'].app(letrec.dict.l, runtime.ffi.makeList(newBinds), newBody, letrec.dict.blocky);
         },
         's-id-letrec': (visitor, idLetrec: TJ.Variant<A.Expr, 's-id-letrec'>) => {
-          const isSafe = env.get(nameToKey(idLetrec.dict.id));
+          const isSafe = env.get(nameToKey(idLetrec.dict.id))!;
           return A['s-id-letrec'].app(idLetrec.dict.l, idLetrec.dict.id, isSafe);
         }
       }, prog);
@@ -605,10 +606,10 @@ export interface Exports {
       "wrap-extra-imports": runtime.makeFunction(wrapExtraImports),
       "import-to-dep": runtime.makeFunction(importToDep),
       "strip-annotations": runtime.makeFunction(stripAnnotations),
-      "localize-provides": null, // TODO!
-      "canonicalize-provides": null, // TODO!
-      "get-typed-provides": null, // TODO!
-      "get-named-provides": null, // TODO!
+      "localize-provides": null as any, // TODO!
+      "canonicalize-provides": null as any, // TODO!
+      "get-typed-provides": null as any, // TODO!
+      "get-named-provides": null as any, // TODO!
     };
     return runtime.makeModuleReturn(exports, {});
   }
