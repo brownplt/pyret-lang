@@ -70,7 +70,7 @@ export interface Exports {
           return A['s-prim-app'].app(l, 
             "throwUnfinishedTemplate", runtime.ffi.makeList([A['s-srcloc'].app(l, l)]), flatPrimApp);
         },
-        's-cases-else': (visitor, cases) => {
+        's-cases-else': (visitor, cases: TJ.Variant<A.Expr, 's-cases-else'>) => {
           const { l, typ, val, _else } = cases.dict;
           const branches = listToArray(cases.dict.branches);
           const name = names['make-atom'].app("cases")
@@ -89,7 +89,7 @@ export interface Exports {
             A['s-cases-else'].app(l, typCompiled, valId, runtime.ffi.makeList(branchesCompiled),
               elsCompiled, true), false);
         },
-        's-cases': (visitor, cases) => {
+        's-cases': (visitor, cases: TJ.Variant<A.Expr, 's-cases'>) => {
           const { l, typ, val } = cases.dict;
           const branches = listToArray(cases.dict.branches);
           const name = names['make-atom'].app("cases")

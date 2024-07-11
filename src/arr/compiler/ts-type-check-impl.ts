@@ -146,7 +146,7 @@ export type Exports = {
         case 'a-name': {
           const idKey = nameToKey(inAnn.dict.id);
           if (context.aliases.has(idKey)) {
-            return context.aliases.get(idKey);
+            return context.aliases.get(idKey)!;
           } else {
             throw new TypeCheckFailure(CS['unbound-type-id'].app(inAnn));
           }
@@ -222,11 +222,11 @@ export type Exports = {
           if (!context.moduleNames.has(objKey)) {
             throw new TypeCheckFailure(CS['no-module'].app(inAnn.dict.l, nameToName(inAnn.dict.obj)));
           }
-          const origin = context.moduleNames.get(objKey);
-          const tMod = context.modules.get(origin);
+          const origin = context.moduleNames.get(objKey)!;
+          const tMod = context.modules.get(origin)!;
           const aliases = mapFromStringDict(tMod.dict.aliases);
           if (aliases.has(inAnn.dict.field)) {
-            return resolveAlias(aliases.get(inAnn.dict.field), context);
+            return resolveAlias(aliases.get(inAnn.dict.field)!, context);
           } else {
             throw new TypeCheckFailure(CS['unbound-type-id'].app(inAnn));
           }
@@ -335,7 +335,7 @@ export type Exports = {
         const key = _typeKey(type);
         typeKeys.set(type, key);
       }
-      return typeKeys.get(type);
+      return typeKeys.get(type)!;
     }
     function _typeKey(type: TS.Type): string {
       switch(type.$name) {
@@ -361,7 +361,7 @@ export type Exports = {
         case 't-bot': return 'Bot';
         case 't-record': {
           const fields = mapFromStringDict(type.dict.fields);
-          const fieldStrs = [];
+          const fieldStrs: string[] = [];
           for (const [field, typ] of fields) {
             fieldStrs.push(`${field} :: ${typeKey(typ)}`);
           }
@@ -441,7 +441,7 @@ export type Exports = {
                     if (curAliases.has(aliasKey)) {
                       break; // nothing to do
                     } else {
-                      const typ = context.aliases.get(aliasKey);
+                      const typ = context.aliases.get(aliasKey)!;
                       curAliases.set(aliasKey, typ);
                       break;
                     }
@@ -464,7 +464,7 @@ export type Exports = {
                     if (curData.has(dataKey)) {
                       break; // nothing to do
                     } else {
-                      const typ = context.dataTypes.get(dataKey);
+                      const typ = context.dataTypes.get(dataKey)!;
                       curData.set(dataKey, typ);
                       break;
                     }
@@ -648,7 +648,7 @@ export type Exports = {
       addRefinementConstraint(existential: TJ.Variant<TS.Type, 't-existential'>, dataRefinement: TJ.Variant<TS.Type, 't-data-refinement'>) {
         const key = typeKey(existential);
         if (this.refinementConstraints.has(key)) {
-          this.refinementConstraints.get(key).dataRefinements.push(dataRefinement);
+          this.refinementConstraints.get(key)!.dataRefinements.push(dataRefinement);
         } else {
           this.refinementConstraints.set(key, { existential, dataRefinements: [dataRefinement] });
         }
@@ -657,9 +657,9 @@ export type Exports = {
       addFieldConstraint(type : TS.Type, fieldName : string, fieldType : TS.Type) : void{
         const typKey = typeKey(type);
         if (this.fieldConstraints.has(typKey)) {
-          const [typ, labelMapping] = this.fieldConstraints.get(typKey);
+          const [typ, labelMapping] = this.fieldConstraints.get(typKey)!;
           if (labelMapping.has(fieldName)) {
-            labelMapping.get(fieldName).push(fieldType);
+            labelMapping.get(fieldName)!.push(fieldType);
           } else {
             labelMapping.set(fieldName, [fieldType]);
           }
@@ -790,7 +790,7 @@ export type Exports = {
           if (!curLevel.exampleTypes.has(existentialKey)) {
             level -= 1;
           } else {
-            const curInfo = curLevel.exampleTypes.get(existentialKey);
+            const curInfo = curLevel.exampleTypes.get(existentialKey)!;
             curInfo.exampleTypes.push(type);
             return;
           }
@@ -829,7 +829,7 @@ export type Exports = {
       solveLevel(context : Context) : ConstraintSolution {
         if (this.levels.length === 0) { return new ConstraintSolution(); }
 
-        const levelToSplit = this.levels.pop();
+        const levelToSplit = this.levels.pop()!;
         // NOTE(old impl): introduce a half level so any constraints depending
         // on test inference can be solved after test inference
         this.addLevel("solveLevel half level");
@@ -876,7 +876,7 @@ export type Exports = {
           if (substExist.$name === 't-existential') {
             const key = typeKey(substExist);
             if (newRefinements.has(key)) {
-              newRefinements.get(key).dataRefinements.push(substData);
+              newRefinements.get(key)!.dataRefinements.push(substData);
             } else {
               newRefinements.set(key, { existential: substExist, dataRefinements: [substData] });
             }
@@ -920,7 +920,7 @@ export type Exports = {
       const { fieldConstraints, variables } = system.curLevel();
       const entries = [...(fieldConstraints.entries())];
       while(entries.length !== 0) {
-        const [key, [typ, fieldMappings]] = entries.pop();
+        const [key, [typ, fieldMappings]] = entries.pop()!;
         // NOTE: because entries is an array copy of the keys of the map,
         // we have to delete the key from the original map in order to avoid infinite recursion
         fieldConstraints.delete(key);
@@ -937,14 +937,14 @@ export type Exports = {
             }
             if(remainingFields.size > 0) {
               const missingFieldErrors = [...remainingFields].map(rfn =>
-                CS['object-missing-field'].app(rfn, String(instantiatedTyp), instantiatedTyp.dict.l, fieldMappings.get(rfn)[0].dict.l)
+                CS['object-missing-field'].app(rfn, String(instantiatedTyp), instantiatedTyp.dict.l, fieldMappings.get(rfn)![0].dict.l)
               );
               throw new TypeCheckFailure(...missingFieldErrors);
             }
             else {
               for(let fieldName of intersection) {
-                for(let fieldType of fieldMappings.get(fieldName)) {
-                  const objectFieldType = fields.get(fieldName);
+                for(let fieldType of fieldMappings.get(fieldName)!) {
+                  const objectFieldType = fields.get(fieldName)!;
                   system.addConstraint(objectFieldType, fieldType);
                 }
               }
@@ -974,13 +974,13 @@ export type Exports = {
             const dataFields = mapFromStringDict(dataType.dict.fields);
             for(let [fieldName, fieldTypes] of fieldMappings) {
               if(dataFields.has(fieldName)) {
-                const dataFieldType = dataFields.get(fieldName);
+                const dataFieldType = dataFields.get(fieldName)!;
                 for(let fieldType of fieldTypes) {
                   system.addConstraint(dataFieldType, fieldType);
                 }
               }
               else {
-                throw new TypeCheckFailure(CS['object-missing-field'].app(fieldName, String(instantiatedTyp), instantiatedTyp.dict.l, fieldMappings.get(fieldName)[0].dict.l))
+                throw new TypeCheckFailure(CS['object-missing-field'].app(fieldName, String(instantiatedTyp), instantiatedTyp.dict.l, fieldMappings.get(fieldName)![0].dict.l))
               }
             }
             return system.solveLevelHelper(solution, context);
@@ -1129,7 +1129,7 @@ export type Exports = {
                     // TODO(Matt): field-missing error
                     throw new TypeCheckFailure(CS['type-mismatch'].app(subtype, supertype));
                   }
-                  system.addConstraint(subtypeFields.get(superKey), superFieldType);
+                  system.addConstraint(subtypeFields.get(superKey)!, superFieldType);
                 }
                 continue;
               }
@@ -1225,7 +1225,7 @@ export type Exports = {
       if (newKeys.size() > 0) { // || !tempSustem.refinementConstraints.size() > 0
         LOG(`newKeys: ${[...newKeys.values()].map(typeKey).join(',')}\n`);
         for (let tempVar of newKeys.values()) {
-          solution.substitutions.set(typeKey(tempVar), tempSolution.substitutions.get(typeKey(tempVar)))
+          solution.substitutions.set(typeKey(tempVar), tempSolution.substitutions.get(typeKey(tempVar))!)
         }
         LOG("About to recur...?\n");
         return solveHelperRefinements(system, new ConstraintSolution(new Map(), solution.substitutions), context);
@@ -1281,17 +1281,17 @@ export type Exports = {
       apply(typ : TS.Type) : TS.Type {
         const thisCS = this;
         return map<TS.Type>({
-          "t-record": (self, t) => {
+          "t-record": (self, t: TJ.Variant<TS.Type, 't-record'>) => {
             const fields = mapFromStringDict(t.dict.fields);
             for(let [name, val] of fields.entries()) {
               fields.set(name, thisCS.apply(val));
             }
             return TS['t-record'].app(stringDictFromMap(fields), t.dict.l, t.dict.inferred);
           },
-          "t-existential": (self, t) => {
+          "t-existential": (self, t: TJ.Variant<TS.Type, 't-existential'>) => {
             const key = typeKey(t);
             if(thisCS.substitutions.has(key)) {
-              const {newType: assignedType} = thisCS.substitutions.get(key);
+              const {newType: assignedType} = thisCS.substitutions.get(key)!;
               const inferred = t.dict.inferred || assignedType.dict.inferred;
               return thisCS.apply(setLocAndInferred(assignedType, t.dict.l, inferred));
             }
@@ -1329,14 +1329,14 @@ export type Exports = {
         const thisCS = this;
         function collectVars(typ : TS.Type, varMapping : Map<string, TJ.Variant<TS.Type, 't-var'>>) : TS.Type {
           return map<TS.Type>({
-            "t-record": (self, t) => {
+            "t-record": (self, t: TJ.Variant<TS.Type, 't-record'>) => {
               const fields = mapFromStringDict(t.dict.fields);
               for(let [name, val] of fields.entries()) {
                 fields.set(name, collectVars(val, varMapping));
               }
               return TS['t-record'].app(stringDictFromMap(fields), t.dict.l, t.dict.inferred);
             },
-            "t-existential": (self, t) => {
+            "t-existential": (self, t: TJ.Variant<TS.Type, 't-existential'>) => {
               const key = typeKey(t);
               if(thisCS.variables.has(key)) {
                 if(varMapping.has(key)) {
@@ -1465,8 +1465,8 @@ export type Exports = {
         this.info = new TCInfo();
         this.misc = new Map();
 
-        this.testInferenceData = null;
-        this.miscTestInferenceData = null;
+        this.testInferenceData = undefined;
+        this.miscTestInferenceData = undefined;
       }
 
       toInertData() {
@@ -1539,7 +1539,7 @@ export type Exports = {
        */
       removeBinding(termKey : string) {
         LOG(`Deleting binding ${termKey} (which ${this.binds.has(termKey) ? 'was' : 'was NOT'} found)\n`);
-        this.info.types.set(termKey, this.binds.get(termKey));
+        this.info.types.set(termKey, this.binds.get(termKey)!);
         this.binds.delete(termKey);
       }
 
@@ -1576,7 +1576,7 @@ export type Exports = {
 
       addMiscExampleType(funKey: string, typ: TS.Type) {
         if (this.misc.has(funKey)) {
-          const cur = this.misc.get(funKey);
+          const cur = this.misc.get(funKey)!;
           cur[0].unshift(typ);
         }
       }
@@ -1591,16 +1591,16 @@ export type Exports = {
             switch(modName.$name) {
               case 'module-uri': {
                 if (this.modules.has(modName.dict.uri)) {
-                  const mod = this.modules.get(modName.dict.uri);
+                  const mod = this.modules.get(modName.dict.uri)!;
                   const modTypes = mapFromStringDict(mod.dict.types);
                   if (modTypes.has(idName)) {
-                    return modTypes.get(idName);
+                    return modTypes.get(idName)!;
                   } else {
                     throw new InternalCompilerError(`No type ${typeKey(type)} available on ${prettyIsh(mod)}`)
                   }
                 } else if (modName.dict.uri === "builtin") {
                   if (this.dataTypes.has(idKey)) {
-                    return this.dataTypes.get(idKey);
+                    return this.dataTypes.get(idKey)!;
                   } else {
                     return false;
                   }
@@ -1610,15 +1610,19 @@ export type Exports = {
               }
               case 'local': {
                 if (this.dataTypes.has(idKey)) {
-                  return this.dataTypes.get(idKey);
+                  return this.dataTypes.get(idKey)!;
                 } else {
                   return false;
                 }
               }
               case 'dependency':
                 throw new InternalCompilerError(`Should not get dependency in typechecker; got ${prettyIsh(modName)}`);
+              default:
+                throw new ExhaustiveSwitchError(modName);
             }
           }
+          default:
+            throw new InternalCompilerError(`Should not resolve an alias to a ${resolvedType.$name} in getDataType`);
         }
       }
 
@@ -1733,7 +1737,7 @@ export type Exports = {
       return map<SL.Srcloc | TS.Type, T>({
         "builtin": (_self, _oldLoc) => loc,
         "srcloc": (_self, _oldLoc) => loc,
-        "t-record": (self, tRecord) => {
+        "t-record": (self, tRecord: TJ.Variant<TS.Type, 't-record'>) => {
           return TS['t-record'].app(
             stringDictFromMap(mapMapValues(mapFromStringDict(tRecord.dict.fields), (a) => map(self, a))),
             loc,
@@ -1763,21 +1767,21 @@ export type Exports = {
         // Note: t-forall doesn't need to be capture-avoiding thanks to resolve-names
         // so we don't need to handle it specially
 
-        "t-record": (self, t) => {
+        "t-record": (self, t: TJ.Variant<TS.Type, 't-record'>) => {
           const fields = mapFromStringDict(t.dict.fields);
           for(let [name, val] of fields.entries()) {
             fields.set(name, map(self, val));
           }
           return TS['t-record'].app(stringDictFromMap(fields), t.dict.l, t.dict.inferred);
         },
-        "t-var": (_self, t) => {
+        "t-var": (_self, t: TJ.Variant<TS.Type, 't-var'>) => {
           if (typeVar.$name === "t-var" && sameName(t.dict.id, typeVar.dict.id)) {
             return setTypeLoc(newType, type.dict.l);
           } else {
             return t;
           }
         },
-        "t-existential": (_self, t) => {
+        "t-existential": (_self, t: TJ.Variant<TS.Type, 't-existential'>) => {
           // inferred existentials keep their locations
           // this is along the lines of inferred argument types etc
           // uninferred existentials are used to equate different pieces of code
@@ -1859,10 +1863,10 @@ export type Exports = {
 
     function lookupId(blameLoc : SL.Srcloc, idKey : string, idExpr : A.Expr, context : Context) : TS.Type {
       if(context.binds.has(idKey)) {
-        return setTypeLoc(context.binds.get(idKey), blameLoc);
+        return setTypeLoc(context.binds.get(idKey)!, blameLoc);
       }
       else if(context.globalTypes.has(idKey)) {
-        return setTypeLoc(context.globalTypes.get(idKey), blameLoc);
+        return setTypeLoc(context.globalTypes.get(idKey)!, blameLoc);
       }
       else {
         throw new TypeCheckFailure(CS['unbound-id'].app(idExpr));
@@ -1944,7 +1948,7 @@ export type Exports = {
             const genFields = new Map<string, TS.Type>();
             for (let [curField, curType] of curFields) {
               if (nextFields.has(curField)) {
-                genFields.set(curField, generalizeType(curType, nextFields.get(curField)));
+                genFields.set(curField, generalizeType(curType, nextFields.get(curField)!));
               }
             }
             return TS['t-record'].app(stringDictFromMap(genFields), curType.dict.l, curType.dict.inferred);
@@ -2340,7 +2344,7 @@ export type Exports = {
         }
         case 's-block': {
           const stmts = listToArray(e.dict.stmts);
-          const lastStmt = stmts.pop();
+          const lastStmt = stmts.pop()!;
           const top = TS['t-top'].app(e.dict.l, false);
           for (let stmt of stmts) {
             checking(stmt, top, topLevel, context);
@@ -2387,7 +2391,7 @@ export type Exports = {
               context.addConstraint(tempObjectType, expectTyp);
               for (let field of fields) {
                 // NOTE(Ben): this appears to only be used for its side effects of checking each field
-                toTypeMember(field, fieldTypes.get(field.dict.name), tempObjectType, true, context);
+                toTypeMember(field, fieldTypes.get(field.dict.name)!, tempObjectType, true, context);
               }
               return solveAndReturn();
             }
@@ -2568,7 +2572,7 @@ export type Exports = {
       // But that's ok!  Duplicate branch names are handled in well-formedness,
       // so we'll only encounter *unique* names here
       if (branchMap.has(branch.dict.name)) {
-        const tv = branchMap.get(branch.dict.name);
+        const tv = branchMap.get(branch.dict.name)!;
         switch(tv.$name) {
           case 't-variant': {
             switch(branch.$name) {
@@ -2668,9 +2672,9 @@ export type Exports = {
       for (let binding of bindingsToType) {
         const b = binding.dict.b as TJ.Variant<A.Bind, 's-bind'>;
         const { l: l2, value } = binding.dict; 
-        const expectedType = collectedTypes.get(nameToKey(b.dict.id));
+        const expectedType = collectedTypes.get(nameToKey(b.dict.id))!;
         if (context.constraints.curLevel().exampleTypes.has(typeKey(expectedType))) {
-          const partialType = context.constraints.curLevel().exampleTypes.get(typeKey(expectedType)).annTypes;
+          const partialType = context.constraints.curLevel().exampleTypes.get(typeKey(expectedType))!.annTypes;
           if (value.$name === 's-lam') {
             context.testInferenceData = {
               name: b.dict.id,
@@ -2685,7 +2689,7 @@ export type Exports = {
             }
             const checkBlock = _check.dict.value;
             checking(checkBlock, TS['t-top'].app(l2, false), false, context);
-            context.testInferenceData = null;
+            context.testInferenceData = undefined;
           } else {
             throw new InternalCompilerError(`the right hand side should be a lambda; got ${value.$name} at ${formatSrcloc(l2, true)}`);
           }
@@ -2708,7 +2712,7 @@ export type Exports = {
               checking(value.dict._check.dict.value, TS['t-top'].app(checkLoc.dict.value, false), false, context);
             }
           }
-          context.miscTestInferenceData = null;
+          context.miscTestInferenceData = undefined;
         }
       }
       const solution = context.solveLevel();
@@ -2770,12 +2774,12 @@ export type Exports = {
       context.dataTypes.set(nameToKey(dataExpr.dict.namet), initialDataType);
       mergeCommonFields(initialVariantTypes, dataExpr.dict.l, context);
       for (let variant of variants) {
-        const newVariantType = checkVariant(variant, variantTypesMap.get(variant.dict.name), branderType, tVars, context);
+        const newVariantType = checkVariant(variant, variantTypesMap.get(variant.dict.name)!, branderType, tVars, context);
         variantTypesMap.set(variant.dict.name, newVariantType);
       }
       const variantTypeFields: Map<string, TS.Type>[] = [];
       for (let variant of variants) {
-        const variantType = variantTypesMap.get(variant.dict.name);
+        const variantType = variantTypesMap.get(variant.dict.name)!;
         const allFields = mapFromStringDict(variantType.dict['with-fields']);
         if (variantType.$name === 't-variant') {
           for (let ft of listToArray(variantType.dict.fields)) {
@@ -2817,10 +2821,10 @@ export type Exports = {
       // So we might as well start with the first one in the allWithFields list,
       // and keep only the ones that appear in every set.
       for (let key of firstMap.keys()) {
-        let allTyps = [];
+        let allTyps: TS.Type[] | null = [];
         for (let map of allWithFields) {
           if (map.has(key)) {
-            allTyps.push(map.get(key));
+            allTyps.push(map.get(key)!);
           } else {
             allTyps = null;
             break;
@@ -2847,7 +2851,7 @@ export type Exports = {
           context.addLevel();
           context.addVariable(tempExistential);
           aType = instantiateForallWithFreshVars(aType, context.constraints, false);
-          const bType = instantiateForallWithFreshVars(bFields.get(aFieldName), context.constraints, false);
+          const bType = instantiateForallWithFreshVars(bFields.get(aFieldName)!, context.constraints, false);
           context.addConstraint(tempExistential, aType);
           context.addConstraint(tempExistential, bType);
           // NOTE(Ben/Joe): this is changed semantics from type-check.arr:
@@ -2870,7 +2874,7 @@ export type Exports = {
 
       const withMembersTypeMap = mapFromStringDict(variantType.dict['with-fields']);
       for (let member of listToArray(variant.dict['with-members'])) {
-        const memberType = withMembersTypeMap.get(member.dict.name);
+        const memberType = withMembersTypeMap.get(member.dict.name)!;
         const checkedMemberType = toTypeMember(member, memberType, refinedType, true, context);
         withMembersTypeMap.set(member.dict.name, checkedMemberType);
       }
@@ -2884,7 +2888,7 @@ export type Exports = {
       }
     }
     function checkSharedField(field: A.Member, fieldTypes: Map<string, TS.Type>, dataType: TS.Type, context: Context): TS.Type {
-      const fieldType = fieldTypes.get(field.dict.name);
+      const fieldType = fieldTypes.get(field.dict.name)!;
       return toTypeMember(field, fieldType, dataType, true, context);
     }
 
@@ -3146,7 +3150,7 @@ export type Exports = {
             const key = nameToKey(firstBind.dict.b.dict.id);
             const collected = collectBindings([firstBind.dict.b], context);
             context.addDictToBindings(collected);
-            const initialType = collected.get(key);
+            const initialType = collected.get(key)!;
             if (initialType.$name === 't-existential') {
               if (firstValue.$name === 's-lam') {
                 const args = listToArray(firstValue.dict.args) as TJ.Variant<A.Bind, "s-bind">[];
@@ -3202,7 +3206,7 @@ export type Exports = {
               }
             }
             ret.bindings.bindingsToType.push(firstBind);
-            ret.bindings.collectedTypes.set(key, collected.get(key));
+            ret.bindings.collectedTypes.set(key, collected.get(key)!);
           }
         }
       }
@@ -3210,7 +3214,7 @@ export type Exports = {
     }
 
     // TODO(MATT): this should not generalize the arguments
-    function checkFun(funLoc : SL.Srcloc, body : A.Expr, params : List<A.Name>, args : List<A.Bind>, retAnn : A.Ann, expectTyp : TS.Type, original : A.Expr, context : Context) {
+    function checkFun(funLoc : SL.Srcloc, body : A.Expr, params : List<A.Name>, args : List<A.Bind>, retAnn : A.Ann, expectTyp : TS.Type, original : A.Expr, context : Context) : TS.Type {
       context.addLevel(`checkFun at ${formatSrcloc(funLoc, false)} against expectTyp ${typeKey(expectTyp)}`);
       // NOTE(joe/ben): the original implementation called collectBindings here.
       // However, it's only actually used in the cases that traverse into `body`, so
@@ -3230,7 +3234,7 @@ export type Exports = {
           }
           for(let i = 0; i < expectArgs.length; i += 1) {
             const key = nameToKey(argsArray[i].dict.id);
-            const typ = lamBindings.get(key);
+            const typ = lamBindings.get(key)!;
             if(typ.$name === 't-existential') {
               lamBindings.set(key, expectArgs[i]);
             }
@@ -3247,7 +3251,7 @@ export type Exports = {
           context.addDictToBindings(lamBindings);
 
           for(let i = 0; i < argsArray.length; i += 1) {
-            const typ = lamBindings.get(nameToKey(argsArray[i].dict.id));
+            const typ = lamBindings.get(nameToKey(argsArray[i].dict.id))!;
             context.addConstraint(typ, expectArgs[i]);
           }
 
@@ -3280,6 +3284,8 @@ export type Exports = {
           checking(body, expectTyp, false, context);
           return context.solveAndResolveType(expectTyp);
         }
+        default:
+          throw new InternalCompilerError(`Unexpected expectTyp.$name ${expectTyp.$name} in checkFun`);
       }
     }
 
@@ -3542,11 +3548,11 @@ export type Exports = {
         }
         case 's-id-var-modref':
         case 's-id-modref': {
-          const modTyps = context.modules.get(e.dict.uri);
+          const modTyps = context.modules.get(e.dict.uri)!;
           const providedTypes = modTyps.dict.provides;
           const fields = mapFromStringDict(providedTypes.dict.fields);
           if (fields.has(e.dict.name)) {
-            return fields.get(e.dict.name);
+            return fields.get(e.dict.name)!;
           } else {
             throw new InternalCompilerError(`should be caught in unbound-ids: no such name on module ${e.dict.uri}: ${e.dict.name}`);
           }
@@ -3562,7 +3568,7 @@ export type Exports = {
           return setTypeLoc(result, e.dict.l);
         }
         case 's-tuple': {
-          const eltTyps = [];
+          const eltTyps: TS.Type[] = [];
           for(let elt of listToArray(e.dict.fields)) {
             eltTyps.push(synthesis(elt, false, context));
           }
@@ -3668,7 +3674,7 @@ export type Exports = {
           const initialObjectType = TS['t-record'].app(stringDictFromMap(fieldTypes), e.dict.l, false);
           const newFieldTypes = new Map<string, TS.Type>();
           for (let field of fields) {
-            const newFieldType = toTypeMember(field, fieldTypes.get(field.dict.name), initialObjectType, false, context);
+            const newFieldType = toTypeMember(field, fieldTypes.get(field.dict.name)!, initialObjectType, false, context);
             newFieldTypes.set(field.dict.name, newFieldType);
           }
           return TS['t-record'].app(stringDictFromMap(newFieldTypes), e.dict.l, false);
@@ -3819,7 +3825,7 @@ export type Exports = {
             case 's-data-field': {
               if (availableFields.has(field.dict.name)) {
                 try { 
-                  checking(field.dict.value, availableFields.get(field.dict.name), false, context); 
+                  checking(field.dict.value, availableFields.get(field.dict.name)!, false, context); 
                 } catch (e) {
                   if (e instanceof TypeCheckFailure) {
                     errors.push(...e.errs);
@@ -3867,7 +3873,7 @@ export type Exports = {
           if (!variants.has(objType.dict['variant-name'])) {
             throw new InternalCompilerError(`Invalid variant: '${objType.dict['variant-name']}'`);
           }
-          const concreteVariant = variants.get(objType.dict['variant-name']);
+          const concreteVariant = variants.get(objType.dict['variant-name'])!;
           const availableFields = mapFromStringDict(concreteVariant.dict['with-fields']);
           if (concreteVariant.$name === 't-variant') {
             for (let field of listToArray(concreteVariant.dict.fields)) {
@@ -3984,7 +3990,7 @@ export type Exports = {
         case 't-record': {
           const fields = mapFromStringDict(objType.dict.fields);
           if (fields.has(fieldName)) {
-            return fields.get(fieldName);
+            return fields.get(fieldName)!;
           } else {
             const synthesizedType = newExistential(accessLoc, false);
             context.addVariable(synthesizedType);
@@ -4002,7 +4008,7 @@ export type Exports = {
           const dataType = instantiateDataType(objType, context);
           const fields = mapFromStringDict(dataType.dict.fields);
           if (fields.has(fieldName)) {
-            return fields.get(fieldName);
+            return fields.get(fieldName)!;
           } else {
             throw new TypeCheckFailure(CS['object-missing-field'].app(fieldName, typeKey(objType), objType.dict.l, accessLoc));
           }
@@ -4051,7 +4057,7 @@ export type Exports = {
       const maybeType = toType(retAnn, context);
       const retTyp = maybeType || newExistential(l, true);
       if(!maybeType) { context.addVariable(retTyp) };
-      const argTypes = [];
+      const argTypes: TS.Type[] = [];
       for(let arg of args) {
         const argType = collected.get(nameToKey(arg.dict.id));
         if (!argType) {
@@ -4174,7 +4180,7 @@ export type Exports = {
           continue;
         }
         else {
-          const origin = globTs.get(g);
+          const origin = globTs.get(g)!;
           if (g === "_") { continue; }
           else {
             const provs = unwrap(providesByUri(compileEnv, origin.dict['uri-of-definition']),
@@ -4279,7 +4285,7 @@ export type Exports = {
       for (const [key, vbind] of vbinds.entries()) {
         if (vbind.dict.origin.dict['new-definition']) { continue; }
         else {
-          const thismod = contextGlobMods.get(vbind.dict.origin.dict['uri-of-definition']);
+          const thismod = contextGlobMods.get(vbind.dict.origin.dict['uri-of-definition'])!;
           const originalName = nameToName(vbind.dict.origin.dict['original-name']);
           const field = unwrap(callMethod(thismod.dict.provides.dict.fields, 'get', originalName), `Cannot find value bind for ${originalName} in ${formatSrcloc(program.dict.l, true)}`);
           contextGlobVs.set(key, field);

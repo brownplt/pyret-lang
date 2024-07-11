@@ -188,19 +188,22 @@ export type Exports = {
     }
 
     function compileSeq(context : Context, exprs : T.List<A.Expr>) : [J.Expression, Array<J.Statement>] {
-      if(exprs.$name === 'empty') { throw new InternalCompilerError("Empty block reached codegen"); }
-      let ans, stmts = [];
-      let cur: T.List<A.Expr> = exprs;
-      while (cur.$name === 'link') {
-        const [first, firstStmts] = compileExpr(context, cur.dict.first);
-        ans = first;
-        stmts.push(...firstStmts);
-        if (cur.dict.rest.$name !== 'empty' && first !== undefined && !(first.type === 'Identifier')) {
-          stmts.push(ExpressionStatement(first));
+      if(exprs.$name === 'empty') { 
+        throw new InternalCompilerError("Empty block reached codegen"); 
+      } else {
+        let ans: J.Expression = Literal('placeholder'), stmts: J.Statement[] = [];
+        let cur: T.List<A.Expr> = exprs;
+        while (cur.$name === 'link') {
+          const [first, firstStmts] = compileExpr(context, cur.dict.first);
+          ans = first;
+          stmts.push(...firstStmts);
+          if (cur.dict.rest.$name !== 'empty' && first !== undefined && !(first.type === 'Identifier')) {
+            stmts.push(ExpressionStatement(first));
+          }
+          cur = cur.dict.rest;
         }
-        cur = cur.dict.rest;
+        return [ans, stmts];
       }
-      return [ans, stmts]
     }
 
     function arrayToList<T>(arr : T[]) : T.List<T> {
@@ -226,7 +229,7 @@ export type Exports = {
 
     function compileObj(context : Context, expr : Variant<A.Expr, 's-obj'>) : [J.Expression, Array<J.Statement>] {
       const fieldsAsArray = listToArray(expr.dict.fields);
-      const fieldvs : Array<J.Property> = [], stmts = [], methods : Array<[string, J.Property]> = [];
+      const fieldvs : Array<J.Property> = [], stmts: Array<J.Statement> = [], methods : Array<[string, J.Property]> = [];
       fieldsAsArray.forEach(f => {
         switch(f.$name) {
           case 's-method-field':
@@ -338,9 +341,9 @@ export type Exports = {
     
 
     function compileModule(context : Context, expr: Variant<A.Expr, "s-module">) : CompileResult {
-      const fields = [];
-      const stmts = [];
-      const locs = [];
+      const fields: J.Property[] = [];
+      const stmts: J.Statement[] = [];
+      const locs: J.ObjectExpression[] = [];
       listToArray(expr.dict['defined-values']).forEach(dv => {
         switch(dv.$name) {
           case 's-defined-value': {
@@ -1469,7 +1472,7 @@ export type Exports = {
         }
         case 's-letrec':
         case 's-let-expr': {
-          const prelude = [];
+          const prelude: J.Statement[] = [];
           listToArray<A.LetrecBind | A.LetBind>(expr.dict.binds).forEach(v => {
             const [ val, vStmts ] = compileExpr(context, v.dict.value);
             switch(v.dict.b.$name) {
@@ -1731,7 +1734,7 @@ export type Exports = {
       const tableImport =  importBuiltin(TABLE, "tables.arr.js");
       const reactorImport =  importBuiltin(RUNTIME, "reactor.arr.js");
 
-      const manualImports = [];
+      const manualImports: J.Declaration[] = [];
       if(importFlags["table-import"]) { manualImports.push(tableImport); }
       if(importFlags["reactor-import"]) {
         throw new TODOError("reactor.arr.js not implemented via flags");

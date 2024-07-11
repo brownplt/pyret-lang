@@ -435,7 +435,7 @@ type ResolveScopeExports = {
             const dm = mapFromMutableStringDict(located.dict['dependency-map']);
             for (let depLoc of dm.values()) {
               if (ret.has(depLoc)) {
-                maxDepTime = Math.max(maxDepTime, ret.get(depLoc));
+                maxDepTime = Math.max(maxDepTime, ret.get(depLoc)!);
               }
             }
             ret.set(callMethod(located.dict.locator, 'uri'), maxDepTime);
@@ -451,10 +451,9 @@ type ResolveScopeExports = {
       return runtime.pauseStack((restarter) => {
         runtime.runThunk(() => runtime.raw_array_map(runtime.makeFunction((w: ToCompile) => {
           runtime['RUNGAS'] = 500000000; // HACK! to make sure that compilation itself doesn't become asynchronous due to fuel-exhaustion
-          const loadables: Loadable[] = [];
           const uri = callMethod(w.dict.locator, 'uri');
           if (callMethod(modules, 'has-key-now', uri)) {
-            loadables.push(callMethod(modules, 'get-value-now', uri));
+            return callMethod(modules, 'get-value-now', uri);
           } else {
             const provideMap = callMethod(w.dict['dependency-map'], 'freeze');
             return runtime.safeCall(() => callMethod(options, 'before-compile', w.dict.locator),
@@ -567,23 +566,23 @@ type ResolveScopeExports = {
         }
         return result;
       }
-      let ast = getAst(todo.dict.mod, callMethod(locator, 'uri'));
+      let ast: A.Program | undefined = getAst(todo.dict.mod, callMethod(locator, 'uri'));
       phases.push({name: "start", result: null, time: Date.now()});
-      let astEnded = AU['append-nothing-if-necessary'].app(ast);
+      let astEnded : A.Program | undefined = AU['append-nothing-if-necessary'].app(ast);
       ast = undefined;
       addPhase("Added nothing", astEnded);
-      let wf = W['check-well-formed'].app(astEnded, options);
+      let wf : CompileResult<A.Program> | undefined = W['check-well-formed'].app(astEnded, options);
       astEnded = undefined;
       addPhase("Checked well-formedness", wf);
       switch(wf.$name) {
         case 'ok': {
-          let wfAst = AU['wrap-toplevels'].app(wf.dict.code);
+          let wfAst : A.Program | undefined = AU['wrap-toplevels'].app(wf.dict.code);
           wf = undefined;
           // NOTE(Joe, #anchor): no desugaring of check blocks happens here
-          let imported = AU['wrap-extra-imports'].app(wfAst, todo.dict.libs);
+          let imported : A.Program | undefined = AU['wrap-extra-imports'].app(wfAst, todo.dict.libs);
           wfAst = undefined;
           addPhase("Added imports", imported);
-          let scoped = RS['desugar-scope'].app(imported, env, options);
+          let scoped : TCS.ScopeResolution | undefined = RS['desugar-scope'].app(imported, env, options);
           imported = undefined;
           addPhase("Desugared scope", scoped);
           let namedResult = RS['resolve-names'].app(scoped.dict.ast, uri, env);
@@ -618,7 +617,7 @@ type ResolveScopeExports = {
 
             // NOTE(joe, anchor): removed this to see what un-desugared output looks like
             // and changed desugared.ast to desugared below
-            var desugared = D.desugar.app(namedResult.dict.ast, options);
+            var desugared : D.DesugarInfo | undefined = D.desugar.app(namedResult.dict.ast, options);
             callMethod(namedResult.dict.env.dict.bindings, 'merge-now', desugared.dict['new-binds']);
 
             // ...in order to be checked for bad assignments here
@@ -642,10 +641,10 @@ type ResolveScopeExports = {
             addPhase("Type Checked", typeChecked);
             switch(typeChecked.$name) {
               case 'ok': {
-                let tcAst = typeChecked.dict.code;
-                let dpAst = DP['desugar-post-tc'].app(tcAst, env, options);
+                let tcAst : A.Program | undefined = typeChecked.dict.code;
+                let dpAst : A.Program | undefined = DP['desugar-post-tc'].app(tcAst, env, options);
                 tcAst = undefined;
-                let cleaned = dpAst;
+                let cleaned : A.Program | undefined = dpAst;
                 dpAst = undefined;
                 cleaned = AU['set-safe-letrec-binds'].app(cleaned);
                 cleaned = AU['inline-lams'].app(cleaned);
@@ -693,7 +692,7 @@ type ResolveScopeExports = {
         const natives = listToArray(callMethod(item.dict.locator, 'get-native-modules'));
         return natives.map((native) => native.dict.path);
       });
-      const allCompileProblems = [];
+      const allCompileProblems : TCS.CompileError[] = [];
       const staticModules = ObjectExpression(
         wl.map((w) => {
           const uri = callMethod(w.dict.locator, 'uri');
