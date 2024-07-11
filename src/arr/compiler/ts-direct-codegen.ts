@@ -1813,6 +1813,7 @@ export type Exports = {
       const setupRuntime = [
         runtimeImport,
         ExpressionStatement(rtMethod("$claimMainIfLoadedFirst", [Literal(provides.dict['from-uri'])])),
+        ExpressionStatement(rtMethod("$initializeCheckContext", [Literal(provides.dict['from-uri']), Literal(false)])),
         ExpressionStatement(rtMethod("$clearTraces", [Literal(provides.dict['from-uri'])])),
         ExpressionStatement(rtMethod("$clearChecks", [Literal(provides.dict['from-uri'])]))
       ];

@@ -106,6 +106,56 @@ function getCheckResults(uri : string): CheckResult[] {
   return _globalCheckResults[uri].slice();
 }
 
+function stubCheck(args : any[]) {
+  console.log("Stubbed out check function", args);
+}
+
+const stubCheckContext = {
+    'run-checks': function(...args: any[]) { stubCheck(args); },
+    'check-is': function(...args: any[]) { stubCheck(args); },
+    'check-is-cause': function(...args: any[]) { stubCheck(args); },
+    'check-is-roughly': function(...args: any[]) { stubCheck(args); },
+    'check-is-roughly-cause': function(...args: any[]) { stubCheck(args); },
+    'check-is-not': function(...args: any[]) { stubCheck(args); },
+    'check-is-not-cause': function(...args: any[]) { stubCheck(args); },
+    'check-is-not-roughly': function(...args: any[]) { stubCheck(args); },
+    'check-is-not-roughly-cause': function(...args: any[]) { stubCheck(args); },
+    'check-is-refinement': function(...args: any[]) { stubCheck(args); },
+    'check-is-refinement-cause': function(...args: any[]) { stubCheck(args); },
+    'check-is-not-refinement': function(...args: any[]) { stubCheck(args); },
+    'check-is-not-refinement-cause': function(...args: any[]) { stubCheck(args); },
+    'check-satisfies-delayed': function(...args: any[]) { stubCheck(args); },
+    'check-satisfies-delayed-cause': function(...args: any[]) { stubCheck(args); },
+    'check-satisfies-not-delayed': function(...args: any[]) { stubCheck(args); },
+    'check-satisfies-not-delayed-cause': function(...args: any[]) { stubCheck(args); },
+    'check-satisfies': function(...args: any[]) { stubCheck(args); },
+    'check-satisfies-not': function(...args: any[]) { stubCheck(args); },
+    'check-raises-str': function(...args: any[]) { stubCheck(args); },
+    'check-raises-str-cause': function(...args: any[]) { stubCheck(args); },
+    'check-raises-other-str': function(...args: any[]) { stubCheck(args); },
+    'check-raises-other-str-cause': function(...args: any[]) { stubCheck(args); },
+    'check-raises-not': function(...args: any[]) { stubCheck(args); },
+    'check-raises-not-cause': function(...args: any[]) { stubCheck(args); },
+    'check-raises-satisfies': function(...args: any[]) { stubCheck(args); },
+    'check-raises-satisfies-cause': function(...args: any[]) { stubCheck(args); },
+    'check-raises-violates': function(...args: any[]) { stubCheck(args); },
+    'check-raises-violates-cause': function(...args: any[]) { stubCheck(args); },
+    'results': function() { return []; },
+};
+let checkContext = stubCheckContext;
+function initializeCheckContext(uri : string, all : boolean) {
+  if(uri === currentMainURI) {
+    const checker = require("./checker" + ".arr.js");
+    checkContext = checker['make-check-context'](uri, all);
+  }
+  return checkContext;
+}
+
+function currentCheckContext() {
+  return checkContext;
+}
+
+
 let currentMainURI : boolean | string = false;
 function claimMainIfLoadedFirst(uri : string) {
   if(currentMainURI === false) {
@@ -886,6 +936,7 @@ module.exports["$makeDataValue"] = _PRIMITIVES.makeDataValue;
 module.exports["$createVariant"] = _PRIMITIVES.createVariant;
 
 module.exports["$claimMainIfLoadedFirst"] = claimMainIfLoadedFirst;
+module.exports["$initializeCheckContext"] = initializeCheckContext;
 
 module.exports["$checkTest"] = eagerCheckTest;
 module.exports["$checkBlock"] = checkBlockHandler;
