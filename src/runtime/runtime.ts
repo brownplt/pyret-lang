@@ -111,42 +111,42 @@ function stubCheck(args : any[]) {
 }
 
 const stubCheckContext = {
-    'run-checks': function(...args: any[]) { stubCheck(args); },
-    'check-is': function(...args: any[]) { stubCheck(args); },
-    'check-is-cause': function(...args: any[]) { stubCheck(args); },
-    'check-is-roughly': function(...args: any[]) { stubCheck(args); },
-    'check-is-roughly-cause': function(...args: any[]) { stubCheck(args); },
-    'check-is-not': function(...args: any[]) { stubCheck(args); },
-    'check-is-not-cause': function(...args: any[]) { stubCheck(args); },
-    'check-is-not-roughly': function(...args: any[]) { stubCheck(args); },
-    'check-is-not-roughly-cause': function(...args: any[]) { stubCheck(args); },
-    'check-is-refinement': function(...args: any[]) { stubCheck(args); },
-    'check-is-refinement-cause': function(...args: any[]) { stubCheck(args); },
-    'check-is-not-refinement': function(...args: any[]) { stubCheck(args); },
-    'check-is-not-refinement-cause': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies-delayed': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies-delayed-cause': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies-not-delayed': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies-not-delayed-cause': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies': function(...args: any[]) { stubCheck(args); },
-    'check-satisfies-not': function(...args: any[]) { stubCheck(args); },
-    'check-raises-str': function(...args: any[]) { stubCheck(args); },
-    'check-raises-str-cause': function(...args: any[]) { stubCheck(args); },
-    'check-raises-other-str': function(...args: any[]) { stubCheck(args); },
-    'check-raises-other-str-cause': function(...args: any[]) { stubCheck(args); },
-    'check-raises-not': function(...args: any[]) { stubCheck(args); },
-    'check-raises-not-cause': function(...args: any[]) { stubCheck(args); },
-    'check-raises-satisfies': function(...args: any[]) { stubCheck(args); },
-    'check-raises-satisfies-cause': function(...args: any[]) { stubCheck(args); },
-    'check-raises-violates': function(...args: any[]) { stubCheck(args); },
-    'check-raises-violates-cause': function(...args: any[]) { stubCheck(args); },
+    'runChecks': function(...args: any[]) { stubCheck(args); },
+    'checkIs': function(...args: any[]) { stubCheck(args); },
+    'checkIsCause': function(...args: any[]) { stubCheck(args); },
+    'checkIsRoughly': function(...args: any[]) { stubCheck(args); },
+    'checkIsRoughlyCause': function(...args: any[]) { stubCheck(args); },
+    'checkIsNot': function(...args: any[]) { stubCheck(args); },
+    'checkIsNotCause': function(...args: any[]) { stubCheck(args); },
+    'checkIsNotRoughly': function(...args: any[]) { stubCheck(args); },
+    'checkIsNotRoughlyCause': function(...args: any[]) { stubCheck(args); },
+    'checkIsRefinement': function(...args: any[]) { stubCheck(args); },
+    'checkIsRefinementCause': function(...args: any[]) { stubCheck(args); },
+    'checkIsNotRefinement': function(...args: any[]) { stubCheck(args); },
+    'checkIsNotRefinementCause': function(...args: any[]) { stubCheck(args); },
+    'checkSatisfiesDelayed': function(...args: any[]) { stubCheck(args); },
+    'checkSatisfiesDelayedCause': function(...args: any[]) { stubCheck(args); },
+    'checkSatisfiesNotDelayed': function(...args: any[]) { stubCheck(args); },
+    'checkSatisfiesNotDelayedCause': function(...args: any[]) { stubCheck(args); },
+    'checkSatisfies': function(...args: any[]) { stubCheck(args); },
+    'checkSatisfiesNot': function(...args: any[]) { stubCheck(args); },
+    'checkRaisesStr': function(...args: any[]) { stubCheck(args); },
+    'checkRaisesStrCause': function(...args: any[]) { stubCheck(args); },
+    'checkRaisesOtherStr': function(...args: any[]) { stubCheck(args); },
+    'checkRaisesOtherStrCause': function(...args: any[]) { stubCheck(args); },
+    'checkRaisesNot': function(...args: any[]) { stubCheck(args); },
+    'checkRaisesNotCause': function(...args: any[]) { stubCheck(args); },
+    'checkRaisesSatisfies': function(...args: any[]) { stubCheck(args); },
+    'checkRaisesSatisfiesCause': function(...args: any[]) { stubCheck(args); },
+    'checkRaisesViolates': function(...args: any[]) { stubCheck(args); },
+    'checkRaisesViolatesCause': function(...args: any[]) { stubCheck(args); },
     'results': function() { return []; },
 };
 let checkContext = stubCheckContext;
 function initializeCheckContext(uri : string, all : boolean) {
   if(uri === currentMainURI) {
-    const checker = require("./checker" + ".arr.js");
-    checkContext = checker['make-check-context'](uri, all);
+    const checker = require("./checker" + ".js");
+    checkContext = checker['makeCheckContext'](uri, all);
   }
   return checkContext;
 }

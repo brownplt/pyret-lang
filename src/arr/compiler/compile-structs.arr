@@ -3052,11 +3052,10 @@ end
 #  [list:
 #    extra-import(builtin("global"), "$global", [list:], [list:])]
 # )
-minimal-imports = extra-imports([list: extra-import(builtin("checker"), "$checker", [list:], [list:])])
+minimal-imports = extra-imports([list: ])
 
 standard-imports = extra-imports(
    [list:
-      extra-import(builtin("checker"), "$checker", [list:], [list:]),
       extra-import(builtin("global"), "$global", [list:], [list:]),
       extra-import(builtin("base"), "$base", [list:], [list:]),
       extra-import(builtin("arrays"), "arrays", [list:

@@ -133,6 +133,7 @@ export type Exports = {
     }
 
     const RUNTIME = constId("_runtime");
+    const CHECKER = constId("_checker");
     const TABLE = constId("_table")
     const NUMBER_ERR_CALLBACKS = "$errCallbacks"
     const EQUAL_ALWAYS = "equal-always"
@@ -1729,21 +1730,11 @@ export type Exports = {
       }
 
       const runtimeImport = importBuiltin(RUNTIME, "runtime.js");
-
-      const arrayImport =  importBuiltin(RUNTIME, "array.arr.js");
+      const checkerImport = importBuiltin(CHECKER, "checker.js");
       const tableImport =  importBuiltin(TABLE, "tables.arr.js");
-      const reactorImport =  importBuiltin(RUNTIME, "reactor.arr.js");
 
       const manualImports: J.Declaration[] = [];
       if(importFlags["table-import"]) { manualImports.push(tableImport); }
-      if(importFlags["reactor-import"]) {
-        throw new TODOError("reactor.arr.js not implemented via flags");
-          //manualImports.push(reactorImport);
-      }
-      if(importFlags["array-import"]) {
-        throw new TODOError("array.arr.js not implemented via flags");
-          //manualImports.push(arrayImport);
-      }
 
       const explicitImports = listToArray(imports).map(importStmt => {
         switch(importStmt.$name) {
@@ -1813,6 +1804,7 @@ export type Exports = {
       const setupRuntime = [
         runtimeImport,
         ExpressionStatement(rtMethod("$claimMainIfLoadedFirst", [Literal(provides.dict['from-uri'])])),
+        checkerImport,
         ExpressionStatement(rtMethod("$initializeCheckContext", [Literal(provides.dict['from-uri']), Literal(false)])),
         ExpressionStatement(rtMethod("$clearTraces", [Literal(provides.dict['from-uri'])])),
         ExpressionStatement(rtMethod("$clearChecks", [Literal(provides.dict['from-uri'])]))
