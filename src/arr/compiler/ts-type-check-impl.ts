@@ -3386,6 +3386,7 @@ export type Exports = {
       switch(e.dict.op.$name) {
         case 's-op-is': return synthesisRefinement();
         case 's-op-is-roughly': return synthesisEquivalent();
+        case 's-op-is-not-roughly': return synthesisEquivalent();
         case 's-op-is-op': return synthesisEquivalent();
         case 's-op-is-not': return synthesisRefinement();
         case 's-op-is-not-op': return synthesisEquivalent();

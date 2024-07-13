@@ -245,8 +245,15 @@ export type TestResult =
 | ReturnType<typeof errorNotPred>
 | ReturnType<typeof errorNotBooleanPred>
 
-
-
+/**
+ * At compile time, we embed the source locations of the various components
+ * of the check-test into the call to the checker library, so that at runtime,
+ * we do not need to re-parse the check-test in order to find where the components
+ * are.
+ * 
+ * TODO: Actually do this!
+ */
+type LocsRecord = Record<CheckOperand, Srcloc | undefined>
 
 export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   const blockResults: CheckBlockResult[] = [];
@@ -257,63 +264,19 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   function addResult(tr : TestResult) {
     currentResults.push(tr);
   }
-  function leftRightCheck(
-    loc: Srcloc,
-    left: TestThunk<any>,
-    right: TestThunk<any>,
-    withVals: ((left: any, right: any) => any),
-  ) {
-    const lv = runTask(typeof left === 'function' ? left : left.v );
-    if (lv.$name === 'right') {
-      addResult(failureExn(loc, lv.val, 'on-left'))
+  function unthunk<T>(loc: Srcloc, locs: LocsRecord, where: CheckOperand, thunk: TestThunk<T>, cont: (val: T) => any): undefined {
+    const result = runTask(typeof thunk === 'function' ? thunk : thunk.v);
+    if (result.$name === 'right') {
+      addResult(failureExn(loc, result.val, where));
     } else {
-      const rv = runTask(typeof right === 'function' ? right : right.v);
-      if (rv.$name === 'right') {
-        addResult(failureExn(loc, rv.val, 'on-right'));
-      } else {
-        const res = runTask(() => withVals(lv.val, rv.val));
-        if (res.$name === 'right') {
-          addResult(failureExn(loc, res.val, 'on-refinement'));
-        } else {
-          return res.val;
-        }
-      }
+      cont(result.val);
     }
   }
-  function leftRightCauseCheck(
-    loc: Srcloc,
-    left: TestThunk<any>, 
-    right: TestThunk<any>,
-    cause: TestThunk<any>,
-    withVals: ((left: any, right: any, cause: any) => any), 
-  ) {
-    const lv = runTask(typeof left === 'function' ? left : left.v );
-    if (lv.$name === 'right') {
-      addResult(failureExn(loc, lv.val, 'on-left'))
-    } else {
-      const rv = runTask(typeof right === 'function' ? right : right.v);
-      if (rv.$name === 'right') {
-        addResult(failureExn(loc, rv.val, 'on-right'));
-      } else {
-        const cv = runTask(typeof cause === 'function' ? cause : cause.v);
-        if (cv.$name === 'right') {
-          addResult(failureExn(loc, cv.val, 'on-cause'));
-        } else {
-          const res = runTask(() => withVals(lv.val, rv.val, cv.val));
-          if (res.$name === 'right') {
-            addResult(failureExn(loc, res.val, 'on-refinement'));
-          } else {
-            return res.val;
-          }
-        }
-      }
-    }
-  }
-  function checkBool(loc: Srcloc, testResult: boolean, onFail: (loc: Srcloc) => TestResult) {
+  function checkBool(loc: Srcloc, locs: LocsRecord, testResult: boolean, onFail: (loc: Srcloc, locs: LocsRecord) => TestResult) {
     if (testResult) {
       addResult(success(loc));
     } else {
-      addResult(onFail(loc));
+      addResult(onFail(loc, locs));
     }
   }
   function causesErrorNotPred(exn: any): boolean {
@@ -337,6 +300,410 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   function isUserException(value : any) : value is { $name: 'user-exception', value: any } {
     return typeof value === 'object' && value.$name === 'user-exception';
   }
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkIsCont(loc: Srcloc, locs: LocsRecord, lv: any, lvSrc: CheckOperand, rv: any, rvSrc: CheckOperand, cont: Thunk<any>) {
+    const eqLvRv = EQUALITY.equalAlways3(lv, rv);
+    switch (eqLvRv.$name) {
+      case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, lvSrc, rv, rvSrc)); break;
+      case 'NotEqual': addResult(failureNotEqual(loc, none, lv, lvSrc, rv, rvSrc)); break
+      case 'Equal': cont(); break;
+      default: throw new ExhaustiveSwitchError(eqLvRv);
+    }
+  }
+  const CHECK_IS = {
+    checkIs: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          checkIsCont(loc, locs, lv, 'on-left', rv, 'on-right', () => addResult(success(loc)))));
+    },
+    checkIsCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          unthunk(loc, locs, 'on-cause', cause, (cv) =>
+            checkIsCont(loc, locs, cv, 'on-cause', rv, 'on-right', () =>
+              checkIsCont(loc, locs, lv, 'on-left', rv, 'on-right', () => 
+                addResult(success(loc)))))));
+    }
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkIsRoughlyCont(loc: Srcloc, locs: LocsRecord, lv: any, lvSrc: CheckOperand, rv: any, rvSrc: CheckOperand, cont: Thunk<any>) {
+    // TODO(Ben/Joe): Update equality.ts to include the new roughlyEqual
+    // and redefinition of within* as separated from withinRel*
+    const eqLvRv = EQUALITY.within3(1e-6)(lv, rv);
+    switch (eqLvRv.$name) {
+      case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, lvSrc, rv, rvSrc)); break;
+      case 'NotEqual': addResult(failureNotEqual(loc, none, lv, lvSrc, rv, rvSrc)); break
+      case 'Equal': cont(); break;
+      default: throw new ExhaustiveSwitchError(eqLvRv);
+    }
+  };
+  const CHECK_IS_ROUGHLY = {
+    checkIsRoughly: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          checkIsRoughlyCont(loc, locs, lv, 'on-left', rv, 'on-right', () => addResult(success(loc)))));
+    },
+    checkIsRoughlyCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          unthunk(loc, locs, 'on-cause', cause, (cv) =>
+            checkIsRoughlyCont(loc, locs, cv, 'on-cause', rv, 'on-right', () =>
+              checkIsRoughlyCont(loc, locs, lv, 'on-left', rv, 'on-right', () => 
+                addResult(success(loc)))))));
+    }
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkIsNotCont(loc: Srcloc, locs: LocsRecord, lv: any, lvSrc: CheckOperand, rv: any, rvSrc: CheckOperand, cont: Thunk<any>) {
+    const eqLvRv = EQUALITY.equalAlways3(lv, rv);
+    switch (eqLvRv.$name) {
+      case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, lvSrc, rv, rvSrc)); break;
+      case 'Equal': addResult(failureNotDifferent(loc, none, lv, lvSrc, rv, rvSrc)); break
+      case 'NotEqual': cont(); break;
+      default: throw new ExhaustiveSwitchError(eqLvRv);
+    }
+  }
+  const CHECK_IS_NOT = {
+    checkIsNot: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          checkIsNotCont(loc, locs, lv, 'on-left', rv, 'on-right', () => addResult(success(loc)))));
+    },
+    checkIsNotCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          unthunk(loc, locs, 'on-cause', cause, (cv) =>
+            checkIsNotCont(loc, locs, cv, 'on-cause', rv, 'on-right', () =>
+              checkIsNotCont(loc, locs, lv, 'on-left', rv, 'on-right', () => 
+                addResult(success(loc)))))));
+    },
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkIsNotRoughlyCont(loc: Srcloc, lv: any, lvSrc: CheckOperand, rv: any, rvSrc: CheckOperand, cont: Thunk<any>) {
+    const eqLvRv = EQUALITY.within3(1e-6)(lv, rv);
+    switch (eqLvRv.$name) {
+      case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, lvSrc, rv, rvSrc)); break;
+      case 'Equal': addResult(failureNotDifferent(loc, none, lv, lvSrc, rv, rvSrc)); break
+      case 'NotEqual': cont(); break;
+      default: throw new ExhaustiveSwitchError(eqLvRv);
+    }
+  };
+  const CHECK_IS_NOT_ROUGHLY = {
+    checkIsNotRoughly: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          checkIsNotRoughlyCont(loc, lv, 'on-left', rv, 'on-right', () => addResult(success(loc)))));
+    },
+    checkIsNotRoughlyCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          unthunk(loc, locs, 'on-cause', cause, (cv) =>
+            checkIsNotRoughlyCont(loc, cv, 'on-cause', rv, 'on-right', () =>
+              checkIsNotRoughlyCont(loc, lv, 'on-left', rv, 'on-right', () => 
+                addResult(success(loc)))))));
+    }
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkIsRefinementCont(loc: Srcloc, locs: LocsRecord, refinement: (left: any, right: any) => boolean | EQ.EqualityResult, lv: any, lvSrc: CheckOperand, rv: any, rvSrc: CheckOperand, cont: Thunk<any>) {
+    const refine = runTask(() => refinement(lv, rv));
+    if (refine.$name === 'right') {
+      const exn = refine.val;
+      if (causesErrorNotPred(exn)) {
+        addResult(errorNotPred(loc, refinement, 2));
+      } else {
+        addResult(failureExn(loc, exn, 'on-refinement'));
+      }
+    } else {
+      const testResult = refine.val;
+      if (isUnknown(testResult)) {
+        addResult(failureIsIncomparable(loc, testResult, lv, lvSrc, rv, rvSrc));
+      } else if (isFalseOrNotEqual(testResult)) {
+        addResult(failureNotEqual(loc, some(refinement), lv, lvSrc, rv, rvSrc));
+      } else if (isNeitherBooleanNorEqual(testResult)) {
+        addResult(errorNotBoolean(loc, refinement, lv, lvSrc, rv, rvSrc, testResult));
+      } else {
+        cont();
+      }
+    }
+  }
+  const CHECK_IS_REFINEMENT = {
+    checkIsRefinement: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          checkIsRefinementCont(loc, locs, refinement, lv, 'on-left', rv, 'on-right', () =>
+            addResult(success(loc)))))
+    },
+    checkIsRefinementCause: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          unthunk(loc, locs, 'on-cause', cause, (cv) => 
+            checkIsRefinementCont(loc, locs, refinement, cv, 'on-cause', rv, 'on-right', () => 
+              checkIsRefinementCont(loc, locs, refinement, lv, 'on-left', rv, 'on-right', () =>
+                addResult(success(loc)))))))
+    }
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkIsNotRefinementCont(loc: Srcloc, locs: LocsRecord, refinement: (left: any, right: any) => boolean | EQ.EqualityResult, lv: any, lvSrc: CheckOperand, rv: any, rvSrc: CheckOperand, cont: Thunk<any>) {
+    const refine = runTask(() => refinement(lv, rv));
+    if (refine.$name === 'right') {
+      const exn = refine.val;
+      if (causesErrorNotPred(exn)) {
+        addResult(errorNotPred(loc, refinement, 2));
+      } else {
+        addResult(failureExn(loc, exn, 'on-refinement'));
+      }
+    } else {
+      const testResult = refine.val;
+      if (isUnknown(testResult)) {
+        addResult(failureIsIncomparable(loc, testResult, lv, lvSrc, rv, rvSrc));
+      } else if (isTruthOrEqual(testResult)) {
+        addResult(failureNotDifferent(loc, some(refinement), lv, lvSrc, rv, rvSrc));
+      } else if (isNeitherBooleanNorNotEqual(testResult)) {
+        addResult(errorNotBoolean(loc, refinement, lv, lvSrc, rv, rvSrc, testResult));
+      } else {
+        cont();
+      }
+    }
+  }
+  const CHECK_IS_NOT_REFINEMENT = {
+    checkIsNotRefinement: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          checkIsNotRefinementCont(loc, locs, refinement, lv, 'on-left', rv, 'on-right', () =>
+            addResult(success(loc)))))
+    },
+    checkIsNotRefinementCause: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', right, (rv) =>
+          unthunk(loc, locs, 'on-cause', cause, (cv) => 
+            checkIsNotRefinementCont(loc, locs, refinement, cv, 'on-cause', rv, 'on-right', () => 
+              checkIsNotRefinementCont(loc, locs, refinement, lv, 'on-left', rv, 'on-right', () =>
+                addResult(success(loc)))))))
+    }
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkSatisfiesDelayedCont(loc: Srcloc, locs: LocsRecord, lv: any, lvSrc: CheckOperand, pv: (v: any) => any, pvSrc: CheckOperand, cont: Thunk<any>) {
+    const result = runTask(() => pv(lv));
+    if (result.$name === 'right') {
+      const exn = result.val;
+      if (causesErrorNotPred(exn)) {
+        addResult(errorNotPred(loc, pv, 1));
+      } else {
+        addResult(failureExn(loc, exn, pvSrc));
+      }
+    } else {
+      const testResult = result.val;
+      if (!(typeof testResult === 'boolean')) {
+        addResult(errorNotBooleanPred(loc, pv, lv, lvSrc, testResult));
+      } else if (!testResult) {
+        addResult(failureNotSatisfied(loc, lv, lvSrc, pv));
+      } else {
+        cont();
+      }
+    }
+  }
+  const CHECK_SATISFIES_DELAYED = {
+    checkSatisfiesDelayed: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', pred, (pv) =>
+          checkSatisfiesDelayedCont(loc, locs, lv, 'on-left', pv, 'on-right', () =>
+            addResult(success(loc)))))
+    },
+    checkSatisfiesDelayedCause: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', pred, (pv) =>
+          unthunk(loc, locs, 'on-cause', cause, (cv) => 
+            checkSatisfiesDelayedCont(loc, locs, cv, 'on-cause', pv, 'on-right', () =>
+              checkSatisfiesDelayedCont(loc, locs, lv, 'on-left', pv, 'on-right', () =>
+                addResult(success(loc)))))))
+    }
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkSatisfiesNotDelayedCont(loc: Srcloc, locs: LocsRecord, lv: any, lvSrc: CheckOperand, pv: (v: any) => any, pvSrc: CheckOperand, cont: Thunk<any>) {
+    const result = runTask(() => pv(lv));
+    if (result.$name === 'right') {
+      const exn = result.val;
+      if (causesErrorNotPred(exn)) {
+        addResult(errorNotPred(loc, pv, 1));
+      } else {
+        addResult(failureExn(loc, exn, pvSrc));
+      }
+    } else {
+      const testResult = result.val;
+      if (!(typeof testResult === 'boolean')) {
+        addResult(errorNotBooleanPred(loc, pv, lv, lvSrc, testResult));
+      } else if (testResult) {
+        addResult(failureNotDissatisfied(loc, lv, lvSrc, pv));
+      } else {
+        cont();
+      }
+    }
+}
+  const CHECK_SATISFIES_NOT_DELAYED = {
+    checkSatisfiesNotDelayed: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', pred, (pv) =>
+          checkSatisfiesNotDelayedCont(loc, locs, lv, 'on-left', pv, 'on-right', () =>
+            addResult(success(loc)))))
+    },
+    checkSatisfiesNotDelayedCause: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-left', left, (lv) =>
+        unthunk(loc, locs, 'on-right', pred, (pv) =>
+          unthunk(loc, locs, 'on-cause', cause, (cv) => 
+            checkSatisfiesNotDelayedCont(loc, locs, cv, 'on-cause', pv, 'on-right', () =>
+              checkSatisfiesNotDelayedCont(loc, locs, lv, 'on-left', pv, 'on-right', () =>
+                addResult(success(loc)))))))
+    }
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkRaisesStrCont(loc: Srcloc, locs: LocsRecord, thunk: any, thunkSrc: CheckOperand, str: string, cont: Thunk<any>) {
+    const result = runTask(thunk);
+    if (result.$name === 'left') {
+      addResult(failureNoExn(loc, some(str), thunkSrc, true));
+    } else {
+      // TODO: is this the right way to call to-repr?  The types don't think it exists...
+      if (!((RUNTIME['$torepr'](result.val) as string).includes(str))) {
+        addResult(failureWrongExn(loc, str, result.val, thunkSrc));
+      } else {
+        cont();
+      }
+    }
+  }
+  const CHECK_RAISES_STR = {
+    checkRaisesStr: (thunk: Thunk<any>, str: string, loc: Srcloc, locs: LocsRecord) => {
+      checkRaisesStrCont(loc, locs, thunk, 'on-left', str, () =>
+        addResult(success(loc)))
+    },
+    checkRaisesStrCause: (thunk: Thunk<any>, str: string, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      checkRaisesStrCont(loc, locs, cause, 'on-cause', str, () =>
+        checkRaisesStrCont(loc, locs, thunk, 'on-left', str, () =>
+          addResult(success(loc))))
+    },
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkRaisesOtherStrCont(loc: Srcloc, locs: LocsRecord, thunk: any, thunkSrc: CheckOperand, str: string, cont: Thunk<any>) {
+    const result = runTask(thunk);
+    if (result.$name === 'left') {
+      addResult(failureNoExn(loc, some(str), thunkSrc, true));
+    } else {
+      // TODO: is this the right way to call to-repr?  The types don't think it exists...
+      if ((RUNTIME['$torepr'](result.val) as string).includes(str)) {
+        addResult(failureRightExn(loc, str, result.val, thunkSrc));
+      } else {
+        cont();
+      }
+    }
+  }
+  const CHECK_RAISES_OTHER_STR = {
+    checkRaisesOtherStr: (thunk: Thunk<any>, str: string, loc: Srcloc, locs: LocsRecord) => {
+      checkRaisesOtherStrCont(loc, locs, thunk, 'on-left', str, () =>
+        addResult(success(loc)))
+    },
+    checkRaisesOtherStrCause: (thunk: Thunk<any>, str: string, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      checkRaisesOtherStrCont(loc, locs, cause, 'on-cause', str, () =>
+        checkRaisesOtherStrCont(loc, locs, thunk, 'on-left', str, () =>
+          addResult(success(loc))))
+    },
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkRaisesNotCont(loc: Srcloc, locs: LocsRecord, thunk: any, thunkSrc: CheckOperand, cont: Thunk<any>) {
+    const result = runTask(thunk);
+    if (result.$name === 'right') {
+      addResult(failureExn(loc, result.val, thunkSrc));
+    } else {
+      cont();
+    }
+}
+  const CHECK_RAISES_NOT = {
+    checkRaisesNot: (thunk: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      checkRaisesNotCont(loc, locs, thunk, 'on-left', () =>
+        addResult(success(loc)))
+    },
+    checkRaisesNotCause: (thunk: Thunk<any>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      checkRaisesNotCont(loc, locs, cause, 'on-cause', () =>
+        checkRaisesNotCont(loc, locs, thunk, 'on-left', () =>
+          addResult(success(loc))))
+    },
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkRaisesSatisfiesCont(loc: Srcloc, locs: LocsRecord, thunk: Thunk<any>, thunkSrc: CheckOperand, pred: (v: any) => boolean, predSrc: CheckOperand, cont: Thunk<any>) {
+    const result = runTask(thunk);
+    if (result.$name === 'left') {
+      addResult(failureNoExn(loc, none, thunkSrc, true));
+    } else {
+      const exn = result.val;
+      const exnVal = (isUserException(exn) ? exn.value : exn);
+      const exnResult = runTask(() => pred(exnVal));
+      if (exnResult.$name === 'right') {
+        const exn = exnResult.val;
+        if (causesErrorNotPred(exn)) {
+          addResult(errorNotPred(loc, pred, 1));
+        } else {
+          addResult(failureExn(loc, exn, predSrc));
+        }
+      } else {
+        const predResult = exnResult.val;
+        if (!(typeof predResult === 'boolean')) {
+          addResult(errorNotBooleanPred(loc, pred, exnVal, thunkSrc, predResult));
+        } else if (!predResult) {
+          addResult(failureRaiseNotSatisfied(loc, exn, thunkSrc, pred));
+        } else {
+          cont();
+        }
+      }
+    }
+  }
+  const CHECK_RAISES_SATISFIES = {
+    checkRaisesSatisfies: (thunk: Thunk<any>, pred: (v: any) => boolean, loc: Srcloc, locs: LocsRecord) => {
+      checkRaisesSatisfiesCont(loc, locs, thunk, 'on-left', pred, 'on-right', () =>
+        addResult(success(loc)))
+    },
+    checkRaisesSatisfiesCause: (thunk: Thunk<any>, pred: (v: any) => boolean, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      checkRaisesSatisfiesCont(loc, locs, cause, 'on-cause', pred, 'on-right', () => 
+        checkRaisesSatisfiesCont(loc, locs, thunk, 'on-left', pred, 'on-right', () =>
+          addResult(success(loc))))
+    },
+  };
+  /////////////////////////////////////////////////////////////////////////////////////////////////////
+  function checkRaisesViolatesCont(loc: Srcloc, locs: LocsRecord, thunk: Thunk<any>, thunkSrc: CheckOperand, pred: (v: any) => boolean, predSrc: CheckOperand, cont: Thunk<any>) {
+    const result = runTask(thunk);
+    if (result.$name === 'left') {
+      addResult(failureNoExn(loc, none, thunkSrc, true));
+    } else {
+      const exn = result.val;
+      const exnVal = (isUserException(exn) ? exn.value : exn);
+      const exnResult = runTask(() => pred(exnVal));
+      if (exnResult.$name === 'right') {
+        const exn = exnResult.val;
+        if (causesErrorNotPred(exn)) {
+          addResult(errorNotPred(loc, pred, 1));
+        } else {
+          addResult(failureExn(loc, exn, predSrc));
+        }
+      } else {
+        const predResult = exnResult.val;
+        if (!(typeof predResult === 'boolean')) {
+          addResult(errorNotBooleanPred(loc, pred, exnVal, thunkSrc, predResult));
+        } else if (predResult) {
+          addResult(failureRaiseNotDissatisfied(loc, exn, thunkSrc, pred));
+        } else {
+          cont();
+        }
+      }
+    }
+  }
+  const CHECK_RAISES_VIOLATES = {
+    checkRaisesViolates: (thunk: Thunk<any>, pred: (v: any) => boolean, loc: Srcloc, locs: LocsRecord) => {
+      checkRaisesViolatesCont(loc, locs, thunk, 'on-left', pred, 'on-right', () =>
+        addResult(success(loc)))
+    },
+    checkRaisesViolatesCause: (thunk: Thunk<any>, pred: (v: any) => boolean, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      checkRaisesViolatesCont(loc, locs, cause, 'on-cause', pred, 'on-right', () => 
+        checkRaisesViolatesCont(loc, locs, thunk, 'on-left', pred, 'on-right', () =>
+          addResult(success(loc))))
+    },
+  };
+
   return {
     runChecks: (moduleName: string, checks: TestCase[]) => {
       if (checkAll || (moduleName === mainModuleName)) {
@@ -354,682 +721,19 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
         });
       }
     },
-    checkIs: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc) => {
-      leftRightCheck(loc, left, right, (lv, rv) => {
-        const eqLvRv = EQUALITY.equalAlways3(lv, rv);
-        switch (eqLvRv.$name) {
-          case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, 'on-left', rv, 'on-right')); break;
-          case 'NotEqual': addResult(failureNotEqual(loc, none, lv, 'on-left', rv, 'on-right')); break
-          case 'Equal': addResult(success(loc)); break;
-          default: throw new ExhaustiveSwitchError(eqLvRv);
-        }
-      });
-    },
-    checkIsCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc) => {
-      leftRightCauseCheck(loc, left, right, cause, (lv, rv, cv) => {
-        const eqCvRv = EQUALITY.equalAlways3(cv, rv)
-        switch (eqCvRv.$name) {
-          case 'Unknown': addResult(failureIsIncomparable(loc, eqCvRv, cv, 'on-cause', rv, 'on-right')); break;
-          case 'NotEqual': addResult(failureNotEqual(loc, none, cv, 'on-cause', rv, 'on-right')); break;
-          case 'Equal':
-            const eqLvRv = EQUALITY.equalAlways3(lv, rv);
-            switch (eqLvRv.$name) {
-              case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, 'on-left', rv, 'on-right')); break;
-              case 'NotEqual': addResult(failureNotEqual(loc, none, lv, 'on-left', rv, 'on-right')); break;
-              case 'Equal': addResult(success(loc)); break;
-              default: throw new ExhaustiveSwitchError(eqLvRv);
-            }
-            break;
-          default: throw new ExhaustiveSwitchError(eqCvRv);
-        }
-      });
-    },
-    checkIsRoughly: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc) => {
-      // TODO(Ben/Joe): Update equality.ts to include the new roughlyEqual
-      // and redefinition of within* as separated from withinRel*
-      leftRightCheck(loc, left, right, (lv, rv) => {
-        const eqLvRv = EQUALITY.within3(1e-6)(lv, rv);
-        switch (eqLvRv.$name) {
-          case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, 'on-left', rv, 'on-right')); break;
-          case 'NotEqual': addResult(failureNotEqual(loc, none, lv, 'on-left', rv, 'on-right')); break
-          case 'Equal': addResult(success(loc)); break;
-          default: throw new ExhaustiveSwitchError(eqLvRv);
-        }
-      });
-    },
-    checkIsRoughlyCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc) => {
-      leftRightCauseCheck(loc, left, right, cause, (lv, rv, cv) => {
-        const eqCvRv = EQUALITY.within3(1e-6)(cv, rv)
-        switch (eqCvRv.$name) {
-          case 'Unknown': addResult(failureIsIncomparable(loc, eqCvRv, cv, 'on-cause', rv, 'on-right')); break;
-          case 'NotEqual': addResult(failureNotEqual(loc, none, cv, 'on-cause', rv, 'on-right')); break;
-          case 'Equal':
-            const eqLvRv = EQUALITY.within3(1e-6)(lv, rv);
-            switch (eqLvRv.$name) {
-              case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, 'on-left', rv, 'on-right')); break;
-              case 'NotEqual': addResult(failureNotEqual(loc, none, lv, 'on-left', rv, 'on-right')); break;
-              case 'Equal': addResult(success(loc)); break;
-              default: throw new ExhaustiveSwitchError(eqLvRv);
-            }
-            break;
-          default: throw new ExhaustiveSwitchError(eqCvRv);
-        }
-      });
-    },
-    checkIsNot: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc) => {
-      leftRightCheck(loc, left, right, (lv, rv) => {
-        const eqLvRv = EQUALITY.equalAlways3(lv, rv);
-        switch (eqLvRv.$name) {
-          case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, 'on-left', rv, 'on-right')); break;
-          case 'Equal': addResult(failureNotDifferent(loc, none, lv, 'on-left', rv, 'on-right')); break
-          case 'NotEqual': addResult(success(loc)); break;
-          default: throw new ExhaustiveSwitchError(eqLvRv);
-        }
-      });
-    },
-    checkIsNotCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc) => {
-      leftRightCauseCheck(loc, left, right, cause, (lv, rv, cv) => {
-        const eqCvRv = EQUALITY.equalAlways3(cv, rv)
-        switch (eqCvRv.$name) {
-          case 'Unknown': addResult(failureIsIncomparable(loc, eqCvRv, cv, 'on-cause', rv, 'on-right')); break;
-          case 'Equal': addResult(failureNotDifferent(loc, none, cv, 'on-cause', rv, 'on-right')); break;
-          case 'NotEqual':
-            const eqLvRv = EQUALITY.equalAlways3(lv, rv);
-            switch (eqLvRv.$name) {
-              case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, 'on-left', rv, 'on-right')); break;
-              case 'Equal': addResult(failureNotDifferent(loc, none, lv, 'on-left', rv, 'on-right')); break;
-              case 'NotEqual': addResult(success(loc)); break;
-              default: throw new ExhaustiveSwitchError(eqLvRv);
-            }
-            break;
-          default: throw new ExhaustiveSwitchError(eqCvRv);
-        }
-      });
-    },
-    checkIsNotRoughly: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc) => {
-      leftRightCheck(loc, left, right, (lv, rv) => {
-        const eqLvRv = EQUALITY.within3(1e-6)(lv, rv);
-        switch (eqLvRv.$name) {
-          case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, 'on-left', rv, 'on-right')); break;
-          case 'Equal': addResult(failureNotDifferent(loc, none, lv, 'on-left', rv, 'on-right')); break
-          case 'NotEqual': addResult(success(loc)); break;
-          default: throw new ExhaustiveSwitchError(eqLvRv);
-        }
-      });
-    },
-    checkIsNotRoughlyCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc) => {
-      leftRightCauseCheck(loc, left, right, cause, (lv, rv, cv) => {
-        const eqCvRv = EQUALITY.within3(1e-6)(cv, rv)
-        switch (eqCvRv.$name) {
-          case 'Unknown': addResult(failureIsIncomparable(loc, eqCvRv, cv, 'on-cause', rv, 'on-right')); break;
-          case 'Equal': addResult(failureNotDifferent(loc, none, cv, 'on-cause', rv, 'on-right')); break;
-          case 'NotEqual':
-            const eqLvRv = EQUALITY.equalAlways3(lv, rv);
-            switch (eqLvRv.$name) {
-              case 'Unknown': addResult(failureIsIncomparable(loc, eqLvRv, lv, 'on-left', rv, 'on-right')); break;
-              case 'Equal': addResult(failureNotDifferent(loc, none, lv, 'on-left', rv, 'on-right')); break;
-              case 'NotEqual': addResult(success(loc)); break;
-              default: throw new ExhaustiveSwitchError(eqLvRv);
-            }
-            break;
-          default: throw new ExhaustiveSwitchError(eqCvRv);
-        }
-      });
-    },
-    checkIsRefinement: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc) => {
-      leftRightCheck(loc, left, right, (lv, rv) => {
-        const refine = runTask(() => refinement(lv, rv));
-        if (refine.$name === 'right') {
-          const exn = refine.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, refinement, 2));
-          } else {
-            addResult(failureExn(loc, exn, 'on-refinement'));
-          }
-        } else {
-          const testResult = refine.val;
-          if (isUnknown(testResult)) {
-            addResult(failureIsIncomparable(loc, testResult, lv, 'on-left', rv, 'on-right'));
-          } else if (isFalseOrNotEqual(testResult)) {
-            addResult(failureNotEqual(loc, some(refinement), lv, 'on-left', rv, 'on-right'));
-          } else if (isNeitherBooleanNorEqual(testResult)) {
-            addResult(errorNotBoolean(loc, refinement, lv, 'on-left', rv, 'on-right', testResult));
-          } else {
-            addResult(success(loc));
-          }
-        }
-      });
-    },
-    checkIsRefinementCause: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc) => {
-      leftRightCauseCheck(loc, left, right, cause, (lv, rv, cv) => {
-        const refineCvRv = runTask(() => refinement(cv, rv)); // same orderas refinement(lv, rv)
-        if (refineCvRv.$name === 'right') {
-          const exn = refineCvRv.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, refinement, 2));
-          } else {
-            addResult(failureExn(loc, exn, 'on-refinement'));
-          }
-        } else {
-          const causeResult = refineCvRv.val;
-          if (isUnknown(causeResult)) {
-            addResult(failureIsIncomparable(loc, causeResult, cv, 'on-cause', rv, 'on-right'));
-          } else if (isFalseOrNotEqual(causeResult)) {
-            addResult(failureNotEqual(loc, some(refinement), cv, 'on-cause', rv, 'on-right'));
-          } else if (isNeitherBooleanNorEqual(causeResult)) {
-            addResult(errorNotBoolean(loc, refinement, cv, 'on-cause', rv, 'on-right', causeResult));
-          } else {
-            const refine = runTask(() => refinement(lv, rv));
-            if (refine.$name === 'right') {
-              const exn = refine.val;
-              if (causesErrorNotPred(exn)) {
-                addResult(errorNotPred(loc, refinement, 2));
-              } else {
-                addResult(failureExn(loc, exn, 'on-refinement'));
-              }
-            } else {
-              const testResult = refine.val;
-              if (isUnknown(testResult)) {
-                addResult(failureIsIncomparable(loc, testResult, lv, 'on-left', rv, 'on-right'));
-              } else if (isFalseOrNotEqual(testResult)) {
-                addResult(failureNotEqual(loc, some(refinement), lv, 'on-left', rv, 'on-right'));
-              } else if (isNeitherBooleanNorEqual(testResult)) {
-                addResult(errorNotBoolean(loc, refinement, lv, 'on-left', rv, 'on-right', testResult));
-              } else {
-                addResult(success(loc));
-              }
-            }
-          }
-        }
-      });
-    },
-    checkIsNotRefinement: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc) => {
-      leftRightCheck(loc, left, right, (lv, rv) => {
-        const refine = runTask(() => refinement(lv, rv));
-        if (refine.$name === 'right') {
-          const exn = refine.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, refinement, 2));
-          } else {
-            addResult(failureExn(loc, exn, 'on-refinement'));
-          }
-        } else {
-          const testResult = refine.val;
-          if (isUnknown(testResult)) {
-            addResult(failureIsIncomparable(loc, testResult, lv, 'on-left', rv, 'on-right'));
-          } else if (isTruthOrEqual(testResult)) {
-            addResult(failureNotDifferent(loc, some(refinement), lv, 'on-left', rv, 'on-right'));
-          } else if (isNeitherBooleanNorNotEqual(testResult)) {
-            addResult(errorNotBoolean(loc, refinement, lv, 'on-left', rv, 'on-right', testResult));
-          } else {
-            addResult(success(loc));
-          }
-        }
-      });
-    },
-    checkIsNotRefinementCause: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc) => {
-      leftRightCauseCheck(loc, left, right, cause, (lv, rv, cv) => {
-        // NOTE(Ben): I think the commented out code below is equivalent to the 2x-duplicated-and-nested code below that.
-        // I think this duplicated pattern might be the right approach to handling all the -cause variants.
-        /*
-        function check(toCheck: Thunk<boolean | EQ.EqualityResult>, blame: CheckOperand): boolean {
-          const refineCvRv = runTask(toCheck);
-          if (refineCvRv.$name === 'right') {
-            const exn = refineCvRv.val;
-            if (causesErrorNotPred(exn)) {
-              addResult(errorNotPred(loc, refinement, 2));
-            } else {
-              addResult(failureExn(loc, exn, 'on-refinement'));
-            }
-          } else {
-            const causeResult = refineCvRv.val;
-            if (isUnknown(causeResult)) {
-              addResult(failureIsIncomparable(loc, causeResult, cv, blame, rv, 'on-right'));
-            } else if (isTruthOrEqual(causeResult)) {
-              addResult(failureNotDifferent(loc, some(refinement), cv, blame, rv, 'on-right'));
-            } else if (isNeitherBooleanNorNotEqual(causeResult)) {
-              addResult(errorNotBoolean(loc, refinement, cv, blame, rv, 'on-right', causeResult));
-            } else {
-              return false;
-            }
-          }
-          return true;
-        }
-        type OptBlame = { thunk: Thunk<boolean | EQ.EqualityResult>, blame: CheckOperand }
-        function tryOptions(opts: OptBlame[]) {
-          for (const {thunk, blame} of opts) {
-            if (check(thunk, blame)) return;
-          }
-          addResult(success(loc));
-        }
-        tryOptions([
-          {thunk: () => refinement(cv, rv), blame: 'on-cause'},
-          {thunk: () => refinement(lv, rv), blame: 'on-left'}
-        ]);
-        */
-
-        const refineCvRv = runTask(() => refinement(cv, rv)); // same order as refinement(lv, rv)
-        if (refineCvRv.$name === 'right') {
-          const exn = refineCvRv.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, refinement, 2));
-          } else {
-            addResult(failureExn(loc, exn, 'on-refinement'));
-          }
-        } else {
-          const causeResult = refineCvRv.val;
-          if (isUnknown(causeResult)) {
-            addResult(failureIsIncomparable(loc, causeResult, cv, 'on-cause', rv, 'on-right'));
-          } else if (isTruthOrEqual(causeResult)) {
-            addResult(failureNotDifferent(loc, some(refinement), cv, 'on-cause', rv, 'on-right'));
-          } else if (isNeitherBooleanNorNotEqual(causeResult)) {
-            addResult(errorNotBoolean(loc, refinement, cv, 'on-cause', rv, 'on-right', causeResult));
-          } else {
-            const refine = runTask(() => refinement(lv, rv));
-            if (refine.$name === 'right') {
-              const exn = refine.val;
-              if (causesErrorNotPred(exn)) {
-                addResult(errorNotPred(loc, refinement, 2));
-              } else {
-                addResult(failureExn(loc, exn, 'on-refinement'));
-              }
-            } else {
-              const testResult = refine.val;
-              if (isUnknown(testResult)) {
-                addResult(failureIsIncomparable(loc, testResult, lv, 'on-left', rv, 'on-right'));
-              } else if (isTruthOrEqual(testResult)) {
-                addResult(failureNotDifferent(loc, some(refinement), lv, 'on-left', rv, 'on-right'));
-              } else if (isNeitherBooleanNorNotEqual(testResult)) {
-                addResult(errorNotBoolean(loc, refinement, lv, 'on-left', rv, 'on-right', testResult));
-              } else {
-                addResult(success(loc));
-              }
-            }
-          }
-        }
-      });
-    },
-    checkSatisfiesDelayed: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, loc: Srcloc) => {
-      leftRightCheck(loc, left, pred, (lv, pv) => {
-        const result = runTask(() => pv(lv));
-        if (result.$name === 'right') {
-          const exn = result.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, pv, 1));
-          } else {
-            addResult(failureExn(loc, exn, 'on-right'));
-          }
-        } else {
-          const testResult = result.val;
-          if (!(typeof testResult === 'boolean')) {
-            addResult(errorNotBooleanPred(loc, pv, lv, 'on-left', testResult));
-          } else if (!testResult) {
-            addResult(failureNotSatisfied(loc, lv, 'on-left', pv));
-          } else {
-            addResult(success(loc));
-          }
-        }
-      })
-    },
-    checkSatisfiesDelayedCause: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, cause: TestThunk<any>, loc: Srcloc) => {
-      leftRightCauseCheck(loc, left, pred, cause, (lv, pv, cv) => {
-        const resultCv = runTask(() => pv(cv));
-        if (resultCv.$name === 'right') {
-          const exn = resultCv.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, pv, 1));
-          } else {
-            addResult(failureExn(loc, exn, 'on-cause'));
-          }
-        } else {
-          const causeResult = resultCv.val;
-          if (!(typeof causeResult === 'boolean')) {
-            addResult(errorNotBooleanPred(loc, pv, cv, 'on-cause', causeResult));
-          } else if (!causeResult) {
-            addResult(failureNotSatisfied(loc, cv, 'on-cause', pv));
-          } else {
-            const result = runTask(() => pv(lv));
-            if (result.$name === 'right') {
-              const exn = result.val;
-              if (causesErrorNotPred(exn)) {
-                addResult(errorNotPred(loc, pv, 1));
-              } else {
-                addResult(failureExn(loc, exn, 'on-right'));
-              }
-            } else {
-              const testResult = result.val;
-              if (!(typeof testResult === 'boolean')) {
-                addResult(errorNotBooleanPred(loc, pv, lv, 'on-left', testResult));
-              } else if (!testResult) {
-                addResult(failureNotSatisfied(loc, lv, 'on-left', pv));
-              } else {
-                addResult(success(loc));
-              }
-            }
-          }
-        }
-      })
-    },
-    checkSatisfiesNotDelayed: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, loc: Srcloc) => {
-      leftRightCheck(loc, left, pred, (lv, pv) => {
-        const result = runTask(() => pv(lv));
-        if (result.$name === 'right') {
-          const exn = result.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, pv, 1));
-          } else {
-            addResult(failureExn(loc, exn, 'on-right'));
-          }
-        } else {
-          const testResult = result.val;
-          if (!(typeof testResult === 'boolean')) {
-            addResult(errorNotBooleanPred(loc, pv, lv, 'on-left', testResult));
-          } else if (testResult) {
-            addResult(failureNotDissatisfied(loc, lv, 'on-left', pv));
-          } else {
-            addResult(success(loc));
-          }
-        }
-      })
-    },
-    checkSatisfiesNotDelayedCause: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, cause: TestThunk<any>, loc: Srcloc) => {
-      leftRightCauseCheck(loc, left, pred, cause, (lv, pv, cv) => {
-        const resultCv = runTask(() => pv(cv));
-        if (resultCv.$name === 'right') {
-          const exn = resultCv.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, pv, 1));
-          } else {
-            addResult(failureExn(loc, exn, 'on-cause'));
-          }
-        } else {
-          const causeResult = resultCv.val;
-          if (!(typeof causeResult === 'boolean')) {
-            addResult(errorNotBooleanPred(loc, pv, cv, 'on-cause', causeResult));
-          } else if (causeResult) {
-            addResult(failureNotDissatisfied(loc, cv, 'on-cause', pv));
-          } else {
-            const result = runTask(() => pv(lv));
-            if (result.$name === 'right') {
-              const exn = result.val;
-              if (causesErrorNotPred(exn)) {
-                addResult(errorNotPred(loc, pv, 1));
-              } else {
-                addResult(failureExn(loc, exn, 'on-right'));
-              }
-            } else {
-              const testResult = result.val;
-              if (!(typeof testResult === 'boolean')) {
-                addResult(errorNotBooleanPred(loc, pv, lv, 'on-left', testResult));
-              } else if (testResult) {
-                addResult(failureNotDissatisfied(loc, lv, 'on-left', pv));
-              } else {
-                addResult(success(loc));
-              }
-            }
-          }
-        }
-      })
-    },
-    checkSatisfies: (left: any, pred: (v: any) => boolean, loc: Srcloc) => {
-      // XXX Where is this ever called?
-      // NOTE: Existing checker.arr omits the 'on-left' argument
-      checkBool(loc, pred(left), () => failureNotSatisfied(loc, left, 'on-left', pred))
-    },
-    checkSatisfiesNot: (left: any, pred: (v: any) => boolean, loc: Srcloc) => {
-      // XXX Where is this ever called?
-      // NOTE: Existing checker.arr omits the 'on-left' argument
-      checkBool(loc, !pred(left), () => failureNotDissatisfied(loc, left, 'on-left', pred))
-    },
-    checkRaisesStr: (thunk: Thunk<any>, str: string, loc: Srcloc) => {
-      const result = runTask(thunk);
-      if (result.$name === 'left') {
-        addResult(failureNoExn(loc, some(str), 'on-left', true));
-      } else {
-        // TODO: is this the right way to call to-repr?  The types don't think it exists...
-        if (!((RUNTIME['$torepr'](result.val) as string).includes(str))) {
-          addResult(failureWrongExn(loc, str, result.val, 'on-left'));
-        } else {
-          addResult(success(loc));
-        }
-      }
-    },
-    checkRaisesStrCause: (thunk: Thunk<any>, str: string, cause: Thunk<any>, loc: Srcloc) => {
-      const causeResult = runTask(cause);
-      if (causeResult.$name === 'left') {
-        addResult(failureNoExn(loc, some(str), 'on-cause', true));
-      } else {
-        // TODO: is this the right way to call to-repr?  The types don't think it exists...
-        if (!((RUNTIME['$torepr'](causeResult.val) as string).includes(str))) {
-          addResult(failureWrongExn(loc, str, causeResult.val, 'on-cause'));
-        } else {
-          const result = runTask(thunk);
-          if (result.$name === 'left') {
-            addResult(failureNoExn(loc, some(str), 'on-left', true));
-          } else {
-            // TODO: is this the right way to call to-repr?  The types don't think it exists...
-            if (!((RUNTIME['$torepr'](result.val) as string).includes(str))) {
-              addResult(failureWrongExn(loc, str, result.val, 'on-left'));
-            } else {
-              addResult(success(loc));
-            }
-          }
-        }
-      }
-    },
-    checkRaisesOtherStr: (thunk: Thunk<any>, str: string, loc: Srcloc) => {
-      const result = runTask(thunk);
-      if (result.$name === 'left') {
-        addResult(failureNoExn(loc, some(str), 'on-left', true));
-      } else {
-        // TODO: is this the right way to call to-repr?  The types don't think it exists...
-        if ((RUNTIME['$torepr'](result.val) as string).includes(str)) {
-          addResult(failureRightExn(loc, str, result.val, 'on-left'));
-        } else {
-          addResult(success(loc));
-        }
-      }
-    },
-    checkRaisesOtherStrCause: (thunk: Thunk<any>, str: string, cause: Thunk<any>, loc: Srcloc) => {
-      const causeResult = runTask(cause);
-      if (causeResult.$name === 'left') {
-        addResult(failureNoExn(loc, some(str), 'on-cause', true));
-      } else {
-        // TODO: is this the right way to call to-repr?  The types don't think it exists...
-        if ((RUNTIME['$torepr'](causeResult.val) as string).includes(str)) {
-          addResult(failureRightExn(loc, str, causeResult.val, 'on-cause'));
-        } else {
-          const result = runTask(thunk);
-          if (result.$name === 'left') {
-            addResult(failureNoExn(loc, some(str), 'on-left', true));
-          } else {
-            // TODO: is this the right way to call to-repr?  The types don't think it exists...
-            if ((RUNTIME['$torepr'](result.val) as string).includes(str)) {
-              addResult(failureRightExn(loc, str, result.val, 'on-left'));
-            } else {
-              addResult(success(loc));
-            }
-          }
-        }
-      }
-    },
-    checkRaisesNot: (thunk: Thunk<any>, loc: Srcloc) => {
-      const result = runTask(thunk);
-      if (result.$name === 'right') {
-        addResult(failureExn(loc, result.val, 'on-left'));
-      } else {
-        addResult(success(loc));
-      }
-    },
-    checkRaisesNotCause: (thunk: Thunk<any>, cause: Thunk<any>, loc: Srcloc) => {
-      const causeResult = runTask(thunk);
-      if (causeResult.$name === 'right') {
-        addResult(failureExn(loc, causeResult.val, 'on-cause'));
-      } else {
-        const result = runTask(thunk);
-        if (result.$name === 'right') {
-          addResult(failureExn(loc, result.val, 'on-left'));
-        } else {
-          addResult(success(loc));
-        }
-        }
-    },
-    checkRaisesSatisfies: (thunk: Thunk<any>, pred: (v: any) => boolean, loc: Srcloc) => {
-      const result = runTask(thunk);
-      if (result.$name === 'left') {
-        addResult(failureNoExn(loc, none, 'on-left', true));
-      } else {
-        const exn = result.val;
-        const exnVal = (isUserException(exn) ? exn.value : exn);
-        const exnResult = runTask(() => pred(exnVal));
-        if (exnResult.$name === 'right') {
-          const exn = exnResult.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, pred, 1));
-          } else {
-            addResult(failureExn(loc, exn, 'on-right'));
-          }
-        } else {
-          const predResult = exnResult.val;
-          if (!(typeof predResult === 'boolean')) {
-            addResult(errorNotBooleanPred(loc, pred, exnVal, 'on-left', predResult));
-          } else if (!predResult) {
-            addResult(failureRaiseNotSatisfied(loc, exn, 'on-left', pred));
-          } else {
-            addResult(success(loc));
-          }
-        }
-      }
-    },
-    checkRaisesSatisfiesCause: (thunk: Thunk<any>, pred: (v: any) => boolean, cause: Thunk<any>, loc: Srcloc) => {
-      const causeResult = runTask(thunk);
-      if (causeResult.$name === 'left') {
-        addResult(failureNoExn(loc, none, 'on-cause', true));
-      } else {
-        const exn = causeResult.val;
-        const exnVal = (isUserException(exn) ? exn.value : exn);
-        const exnResult = runTask(() => pred(exnVal));
-        if (exnResult.$name === 'right') {
-          const exn = exnResult.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, pred, 1));
-          } else {
-            addResult(failureExn(loc, exn, 'on-right'));
-          }
-        } else {
-          const predResult = exnResult.val;
-          if (!(typeof predResult === 'boolean')) {
-            addResult(errorNotBooleanPred(loc, pred, exnVal, 'on-cause', predResult));
-          } else if (!predResult) {
-            addResult(failureRaiseNotSatisfied(loc, exn, 'on-cause', pred));
-          } else {
-            const result = runTask(thunk);
-            if (result.$name === 'left') {
-              addResult(failureNoExn(loc, none, 'on-left', true));
-            } else {
-              const exn = result.val;
-              const exnVal = (isUserException(exn) ? exn.value : exn);
-              const exnResult = runTask(() => pred(exnVal));
-              if (exnResult.$name === 'right') {
-                const exn = exnResult.val;
-                if (causesErrorNotPred(exn)) {
-                  addResult(errorNotPred(loc, pred, 1));
-                } else {
-                  addResult(failureExn(loc, exn, 'on-right'));
-                }
-              } else {
-                const predResult = exnResult.val;
-                if (!(typeof predResult === 'boolean')) {
-                  addResult(errorNotBooleanPred(loc, pred, exnVal, 'on-left', predResult));
-                } else if (!predResult) {
-                  addResult(failureRaiseNotSatisfied(loc, exn, 'on-left', pred));
-                } else {
-                  addResult(success(loc));
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    checkRaisesViolates: (thunk: Thunk<any>, pred: (v: any) => boolean, loc: Srcloc) => {
-      const result = runTask(thunk);
-      if (result.$name === 'left') {
-        addResult(failureNoExn(loc, none, 'on-left', true));
-      } else {
-        const exn = result.val;
-        const exnVal = (isUserException(exn) ? exn.value : exn);
-        const exnResult = runTask(() => pred(exnVal));
-        if (exnResult.$name === 'right') {
-          const exn = exnResult.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, pred, 1));
-          } else {
-            addResult(failureExn(loc, exn, 'on-right'));
-          }
-        } else {
-          const predResult = exnResult.val;
-          if (!(typeof predResult === 'boolean')) {
-            addResult(errorNotBooleanPred(loc, pred, exnVal, 'on-left', predResult));
-          } else if (predResult) {
-            addResult(failureRaiseNotDissatisfied(loc, exn, 'on-left', pred));
-          } else {
-            addResult(success(loc));
-          }
-        }
-      }
-    },
-    checkRaisesViolatesCause: (thunk: Thunk<any>, pred: (v: any) => boolean, cause: Thunk<any>, loc: Srcloc) => {
-      const causeResult = runTask(thunk);
-      if (causeResult.$name === 'left') {
-        addResult(failureNoExn(loc, none, 'on-cause', true));
-      } else {
-        const exn = causeResult.val;
-        const exnVal = (isUserException(exn) ? exn.value : exn);
-        const exnResult = runTask(() => pred(exnVal));
-        if (exnResult.$name === 'right') {
-          const exn = exnResult.val;
-          if (causesErrorNotPred(exn)) {
-            addResult(errorNotPred(loc, pred, 1));
-          } else {
-            addResult(failureExn(loc, exn, 'on-right'));
-          }
-        } else {
-          const predResult = exnResult.val;
-          if (!(typeof predResult === 'boolean')) {
-            addResult(errorNotBooleanPred(loc, pred, exnVal, 'on-cause', predResult));
-          } else if (predResult) {
-            addResult(failureRaiseNotDissatisfied(loc, exn, 'on-cause', pred));
-          } else {
-            const result = runTask(thunk);
-            if (result.$name === 'left') {
-              addResult(failureNoExn(loc, none, 'on-left', true));
-            } else {
-              const exn = result.val;
-              const exnVal = (isUserException(exn) ? exn.value : exn);
-              const exnResult = runTask(() => pred(exnVal));
-              if (exnResult.$name === 'right') {
-                const exn = exnResult.val;
-                if (causesErrorNotPred(exn)) {
-                  addResult(errorNotPred(loc, pred, 1));
-                } else {
-                  addResult(failureExn(loc, exn, 'on-right'));
-                }
-              } else {
-                const predResult = exnResult.val;
-                if (!(typeof predResult === 'boolean')) {
-                  addResult(errorNotBooleanPred(loc, pred, exnVal, 'on-left', predResult));
-                } else if (predResult) {
-                  addResult(failureRaiseNotDissatisfied(loc, exn, 'on-left', pred));
-                } else {
-                  addResult(success(loc));
-                }
-              }
-            }
-          }
-        }
-      }
-    },
+    ...CHECK_IS,
+    ...CHECK_IS_ROUGHLY,
+    ...CHECK_IS_NOT,
+    ...CHECK_IS_NOT_ROUGHLY,
+    ...CHECK_IS_REFINEMENT,
+    ...CHECK_IS_NOT_REFINEMENT,
+    ...CHECK_SATISFIES_DELAYED,
+    ...CHECK_SATISFIES_NOT_DELAYED,
+    ...CHECK_RAISES_STR,
+    ...CHECK_RAISES_OTHER_STR,
+    ...CHECK_RAISES_NOT,
+    ...CHECK_RAISES_SATISFIES,
+    ...CHECK_RAISES_VIOLATES,
     results: function() { return blockResults; }
   }
 }

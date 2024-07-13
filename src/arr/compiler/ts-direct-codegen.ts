@@ -546,12 +546,196 @@ export type Exports = {
         but still possible to run other tests
      */
     function compileCheckTest(context : Context, expr : Variant<A.Expr, "s-check-test">) : CompileResult {
+      function thunk(name: string, expr: A.Expr): J.FunctionExpression {
+        const [exp, expStmts] = compileExpr(context, expr);
+        const body = BlockStatement([...expStmts, ReturnStatement(exp)]);
+        return FunctionExpression(compilerName(name), [], body);
+      }
+      function maybeThunk(name: string, optExp: A.Option<A.Expr>): J.FunctionExpression | undefined {
+        switch(optExp.$name) {
+          case 'none': return undefined;
+          case 'some': return thunk(name, optExp.dict.value);
+        }
+      }
+      function maybeCall(name: string, optExp: A.Option<A.Expr>): J.Expression | undefined {
+        switch(optExp.$name) {
+          case 'none': return undefined;
+          case 'some': return CallExpression(thunk(name, optExp.dict.value), []);
+        }
+      }
+      function locOf(exp: A.Expr): J.Expression {
+        return Literal(formatSrcloc(chooseSrcloc(exp.dict.l, context), true));
+      }
+      function maybeLocOf(exp: A.Option<A.Expr>): J.Expression {
+        switch (exp.$name) {
+          case 'none': return UNDEFINED;
+          case 'some': return locOf(exp.dict.value);
+        }
+      }
+      const {l, op, refinement, left, right: rightOpt, cause} = expr.dict;
+      const leftThunk = thunk("LHS", left);
+      const rightThunk = maybeThunk("RHS", rightOpt);
+      const causeThunk = maybeThunk("CAUSE", cause);
+      // TODO: maybe we should thunk the refinement also, instead of eagerly
+      // evaluating it?   maybeThunk("REFINE", refinement);
+      const refinementThunk = maybeCall("REFINE", refinement);
+      const loc = locOf(expr);
+      const partLocs = ObjectExpression([
+        Property('on-left', locOf(left)),
+        Property('on-right', maybeLocOf(rightOpt)),
+        Property('on-cause', maybeLocOf(cause)),
+        Property('on-refinement', maybeLocOf(refinement))
+      ]);
+      let testCall: J.Expression;
+      let checkContext: J.Identifier = UNDEFINED; // TODO!
+      switch(op.$name) {
+        case 's-op-is':
+          if (refinementThunk && causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsRefinementCause'), 
+                                      [refinementThunk, leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+          } else if (refinementThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsRefinement'), 
+                                      [refinementThunk, leftThunk, rightThunk!, loc, partLocs]);
+          } else if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsCause'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIs'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          }
+          break;
+        case 's-op-is-not':
+          if (refinementThunk && causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRefinementCause'), 
+                                      [refinementThunk, leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+          } else if (refinementThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRefinement'), 
+                                      [refinementThunk, leftThunk, rightThunk!, loc, partLocs]);
+          } else if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsNotCause'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsNot'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          }
+          break;
+        case 's-op-is-op': {
+          const newRefinement = rtField(OP_TO_FUNCTION[op.dict.op]);
+          if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsRefinementCause'), 
+                                      [newRefinement, leftThunk, rightThunk!, loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsRefinement'), 
+                                      [newRefinement, leftThunk, rightThunk!, loc, partLocs]);
+          }
+          break;
+        }
+        case 's-op-is-not-op': {
+          const newRefinement = rtField(OP_TO_FUNCTION[op.dict.op]);
+          if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRefinementCause'), 
+                                      [newRefinement, leftThunk, rightThunk!, loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRefinement'), 
+                                      [newRefinement, leftThunk, rightThunk!, loc, partLocs]);
+          }
+          break;
+        }
+        case 's-op-is-roughly':
+          if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsRoughlyCause'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsRoughly'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          }
+          break;
+        case 's-op-is-not-roughly':
+          if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRoughlyCause'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRoughly'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          }
+          break;
+        case 's-op-raises':
+          // Maybe we should thunk the rhs here also?
+          if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkRaisesStrCause'), 
+                                      [leftThunk, CallExpression(rightThunk!, []), loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkRaisesStr'), 
+                                      [leftThunk, CallExpression(rightThunk!, []), loc, partLocs]);
+          }
+          break;
+        case 's-op-raises-not':
+          // Maybe we should thunk the rhs here also?
+          if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkRaisesNotCause'), 
+                                      [leftThunk, CallExpression(rightThunk!, []), loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkRaisesNot'), 
+                                      [leftThunk, CallExpression(rightThunk!, []), loc, partLocs]);
+          }
+          break;
+        case 's-op-raises-other':
+          // Maybe we should thunk the rhs here also?
+          if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkRaisesOtherStrCause'), 
+                                      [leftThunk, CallExpression(rightThunk!, []), loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkRaisesOtherStr'), 
+                                      [leftThunk, CallExpression(rightThunk!, []), loc, partLocs]);
+          }
+          break;
+        case 's-op-raises-satisfies':
+          // Maybe we should thunk the rhs here also?
+          if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkRaisesSatisfiesCause'), 
+                                      [leftThunk, CallExpression(rightThunk!, []), loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkRaisesSatisfies'), 
+                                      [leftThunk, CallExpression(rightThunk!, []), loc, partLocs]);
+          }
+          break;
+        case 's-op-raises-violates':
+          // Maybe we should thunk the rhs here also?
+          if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkRaisesViolatesCause'), 
+                                      [leftThunk, CallExpression(rightThunk!, []), loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkRaisesViolates'), 
+                                      [leftThunk, CallExpression(rightThunk!, []), loc, partLocs]);
+          }
+          break;
+        case 's-op-satisfies':
+          if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkSatisfiesDelayedCause'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkSatisfiesDelayed'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          }
+          break;
+        case 's-op-satisfies-not':
+          if (causeThunk) {
+            testCall = CallExpression(DotExpression(checkContext, 'checkSatisfiesNotDelayedCause'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          } else {
+            testCall = CallExpression(DotExpression(checkContext, 'checkSatisfiesNotDelayed'), 
+                                      [leftThunk, rightThunk!, loc, partLocs]);
+          }
+          break;
+        default: throw new ExhaustiveSwitchError(op);
+      }
+
+
       type CheckOpDesugar =
         | { $name: "binop-result", op: string }
         | { $name: "expect-raises", negate: boolean, predicate: boolean }
         | { $name: "refinement-result", refinement: J.Expression, negate: boolean }
         | { $name: "predicate-result", negate: boolean };
-      const {l, op, refinement, left, right: rightOpt, cause} = expr.dict;
       function makeCheckOpResult(success : J.Expression, lhs : J.Expression, rhs: J.Expression) {
         return ObjectExpression([
           Property("success", success), Property("lhs", lhs), Property("rhs", rhs)
@@ -607,6 +791,13 @@ export type Exports = {
         case 's-op-is-roughly': {
           [checkOp, checkOpStmts] = [
             {$name: 'refinement-result', refinement: rtMethod("within", [Literal(0.000001)]), negate: false},
+            []
+          ]
+          break;
+        }
+        case 's-op-is-not-roughly': {
+          [checkOp, checkOpStmts] = [
+            {$name: 'refinement-result', refinement: rtMethod("within", [Literal(0.000001)]), negate: true},
             []
           ]
           break;

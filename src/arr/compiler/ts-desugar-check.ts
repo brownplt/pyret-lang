@@ -149,6 +149,13 @@ class CheckInfo {
                 return checkOpCause(cause.dict.value, 'check-is-roughly-cause');
               }
             }
+            case 's-op-is-not-roughly': {
+              if (cause.$name === 'none') {
+                return checkOp('check-is-not-roughly');
+              } else {
+                return checkOpCause(cause.dict.value, 'check-is-roughly-not-cause');
+              }
+            }
             case 's-op-is-not': {
               if (refinement.$name === 'none') {
                 if (cause.$name === 'none') {
