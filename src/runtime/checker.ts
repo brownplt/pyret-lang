@@ -264,7 +264,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   function addResult(tr : TestResult) {
     currentResults.push(tr);
   }
-  function unthunk<T>(loc: Srcloc, locs: LocsRecord, where: CheckOperand, thunk: TestThunk<T>, cont: (val: T) => any): undefined {
+  function unthunk<T>(loc: Srcloc, locs: LocsRecord, where: CheckOperand, thunk: TestThunk<T>, cont: (val: T) => any) {
     const result = runTask(typeof thunk === 'function' ? thunk : thunk.v);
     if (result.$name === 'right') {
       addResult(failureExn(loc, result.val, where));
