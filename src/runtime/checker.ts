@@ -255,13 +255,6 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
       cont(result.val);
     }
   }
-  function checkBool(loc: Srcloc, locs: LocsRecord, testResult: boolean, onFail: (loc: Srcloc, locs: LocsRecord) => TestResult) {
-    if (testResult) {
-      addResult(success(loc));
-    } else {
-      addResult(onFail(loc, locs));
-    }
-  }
   function causesErrorNotPred(exn: any): boolean {
     return typeof exn === 'object' && (exn.$name === 'arity-mismatch' || exn.$name === 'non-function-app');
   }
@@ -723,7 +716,10 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     ...CHECK_RAISES_NOT,
     ...CHECK_RAISES_SATISFIES,
     ...CHECK_RAISES_VIOLATES,
-    results: function() { return blockResults; }
+    results: function() { 
+      console.log(`In results() for ${mainModuleName}`, blockResults);
+      return blockResults; 
+    }
   }
 }
 

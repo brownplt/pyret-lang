@@ -75,17 +75,18 @@ class ChatResult extends React.Component<ChatResultProps, any> {
                 />
             ));
             const checkSummary = checks.length > 0
-                ? (
+                && (
                     <CheckResults
                         // Would love to have TypeScript obviate this `as`
                         checks={checks as RHSCheck[]}
                         className="chatitor-rhs"
                         title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
                     />
-                ) : '';
+                );
             chunkResultsPart = (
                 <div className="chat-result">
-                    {[...values, checkSummary]}
+                    {...values}
+                    {checkSummary}
                 </div>
             );
         }

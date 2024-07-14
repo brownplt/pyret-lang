@@ -1,5 +1,4 @@
 import CodeMirror from 'codemirror';
-import { Location, SrcLoc } from './rhsObject';
 
 export type Srcloc =
   | { $name: 'builtin', 'module-name': string, 'asString': string, }

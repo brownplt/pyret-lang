@@ -7,7 +7,7 @@ import {
 } from './rhsObject';
 
 type Props = {
-  checks: RHSCheck[],
+  checks: RHSCheck[] | { testResults: RHSCheck[] }, // TODO: this isn't the right type
   className: string,
   title?: string,
 };
@@ -15,8 +15,9 @@ type Props = {
 export default function CheckResults({
   checks, className, title,
 }: Props) {
-  const [success, failed] = checks.reduce(([s, f], check) => (
-    check.success ? [s + 1, f] : [s, f + 1]
+  const actualChecks: RHSCheck[] = (checks as any)[0].testResults ?? checks;
+  const [success, failed] = actualChecks.reduce(([s, f], check) => (
+    ('$name' in check && check['$name'] == 'success') ? [s + 1, f] : [s, f + 1]
   ), [0, 0]);
   const allPass = failed === 0;
   const [expanded, setExpanded] = React.useState<boolean>(!allPass as boolean);
@@ -30,7 +31,7 @@ export default function CheckResults({
     : (
       <>
         <div style={{ display: 'inline-block', width: '90%' }}>
-          <Check value={checks[0]} RenderedValue={RenderedValue} />
+          <Check value={actualChecks[0]} RenderedValue={RenderedValue} />
         </div>
         <br />
         ... and all
@@ -53,7 +54,7 @@ export default function CheckResults({
         failed
       </>
     );
-  const details = expanded ? checks.map((check) => <Check value={check} RenderedValue={RenderedValue} />) : '';
+  const details = expanded ? actualChecks.map((check, i) => <Check key={i} value={check} RenderedValue={RenderedValue} />) : '';
   const color = !expanded && !allPass ? '#fbbdaf' : '';
   return (
     <pre className={`chatitor-rhs ${className}`} style={{ backgroundColor: color, position: 'relative' }} title={title}>

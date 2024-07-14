@@ -285,6 +285,7 @@ function eagerCheckTest(lhs: () => any,  rhs: () => any,
 
 // TODO(alex): Common URI object that's not a string
 function eagerCheckBlockRunner(srcloc: Srcloc, name: string, checkBlock: () => void): void {
+  console.log(`Unexpected running eagerCheckBlockRunner for ${name} in ${formatSrcloc(srcloc, true)}`);
   if ($checkBlockFilter && !$checkBlockFilter(getUriForCheckLoc(srcloc), name)) {
     return;
   }

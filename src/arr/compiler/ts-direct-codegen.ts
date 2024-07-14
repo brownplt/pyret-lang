@@ -364,7 +364,7 @@ export type Exports = {
       });
 
       const [aExp, aStmts] = compileExpr(context, expr.dict.answer);
-      const checkResults = rtMethod("$checkResults", [Literal(context.uri)]);
+      const checkResults = CallExpression(DotExpression(Identifier(context.curCheckContext), 'results'), []);
       const traces = rtMethod("$getTraces", [Literal(context.uri)]);
 
       const answer1 = freshId(compilerName("answer"))
@@ -377,9 +377,12 @@ export type Exports = {
         Property("$traces", traces),
         Property("$locations", ArrayExpression(locs))
       ]);
-
+      const callRunChecks = ExpressionStatement(
+        CallExpression(DotExpression(Identifier(context.curCheckContext), 'runChecks'),
+          [Literal(context.provides.dict['from-uri']), ArrayExpression(context.checkBlockTestCalls)]
+        ));
       const assignAns = AssignmentExpression(DotExpression(Identifier(constId("module")), "exports"), ans);
-      return [assignAns, [...aStmts, ...context.checkBlockTestCalls, answerVar, ...stmts]];
+      return [assignAns, [...aStmts, callRunChecks, answerVar, ...stmts]];
     }
 
     function compileSOp(context : Context, op: string, lv: J.Expression, rv: J.Expression): J.Expression {
@@ -495,8 +498,8 @@ export type Exports = {
 
     function compileCheckBlock(context : Context, expr : Variant<A.Expr, "s-check">) : CompileResult {
       const [ checkBlockVal, checkBlockStmts ] = compileExpr(context, expr.dict.body);
-      let jsCheckBlockFuncName;
-      let testBlockName;
+      let jsCheckBlockFuncName: A.Name;
+      let testBlockName: J.Expression;
       const name = expr.dict.name;
       jsCheckBlockFuncName = freshId(compilerName(expr.dict['keyword-check'] ? "check-block" : "examples-block"));
       switch(name.$name) {
@@ -510,7 +513,13 @@ export type Exports = {
       const jsCheckBlockFuncBlock = BlockStatement([...checkBlockStmts, ExpressionStatement(checkBlockVal)]);
       const jsCheckBlockFunc = FunctionExpression(jsCheckBlockFuncName, [], jsCheckBlockFuncBlock);
       const blockLoc = context.compileSrcloc(chooseSrcloc(expr.dict.l, context));
-      const testerCall = ExpressionStatement(rtMethod("$checkBlock", [blockLoc, testBlockName, jsCheckBlockFunc]));
+      //const testerCall = ExpressionStatement(rtMethod("$checkBlock", [blockLoc, testBlockName, jsCheckBlockFunc]));
+      const testerCall = ObjectExpression([
+          Property('keywordCheck', Literal(expr.dict['keyword-check'])),
+          Property('location', blockLoc),
+          Property('name', testBlockName),
+          Property('run', jsCheckBlockFunc)
+        ]);
       context.checkBlockTestCalls.push(testerCall);
       return [UNDEFINED, []];
     }
@@ -1845,7 +1854,7 @@ export type Exports = {
       env: CS.CompileEnvironment,
       postEnv: Variant<CS.ComputedEnvironment, 'computed-env'>,
       freeBindings: Map<string, CS.ValueBind>,
-      checkBlockTestCalls: any[]
+      checkBlockTestCalls: J.Expression[]
     }
     function compileProgram(prog : A.Program, uri : string, env : CS.CompileEnvironment, postEnv : CS.ComputedEnvironment, provides : CS.Provides, options : CompileOptions) : TJSP.CCPDict {
       const translatedDatatypeMap = new Map();   // TODO(joe) process from stringdict

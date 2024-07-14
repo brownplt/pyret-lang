@@ -8,6 +8,7 @@
    - HTML is dipslayed in the RHS.tsx component or inline in DefChunk.tsx */
 
 import { CompileAndRunResult } from "./control";
+import { Srcloc } from "../../src/runtime/common-runtime-types";
 
 export type RHSCheckValue = {
   exception: boolean,
@@ -22,26 +23,24 @@ export type RHSCheck = {
   lhs: RHSCheckValue, // 2 + 2
   rhs: RHSCheckValue, // 4
   path: string, // something like '$check$block8' (not used here)
-  loc: string, // something like 'file:///projects/program.arr:4:2-4:14'
+  loc: Srcloc, // something like 'file:///projects/program.arr:4:2-4:14'
   success: boolean, // `true`, since 2 + 2 = 4
 };
 
-type N = number;
-export type SrcLoc = [string, N, N, N, N, N, N];
 
 export type Location = {
   tag: 'location',
   key?: string,
   name: string,
   value: any,
-  srcloc: SrcLoc,
+  srcloc: Srcloc,
 };
 
 export type Trace = {
   tag: 'trace',
   key?: string,
   value: any,
-  srcloc: SrcLoc,
+  srcloc: Srcloc,
 };
 
 export type ExamplarResult = { success: boolean, result: CompileAndRunResult };
@@ -53,7 +52,7 @@ export type ExamplarReport = {
   chaffResults: ExamplarResult[],
   hintMessage: string,
   qtmVariations: number,
-  srcloc: SrcLoc
+  srcloc: Srcloc
   // TODO(joe): add much more here to report on wheat/chaff specifics
 }
 
@@ -78,8 +77,8 @@ export function isExamplarReport(a: RHSObject): a is ExamplarReport {
 }
 
 export type HasSrcLoc =
-  { srcloc: SrcLoc } // Trace or Location
-  | { loc: string }; // RHSCheck
+  { srcloc: Srcloc } // Trace or Location
+  | { loc: Srcloc }; // RHSCheck
 
 // Typescript can't yet narrow union types using the default
 // hasOwnProperty predicate. This one works, though.
@@ -98,13 +97,11 @@ export function getRow(hasSrcLoc: HasSrcLoc): number {
 
   const { loc } = hasSrcLoc;
 
-  const matches = loc.match(/:(\d+):\d+-\d+:\d+$/);
-
-  if (matches === null) {
+  if (loc.length !== 7) {
     throw new Error(`getRow: received malformed srcloc ${String(loc)}`);
   }
 
-  return Number(matches[1]);
+  return Number(loc[1]);
 }
 
 export type RHSObjects = {
@@ -144,7 +141,7 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObject[
   })));
 
   const nonBuiltinChecks: RHSCheck[] = $checks
-    .filter((c) => !/(builtin)|(runtime-arr)/.test(c.loc))
+    .filter((c) => !/(builtin)|(runtime-arr)/.test(c.loc[0]))
     .map((c) => ({
       tag: 'rhs-check',
       ...c,

@@ -4,36 +4,41 @@ import { RHSCheck } from '../rhsObject';
 type CheckProps = {value: RHSCheck, RenderedValue: React.ReactType};
 
 export default function Check({ value, RenderedValue }: CheckProps) {
-  console.log("Check result: ", value);
+  console.log("In <Check>, result: ", value);
   // NOTE(luna): We don't get back the type of test operator used :(
   const sideStyle = {
     display: 'inline-block',
     width: '45%',
-    textAlign: 'center' as 'center',
+    textAlign: 'center' as const,
     padding: '0.5em',
   };
+  const success = ('$name' in value && value['$name'] === 'success') || value.success;
+  const hasLeftVal = ('left' in value || 'val' in value)
+  const hasRightVal = ('right' in value)
   return (
     <div
       style={{
         margin: '0.2em',
-        border: `5px solid ${value.success ? '#27cc78' : '#dc4064'}`,
+        border: `5px solid ${success ? '#27cc78' : '#dc4064'}`,
       }}
     >
-      <div style={{ ...sideStyle }}>
-        {value.lhs.exception === true ? (
-          <RenderedValue value={value.lhs.exception_val} />
-        ) : (
-          <RenderedValue value={value.lhs.value} />
+      <div style={{ ...sideStyle, textAlign: hasLeftVal ? 'center' : undefined }}>
+        {'left' in value ? (
+          <RenderedValue value={value.left} />
+        ) : ('val' in value ? 
+          <RenderedValue value={value.val} />
+          :
+          <RenderedValue value={JSON.stringify(value, null, 2)} />
         )}
       </div>
       <span style={{ fontSize: '2em' }}>
-        {value.success ? '✓' : '✕'}
+        {success ? '✓' : '✕'}
       </span>
-      <div style={sideStyle}>
-        {value.rhs.exception === true ? (
-          <RenderedValue value={value.rhs.exception_val} />
+      <div style={{ ...sideStyle, textAlign: hasRightVal ? 'center' : undefined }}>
+        {'right' in value ? (
+          <RenderedValue value={value.right} />
         ) : (
-          <RenderedValue value={value.rhs.value} />
+          <RenderedValue value={JSON.stringify(value, null, 2)} />
         )}
       </div>
     </div>
