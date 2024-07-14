@@ -32,6 +32,11 @@ build: $(BUILD_DEPS)
 show-comp: build parser runtime
 	npx pyret --checks none -c src/scripts/show-compilation.arr -o show-comp.jarr
 
+typecheck:
+	npx tsc --project tsconfig.compiler.json --noEmit --noErrorTruncation --pretty false --incremental false
+	npx tsc --project tsconfig.runtime.json --noEmit --noErrorTruncation --pretty false --incremental false
+
+
 all-tests: build runtime web
 	npx jest --verbose
 

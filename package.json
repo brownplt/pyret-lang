@@ -68,7 +68,8 @@
     "simple-output-tests": "make simple-output-tests",
     "check-block-tests": "make check-block-tests",
     "ide-tests": "make ide-tests",
-    "all-tests": "make all-tests"
+    "all-tests": "make all-tests",
+    "typecheck": "make typecheck"
   },
   "repository": {
     "type": "git",
