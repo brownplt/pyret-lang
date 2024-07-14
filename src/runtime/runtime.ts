@@ -1,13 +1,13 @@
 
 import { stopifyArrayPrototype } from "./hof-array-polyfill";
 import { NumericErrorCallbacks } from "./equality";
-import { CheckResult, CheckExprEvalResult, CheckTestResult } from "./common-runtime-types";
+import {
+  Srcloc,
+  CheckResult,
+  CheckExprEvalResult,
+  CheckTestResult,
+} from "./common-runtime-types";
 import { $PMethodBrand, applyBrand } from "./primitives";
-
-export type Srcloc = 
-  | [string]
-  | [string, number, number, number, number, number, number]
-
 
 type Variant<T, V> = T & { $name: V };
 
@@ -228,7 +228,7 @@ function checkResults(uri : string): CheckResult[] {
 
 function eagerCheckTest(lhs: () => any,  rhs: () => any,
   test: (lhs: CheckExprEvalResult, rhs: CheckExprEvalResult) => CheckTestResult,
-  loc: string): void {
+  loc: Srcloc): void {
   
   const uri = getUriForCheckLoc(loc);
   if(!(uri in _globalCheckResults)) {
@@ -318,12 +318,10 @@ var _globalTraceValues : any = {};
 function getUri(loc : Srcloc) {
   return loc[0];
 }
-function getUriForCheckLoc(loc : string | Srcloc) {
+function getUriForCheckLoc(loc : Srcloc) {
   // NOTE(joe/luna): The locations look like file:///path:start-end. This gets
   // the bit between the two colons (one after file:, one after path:)
-  if (typeof loc === 'string')
-    return loc.substring(0, loc.indexOf(":", loc.indexOf(":") + 1));
-  return loc[0];
+  return loc[0].substring(0, loc.indexOf(":", loc.indexOf(":") + 1));
 }
 
 // ********* Other Functions *********

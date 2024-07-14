@@ -2,10 +2,9 @@
 import type * as EQ from './types/equality-types';
 import type * as EQUALITY_TYPES from './equality';
 import type * as RUNTIME_TYPES from './runtime';
+import { Srcloc } from './common-runtime-types';
 const EQUALITY = require("./equality.js") as typeof EQUALITY_TYPES;
 const RUNTIME = require('./runtime') as typeof RUNTIME_TYPES;
-
-type Srcloc = RUNTIME_TYPES.Srcloc;
 
 // TODO: import this from somewhere in the runtime
 type Variant<T, V> = T & { $name: V };

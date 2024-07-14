@@ -1,3 +1,7 @@
+export type Srcloc = 
+  | [string]
+  | [string, number, number, number, number, number, number]
+
 export interface SpyObjectResult {
   messageResult: SpyMessageResult,
   exprResult: SpyExprResult,
@@ -5,19 +9,19 @@ export interface SpyObjectResult {
 
 export interface SpyMessageResult {
   message: string,
-  loc: string,
+  loc: Srcloc,
 }
 
 export interface SpyExprResult {
   key: string,
   expr: () => any,
-  loc: string
+  loc: Srcloc
 }
 
 export interface CheckResult {
   success: boolean,
   path: string,
-  loc: string,
+  loc: Srcloc,
   lhs: CheckExprEvalResult,
   rhs: CheckExprEvalResult,
   exception?: any,
