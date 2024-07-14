@@ -42,19 +42,19 @@ import type { Variant } from './ts-codegen-helpers';
       }
     }
 
-    function compileOrigin(bo: CS.BindOrigin): J.ObjectExpression {
+    function compileOrigin(context, bo: CS.BindOrigin): J.ObjectExpression {
       const override = "builtin://" + P.basename(bo.dict['uri-of-definition'], ".arr");
       if (!ORIGIN_URI_OVERRIDE || bo.dict['definition-bind-site'].$name === 'builtin') {
         return ObjectExpression([
-          Property("local-bind-site", compileSrcloc(null, bo.dict['local-bind-site'])),
-          Property("definition-bind-site", compileSrcloc(null, bo.dict['definition-bind-site'])),
+          Property("local-bind-site", compileSrcloc(context, bo.dict['local-bind-site'], false)),
+          Property("definition-bind-site", compileSrcloc(context, bo.dict['definition-bind-site'], false)),
           Property("new-definition", Literal(bo.dict['new-definition'])),
           Property("uri-of-definition", Literal(bo.dict['uri-of-definition']))
         ]);
       } else {
         return ObjectExpression([
-          Property("local-bind-site", compileSrcloc(null, builtinSrcloc(override))),
-          Property("definition-bind-site", compileSrcloc(null, builtinSrcloc(override))),
+          Property("local-bind-site", compileSrcloc(context, builtinSrcloc(override), false)),
+          Property("definition-bind-site", compileSrcloc(context, builtinSrcloc(override), false)),
           Property("new-definition", Literal(bo.dict['new-definition'])),
           Property("uri-of-definition", Literal(override))
         ])
@@ -93,12 +93,12 @@ import type { Variant } from './ts-codegen-helpers';
       }
     }
 
-    function compileProvidedData(de : CS.DataExport): J.ArrayExpression {
+    function compileProvidedData(context, de : CS.DataExport): J.ArrayExpression {
       switch(de.$name) {
         case 'd-alias': {
           return ArrayExpression([
             Literal("data-alias"),
-            compileOrigin(de.dict.origin),
+            compileOrigin(context, de.dict.origin),
             Literal(de.dict.name),
           ]);
         }
@@ -108,7 +108,7 @@ import type { Variant } from './ts-codegen-helpers';
             case 't-data': {
               return ArrayExpression([
                 Literal("data"),
-                compileOrigin(de.dict.origin),
+                compileOrigin(context, de.dict.origin),
                 Literal(typ.dict.name),
                 ArrayExpression(listToArray(typ.dict.params).map((p) => {
                   switch(p.$name) {
@@ -136,10 +136,10 @@ import type { Variant } from './ts-codegen-helpers';
     //   Needed to override origin URIs in order for "include from" syntax to function with values
     //   Used to compile builtin arr modules without messing with URIs before codegen which
     //     MAY or MAY NOT break the compilation pipeline
-    function compileProvidesOverrideUri(provides : CS.Provides, override : boolean): string {
+    function compileProvidesOverrideUri(context, provides : CS.Provides, override : boolean): string {
       const curOverride = ORIGIN_URI_OVERRIDE;
       ORIGIN_URI_OVERRIDE = override;
-      const result = compileProvides(provides)
+      const result = compileProvides(context, provides)
       ORIGIN_URI_OVERRIDE = curOverride;
       return result;
     }
@@ -211,7 +211,7 @@ import type { Variant } from './ts-codegen-helpers';
       }
     }
 
-    function compileProvides(provides: CS.Provides): string {
+    function compileProvides(context, provides: CS.Provides): string {
       switch(provides.$name) {
         case 'provides': {
           const moduleFields = provides.dict.modules.$underlyingMap.keys().map((m) => {
@@ -223,20 +223,20 @@ import type { Variant } from './ts-codegen-helpers';
               case 'v-alias':
                 return Property(v, ObjectExpression([
                   Property("bind", Literal("alias")),
-                  Property("origin", compileOrigin(val.dict.origin)),
+                  Property("origin", compileOrigin(context, val.dict.origin)),
                   Property("original-name", Literal(val.dict['original-name'])),
                   Property("typ", Literal(false))
                 ]));
               case 'v-just-type':
                 return Property(v, ObjectExpression([
                   Property("bind", Literal("let")),
-                  Property("origin", compileOrigin(val.dict.origin)),
+                  Property("origin", compileOrigin(context, val.dict.origin)),
                   Property("typ", compileProvidedType(val.dict.t))
                 ]))
               case 'v-var':
                 return Property(v, ObjectExpression([
                   Property("bind", Literal("var")),
-                  Property("origin", compileOrigin(val.dict.origin)),
+                  Property("origin", compileOrigin(context, val.dict.origin)),
                   Property("typ", compileProvidedType(val.dict.t))
                 ]))
               case 'v-fun': {
@@ -247,7 +247,7 @@ import type { Variant } from './ts-codegen-helpers';
                 }
                 return Property(v, ObjectExpression([
                   Property("bind", Literal("fun")),
-                  Property("origin", compileOrigin(val.dict.origin)),
+                  Property("origin", compileOrigin(context, val.dict.origin)),
                   Property("flatness", Literal(flatness)),
                   Property("name", Literal(val.dict.name)),
                   Property("typ", compileProvidedType(val.dict.t))
@@ -258,7 +258,7 @@ import type { Variant } from './ts-codegen-helpers';
             }
           });
           const dataFields = provides.dict['data-definitions'].$underlyingMap.keys().map((d) => {
-            return Property(d, compileProvidedData(provides.dict['data-definitions'].$underlyingMap.get(d, null)));
+            return Property(d, compileProvidedData(context, provides.dict['data-definitions'].$underlyingMap.get(d, null)));
           });
           const aliasFields = provides.dict.aliases.$underlyingMap.keys().map((a) => {
             return Property(a, compileProvidedType(provides.dict.aliases.$underlyingMap.get(a, null)))
@@ -286,6 +286,6 @@ import type { Variant } from './ts-codegen-helpers';
 })
 
 export interface Exports {
-  compileProvides: (provides: CS.Provides) => string,
-  compileProvidesOverrideUri: (provides: CS.Provides, override: boolean) => string,
+  compileProvides: (context, provides: CS.Provides) => string,
+  compileProvidesOverrideUri: (context, provides: CS.Provides, override: boolean) => string,
 }

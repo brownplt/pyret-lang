@@ -5,25 +5,11 @@ import type * as RUNTIME_TYPES from './runtime';
 const EQUALITY = require("./equality.js") as typeof EQUALITY_TYPES;
 const RUNTIME = require('./runtime') as typeof RUNTIME_TYPES;
 
+type Srcloc = RUNTIME_TYPES.Srcloc;
+
 // TODO: import this from somewhere in the runtime
 type Variant<T, V> = T & { $name: V };
 
-// TODO: import this from somewhere in the runtime
-export type Srcloc = 
-  | { $name: "builtin", dict: { 'module-name': string } }
-  | {
-    $name: "srcloc",
-    dict: 
-      {
-        'source': string,
-        'start-line': number,
-        'start-column': number,
-        'start-char': number,
-        'end-line': number,
-        'end-column': number,
-        'end-char': number
-      }
-  }
 
 // TODO: import Options from somewhere in the runtime
 type Option<A> =
@@ -706,6 +692,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
 
   return {
     runChecks: (moduleName: string, checks: TestCase[]) => {
+      console.log(`Running a check-block for ${moduleName} while in mainModule ${mainModuleName}`);
       if (checkAll || (moduleName === mainModuleName)) {
         checks.forEach(c => {
           const { name, location, keywordCheck, run } = c;
@@ -717,6 +704,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
           } else {
             addBlockResult(checkBlockResult(name, location, keywordCheck, currentResults, some(result.val)));
           }
+          console.log("At end of runChecks, currentResults =", currentResults);
           currentResults = resultsBefore;
         });
       }
@@ -737,3 +725,5 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     results: function() { return blockResults; }
   }
 }
+
+export type Checker = ReturnType<typeof makeCheckContext>;

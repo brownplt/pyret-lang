@@ -1,6 +1,7 @@
 import * as J from 'estree';
 import type { List, MutableStringDict, StringDict, PMethod, PFunction } from './ts-impl-types';
 import type * as A from './ts-ast';
+import type * as E from 'escodegen';
 
 export type Variant<T, V> = T & { $name: V };
 
@@ -16,6 +17,11 @@ type PyretDataValue = {
     [property: string]: any
   }
 };
+
+type SrclocContext = {
+  compileSrcloc: (l : A.Srcloc, cache?: boolean) => J.Expression,
+}
+
 
 type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1, ...rest: infer R) => void) ? R : never
 
@@ -40,7 +46,7 @@ export type Visitor<T extends PyretDataValue, Ret = any, E = any> = {
     ((self: Visitor<T, Ret, E>, val: Variant<T, method>, extra: E) => Ret);
 };
 export interface Exports {
-  ArrayExpression : (values : J.Expression[]) => J.ArrayExpression,
+  ArrayExpression : (values : J.ArrayExpression['elements'], compact?: boolean) => J.ArrayExpression,
   AssignmentExpression : (lhs : J.MemberExpression | J.Identifier, rhs: J.Expression) => J.AssignmentExpression,
   BinaryExpression : (op: J.BinaryOperator, left: J.Expression, rhs: J.Expression) => J.BinaryExpression,
   BlockStatement : (stmts: J.Statement[]) => J.BlockStatement,
@@ -91,7 +97,7 @@ export interface Exports {
   nameToSourceString: (name: A.Name) => string,
   sameName: (n1: A.Name, n2: A.Name) => boolean,
   dummyLoc : A.Srcloc,
-  compileSrcloc: (context: any, l : A.Srcloc) => J.Expression,
+  compileSrcloc: (context: SrclocContext, l : A.Srcloc, cache?: boolean) => J.Expression,
   beforeSrcloc: (s1 : A.Srcloc, s2 : A.Srcloc) => boolean,
   formatSrcloc: (loc: A.Srcloc, showFile: boolean) => string,
   visit: (<T extends PyretDataValue, E = any>(v : Visitor<T, any, E>, d : PyretDataValue, extra: E) => void)
@@ -110,7 +116,7 @@ export interface Exports {
     { 'import-type': 'builtin', name: 'string-dict' },
     { 'import-type': 'dependency', protocol: 'file', args: ['ast.arr']},
   ],
-  nativeRequires: [],
+  nativeRequires: ['escodegen'],
   provides: {
     values: {
       ArrayExpression : 'tany',
@@ -153,7 +159,7 @@ export interface Exports {
       compileSrcloc: 'tany',
     },
   },
-  theModule: function(runtime, _, __, SD: SDExports, Ain: A.Exports) {
+  theModule: function(runtime, _, __, SD: SDExports, Ain: A.Exports, escodegen: (typeof E)) {
     const A = Ain.dict.values.dict;
     class ExhaustiveSwitchError extends Error {
       constructor(v: never, message?: string) {
@@ -275,11 +281,23 @@ export interface Exports {
         alternate: els
       };
     }
-    function ArrayExpression(values : Array<J.Expression>) : J.ArrayExpression {
-      return {
-        type: "ArrayExpression",
+    function ArrayExpression(values : J.ArrayExpression['elements'], compact?: boolean) : J.ArrayExpression {
+      let ans = {
+        type: "ArrayExpression" as const,
         elements: values
+      };
+      if (compact) {
+        ans['x-verbatim-content'] = {
+          content: escodegen.generate(ans, {
+            format: {
+              compact: true,
+              indent: { style: '' },
+            },
+          }),
+          precedence: escodegen.Precedence.Assignment,
+        };
       }
+      return ans;
     }
     function ObjectExpression(properties : Array<J.Property>) : J.ObjectExpression {
       return {
@@ -467,20 +485,8 @@ export interface Exports {
       dict: { 'module-name': "dummy location" }
     };
     
-    function compileSrcloc(_context : any, l : A.Srcloc) : J.Expression {
-      switch(l.$name) {
-        case "builtin": return ArrayExpression([Literal(l.dict['module-name'])]);
-        case "srcloc":
-          return ArrayExpression([
-            Literal(l.dict.source),
-            Literal(l.dict['start-line']),
-            Literal(l.dict['start-column']),
-            Literal(l.dict['start-char']),
-            Literal(l.dict['end-line']),
-            Literal(l.dict['end-column']),
-            Literal(l.dict['end-char']),
-          ]);
-      }
+    function compileSrcloc(context : SrclocContext, l : A.Srcloc, cache?: boolean) : J.Expression {
+      return context.compileSrcloc(l, cache)
     }
 
     function beforeSrcloc(s1 : A.Srcloc, s2 : A.Srcloc) : boolean {

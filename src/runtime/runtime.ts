@@ -4,6 +4,10 @@ import { NumericErrorCallbacks } from "./equality";
 import { CheckResult, CheckExprEvalResult, CheckTestResult } from "./common-runtime-types";
 import { $PMethodBrand, applyBrand } from "./primitives";
 
+export type Srcloc = 
+  | [string]
+  | [string, number, number, number, number, number, number]
+
 
 type Variant<T, V> = T & { $name: V };
 
@@ -27,27 +31,43 @@ const _PRIMITIVES = require("./primitives.js");
 
 // *********Spy Stuff*********
 
+function formatSrcloc(loc: Srcloc, showFile: boolean): string {
+  switch(loc.length) {
+    case 1: return `<builtin ${loc[0]}>`;
+    case 7:
+      const [uri, startLine, startCol, _startChar, endLine, endCol, _endChar] = loc;
+      if (showFile) {
+        const start = `${uri}:${startLine}:${startCol}`;
+        const end = `${endLine}:${endCol}`;
+        return `${start}-${end}`;
+      } else {
+        return `line ${startLine}, column ${startCol}`;
+      }
+  }
+}
+
+
 var $spyMessageHandler = function(data : any) {
   if (data.message) {
-    console.log(`Spying "${data.message}" (at ${data.loc})`);
+    console.log(`Spying "${data.message}" (at ${formatSrcloc(data.loc, true)})`);
   } else {
-    console.log(`Spying (at ${data.loc})`);
+    console.log(`Spying (at ${formatSrcloc(data.loc, true)})`);
   }
 };
 
 var $spyValueHandler = function(data : any) {
-  console.log(`    ${data.key}: ${data.value} (at ${data.loc})`);
+  console.log(`    ${data.key}: ${data.value} (at ${formatSrcloc(data.loc, true)})`);
 };
 
 export interface SpyExpr {
   key: string,
   expr: () => any,
-  loc: string
+  loc: Srcloc
 }
 
 export interface SpyObject {
   message: () => string,
-  loc: string,
+  loc: Srcloc,
   exprs: SpyExpr[],
 }
 
@@ -98,7 +118,7 @@ export function $setCheckBlockExecutor(executor : any): void {
   $checkBlockExecutor = executor;
 }
 
-function checkBlockHandler(srcloc: string, name: string, checkBlock: () => void): void {
+function checkBlockHandler(srcloc: Srcloc, name: string, checkBlock: () => void): void {
   $checkBlockExecutor(srcloc, name, checkBlock);
 }
 
@@ -128,8 +148,6 @@ const stubCheckContext = {
     'checkSatisfiesDelayedCause': function(...args: any[]) { stubCheck(args); },
     'checkSatisfiesNotDelayed': function(...args: any[]) { stubCheck(args); },
     'checkSatisfiesNotDelayedCause': function(...args: any[]) { stubCheck(args); },
-    'checkSatisfies': function(...args: any[]) { stubCheck(args); },
-    'checkSatisfiesNot': function(...args: any[]) { stubCheck(args); },
     'checkRaisesStr': function(...args: any[]) { stubCheck(args); },
     'checkRaisesStrCause': function(...args: any[]) { stubCheck(args); },
     'checkRaisesOtherStr': function(...args: any[]) { stubCheck(args); },
@@ -266,7 +284,7 @@ function eagerCheckTest(lhs: () => any,  rhs: () => any,
 }
 
 // TODO(alex): Common URI object that's not a string
-function eagerCheckBlockRunner(srcloc: string, name: string, checkBlock: () => void): void {
+function eagerCheckBlockRunner(srcloc: Srcloc, name: string, checkBlock: () => void): void {
   if ($checkBlockFilter && !$checkBlockFilter(getUriForCheckLoc(srcloc), name)) {
     return;
   }
@@ -274,7 +292,17 @@ function eagerCheckBlockRunner(srcloc: string, name: string, checkBlock: () => v
   _globalCheckContext.push(name);
 
   try {
-    checkBlock();
+    //checkBlock();
+    const ctx = currentCheckContext();
+    ctx.runChecks(srcloc[0], [
+      {
+        keywordCheck: false,
+        location: srcloc,
+        name,
+        run: checkBlock
+      }
+    ]);
+    console.log(currentCheckContext().results());
 
   } catch(e) {
     throw e;
@@ -287,13 +315,15 @@ function eagerCheckBlockRunner(srcloc: string, name: string, checkBlock: () => v
 
 var _globalTraceValues : any = {};
 
-function getUri(loc : [string, number, number, number, number, number, number]) {
+function getUri(loc : Srcloc) {
   return loc[0];
 }
-function getUriForCheckLoc(loc : string) {
+function getUriForCheckLoc(loc : string | Srcloc) {
   // NOTE(joe/luna): The locations look like file:///path:start-end. This gets
   // the bit between the two colons (one after file:, one after path:)
-  return loc.substring(0, loc.indexOf(":", loc.indexOf(":") + 1));
+  if (typeof loc === 'string')
+    return loc.substring(0, loc.indexOf(":", loc.indexOf(":") + 1));
+  return loc[0];
 }
 
 // ********* Other Functions *********

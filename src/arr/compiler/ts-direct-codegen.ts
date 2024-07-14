@@ -72,7 +72,6 @@ export type Exports = {
       UnaryExpression,
       Var,
       bindToName,
-      compileSrcloc,
       dummyLoc,
       listToArray,
       nameToKey,
@@ -158,7 +157,7 @@ export type Exports = {
       return CallExpression(DotExpression(Identifier(RUNTIME), compressRuntimeName(name)), args);
     }
     
-    function chooseSrcloc(l : A.Srcloc, context) {
+    function chooseSrcloc(l : A.Srcloc, context: Context) {
       switch(l.$name) {
         case "builtin": return l;
         case "srcloc": {
@@ -349,14 +348,14 @@ export type Exports = {
         switch(dv.$name) {
           case 's-defined-value': {
             const [ val, fieldStmts ] = compileExpr(context, dv.dict['value']);
-            const sloc = compileSrcloc(context, dv.dict.value.dict.l);
+            const sloc = context.compileSrcloc(dv.dict.value.dict.l);
             fields.push(Property(dv.dict.name, val));
             stmts.push(...fieldStmts);
             locs.push(ObjectExpression([Property("name", Literal(dv.dict.name)), Property("srcloc", sloc)]));
             return;
           }
           case 's-defined-var': {
-            const sloc = compileSrcloc(context, dv.dict.loc);
+            const sloc = context.compileSrcloc(dv.dict.loc);
             fields.push(Property(dv.dict.name, Identifier(jsIdOf(dv.dict.id))));
             locs.push(ObjectExpression([Property("name", Literal(dv.dict.name)), Property("srcloc", sloc)]));
             return;
@@ -499,7 +498,7 @@ export type Exports = {
       let jsCheckBlockFuncName;
       let testBlockName;
       const name = expr.dict.name;
-      jsCheckBlockFuncName = freshId(compilerName("check-block"));
+      jsCheckBlockFuncName = freshId(compilerName(expr.dict['keyword-check'] ? "check-block" : "examples-block"));
       switch(name.$name) {
         case 'none':
           testBlockName = Literal(nameToSourceString(jsCheckBlockFuncName));
@@ -510,7 +509,7 @@ export type Exports = {
       }
       const jsCheckBlockFuncBlock = BlockStatement([...checkBlockStmts, ExpressionStatement(checkBlockVal)]);
       const jsCheckBlockFunc = FunctionExpression(jsCheckBlockFuncName, [], jsCheckBlockFuncBlock);
-      const blockLoc = Literal(formatSrcloc(chooseSrcloc(expr.dict.l, context), true));
+      const blockLoc = context.compileSrcloc(chooseSrcloc(expr.dict.l, context));
       const testerCall = ExpressionStatement(rtMethod("$checkBlock", [blockLoc, testBlockName, jsCheckBlockFunc]));
       context.checkBlockTestCalls.push(testerCall);
       return [UNDEFINED, []];
@@ -564,7 +563,7 @@ export type Exports = {
         }
       }
       function locOf(exp: A.Expr): J.Expression {
-        return Literal(formatSrcloc(chooseSrcloc(exp.dict.l, context), true));
+        return context.compileSrcloc(chooseSrcloc(exp.dict.l, context));
       }
       function maybeLocOf(exp: A.Option<A.Expr>): J.Expression {
         switch (exp.$name) {
@@ -587,7 +586,7 @@ export type Exports = {
         Property('on-refinement', maybeLocOf(refinement))
       ]);
       let testCall: J.Expression;
-      let checkContext: J.Identifier = UNDEFINED; // TODO!
+      let checkContext: J.Expression = Identifier(context.curCheckContext);
       switch(op.$name) {
         case 's-op-is':
           if (refinementThunk && causeThunk) {
@@ -729,262 +728,7 @@ export type Exports = {
           break;
         default: throw new ExhaustiveSwitchError(op);
       }
-
-
-      type CheckOpDesugar =
-        | { $name: "binop-result", op: string }
-        | { $name: "expect-raises", negate: boolean, predicate: boolean }
-        | { $name: "refinement-result", refinement: J.Expression, negate: boolean }
-        | { $name: "predicate-result", negate: boolean };
-      function makeCheckOpResult(success : J.Expression, lhs : J.Expression, rhs: J.Expression) {
-        return ObjectExpression([
-          Property("success", success), Property("lhs", lhs), Property("rhs", rhs)
-        ]);
-      }
-
-      function makeCheckExprResult(value : T.Either<J.Expression, J.Expression>) {
-        switch(value.$name) {
-          case "left": return ObjectExpression([
-              Property("value", UNDEFINED),
-              Property("exception", Literal(true)),
-              Property("exception_value", value.dict.v)
-            ]);
-          case "right": return ObjectExpression([
-              Property("value", value.dict.v),
-              Property("exception", Literal(false)),
-              Property("exception_value", UNDEFINED)
-            ]);
-        }
-      }
-
-      function thunkIt(name : string, val : J.Expression, stmts : J.Statement[]) {
-        const body = BlockStatement([...stmts, ReturnStatement(val)]);
-        return FunctionExpression(compilerName(name), [], body);
-      }
-      function exceptionCheck(exceptionFlag : J.Expression, lhs : J.Expression, rhs : J.Expression) {
-        const checkBody = BlockStatement([
-          ReturnStatement(makeCheckOpResult(Literal(false), lhs, rhs))
-        ]);
-        return IfStatement(exceptionFlag, checkBody, null);
-      }
-
-      const testLoc = Literal(formatSrcloc(chooseSrcloc(l, context), true));
-
-      let checkOp: CheckOpDesugar, checkOpStmts: J.Statement[];
-      switch(op.$name) {
-        case "s-op-is":
-        case "s-op-is-not": {
-          const negate = op.$name === "s-op-is-not";
-          switch(refinement.$name) {
-            case "some":
-              const [ refinementExpr, refinementStmts ] = compileExpr(context, refinement.dict.value);
-              checkOp = { $name: 'refinement-result', refinement: refinementExpr, negate };
-              checkOpStmts = refinementStmts;
-              break;
-            case "none":
-              const opname = negate ? "op<>" : "op==";
-              [checkOp, checkOpStmts] = [ {$name: 'binop-result', op: opname}, []];
-              break;
-          }
-          break;
-        }
-        case 's-op-is-roughly': {
-          [checkOp, checkOpStmts] = [
-            {$name: 'refinement-result', refinement: rtMethod("within", [Literal(0.000001)]), negate: false},
-            []
-          ]
-          break;
-        }
-        case 's-op-is-not-roughly': {
-          [checkOp, checkOpStmts] = [
-            {$name: 'refinement-result', refinement: rtMethod("within", [Literal(0.000001)]), negate: true},
-            []
-          ]
-          break;
-        }
-        case 's-op-raises':
-        case 's-op-raises-other':
-        case 's-op-raises-not': {
-          const negate = op.$name === 's-op-raises-other';
-          [checkOp, checkOpStmts] = [ {$name: 'expect-raises', negate, predicate: false }, []];
-          break;
-        }
-        case 's-op-raises-satisfies':
-        case 's-op-raises-violates': {
-          const negate = op.$name === 's-op-raises-violates';
-          [checkOp, checkOpStmts] = [ {$name: 'expect-raises', negate, predicate: true }, []];
-          break;
-        }
-        case "s-op-is-op":
-        case "s-op-is-not-op": {
-          let refinement = rtField(OP_TO_FUNCTION[op.dict.op]);
-          checkOp = { $name: 'refinement-result', refinement, negate: op.$name === "s-op-is-not-op" };
-          checkOpStmts = [];
-          break;
-        }
-        case "s-op-satisfies":
-        case "s-op-satisfies-not": {
-          checkOp = { $name: 'predicate-result', negate: op.$name === "s-op-satisfies-not" };
-          checkOpStmts = [];
-          break;
-        }
-        default: throw new ExhaustiveSwitchError(op);
-      }
-
-      function defineBinTest(rightExpr: A.Expr, binOp: (lhs: J.Expression, rhs: J.Expression) => J.Expression): CompileResult {
-        // Thunk the lhs
-        const [ lhs, lhsStmts ] = compileExpr(context, left);
-        const lhFunc = thunkIt("LHS", lhs, lhsStmts);
-
-        // Thunk the rhs
-        const [ rhs, rhsStmts ] = compileExpr(context, rightExpr);
-        const rhFunc = thunkIt("RHS", rhs, rhsStmts);
-
-        // Thunk the binCheckOp
-        const lhsParamName = freshId(compilerName("lhs"));
-        const rhsParamName = freshId(compilerName("rhs"));
-
-        const lhsValue = DotExpression(Identifier(lhsParamName), "value");
-        // LHS exception check
-        const lhsException = DotExpression(Identifier(lhsParamName), "exception");
-        const lhsExceptionCheck = exceptionCheck(lhsException, Identifier(lhsParamName), Identifier(rhsParamName));
-
-        const rhsValue = DotExpression(Identifier(rhsParamName), "value");
-        // RHS exception check
-        const rhsException = DotExpression(Identifier(rhsParamName), "exception");
-        const rhsExceptionCheck = exceptionCheck(rhsException, Identifier(lhsParamName), Identifier(rhsParamName));
-
-        const jTestVal = binOp(lhsValue, rhsValue);
-
-        const successResult = makeCheckOpResult(jTestVal, Identifier(lhsParamName), Identifier(rhsParamName));
-
-        const testBodyStmts = [lhsExceptionCheck, rhsExceptionCheck, ...checkOpStmts, ReturnStatement(successResult)];
-
-        const testBody = BlockStatement(testBodyStmts);
-        const testFunc = FunctionExpression(compilerName("TEST"), [lhsParamName, rhsParamName], testBody);
-
-        const testerCallArgs = [lhFunc, rhFunc, testFunc, testLoc];
-        const testerCall = ExpressionStatement(rtMethod("$checkTest", testerCallArgs));
-
-        return [UNDEFINED, [testerCall]];
-      }
-
-      switch(checkOp.$name) {
-        case 'binop-result': {
-          const binOp = checkOp.op;
-          const right = unwrap(rightOpt, 'Attempting to use a binary check op without the RHS');
-          return defineBinTest(right, (left, right) => {
-            return compileSOp(context, binOp, left, right);
-          });
-        }
-        case 'expect-raises': {
-          // Transforms the following Pyret test expression:
-          //   `lhs raises rhs`
-          // into
-          // ```
-          //   LHS = thunk(lhs)
-          //   RHS = thunk(rhs)
-          //   test = function(lhs, rhs) {
-          //     let success = RUNTIME.exception && (RUNTIME.$torepr(RUNTIME.$raiseExtract(lhs.exception_val).index(rhs.value))
-          //     );
-          //     return testResult(success, lhs, asException(rhs));
-          //   };
-          //   RUNTIME.$checkTest(LHS, RHS, test)
-          //
-          // ```
-          // where testResult() and asException() are conversions emitted in place
-          //
-          // The `raises` operator checks that the rhs is contained within the
-          //   string representation of the lhs.
-          //
-
-          const [ lhs, lhsStmts ] = compileExpr(context, left);
-          const lhFunc = thunkIt("LHS", lhs, lhsStmts);
-
-          // Thunk the RHS
-          let rhs: J.Expression, rhsStmts: J.Statement[];
-          switch(rightOpt.$name) {
-            case 'none': {
-              rhsStmts = [];
-              rhs = Literal("unused-satisfies-not");
-              break;
-            }
-            case 'some': {
-              const right = unwrap(rightOpt, "`raises` checkop did not have a RHS, should be a parsing error");
-              [rhs, rhsStmts] = compileExpr(context, right);
-            }
-          }
-          const rhFunc = thunkIt("RHS", rhs, rhsStmts);
-
-          // Thunk the binCheckOp
-          const lhsParamName = freshId(compilerName("lhs"));
-          const rhsParamName = freshId(compilerName("rhs"));
-
-          const rhsValue = DotExpression(Identifier(rhsParamName), "value");
-          const expectedRhs = makeCheckExprResult({ $name: 'left', dict: { v: rhsValue }});
-
-          // NOTE(Joe): I don't like what I did here.
-          const lhsIsExceptionVal = DotExpression(Identifier(lhsParamName), "exception");
-          let successResult : J.Expression;
-          if(rightOpt.$name === "some") {
-            // NOTE(Ben): I don't like this.
-            const lhsExceptionVal = DotExpression(Identifier(lhsParamName), "exception_val");
-            const lhsExceptionExtract = rtMethod(TOREPR, [rtMethod("$raiseExtract", [lhsExceptionVal])]);
-            let extractionResult : J.Expression;
-            if(checkOp.predicate) {
-              extractionResult = CallExpression(rhsValue, [lhsExceptionVal]);
-            } 
-            else {
-              extractionResult = CallExpression(DotExpression(lhsExceptionExtract, "includes"), [rhsValue]);
-            }
-            if(checkOp.negate) {
-              extractionResult = UnaryExpression("!", extractionResult);
-            }
-            const testResult = LogicalExpression("&&", lhsIsExceptionVal, extractionResult);
-            successResult = makeCheckOpResult(testResult, Identifier(lhsParamName), expectedRhs);
-          }
-          else {
-            const testResult = UnaryExpression("!", lhsIsExceptionVal);
-            successResult = makeCheckOpResult(testResult, Identifier(lhsParamName), ObjectExpression([
-              Property("exception", Literal(false)),
-              Property("any_value", Literal(true)) // TODO(joe): this needs a better specified representation
-            ]));
-          }
-
-
-          const testBodyStmts = [...checkOpStmts, ReturnStatement(successResult)];
-          const testBody = BlockStatement(testBodyStmts);
-          const testFunc = FunctionExpression(compilerName("TEST"), [lhsParamName, rhsParamName], testBody);
-
-          const testerCallArgs = [lhFunc, rhFunc, testFunc, testLoc];
-          const testerCall = ExpressionStatement(rtMethod("$checkTest", testerCallArgs));
-          
-          return [UNDEFINED, [testerCall]];
-        }
-        case 'refinement-result': {
-          const { negate, refinement } = checkOp;
-          const right = unwrap(rightOpt, 'Attempting to use a refinement check without the RHS');
-          return defineBinTest(right, (left, right) => {
-            if (negate) {
-              return UnaryExpression("!", CallExpression(refinement, [left, right]));
-            } else {
-              return CallExpression(refinement, [left, right]);
-            }
-          });
-        }
-        case 'predicate-result': {
-          const { negate } = checkOp;
-          const right = unwrap(rightOpt, 'Attempting to use a predicate check without the RHS');
-          return defineBinTest(right, (lhs, rhs) => {
-            if (negate) {
-              return UnaryExpression("!", CallExpression(rhs, [lhs]));
-            } else {
-              return CallExpression(rhs, [lhs]);
-            }
-          });
-
-        }
-      }
+      return [testCall, []];
     }
 
     function compileTable(context : Context, expr : Variant<A.Expr, 's-table'>): CompileResult {
@@ -1527,13 +1271,13 @@ export type Exports = {
           // Create the spy expression object
           const jsSpyKey = Property("key", Literal(pyretSpyField.dict.name));
           const jsSpyExpr = Property("expr", jsSpyExprFun);
-          const jsSpyLoc = Property("loc", Literal(formatSrcloc(pyretSpyField.dict.l, true)));
+          const jsSpyLoc = Property("loc", context.compileSrcloc(pyretSpyField.dict.l));
           const jsSpyExprObj = ObjectExpression([jsSpyKey, jsSpyExpr, jsSpyLoc]);
           
           jsSpyFields.push(jsSpyExprObj);
         });
 
-        const jsSpyLoc = Literal(formatSrcloc(expr.dict.l, true));
+        const jsSpyLoc = context.compileSrcloc(expr.dict.l);
 
         // Create the SpyBlockObject
         const jsSpyFieldsList = ArrayExpression(jsSpyFields);
@@ -1627,7 +1371,7 @@ export type Exports = {
             return [ConditionalExpression(
               BinaryExpression("!==", id, UNDEFINED),
               id,
-              rtMethod("$messageThrow", [compileSrcloc(context, expr.dict.l), Literal("Uninitialized letrec identifier")])
+              rtMethod("$messageThrow", [context.compileSrcloc(expr.dict.l), Literal("Uninitialized letrec identifier")])
             ), []];
           }
         }
@@ -1652,7 +1396,7 @@ export type Exports = {
           return [ CallExpression(fv, argvs), [...fstmts, ...argstmts]];
         }
         case 's-srcloc':
-          return [compileSrcloc(context, expr.dict.loc), []];
+          return [context.compileSrcloc(expr.dict.loc), []];
         case 's-op':
           return compileOp(context, expr);
         case 's-lam': {
@@ -1714,7 +1458,7 @@ export type Exports = {
         case 's-user-block': 
           return compileExpr(context, expr.dict.body);
         case 's-template': 
-          return [rtMethod("throwUnfinishedTemplate", [compileSrcloc(context, expr.dict.l)]), []];
+          return [rtMethod("throwUnfinishedTemplate", [context.compileSrcloc(expr.dict.l)]), []];
         case 's-type': 
           throw new ShouldHaveDesugared(expr.dict.l, expr.$name);
         case 's-newtype': throw new TODOError(expr.$name);
@@ -1726,7 +1470,7 @@ export type Exports = {
         }
         case 's-if':
         case 's-if-pipe': {
-          const srcloc = compileSrcloc(context, expr.dict.l);
+          const srcloc = context.compileSrcloc(expr.dict.l);
           const type = (expr.$name === 's-if' ? 'if' : 'ask');
           const throwNoMatch = CallExpression(rtField("throwNoBranchesMatched"), [srcloc, Literal(type)]);
           return compileIf(context,
@@ -1834,7 +1578,7 @@ export type Exports = {
       }
     }
 
-    function createPrelude(prog : A.Program, provides, env, freeBindings : Map<string, CS.ValueBind>, options, importFlags) : Array<J.Statement> {
+    function createPrelude(prog : A.Program, provides, env, U: A.Name, M: A.Name, C: A.Name, srclocs: J.Expression[], freeBindings : Map<string, CS.ValueBind>, options, importFlags) : Array<J.Statement> {
 
       function getBaseDir(source : string, buildDir : string) : [ string, string ] {
         let sourceHead = source.indexOf("://") + 3;
@@ -1993,12 +1737,15 @@ export type Exports = {
       });
 
       const setupRuntime = [
+        Var(U, Literal(provides.dict['from-uri'])),
         runtimeImport,
-        ExpressionStatement(rtMethod("$claimMainIfLoadedFirst", [Literal(provides.dict['from-uri'])])),
+        ExpressionStatement(rtMethod("$claimMainIfLoadedFirst", [Identifier(U)])),
         checkerImport,
-        ExpressionStatement(rtMethod("$initializeCheckContext", [Literal(provides.dict['from-uri']), Literal(false)])),
-        ExpressionStatement(rtMethod("$clearTraces", [Literal(provides.dict['from-uri'])])),
-        ExpressionStatement(rtMethod("$clearChecks", [Literal(provides.dict['from-uri'])]))
+        // TODO(Ben) -- Make this not be all=true!!!
+        Var(C, rtMethod("$initializeCheckContext", [Identifier(U), Literal(true)])),
+        Var(M, ArrayExpression(srclocs)),
+        ExpressionStatement(rtMethod("$clearTraces", [Identifier(U)])),
+        ExpressionStatement(rtMethod("$clearChecks", [Identifier(U)]))
       ];
 
       return [...setupRuntime, ...importStmts, ...fromModules];
@@ -2098,6 +1845,8 @@ export type Exports = {
     };
     type Context = {
       uri: string,
+      curCheckContext: A.Name,
+      compileSrcloc: (l : A.Srcloc, cache?: boolean) => J.Expression,
       options: any,
       provides: CS.Provides,
       datatypes: Map<string, any>,
@@ -2114,29 +1863,71 @@ export type Exports = {
       // TODO(joe): remove this when we are 100% confident that map doesn't fudge with the AST
       prog = assertMapIsDoingItsJob(prog);
 
-      const [ans, stmts] = compileExpr({
+      const srclocs: J.ArrayExpression[] = [];
+      const srclocIndexMap: Map<string, number> = new Map();
+      const U = freshId(compilerName('U'));
+      const M = freshId(compilerName('L'));
+      const C = freshId(compilerName('curChCtx'));
+
+      const context: Context = {
         uri: fromUri,
-        options: options,
-        provides: provides,
+        curCheckContext: C,
+        compileSrcloc(l : A.Srcloc, cache: boolean = true): J.Expression {
+          const locAsStr = formatSrcloc(l, true);
+          let idx = srclocIndexMap.get(locAsStr);
+          if (idx === undefined) {
+            idx = srclocs.length;
+            srclocIndexMap.set(locAsStr, idx);
+            let ans: J.Expression;
+            switch(l.$name) {
+              case "builtin": 
+                ans = ArrayExpression([Literal(l.dict['module-name'])]); 
+                break;
+              case "srcloc":
+                ans = ArrayExpression([
+                  Identifier(U),
+                  Literal(l.dict['start-line']),
+                  Literal(l.dict['start-column']),
+                  Literal(l.dict['start-char']),
+                  Literal(l.dict['end-line']),
+                  Literal(l.dict['end-column']),
+                  Literal(l.dict['end-char']),
+                ], true);
+                break;
+            }  
+            srclocs.push(ans);
+          }
+          if (!cache) {
+            const existing = srclocs[idx].elements;
+            const allButUri = existing.slice(1);
+            const uri = (l.$name === 'builtin' ? l.dict['module-name'] : l.dict['source']);
+            return ArrayExpression([Literal(uri), ...allButUri]);
+          }
+          return BracketExpression(Identifier(M), Literal(idx));
+        },  
+        options,
+        provides,
         datatypes: translatedDatatypeMap,
-        env: env,
+        env,
         postEnv: postEnv as Variant<CS.ComputedEnvironment, 'computed-env'>,
         freeBindings,
         checkBlockTestCalls: []
-      }, prog.dict.block);
+      };
 
-      const prelude = createPrelude(prog, provides, env, freeBindings, options, importFlags);
+      const [ans, stmts] = compileExpr(context, prog.dict.block);
+
+      const prelude = createPrelude(prog, provides, env, U, M, C, srclocs, freeBindings, options, importFlags);
 
       let serializedProvides: string;
       const mode = (options.dict['compile-mode'] as CS.CompileMode);
       switch(mode.$name) {
         case 'cm-normal': {
-          serializedProvides = compileProvides(provides);
+          serializedProvides = compileProvides(context, provides);
           break;
         }
         case 'cm-builtin-stage-1': 
         case 'cm-builtin-general': {
-          serializedProvides = compileProvidesOverrideUri(provides, true);
+          serializedProvides = compileProvidesOverrideUri(context, provides, true);
           break;
         }
         default:
@@ -2146,7 +1937,8 @@ export type Exports = {
       const moduleBody = Program([...prelude, ...stmts, ReturnStatement(ans)]);
       const jsonOptions : Escodegen.GenerateOptions = {
         format: { json: true, },
-        comment: true
+        comment: true,
+        verbatim: 'x-verbatim-content',
       };
       return ({
         requires: escodegen.generate(ArrayExpression(serializeRequires(env, options)), jsonOptions),
