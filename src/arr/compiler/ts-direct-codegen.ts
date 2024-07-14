@@ -556,12 +556,6 @@ export type Exports = {
           case 'some': return thunk(name, optExp.dict.value);
         }
       }
-      function maybeCall(name: string, optExp: A.Option<A.Expr>): J.Expression | undefined {
-        switch(optExp.$name) {
-          case 'none': return undefined;
-          case 'some': return CallExpression(thunk(name, optExp.dict.value), []);
-        }
-      }
       function locOf(exp: A.Expr): J.Expression {
         return context.compileSrcloc(chooseSrcloc(exp.dict.l, context));
       }
@@ -575,9 +569,7 @@ export type Exports = {
       const leftThunk = thunk("LHS", left);
       const rightThunk = maybeThunk("RHS", rightOpt);
       const causeThunk = maybeThunk("CAUSE", cause);
-      // TODO: maybe we should thunk the refinement also, instead of eagerly
-      // evaluating it?   maybeThunk("REFINE", refinement);
-      const refinementThunk = maybeCall("REFINE", refinement);
+      const refinementThunk = maybeThunk("REFINE", refinement);
       const loc = locOf(expr);
       const partLocs = ObjectExpression([
         Property('on-left', locOf(left)),

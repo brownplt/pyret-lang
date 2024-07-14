@@ -21,8 +21,6 @@ function some<A>(value: A): Variant<Option<A>, 'some'> {
 const none = { $name: 'none' as const }
 
 type Thunk<A> = () => A;
-type Opaque<A> = { v: A };
-type TestThunk<A> = Thunk<A> | Opaque<Thunk<A>>
 type Either<A, B> = 
 | { $name: 'left', val: A }
 | { $name: 'right', val: B }
@@ -249,8 +247,8 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   function addResult(tr : TestResult) {
     currentResults.push(tr);
   }
-  function unthunk<T>(loc: Srcloc, locs: LocsRecord, where: CheckOperand, thunk: TestThunk<T>, cont: (val: T) => any) {
-    const result = runTask(typeof thunk === 'function' ? thunk : thunk.v);
+  function unthunk<T>(loc: Srcloc, locs: LocsRecord, where: CheckOperand, thunk: Thunk<T>, cont: (val: T) => any) {
+    const result = runTask(thunk);
     if (result.$name === 'right') {
       addResult(failureExn(loc, result.val, where));
     } else {
@@ -297,12 +295,12 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
   }
   const CHECK_IS = {
-    checkIs: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIs: (left: Thunk<any>, right: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
           checkIsCont(loc, locs, lv, 'on-left', rv, 'on-right', () => addResult(success(loc)))));
     },
-    checkIsCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIsCause: (left: Thunk<any>, right: Thunk<any>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
           unthunk(loc, locs, 'on-cause', cause, (cv) =>
@@ -324,12 +322,12 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
   };
   const CHECK_IS_ROUGHLY = {
-    checkIsRoughly: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIsRoughly: (left: Thunk<any>, right: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
           checkIsRoughlyCont(loc, locs, lv, 'on-left', rv, 'on-right', () => addResult(success(loc)))));
     },
-    checkIsRoughlyCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIsRoughlyCause: (left: Thunk<any>, right: Thunk<any>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
           unthunk(loc, locs, 'on-cause', cause, (cv) =>
@@ -349,12 +347,12 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
   }
   const CHECK_IS_NOT = {
-    checkIsNot: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIsNot: (left: Thunk<any>, right: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
           checkIsNotCont(loc, locs, lv, 'on-left', rv, 'on-right', () => addResult(success(loc)))));
     },
-    checkIsNotCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIsNotCause: (left: Thunk<any>, right: Thunk<any>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
           unthunk(loc, locs, 'on-cause', cause, (cv) =>
@@ -374,12 +372,12 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
   };
   const CHECK_IS_NOT_ROUGHLY = {
-    checkIsNotRoughly: (left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIsNotRoughly: (left: Thunk<any>, right: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
           checkIsNotRoughlyCont(loc, lv, 'on-left', rv, 'on-right', () => addResult(success(loc)))));
     },
-    checkIsNotRoughlyCause: (left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIsNotRoughlyCause: (left: Thunk<any>, right: Thunk<any>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
           unthunk(loc, locs, 'on-cause', cause, (cv) =>
@@ -412,19 +410,21 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
   }
   const CHECK_IS_REFINEMENT = {
-    checkIsRefinement: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIsRefinement: (refinement: Thunk<(left: any, right: any) => boolean | EQ.EqualityResult>, left: Thunk<any>, right: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
-          checkIsRefinementCont(loc, locs, refinement, lv, 'on-left', rv, 'on-right', () =>
-            addResult(success(loc)))))
+          unthunk(loc, locs, 'on-refinement', refinement, (refv) => 
+            checkIsRefinementCont(loc, locs, refv, lv, 'on-left', rv, 'on-right', () =>
+              addResult(success(loc))))))
     },
-    checkIsRefinementCause: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIsRefinementCause: (refinement: Thunk<(left: any, right: any) => boolean | EQ.EqualityResult>, left: Thunk<any>, right: Thunk<any>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
           unthunk(loc, locs, 'on-cause', cause, (cv) => 
-            checkIsRefinementCont(loc, locs, refinement, cv, 'on-cause', rv, 'on-right', () => 
-              checkIsRefinementCont(loc, locs, refinement, lv, 'on-left', rv, 'on-right', () =>
-                addResult(success(loc)))))))
+            unthunk(loc, locs, 'on-refinement', refinement, (refv) => 
+              checkIsRefinementCont(loc, locs, refv, cv, 'on-cause', rv, 'on-right', () => 
+                checkIsRefinementCont(loc, locs, refv, lv, 'on-left', rv, 'on-right', () =>
+                  addResult(success(loc))))))))
     }
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -451,19 +451,21 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
   }
   const CHECK_IS_NOT_REFINEMENT = {
-    checkIsNotRefinement: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIsNotRefinement: (refinement: Thunk<(left: any, right: any) => boolean | EQ.EqualityResult>, left: Thunk<any>, right: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
-          checkIsNotRefinementCont(loc, locs, refinement, lv, 'on-left', rv, 'on-right', () =>
-            addResult(success(loc)))))
+          unthunk(loc, locs, 'on-refinement', refinement, (refv) => 
+            checkIsNotRefinementCont(loc, locs, refv, lv, 'on-left', rv, 'on-right', () =>
+              addResult(success(loc))))))
     },
-    checkIsNotRefinementCause: (refinement: (left: any, right: any) => boolean | EQ.EqualityResult, left: TestThunk<any>, right: TestThunk<any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkIsNotRefinementCause: (refinement: Thunk<(left: any, right: any) => boolean | EQ.EqualityResult>, left: Thunk<any>, right: Thunk<any>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', right, (rv) =>
           unthunk(loc, locs, 'on-cause', cause, (cv) => 
-            checkIsNotRefinementCont(loc, locs, refinement, cv, 'on-cause', rv, 'on-right', () => 
-              checkIsNotRefinementCont(loc, locs, refinement, lv, 'on-left', rv, 'on-right', () =>
-                addResult(success(loc)))))))
+            unthunk(loc, locs, 'on-refinement', refinement, (refv) => 
+              checkIsNotRefinementCont(loc, locs, refv, cv, 'on-cause', rv, 'on-right', () => 
+                checkIsNotRefinementCont(loc, locs, refv, lv, 'on-left', rv, 'on-right', () =>
+                  addResult(success(loc))))))))
     }
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -488,13 +490,13 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
   }
   const CHECK_SATISFIES_DELAYED = {
-    checkSatisfiesDelayed: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, loc: Srcloc, locs: LocsRecord) => {
+    checkSatisfiesDelayed: (left: Thunk<any>, pred: Thunk<(v : any) => any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', pred, (pv) =>
           checkSatisfiesDelayedCont(loc, locs, lv, 'on-left', pv, 'on-right', () =>
             addResult(success(loc)))))
     },
-    checkSatisfiesDelayedCause: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkSatisfiesDelayedCause: (left: Thunk<any>, pred: Thunk<(v : any) => any>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', pred, (pv) =>
           unthunk(loc, locs, 'on-cause', cause, (cv) => 
@@ -525,13 +527,13 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
 }
   const CHECK_SATISFIES_NOT_DELAYED = {
-    checkSatisfiesNotDelayed: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, loc: Srcloc, locs: LocsRecord) => {
+    checkSatisfiesNotDelayed: (left: Thunk<any>, pred: Thunk<(v : any) => any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', pred, (pv) =>
           checkSatisfiesNotDelayedCont(loc, locs, lv, 'on-left', pv, 'on-right', () =>
             addResult(success(loc)))))
     },
-    checkSatisfiesNotDelayedCause: (left: TestThunk<any>, pred: TestThunk<(v : any) => any>, cause: TestThunk<any>, loc: Srcloc, locs: LocsRecord) => {
+    checkSatisfiesNotDelayedCause: (left: Thunk<any>, pred: Thunk<(v : any) => any>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
       unthunk(loc, locs, 'on-left', left, (lv) =>
         unthunk(loc, locs, 'on-right', pred, (pv) =>
           unthunk(loc, locs, 'on-cause', cause, (cv) => 
