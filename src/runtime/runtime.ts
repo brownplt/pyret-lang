@@ -107,19 +107,10 @@ var _globalCheckResults: { [uri : string]: CheckResult[] } = {};
 //   so we can attempt to filter check blocks by module
 // TODO: Add check test override
 // TODO: Need to expose an check runner test API to the IDE
-var $checkBlockExecutor = eagerCheckBlockRunner;
 var $checkBlockFilter: ((uri: string, name?: string) => boolean) | null = null;
 
 export function $setCheckBlockFilter(filter: (uri: string, name?: string) => boolean): void {
   $checkBlockFilter = filter;
-}
-
-export function $setCheckBlockExecutor(executor : any): void {
-  $checkBlockExecutor = executor;
-}
-
-function checkBlockHandler(srcloc: Srcloc, name: string, checkBlock: () => void): void {
-  $checkBlockExecutor(srcloc, name, checkBlock);
 }
 
 function getCheckResults(uri : string): CheckResult[] {
@@ -162,9 +153,9 @@ const stubCheckContext = {
 };
 let checkContext = stubCheckContext;
 function initializeCheckContext(uri : string, all : boolean) {
-  if(uri === currentMainURI) {
+  if(stubCheckContext === checkContext && currentMainURI) {
     const checker = require("./checker" + ".js");
-    checkContext = checker['makeCheckContext'](uri, all);
+    checkContext = checker['makeCheckContext'](currentMainURI, all);
   }
   return checkContext;
 }
@@ -173,8 +164,10 @@ function currentCheckContext() {
   return checkContext;
 }
 
-
 let currentMainURI : boolean | string = false;
+function getCurrentMainURI() {
+  return currentMainURI;
+}
 function claimMainIfLoadedFirst(uri : string) {
   if(currentMainURI === false) {
     currentMainURI = uri;
@@ -226,91 +219,15 @@ function checkResults(uri : string): CheckResult[] {
   return getCheckResults(uri);
 }
 
-function eagerCheckTest(lhs: () => any,  rhs: () => any,
-  test: (lhs: CheckExprEvalResult, rhs: CheckExprEvalResult) => CheckTestResult,
-  loc: Srcloc): void {
-  
-  const uri = getUriForCheckLoc(loc);
-  if(!(uri in _globalCheckResults)) {
-    _globalCheckResults[uri] = [];
+type CompiledSrcloc = [string, number, number, number, number, number, number] | string;
+
+function srclocToPyretLoc(loc: CompiledSrcloc) {
+  const srcloc = require("./srcloc" + ".arr.js");
+  if(typeof loc === 'string') {
+    return srcloc.builtin(loc);
   }
-
-  let lhs_expr_eval: CheckExprEvalResult = {
-    value: undefined,
-    exception: false,
-    exception_val: undefined,
-  };
-
-  let rhs_expr_eval: CheckExprEvalResult = {
-    value: undefined,
-    exception: false,
-    exception_val: undefined,
-  };
-
-  try {
-    lhs_expr_eval.value = lhs();
-  } catch(e) {
-    lhs_expr_eval.exception = true;
-    lhs_expr_eval.exception_val = e;
-  }
-
-  try {
-    rhs_expr_eval.value = rhs();
-  } catch(e) {
-    rhs_expr_eval.exception = true;
-    rhs_expr_eval.exception_val = e;
-  }
-
-  try {
-    let result = test(lhs_expr_eval, rhs_expr_eval);
-    _globalCheckResults[uri].push({
-        success: result.success,
-        path: _globalCheckContext.join(),
-        loc: loc,
-        lhs: result.lhs,
-        rhs: result.rhs,
-        exception: undefined,
-    });
-  } catch(e) {
-    _globalCheckResults[uri].push({
-        success: false,
-        path: _globalCheckContext.join(),
-        loc: loc,
-        lhs: lhs_expr_eval,
-        rhs: rhs_expr_eval,
-        exception: e,
-    });
-  }
-}
-
-// TODO(alex): Common URI object that's not a string
-function eagerCheckBlockRunner(srcloc: Srcloc, name: string, checkBlock: () => void): void {
-  console.log(`Unexpected running eagerCheckBlockRunner for ${name} in ${formatSrcloc(srcloc, true)}`);
-  if ($checkBlockFilter && !$checkBlockFilter(getUriForCheckLoc(srcloc), name)) {
-    return;
-  }
-
-  _globalCheckContext.push(name);
-
-  try {
-    //checkBlock();
-    const ctx = currentCheckContext();
-    ctx.runChecks(srcloc[0], [
-      {
-        keywordCheck: false,
-        location: srcloc,
-        name,
-        run: checkBlock
-      }
-    ]);
-    console.log(currentCheckContext().results());
-
-  } catch(e) {
-    throw e;
-
-  } finally {
-
-    _globalCheckContext.pop();
+  else {
+    return srcloc.srcloc(loc[0], loc[1], loc[2], loc[3], loc[4], loc[5], loc[6]);
   }
 }
 
@@ -923,6 +840,35 @@ export function runTask<A>(f : (() => A)) {
   }
 }
 
+const postLoadHooks : {[uri: string]: (result: any) => void} = {
+
+};
+
+function postLoadHook(uri : string, result : any) {
+  if(uri === currentMainURI) {
+    let foundFailure = false;
+    result.$checks.forEach((checkBlockResult : any) => {
+      checkBlockResult.testResults.forEach((result : any) => {
+        if(result.$name !== "success") {
+          foundFailure = true;
+          console.log("Test failed: ", result)
+        }
+      });
+    });
+    if(!foundFailure) {
+      console.log("Looks shipshape, all tests passed, mate!");
+    }
+    currentMainURI = false;
+    return result;
+  }
+  if(uri in postLoadHooks) {
+    return postLoadHooks[uri](result);
+  }
+  else {
+    return result;
+  }
+}
+
 module.exports["addModule"] = addModule;
 module.exports["getModuleValue"] = getModuleValue;
 
@@ -966,9 +912,8 @@ module.exports["$createVariant"] = _PRIMITIVES.createVariant;
 
 module.exports["$claimMainIfLoadedFirst"] = claimMainIfLoadedFirst;
 module.exports["$initializeCheckContext"] = initializeCheckContext;
+module.exports["$postLoadHook"] = postLoadHook;
 
-module.exports["$checkTest"] = eagerCheckTest;
-module.exports["$checkBlock"] = checkBlockHandler;
 module.exports["$checkResults"] = checkResults;
 module.exports["$getCheckResults"] = getCheckResults;
 module.exports["$clearChecks"] = clearChecks;

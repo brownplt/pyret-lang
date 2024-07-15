@@ -364,7 +364,9 @@ export type Exports = {
       });
 
       const [aExp, aStmts] = compileExpr(context, expr.dict.answer);
-      const checkResults = CallExpression(DotExpression(Identifier(context.curCheckContext), 'results'), []);
+      const checkResults = (!context.importFlags['checker-import']) ?
+        ArrayExpression([]) :
+        CallExpression(DotExpression(Identifier(context.curCheckContext), 'results'), []);
       const traces = rtMethod("$getTraces", [Literal(context.uri)]);
 
       const answer1 = freshId(compilerName("answer"))
@@ -377,11 +379,14 @@ export type Exports = {
         Property("$traces", traces),
         Property("$locations", ArrayExpression(locs))
       ]);
-      const callRunChecks = ExpressionStatement(
-        CallExpression(DotExpression(Identifier(context.curCheckContext), 'runChecks'),
-          [Literal(context.provides.dict['from-uri']), ArrayExpression(context.checkBlockTestCalls)]
-        ));
-      const assignAns = AssignmentExpression(DotExpression(Identifier(constId("module")), "exports"), ans);
+      context.options.dict.log.app("\nrunChecks check option: \n\n<" + context.options.dict.checks + ">\n\n", runtime.ffi.makeNone());
+      const callRunChecks = (!context.importFlags['checker-import']) ? ExpressionStatement(Literal("Skipped runChecks")) :
+        ExpressionStatement(
+          CallExpression(DotExpression(Identifier(context.curCheckContext), 'runChecks'),
+            [Literal(context.provides.dict['from-uri']), ArrayExpression(context.checkBlockTestCalls)]
+          ));
+      const postLoadHook = rtMethod("$postLoadHook", [Literal(context.provides.dict['from-uri']), ans]);
+      const assignAns = AssignmentExpression(DotExpression(Identifier(constId("module")), "exports"), postLoadHook);
       return [assignAns, [...aStmts, callRunChecks, answerVar, ...stmts]];
     }
 
@@ -497,6 +502,11 @@ export type Exports = {
     }
 
     function compileCheckBlock(context : Context, expr : Variant<A.Expr, "s-check">) : CompileResult {
+      context.options.dict.log.app("Checks: " + context.options.checks, runtime.ffi.makeNone());
+      if(context.options.dict.checks === "none") {
+        return [Literal("Skipped check blocks"),[]];
+      }
+      context.importFlags["checker-import"] = true;
       const [ checkBlockVal, checkBlockStmts ] = compileExpr(context, expr.dict.body);
       let jsCheckBlockFuncName: A.Name;
       let testBlockName: J.Expression;
@@ -620,7 +630,7 @@ export type Exports = {
           }
           break;
         case 's-op-is-op': {
-          const newRefinement = rtField(OP_TO_FUNCTION[op.dict.op]);
+          const newRefinement = FunctionExpression(compilerName("REFINE"), [], BlockStatement([ReturnStatement(rtField(OP_TO_FUNCTION[op.dict.op]))]));
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsRefinementCause'), 
                                       [newRefinement, leftThunk, rightThunk!, loc, partLocs]);
@@ -631,7 +641,7 @@ export type Exports = {
           break;
         }
         case 's-op-is-not-op': {
-          const newRefinement = rtField(OP_TO_FUNCTION[op.dict.op]);
+          const newRefinement = FunctionExpression(compilerName("REFINE"), [], BlockStatement([ReturnStatement(rtField(OP_TO_FUNCTION[op.dict.op]))]));
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRefinementCause'), 
                                       [newRefinement, leftThunk, rightThunk!, loc, partLocs]);
@@ -733,7 +743,7 @@ export type Exports = {
     }
 
     function compileTable(context : Context, expr : Variant<A.Expr, 's-table'>): CompileResult {
-      importFlags['table-import'] = true;
+      context.importFlags['table-import'] = true;
 
       const func = BracketExpression(Identifier(TABLE), Literal("_makeTable"));
 
@@ -788,7 +798,7 @@ export type Exports = {
             throw new TODOError("sLoadTable with a sanitize spec");
           case 's-table-src': {
             // Set the tableImport flag
-            importFlags['table-import'] = true;
+            context.importFlags['table-import'] = true;
 
             const tableId = Identifier(TABLE);
             const makeTableFunc =
@@ -818,7 +828,7 @@ export type Exports = {
 
     function compileTableExtend(context : Context, expr: Variant<A.Expr, 's-table-extend'>): CompileResult {
       // Set the table-import flag
-      importFlags['table-import'] = true;
+      context.importFlags['table-import'] = true;
 
       // This case handles `extend` syntax. The starred lines in the following
       // Pyret code,
@@ -983,7 +993,7 @@ export type Exports = {
 
     function compileTableUpdate(context : Context, expr : Variant<A.Expr, 's-table-update'>): CompileResult {
       // Set the table-import flag
-      importFlags['table-import'] = true;
+      context.importFlags['table-import'] = true;
 
       // This case handles `transform` syntax. The starred lines in the following
       // Pyret code,
@@ -1052,7 +1062,7 @@ export type Exports = {
 
     function compileTableSelect(context : Context, expr : Variant<A.Expr, 's-table-select'>): CompileResult {
       // Set the table-import flag
-      importFlags['table-import'] = true;
+      context.importFlags['table-import'] = true;
 
       const func = BracketExpression(Identifier(TABLE), Literal("_selectColumns"));
 
@@ -1068,7 +1078,7 @@ export type Exports = {
 
     function compileTableFilter(context : Context, expr: Variant<A.Expr, 's-table-filter'>): CompileResult {
       // Set the table-import flag
-      importFlags['table-import'] = true;
+      context.importFlags['table-import'] = true;
 
       // This case handles `sieve` syntax. The starred lines in the following
       // Pyret code,
@@ -1133,7 +1143,7 @@ export type Exports = {
 
     function compileTableOrder(context : Context, expr: Variant<A.Expr, 's-table-order'>): CompileResult {
       // Set the table-import flag
-      importFlags['table-import'] = true;
+      context.importFlags['table-import'] = true;
 
       // This case handles `order` syntax. The starred lines in the following
       // Pyret code,
@@ -1191,7 +1201,7 @@ export type Exports = {
 
     function compileTableExtract(context : Context, expr: Variant<A.Expr, 's-table-extract'>): CompileResult {
       // Set the table-import flag
-      importFlags['table-import'] = true;
+      context.importFlags['table-import'] = true;
 
       // This case handles `extract` syntax. The starred line in the following
       // Pyret code,
@@ -1666,7 +1676,6 @@ export type Exports = {
       }
 
       const runtimeImport = importBuiltin(RUNTIME, "runtime.js");
-      const checkerImport = importBuiltin(CHECKER, "checker.js");
       const tableImport =  importBuiltin(TABLE, "tables.arr.js");
 
       const manualImports: J.Declaration[] = [];
@@ -1741,13 +1750,20 @@ export type Exports = {
         Var(U, Literal(provides.dict['from-uri'])),
         runtimeImport,
         ExpressionStatement(rtMethod("$claimMainIfLoadedFirst", [Identifier(U)])),
-        checkerImport,
-        // TODO(Ben) -- Make this not be all=true!!!
-        Var(C, rtMethod("$initializeCheckContext", [Identifier(U), Literal(true)])),
         Var(M, ArrayExpression(srclocs)),
         ExpressionStatement(rtMethod("$clearTraces", [Identifier(U)])),
         ExpressionStatement(rtMethod("$clearChecks", [Identifier(U)]))
       ];
+      
+
+      const checkerImport = importBuiltin(CHECKER, "checker.js");
+      if(importFlags["checker-import"]) {
+        setupRuntime.push(
+          checkerImport,
+          // TODO(Ben) -- Make this not be all=true!!!
+          Var(C, rtMethod("$initializeCheckContext", [Identifier(U), Literal(true)])),
+        );
+      }
 
       return [...setupRuntime, ...importStmts, ...fromModules];
     }
@@ -1839,10 +1855,11 @@ export type Exports = {
       return result;
     }
 
-    let importFlags = {
+    let defaultImportFlags = {
       'table-import': false,
       'array-import': false,
-      'reactor-import': false
+      'reactor-import': false,
+      'checker-import': false,
     };
     type Context = {
       uri: string,
@@ -1854,12 +1871,14 @@ export type Exports = {
       env: CS.CompileEnvironment,
       postEnv: Variant<CS.ComputedEnvironment, 'computed-env'>,
       freeBindings: Map<string, CS.ValueBind>,
-      checkBlockTestCalls: J.Expression[]
+      checkBlockTestCalls: J.Expression[],
+      importFlags: typeof defaultImportFlags
     }
     function compileProgram(prog : A.Program, uri : string, env : CS.CompileEnvironment, postEnv : CS.ComputedEnvironment, provides : CS.Provides, options : CompileOptions) : TJSP.CCPDict {
       const translatedDatatypeMap = new Map();   // TODO(joe) process from stringdict
       const fromUri = provides.dict['from-uri']; // TODO(joe) handle phases builtin-stage*
       const freeBindings = new Map<string, CS.ValueBind>();            // NOTE(joe) this starts empty in the mainline compiler
+      const importFlags = { ...defaultImportFlags };
 
       // TODO(joe): remove this when we are 100% confident that map doesn't fudge with the AST
       prog = assertMapIsDoingItsJob(prog);
@@ -1912,7 +1931,8 @@ export type Exports = {
         env,
         postEnv: postEnv as Variant<CS.ComputedEnvironment, 'computed-env'>,
         freeBindings,
-        checkBlockTestCalls: []
+        checkBlockTestCalls: [],
+        importFlags
       };
 
       const [ans, stmts] = compileExpr(context, prog.dict.block);

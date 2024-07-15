@@ -54,7 +54,7 @@ export default function CheckResults({
         failed
       </>
     );
-  const details = expanded ? actualChecks.map((check, i) => <Check key={i} value={check} RenderedValue={RenderedValue} />) : '';
+  const details = expanded ? actualChecks.map((check, i) => <Check value={check} RenderedValue={RenderedValue} />) : '';
   const color = !expanded && !allPass ? '#fbbdaf' : '';
   return (
     <pre className={`chatitor-rhs ${className}`} style={{ backgroundColor: color, position: 'relative' }} title={title}>

@@ -1,4 +1,3 @@
-// TODO: These can't be imported, correct?
 import type * as EQ from './types/equality-types';
 import type * as EQUALITY_TYPES from './equality';
 import type * as RUNTIME_TYPES from './runtime';
@@ -8,7 +7,6 @@ const RUNTIME = require('./runtime') as typeof RUNTIME_TYPES;
 
 // TODO: import this from somewhere in the runtime
 type Variant<T, V> = T & { $name: V };
-
 
 // TODO: import Options from somewhere in the runtime
 type Option<A> =
@@ -542,7 +540,9 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
       addResult(failureNoExn(loc, some(str), thunkSrc, true));
     } else {
       // TODO: is this the right way to call to-repr?  The types don't think it exists...
-      if (!((RUNTIME['$torepr'](result.val) as string).includes(str))) {
+      console.log("Result form an exn test:" , result.val, (RUNTIME['$torepr'](result.val)));
+      if (!((RUNTIME['$torepr'](result.val) as string).includes(str)) &&
+          !(String(result.val).includes(str))) {
         addResult(failureWrongExn(loc, str, result.val, thunkSrc));
       } else {
         cont();
@@ -724,3 +724,65 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
 }
 
 export type Checker = ReturnType<typeof makeCheckContext>;
+export type Failure =
+  | { $name: 'paragraph', 'contents': Array<Failure> }
+  | { $name: 'bulleted-sequence', 'contents': Array<Failure> }
+  | { $name: 'v-sequence', 'contents': Array<Failure> }
+  | { $name: 'h-sequence', 'contents': Array<Failure>, 'sep': string }
+  | {
+    $name: 'h-sequence-sep',
+    'contents': Array<Failure>, 'sep': string, 'last': string }
+  | { $name: 'embed', 'val': any }
+  | { $name: 'text', 'str': string }
+  | { $name: 'loc', 'loc': Srcloc }
+  | { $name: 'code', 'contents': Failure }
+  | { $name: 'cmcode', 'loc': Srcloc }
+  | {
+    $name: 'loc-display',
+    'loc': Srcloc, 'style': string, 'contents': Failure }
+  | { $name: 'optional', 'contents': Failure }
+  | {
+    $name: 'highlight',
+    'contents': Failure, 'locs': Array<Srcloc>, 'color': Number }
+  | {
+    $name: 'maybe-stack-loc',
+    n: number, 'user-frames-only': boolean, 'contents-with-loc': (l : Srcloc) => Failure,
+    'contents-without-loc': Failure
+  };
+
+function make(constr, ...args) {
+  return constr.make.apply(null, args);
+}
+
+export function renderReason(testResult: TestResult): Failure {
+    const ED = require('./error-display' + '.arr.js');
+    switch(testResult.$name) {
+      case 'failure-not-equal':
+        return make(ED.error,
+          make(ED.para,
+            testResult.refinement.$name === 'none' ? ED.text("Values not equal") : ED.text("Values not equal, using custom equality"),
+            ED.embed(testResult.left),
+            ED.embed(testResult.right)
+          )
+        );
+      case 'success':
+      case 'failure-is-incomparable':
+      case 'failure-not-different':
+      case 'failure-not-satisfied':
+      case 'failure-not-dissatisfied':
+      case 'failure-wrong-exn':
+      case 'failure-right-exn':
+      case 'failure-exn':
+      case 'failure-no-exn':
+      case 'failure-raise-not-satisfied':
+      case 'failure-raise-not-dissatisfied':
+      case 'error-not-boolean':
+      case 'error-not-pred':
+      case 'error-not-boolean-pred':
+        throw new Error('renderReason not implemented for ' + testResult.$name);
+    }
+}
+
+export function renderFancyReason(testResult: TestResult) : Failure {
+  throw new Error('renderFancyReason Not implemented');
+}

@@ -334,22 +334,15 @@ function array_map(obj: any, callback: any, thisArg?: any) {
     return array;
   }
   
-  export function map(o: any, ...args: any[]): any {
-    if (o instanceof Array) {
-      return array_map(o, args[0], args[1]);
-    } else {
-      return o.map.call(o, ...args);
+  function array_each(o: any, f: any) {
+    var i = 0;
+    var l = o.length;
+    while (i < l) {
+      f(o[i], i, o);
+      i = i + 1;
     }
   }
   
-  export function filter(o: any, pred: any): any {
-    if (o instanceof Array) {
-      return array_filter(o, pred);
-    } else {
-      return o.filter.call(o, pred);
-    }
-  }
-
   /* @stopify flat */
   function isStopifyRunning() {
     /**
@@ -383,6 +376,7 @@ export const stopifyArrayPrototype = {
     //__proto__: Array.prototype,
     map: stopifyDispatch(array_map, Array.prototype.map),
     filter: stopifyDispatch(array_filter, Array.prototype.filter),
+    each: stopifyDispatch(array_each, Array.prototype.forEach),
     /*
     filter: function(f: any) { return stopifyArray(filter(this, f)); },
     reduceRight: function(this: any[], f: any, init: any): any {
@@ -453,15 +447,6 @@ export const stopifyArrayPrototype = {
         i = i + 1;
       }
       return -1;
-    },
-    // NOTE(arjun): Ignores thisArg
-    forEach(this: any[],f: any) {
-      var i = 0;
-      var l = this.length;
-      while (i < l) {
-        f(this[i], i, this);
-        i = i + 1;
-      }
     },
     sort: function(comparator: any) {
       return stopifyArray(array_sort(this, comparator));
