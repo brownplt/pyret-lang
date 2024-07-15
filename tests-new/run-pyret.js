@@ -17,7 +17,6 @@ client.start({
   "pyret-options": {
     'type-check': typecheck === "typecheck",
     'pipeline': pipeline,
-    'checks': 'none',
     'program': filename,
     'builtin-js-dir': 'build/runtime',
     'base-dir': path.resolve(path.join(__dirname, "/../")),

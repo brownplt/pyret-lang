@@ -400,6 +400,27 @@ fun time-or-0(p):
   end
 end
 
+
+type CLIContext = {
+  current-load-path :: String,
+  cache-base-dir :: String
+}
+
+
+default-start-context = {
+  current-load-path: P.resolve("./"),
+  cache-base-dir: P.resolve("./compiled"),
+  compiled-read-only-dirs: empty,
+  options: CS.default-compile-options
+}
+
+default-test-context = {
+  current-load-path: P.resolve("./"),
+  cache-base-dir: P.resolve("./tests/compiled"),
+  compiled-read-only-dirs: empty,
+  options: CS.default-compile-options
+}
+
 fun set-loadable(options, locator, loadable, max-dep-times) block:
   doc: "Returns the module path of the cached file"
   { project-base; project-dir; builtin-dir } = setup-compiled-dirs( options )
@@ -455,6 +476,7 @@ fun set-loadable(options, locator, loadable, max-dep-times) block:
           fs.display(JSP.pyret-to-js-static(ccp))
           fr.display(JSP.pyret-to-js-runnable(ccp))
         end
+
       end
 
       {save-static-path; save-code-path}
@@ -464,10 +486,6 @@ fun set-loadable(options, locator, loadable, max-dep-times) block:
   end
 end
 
-type CLIContext = {
-  current-load-path :: String,
-  cache-base-dir :: String
-}
 
 fun get-real-path(current-load-path :: String, dep :: CS.Dependency):
   this-path = dep.arguments.get(0)
@@ -521,19 +539,6 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
   end
 end
 
-default-start-context = {
-  current-load-path: P.resolve("./"),
-  cache-base-dir: P.resolve("./compiled"),
-  compiled-read-only-dirs: empty,
-  options: CS.default-compile-options
-}
-
-default-test-context = {
-  current-load-path: P.resolve("./"),
-  cache-base-dir: P.resolve("./tests/compiled"),
-  compiled-read-only-dirs: empty,
-  options: CS.default-compile-options
-}
 
 fun handle-compilation-errors(problems, options) block:
   for lists.each(e from problems) block:
@@ -613,23 +618,28 @@ end
 #     in copy-js-dependencies() such that it does NOT trace the global module dependencies.
 #
 fun copy-js-dependencies( wl, options ) block:
-  dirs = setup-compiled-dirs( options )
   arr-js-modules = for filter( tc from wl ):
     CL.is-arr-js-file( tc.locator.get-compiled( options ) )
   end
 
+  code-paths = for map(tc from arr-js-modules): tc.locator.get-compiled( options ).code-file end
+  uris = for map(tc from arr-js-modules): tc.locator.uri() end
+
+  copy-js-dependencies-code-path( code-paths, uris, options )
+end
+
+fun copy-js-dependencies-code-path( code-paths, uris, options ) block:
+  dirs = setup-compiled-dirs( options )
+
   paths = SD.make-mutable-string-dict()
 
-
-  for each( tc from arr-js-modules ):
-    code-path = tc.locator.get-compiled( options ).code-file
-
+  for each2( code-path from code-paths, uri from uris ):
     deps = DT.get-dependencies( P.resolve(code-path) )
     deps-list = raw-array-to-list( deps )
 
     for each( dep-path from deps-list ):
       when P.resolve( code-path ) <> dep-path:
-        paths.set-now( dep-path, tc.locator.uri() )
+        paths.set-now( dep-path, uri )
       end
     end
   end
@@ -637,6 +647,7 @@ fun copy-js-dependencies( wl, options ) block:
   for each( dep-path from paths.keys-list-now() ):
     copy-js-dependency( dep-path, paths.get-value-now( dep-path ), dirs, options )
   end
+
 end
 
 fun build-program(path, options, stats) block:
@@ -704,6 +715,7 @@ fun build-program(path, options, stats) block:
     end,
     method on-compile(self, locator, loadable, trace) block:
       locator.set-compiled(loadable, SD.make-mutable-string-dict()) # TODO(joe): What are these supposed to be?
+
       clear-and-print(num-to-string(num-compiled) + "/" + num-to-string(total-modules)
           + " modules compiled " + "(" + locator.name() + ")")
       when options.collect-times:

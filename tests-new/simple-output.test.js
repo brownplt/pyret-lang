@@ -71,10 +71,10 @@ describe("testing simple-output programs", () => {
       const runProcess = cp.spawnSync("node", [dest], {stdio: 'pipe', timeout: RUN_TIMEOUT});
 
       if(stderrExpected.length === 0) {
-        assert(runProcess.status === 0, `${runProcess.stdout}\n${runProcess.stderr}`);
+        assert(runProcess.status === 0, `${String(compileProcess.stdout)}\n${runProcess.stdout}\n${runProcess.stderr}`);
       }
       else {
-        assert(runProcess.status !== 0, `${runProcess.stdout}\n${runProcess.stderr}`);
+        assert(runProcess.status !== 0, `${String(compileProcess.stdout)}\n${runProcess.stdout}\n${runProcess.stderr}`);
       }
 
       let stdout = runProcess.stdout;
