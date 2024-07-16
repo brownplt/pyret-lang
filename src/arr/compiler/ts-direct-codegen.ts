@@ -670,7 +670,6 @@ export type Exports = {
           }
           break;
         case 's-op-raises':
-          // Maybe we should thunk the rhs here also?
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkRaisesStrCause'), 
                                       [leftThunk, rightThunk!, causeThunk, loc, partLocs]);
