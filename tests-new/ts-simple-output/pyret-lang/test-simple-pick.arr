@@ -1,4 +1,4 @@
-### Looks shipshape
+### The program didn't define any tests
 
 import sets as S
 include from S: type Set end

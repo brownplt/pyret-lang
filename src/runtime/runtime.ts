@@ -846,18 +846,9 @@ const postLoadHooks : {[uri: string]: (result: any) => void} = {
 
 function postLoadHook(uri : string, result : any) {
   if(uri === currentMainURI) {
-    let foundFailure = false;
-    result.$checks.forEach((checkBlockResult : any) => {
-      checkBlockResult.testResults.forEach((result : any) => {
-        if(result.$name !== "success") {
-          foundFailure = true;
-          console.log("Test failed: ", result)
-        }
-      });
-    });
-    if(!foundFailure) {
-      console.log("Looks shipshape, all tests passed, mate!");
-    }
+    const checker = require('./checker' + ".js");
+    let { message: summary } = checker.resultsSummary(result.$checks);
+    console.log(summary);
     currentMainURI = false;
     return result;
   }

@@ -1,9 +1,12 @@
 import type * as EQ from './types/equality-types';
 import type * as EQUALITY_TYPES from './equality';
 import type * as RUNTIME_TYPES from './runtime';
-import { Srcloc } from './common-runtime-types';
+import { ExhaustiveSwitchError, Srcloc } from './common-runtime-types';
+import { displayToString } from './render-error-display';
+const ED = require('./error-display.arr.js');
 const EQUALITY = require("./equality.js") as typeof EQUALITY_TYPES;
 const RUNTIME = require('./runtime') as typeof RUNTIME_TYPES;
+const srcloc = require('./srcloc.arr');
 
 // TODO: import this from somewhere in the runtime
 type Variant<T, V> = T & { $name: V };
@@ -32,15 +35,6 @@ function runTask<A>(f : (() => A)) : Either<A, any> {
     return { $name: 'right', val: e };
   }
 }
-
-class ExhaustiveSwitchError extends Error {
-  constructor(v: never, message?: string) {
-    super(`Switch is not exhaustive on \`${JSON.stringify(v)}\`: ${message}`);
-  }
-}
-
-
-
 
 export type IsOp = 'op==' | 'op=~' | 'op<=>'
 
@@ -727,8 +721,156 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     results: function() { 
       console.log(`In results() for ${mainModuleName}`, blockResults);
       return blockResults; 
+    },
+    resultsSummary: function() {
+      return resultsSummary(blockResults);
     }
+
   }
+}
+
+/*
+# NOTE(joe): get-stack lets us hide the stack from Pyret's semantics, and
+# require that magical callers provide a get-stack function that produces
+# the list of locations to render
+fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
+  init = {
+      message: "",
+      errored: 0,
+      passed: 0,
+      failed: 0,
+      total: 0
+    }
+  complete-summary = for fold(summary from init, br from block-results.reverse()):
+    block-summary = for fold(s from init, tr from br.test-results.reverse()):
+      cases(TestResult) tr:
+        | success(loc) => s.{
+            message: s.message + "\n  " + loc.format(false) + ": ok",
+            passed: s.passed + 1,
+            total: s.total + 1
+          }
+        | else =>
+          stack = tr.access-stack(get-stack)
+          m = s.message + "\n  " + tr.loc.format(false) + ": failed because: \n    "
+            + RED.display-to-string(tr.render-reason(), torepr, stack)
+          s.{
+            message: m,
+            failed: s.failed + 1,
+            total: s.total + 1
+          }
+      end
+    end
+    block-type = if br.keyword-check: "Check" else: "Examples" end
+    ended-in-error = cases(Option) br.maybe-err:
+      | none => ""
+      | some(err) =>
+        stack = get-stack(err)
+        "\n  " + block-type + " block ended in the following error (not all tests may have run): \n\n  "
+          + RED.display-to-string(exn-unwrap(err).render-reason(), torepr, stack)
+          + RED.display-to-string(ED.v-sequence(map(ED.loc, stack)), torepr, empty)
+          + "\n\n"
+    end
+    message = summary.message + "\n\n" + br.loc.format(true) + ": " + br.name + " (" + tostring(block-summary.passed) + "/" + tostring(block-summary.total) + ") \n"
+    with-error-notification = message + ended-in-error
+    rest-of-message =
+      if block-summary.failed == 0: ""
+      else: block-summary.message
+      end
+    {
+      message: with-error-notification + rest-of-message,
+      errored: summary.errored + if is-some(br.maybe-err): 1 else: 0 end,
+      passed: summary.passed + block-summary.passed,
+      failed: summary.failed + block-summary.failed,
+      total: summary.total + block-summary.total
+    }
+  end
+  if (complete-summary.total == 0) and (complete-summary.errored == 0):
+    complete-summary.{message: "The program didn't define any tests."}
+  else if (complete-summary.failed == 0) and (complete-summary.errored == 0):
+    happy-msg = if complete-summary.passed == 1:
+        "Looks shipshape, your test passed, mate!"
+      else:
+        "Looks shipshape, all " + tostring(complete-summary.passed) + " tests passed, mate!"
+      end
+    complete-summary.{message: happy-msg}
+  else:
+    c = complete-summary
+    c.{
+      message: c.message + "\n\nPassed: " + tostring(c.passed) + "; Failed: " + tostring(c.failed) + "; Ended in Error: " + tostring(c.errored) + "; Total: " + tostring(c.total) + "\n"
+    }
+  end
+end
+
+
+*/
+
+function makeSrcloc(loc: Srcloc): any {
+  if (loc.length === 1) {
+    return srcloc.builtin(loc[0]);
+  } else {
+    return srcloc.srcloc(loc[0], loc[1], loc[2], loc[3], loc[4], loc[5], loc[6]);
+  }
+}
+
+export function resultsSummary(blockResults : CheckBlockResult[]) {
+  let message = "", errored = 0, passed = 0, failed = 0, total = 0;
+  blockResults.forEach(br => {
+    const { name, loc, isKeywordCheck, testResults, maybeErr } = br;
+    let blockMessage = "", blockPassed = 0, blockFailed = 0, blockTotal = 0;
+    testResults.forEach(tr => {
+      switch(tr.$name) {
+        case 'success':
+          blockMessage += "\n  " + makeSrcloc(tr.loc).format(false) + ": ok";
+          blockPassed++;
+          blockTotal++;
+          break;
+        default:
+          const m = makeSrcloc(tr.loc).format(false) + ": failed because: \n    " + displayToString(renderReason(tr), RUNTIME['$torepr']);
+          blockMessage += "\n  " + m;
+          blockFailed++;
+          blockTotal++;
+      }
+    });
+    let blockType = isKeywordCheck ? "Check" : "Examples";
+    let endedInError = maybeErr.$name === 'some' ? "\n  " + blockType + " block ended in the following error (not all tests may have run): \n\n  " +
+      displayToString(renderReason(maybeErr.value), RUNTIME['$torepr']) + displayToString(ED['v-sequence'](maybeErr.value.stack.map(makeSrcloc)), RUNTIME['$torepr']) + "\n\n" : "";
+    message += "\n\n" + makeSrcloc(loc).format(true) + ": " + name + " (" + passed + "/" + total + ") \n";
+    message += endedInError;
+    if (failed > 0) {
+      message += blockMessage;
+    }
+    errored += maybeErr.$name === 'some' ? 1 : 0;
+    passed += blockPassed;
+    failed += blockFailed;
+    total += blockTotal;
+  });
+  if(total === 0 && errored === 0) {
+    return {
+      message: "The program didn't define any tests.",
+      errored,
+      passed,
+      failed,
+      total
+    };
+  }
+  if(failed === 0 && errored === 0) {
+    const happyMsg = passed === 1 ? "Looks shipshape, your test passed, mate!" : "Looks shipshape, all " + passed + " tests passed, mate!";
+    return {
+      message: happyMsg,
+      errored,
+      passed,
+      failed,
+      total
+    };
+  }
+  message += "\n\nPassed: " + passed + "; Failed: " + failed + "; Ended in Error: " + errored + "; Total: " + total + "\n";
+  return {
+    message,
+    errored,
+    passed,
+    failed,
+    total
+  };
 }
 
 export type Checker = ReturnType<typeof makeCheckContext>;
@@ -758,21 +900,16 @@ export type Failure =
     'contents-without-loc': Failure
   };
 
-function make(constr, ...args) {
-  return constr.make.apply(null, args);
-}
-
 export function renderReason(testResult: TestResult): Failure {
-    const ED = require('./error-display' + '.arr.js');
     switch(testResult.$name) {
       case 'failure-not-equal':
-        return make(ED.error,
-          make(ED.para,
+        return ED.error.make([
+          ED.para.make([,
             testResult.refinement.$name === 'none' ? ED.text("Values not equal") : ED.text("Values not equal, using custom equality"),
             ED.embed(testResult.left),
             ED.embed(testResult.right)
-          )
-        );
+          ])
+        ]);
       case 'success':
       case 'failure-is-incomparable':
       case 'failure-not-different':

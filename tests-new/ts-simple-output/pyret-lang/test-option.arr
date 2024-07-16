@@ -1,4 +1,4 @@
-### Looks shipshape
+### The program didn't define any tests
 
 import global as G
 import option as O

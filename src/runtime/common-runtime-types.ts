@@ -41,3 +41,8 @@ export interface CheckTestResult {
 
 // NOTE(alex): An opaque type
 export enum PyretList { }
+export class ExhaustiveSwitchError extends Error {
+  constructor(v: never, message?: string) {
+    super(`Switch is not exhaustive on \`${JSON.stringify(v)}\`: ${message}`);
+  }
+}
