@@ -904,7 +904,7 @@ export function renderReason(testResult: TestResult): Failure {
     switch(testResult.$name) {
       case 'failure-not-equal':
         return ED.error.make([
-          ED.para.make([,
+          ED.para.make([
             testResult.refinement.$name === 'none' ? ED.text("Values not equal") : ED.text("Values not equal, using custom equality"),
             ED.embed(testResult.left),
             ED.embed(testResult.right)

@@ -850,6 +850,7 @@ function postLoadHook(uri : string, result : any) {
     let { message: summary } = checker.resultsSummary(result.$checks);
     console.log(summary);
     currentMainURI = false;
+    checkContext = stubCheckContext;
     return result;
   }
   if(uri in postLoadHooks) {
