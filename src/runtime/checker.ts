@@ -550,14 +550,16 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
   }
   const CHECK_RAISES_STR = {
-    checkRaisesStr: (thunk: Thunk<any>, str: string, loc: Srcloc, locs: LocsRecord) => {
-      checkRaisesStrCont(loc, locs, thunk, 'on-left', str, () =>
-        addResult(success(loc)))
-    },
-    checkRaisesStrCause: (thunk: Thunk<any>, str: string, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
-      checkRaisesStrCont(loc, locs, cause, 'on-cause', str, () =>
-        checkRaisesStrCont(loc, locs, thunk, 'on-left', str, () =>
+    checkRaisesStr: (thunk: Thunk<any>, str: Thunk<string>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-right', str, (sv) =>
+        checkRaisesStrCont(loc, locs, thunk, 'on-left', sv, () =>
           addResult(success(loc))))
+    },
+    checkRaisesStrCause: (thunk: Thunk<any>, str: Thunk<string>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-right', str, (sv) =>
+        checkRaisesStrCont(loc, locs, cause, 'on-cause', sv, () =>
+          checkRaisesStrCont(loc, locs, thunk, 'on-left', sv, () =>
+            addResult(success(loc)))))
     },
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -575,14 +577,16 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
   }
   const CHECK_RAISES_OTHER_STR = {
-    checkRaisesOtherStr: (thunk: Thunk<any>, str: string, loc: Srcloc, locs: LocsRecord) => {
-      checkRaisesOtherStrCont(loc, locs, thunk, 'on-left', str, () =>
-        addResult(success(loc)))
-    },
-    checkRaisesOtherStrCause: (thunk: Thunk<any>, str: string, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
-      checkRaisesOtherStrCont(loc, locs, cause, 'on-cause', str, () =>
-        checkRaisesOtherStrCont(loc, locs, thunk, 'on-left', str, () =>
+    checkRaisesOtherStr: (thunk: Thunk<any>, str: Thunk<string>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-right', str, (sv) =>
+        checkRaisesOtherStrCont(loc, locs, thunk, 'on-left', sv, () =>
           addResult(success(loc))))
+    },
+    checkRaisesOtherStrCause: (thunk: Thunk<any>, str: Thunk<string>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-right', str, (sv) =>
+        checkRaisesOtherStrCont(loc, locs, cause, 'on-cause', sv, () =>
+          checkRaisesOtherStrCont(loc, locs, thunk, 'on-left', sv, () =>
+            addResult(success(loc)))))
     },
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -634,14 +638,16 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
   }
   const CHECK_RAISES_SATISFIES = {
-    checkRaisesSatisfies: (thunk: Thunk<any>, pred: (v: any) => boolean, loc: Srcloc, locs: LocsRecord) => {
-      checkRaisesSatisfiesCont(loc, locs, thunk, 'on-left', pred, 'on-right', () =>
-        addResult(success(loc)))
-    },
-    checkRaisesSatisfiesCause: (thunk: Thunk<any>, pred: (v: any) => boolean, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
-      checkRaisesSatisfiesCont(loc, locs, cause, 'on-cause', pred, 'on-right', () => 
-        checkRaisesSatisfiesCont(loc, locs, thunk, 'on-left', pred, 'on-right', () =>
+    checkRaisesSatisfies: (thunk: Thunk<any>, pred: Thunk<(v: any) => boolean>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-right', pred, (pv) => 
+        checkRaisesSatisfiesCont(loc, locs, thunk, 'on-left', pv, 'on-right', () =>
           addResult(success(loc))))
+    },
+    checkRaisesSatisfiesCause: (thunk: Thunk<any>, pred: Thunk<(v: any) => boolean>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-right', pred, (pv) => 
+        checkRaisesSatisfiesCont(loc, locs, cause, 'on-cause', pv, 'on-right', () => 
+          checkRaisesSatisfiesCont(loc, locs, thunk, 'on-left', pv, 'on-right', () =>
+            addResult(success(loc)))))
     },
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -673,14 +679,16 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     }
   }
   const CHECK_RAISES_VIOLATES = {
-    checkRaisesViolates: (thunk: Thunk<any>, pred: (v: any) => boolean, loc: Srcloc, locs: LocsRecord) => {
-      checkRaisesViolatesCont(loc, locs, thunk, 'on-left', pred, 'on-right', () =>
-        addResult(success(loc)))
-    },
-    checkRaisesViolatesCause: (thunk: Thunk<any>, pred: (v: any) => boolean, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
-      checkRaisesViolatesCont(loc, locs, cause, 'on-cause', pred, 'on-right', () => 
-        checkRaisesViolatesCont(loc, locs, thunk, 'on-left', pred, 'on-right', () =>
+    checkRaisesViolates: (thunk: Thunk<any>, pred: Thunk<(v: any) => boolean>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-right', pred, (pv) => 
+        checkRaisesViolatesCont(loc, locs, thunk, 'on-left', pv, 'on-right', () =>
           addResult(success(loc))))
+    },
+    checkRaisesViolatesCause: (thunk: Thunk<any>, pred: Thunk<(v: any) => boolean>, cause: Thunk<any>, loc: Srcloc, locs: LocsRecord) => {
+      unthunk(loc, locs, 'on-right', pred, (pv) => 
+        checkRaisesViolatesCont(loc, locs, cause, 'on-cause', pv, 'on-right', () => 
+          checkRaisesViolatesCont(loc, locs, thunk, 'on-left', pv, 'on-right', () =>
+            addResult(success(loc)))))
     },
   };
 
