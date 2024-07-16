@@ -1,0 +1,9 @@
+{
+    "requires": [ ],
+    "provides": {
+        "shorthands": { },
+        "values": { },
+        "aliases": { },
+        "datatypes": { }
+    }
+}
