@@ -1,9 +1,8 @@
 import type {
   DataMetaBase,
-  DataValueType
+  DataValueType,
+  Variant
 } from '../runtime/types/primitive-types';
-
-type Variant<T, V> = T & { $name: V }
 
 declare namespace _exports {
   export type Srcloc = 

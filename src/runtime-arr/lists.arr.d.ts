@@ -2,12 +2,11 @@ import { ValueSkeleton } from '../runtime/runtime';
 import type {
   DataMetaBase,
   DataValueType,
+  Variant,
 } from '../runtime/types/primitive-types';
 import type { Option } from './option.arr';
 
 declare namespace _exports {
-  type Variant<T, V> = T & { $name: V }
-
   type ListMethods<a> = {
     find(f: (v: a) => boolean): Option<a>,
     partition(f: (v: a) => boolean): { 'is-true': List<a>, 'is-false': List<a> },
@@ -56,7 +55,6 @@ declare namespace _exports {
   }
 }
 
-type Variant<T, V> = _exports.Variant<T, V>
 type List<T> = _exports.List<T>
 type UniformMaker<T> = _exports.UniformMaker<T>
 

@@ -6,14 +6,14 @@ import { displayToString } from './render-error-display';
 import type * as ED_TYPES from '../runtime-arr/error-display.arr';
 import type * as SL_TYPES from '../runtime-arr/srcloc.arr';
 import type * as OPT_TYPES from '../runtime-arr/option.arr';
+import type * as E_TYPES from '../runtime-arr/either.arr';
+import { Variant } from './types/primitive-types';
 const ED = require('./error-display' + '.arr.js') as typeof ED_TYPES;
 const EQUALITY = require("./equality.js") as typeof EQUALITY_TYPES;
 const RUNTIME = require('./runtime') as typeof RUNTIME_TYPES;
 const srcloc = require('./srcloc' + '.arr.js') as typeof SL_TYPES;
 const option = require('./option' + '.arr.js') as typeof OPT_TYPES;
-
-// TODO: import this from somewhere in the runtime
-type Variant<T, V> = T & { $name: V };
+const either = require('./either' + '.arr.js') as typeof E_TYPES;
 
 function some<A>(value: A): Variant<OPT_TYPES.Option<A>, 'some'> {
   return option.some(value);
@@ -21,17 +21,14 @@ function some<A>(value: A): Variant<OPT_TYPES.Option<A>, 'some'> {
 const none = option.none;
 
 type Thunk<A> = () => A;
-type Either<A, B> = 
-| { $name: 'left', val: A }
-| { $name: 'right', val: B }
 // TODO(Ben/Joe): when we have real types for Either,
 // replace this with the function in runtime.
-function runTask<A>(f : (() => A)) : Either<A, any> {
+function runTask<A>(f : (() => A)) : E_TYPES.Either<A, any> {
   try {
-    return { $name: 'left', val: f() };
+    return either.left(f());
   }
   catch(e) {
-    return { $name: 'right', val: e };
+    return either.right(e);
   }
 }
 
@@ -241,9 +238,9 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   function unthunk<T>(loc: Srcloc, locs: LocsRecord, where: CheckOperand, thunk: Thunk<T>, cont: (val: T) => any) {
     const result = runTask(thunk);
     if (result.$name === 'right') {
-      addResult(failureExn(loc, result.val, where));
+      addResult(failureExn(loc, result.v, where));
     } else {
-      cont(result.val);
+      cont(result.v);
     }
   }
   function causesErrorNotPred(exn: any): boolean {
@@ -374,14 +371,14 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   function checkIsRefinementCont(loc: Srcloc, locs: LocsRecord, refinement: (left: any, right: any) => boolean | EQ.EqualityResult, lv: any, lvSrc: CheckOperand, rv: any, rvSrc: CheckOperand, cont: Thunk<any>) {
     const refine = runTask(() => refinement(lv, rv));
     if (refine.$name === 'right') {
-      const exn = refine.val;
+      const exn = refine.v;
       if (causesErrorNotPred(exn)) {
         addResult(errorNotPred(loc, refinement, 2));
       } else {
         addResult(failureExn(loc, exn, 'on-refinement'));
       }
     } else {
-      const testResult = refine.val;
+      const testResult = refine.v;
       if (isUnknown(testResult)) {
         addResult(failureIsIncomparable(loc, testResult, lv, lvSrc, rv, rvSrc));
       } else if (isFalseOrNotEqual(testResult)) {
@@ -415,14 +412,14 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   function checkIsNotRefinementCont(loc: Srcloc, locs: LocsRecord, refinement: (left: any, right: any) => boolean | EQ.EqualityResult, lv: any, lvSrc: CheckOperand, rv: any, rvSrc: CheckOperand, cont: Thunk<any>) {
     const refine = runTask(() => refinement(lv, rv));
     if (refine.$name === 'right') {
-      const exn = refine.val;
+      const exn = refine.v;
       if (causesErrorNotPred(exn)) {
         addResult(errorNotPred(loc, refinement, 2));
       } else {
         addResult(failureExn(loc, exn, 'on-refinement'));
       }
     } else {
-      const testResult = refine.val;
+      const testResult = refine.v;
       if (isUnknown(testResult)) {
         addResult(failureIsIncomparable(loc, testResult, lv, lvSrc, rv, rvSrc));
       } else if (isTruthOrEqual(testResult)) {
@@ -456,14 +453,14 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   function checkSatisfiesDelayedCont(loc: Srcloc, locs: LocsRecord, lv: any, lvSrc: CheckOperand, pv: (v: any) => any, pvSrc: CheckOperand, cont: Thunk<any>) {
     const result = runTask(() => pv(lv));
     if (result.$name === 'right') {
-      const exn = result.val;
+      const exn = result.v;
       if (causesErrorNotPred(exn)) {
         addResult(errorNotPred(loc, pv, 1));
       } else {
         addResult(failureExn(loc, exn, pvSrc));
       }
     } else {
-      const testResult = result.val;
+      const testResult = result.v;
       if (!(typeof testResult === 'boolean')) {
         addResult(errorNotBooleanPred(loc, pv, lv, lvSrc, testResult));
       } else if (!testResult) {
@@ -493,14 +490,14 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   function checkSatisfiesNotDelayedCont(loc: Srcloc, locs: LocsRecord, lv: any, lvSrc: CheckOperand, pv: (v: any) => any, pvSrc: CheckOperand, cont: Thunk<any>) {
     const result = runTask(() => pv(lv));
     if (result.$name === 'right') {
-      const exn = result.val;
+      const exn = result.v;
       if (causesErrorNotPred(exn)) {
         addResult(errorNotPred(loc, pv, 1));
       } else {
         addResult(failureExn(loc, exn, pvSrc));
       }
     } else {
-      const testResult = result.val;
+      const testResult = result.v;
       if (!(typeof testResult === 'boolean')) {
         addResult(errorNotBooleanPred(loc, pv, lv, lvSrc, testResult));
       } else if (testResult) {
@@ -533,10 +530,10 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
       addResult(failureNoExn(loc, some(str), thunkSrc, true));
     } else {
       // TODO: is this the right way to call to-repr?  The types don't think it exists...
-      console.log("Result form an exn test:" , result.val, (RUNTIME['$torepr'](result.val)));
-      if (!((RUNTIME['$torepr'](result.val) as string).includes(str)) &&
-          !(String(result.val).includes(str))) {
-        addResult(failureWrongExn(loc, str, result.val, thunkSrc));
+      console.log("Result form an exn test:" , result.v, (RUNTIME['$torepr'](result.v)));
+      if (!((RUNTIME['$torepr'](result.v) as string).includes(str)) &&
+          !(String(result.v).includes(str))) {
+        addResult(failureWrongExn(loc, str, result.v, thunkSrc));
       } else {
         cont();
       }
@@ -562,8 +559,8 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
       addResult(failureNoExn(loc, some(str), thunkSrc, true));
     } else {
       // TODO: is this the right way to call to-repr?  The types don't think it exists...
-      if ((RUNTIME['$torepr'](result.val) as string).includes(str)) {
-        addResult(failureRightExn(loc, str, result.val, thunkSrc));
+      if ((RUNTIME['$torepr'](result.v) as string).includes(str)) {
+        addResult(failureRightExn(loc, str, result.v, thunkSrc));
       } else {
         cont();
       }
@@ -586,7 +583,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   function checkRaisesNotCont(loc: Srcloc, locs: LocsRecord, thunk: any, thunkSrc: CheckOperand, cont: Thunk<any>) {
     const result = runTask(thunk);
     if (result.$name === 'right') {
-      addResult(failureExn(loc, result.val, thunkSrc));
+      addResult(failureExn(loc, result.v, thunkSrc));
     } else {
       cont();
     }
@@ -608,18 +605,18 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     if (result.$name === 'left') {
       addResult(failureNoExn(loc, none, thunkSrc, true));
     } else {
-      const exn = result.val;
+      const exn = result.v;
       const exnVal = (isUserException(exn) ? exn.value : exn);
       const exnResult = runTask(() => pred(exnVal));
       if (exnResult.$name === 'right') {
-        const exn = exnResult.val;
+        const exn = exnResult.v;
         if (causesErrorNotPred(exn)) {
           addResult(errorNotPred(loc, pred, 1));
         } else {
           addResult(failureExn(loc, exn, predSrc));
         }
       } else {
-        const predResult = exnResult.val;
+        const predResult = exnResult.v;
         if (!(typeof predResult === 'boolean')) {
           addResult(errorNotBooleanPred(loc, pred, exnVal, thunkSrc, predResult));
         } else if (!predResult) {
@@ -649,18 +646,18 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     if (result.$name === 'left') {
       addResult(failureNoExn(loc, none, thunkSrc, true));
     } else {
-      const exn = result.val;
+      const exn = result.v;
       const exnVal = (isUserException(exn) ? exn.value : exn);
       const exnResult = runTask(() => pred(exnVal));
       if (exnResult.$name === 'right') {
-        const exn = exnResult.val;
+        const exn = exnResult.v;
         if (causesErrorNotPred(exn)) {
           addResult(errorNotPred(loc, pred, 1));
         } else {
           addResult(failureExn(loc, exn, predSrc));
         }
       } else {
-        const predResult = exnResult.val;
+        const predResult = exnResult.v;
         if (!(typeof predResult === 'boolean')) {
           addResult(errorNotBooleanPred(loc, pred, exnVal, thunkSrc, predResult));
         } else if (predResult) {
@@ -697,7 +694,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
           if (result.$name === 'left') {
             addBlockResult(checkBlockResult(name, location, keywordCheck, currentResults, none));
           } else {
-            addBlockResult(checkBlockResult(name, location, keywordCheck, currentResults, some(result.val)));
+            addBlockResult(checkBlockResult(name, location, keywordCheck, currentResults, some(result.v)));
           }
           console.log("At end of runChecks, currentResults =", currentResults);
           currentResults = resultsBefore;

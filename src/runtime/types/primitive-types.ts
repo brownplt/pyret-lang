@@ -39,3 +39,4 @@ export type DataMetaBase<N extends string> = {
 
 export type VariantType<T extends string> = ExpandRecursively<DataSharedBase & DataVariantBase & Required<DataMetaBase<T>>>;
 export type DataValueType<O extends {}, E extends DataVariantBase> = O & Required<E>;
+export type Variant<T, V> = T & { $name: V }
