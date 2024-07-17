@@ -3,23 +3,22 @@ import type * as EQUALITY_TYPES from './equality';
 import type * as RUNTIME_TYPES from './runtime';
 import { ExhaustiveSwitchError, Srcloc } from './common-runtime-types';
 import { displayToString } from './render-error-display';
-const ED = require('./error-display.arr.js');
+import type * as ED_TYPES from '../runtime-arr/error-display.arr';
+import type * as SL_TYPES from '../runtime-arr/srcloc.arr';
+import type * as OPT_TYPES from '../runtime-arr/option.arr';
+const ED = require('./error-display' + '.arr.js') as typeof ED_TYPES;
 const EQUALITY = require("./equality.js") as typeof EQUALITY_TYPES;
 const RUNTIME = require('./runtime') as typeof RUNTIME_TYPES;
-const srcloc = require('./srcloc.arr');
+const srcloc = require('./srcloc' + '.arr.js') as typeof SL_TYPES;
+const option = require('./option' + '.arr.js') as typeof OPT_TYPES;
 
 // TODO: import this from somewhere in the runtime
 type Variant<T, V> = T & { $name: V };
 
-// TODO: import Options from somewhere in the runtime
-type Option<A> =
-| { $name: 'none' }
-| { $name: 'some', value: A }
-
-function some<A>(value: A): Variant<Option<A>, 'some'> {
-  return { $name: 'some', value };
+function some<A>(value: A): Variant<OPT_TYPES.Option<A>, 'some'> {
+  return option.some(value);
 }
-const none = { $name: 'none' as const }
+const none = option.none;
 
 type Thunk<A> = () => A;
 type Either<A, B> = 
@@ -71,7 +70,7 @@ function checkBlockResult(
   loc: Srcloc,
   isKeywordCheck: boolean,
   testResults: TestResult[],
-  maybeErr: Option<any>, 
+  maybeErr: OPT_TYPES.Option<any>, 
 ) {
   return { name, loc, isKeywordCheck, testResults, maybeErr };
 }
@@ -105,7 +104,7 @@ function failureIsIncomparable(
 }
 function failureNotDifferent(
   loc: Srcloc,
-  refinement: Option<any>,
+  refinement: OPT_TYPES.Option<any>,
   left: any,
   leftSrc: CheckOperand,
   right: any,
@@ -154,7 +153,7 @@ function failureExn(
 }
 function failureNoExn(
   loc: Srcloc,
-  exnExpected: Option<string>,
+  exnExpected: OPT_TYPES.Option<string>,
   exnSrc: CheckOperand,
   wanted: boolean,
 ) {
@@ -874,41 +873,41 @@ export function resultsSummary(blockResults : CheckBlockResult[]) {
 }
 
 export type Checker = ReturnType<typeof makeCheckContext>;
-export type Failure =
-  | { $name: 'paragraph', 'contents': Array<Failure> }
-  | { $name: 'bulleted-sequence', 'contents': Array<Failure> }
-  | { $name: 'v-sequence', 'contents': Array<Failure> }
-  | { $name: 'h-sequence', 'contents': Array<Failure>, 'sep': string }
-  | {
-    $name: 'h-sequence-sep',
-    'contents': Array<Failure>, 'sep': string, 'last': string }
-  | { $name: 'embed', 'val': any }
-  | { $name: 'text', 'str': string }
-  | { $name: 'loc', 'loc': Srcloc }
-  | { $name: 'code', 'contents': Failure }
-  | { $name: 'cmcode', 'loc': Srcloc }
-  | {
-    $name: 'loc-display',
-    'loc': Srcloc, 'style': string, 'contents': Failure }
-  | { $name: 'optional', 'contents': Failure }
-  | {
-    $name: 'highlight',
-    'contents': Failure, 'locs': Array<Srcloc>, 'color': Number }
-  | {
-    $name: 'maybe-stack-loc',
-    n: number, 'user-frames-only': boolean, 'contents-with-loc': (l : Srcloc) => Failure,
-    'contents-without-loc': Failure
-  };
+// export type Failure =
+//   | { $name: 'paragraph', 'contents': Array<Failure> }
+//   | { $name: 'bulleted-sequence', 'contents': Array<Failure> }
+//   | { $name: 'v-sequence', 'contents': Array<Failure> }
+//   | { $name: 'h-sequence', 'contents': Array<Failure>, 'sep': string }
+//   | {
+//     $name: 'h-sequence-sep',
+//     'contents': Array<Failure>, 'sep': string, 'last': string }
+//   | { $name: 'embed', 'val': any }
+//   | { $name: 'text', 'str': string }
+//   | { $name: 'loc', 'loc': Srcloc }
+//   | { $name: 'code', 'contents': Failure }
+//   | { $name: 'cmcode', 'loc': Srcloc }
+//   | {
+//     $name: 'loc-display',
+//     'loc': Srcloc, 'style': string, 'contents': Failure }
+//   | { $name: 'optional', 'contents': Failure }
+//   | {
+//     $name: 'highlight',
+//     'contents': Failure, 'locs': Array<Srcloc>, 'color': Number }
+//   | {
+//     $name: 'maybe-stack-loc',
+//     n: number, 'user-frames-only': boolean, 'contents-with-loc': (l : Srcloc) => Failure,
+//     'contents-without-loc': Failure
+//   };
 
-export function renderReason(testResult: TestResult): Failure {
+export function renderReason(testResult: TestResult): ED_TYPES.ErrorDisplay {
     switch(testResult.$name) {
       case 'failure-not-equal':
         return ED.error.make([
-          ED.para.make([
-            testResult.refinement.$name === 'none' ? ED.text("Values not equal") : ED.text("Values not equal, using custom equality"),
-            ED.embed(testResult.left),
-            ED.embed(testResult.right)
-          ])
+          // ED.para.make([,
+          //   testResult.refinement.$name === 'none' ? ED.text("Values not equal") : ED.text("Values not equal, using custom equality"),
+          //   ED.embed(testResult.left),
+          //   ED.embed(testResult.right)
+          // ])
         ]);
       case 'success':
       case 'failure-is-incomparable':
@@ -928,6 +927,6 @@ export function renderReason(testResult: TestResult): Failure {
     }
 }
 
-export function renderFancyReason(testResult: TestResult) : Failure {
+export function renderFancyReason(testResult: TestResult) : ED_TYPES.ErrorDisplay {
   throw new Error('renderFancyReason Not implemented');
 }

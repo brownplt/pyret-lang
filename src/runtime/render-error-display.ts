@@ -1,9 +1,11 @@
 import { Srcloc, ExhaustiveSwitchError } from './common-runtime-types';
 import * as runtime from './runtime';
-const srcloc = require('./srcloc.arr');
-const ED = require('./error-display.arr');
+import type * as SL_TYPES from '../runtime-arr/srcloc.arr';
+import type * as ED_TYPES from '../runtime-arr/error-display.arr';
+const srcloc = require('./srcloc' + '.arr.js') as typeof SL_TYPES;
+const ED = require('./error-display' + '.arr.js') as typeof ED_TYPES;
 
-function makeSrcloc(loc: Srcloc): any {
+function makeSrcloc(loc: Srcloc): SL_TYPES.Srcloc {
   if (loc.length === 1) {
     return srcloc.builtin(loc[0]);
   } else {
@@ -11,13 +13,13 @@ function makeSrcloc(loc: Srcloc): any {
   }
 }
 
-export function displayToString(e: any, embedDisplay: (val: any) => string): string {
+export function displayToString(e: ED_TYPES.ErrorDisplay, embedDisplay: (val: any) => string): string {
   const acc: string[] = [];
   displayToStringInternal(e, embedDisplay, [], acc);
   return acc.join("");
 }
 
-function displayToStringInternal(e: any, embedDisplay: (val: any) => string, stack: Srcloc[], acc: string[]) {
+function displayToStringInternal(e: ED_TYPES.ErrorDisplay, embedDisplay: (val: any) => string, stack: Srcloc[], acc: string[]) {
   switch(e.$name) {
     case 'paragraph': {
       for (const c of e.contents) {
