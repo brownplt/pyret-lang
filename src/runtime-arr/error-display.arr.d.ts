@@ -2,7 +2,7 @@ import type {
   DataMetaBase,
   DataValueType
 } from '../runtime/types/primitive-types';
-import type { Srcloc } from '../runtime/common-runtime-types';
+import type { Srcloc } from './srcloc.arr';
 
 type RawArray<T> = Array<T>;
 type Variant<T, V> = T & { $name: V }

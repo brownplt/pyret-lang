@@ -1,5 +1,10 @@
 {
-    "requires": [ ],
+    "requires": [ 
+        { "import-type": "builtin", "name": "srcloc" },
+        { "import-type": "builtin", "name": "option" },
+        { "import-type": "builtin", "name": "either" },
+        { "import-type": "builtin", "name": "error-display" }
+    ],
     "provides": {
         "shorthands": { },
         "values": { },

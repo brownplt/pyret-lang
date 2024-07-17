@@ -590,7 +590,9 @@ export type Exports = {
       const causeThunk = maybeThunk("CAUSE", cause);
       const refinementThunk = maybeThunk("REFINE", refinement);
       const loc = locOf(expr);
-      const partLocs = ObjectExpression([
+      const metadata = ObjectExpression([
+        Property('opName', Literal(op.$name)),
+        Property('loc', loc),
         Property('on-left', locOf(left)),
         Property('on-right', maybeLocOf(rightOpt)),
         Property('on-cause', maybeLocOf(cause)),
@@ -602,134 +604,136 @@ export type Exports = {
         case 's-op-is':
           if (refinementThunk && causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsRefinementCause'), 
-                                      [refinementThunk, leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+                                      [refinementThunk, leftThunk, rightThunk!, causeThunk, metadata]);
           } else if (refinementThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsRefinement'), 
-                                      [refinementThunk, leftThunk, rightThunk!, loc, partLocs]);
+                                      [refinementThunk, leftThunk, rightThunk!, metadata]);
           } else if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsCause'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkIs'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           }
           break;
         case 's-op-is-not':
           if (refinementThunk && causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRefinementCause'), 
-                                      [refinementThunk, leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+                                      [refinementThunk, leftThunk, rightThunk!, causeThunk, metadata]);
           } else if (refinementThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRefinement'), 
-                                      [refinementThunk, leftThunk, rightThunk!, loc, partLocs]);
+                                      [refinementThunk, leftThunk, rightThunk!, metadata]);
           } else if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsNotCause'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsNot'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           }
           break;
         case 's-op-is-op': {
           const newRefinement = FunctionExpression(compilerName("REFINE"), [], BlockStatement([ReturnStatement(rtField(OP_TO_FUNCTION[op.dict.op]))]));
+          metadata.properties.push(Property("opIsName", Literal(op.dict.op)))
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsRefinementCause'), 
-                                      [newRefinement, leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+                                      [newRefinement, leftThunk, rightThunk!, causeThunk, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsRefinement'), 
-                                      [newRefinement, leftThunk, rightThunk!, loc, partLocs]);
+                                      [newRefinement, leftThunk, rightThunk!, metadata]);
           }
           break;
         }
         case 's-op-is-not-op': {
           const newRefinement = FunctionExpression(compilerName("REFINE"), [], BlockStatement([ReturnStatement(rtField(OP_TO_FUNCTION[op.dict.op]))]));
+          metadata.properties.push(Property("opIsName", Literal(op.dict.op)))
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRefinementCause'), 
-                                      [newRefinement, leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+                                      [newRefinement, leftThunk, rightThunk!, causeThunk, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRefinement'), 
-                                      [newRefinement, leftThunk, rightThunk!, loc, partLocs]);
+                                      [newRefinement, leftThunk, rightThunk!, metadata]);
           }
           break;
         }
         case 's-op-is-roughly':
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsRoughlyCause'), 
-                                      [leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+                                      [leftThunk, rightThunk!, causeThunk, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsRoughly'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           }
           break;
         case 's-op-is-not-roughly':
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRoughlyCause'), 
-                                      [leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+                                      [leftThunk, rightThunk!, causeThunk, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkIsNotRoughly'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           }
           break;
         case 's-op-raises':
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkRaisesStrCause'), 
-                                      [leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+                                      [leftThunk, rightThunk!, causeThunk, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkRaisesStr'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           }
           break;
         case 's-op-raises-not':
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkRaisesNotCause'), 
-                                      [leftThunk, causeThunk, loc, partLocs]);
+                                      [leftThunk, causeThunk, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkRaisesNot'), 
-                                      [leftThunk, loc, partLocs]);
+                                      [leftThunk, metadata]);
           }
           break;
         case 's-op-raises-other':
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkRaisesOtherStrCause'), 
-                                      [leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+                                      [leftThunk, rightThunk!, causeThunk, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkRaisesOtherStr'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           }
           break;
         case 's-op-raises-satisfies':
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkRaisesSatisfiesCause'), 
-                                      [leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+                                      [leftThunk, rightThunk!, causeThunk, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkRaisesSatisfies'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           }
           break;
         case 's-op-raises-violates':
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkRaisesViolatesCause'), 
-                                      [leftThunk, rightThunk!, causeThunk, loc, partLocs]);
+                                      [leftThunk, rightThunk!, causeThunk, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkRaisesViolates'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           }
           break;
         case 's-op-satisfies':
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkSatisfiesDelayedCause'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkSatisfiesDelayed'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           }
           break;
         case 's-op-satisfies-not':
           if (causeThunk) {
             testCall = CallExpression(DotExpression(checkContext, 'checkSatisfiesNotDelayedCause'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           } else {
             testCall = CallExpression(DotExpression(checkContext, 'checkSatisfiesNotDelayed'), 
-                                      [leftThunk, rightThunk!, loc, partLocs]);
+                                      [leftThunk, rightThunk!, metadata]);
           }
           break;
         default: throw new ExhaustiveSwitchError(op);

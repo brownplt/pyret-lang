@@ -1,17 +1,7 @@
 import { Srcloc, ExhaustiveSwitchError } from './common-runtime-types';
 import * as runtime from './runtime';
-import type * as SL_TYPES from '../runtime-arr/srcloc.arr';
 import type * as ED_TYPES from '../runtime-arr/error-display.arr';
-const srcloc = require('./srcloc' + '.arr.js') as typeof SL_TYPES;
 const ED = require('./error-display' + '.arr.js') as typeof ED_TYPES;
-
-function makeSrcloc(loc: Srcloc): SL_TYPES.Srcloc {
-  if (loc.length === 1) {
-    return srcloc.builtin(loc[0]);
-  } else {
-    return srcloc.srcloc(loc[0], loc[1], loc[2], loc[3], loc[4], loc[5], loc[6]);
-  }
-}
 
 export function displayToString(e: ED_TYPES.ErrorDisplay, embedDisplay: (val: any) => string): string {
   const acc: string[] = [];
@@ -46,7 +36,7 @@ function displayToStringInternal(e: ED_TYPES.ErrorDisplay, embedDisplay: (val: a
       break;
     }
     case 'loc': {
-      acc.push(makeSrcloc(e.loc).format(true));
+      acc.push(e.loc.format(true));
       break;
     }
     case 'maybe-stack-loc': {
@@ -60,13 +50,13 @@ function displayToStringInternal(e: ED_TYPES.ErrorDisplay, embedDisplay: (val: a
             displayToStringInternal(e.contents, embedDisplay, stack, acc);
           } else {
             displayToStringInternal(e.contents, embedDisplay, stack, acc);
-            acc.push("(at ", makeSrcloc(e.loc).format(true), ")");
+            acc.push("(at ", e.loc.format(true), ")");
           }
           break;
         }
         default: {
           displayToStringInternal(e.contents, embedDisplay, stack, acc);
-          acc.push("(at ", makeSrcloc(e.loc).format(true), ")");
+          acc.push("(at ", e.loc.format(true), ")");
         }
       }
       break;
@@ -113,7 +103,7 @@ function displayToStringInternal(e: ED_TYPES.ErrorDisplay, embedDisplay: (val: a
     }
     case 'optional': break;
     case 'cmcode': {
-      acc.push(makeSrcloc(e.loc).format(true));
+      acc.push(e.loc.format(true));
       break;
     }
     case 'highlight': {
