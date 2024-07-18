@@ -838,7 +838,7 @@ export function resultsSummary(blockResults : CheckBlockResult[]) {
     let blockType = isKeywordCheck ? "Check" : "Examples";
     let endedInError = maybeErr.$name === 'some' ? "\n  " + blockType + " block ended in the following error (not all tests may have run): \n\n  " +
       displayToString(renderReason(maybeErr.value), RUNTIME['$torepr']) + displayToString(ED['v-sequence'](maybeErr.value.stack.map(makeSrcloc)), RUNTIME['$torepr']) + "\n\n" : "";
-    message += "\n\n" + makeSrcloc(loc).format(true) + ": " + name + " (" + passed + "/" + total + ") \n";
+    message += "\n\n" + makeSrcloc(loc).format(true) + ": " + name + " (" + blockPassed + "/" + blockTotal + ") \n";
     message += endedInError;
     if (failed > 0) {
       message += blockMessage;
