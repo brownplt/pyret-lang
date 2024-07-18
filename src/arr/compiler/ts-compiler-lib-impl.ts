@@ -287,6 +287,16 @@ type ResolveScopeExports = {
       if(_use.$name === 'some') {
         fromImports.unshift(AU['import-to-dep'].app(_use.dict.value.dict.mod));
       }
+      let hasCheckBlock = false;
+      const visitor = {
+        's-check': (self, cb) => {
+          hasCheckBlock = true;
+        }
+      }
+      map<A.Program | A.Expr, A.Program>(visitor, parsed);
+      if(hasCheckBlock) {
+        fromImports.push(CS['builtin'].app('checker'));
+      }
       return fromImports;
     }
 
