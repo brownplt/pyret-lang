@@ -550,8 +550,8 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
       addResult(failureNoExn(metadata, some(str), thunkSrc, true));
     } else {
       // TODO: is this the right way to call to-repr?  The types don't think it exists...
-      console.log("Result form an exn test:" , result.v, ((RUNTIME as any)['$torepr'](result.v)));
-      if (!(((RUNTIME as any)['$torepr'](result.v) as string).includes(str)) &&
+      console.log("Result form an exn test:" , result.v, (RUNTIME.$torepr(result.v)));
+      if (!((RUNTIME.$torepr(result.v) as string).includes(str)) &&
           !(String(result.v).includes(str))) {
         addResult(failureWrongExn(metadata, str, result.v, thunkSrc));
       } else {
@@ -579,7 +579,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
       addResult(failureNoExn(metadata, some(str), thunkSrc, true));
     } else {
       // TODO: is this the right way to call to-repr?  The types don't think it exists...
-      if (((RUNTIME as any)['$torepr'](result.v) as string).includes(str)) {
+      if ((RUNTIME.$torepr(result.v) as string).includes(str)) {
         addResult(failureRightExn(metadata, str, result.v, thunkSrc));
       } else {
         cont();
@@ -833,7 +833,7 @@ export function resultsSummary(blockResults : CheckBlockResult[]) {
           blockTotal++;
           break;
         default:
-          const m = makeSrcloc(tr.metadata.loc).format(false) + ": failed because: \n    " + displayToString(renderFancyReason(tr), (RUNTIME as any)['$torepr']);
+          const m = makeSrcloc(tr.metadata.loc).format(false) + ": failed because: \n    " + displayToString(renderFancyReason(tr), RUNTIME.$torepr);
           blockMessage += "\n  " + m;
           blockFailed++;
           blockTotal++;
@@ -841,7 +841,7 @@ export function resultsSummary(blockResults : CheckBlockResult[]) {
     });
     let blockType = isKeywordCheck ? "Check" : "Examples";
     let endedInError = maybeErr.$name === 'some' ? "\n  " + blockType + " block ended in the following error (not all tests may have run): \n\n  " +
-      displayToString(renderFancyReason(maybeErr.value), (RUNTIME as any)['$torepr']) + displayToString(ED['v-sequence'](maybeErr.value.stack.map(makeSrcloc)), (RUNTIME as any)['$torepr']) + "\n\n" : "";
+      displayToString(renderFancyReason(maybeErr.value), RUNTIME.$torepr) + displayToString(ED['v-sequence'](maybeErr.value.stack.map(makeSrcloc)), RUNTIME.$torepr) + "\n\n" : "";
     message += "\n\n" + makeSrcloc(loc).format(true) + ": " + name + " (" + blockPassed + "/" + blockTotal + ") \n";
     message += endedInError;
     if (blockFailed > 0) {

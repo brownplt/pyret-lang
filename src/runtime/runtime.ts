@@ -79,7 +79,7 @@ export function $setSpyValueHandler(handler : any) {
   $spyValueHandler = handler;
 }
 
-function _not(x: boolean): boolean { return !x; }
+export function _not(x: boolean): boolean { return !x; }
 
 function _spy(spyObject: SpyObject): void {
 
@@ -353,10 +353,10 @@ export function run<A>(f : (() => A), onDone : ((a : {type: 'normal', value: A} 
 
 const allModules : any = { };
 
-function addModule(uri : string, vals : any) {
+export function addModule(uri : string, vals : any) {
   allModules[uri] = {values: vals};
 }
-function getModuleValue(uri : string, k : string) {
+export function getModuleValue(uri : string, k : string) {
   return allModules[uri].values[k];
 }
 
@@ -378,7 +378,7 @@ function setupMethodGetters(obj : any) {
 
 
 // TODO(alex): common Pyret error objects
-function raise(msg: object) {
+export function raise(msg: object) {
   // NOTE(alex): Changing the representation needs to be reflected in raiseExtract()
   throw msg;
 }
@@ -758,7 +758,7 @@ function toOutput(val : any) {
   return toOutputHelp(val);
 }
 
-function errors() {
+export function errors() {
   return require("./" + "error.arr.js");
 }
 
@@ -779,18 +779,18 @@ class PyretError extends Error {
   }
 }
 
-function throwError(name : string, ...args : any[]) {
+export function throwError(name : string, ...args : any[]) {
   throw new PyretError(errors()[name](...args));
 }
 
-function checkType(val : any, test : (v : any) => boolean, typeName : string) {
+export function checkType(val : any, test : (v : any) => boolean, typeName : string) {
   if(!test(val)) {
     throwError("generic-type-mismatch", val, typeName);
   }
   return true;
 }
 
-function makeCheckType(test : (v : any) => boolean, typeName : string) {
+export function makeCheckType(test : (v : any) => boolean, typeName : string) {
   return function(val : any) {
     debugger;
     return checkType(val, test, typeName);
@@ -801,17 +801,17 @@ function isNatural(n : any) {
   return _NUMBER.isInteger(n) && _NUMBER.isNonNegative(n);
 }
 
-var checkString = makeCheckType(_PRIMITIVES.isString, "String");
-var checkNumber = makeCheckType(_PRIMITIVES.isNumber, "Number");
-var checkExactnum = makeCheckType(_NUMBER.isRational, "Exactnum");
-var checkRoughnum = makeCheckType(_NUMBER.isRoughnum, "Roughnum");
-var checkNumInteger = makeCheckType(_NUMBER.isInteger, "NumInteger");
-var checkNumRational = makeCheckType(_NUMBER.isRational, "NumRational");
-var checkNumPositive = makeCheckType(_NUMBER.isPositive, "NumPositive");
-var checkNumNegative = makeCheckType(_NUMBER.isNegative, "NumNegative");
-var checkNumNonPositive = makeCheckType(_NUMBER.isNonPositive, "NumNonPositive");
-var checkNumNonNegative = makeCheckType(_NUMBER.isNonNegative, "NumNonNegative");
-var checkNumNatural = makeCheckType(isNatural, "Natural Number");
+export const checkString = makeCheckType(_PRIMITIVES.isString, "String");
+export const checkNumber = makeCheckType(_PRIMITIVES.isNumber, "Number");
+export const checkExactnum = makeCheckType(_NUMBER.isRational, "Exactnum");
+export const checkRoughnum = makeCheckType(_NUMBER.isRoughnum, "Roughnum");
+export const checkNumInteger = makeCheckType(_NUMBER.isInteger, "NumInteger");
+export const checkNumRational = makeCheckType(_NUMBER.isRational, "NumRational");
+export const checkNumPositive = makeCheckType(_NUMBER.isPositive, "NumPositive");
+export const checkNumNegative = makeCheckType(_NUMBER.isNegative, "NumNegative");
+export const checkNumNonPositive = makeCheckType(_NUMBER.isNonPositive, "NumNonPositive");
+export const checkNumNonNegative = makeCheckType(_NUMBER.isNonNegative, "NumNonNegative");
+export const checkNumNatural = makeCheckType(isNatural, "Natural Number");
 
 function customThrow(exn : any) {
   exn.toString = function() { return JSON.stringify(this); }
@@ -884,17 +884,11 @@ function postLoadHook(uri : string, result : any) {
   }
 }
 
-module.exports["addModule"] = addModule;
-module.exports["getModuleValue"] = getModuleValue;
 
+export const Equal = _EQUALITY.Equal;
 
-// Hack needed b/c of interactions with the 'export' keyword
-// Pyret instantiates singleton data varaints by taking a reference to the value
-// TODO(alex): Should Pyret perform a function call to create a singleton data variant
-module.exports["Equal"] = _EQUALITY.Equal;
-
-module.exports["NotEqual"] = _EQUALITY.NotEqual;
-module.exports["Uknown"] = _EQUALITY.Unknown;
+export const NotEqual = _EQUALITY.NotEqual;
+export const Unknown = _EQUALITY.Unknown;
 
 // Hack needed to match generate Pyret-code
 module.exports["is-Equal"] = _EQUALITY.isEqual;
@@ -907,83 +901,80 @@ module.exports["equal-now3"] = _EQUALITY.equalNow3;
 module.exports["equal-always"] = _EQUALITY.equalAlways;
 module.exports["equal-always3"] = _EQUALITY.equalAlways3;
 
-module.exports["identical"] = _EQUALITY.identical;
-module.exports["identical3"] = _EQUALITY.identical3;
+export const identical = _EQUALITY.identical;
+export const identical3 = _EQUALITY.identical3;
 
 // Expected runtime functions
-module.exports["raise"] = raise;
-module.exports["$raiseExtract"] = raiseExtract;
+export const $raiseExtract = raiseExtract;
 module.exports["trace-value"] = traceValue;
-module.exports["$getTraces"] = getTraces;
-module.exports["$clearTraces"] = clearTraces;
+export const $getTraces = getTraces;
+export const $clearTraces = clearTraces;
 
-module.exports["$spy"] = _spy;
+export const $spy = _spy;
 
-module.exports["$extend"] = _PRIMITIVES.extend;
-module.exports["$installMethod"] = installMethod;
-module.exports["$setupMethodGetters"] = setupMethodGetters;
-module.exports["$makeDataValue"] = _PRIMITIVES.makeDataValue;
-module.exports["$createVariant"] = _PRIMITIVES.createVariant;
+export const $extend = _PRIMITIVES.extend;
+export const $installMethod = installMethod;
+export const $setupMethodGetters = setupMethodGetters;
+export const $makeDataValue = _PRIMITIVES.makeDataValue;
+export const $createVariant = _PRIMITIVES.createVariant;
 
-module.exports["$claimMainIfLoadedFirst"] = claimMainIfLoadedFirst;
-module.exports["$initializeCheckContext"] = initializeCheckContext;
-module.exports["$omitCheckResults"] = omitCheckResults;
-module.exports["$postLoadHook"] = postLoadHook;
+export const $claimMainIfLoadedFirst = claimMainIfLoadedFirst;
+export const $initializeCheckContext = initializeCheckContext;
+export const $omitCheckResults = omitCheckResults;
+export const $postLoadHook = postLoadHook;
 
-module.exports["$checkResults"] = checkResults;
-module.exports["$getCheckResults"] = getCheckResults;
-module.exports["$clearChecks"] = clearChecks;
+export const $checkResults = checkResults;
+export const $getCheckResults = getCheckResults;
+export const $clearChecks = clearChecks;
 
-module.exports["$makeRational"] = _NUMBER["makeRational"];
-module.exports["$makeRoughnum"] = _NUMBER['makeRoughnum'];
-module.exports["$numToRoughnum"] = (n : any, errbacks : any) => _NUMBER['makeRoughnum'](_NUMBER['toFixnum'](n), errbacks);
-module.exports["$errCallbacks"] = _EQUALITY.NumberErrbacks;
+export const $makeRational = _NUMBER["makeRational"];
+export const $makeRoughnum = _NUMBER['makeRoughnum'];
+export const $numToRoughnum = (n : any, errbacks : any) => _NUMBER['makeRoughnum'](_NUMBER['toFixnum'](n), errbacks);
+export const $errCallbacks = _EQUALITY.NumberErrbacks;
 
-module.exports["_not"] = _not;
+export const _plus = customPlus;
+export const _minus = customMinus;
+export const _times = customTimes;
+export const _divide = customDivide;
 
-module.exports["_plus"] = customPlus;
-module.exports["_minus"] = customMinus;
-module.exports["_times"] = customTimes;
-module.exports["_divide"] = customDivide;
+export const _lessthan = _EQUALITY._lessthan;
+export const _greaterthan = _EQUALITY._greaterthan;
+export const _lessequal = _EQUALITY._lessequal;
+export const _greaterequal = _EQUALITY._greaterequal;
+export const _makeNumberFromString = _NUMBER['fromString'];
 
-module.exports["_lessthan"] = _EQUALITY._lessthan;
-module.exports["_greaterthan"] = _EQUALITY._greaterthan;
-module.exports["_lessequal"] = _EQUALITY._lessequal;
-module.exports["_greaterequal"] = _EQUALITY._greaterequal;
-module.exports["_makeNumberFromString"] = _NUMBER['fromString'];
+export const PTuple = _PRIMITIVES["PTuple"];
+export const $makeMethodBinder = _PRIMITIVES["makeMethodBinder"];
 
-module.exports["PTuple"] = _PRIMITIVES["PTuple"];
-module.exports["$makeMethodBinder"] = _PRIMITIVES["makeMethodBinder"];
+export const $torepr = toRepr;
+export const $tostring = toString;
+export const $tooutput = toOutput;
+export const $nothing = _PRIMITIVES["$nothing"];
 
-module.exports["$torepr"] = toRepr;
-module.exports["$tostring"] = toString;
-module.exports["$tooutput"] = toOutput;
-module.exports["$nothing"] = _PRIMITIVES["$nothing"];
+export const $customThrow = customThrow;
 
-module.exports["$customThrow"] = customThrow;
-
-module.exports["$messageThrow"] = function(srcloc : any, message : any) {
+export const $messageThrow = function(srcloc : any, message : any) {
   customThrow({
     "message": message,
     "$srcloc": srcloc
   });
 }
 
-module.exports["throwUnfinishedTemplate"] = function(srcloc : any) {
+export const throwUnfinishedTemplate = function(srcloc : any) {
   customThrow({
     "$template-not-finished": srcloc
   });
 };
 
 // TODO(alex): Fill out exceptions with useful info
-module.exports["throwNoCasesMatched"] = function(srcloc : any) {
+export const throwNoCasesMatched = function(srcloc : any) {
   customThrow({
     "kind": "throwNoCasesMatched",
     "$srcloc": srcloc
   });
 };
 
-module.exports["throwNoBranchesMatched"] = function(srcloc : any) {
+export const throwNoBranchesMatched = function(srcloc : any) {
   customThrow({
     "kind": "throwNoBranchesMatched",
     "$srcloc": srcloc
@@ -991,7 +982,7 @@ module.exports["throwNoBranchesMatched"] = function(srcloc : any) {
 };
 
 // TODO(alex): is exn necessary?
-module.exports["throwNonBooleanOp"] = function(srcloc : any) {
+export const throwNonBooleanOp = function(srcloc : any) {
   customThrow({
     "kind": "throwNonBooleanOp",
     "$srcloc": srcloc
@@ -999,7 +990,7 @@ module.exports["throwNonBooleanOp"] = function(srcloc : any) {
 };
 
 // TODO(alex): is exn necessary?
-module.exports["throwNonBooleanCondition"] = function(srcloc : any) {
+export const throwNonBooleanCondition = function(srcloc : any) {
   customThrow({
     "kind": "throwNonBooleanCondition",
     "$srcloc": srcloc
@@ -1007,26 +998,10 @@ module.exports["throwNonBooleanCondition"] = function(srcloc : any) {
 };
 
 // NOTE: "is-roughly" => "is%(within(0.000001))"
-module.exports["within"] = _EQUALITY["within"];
-module.exports["jsnums"] = _NUMBER;
-module.exports["errors"] = errors;
-module.exports["throwError"] = throwError;
-module.exports["makeCheckType"] = throwError;
-module.exports["checkType"] = throwError;
+export const within = _EQUALITY["within"];
+export const jsnums = _NUMBER;
 
-module.exports["checkString"] = checkString;
-module.exports["checkNumber"] = checkNumber;
-module.exports["checkExactnum"] = checkExactnum;
-module.exports["checkRoughnum"] = checkRoughnum;
-module.exports["checkNumInteger"] = checkNumInteger;
-module.exports["checkNumRational"] = checkNumRational;
-module.exports["checkNumPositive"] = checkNumPositive;
-module.exports["checkNumNegative"] = checkNumNegative;
-module.exports["checkNumNonPositive"] = checkNumNonPositive;
-module.exports["checkNumNonNegative"] = checkNumNonNegative;
-module.exports["checkNumNatural"] = checkNumNatural;
-
-module.exports["debug"] = /* @stopify flat */ function() { debugger; };
+export const debug = /* @stopify flat */ function() { debugger; };
 
 module.exports["run-task"] = runTask;
 
