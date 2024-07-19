@@ -9,12 +9,21 @@
 
 import { CompileAndRunResult } from "./control";
 import { Srcloc } from "../../src/runtime/common-runtime-types";
+import type { CheckBlockResult, RenderedCheckBlockResult, RenderedCheckResultsAndSummary } from "../../src/runtime/checker";
+import CheckResults from "./CheckResults";
 
 export type RHSCheckValue = {
   exception: boolean,
   value: any,
   exception_val: any,
 };
+
+export type CheckResults = {
+  tag: 'check-results',
+  key: 'check-results',
+  checkBlockResults: CheckBlockResult[],
+  renderedCheckBlockResults: RenderedCheckResultsAndSummary,
+}
 
 // The result of evaluating a `check:` or `examples:` block.
 export type RHSCheck = {
@@ -58,7 +67,7 @@ export type ExamplarReport = {
 
 type RawRHSObject<T> = Omit<T, 'tag'>;
 
-export type RHSObject = Trace | Location | RHSCheck | ExamplarReport;
+export type RHSObject = Trace | Location | RHSCheck | ExamplarReport | CheckResults;
 
 export function isTrace(a: RHSObject): a is Trace {
   return a.tag === 'trace';
@@ -70,6 +79,10 @@ export function isLocation(a: RHSObject): a is Location {
 
 export function isRHSCheck(a: RHSObject): a is RHSCheck {
   return a.tag === 'rhs-check';
+}
+
+export function isCheckResults(a: RHSObject): a is CheckResults {
+  return a.tag === 'check-results';
 }
 
 export function isExamplarReport(a: RHSObject): a is ExamplarReport {
@@ -116,6 +129,7 @@ export type RunResult = {
     $checks: RawRHSObject<RHSCheck>[],
     $locations: RawRHSObject<Location>[],
     $traces: RawRHSObject<Trace>[],
+    $renderedChecks: RenderedCheckResultsAndSummary,
   },
 };
 
@@ -124,6 +138,7 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObject[
     $checks,
     $locations,
     $traces,
+    $renderedChecks
   } = result.result;
 
   // only keep toplevel expressions from this module.
@@ -163,9 +178,10 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObject[
   //
   // will share the same location
   //
-  const withKeys = withChecks.map((rhsObject) => {
+  let withKeys : HasSrcLoc[] = withChecks.filter(rhs => 'srcloc' in rhs) as HasSrcLoc[];
+  withKeys = withKeys.map((rhsObject) => {
     let key = getRow(rhsObject).toString();
-    if (isLocation(rhsObject)) {
+    if (isLocation(rhsObject as RHSObject)) {
       key += key + (<Location>rhsObject).name;
     }
 
@@ -177,5 +193,12 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObject[
 
   withKeys.sort((a, b) => getRow(a) - getRow(b));
 
-  return withKeys;
+  const checkResults : RHSObject = {
+    tag: 'check-results',
+    key: 'check-results',
+    checkBlockResults: ($checks as unknown) as CheckBlockResult[],
+    renderedCheckBlockResults: $renderedChecks
+  };
+
+  return [... withKeys as RHSObject[], checkResults ];
 }

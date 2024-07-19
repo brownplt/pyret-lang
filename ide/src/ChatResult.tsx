@@ -15,11 +15,13 @@ import {
     RHSCheck,
     isLocation,
     isTrace,
+    isCheckResults,
 } from './rhsObject';
 import RHSObjectComponent from './RHSObjectComponent';
 import FailureComponent from './FailureComponent';
 import CheckResults from './CheckResults';
 import { CMEditor } from './utils';
+import { FullCheckResults } from './FullCheckResults';
 
 type ChatResultProps = {
     editor: UninitializedEditor | CMEditor,
@@ -60,10 +62,9 @@ class ChatResult extends React.Component<ChatResultProps, any> {
                 // location for constant variant of datatype
                 && !(isLocation(r) && typeof r.value === 'object' && '$name' in r.value && r.value.$name === r.name)
                 // checks handled separately and grouped
-                && !isRHSCheck(r)
+                && !isRHSCheck(r) && !isCheckResults(r)
                 // undefined shows up sometimes go figure
                 && !(isTrace(r) && typeof r.value === 'undefined')));
-            const checks = rhsObjects.filter((r) => isRHSCheck(r));
             const values = shown.map((val) => (
                 <RHSObjectComponent
                     editor={chunkEditor}
@@ -74,14 +75,13 @@ class ChatResult extends React.Component<ChatResultProps, any> {
                     title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
                 />
             ));
-            const checkSummary = checks.length > 0
+            const checkResults = rhsObjects.filter(isCheckResults);
+            const checkSummary = checkResults.length > 0
                 && (
-                    <CheckResults
-                        // Would love to have TypeScript obviate this `as`
-                        checks={checks as RHSCheck[]}
-                        className="chatitor-rhs"
-                        title={partiallyOutdated ? 'value might be changed by earlier definition changes' : ''}
-                    />
+                    <>
+                    <FullCheckResults editor={chunkEditor} checks={checkResults[0]}>
+                    </FullCheckResults>
+                    </>
                 );
             chunkResultsPart = (
                 <div className="chat-result">

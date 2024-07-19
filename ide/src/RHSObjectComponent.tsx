@@ -2,6 +2,7 @@ import React from 'react';
 import Check from './reps/Check';
 import RenderedValue from './reps/RenderedValue';
 import {
+  isCheckResults,
   isExamplarReport,
   isLocation, isRHSCheck, isTrace, RHSObject,
 } from './rhsObject';
@@ -70,6 +71,10 @@ export default function RHSObjectComponent({
 
   if (isExamplarReport(rhsObject)) {
     return <ExamplarReportWidget editor={editor} wheatResults={rhsObject.wheatResults} chaffResults={rhsObject.chaffResults} hintMessage={rhsObject.hintMessage} qtmVariations={rhsObject.qtmVariations}/>
+  }
+
+  if (isCheckResults(rhsObject)) {
+    return <p>How is a check getting rendered here</p>;
   }
 
   throw new NeverError(rhsObject);

@@ -82,6 +82,10 @@ function checkBlockResult(
 
 export type CheckBlockResult = ReturnType<typeof checkBlockResult>
 
+export type RenderedCheckResultsAndSummary = { checkSummary: ReturnType<typeof resultsSummary>, renderedChecks: RenderedCheckBlockResult[] }
+export type RenderedCheckBlockResult = Omit<CheckBlockResult, 'testResults'> & { testResults: RenderedTestResult[] };
+export type RenderedTestResult = TestResult & { rendered: ErrorDisplay };
+
 function success(
   metadata: LocsRecord,
 ) {
@@ -546,8 +550,8 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
       addResult(failureNoExn(metadata, some(str), thunkSrc, true));
     } else {
       // TODO: is this the right way to call to-repr?  The types don't think it exists...
-      console.log("Result form an exn test:" , result.v, (RUNTIME['$torepr'](result.v)));
-      if (!((RUNTIME['$torepr'](result.v) as string).includes(str)) &&
+      console.log("Result form an exn test:" , result.v, ((RUNTIME as any)['$torepr'](result.v)));
+      if (!(((RUNTIME as any)['$torepr'](result.v) as string).includes(str)) &&
           !(String(result.v).includes(str))) {
         addResult(failureWrongExn(metadata, str, result.v, thunkSrc));
       } else {
@@ -575,7 +579,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
       addResult(failureNoExn(metadata, some(str), thunkSrc, true));
     } else {
       // TODO: is this the right way to call to-repr?  The types don't think it exists...
-      if ((RUNTIME['$torepr'](result.v) as string).includes(str)) {
+      if (((RUNTIME as any)['$torepr'](result.v) as string).includes(str)) {
         addResult(failureRightExn(metadata, str, result.v, thunkSrc));
       } else {
         cont();
@@ -829,7 +833,7 @@ export function resultsSummary(blockResults : CheckBlockResult[]) {
           blockTotal++;
           break;
         default:
-          const m = makeSrcloc(tr.metadata.loc).format(false) + ": failed because: \n    " + displayToString(renderReason(tr), RUNTIME['$torepr']);
+          const m = makeSrcloc(tr.metadata.loc).format(false) + ": failed because: \n    " + displayToString(renderFancyReason(tr), (RUNTIME as any)['$torepr']);
           blockMessage += "\n  " + m;
           blockFailed++;
           blockTotal++;
@@ -837,10 +841,10 @@ export function resultsSummary(blockResults : CheckBlockResult[]) {
     });
     let blockType = isKeywordCheck ? "Check" : "Examples";
     let endedInError = maybeErr.$name === 'some' ? "\n  " + blockType + " block ended in the following error (not all tests may have run): \n\n  " +
-      displayToString(renderReason(maybeErr.value), RUNTIME['$torepr']) + displayToString(ED['v-sequence'](maybeErr.value.stack.map(makeSrcloc)), RUNTIME['$torepr']) + "\n\n" : "";
+      displayToString(renderFancyReason(maybeErr.value), (RUNTIME as any)['$torepr']) + displayToString(ED['v-sequence'](maybeErr.value.stack.map(makeSrcloc)), (RUNTIME as any)['$torepr']) + "\n\n" : "";
     message += "\n\n" + makeSrcloc(loc).format(true) + ": " + name + " (" + blockPassed + "/" + blockTotal + ") \n";
     message += endedInError;
-    if (failed > 0) {
+    if (blockFailed > 0) {
       message += blockMessage;
     }
     errored += maybeErr.$name === 'some' ? 1 : 0;
@@ -1260,7 +1264,7 @@ export function renderReason(testResult: TestResult) : ErrorDisplay {
     case 'success': return ED.text("Success");
     case 'failure-not-equal': {
       return ED.error.make3(
-        ED.para.make1(testResult.refinement === undefined 
+        ED.para.make1(option['is-none'](testResult)
           ? ED.text("Values not equal")
           : ED.text("Values not equal (using custom equality):")),
         ED.embed(testResult.left),

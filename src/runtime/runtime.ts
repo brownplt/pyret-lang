@@ -848,18 +848,33 @@ function omitCheckResults(uri: string) {
   omittedCheckResults[uri] = true;
 }
 
+const emptySummary = {
+  message: "The program didn't define any tests.",
+  passed: 0,
+  failed: 0,
+  errored: 0,
+  total: 0
+}
+
 function postLoadHook(uri : string, result : any) {
   if(uri === currentMainURI && omittedCheckResults[uri] !== true) {
-    if (result.$checks.length === 0) {
-      console.log("The program didn't define any tests.");
-    } else {
+    let renderedChecks = [];
+    let summary = emptySummary;
+    if (result.$checks.length > 0) {
       const checker = require('./checker' + ".js");
-      let { message: summary } = checker.resultsSummary(result.$checks);
-      console.log(summary);
+      renderedChecks = result.$checks.map((br : any) => {
+        return { ...br,
+          testResults: br.testResults.map((tr : any) => {
+            return { ...tr, rendered: checker.renderFancyReason(tr) };
+          })
+        }
+      });
+      summary = checker.resultsSummary(result.$checks);
     }
+    console.log(summary.message);
     currentMainURI = false;
     checkContext = stubCheckContext;
-    return result;
+    return { ...result, $renderedChecks: { checkSummary: summary, renderedChecks: renderedChecks } };
   }
   if(uri in postLoadHooks) {
     return postLoadHooks[uri](result);
