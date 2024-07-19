@@ -28,7 +28,6 @@ export default class CodeEmbed extends React.Component<Props, State> {
           newEditor.setSize(null, 'auto');
         }}
         className="failure-cmcode"
-        detach
       />
     );
   }

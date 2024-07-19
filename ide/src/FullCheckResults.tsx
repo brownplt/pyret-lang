@@ -27,6 +27,7 @@ export function FullCheckResults({
     })
 
     return <p>
+        {checks.renderedCheckBlockResults.checkSummary.message}: 
         {checks.renderedCheckBlockResults.checkSummary.passed} tests passed, 
         {checks.renderedCheckBlockResults.checkSummary.failed} tests failed,
         {checks.renderedCheckBlockResults.checkSummary.errored} blocks errored,

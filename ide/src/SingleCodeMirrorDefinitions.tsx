@@ -41,42 +41,15 @@ export default class SingleCodeMirrorDefinitions extends React.Component<Props, 
     super(props); this.state = { editor: null };
   }
 
-  componentDidUpdate() {
-    const { editor } = this.state;
-    const { highlights } = this.props;
-
-    if (editor !== null) {
-      if (highlights.length > 0) {
-        for (let i = 0; i < highlights.length; i += 1) {
-          editor.getDoc().markText(
-            {
-              line: highlights[i][0] - 1,
-              ch: highlights[i][1],
-            },
-            {
-              line: highlights[i][2] - 1,
-              ch: highlights[i][3],
-            },
-            { className: 'styled-background-error' },
-          );
-        }
-      } else {
-        const marks = editor.getDoc().getAllMarks();
-        for (let i = 0; i < marks.length; i += 1) {
-          marks[i].clear();
-        }
-      }
-    }
-  }
-
   onChange = (editor: CodeMirror.Editor, data: CodeMirror.EditorChange, value: string): void => {
     const { onEdit, run } = this.props;
 
     setShortcuts(editor, run);
     this.setState({ editor });
 
-    for (let i = 0; i < editor.getDoc().getAllMarks().length; i += 1) {
-      editor.getDoc().getAllMarks()[i].clear();
+    const marks = editor.getDoc().getAllMarks();
+    for (let i = 0; i < marks.length; i += 1) {
+      marks[i].clear();
     }
     onEdit(editor, value);
   };

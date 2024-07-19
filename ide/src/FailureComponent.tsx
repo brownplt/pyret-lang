@@ -113,8 +113,8 @@ function FailureComponentUnconnected({
         return (
           <CodeEmbed
             from={{ line: failure.loc['start-line'] - 1, ch: 0 }}
-            to={{ line: failure.loc['end-line'], ch: 999999 }}
-            text={editor.getRange({ line: failure.loc['start-line'] - 1, ch: 0 }, { line: failure.loc['end-line'], ch: 999999 })}
+            to={{ line: failure.loc['end-line'], ch: 0 }}
+            text={editor.getRange({ line: failure.loc['start-line'] - 1, ch: 0 }, { line: failure.loc['end-line'], ch: 0 })}
             editor={editor}
             failure={failure}
           />

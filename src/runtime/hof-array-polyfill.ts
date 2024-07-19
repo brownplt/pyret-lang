@@ -376,7 +376,7 @@ export const stopifyArrayPrototype = {
     //__proto__: Array.prototype,
     map: stopifyDispatch(array_map, Array.prototype.map),
     filter: stopifyDispatch(array_filter, Array.prototype.filter),
-    each: stopifyDispatch(array_each, Array.prototype.forEach),
+    forEach: stopifyDispatch(array_each, Array.prototype.forEach),
     /*
     filter: function(f: any) { return stopifyArray(filter(this, f)); },
     reduceRight: function(this: any[], f: any, init: any): any {
