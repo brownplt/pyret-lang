@@ -840,15 +840,23 @@ export function runTask<A>(f : (() => A)) {
   }
 }
 
+const omittedCheckResults: {[uri: string]: boolean} = {};
 const postLoadHooks : {[uri: string]: (result: any) => void} = {
-
 };
 
+function omitCheckResults(uri: string) {
+  omittedCheckResults[uri] = true;
+}
+
 function postLoadHook(uri : string, result : any) {
-  if(uri === currentMainURI) {
-    const checker = require('./checker' + ".js");
-    let { message: summary } = checker.resultsSummary(result.$checks);
-    console.log(summary);
+  if(uri === currentMainURI && omittedCheckResults[uri] !== true) {
+    if (result.$checks.length === 0) {
+      console.log("The program didn't define any tests.");
+    } else {
+      const checker = require('./checker' + ".js");
+      let { message: summary } = checker.resultsSummary(result.$checks);
+      console.log(summary);
+    }
     currentMainURI = false;
     checkContext = stubCheckContext;
     return result;
@@ -904,6 +912,7 @@ module.exports["$createVariant"] = _PRIMITIVES.createVariant;
 
 module.exports["$claimMainIfLoadedFirst"] = claimMainIfLoadedFirst;
 module.exports["$initializeCheckContext"] = initializeCheckContext;
+module.exports["$omitCheckResults"] = omitCheckResults;
 module.exports["$postLoadHook"] = postLoadHook;
 
 module.exports["$checkResults"] = checkResults;

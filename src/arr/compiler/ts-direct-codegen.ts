@@ -502,7 +502,7 @@ export type Exports = {
     }
 
     function compileCheckBlock(context : Context, expr : Variant<A.Expr, "s-check">) : CompileResult {
-      context.options.dict.log.app("Checks: " + context.options.checks, runtime.ffi.makeNone());
+      context.options.dict.log.app("Checks: " + context.options.dict.checks, runtime.ffi.makeNone());
       if(context.options.dict.checks === "none") {
         return [Literal("Skipped check blocks"),[]];
       }
@@ -1588,7 +1588,7 @@ export type Exports = {
       }
     }
 
-    function createPrelude(prog : A.Program, provides, env, U: A.Name, M: A.Name, C: A.Name, srclocs: J.Expression[], freeBindings : Map<string, CS.ValueBind>, options, importFlags) : Array<J.Statement> {
+    function createPrelude(context: Context, prog : A.Program, provides, env, U: A.Name, M: A.Name, C: A.Name, srclocs: J.Expression[], freeBindings : Map<string, CS.ValueBind>, options: CompileOptions, importFlags) : Array<J.Statement> {
 
       function getBaseDir(source : string, buildDir : string) : [ string, string ] {
         let sourceHead = source.indexOf("://") + 3;
@@ -1762,6 +1762,8 @@ export type Exports = {
           // TODO(Ben) -- Make this not be all=true!!!
           Var(C, rtMethod("$initializeCheckContext", [Identifier(U), Literal(true)])),
         );
+      } else if (options.dict['check-mode'] === false) {
+        setupRuntime.push(ExpressionStatement(rtMethod("$omitCheckResults", [Identifier(U)])));
       }
 
       return [...setupRuntime, ...importStmts, ...fromModules];
@@ -1801,7 +1803,7 @@ export type Exports = {
     }
 
 
-    function serializeBuiltinRequires(name: string, options): J.Expression {
+    function serializeBuiltinRequires(name: string, options: CompileOptions): J.Expression {
       return ObjectExpression([
         Property("import-type", Literal("builtin")),
         Property("name", Literal(name)),
@@ -1864,7 +1866,7 @@ export type Exports = {
       uri: string,
       curCheckContext: A.Name,
       compileSrcloc: (l : A.Srcloc, cache?: boolean) => J.Expression,
-      options: any,
+      options: CompileOptions,
       provides: CS.Provides,
       datatypes: Map<string, any>,
       env: CS.CompileEnvironment,
@@ -1936,7 +1938,7 @@ export type Exports = {
 
       const [ans, stmts] = compileExpr(context, prog.dict.block);
 
-      const prelude = createPrelude(prog, provides, env, U, M, C, srclocs, freeBindings, options, importFlags);
+      const prelude = createPrelude(context, prog, provides, env, U, M, C, srclocs, freeBindings, options, importFlags);
 
       let serializedProvides: string;
       const mode = (options.dict['compile-mode'] as CS.CompileMode);
