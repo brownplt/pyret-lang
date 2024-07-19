@@ -47,9 +47,10 @@ result =
 if result:
   G.console-log("pass")
 else:
-  G.console-log([L.list:
+  G.console-log(G.to-repr([L.list:
     G.to-string(my-foo1),
     G.to-string(my-foo2),
     G.to-string(my-nested1),
-    G.to-string(my-nested-foo)])
+    G.to-string(my-nested-foo), 
+    x1, x2, x3, x4, x5, x6, x7]))
 end
