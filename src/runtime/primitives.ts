@@ -75,11 +75,11 @@ export function createVariant<T extends string>(
 }
 
 export function makeDataValue<
-  O extends {},
+  O extends DataSharedBase,
   E extends DataVariantBase,
 >(obj : O, extension : E) : DataValueType<O,E> {
   Object.setPrototypeOf(extension, obj);
-  extension.$methods = {};
+  extension.$methods = Object.create(obj.$methods);
   return (extension as O & Required<E>);
 }
 
