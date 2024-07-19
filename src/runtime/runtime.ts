@@ -4,12 +4,10 @@ import { NumericErrorCallbacks } from "./equality";
 import {
   Srcloc,
   CheckResult,
-  CheckExprEvalResult,
-  CheckTestResult,
 } from "./common-runtime-types";
 import { $PMethodBrand, applyBrand } from "./primitives";
-
-type Variant<T, V> = T & { $name: V };
+import type * as E_TYPES from '../runtime-arr/either.arr';
+import type { Variant } from './types/primitive-types';
 
 console.log(stopifyArrayPrototype);
 
@@ -830,8 +828,8 @@ export function $imgUrlProxy(url: string): string {
   return imageUrlProxyWrapper(url);
 }
 
-export function runTask<A>(f : (() => A)) {
-  const Either = require("./either" + ".arr.js");
+function runTask<A>(f : (() => A)): E_TYPES.Either<A, any> {
+  const Either = require("./either" + ".arr.js") as typeof E_TYPES;
   try {
     return Either.left(f());
   }

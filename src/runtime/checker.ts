@@ -8,11 +8,9 @@ import { displayToString } from './render-error-display';
 import type * as ED_TYPES from '../runtime-arr/error-display.arr';
 import type * as SL_TYPES from '../runtime-arr/srcloc.arr';
 import type * as OPT_TYPES from '../runtime-arr/option.arr';
-import type * as E_TYPES from '../runtime-arr/either.arr';
 const ED = require('./error-display' + '.arr.js') as typeof ED_TYPES;
 const srcloc = require('./srcloc' + '.arr.js') as typeof SL_TYPES;
 const option = require('./option' + '.arr.js') as typeof OPT_TYPES;
-const either = require('./either' + '.arr.js') as typeof E_TYPES;
 
 type Option<A> = OPT_TYPES.Option<A>;
 type ErrorDisplay = ED_TYPES.ErrorDisplay;
@@ -24,16 +22,6 @@ function some<A>(value: A): Variant<OPT_TYPES.Option<A>, 'some'> {
 const none = option.none;
 
 type Thunk<A> = () => A;
-// TODO(Ben/Joe): when we have real types for Either,
-// replace this with the function in runtime.
-function runTask<A>(f : (() => A)) : E_TYPES.Either<A, any> {
-  try {
-    return either.left(f());
-  }
-  catch(e) {
-    return either.right(e);
-  }
-}
 
 export type IsOp = 'op==' | 'op=~' | 'op<=>'
 
@@ -256,7 +244,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     currentResults.push(tr);
   }
   function unthunk<T>(metadata: LocsRecord, where: CheckOperand, thunk: Thunk<T>, cont: (val: T) => any) {
-    const result = runTask(thunk);
+    const result = RUNTIME.$runTask(thunk);
     if (result.$name === 'right') {
       addResult(failureExn(metadata, result.v, where));
     } else {
@@ -389,7 +377,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
   function checkIsRefinementCont(metadata: LocsRecord, refinement: (left: any, right: any) => boolean | EQ.EqualityResult, lv: any, lvSrc: CheckOperand, rv: any, rvSrc: CheckOperand, cont: Thunk<any>) {
-    const refine = runTask(() => refinement(lv, rv));
+    const refine = RUNTIME.$runTask(() => refinement(lv, rv));
     if (refine.$name === 'right') {
       const exn = refine.v;
       if (causesErrorNotPred(exn)) {
@@ -430,7 +418,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
   function checkIsNotRefinementCont(metadata: LocsRecord, refinement: (left: any, right: any) => boolean | EQ.EqualityResult, lv: any, lvSrc: CheckOperand, rv: any, rvSrc: CheckOperand, cont: Thunk<any>) {
-    const refine = runTask(() => refinement(lv, rv));
+    const refine = RUNTIME.$runTask(() => refinement(lv, rv));
     if (refine.$name === 'right') {
       const exn = refine.v;
       if (causesErrorNotPred(exn)) {
@@ -471,7 +459,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
   function checkSatisfiesDelayedCont(metadata: LocsRecord, lv: any, lvSrc: CheckOperand, pv: (v: any) => any, pvSrc: CheckOperand, cont: Thunk<any>) {
-    const result = runTask(() => pv(lv));
+    const result = RUNTIME.$runTask(() => pv(lv));
     if (result.$name === 'right') {
       const exn = result.v;
       if (causesErrorNotPred(exn)) {
@@ -508,7 +496,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
   function checkSatisfiesNotDelayedCont(metadata: LocsRecord, lv: any, lvSrc: CheckOperand, pv: (v: any) => any, pvSrc: CheckOperand, cont: Thunk<any>) {
-    const result = runTask(() => pv(lv));
+    const result = RUNTIME.$runTask(() => pv(lv));
     if (result.$name === 'right') {
       const exn = result.v;
       if (causesErrorNotPred(exn)) {
@@ -545,7 +533,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
   function checkRaisesStrCont(metadata: LocsRecord, thunk: any, thunkSrc: CheckOperand, str: string, cont: Thunk<any>) {
-    const result = runTask(thunk);
+    const result = RUNTIME.$runTask(thunk);
     if (result.$name === 'left') {
       addResult(failureNoExn(metadata, some(str), thunkSrc, true));
     } else {
@@ -574,7 +562,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
   function checkRaisesOtherStrCont(metadata: LocsRecord, thunk: any, thunkSrc: CheckOperand, str: string, cont: Thunk<any>) {
-    const result = runTask(thunk);
+    const result = RUNTIME.$runTask(thunk);
     if (result.$name === 'left') {
       addResult(failureNoExn(metadata, some(str), thunkSrc, true));
     } else {
@@ -601,7 +589,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
   function checkRaisesNotCont(metadata: LocsRecord, thunk: any, thunkSrc: CheckOperand, cont: Thunk<any>) {
-    const result = runTask(thunk);
+    const result = RUNTIME.$runTask(thunk);
     if (result.$name === 'right') {
       addResult(failureExn(metadata, result.v, thunkSrc));
     } else {
@@ -621,13 +609,13 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
   function checkRaisesSatisfiesCont(metadata: LocsRecord, thunk: Thunk<any>, thunkSrc: CheckOperand, pred: (v: any) => boolean, predSrc: CheckOperand, cont: Thunk<any>) {
-    const result = runTask(thunk);
+    const result = RUNTIME.$runTask(thunk);
     if (result.$name === 'left') {
       addResult(failureNoExn(metadata, none, thunkSrc, true));
     } else {
       const exn = result.v;
       const exnVal = (isUserException(exn) ? exn.value : exn);
-      const exnResult = runTask(() => pred(exnVal));
+      const exnResult = RUNTIME.$runTask(() => pred(exnVal));
       if (exnResult.$name === 'right') {
         const exn = exnResult.v;
         if (causesErrorNotPred(exn)) {
@@ -662,13 +650,13 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
   };
   /////////////////////////////////////////////////////////////////////////////////////////////////////
   function checkRaisesViolatesCont(metadata: LocsRecord, thunk: Thunk<any>, thunkSrc: CheckOperand, pred: (v: any) => boolean, predSrc: CheckOperand, cont: Thunk<any>) {
-    const result = runTask(thunk);
+    const result = RUNTIME.$runTask(thunk);
     if (result.$name === 'left') {
       addResult(failureNoExn(metadata, none, thunkSrc, true));
     } else {
       const exn = result.v;
       const exnVal = (isUserException(exn) ? exn.value : exn);
-      const exnResult = runTask(() => pred(exnVal));
+      const exnResult = RUNTIME.$runTask(() => pred(exnVal));
       if (exnResult.$name === 'right') {
         const exn = exnResult.v;
         if (causesErrorNotPred(exn)) {
@@ -710,7 +698,7 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
           const { name, location, keywordCheck, run } = c;
           const resultsBefore = currentResults;
           currentResults = [];
-          const result = runTask(run);
+          const result = RUNTIME.$runTask(run);
           if (result.$name === 'left') {
             addBlockResult(checkBlockResult(name, location, keywordCheck, currentResults, none));
           } else {
