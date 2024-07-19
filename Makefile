@@ -238,5 +238,8 @@ clean-tests:
 	rm -r -f tests-new/.pyret
 
 fix-runtime:
+	rm -r -f src/runtime-arr/compiled/
+	rm -r -f src/runtime-arr-preludes/compiled/
+	rm -r -f src/runtime-arr-untyped/compiled/
 	rm -r -f build/runtime
 	npm run runtime
