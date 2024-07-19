@@ -110,7 +110,7 @@ export interface Exports {
     function wrapIfNeeded(exp: A.Expr): A.Expr {
       const l = exp.dict.l;
       if (okLast(exp) && exp.$name !== "s-spy-block") {
-        return A['s-prim-app'].app(l, "trace-value", runtime.ffi.makeList([A['s-srcloc'].app(l, l), exp]), A['prim-app-info-c'].app(true));
+        return A['s-prim-app'].app(l, "$traceValue", runtime.ffi.makeList([A['s-srcloc'].app(l, l), exp]), A['prim-app-info-c'].app(true));
       } else {
         return exp;
       }

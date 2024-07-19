@@ -37,7 +37,7 @@ module.exports = {
   '_greaterequal': runtime["_greaterequal"],
   'not': runtime["_not"],
 
-  'trace-value': runtime['traceValue'],
+  '$traceValue': runtime['traceValue'],
 
    // TODO(alex): Think of better way to expose runtime
   'runtime': runtime,

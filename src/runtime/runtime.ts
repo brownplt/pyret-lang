@@ -906,7 +906,7 @@ export const identical3 = _EQUALITY.identical3;
 
 // Expected runtime functions
 export const $raiseExtract = raiseExtract;
-module.exports["trace-value"] = traceValue;
+export const $traceValue = traceValue;
 export const $getTraces = getTraces;
 export const $clearTraces = clearTraces;
 
@@ -1003,7 +1003,7 @@ export const jsnums = _NUMBER;
 
 export const debug = /* @stopify flat */ function() { debugger; };
 
-module.exports["run-task"] = runTask;
+export const $runTask = runTask;
 
 module.exports["is-boolean"] = _PRIMITIVES.isBoolean;
 module.exports["is-function"] = _PRIMITIVES.isFunction;

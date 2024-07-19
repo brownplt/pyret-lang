@@ -42,7 +42,7 @@ module.exports = {
   $setMakeReactor: (f) => {
     realMakeReactor = f;
   },
-  'run-task' : runtime.runTask,
+  'run-task' : runtime.$runTask,
   'time-now' : timeNow,
   'js-to-string': function(v) { return String(v); },
   'display-string': function(s) { process.stdout.write(s); },
@@ -82,7 +82,7 @@ module.exports = {
   'to-string': runtime["$tostring"],
   'to-output': runtime["$tooutput"],
 
-  'trace-value': runtime['traceValue'],
+  '$traceValue': runtime['traceValue'],
 
   'is-boolean': runtime['is-boolean'],
   'is-function': runtime['is-function'],

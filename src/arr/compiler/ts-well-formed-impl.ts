@@ -1484,7 +1484,7 @@ type WFContext = {
           visit(wellFormedVisitor, expr, wfContext);
         },
         's-app': (visitor, expr: TJ.Variant<A.Expr, 's-app'>, wfContext) => {
-          if (expr.dict._fun.$name === 's-dot' && expr.dict._fun.dict.obj.$name === 's-id' && nameToName(expr.dict._fun.dict.obj.dict.id) === 'builtins' && expr.dict._fun.dict.field === 'trace-value') {
+          if (expr.dict._fun.$name === 's-dot' && expr.dict._fun.dict.obj.$name === 's-id' && nameToName(expr.dict._fun.dict.obj.dict.id) === 'builtins' && expr.dict._fun.dict.field === '$traceValue') {
             visit(visitor, expr.dict._fun, {...wfContext, allowSMethod: false});
             const argContext = {...wfContext, allowSMethod: false};
             listToArray(expr.dict.args).forEach(a => visit(visitor, a, argContext))

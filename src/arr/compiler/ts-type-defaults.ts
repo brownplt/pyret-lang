@@ -162,7 +162,7 @@ type DropFirst<T extends unknown[]> = ((...p: T) => void) extends ((p1: infer P1
       ret.set("getMaker5", tForall([tva, tvb, tvc, tvd, tve, tvf], tArrow([tRecord({ "make5": tArrow([tvb, tvc, tvd, tve, tvf], tva)}), tString, tSrcloc, tSrcloc], tArrow([tvb, tvc, tvd, tve, tvf], tva))))
     
       ret.set("makeTable", tArrow([tArray(tTop), tArray(tArray(tTop))], tTable))
-      ret.set("trace-value", tArrow([tTop, tTop], tTop))
+      ret.set("$traceValue", tArrow([tTop, tTop], tTop))
     
     
       return ret;
