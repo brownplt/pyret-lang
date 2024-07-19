@@ -46,7 +46,7 @@ function displayToStringInternal(e: ED_TYPES.ErrorDisplay, embedDisplay: (val: a
     case 'loc-display': {
       switch(e.contents.$name) {
         case 'loc': {
-          if ((runtime as any)['equal-now'](e.loc, e.contents.loc)) {
+          if (runtime.equalNow(e.loc, e.contents.loc)) {
             displayToStringInternal(e.contents, embedDisplay, stack, acc);
           } else {
             displayToStringInternal(e.contents, embedDisplay, stack, acc);

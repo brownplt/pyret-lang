@@ -71,10 +71,10 @@ module.exports = {
   '_greaterequal': runtime["_greaterequal"],
   'not': runtime["_not"],
 
-  'equal-now': runtime['equal-now'],
-  'equal-now3': runtime['equal-now3'],
-  'equal-always': runtime['equal-always'],
-  'equal-always3': runtime['equal-always3'],
+  'equal-now': runtime['equalNow'],
+  'equal-now3': runtime['equalNow3'],
+  'equal-always': runtime['equalAlways'],
+  'equal-always3': runtime['equalAlways3'],
   'identical': runtime['identical'],
   'identical3': runtime['identical3'],
   
@@ -82,10 +82,10 @@ module.exports = {
   'to-string': runtime["$tostring"],
   'to-output': runtime["$tooutput"],
 
-  '$traceValue': runtime['traceValue'],
+  '$traceValue': runtime['$traceValue'],
 
-  'is-boolean': runtime['is-boolean'],
-  'is-function': runtime['is-function'],
+  'is-boolean': runtime['$isBoolean'],
+  'is-function': runtime['$isFunction'],
 
    // TODO(alex): Think of better way to expose runtime
   'runtime': runtime,

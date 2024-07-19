@@ -243,7 +243,7 @@ function getUriForCheckLoc(loc : Srcloc) {
 }
 
 // ********* Other Functions *********
-export function traceValue(loc : any, value : any) {
+export function $traceValue(loc : any, value : any) {
   // NOTE(alex): stubbed out until we decide what to actually do with it
   const uri = getUri(loc);
   if(!(uri in _globalTraceValues)) {
@@ -891,22 +891,20 @@ export const NotEqual = _EQUALITY.NotEqual;
 export const Unknown = _EQUALITY.Unknown;
 
 // Hack needed to match generate Pyret-code
-module.exports["is-Equal"] = _EQUALITY.isEqual;
-module.exports["is-NotEqual"] = _EQUALITY.isNotEqual;
-module.exports["is-Unknown"] = _EQUALITY.isUnknown;
+export const $isEqual = _EQUALITY.isEqual;
+export const $isNotEqual = _EQUALITY.isNotEqual;
+export const $isUnknown = _EQUALITY.isUnknown;
 
-module.exports["equal-now"] = _EQUALITY.equalNow;
-module.exports["equal-now3"] = _EQUALITY.equalNow3;
-
-module.exports["equal-always"] = _EQUALITY.equalAlways;
-module.exports["equal-always3"] = _EQUALITY.equalAlways3;
+export const equalNow = _EQUALITY.equalNow;
+export const equalNow3 = _EQUALITY.equalNow3;
+export const equalAlways = _EQUALITY.equalAlways;
+export const equalAlways3 = _EQUALITY.equalAlways3;
 
 export const identical = _EQUALITY.identical;
 export const identical3 = _EQUALITY.identical3;
 
 // Expected runtime functions
 export const $raiseExtract = raiseExtract;
-export const $traceValue = traceValue;
 export const $getTraces = getTraces;
 export const $clearTraces = clearTraces;
 
@@ -1005,5 +1003,5 @@ export const debug = /* @stopify flat */ function() { debugger; };
 
 export const $runTask = runTask;
 
-module.exports["is-boolean"] = _PRIMITIVES.isBoolean;
-module.exports["is-function"] = _PRIMITIVES.isFunction;
+export const $isBoolean = _PRIMITIVES.isBoolean;
+export const $isFunction = _PRIMITIVES.isFunction;
