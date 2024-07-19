@@ -71,12 +71,12 @@ module.exports = {
   '_greaterequal': runtime["_greaterequal"],
   'not': runtime["_not"],
 
-  'equal-now': runtime['equalNow'],
-  'equal-now3': runtime['equalNow3'],
-  'equal-always': runtime['equalAlways'],
-  'equal-always3': runtime['equalAlways3'],
-  'identical': runtime['identical'],
-  'identical3': runtime['identical3'],
+  'equal-now': runtime['$equalNow'],
+  'equal-now3': runtime['$equalNow3'],
+  'equal-always': runtime['$equalAlways'],
+  'equal-always3': runtime['$equalAlways3'],
+  'identical': runtime['$identical'],
+  'identical3': runtime['$identical3'],
   
   'to-repr': runtime["$torepr"],
   'to-string': runtime["$tostring"],

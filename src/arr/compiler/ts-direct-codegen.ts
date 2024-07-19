@@ -135,9 +135,9 @@ export type Exports = {
     const CHECKER = constId("_checker");
     const TABLE = constId("_table")
     const NUMBER_ERR_CALLBACKS = "$errCallbacks"
-    const EQUAL_ALWAYS = "equalAlways"
-    const EQUAL_NOW = "equalNow"
-    const IDENTICAL = "identical"
+    const EQUAL_ALWAYS = "$equalAlways"
+    const EQUAL_NOW = "$equalNow"
+    const IDENTICAL = "$identical"
     const TOREPR = "$torepr"
     const UNDEFINED = Identifier(constId("undefined"));
 

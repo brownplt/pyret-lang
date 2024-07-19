@@ -895,13 +895,13 @@ export const $isEqual = _EQUALITY.isEqual;
 export const $isNotEqual = _EQUALITY.isNotEqual;
 export const $isUnknown = _EQUALITY.isUnknown;
 
-export const equalNow = _EQUALITY.equalNow;
-export const equalNow3 = _EQUALITY.equalNow3;
-export const equalAlways = _EQUALITY.equalAlways;
-export const equalAlways3 = _EQUALITY.equalAlways3;
+export const $equalNow = _EQUALITY.equalNow;
+export const $equalNow3 = _EQUALITY.equalNow3;
+export const $equalAlways = _EQUALITY.equalAlways;
+export const $equalAlways3 = _EQUALITY.equalAlways3;
 
-export const identical = _EQUALITY.identical;
-export const identical3 = _EQUALITY.identical3;
+export const $identical = _EQUALITY.identical;
+export const $identical3 = _EQUALITY.identical3;
 
 // Expected runtime functions
 export const $raiseExtract = raiseExtract;
