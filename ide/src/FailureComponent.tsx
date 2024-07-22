@@ -13,7 +13,8 @@ type Props = {
   failure: Failure,
   id?: string,
   editor?: CM.Editor & CM.Doc,
-  highlightsOnly?: boolean
+  highlightsOnly?: boolean,
+  palette: Palette
 };
 type StateProps = {
   chunks: Chunk[],
@@ -25,7 +26,7 @@ function mapStateToProps(state: State): StateProps {
 const connector = connect(mapStateToProps, () => ({}));
 
 function FailureComponentUnconnected({
-  failure, id, editor, chunks,
+  failure, id, editor, chunks, palette
 }: StateProps & Props) {
   switch (failure.$name) {
     case 'paragraph':
@@ -33,7 +34,7 @@ function FailureComponentUnconnected({
         <>
           {failure.contents.map((f, i) => (
             // eslint-disable-next-line react/no-array-index-key
-            <FailureComponent failure={f} key={i} id={id} editor={editor} />
+            <FailureComponent palette={palette} failure={f} key={i} id={id} editor={editor} />
           ))}
         </>
       );
@@ -42,7 +43,7 @@ function FailureComponentUnconnected({
         <ul>
           {failure.contents.map((f, i) => (
             // eslint-disable-next-line react/no-array-index-key
-            <li key={i}><FailureComponent failure={f} id={id} editor={editor} /></li>
+            <li key={i}><FailureComponent palette={palette} failure={f} id={id} editor={editor} /></li>
           ))}
         </ul>
       );
@@ -52,7 +53,7 @@ function FailureComponentUnconnected({
           {intersperse(
             failure.contents.map((f, i) => (
               // eslint-disable-next-line react/no-array-index-key
-              <FailureComponent failure={f} key={i} id={id} editor={editor} />
+              <FailureComponent palette={palette} failure={f} key={i} id={id} editor={editor} />
             )),
             <>{failure.sep === '\n' ? '' : failure.sep}</>,
           )}
@@ -64,7 +65,7 @@ function FailureComponentUnconnected({
           {intersperse(
             failure.contents.map((f, i) => (
               // eslint-disable-next-line react/no-array-index-key
-              <FailureComponent failure={f} key={i} id={id} editor={editor} />
+              <FailureComponent palette={palette} failure={f} key={i} id={id} editor={editor} />
             )),
             <>{failure.sep === '\n' ? '' : failure.sep}</>,
             <>{failure.last}</>,
@@ -80,7 +81,7 @@ function FailureComponentUnconnected({
       if (typeof failure.val === 'string') {
         return <>{failure.val}</>;
       }
-      return <RenderedValue value={failure.val} />;
+      return <div><RenderedValue value={failure.val} /></div>;
     case 'text':
       return <>{failure.str}</>;
     case 'loc':
@@ -104,7 +105,7 @@ function FailureComponentUnconnected({
         </>
       );
     case 'code':
-      return <code><FailureComponent failure={failure.contents} id={id} editor={editor} /></code>;
+      return <code><FailureComponent palette={palette} failure={failure.contents} id={id} editor={editor} /></code>;
     case 'cmcode': {
       if (failure.loc.$name !== 'srcloc') {
         throw new Error('Bad type of srcloc for a cmcode');
@@ -124,8 +125,7 @@ function FailureComponentUnconnected({
     }
     case 'highlight': {
       console.log('highlight: ', failure);
-      const rainbow = ['#fcc', '#fda', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
-      const color = rainbow[failure.color.valueOf() % rainbow.length];
+      const color = palette.getCSS(failure.color.valueOf());
       const calculated = failure.locs.map((loc) => {
         if (loc.$name === 'builtin' || failure.color.valueOf() === -1) {
           return undefined;
@@ -172,6 +172,7 @@ function FailureComponentUnconnected({
         <>
           <button className="text-button" style={{ backgroundColor: color }} onClick={focusRelevant} type="button">
             <FailureComponent
+              palette={palette} 
               failure={failure.contents}
               id={id}
               editor={editor}
@@ -183,7 +184,7 @@ function FailureComponentUnconnected({
       );
     }
     case 'maybe-stack-loc': {
-      return <FailureComponent failure={failure['contents-without-loc']} id={id} editor={editor} />;
+      return <FailureComponent palette={palette} failure={failure['contents-without-loc']} id={id} editor={editor} />;
     }
     default:
       return <>{JSON.stringify(failure)}</>;

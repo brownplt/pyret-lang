@@ -4,6 +4,7 @@ import FailureComponent from './FailureComponent';
 import { Failure } from './failure';
 import { isInitializedEditor, UninitializedEditor } from './chunk';
 import { CMEditor } from './utils';
+import { Palette } from './palette';
 
 type Props = {
   editor: UninitializedEditor | CMEditor 
@@ -21,10 +22,10 @@ export function FullCheckResults({
     const blockResults = checks.renderedCheckBlockResults.renderedChecks.map((checkBlock) => {
         return <div>
             {checkBlock.testResults.map((test) => {
-                return <FailureComponent editor={renderEditor} failure={test.rendered as Failure} />;
+                return <FailureComponent palette={new Palette()} editor={renderEditor} failure={test.rendered as Failure} />;
             })}
         </div>
-    })
+    });
 
     return <p>
         {checks.renderedCheckBlockResults.checkSummary.message}: 

@@ -22,6 +22,7 @@ import FailureComponent from './FailureComponent';
 import CheckResults from './CheckResults';
 import { CMEditor } from './utils';
 import { FullCheckResults } from './FullCheckResults';
+import { Palette } from './palette';
 
 type ChatResultProps = {
     editor: UninitializedEditor | CMEditor,
@@ -45,7 +46,7 @@ class ChatResult extends React.Component<ChatResultProps, any> {
                             className="chatitor-rhs chatitor-rhs-error"
                             title={technicallyOutdated ? 'value might be changed by earlier definition changes' : ''}
                         >
-                            <FailureComponent failure={failure} id={id} editor={chunkEditor} />
+                            <FailureComponent palette={new Palette()} failure={failure} id={id} editor={chunkEditor} />
                         </div>
                     ))}
                 </div>

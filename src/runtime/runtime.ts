@@ -869,7 +869,7 @@ function postLoadHook(uri : string, result : any) {
       });
       summary = checker.resultsSummary(result.$checks);
     }
-    console.log(summary.message);
+    console.log("Check summary: ", summary, result.$checks);
     currentMainURI = false;
     checkContext = stubCheckContext;
     return { ...result, $renderedChecks: { checkSummary: summary, renderedChecks: renderedChecks } };

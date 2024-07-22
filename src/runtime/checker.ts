@@ -894,7 +894,7 @@ function reportValue(operand: ErrorDisplay, value: any): ErrorDisplay {
     ED.para.make([
       ED.text("The "), operand, ED.text(" was:")
     ]),
-    ED.embed(value)
+    ED.para.make1(ED.embed(value))
   ]);
 }
 
@@ -946,8 +946,8 @@ export function renderFancyReason(testResult: TestResult): ErrorDisplay {
         ED.cmcode(makeSrcloc(testResult.metadata.loc)),
         ED.para.make([
           testResult.refinement.$name === 'none' ? ED.text("Values not equal") : ED.text("Values not equal, using custom equality"),
-          ED.embed(testResult.left),
-          ED.embed(testResult.right),
+          ED.para.make1(ED.embed(testResult.left)),
+          ED.para.make1(ED.embed(testResult.right)),
           para,
           reportValue(highlightLhs, testResult.left),
           reportValue(highlightRhs, testResult.right)

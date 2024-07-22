@@ -12,6 +12,7 @@
     "ascii-table": "~0.0.9",
     "benchmark": "^2.1.4",
     "browserfs": "^1.4.3",
+    "color-space": "^2.0.1",
     "command-line-args": "^3.0.1",
     "command-line-usage": "^4.0.1",
     "crypto-browserify": "^3.12.0",
