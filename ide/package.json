@@ -47,6 +47,7 @@
     "process": "^0.11.10",
     "pyret-codemirror-mode": "git://github.com/brownplt/pyret-codemirror-mode.git#master",
     "react": "^16.13.1",
+    "react-accessible-accordion": "^5.0.0",
     "react-accessible-treeview": "^2.6.3",
     "react-app-polyfill": "^1.0.6",
     "react-beautiful-dnd": "^11.0.5",

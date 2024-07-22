@@ -1,10 +1,20 @@
 import React from 'react';
-import { CheckResults } from './rhsObject';
 import FailureComponent from './FailureComponent';
 import { Failure } from './failure';
 import { isInitializedEditor, UninitializedEditor } from './chunk';
 import { CMEditor } from './utils';
 import { RenderedCheckResultsAndSummary } from '../../src/runtime/checker';
+import {
+    Accordion,
+    AccordionItem,
+    AccordionItemHeading,
+    AccordionItemButton,
+    AccordionItemPanel,
+} from 'react-accessible-accordion';
+
+// Demo styles, see 'Styles' section below for some notes on use.
+import 'react-accessible-accordion/dist/fancy-example.css';
+
 
 type Props = {
   editor: UninitializedEditor | CMEditor 
@@ -19,11 +29,18 @@ export function FullCheckResults({
     const renderEditor = !isInitializedEditor(editor) ? undefined : editor;
 
     const blockResults = checks.renderedChecks.map((checkBlock) => {
-        return <div>
+        return <AccordionItem>
+                  <AccordionItemHeading>
+                    <AccordionItemButton>
+                        Details
+                    </AccordionItemButton>
+                  </AccordionItemHeading>
+                  <AccordionItemPanel>
             {checkBlock.testResults.map((test) => {
                 return <FailureComponent editor={renderEditor} failure={test.rendered as Failure} />;
             })}
-        </div>
+                  </AccordionItemPanel>
+                  </AccordionItem>
     });
 
     return <p>
@@ -33,7 +50,9 @@ export function FullCheckResults({
         {checks.checkSummary.errored} blocks errored,
         {checks.checkSummary.total} total tests ran
         
-        {blockResults}
+        <Accordion allowZeroExpanded>
+            {blockResults}
+        </Accordion>
     </p>
     
 }

@@ -89,6 +89,7 @@ const config = {
           net: false,
           tls: false,
           child_process: false,
+          vm: false,
         }
     },
 };
