@@ -884,7 +884,7 @@ function testPreamble(testOp: CheckOperand, testResult: TestResult): ErrorDispla
     return ED.para.make([
       ED.text("The "),
       // TODO: this used to call testAst.op.tosource()
-      ED.highlight(ED.text("test operator"), [makeSrcloc(testResult.metadata[testOp]!)], 1),
+      ED.text("test operator " + testResult.metadata.opName),
       ED.text(" failed for the test:")]);
   }
 }

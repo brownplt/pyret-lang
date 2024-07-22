@@ -7,7 +7,7 @@ import { intersperse, srclocToCodeMirrorPosition } from './utils';
 import Highlight from './Highlight';
 import RenderedValue from './reps/RenderedValueWithOutput';
 import { State } from './state';
-import { Chunk, isInitializedEditor } from './chunk';
+import { Chunk, isInitializedEditor, UninitializedEditor } from './chunk';
 import { Palette } from './palette';
 
 type WrapperProps = {
@@ -21,10 +21,12 @@ type Props = WrapperProps & {
 };
 type StateProps = {
   chunks: Chunk[],
+  definitionsEditor: UninitializedEditor | CM.Editor,
+  currentFile: string
 };
 function mapStateToProps(state: State): StateProps {
-  const { chunks } = state;
-  return { chunks };
+  const { chunks, definitionsEditor, currentFile } = state;
+  return { chunks, definitionsEditor, currentFile };
 }
 const connector = connect(mapStateToProps, () => ({}));
 
@@ -36,7 +38,7 @@ function FailurePaletteWrapperUnconnected({
 }
 
 function FailureComponentUnconnected({
-  failure, id, editor, chunks, palette
+  failure, id, editor, chunks, palette, definitionsEditor, currentFile
 }: StateProps & Props) {
   switch (failure.$name) {
     case 'paragraph':
@@ -131,7 +133,9 @@ function FailureComponentUnconnected({
           />
         );
       }
-      return <></>;
+      else {
+        return <div><code>{failure.loc['source']}:{failure.loc['start-line']}</code></div>
+      }
     }
     case 'highlight': {
       console.log('highlight: ', failure);
@@ -141,9 +145,18 @@ function FailureComponentUnconnected({
           return undefined;
         }
         const { from, to } = srclocToCodeMirrorPosition(loc);
+        if (typeof editor !== 'undefined') {
+          return { from, to, editor: editor };
+        }
         const chunk = chunks.find((c) => loc.source.includes(c.id));
         if (chunk !== undefined && isInitializedEditor(chunk.editor)) {
           return { from, to, editor: chunk.editor };
+        }
+        if (loc.source.includes("definitions-segment") && isInitializedEditor(definitionsEditor)) {
+          return { from, to, editor: definitionsEditor }
+        }
+        if (loc.source.includes(currentFile) && isInitializedEditor(definitionsEditor)) {
+          return { from, to, editor: definitionsEditor }
         }
         return undefined;
       });
@@ -151,7 +164,7 @@ function FailureComponentUnconnected({
         if (attributes === undefined) {
           return <></>;
         }
-        const { editor: ed, from, to } = attributes;
+        const { editor: ed, from, to } = attributes;        
         return (
           <Highlight
             editor={ed}

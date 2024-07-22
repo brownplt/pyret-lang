@@ -40,7 +40,15 @@ export default class Highlight extends React.PureComponent<Props, State> {
       this.setState({
         mark: editor.markText(from, to, { css: `background-color: ${color}` }),
       });
-    } else {
+      return;
+    }
+    const existingMarks = editor.findMarksAt({ line: from.line, ch: from.ch });
+    if(existingMarks.length === 0) {
+      this.setState({
+        mark: editor.markText(from, to, { css: `background-color: ${color}` }),
+      });
+    }
+    else {
       mark.changed();
     }
   }
