@@ -4,13 +4,12 @@ import FailureComponent from './FailureComponent';
 import { Failure } from './failure';
 import { isInitializedEditor, UninitializedEditor } from './chunk';
 import { CMEditor } from './utils';
-import { Palette } from './palette';
+import { RenderedCheckResultsAndSummary } from '../../src/runtime/checker';
 
 type Props = {
   editor: UninitializedEditor | CMEditor 
-  checks: CheckResults
+  checks: RenderedCheckResultsAndSummary
 };
-
 
 export function FullCheckResults({
     editor,
@@ -19,7 +18,7 @@ export function FullCheckResults({
 
     const renderEditor = !isInitializedEditor(editor) ? undefined : editor;
 
-    const blockResults = checks.renderedCheckBlockResults.renderedChecks.map((checkBlock) => {
+    const blockResults = checks.renderedChecks.map((checkBlock) => {
         return <div>
             {checkBlock.testResults.map((test) => {
                 return <FailureComponent editor={renderEditor} failure={test.rendered as Failure} />;
@@ -28,12 +27,12 @@ export function FullCheckResults({
     });
 
     return <p>
-        {checks.renderedCheckBlockResults.checkSummary.message}: 
-        {checks.renderedCheckBlockResults.checkSummary.passed} tests passed, 
-        {checks.renderedCheckBlockResults.checkSummary.failed} tests failed,
-        {checks.renderedCheckBlockResults.checkSummary.errored} blocks errored,
-        {checks.renderedCheckBlockResults.checkSummary.total} total tests ran
-
+        {checks.checkSummary.message}: 
+        {checks.checkSummary.passed} tests passed, 
+        {checks.checkSummary.failed} tests failed,
+        {checks.checkSummary.errored} blocks errored,
+        {checks.checkSummary.total} total tests ran
+        
         {blockResults}
     </p>
     

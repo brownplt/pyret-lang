@@ -14,7 +14,6 @@ import { RawRTMessage } from '../rtMessages';
 import { RangeWidget } from './RangeWidget';
 import NumWidget from './ExactNum';
 import { NeverError } from '../utils';
-import Check from './Check';
 
 import RenderedValueWithOutput from './RenderedValueWithOutput';
 
@@ -109,8 +108,6 @@ export default class RenderedValue extends React.Component<RenderedValueProps, R
           </div>
         ) : `Spying at ${messageData.loc}`;
       }
-      case 'check':
-        return <Check value={value} RenderedValue={RenderedValue} />;
       case 'data-value': {
         // We will grab our properties and render those, which avoids $properties
         // and any other metadata that may exist.

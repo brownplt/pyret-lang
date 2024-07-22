@@ -42,7 +42,6 @@ export default class SummaryValue extends React.Component<ValueSummaryProps, Val
       case 'template':
       case 'list':
       case 'array':
-      case 'check':
       case 'data-value':
       case 'object':
       case 'spy-value':

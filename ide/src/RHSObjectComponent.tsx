@@ -1,10 +1,9 @@
 import React from 'react';
-import Check from './reps/Check';
 import RenderedValue from './reps/RenderedValue';
 import {
   isCheckResults,
   isExamplarReport,
-  isLocation, isRHSCheck, isTrace, RHSObject,
+  isLocation, isTrace, RHSObject,
 } from './rhsObject';
 import { CMEditor, NeverError } from './utils';
 import ExamplarReportWidget from './reps/ExamplarReport';
@@ -57,24 +56,12 @@ export default function RHSObjectComponent({
     );
   }
 
-  if (isRHSCheck(rhsObject)) {
-    return (
-      <pre
-        className={taggedClass}
-        onMouseEnter={onMouseEnter}
-        title={title}
-      >
-        <Check value={rhsObject} RenderedValue={RenderedValue} />
-      </pre>
-    );
-  }
-
   if (isExamplarReport(rhsObject)) {
     return <ExamplarReportWidget editor={editor} wheatResults={rhsObject.wheatResults} chaffResults={rhsObject.chaffResults} hintMessage={rhsObject.hintMessage} qtmVariations={rhsObject.qtmVariations}/>
   }
 
   if (isCheckResults(rhsObject)) {
-    return <p>How is a check getting rendered here</p>;
+    return <p>Check results should not be rendered by RHSObjectComponent</p>
   }
 
   throw new NeverError(rhsObject);

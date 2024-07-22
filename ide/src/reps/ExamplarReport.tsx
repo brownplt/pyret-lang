@@ -6,7 +6,9 @@ import { FaBug, FaBugSlash } from "react-icons/fa6";
 import CodeEmbed from '../CodeEmbed';
 import { CMEditor, parseLocation } from '../utils';
 import { UninitializedEditor } from '../chunk';
-import CheckResults from '../CheckResults';
+import FailureComponent from '../FailureComponent';
+import { RenderedCheckResultsAndSummary } from '../../../src/runtime/checker';
+import { Failure } from '../failure';
 
 type ExamplarResult = { success: boolean, result: CompileAndRunResult };
 
@@ -120,10 +122,10 @@ function failingWheatTests(wheatResults: ExamplarResult[]) {
     const failResults = wheatResults.flatMap(wr => {
         if(wr.result.type !== 'run-result') { return []; }
         console.log("Wheat result: ", wr);
-        const checks = wr.result.result.result.$checks;
-        const failed = checks.filter((c : any) => c.success === false);
+        const checks = wr.result.result.result.$renderedChecks as RenderedCheckResultsAndSummary;
+        const failed = checks.renderedChecks.flatMap((c) => c.testResults.filter((tr) => tr.$name !== 'success'));
         if(failed.length === 0) { return []; }
-        return [failed[0]];
+        return [failed[0].rendered];
     });
     return failResults;
 }
@@ -151,12 +153,10 @@ function wheatFailureEmbed(location : any, editor : any) {
 
 function showFirstWheatFailure(wheatResults : ExamplarResult[], hintMessage: string, editor : any) {
     const firstFail = firstFailingWheatTest(wheatResults);
-    const first = parseLocation(firstFail.loc);
     console.log("wheatFailure ", firstFail);
     return <div>This test is invalid (it did not match the behavior of a wheat):
-        <div>{wheatFailureEmbed(first, editor)}</div>
         <div>{hintMessage}</div>
-        <CheckResults checks={[firstFail]} className="chatitor-rhs"/>
+        <FailureComponent failure={firstFail as Failure}/>
     </div>;
 }
 

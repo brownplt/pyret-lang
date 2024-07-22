@@ -11,18 +11,14 @@ import {
 } from './chunk';
 
 import {
-    isRHSCheck,
-    RHSCheck,
     isLocation,
     isTrace,
     isCheckResults,
 } from './rhsObject';
 import RHSObjectComponent from './RHSObjectComponent';
 import FailureComponent from './FailureComponent';
-import CheckResults from './CheckResults';
 import { CMEditor } from './utils';
 import { FullCheckResults } from './FullCheckResults';
-import { Palette } from './palette';
 
 type ChatResultProps = {
     editor: UninitializedEditor | CMEditor,
@@ -63,7 +59,7 @@ class ChatResult extends React.Component<ChatResultProps, any> {
                 // location for constant variant of datatype
                 && !(isLocation(r) && typeof r.value === 'object' && '$name' in r.value && r.value.$name === r.name)
                 // checks handled separately and grouped
-                && !isRHSCheck(r) && !isCheckResults(r)
+                && !isCheckResults(r)
                 // undefined shows up sometimes go figure
                 && !(isTrace(r) && typeof r.value === 'undefined')));
             const values = shown.map((val) => (
@@ -80,7 +76,7 @@ class ChatResult extends React.Component<ChatResultProps, any> {
             const checkSummary = checkResults.length > 0
                 && (
                     <>
-                    <FullCheckResults editor={chunkEditor} checks={checkResults[0]}>
+                    <FullCheckResults editor={chunkEditor} checks={checkResults[0].renderedCheckBlockResults}>
                     </FullCheckResults>
                     </>
                 );

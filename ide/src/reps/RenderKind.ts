@@ -1,8 +1,6 @@
 /* Most Pyret values and some other JS values can be associated to a single
  * RenderKind which is used to identify how it should be rendered */
 
-import { isRHSCheck } from '../rhsObject';
-
 import {
   isSpyMessage,
   isSpyValue,
@@ -30,7 +28,7 @@ function isList(value: any): boolean {
 // paginate / render large values lazily
 export type RenderKind = 'undefined' | 'number' | 'string' | 'boolean' |
 'function' | 'table' | 'image' | 'chart' | 'reactor' | 'template' | 'list' |
-'object' | 'spy-value' | 'spy-message' | 'check' | 'array' | 'string-dict' |
+'object' | 'spy-value' | 'spy-message' | 'array' | 'string-dict' |
 'exactnum' | 'data-value' |
 // non-Pyret-values
 'range' | 'key-value';
@@ -97,9 +95,6 @@ export function getRenderKind(value: any): RenderKind {
       if (isSpyMessage(messageData)) {
         return 'spy-message';
       }
-    }
-    if (isRHSCheck(value)) {
-      return 'check';
     }
     if (value.renderKind === 'key-value') {
       return 'key-value';

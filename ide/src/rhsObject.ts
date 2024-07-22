@@ -10,7 +10,6 @@
 import { CompileAndRunResult } from "./control";
 import { Srcloc } from "../../src/runtime/common-runtime-types";
 import type { CheckBlockResult, RenderedCheckBlockResult, RenderedCheckResultsAndSummary } from "../../src/runtime/checker";
-import CheckResults from "./CheckResults";
 
 export type RHSCheckValue = {
   exception: boolean,
@@ -24,17 +23,6 @@ export type CheckResults = {
   checkBlockResults: CheckBlockResult[],
   renderedCheckBlockResults: RenderedCheckResultsAndSummary,
 }
-
-// The result of evaluating a `check:` or `examples:` block.
-export type RHSCheck = {
-  tag: 'rhs-check',
-  key?: string,
-  lhs: RHSCheckValue, // 2 + 2
-  rhs: RHSCheckValue, // 4
-  path: string, // something like '$check$block8' (not used here)
-  loc: Srcloc, // something like 'file:///projects/program.arr:4:2-4:14'
-  success: boolean, // `true`, since 2 + 2 = 4
-};
 
 
 export type Location = {
@@ -67,7 +55,7 @@ export type ExamplarReport = {
 
 type RawRHSObject<T> = Omit<T, 'tag'>;
 
-export type RHSObject = Trace | Location | RHSCheck | ExamplarReport | CheckResults;
+export type RHSObject = Trace | Location | ExamplarReport | CheckResults;
 
 export function isTrace(a: RHSObject): a is Trace {
   return a.tag === 'trace';
@@ -75,10 +63,6 @@ export function isTrace(a: RHSObject): a is Trace {
 
 export function isLocation(a: RHSObject): a is Location {
   return a.tag === 'location';
-}
-
-export function isRHSCheck(a: RHSObject): a is RHSCheck {
-  return a.tag === 'rhs-check';
 }
 
 export function isCheckResults(a: RHSObject): a is CheckResults {
@@ -126,18 +110,18 @@ export type RunResult = {
   time: number,
   result: {
     $answer: any,
-    $checks: RawRHSObject<RHSCheck>[],
     $locations: RawRHSObject<Location>[],
     $traces: RawRHSObject<Trace>[],
+    $checks: CheckBlockResult[],
     $renderedChecks: RenderedCheckResultsAndSummary,
   },
 };
 
 export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObject[] {
   const {
-    $checks,
     $locations,
     $traces,
+    $checks,
     $renderedChecks
   } = result.result;
 
@@ -155,14 +139,6 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObject[
     value: (result as any).result[location.name],
   })));
 
-  const nonBuiltinChecks: RHSCheck[] = $checks
-    .filter((c) => !/(builtin)|(runtime-arr)/.test(c.loc[0]))
-    .map((c) => ({
-      tag: 'rhs-check',
-      ...c,
-    }));
-  const withChecks = withLocations.concat(nonBuiltinChecks);
-
   // Add unique keys to each object so that React can re-render them properly.
   // We assume that each trace / check / location came from a different row.
   // NOTE(alex): this is not true for data definitions and 'is-data-variant' functions
@@ -178,7 +154,7 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObject[
   //
   // will share the same location
   //
-  let withKeys : HasSrcLoc[] = withChecks.filter(rhs => 'srcloc' in rhs) as HasSrcLoc[];
+  let withKeys : HasSrcLoc[] = withLocations.filter(rhs => 'srcloc' in rhs) as HasSrcLoc[];
   withKeys = withKeys.map((rhsObject) => {
     let key = getRow(rhsObject).toString();
     if (isLocation(rhsObject as RHSObject)) {
@@ -196,7 +172,7 @@ export function makeRHSObjects(result: RunResult, moduleUri: string): RHSObject[
   const checkResults : RHSObject = {
     tag: 'check-results',
     key: 'check-results',
-    checkBlockResults: ($checks as unknown) as CheckBlockResult[],
+    checkBlockResults: $checks,
     renderedCheckBlockResults: $renderedChecks
   };
 
