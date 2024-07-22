@@ -46,7 +46,7 @@ class ChatResult extends React.Component<ChatResultProps, any> {
                             className="chatitor-rhs chatitor-rhs-error"
                             title={technicallyOutdated ? 'value might be changed by earlier definition changes' : ''}
                         >
-                            <FailureComponent palette={new Palette()} failure={failure} id={id} editor={chunkEditor} />
+                            <FailureComponent failure={failure} id={id} editor={chunkEditor} />
                         </div>
                     ))}
                 </div>

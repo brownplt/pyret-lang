@@ -8,13 +8,16 @@ import Highlight from './Highlight';
 import RenderedValue from './reps/RenderedValueWithOutput';
 import { State } from './state';
 import { Chunk, isInitializedEditor } from './chunk';
+import { Palette } from './palette';
 
-type Props = {
+type WrapperProps = {
   failure: Failure,
   id?: string,
   editor?: CM.Editor & CM.Doc,
   highlightsOnly?: boolean,
-  palette: Palette
+};
+type Props = WrapperProps & {
+  palette: Palette,
 };
 type StateProps = {
   chunks: Chunk[],
@@ -24,6 +27,13 @@ function mapStateToProps(state: State): StateProps {
   return { chunks };
 }
 const connector = connect(mapStateToProps, () => ({}));
+
+function FailurePaletteWrapperUnconnected({
+  failure, id, editor
+}: WrapperProps) {
+  const palette = React.useMemo(() => new Palette(), [failure]);
+  return <FailureComponent palette={palette} failure={failure} id={id} editor={editor} />;
+}
 
 function FailureComponentUnconnected({
   failure, id, editor, chunks, palette
@@ -192,4 +202,5 @@ function FailureComponentUnconnected({
 }
 
 const FailureComponent = connector(FailureComponentUnconnected);
-export default FailureComponent;
+const WrapperFailureComponent = connector(FailurePaletteWrapperUnconnected);
+export default WrapperFailureComponent;

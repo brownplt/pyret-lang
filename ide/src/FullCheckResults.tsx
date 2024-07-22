@@ -22,7 +22,7 @@ export function FullCheckResults({
     const blockResults = checks.renderedCheckBlockResults.renderedChecks.map((checkBlock) => {
         return <div>
             {checkBlock.testResults.map((test) => {
-                return <FailureComponent palette={new Palette()} editor={renderEditor} failure={test.rendered as Failure} />;
+                return <FailureComponent editor={renderEditor} failure={test.rendered as Failure} />;
             })}
         </div>
     });
