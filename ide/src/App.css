@@ -424,4 +424,21 @@ button::-moz-focus-inner {
   padding-right: 5px;
 }
   
-  
+.cm-snippet {
+  border: 1px var(--snippet-border) dashed;
+  overflow: hidden;
+  cursor: default;
+  border-top-left-radius: .5em;
+  border-top-right-radius: .5em;
+}
+
+.cm-snippet header {
+  font-size: .7em;
+  background: var(--snippet-header-bg);
+  padding: 0 .5em;
+  box-shadow: 0 0 3px hsla(0, 0%, 0%,.5);
+  z-index: 100;
+  position: relative;
+  border-bottom: 1px var(--snippet-header-border) solid;
+  text-align: right;
+} 

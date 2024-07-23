@@ -76,7 +76,7 @@ class ChatResult extends React.Component<ChatResultProps, any> {
             const checkSummary = checkResults.length > 0
                 && (
                     <>
-                    <FullCheckResults editor={chunkEditor} checks={checkResults[0].renderedCheckBlockResults}>
+                    <FullCheckResults frozen={technicallyOutdated} editor={chunkEditor} checks={checkResults[0].renderedCheckBlockResults}>
                     </FullCheckResults>
                     </>
                 );

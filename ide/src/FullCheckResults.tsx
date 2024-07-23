@@ -14,22 +14,37 @@ import {
 
 // Demo styles, see 'Styles' section below for some notes on use.
 import 'react-accessible-accordion/dist/fancy-example.css';
+import { react } from '@babel/types';
+import ActiveContext from './ActiveContext';
 
 
 type Props = {
+  frozen: boolean,
   editor: UninitializedEditor | CMEditor 
   checks: RenderedCheckResultsAndSummary
 };
 
 export function FullCheckResults({
+    frozen,
     editor,
     checks,
   }: Props) {
 
     const renderEditor = !isInitializedEditor(editor) ? undefined : editor;
 
-    const blockResults = checks.renderedChecks.map((checkBlock) => {
-        return <AccordionItem>
+    const [activeCheck, setActive] = React.useState(0);
+    const [editorContents, setEditorContents] = React.useState(editor.getValue());
+    const [prevFrozen, setPrevFrozen] = React.useState(frozen);
+
+    React.useEffect(() => {
+        setPrevFrozen(frozen);
+        if(frozen && !prevFrozen) {
+            setEditorContents(editor.getValue());
+        }
+    }, [frozen]);
+
+    const blockResults = checks.renderedChecks.map((checkBlock, i) => {
+        return <AccordionItem uuid={i}>
                   <AccordionItemHeading>
                     <AccordionItemButton>
                         Details
@@ -37,7 +52,10 @@ export function FullCheckResults({
                   </AccordionItemHeading>
                   <AccordionItemPanel>
             {checkBlock.testResults.map((test) => {
-                return <FailureComponent editor={renderEditor} failure={test.rendered as Failure} />;
+                const failure = <FailureComponent editor={renderEditor} failure={test.rendered as Failure} />;
+                return <ActiveContext.Provider value={i === activeCheck}>
+                    {failure}
+                </ActiveContext.Provider>;
             })}
                   </AccordionItemPanel>
                   </AccordionItem>
@@ -50,7 +68,11 @@ export function FullCheckResults({
         {checks.checkSummary.errored} blocks errored,
         {checks.checkSummary.total} total tests ran
         
-        <Accordion allowZeroExpanded>
+        <Accordion 
+            allowZeroExpanded
+            allowMultipleExpanded={false}
+            preExpanded={[0]}
+            onChange={(ids => setActive(Number(ids[0])))}>
             {blockResults}
         </Accordion>
     </p>

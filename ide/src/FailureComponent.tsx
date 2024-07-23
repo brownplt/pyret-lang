@@ -123,12 +123,11 @@ function FailureComponentUnconnected({
         throw new Error('Bad type of srcloc for a cmcode');
       }
       if (editor) {
+        const lastLineLength = editor.getLine(failure.loc['end-line'] - 1).length;
         return (
           <CodeEmbed
-            from={{ line: failure.loc['start-line'] - 1, ch: 0 }}
-            to={{ line: failure.loc['end-line'], ch: 0 }}
-            text={editor.getRange({ line: failure.loc['start-line'] - 1, ch: 0 }, { line: failure.loc['end-line'], ch: 0 })}
-            editor={editor}
+            firstLineNumber={failure.loc['start-line'] - 1}
+            text={editor.getRange({ line: failure.loc['start-line'] - 1, ch: 0 }, { line: failure.loc['end-line'] - 1, ch: lastLineLength })}
             failure={failure}
           />
         );

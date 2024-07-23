@@ -1,34 +1,50 @@
-import React from 'react';
+import React, { useLayoutEffect } from 'react';
 import CM from 'codemirror';
 import { UnControlled as UnControlledCM } from 'react-codemirror2';
+import ActiveContext from './ActiveContext';
 
 type Props = {
-  from: CM.Position,
-  to: CM.Position,
-  editor: CM.Editor & CM.Doc,
+  firstLineNumber: number,
   text: string,
-  failure: any;
+  failure: any,
 };
 
-type State = {};
+type State = {
+  editor: null | (CM.Editor),
+};
 
 export default class CodeEmbed extends React.Component<Props, State> {
-  shouldComponentUpdate(nextProps: Props) {
-    if (this.props.failure === nextProps.failure) { return false; }
-    return true;
-  }
 
   render() {
-    const { text } = this.props;
+    const { text, firstLineNumber} = this.props;
     return (
-      <UnControlledCM
-        value={text}
-        options={{ readOnly: true }}
-        editorDidMount={(newEditor) => {
-          newEditor.setSize(null, 'auto');
-        }}
-        className="failure-cmcode"
-      />
+      <div className="cm-snippet">
+        <ActiveContext.Consumer>
+          {active => {
+            if(active && this.state) { this.state.editor?.refresh(); }
+            return <></>;
+          }}
+        </ActiveContext.Consumer>
+        <UnControlledCM
+          value={text}
+          options={{
+            readOnly:       "nocursor",
+            indentUnit:     2,
+            lineWrapping:   true,
+            lineNumbers:    true,
+            viewportMargin: 1,
+            scrollbarStyle: "null",
+            firstLineNumber: firstLineNumber
+          }}
+          editorDidMount={(newEditor) => {
+            newEditor.setSize(null, 'auto');
+            this.setState({ editor: newEditor });
+          }}
+          className="failure-cmcode"
+        />
+
+        
+      </div>
     );
   }
 }
