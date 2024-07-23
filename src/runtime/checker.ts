@@ -34,7 +34,7 @@ export function getOpFunName(opname : IsOp) : string {
   }
 }
 
-type CheckOp = "s-op-is" | "s-op-is-roughly" | "s-op-is-op" | "s-op-is-not"
+type CheckOp = "s-op-is" | "s-op-is-roughly" | "s-op-is-not-roughtly" | "s-op-is-op" | "s-op-is-not"
 | "s-op-is-not-op" | "s-op-satisfies" | "s-op-satisfies-not"
 | "s-op-raises" | "s-op-raises-other" | "s-op-raises-not" | "s-op-raises-satisfies"
 | "s-op-raises-violates"
@@ -876,6 +876,25 @@ function makeSrcloc(loc: Srcloc): SL_TYPES.Srcloc {
     return srcloc.srcloc(loc[0], loc[1], loc[2], loc[3], loc[4], loc[5], loc[6]);
   }
 }
+
+function humanOpName(op: CheckOp): string {
+  switch(op) {
+    case 's-op-is': return 'is';
+    case 's-op-is-roughly': return 'is-roughly';
+    case 's-op-is-not-roughtly': return 'is-not-roughly';
+    case 's-op-is-op': return 'is%';
+    case 's-op-is-not': return 'is-not';
+    case 's-op-is-not-op': return 'is-not%';
+    case 's-op-satisfies': return 'satisfies';
+    case 's-op-satisfies-not': return 'satisfies-not';
+    case 's-op-raises-not': return 'raises-not';
+    case 's-op-raises': return 'raises';
+    case 's-op-raises-other': return 'raises-other';
+    case 's-op-raises-satisfies': return 'raises-satisfies';
+    case 's-op-raises-violates': return 'raises-violates';
+    default: throw new Error("Unknown op: " + op);
+  }
+}
   
 function testPreamble(testOp: CheckOperand, testResult: TestResult): ErrorDisplay {
   if (testOp === 'on-cause') {
@@ -884,7 +903,7 @@ function testPreamble(testOp: CheckOperand, testResult: TestResult): ErrorDispla
     return ED.para.make([
       ED.text("The "),
       // TODO: this used to call testAst.op.tosource()
-      ED.text("test operator " + testResult.metadata.opName),
+      ED.code(ED.text("test operator " + humanOpName(testResult.metadata.opName))),
       ED.text(" failed for the test:")]);
   }
 }
