@@ -126,7 +126,7 @@ function FailureComponentUnconnected({
         const lastLineLength = editor.getLine(failure.loc['end-line'] - 1).length;
         return (
           <CodeEmbed
-            firstLineNumber={failure.loc['start-line'] - 1}
+            firstLineNumber={failure.loc['start-line']}
             text={editor.getRange({ line: failure.loc['start-line'] - 1, ch: 0 }, { line: failure.loc['end-line'] - 1, ch: lastLineLength })}
             failure={failure}
           />

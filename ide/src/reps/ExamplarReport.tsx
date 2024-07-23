@@ -143,7 +143,7 @@ function firstFailingWheatTest(wheatResults : ExamplarResult[]) {
 
 function wheatFailureEmbed(location : any, editor : any) {
     return <CodeEmbed
-        firstLineNumber={location['start-line'] - 1}
+        firstLineNumber={location['start-line']}
         text={editor.getRange({ line: location['start-line'] - 1, ch: 0 }, { line: location['end-line'] - 1, ch: 999999 })}
         failure={{}}>
     </CodeEmbed>;
