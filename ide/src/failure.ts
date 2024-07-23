@@ -1,30 +1,7 @@
 import { NeverError, Srcloc } from './utils';
+import type { ErrorDisplay } from '../../src/runtime-arr/error-display.arr';
 
-export type Failure =
-  | { $name: 'paragraph', 'contents': Array<Failure> }
-  | { $name: 'bulleted-sequence', 'contents': Array<Failure> }
-  | { $name: 'v-sequence', 'contents': Array<Failure> }
-  | { $name: 'h-sequence', 'contents': Array<Failure>, 'sep': string }
-  | {
-    $name: 'h-sequence-sep',
-    'contents': Array<Failure>, 'sep': string, 'last': string }
-  | { $name: 'embed', 'val': any }
-  | { $name: 'text', 'str': string }
-  | { $name: 'loc', 'loc': Srcloc }
-  | { $name: 'code', 'contents': Failure }
-  | { $name: 'cmcode', 'loc': Srcloc }
-  | {
-    $name: 'loc-display',
-    'loc': Srcloc, 'style': string, 'contents': Failure }
-  | { $name: 'optional', 'contents': Failure }
-  | {
-    $name: 'highlight',
-    'contents': Failure, 'locs': Array<Srcloc>, 'color': Number }
-  | {
-    $name: 'maybe-stack-loc',
-    n: number, 'user-frames-only': boolean, 'contents-with-loc': (l : Srcloc) => Failure,
-    'contents-without-loc': Failure
-  };
+export type Failure = ErrorDisplay;
 
 export function getLocs(failure: Failure): Srcloc[] {
   switch (failure.$name) {

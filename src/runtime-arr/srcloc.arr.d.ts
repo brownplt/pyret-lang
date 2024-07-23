@@ -30,12 +30,12 @@ declare namespace _exports {
     'is-builtin'(): boolean,
   }, DataMetaBase<'srcloc'> & {
     'source': string,
-    'start-line': Number,
-    'start-column': Number,
-    'start-char': Number,
-    'end-line': Number,
-    'end-column': Number,
-    'end-char': Number
+    'start-line': number,
+    'start-column': number,
+    'start-char': number,
+    'end-line': number,
+    'end-column': number,
+    'end-char': number
   }>
 }
 

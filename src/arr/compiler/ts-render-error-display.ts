@@ -161,7 +161,7 @@ export interface Exports {
     type JSONObj = { [k: string]: JSONPrim|JSONObj|JSONArr };
     type JSONArr = Array<JSONPrim|JSONObj|JSONArr>;
     function serializeSrcLoc(loc: S.Srcloc): JSONObj {
-      return { $name: loc.$name, ...loc.dict, asString: formatSrcloc(loc, true) };
+      return { $name: loc.$name, ...loc.dict };
     }
     // Some of these maybe should be tagged but aren't and vice versa
     function displayToJSON(e: ED.ErrorDisplay, embedDisplay: (val: any) => string, stack: S.Srcloc[]): { $name: string } & JSONObj {

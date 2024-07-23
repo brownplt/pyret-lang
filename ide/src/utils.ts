@@ -1,7 +1,7 @@
 import CodeMirror from 'codemirror';
 
 export type Srcloc =
-  | { $name: 'builtin', 'module-name': string, 'asString': string, }
+  | { $name: 'builtin', 'module-name': string }
   | {
     $name: 'srcloc',
     'source': string,
@@ -11,7 +11,6 @@ export type Srcloc =
     'end-line': number,
     'end-column': number,
     'end-char': number
-    'asString': string,
   };
 
 export type List<T> = { $name: 'empty' } | { $name: 'link', first: T, rest: List<T> };
@@ -139,6 +138,5 @@ export function parseLocation(location : string) : Srcloc {
       'end-line': Number(locPieces[3]),
       'end-column': Number(locPieces[4]),
       'end-char': 0,
-      'asString': location,
     };
 }
