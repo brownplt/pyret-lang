@@ -1,4 +1,4 @@
-import React, { useLayoutEffect } from 'react';
+import React from 'react';
 import CM from 'codemirror';
 import { UnControlled as UnControlledCM } from 'react-codemirror2';
 import ActiveContext from './ActiveContext';
