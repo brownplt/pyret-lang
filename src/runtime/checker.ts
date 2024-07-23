@@ -34,7 +34,7 @@ export function getOpFunName(opname : IsOp) : string {
   }
 }
 
-type CheckOp = "s-op-is" | "s-op-is-roughly" | "s-op-is-not-roughtly" | "s-op-is-op" | "s-op-is-not"
+type CheckOp = "s-op-is" | "s-op-is-roughly" | "s-op-is-not-roughly" | "s-op-is-op" | "s-op-is-not"
 | "s-op-is-not-op" | "s-op-satisfies" | "s-op-satisfies-not"
 | "s-op-raises" | "s-op-raises-other" | "s-op-raises-not" | "s-op-raises-satisfies"
 | "s-op-raises-violates"
@@ -881,7 +881,7 @@ function humanOpName(op: CheckOp): string {
   switch(op) {
     case 's-op-is': return 'is';
     case 's-op-is-roughly': return 'is-roughly';
-    case 's-op-is-not-roughtly': return 'is-not-roughly';
+    case 's-op-is-not-roughly': return 'is-not-roughly';
     case 's-op-is-op': return 'is%';
     case 's-op-is-not': return 'is-not';
     case 's-op-is-not-op': return 'is-not%';
@@ -892,7 +892,7 @@ function humanOpName(op: CheckOp): string {
     case 's-op-raises-other': return 'raises-other';
     case 's-op-raises-satisfies': return 'raises-satisfies';
     case 's-op-raises-violates': return 'raises-violates';
-    default: throw new Error("Unknown op: " + op);
+    default: throw new ExhaustiveSwitchError(op);
   }
 }
   
@@ -901,9 +901,9 @@ function testPreamble(testOp: CheckOperand, testResult: TestResult): ErrorDispla
     return ED.para.make([ED.text("The test was inconsistent: the expected answer and the explanation do not match for the test:")]);
   } else {
     return ED.para.make([
-      ED.text("The "),
+      ED.text("The test operator "),
       // TODO: this used to call testAst.op.tosource()
-      ED.code(ED.text("test operator " + humanOpName(testResult.metadata.opName))),
+      ED.code(ED.text(humanOpName(testResult.metadata.opName))),
       ED.text(" failed for the test:")]);
   }
 }
