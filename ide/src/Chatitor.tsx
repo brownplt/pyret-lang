@@ -249,7 +249,9 @@ function Chatitor({
   let topChunkPart = <></>;
   if(topChunk) {
     const pendingRerunClass = topChunk.outdated ? 'partially-outdated' : '';
-    topChunkPart = <div className={`chat-and-result ${pendingRerunClass}`}>
+    const isError = topChunk.results.status === 'failed' && isInitializedEditor(topChunk.editor);
+    const isErrorClass = isError ? 'chatitor-error' : '';
+    topChunkPart = <div className={`chat-and-result ${pendingRerunClass} ${isErrorClass}`}>
       <ChatResult
         editor={topChunk.editor}
         results={topChunk.results}
