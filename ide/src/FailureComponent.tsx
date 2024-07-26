@@ -9,6 +9,7 @@ import RenderedValue from './reps/RenderedValueWithOutput';
 import { State } from './state';
 import { Chunk, isInitializedEditor, UninitializedEditor } from './chunk';
 import { Palette } from './palette';
+import { Srcloc } from '../../src/runtime-arr/srcloc.arr';
 
 type WrapperProps = {
   failure: Failure,
@@ -21,11 +22,12 @@ type Props = WrapperProps & {
 type StateProps = {
   chunks: Chunk[],
   definitionsEditor: UninitializedEditor | CM.Editor,
-  currentFile: string
-};
+  currentFile: string,
+  topChunk: Chunk | undefined
+}
 function mapStateToProps(state: State): StateProps {
-  const { chunks, definitionsEditor, currentFile } = state;
-  return { chunks, definitionsEditor, currentFile };
+  const { chunks, definitionsEditor, currentFile, topChunk } = state;
+  return { chunks, definitionsEditor, currentFile, topChunk };
 }
 const connector = connect(mapStateToProps, () => ({}));
 
@@ -36,8 +38,24 @@ function FailurePaletteWrapperUnconnected({
   return <FailureComponent palette={palette} failure={failure} id={id} editor={editor} />;
 }
 
+function findDocForLoc(chunks : Chunk[], currentFile: string, topChunk: Chunk | undefined, loc: Srcloc) {
+  if (loc.$name === 'builtin') {
+    return undefined;
+  }
+  const chunk = chunks.find((c) => loc.source.includes(c.id));
+  if (chunk !== undefined && isInitializedEditor(chunk.editor)) {
+    return chunk.results.editorAtLastRun;
+  }
+  if (loc.source.includes("definitions-segment")) {
+    return topChunk?.results.editorAtLastRun;
+  }
+  if (loc.source.includes(currentFile)) {
+    return topChunk?.results.editorAtLastRun;
+  }
+}
+
 function FailureComponentUnconnected({
-  failure, id, editor, chunks, palette, definitionsEditor, currentFile
+  failure, id, editor, chunks, palette, definitionsEditor, currentFile, topChunk
 }: StateProps & Props) {
   switch (failure.$name) {
     case 'paragraph':
@@ -121,13 +139,12 @@ function FailureComponentUnconnected({
       if (failure.loc.$name !== 'srcloc') {
         throw new Error('Bad type of srcloc for a cmcode');
       }
-      if (editor) {
-        const lastLineLength = editor.getLine(failure.loc['end-line'] - 1).length;
+      const doc = findDocForLoc(chunks, currentFile, topChunk, failure.loc);
+      if(doc) {
         return (
           <CodeEmbed
-            firstLineNumber={failure.loc['start-line']}
-            text={editor.getRange({ line: failure.loc['start-line'] - 1, ch: 0 }, { line: failure.loc['end-line'] - 1, ch: lastLineLength })}
-            failure={failure}
+            loc={failure.loc}
+            doc={doc}
           />
         );
       }
@@ -143,9 +160,6 @@ function FailureComponentUnconnected({
           return undefined;
         }
         const { from, to } = srclocToCodeMirrorPosition(loc);
-        if (typeof editor !== 'undefined') {
-          return { from, to, editor: editor };
-        }
         const chunk = chunks.find((c) => loc.source.includes(c.id));
         if (chunk !== undefined && isInitializedEditor(chunk.editor)) {
           return { from, to, editor: chunk.editor };

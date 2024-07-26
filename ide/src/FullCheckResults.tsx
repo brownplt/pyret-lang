@@ -51,7 +51,6 @@ export function FullCheckResults({
     });
 
     return <p>
-        {checks.checkSummary.message}: 
         {checks.checkSummary.passed} tests passed, 
         {checks.checkSummary.failed} tests failed,
         {checks.checkSummary.errored} blocks errored,

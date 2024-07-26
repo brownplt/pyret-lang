@@ -4,19 +4,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { Failure } from './failure';
 import { RHSObject } from './rhsObject';
 import { CMEditor } from './utils';
+import CodeMirror from 'codemirror';
 
 export const CHUNKSEP = '#.CHUNK#\n';
+const cmdoc : CodeMirror.Doc = CodeMirror.Doc('', 'javascript');
+export type ChunkSnapshot = { start?: number, end?: number, editorAtLastRun: CodeMirror.Doc}
+export type ChunkFail = { status: 'failed', failures: Failure[] } & ChunkSnapshot;
+export type ChunkSuccess = { status: 'succeeded', objects: RHSObject[] } & ChunkSnapshot;
+export type ChunkFirstRun = { status: 'running' } & ChunkSnapshot;
 
-/* Represents the current state of the chunk, whether it (1) has not yet been
-   linted; (2) was successfully linted, but not compiled (3) was successfully
-   compiled but not run; (4) was successfully run; (5...) failed at any of those
-   steps.
-
-   TODO(michael): this should probably just be called 'state' */
-export type ErrorState =
-  { status: 'failed', failures: Failure[] };
-
-export type ChunkResults = ErrorState | ({ status: 'succeeded', objects: RHSObject[] });
+export type ChunkResults = ChunkFail | ChunkSuccess | ChunkFirstRun;
 
 export type UninitializedEditor = {
   getValue: () => string,
@@ -26,6 +23,7 @@ export type UninitializedEditor = {
 export function isInitializedEditor(editor: CMEditor | UninitializedEditor): editor is CMEditor {
   return 'getDoc' in editor;
 }
+
 
 export type Chunk = {
   /* a unique id */
@@ -58,7 +56,7 @@ function newId() {
 export function emptyChunk(options?: Partial<Chunk>, initialText: string = ''): Chunk {
   return {
     id: newId(),
-    results: { status: 'succeeded', objects: [] },
+    results: { status: 'succeeded', objects: [], editorAtLastRun: CodeMirror.Doc(initialText) },
     editor: { getValue: () => initialText },
     outdated: true,
     referencedFrom: [],
@@ -75,7 +73,7 @@ export function makeChunksFromString(s: string): Chunk[] {
   const chunks = chunkStrings.map((chunkString) => {
     const chunk: Chunk = emptyChunk({
       editor: { getValue: () => chunkString },
-      results: { status: 'succeeded', objects: [] },
+      results: { status: 'succeeded', objects: [], editorAtLastRun: CodeMirror.Doc(chunkString) },
       outdated: true,
     });
 

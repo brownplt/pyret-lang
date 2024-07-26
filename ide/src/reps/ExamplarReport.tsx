@@ -141,14 +141,6 @@ function firstFailingWheatTest(wheatResults : ExamplarResult[]) {
 }
 
 
-function wheatFailureEmbed(location : any, editor : any) {
-    return <CodeEmbed
-        firstLineNumber={location['start-line']}
-        text={editor.getRange({ line: location['start-line'] - 1, ch: 0 }, { line: location['end-line'] - 1, ch: 999999 })}
-        failure={{}}>
-    </CodeEmbed>;
-}
-
 function showFirstWheatFailure(wheatResults : ExamplarResult[], hintMessage: string, editor : any) {
     const firstFail = firstFailingWheatTest(wheatResults);
     console.log("wheatFailure ", firstFail);

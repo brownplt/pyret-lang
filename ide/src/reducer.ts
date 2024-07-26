@@ -39,6 +39,7 @@ import {
   Chunk,
   CHUNKSEP,
   emptyChunk,
+  isInitializedEditor,
   makeChunksFromString,
   UninitializedEditor,
 } from './chunk';
@@ -73,6 +74,7 @@ import { Failure, getLocs } from './failure';
 import { RunKind } from './backend';
 import GoogleAPI from './Drive';
 import { resetAsyncCacheToBuiltins } from './runner';
+import CodeMirror from 'codemirror';
 
 // Dependency cycle between store and reducer because we dispatch from
 // runSession. Our solution is to inject the store into this global variable
@@ -707,6 +709,25 @@ function removeReferencesFrom(chunks: Chunk[], id: string): Chunk[] {
   }));
 }
 
+function handleRunSessionStart(state: State, id: string, doc: CodeMirror.Doc): State {
+  const start = Date.now();
+  const newChunks = [...state.chunks];
+  const index = state.chunks.findIndex((c) => c.id === id);
+  newChunks[index] = {
+    ...newChunks[index],
+    results: {
+      ...newChunks[index].results,
+      start,
+      end: undefined,
+      editorAtLastRun: doc
+    },
+  };
+  return {
+    ...state,
+    chunks: newChunks
+  }
+}
+
 function handleRunSessionSuccess(state: State, id: string, result: any): State {
   const {
     chunks,
@@ -722,10 +743,12 @@ function handleRunSessionSuccess(state: State, id: string, result: any): State {
 
   const newChunks = removeReferencesFrom(chunks, id);
   const index = newChunks.findIndex((c) => c.id === id);
-
+  const end = Date.now();
   newChunks[index] = {
     ...newChunks[index],
     results: {
+      ...newChunks[index].results,
+      end,
       status: 'succeeded',
       objects: rhs,
     },
@@ -746,9 +769,12 @@ function handleRunSessionFailure(state: State, id: string, error: string, errorV
   const newChunks = removeReferencesFrom(state.chunks, id);
   const index = newChunks.findIndex((c) => c.id === id);
   const failureAsED : Failure = errorVal.errorDisplay ?? { $name: 'text', str: error };
+  const end = Date.now();
   newChunks[index] = {
     ...newChunks[index],
     results: {
+      ...newChunks[index].results,
+      end,
       status: 'failed', failures: [failureAsED],
     },
     outdated: false,
@@ -762,6 +788,9 @@ function handleRunSessionFailure(state: State, id: string, error: string, errorV
 
 function handleRunExamplarFailure(state: State, error: string) : State {
   // console.log('** handleRunExamplarFailure', error);
+  const oldTop = state.topChunk!.results;
+  const end = Date.now();
+
   const failureObj : any = { $name: 'text', str: error };
   return {
     ...state,
@@ -770,6 +799,8 @@ function handleRunExamplarFailure(state: State, error: string) : State {
     topChunk: {
       editor: state.definitionsEditor,
       results: {
+        ...oldTop,
+        end,
         status: 'failed',
         failures: [failureObj],
       },
@@ -819,9 +850,12 @@ function handleCompileSessionFailure(
       }
     }
   });
+  const end = Date.now();
   newChunks[chunkIndex] = {
     ...newChunks[chunkIndex],
     results: {
+      ...newChunks[chunkIndex].results,
+      end,
       status: 'failed',
       failures,
     },
@@ -835,6 +869,8 @@ function handleCompileSessionFailure(
 }
 
 function handleCompileProgramFailure(state: State, errors: string[]) : State {
+  const oldTop = state.topChunk!.results;
+  const end = Date.now();
   const failures = errors.map((e) => JSON.parse(e));
   const places = failures.flatMap(getLocs);
   const asHL = (place: Srcloc) => {
@@ -853,6 +889,8 @@ function handleCompileProgramFailure(state: State, errors: string[]) : State {
       id: "topChunk",
       editor: state.definitionsEditor,
       results: {
+        ...oldTop,
+        end,
         status: 'failed',
         failures,
       },
@@ -863,6 +901,8 @@ function handleCompileProgramFailure(state: State, errors: string[]) : State {
 }
 
 function handleCompileExamplarFailure(state: State, errors: string[]) : State {
+  const oldTop = state.topChunk!.results;
+  const end = Date.now();
   return {
     ...state,
     definitionsHighlights: [],
@@ -871,6 +911,8 @@ function handleCompileExamplarFailure(state: State, errors: string[]) : State {
       id: "topChunk",
       editor: state.definitionsEditor,
       results: {
+        ...oldTop,
+        end,
         status: 'failed',
         failures: errors.map(e => JSON.parse(e)),
       },
@@ -880,8 +922,39 @@ function handleCompileExamplarFailure(state: State, errors: string[]) : State {
   };
 }
 
+function handleRunProgramStart(state: State, doc: CodeMirror.Doc) : State {
+  const start = Date.now();
+  const oldTop = state.topChunk ?? {
+    editor: state.definitionsEditor,
+    results: {
+      status: 'running',
+      start,
+      end: undefined,
+      editorAtLastRun: doc,
+    },
+    id: "topChunk",
+    outdated: false,
+    referencedFrom: [] 
+  };
+  return {
+    ...state,
+    topChunk: {
+      ...oldTop,
+      results: {
+        ...oldTop.results,
+        start,
+        end: undefined,
+        editorAtLastRun: doc,
+      }
+    },
+  };
+}
+
 function handleRunProgramFailure(state: State, error: string) : State {
   // TODO(joe): get source locations from dynamic errors (source map, etc)
+  const oldTop = state.topChunk!.results;
+  
+  const end = Date.now();
   return {
     ...state,
     // compiling: false,
@@ -890,6 +963,8 @@ function handleRunProgramFailure(state: State, error: string) : State {
     topChunk: {
       editor: state.definitionsEditor,
       results: {
+        ...oldTop,
+        end,
         status: 'failed',
         failures: [JSON.parse(error)],
       },
@@ -902,12 +977,16 @@ function handleRunProgramFailure(state: State, error: string) : State {
 
 function handleRunProgramSuccess(state : State, result : any) : State {
   const rhs = makeRHSObjects(result, `file://${state.currentFile}`);
+  const end = Date.now();
+  const oldTop = state.topChunk!.results;
   return {
     ...state,
     definitionsHighlights: [],
     topChunk: {
       editor: state.definitionsEditor,
       results: {
+        ...oldTop,
+        end,
         status: 'succeeded',
         objects: rhs
       },
@@ -940,6 +1019,9 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
     hintMessage: hintMessage,
     qtmVariations: qtmVariations
   };
+  const doc = isInitializedEditor(state.definitionsEditor)
+    ? state.definitionsEditor.getDoc().copy(false)
+    : CodeMirror.Doc(state.definitionsEditor.getValue());
   return {
     ...state,
     running: { type: 'idle' },
@@ -947,7 +1029,7 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
     topChunk: {
       id: "topChunk",
       editor: state.definitionsEditor,
-      results: { status: 'succeeded', objects: [modifiedResult] },
+      results: { status: 'succeeded', objects: [modifiedResult], editorAtLastRun: doc },
       outdated: false,
       referencedFrom: []
     },
@@ -985,12 +1067,27 @@ async function runTextProgram(
   return result;
 }
 
+async function upwait(f : (s : State) => State) {
+  return new Promise<State>((resolve) => {
+    setTimeout(() => {
+      update((s : State) => {
+        const newState = f(s);
+        resolve(newState);
+        return newState;
+      });
+    }, 0);
+  });
+}
+
 async function runProgramAsync(state: State) : Promise<void> {
   const {
     typeCheck, runKind, currentFile, definitionsEditor, topChunk
   } = state;
   if( !topChunk || topChunk.outdated || topChunk.results.status === 'failed') {
     const currentFileContents = definitionsEditor.getValue();
+    const doc = isInitializedEditor(definitionsEditor) ? definitionsEditor.getDoc().copy(false) : CodeMirror.Doc(definitionsEditor.getValue());
+    cleanStopify();
+    await upwait((s: State) => handleRunProgramStart(s, doc));
     const result = await runTextProgram(typeCheck, runKind, segmentName(currentFile, "definitions"), currentFileContents ?? '');
     if (result.type === 'compile-failure') {
       update((s: State) => handleCompileProgramFailure(s, result.errors));
@@ -1048,7 +1145,7 @@ async function runSegmentsAsyncWithSession(state : State, sessionId : string, al
     }
   });
   console.log("outdatedSegments before looking at chiunks:", outdatedSegments);
-  chunks.forEach((c, i) => {
+  const docs = chunks.map((c, i) => {
     const filename = segmentName(state.currentFile, c.id);
     outdatedSegments.delete(filename);
     const isLastSegment = (i === chunks.length - 1);
@@ -1057,6 +1154,7 @@ async function runSegmentsAsyncWithSession(state : State, sessionId : string, al
       const value = c.editor.getValue();
       fs.writeFileSync(filename, value);
     }
+    return isInitializedEditor(c.editor) ? c.editor.getDoc().copy(false) : CodeMirror.Doc(c.editor.getValue());
   });
   console.log("after:" , outdatedSegments);
   outdatedSegments.forEach(p => {
@@ -1074,6 +1172,7 @@ async function runSegmentsAsyncWithSession(state : State, sessionId : string, al
     const c = chunks[i];
     const filename = segmentName(state.currentFile, c.id);
     const { dir, base } = bfsSetup.path.parse(filename);
+    await upwait((s: State) => handleRunSessionStart(s, c.id, docs[i]));
     // eslint-disable-next-line
     const result = await (await serverAPI).compileAndRun({
       baseDir: dir,

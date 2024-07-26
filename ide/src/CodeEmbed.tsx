@@ -2,21 +2,34 @@ import React from 'react';
 import CM from 'codemirror';
 import { UnControlled as UnControlledCM } from 'react-codemirror2';
 import ActiveContext from './ActiveContext';
+import { Srcloc } from '../../src/runtime-arr/srcloc.arr';
+import CodeMirror from 'codemirror';
+import TimestampContext from './TimestampContext';
+import { Variant } from '../../src/runtime/types/primitive-types';
 
 type Props = {
-  firstLineNumber: number,
-  text: string,
-  failure: any,
+  loc: Variant<Srcloc, 'srcloc'>,
+  doc: CodeMirror.Doc,
 };
 
 type State = {
   editor: null | (CM.Editor),
+  lastTimestamp: number
 };
 
 export default class CodeEmbed extends React.Component<Props, State> {
-
+  constructor(props: Props) {
+    super(props);
+    this.state = { lastTimestamp: -1, editor: null };
+  }
+  shouldComponentUpdate(nextProps: Readonly<Props>, nextState: Readonly<State>, nextContext: any): boolean {
+    return this.state.lastTimestamp !== nextState.lastTimestamp;
+  }
   render() {
-    const { text, firstLineNumber} = this.props;
+    const { loc, doc } = this.props;
+    const lastLineLength = doc.getLine(loc['end-line'] - 1).length;
+    const firstLineNumber = loc['start-line'];
+    const text = doc.getRange({ line: loc['start-line'] - 1, ch: 0 }, { line: loc['end-line'] - 1, ch: lastLineLength })
     return (
       <div className="cm-snippet">
         <ActiveContext.Consumer>
@@ -25,6 +38,14 @@ export default class CodeEmbed extends React.Component<Props, State> {
             return <></>;
           }}
         </ActiveContext.Consumer>
+        <TimestampContext.Consumer>
+          {timestamp => {
+            if(typeof timestamp === 'number' && timestamp !== this.state.lastTimestamp) {
+              this.setState({ lastTimestamp: timestamp });
+            }
+            return <></>;
+          }}
+        </TimestampContext.Consumer>
         <UnControlledCM
           value={text}
           options={{

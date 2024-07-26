@@ -19,6 +19,7 @@ import RHSObjectComponent from './RHSObjectComponent';
 import FailureComponent from './FailureComponent';
 import { CMEditor } from './utils';
 import { FullCheckResults } from './FullCheckResults';
+import TimestampContext from './TimestampContext';
 
 type ChatResultProps = {
     editor: UninitializedEditor | CMEditor,
@@ -73,7 +74,7 @@ class ChatResult extends React.Component<ChatResultProps, any> {
                 />
             ));
             const checkResults = rhsObjects.filter(isCheckResults);
-            const checkSummary = checkResults.length > 0
+            const checkSummary = checkResults[0]?.renderedCheckBlockResults.renderedChecks.length > 0
                 && (
                     <>
                     <FullCheckResults editor={chunkEditor} checks={checkResults[0].renderedCheckBlockResults}>
@@ -87,7 +88,10 @@ class ChatResult extends React.Component<ChatResultProps, any> {
                 </div>
             );
         }
-        return chunkResultsPart;
+        return <TimestampContext.Provider value={results.end}>
+            { chunkResultsPart }
+        </TimestampContext.Provider>;
+
     }
 
 }
