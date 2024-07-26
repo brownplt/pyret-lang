@@ -989,7 +989,7 @@ async function runProgramAsync(state: State) : Promise<void> {
   const {
     typeCheck, runKind, currentFile, definitionsEditor, topChunk
   } = state;
-  if(topChunk?.outdated || !topChunk) {
+  if( !topChunk || topChunk.outdated || topChunk.results.status === 'failed') {
     const currentFileContents = definitionsEditor.getValue();
     const result = await runTextProgram(typeCheck, runKind, segmentName(currentFile, "definitions"), currentFileContents ?? '');
     if (result.type === 'compile-failure') {
