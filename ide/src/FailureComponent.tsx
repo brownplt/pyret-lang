@@ -14,7 +14,6 @@ type WrapperProps = {
   failure: Failure,
   id?: string,
   editor?: CM.Editor & CM.Doc,
-  highlightsOnly?: boolean,
 };
 type Props = WrapperProps & {
   palette: Palette,
