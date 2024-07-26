@@ -34,7 +34,7 @@ export default class Highlight extends React.PureComponent<Props, State> {
     if (mark === undefined) {
       throw new Error('mark should be created on mount');
     }
-    if (!posEq(oldProps.from, from) || !posEq(oldProps.to, to)) {
+    if (!posEq(oldProps.from, from) || !posEq(oldProps.to, to) || oldProps.color !== color) {
       mark.clear();
       // eslint-disable-next-line
       this.setState({
