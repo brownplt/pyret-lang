@@ -1,0 +1,524 @@
+/* --------- Color variables that stay constant across themes --------- */
+:root {
+
+  /* - bg of .outdated.test-results .outdated-warning */
+  --stale-warning-bg: hsl(212, 30%, 50%);
+
+  /* 
+  - bg of .outdated.test-results .check-block-failed
+  and .testing-summary .summary-failed */
+  --stale-fail-bg: hsl(45,30%,85%);
+
+  /* 
+  - bg of .outdated.test-results .check-block-success
+  and .testing-summary .summary-passed */
+  --stale-success-bg: hsl(88, 30%, 76%);
+
+  /* - bg of .outdated.test-results .check-block-errored */
+  --stale-err-bg: hsl(0, 30%, 85%);
+
+  /* 
+  - bg of .outdated.test-results .check-block-test.failing-test:not(.highlights-active) */
+  --stale-fail-no-highlight: hsl(45, 30%, 93%);
+
+  /* - bg of .outdated.test-results .check-block-test.highlights-active */
+  --stale-highlight: hsl(45,0%,95%);
+
+  /* - bg of .outdated.test-results .check-block-test.highlights-active > header */
+  --stale-highlight-header: hsl(45, 50%, 85%);
+
+  /* - bg of .outdated.test-results .check-block-test.passing-test */
+  --stale-passing-test: hsl(90, 10%, 91%);
+
+  /* - bg of .outdated.test-results .testing-summary .summary-errored */
+  --stale-err-summary: hsl(0, 30%, 70%);
+
+  /* - bg of .outdated compile errors/tests with highlights active */
+  --stale-err-highlight: hsl(204, 40%, 74%);
+
+}
+
+
+.outdated.test-results .check-block-failed,
+.outdated.test-results .check-block-success,
+.outdated.test-results .check-block-errored,
+.outdated.test-results .check-block-test,
+.outdated.test-results .summary-bits {
+  transition: background-color 0.3s linear;
+}
+
+.outdated.test-results .outdated-warning {
+  position: block;
+  /* Note: this is FF-only, but if the consensus is that it's a nice
+   * effect, there is a polyfill for Chrome that adds support */
+  position: sticky;
+  color: var(--light-text);
+  top: 0;
+  z-index: 500;
+  background-color: var(--stale-warning-bg);
+}
+
+.outdated.test-results .check-block-failed {
+  background-color: var(--stale-fail-bg);
+}
+
+.outdated.test-results .check-block-success {
+  background-color: var(--stale-success-bg);
+}
+
+.outdated.test-results .check-block-errored {
+  background-color: var(--stale-err-bg);
+}
+
+.outdated.test-results .check-block-test.failing-test:not(.highlights-active) {
+  background-color: var(--stale-fail-no-highlight);
+}
+
+.outdated.test-results .check-block-test.highlights-active {
+  background-color: var(--stale-highlight);
+}
+
+.outdated.test-results .check-block-test.highlights-active > header {
+  background-color: var(--stale-highlight-header);
+}
+
+.outdated.test-results .check-block-test.passing-test {
+  background-color: var(--stale-passing-test);
+}
+
+.outdated.test-results .testing-summary .summary-passed {
+  background-color: var(--stale-success-bg);
+}
+
+.outdated.test-results .testing-summary .summary-failed {
+  background-color: var(--stale-fail-bg);
+}
+
+.outdated.test-results .testing-summary .summary-errored {
+  background-color: var(--stale-err-summary);
+}
+
+.outdated .compile-error.highlights-active,
+.outdated .compile-error.highlights-active,
+.outdated .check-block-test.highlights-active {
+  border-color: var(--stale-err-highlight);
+}
+
+.check-block .accordion__heading > * {
+  box-sizing: border-box;
+}
+
+
+/* individual passing test within block */
+body .check-block-test.passing-test {
+  color: var(--check-success-text);
+}
+
+/* failing check block */
+body .check-block-failed {
+  color: var(--check-fail-text);
+  border: var(--check-fail-border);
+}
+
+/* header inside failing check block */
+body .check-block-failed .check-block-header {
+  font-weight: var(--check-fail-header-font-weight);
+}
+
+/* individual failing test within block */
+body .check-block-test.failing-test {
+  color: var(--check-fail-text);
+}
+
+/* erroring check block */
+body .check-block-errored {
+  color: var(--check-error-text);
+  border: var(--check-error-border);
+}
+
+/* header inside erroring check block */
+body .check-block-errored .check-block-header {
+  font-weight: var(--check-error-header-font-weight);
+}
+
+
+
+.compile-error:not(.highlights-active):hover:after,
+.check-block-error > .compile-error:not(.highlights-active):hover::after,
+.check-block-test.failing-test:not(.highlights-active):hover {
+    box-shadow: 0 0 2em var(--err-hover-shadow);
+    transform: scale(1.01);
+    backface-visibility: hidden;
+    transition: scale(1.01) .2s linear;
+    border-image-outset: 5px;
+}
+
+.compile-error:not(.highlights-active):hover:after,
+.check-block-error > .compile-error:not(.highlights-active):hover::after,
+.check-block-test.failing-test:not(.highlights-active):hover::after{
+    content:'';
+    position:absolute;
+    height:100%;
+    width:100%;
+    background: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.0) 0%,
+        rgba(255, 255, 255, 0.2) 37%,
+        rgba(255, 255, 255, 0.8) 45%,
+        rgba(255, 255, 255, 0.0) 50%);
+    top:0;
+    left:0;
+    background-size: cover;
+    cursor: pointer;
+    background-position: 100em;
+    background-origin: padding-box;
+    background-repeat: no-repeat;
+    animation: 0.7s shine linear 1;
+}
+
+@keyframes shine {
+  from {background-position:0%;}
+  to   {background-position:100em;}
+}
+
+.compile-error:not(.highlights-active) > *,
+.check-block-error > .compile-error:not(.highlights-active) > *,
+.check-block-test.failing-test:not(.highlights-active) .test-reason {
+  opacity: 0.5;
+}
+
+.check-block-header {
+    cursor: pointer;
+}
+
+
+.check-block-tests,
+.check-block-error{
+  margin-top: .5em;
+}
+
+
+.check-block-failed {
+  background-color: var(--check-fail-bg);
+}
+
+.check-block-errored {
+  background-color: var(--check-error-bg);
+}
+
+.check-block-success {
+  background-color: var(--check-success-bg);
+  margin: 5px;
+}
+
+.check-block-summary {
+  display: block;
+  font-style: italic;
+}
+
+.testing-summary{
+  color: var(--testing-summary);
+  background: var(--testing-summary-bg);
+}
+
+.check-block-test{
+  position: relative;
+  overflow: hidden;
+  padding-bottom: .5em;
+}
+
+.check-block-test:not(:last-child) {
+  margin-bottom: 0.75em;
+}
+
+.check-block-test {
+  background-image: linear-gradient(0deg,hsla(0, 0%, 0%,.5),hsla(0, 0%, 0%, 0));
+  background-size: 100% .3em;
+  background-position:bottom;
+  background-repeat: no-repeat;
+}
+
+
+.error-highlight {
+  background-color: var(--err-highlight) !important;
+  border-bottom: 2px solid var(--error) !important;
+}
+
+.loc-anchor {
+  border-bottom: 2px solid currentColor;
+}
+
+.test-reason {
+  padding: 0.5em;
+  color: var(--default-text);
+}
+
+.test-reason > br,
+.compile-error > br,
+.parse-error > br {
+  display:none;
+}
+
+.test-reason,
+.parse-error,
+.compile-error {
+  display: block;
+  position: relative;
+  line-height: 1.5;
+}
+
+.compile-error > p > code:only-child {
+  margin-left: 1.5em;
+}
+
+/*  colored text highlights within highlights-active blocks,
+    but that do not default to having their highlight on */
+a.highlight {
+  color: var(--inactive-highlight-text) !important;
+}
+
+/*  text highlights in highlights-active blocks that default
+    to highlighted background */
+a.highlight.highlight-on,
+a.highlight.highlight-on .replTextOutput {
+  color: var(--active-highlight-text) !important;
+}
+
+/*  colored text highlights within non- highlights-active blocks
+    (dark themes make this lighter so text doesn't disappear into the bg
+    while not being highlighted) */
+.compile-error:not(.highlights-active) a.highlight,
+.check-block-error > .compile-error:not(.highlights-active) a.highlight,
+.check-block-test.failing-test:not(.highlights-active) a.highlight {
+  color: var(--inactive-highlight-text) !important;
+}
+
+
+
+.editor-check-block-message:hover{
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.editor-check-block-message {
+  text-align: center;
+  overflow: none;
+}
+
+.editor-check-block-success {
+  background: var(--success-bg);
+  box-shadow: 0 1em 11px 2px var(--success-bg);
+}
+
+.editor-check-block-failed {
+  background: var(--fail-bg);
+  box-shadow: 0 0.5em 11px 3px var(--fail-bg);
+}
+
+.editor-check-block-error {
+  background: var(--check-error-bg);
+  box-shadow: 0 1em 11px 2px var(--check-error-bg);
+}
+
+.check-block-error {
+  position: relative;
+}
+
+@keyframes emphasize-error {
+  from {background-color: white; }
+  to {}
+}
+
+.check-block-test.failing-test:not(.highlights-active) {
+  background-color: var(--failing-test-bg); 
+  overflow: hidden;
+}
+
+.check-block-test.passing-test {
+  background-color: var(--passing-test-bg);
+}
+
+.check-block-test.passing-test .cm-snippet {
+  margin: 0.5em;
+}
+
+.compile-error.highlights-active,
+.check-block-error .highlights-active.compile-error,
+.check-block-test.highlights-active {
+  border: 0.3em var(--highlights-active-border) solid;
+  box-shadow: 0 0 1em var(--err-focused-shadow);
+}
+
+
+.check-block-error .highlights-active.compile-error,
+.check-block-test.highlights-active {
+  background: var(--highlights-active-bg);
+}
+
+.check-block:not(.expanded) > .check-block-tests {
+  display: none;
+}
+
+.test-reason:empty,
+.check-block-error:empty {
+  margin: 0 0.5em;
+  display: flex;
+  align-items: center;
+  justify-content:center;
+  height: 3em;
+  color: var(--empty-check-text);
+  overflow: hidden;
+}
+
+.check-block-error:empty {
+  background-color: var(--empty-check-err-bg);
+  border-radius: 0.5em;
+  padding: 0.5em;
+}
+
+.test-reason:empty:before,
+.check-block-error:empty:before {
+  content: '';
+  display: block;
+  min-height: 3em;
+  min-width: 3em;
+  background-image: url(./img/pyret-spin.gif);
+  background-size: contain;
+  background-repeat: no-repeat;
+  flex: 1;
+}
+
+.test-reason:empty:after,
+.check-block-error:empty:after {
+  display: block;
+  content: 'Processing Result…';
+  flex: 1.5;
+}
+
+
+.check-block-header:after {
+  position: absolute;
+  right: 0;
+  top: 0;
+  padding: 0.5em;
+  text-decoration: underline;
+}
+
+.check-block.expanded > .check-block-header::after {
+  content: 'Hide Details';
+}
+
+.check-block:not(.expanded) > .check-block-header::after {
+  content: 'Show Details';
+}
+
+
+.check-block-test > header {
+  width: 100%;
+  padding: 0.5em;
+  line-height: 0.9;
+}
+
+.check-block-test.failing-test.highlights-active > header {
+  background-color: var(--failing-test-header-bg);
+}
+
+.check-block-test .CodeMirror {
+  background:var(--check-block-snippet-bg);
+}
+
+.errored-test-marker {
+  background-color: var(--err-gutter);
+}
+
+.failed-test-marker {
+  background-color: var(--failed-test-gutter-marker);
+}
+
+.failed-test-marker > .CodeMirror-linenumber {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.summary-bits {
+  color: var(--default-text);
+  display: flex;
+}
+
+.summary-bit {
+  flex: 1;
+  text-align: center;
+  padding: 0.5em;
+}
+
+.summary-count {
+  display: block;
+  font-size: 20px;
+}
+
+.summary-bit.summary-passed {
+  background: var(--summary-pass-bg);
+}
+
+.summary-bit.summary-failed {
+  background: var(--summary-fail-bg);
+}
+
+.summary-errored > .summary-count {
+  text-align: center;
+  margin-right: 0.5rem;
+}
+
+.summary-errored {
+  background: var(--summary-error-bg);
+  color: var(--summary-err);
+  padding: .5em;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.summary-text {
+  border-left: 1px var(--summary-err-left-border) solid;
+  padding-left: .5em;
+}
+
+
+#output .highlight {
+  cursor: pointer;
+}
+
+.hinted-highlight {
+  cursor: pointer;
+  border-bottom: 2px var(--active-highlight-underline) solid;
+}
+
+.highlight {
+  border-bottom: 2px var(--active-highlight-underline) solid;
+}
+
+.hinted-highlight.highlight-on,
+.highlight.highlight-on {
+  border-bottom: 2px var(--inactive-highlight-underline) solid;
+}
+
+.highlight-blink {
+  animation: pulse 0.4s infinite alternate
+}
+
+@keyframes pulse {
+  from {
+  }
+  to {
+  background-color:transparent;
+  }
+}
+
+@keyframes pulse-underline {
+  from {
+  }
+  to {
+  background-color:transparent;
+  border-color:transparent;
+  }
+}
