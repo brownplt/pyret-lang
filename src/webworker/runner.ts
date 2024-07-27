@@ -135,12 +135,16 @@ export function runStopify<A>(f : () => A) : Promise<{ type: 'normal', value: A 
   });
 }
 
+const BUILTIN_PATH = "/compiled/builtin";
+const stopifiedName = (s : string) => `${s}.js.stopped`;
+export const builtinPath = (s: string) => `${BUILTIN_PATH}/${stopifiedName(s)}`;
+
 export function getAsyncModuleByName(s : string) {
   if(!(s in asyncCache)) { throw new Error(`Cannot get async module ${s}`); }
   return asyncCache[s];
 }
 
-const RUNTIME_PATH = "/compiled/builtin/runtime.js.stopped";
+const RUNTIME_PATH = builtinPath('runtime');
 export function getAsyncRuntime() {
   return asyncCache[RUNTIME_PATH];
 }

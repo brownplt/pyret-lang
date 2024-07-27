@@ -5,6 +5,7 @@ const LISTS = require("./lists.arr.js");
 const PRIMITIVES = require("./primitives.js");
 const VS = require("./valueskeleton.arr.js");
 const fs = require('fs');
+const COLOR = require("./color.arr.js");
 
 var hasOwnProperty = {}.hasOwnProperty;
 
@@ -12,14 +13,6 @@ var hasOwnProperty = {}.hasOwnProperty;
 /* @stopify flat */
 function md5(x) {
   return x;
-}
-
-/* @stopify flat */
-function Color(r, g, b, a) {
-  this.red = r;
-  this.green = g;
-  this.blue = b;
-  this.alpha = a;
 }
 
 var ColorsEqual = /* @stopify flat */ function (c1, c2) {
@@ -36,7 +29,7 @@ var makeColor = /* @stopify flat */ function (r, g, b, a) {
   if ([r, g, b, a].filter(jsnums.isPyretNumber).length !== 4) {
     throw new Error("Internal error: non-number in makeColor argList ", [r, g, b, a]);
   }
-  return new Color(jsnums.toFixnum(r), jsnums.toFixnum(g), jsnums.toFixnum(b),
+  return COLOR.color(jsnums.toFixnum(r), jsnums.toFixnum(g), jsnums.toFixnum(b),
     jsnums.toFixnum(a));
 };
 
@@ -47,7 +40,7 @@ function clamp(num, min, max) {
   else if (num > max) { return max; }
   else { return num; }
 }
-var isColor = /* @stopify flat */ function (c) { return typeof c === "object" && c instanceof Color; };
+var isColor = /* @stopify flat */ function (c) { return typeof c === "object" && '$name' in c && c.$name === 'color'; };
 var colorRed = /* @stopify flat */ function (c) { return clamp(c.red); }
 var colorGreen = /* @stopify flat */ function (c) { return clamp(c.green); }
 var colorBlue = /* @stopify flat */ function (c) { return clamp(c.blue); }
@@ -87,6 +80,13 @@ ColorDb.prototype.get = /* @stopify flat */ function (name) {
 };
 
 ColorDb.prototype.colorName = /* @stopify flat */ function colorName(colorStr) {
+  if (isColor(colorStr)) {
+    colorStr =
+     colorRed(colorStr) + ", " +
+     colorGreen(colorStr) + ", " + 
+     colorBlue(colorStr) + ", " +
+     colorAlpha(colorStr);
+  }
   var ans = this.colorNames[colorStr];
   if (ans !== undefined) ans = ans.toLowerCase();
   return ans;
@@ -2221,5 +2221,6 @@ module.exports = {
   "image-pinhole-y": /* @stopify flat */ function (image) {
     return image.pinholeY;
   },
-  colorDb: colorDb
+  colorDb: colorDb,
+  clamp: clamp
 };

@@ -1,7 +1,14 @@
 import React from 'react';
 import type * as R from '../../../src/runtime/runtime';
-import { runStopify, getAsyncRuntime } from '../runner';
+import { 
+  runStopify, 
+  getAsyncRuntime, 
+  getAsyncModuleByName,
+  builtinPath
+} from '../runner';
 import ValueSkeletonWidget from './ValueSkeletonWidget';
+import type * as C from '../../../src/runtime-arr/color.arr';
+import ColorWidget from './ColorWidget';
 
 type RVWOProps = { value: R.PyretValue };
 type RVWOState = { value: R.ValueSkeleton };
@@ -23,7 +30,7 @@ export default class RenderedValueWithOutput extends React.Component<RVWOProps, 
   }
 
   componentDidMount() {
-    const runtime = getAsyncRuntime();
+    const runtime = getAsyncRuntime() as typeof R;
     const { value } = this.props;
     const vsp : any = runStopify(() => runtime.$tooutput(value));
     vsp.then((vs : { value: R.ValueSkeleton }) => this.setState({ value: vs.value }));
@@ -37,7 +44,7 @@ export default class RenderedValueWithOutput extends React.Component<RVWOProps, 
   componentDidUpdate(prevProps : RVWOProps, prevState : RVWOState) {
     if (prevProps.value !== this.props.value) {
       console.log('Updating state in RenderedValueWithOutput', prevProps, this.props, prevState, this.state);
-      const runtime = getAsyncRuntime();
+      const runtime = getAsyncRuntime() as typeof R;
       const { value } = this.props;
       const vsp : any = runStopify(() => runtime.$tooutput(value));
       vsp.then((vs : { value: R.ValueSkeleton }) => this.setState({ value: vs.value }));
@@ -49,7 +56,12 @@ export default class RenderedValueWithOutput extends React.Component<RVWOProps, 
       return '...';
     }
     const { value } = this.state;
-    return <ValueSkeletonWidget value={value} />;
+    const Color = getAsyncModuleByName(builtinPath('color.arr')) as typeof C;
+    if (Color['is-color'](this.props.value)) {
+      return <ColorWidget color={this.props.value} skeleton={value} />
+    } else {
+      return <ValueSkeletonWidget value={value} />;
+    }
   }
 }
 

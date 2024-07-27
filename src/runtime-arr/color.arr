@@ -164,3 +164,4 @@ dim-gray = color(105, 105, 105, 1)
 dim-grey = dim-gray
 black = color(0, 0, 0, 1)
 transparent = color(0, 0, 0, 0)
+rebecca-purple = color(102, 51, 153, 1)

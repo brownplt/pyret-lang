@@ -1,0 +1,32 @@
+.paintBrush {
+  height: 2.1em;
+  margin-right: -0.5em;
+  position: relative;
+  z-index: 2;
+}
+.paintSpan {
+  display: inline-block;
+  position: relative;
+}
+.paintBlob {
+  width: 2.5em;
+  height: 1.5em;
+  position: relative;
+  z-index: 1;
+  vertical-align: baseline;
+  display: inline-block;
+  -webkit-mask-image: url(../img/paint.svg);
+  mask-image: url(..//img/paint.svg);
+  -webkit-mask-size: contain;
+  mask-size: 100% 100%;
+  mask-type: luminance;
+}
+.checkersBlob {
+  margin-right: -2.5em;
+  width: 2.5em;
+  height: 1.5em;
+  position: relative;
+  background-image: url(../img/checkers.svg);
+  background-size: 2.5em 1.5em;
+  display: inline-block;
+}
