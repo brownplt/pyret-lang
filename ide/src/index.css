@@ -3,6 +3,8 @@ the shared styles explicitly list both modes, and the styles specific to a
 mode just list that one. This avoids thinking too hard about rule specificity
 and overriding of rules. */
 
+@import './themes/*.css';
+
 :root {
   --success-green: #27cc78;
   --failure-red: #dc4064;

@@ -1,0 +1,198 @@
+
+/*  ######################################################################
+    #----------------------  Theme-specific styles ----------------------#
+    #                           Theme: monokai                           #
+    ###################################################################### */
+
+/*  Color Palette
+    (mapping of friendly names to colors, if needed) */
+body.monokai {
+  --black-darker-2: #0d0e0c;
+  --black-darker: #1b1c17;
+  --black: #272822;
+  --black-lighter: #36372f;
+  --black-lighter-2: #43453b;
+  --black-lighter-3: #505346;
+  --black-lighter-4: #6b6e5e;
+
+  --white: hsl(60, 30%, 96%);
+  --comment-color: hsl(50, 11%, 47%);
+  --red: hsl(338, 95%, 56%);
+  --yellow: hsl(54, 70%, 68%);
+  --green: hsl(80, 76%, 53%);
+  --blue: hsl(190, 81%, 67%);
+  --purple: hsl(261, 100%, 75%);
+  --strong-purple: hsl(261, 100%, 65%);
+
+  /* darkened syntax highlighting (highlights) */
+  --dark-white: hsl(0, 0%, 0%);
+  --dark-comment-color: hsl(50, 11%, 13%);
+  --dark-red: hsl(338, 95%, 25%);
+  --dark-yellow: hsl(54, 70%, 25%);
+  --dark-green: hsl(80, 76%, 15%);
+  --dark-blue: hsl(190, 81%, 20%);
+  --dark-purple: hsl(261, 100%, 25%);
+  --dark-strong-purple: hsl(261, 100%, 20%);
+  --dark-strong-red: hsl(0, 100%, 25%);
+
+  --err-red: #ff6666;
+  --success-green: #80ff80;
+  --failing-yellow: #ffff66;
+
+  --strong-red: #ff3333;
+  --blue-lighter: #baedf8;
+}
+
+body.monokai {
+
+  /* Syntax Highlighting */
+  --keyword:        var(--red);             /* keywords */
+  --comments:       var(--comment-color);   /* comments */
+  --booleans:       var(--purple);          /* booleans */
+  --built-ins:      var(--blue);            /* built-ins */
+  --function-names: var(--white);           /* function names */
+  --types:          var(--blue);            /* types */
+  --variables:      var(--white);           /* variables */
+  --numbers:        var(--purple);          /* exact nums */
+  --rough-nums:     var(--strong-purple);   /* rough nums */
+  --rationals:      var(--purple);          /* rational numbers */
+  --bad-numbers:    var(--strong-red);      /* bad numbers */
+  --unterm-strings: var(--yellow);          /* unterminated strings */
+  --strings:        var(--green);           /* strings */
+  --repl-print:     var(--white);           /* result of print() in the REPL */
+  --repl-output:    #f2f2f2;              /* values displayed in the REPL */
+
+  /*  Non-color font styling. */
+  --keyword-font-weight: bold;
+  --bad-numbers-font-weight: bold;
+  --unterm-strings-font-weight: bold;
+
+  /* Basic editor appearance */
+  --default-text: var(--white);   /* default text across editor */
+  --background:   var(--black);   /* default bg color of definitions/interactions */
+  --cursor:       var(--white);   /* cursor color */
+
+  /* Regions/Selected Text */
+  --selected-text:        var(--black-lighter-3);   /* selected text in editor */
+  --matching-brackets:    var(--black-lighter-4); /* brackets around check:...end regions, etc. */
+  --matching-region-bg:   var(--black-lighter);   /* bg on regions like check:...end, etc. */
+  --nonmatching-bg:       var(--black-lighter);   /* bg on span.CodeMirror-nonmatchingbracket-region */
+  --nonmatching-bg-2:     var(--black-lighter);   /* bg and borders on nonmatchingbracket-region */
+  --nonmatching-brackets: var(--strong-red);      /* brackets that form a nonmatching region */
+
+  /* Check Blocks */
+  --check-block-default-bg: var(--black-lighter-2);   /* default bg on check blocks (usually invisible) */
+  --check-success-bg:       var(--black-lighter-2);   /* bg on passing check blocks */
+  --check-fail-bg:          var(--black-lighter-2);   /* bg on failed check block */
+  --check-error-bg:         var(--black-lighter-2);   /* bg (& box-shadow) on erroring check block */
+
+  /* Tests within check blocks */
+  --failing-test-header-bg:   var(--black-lighter);   /* bg of header within a focused failing test (contains "Test n: Failed") */
+  --failing-test-bg:          var(--black-lighter);   /* bg of failing test NOT in focus */
+  --passing-test-bg:          var(--black-lighter);   /* bg of passing test */
+  --highlights-active-border: var(--blue-lighter);    /* border around errors/tests with highlights active */
+  --highlights-active-bg:     var(--black-lighter);   /* bg on check block errors/tests with highlights active */
+  --empty-check-err-bg:       rgba(255,255,255,0.4);  /* bg behind "Processing Result..." in check-block-error:empty */
+
+  /* Errors */
+  --err-dotted-border:    var(--err-red);         /* dotted border around compile/parse errors */
+  --err-bg:               var(--black);           /* bg on compile/parse errors */
+  --err-link:             var(--blue-lighter);    /* links within compile/parse errors */
+  --trace-err-bg:         var(--black);           /* bg on div.trace.error */
+  --err-hover-shadow:     var(--blue-lighter);    /* box-shadow on hover on errors */
+  --err-focused-shadow:   #868a75;              /* box-shadow on errors in focus */
+  --active-highlight-underline:  rgba(255, 255, 255, 0.5);    /* border below .highlight and .hinted-highlight */
+  --inactive-highlight-underline: rgba(255, 255, 255, 0.5);   /* border below inactive highlights (darker) */
+  --active-highlight-text: black;               /* text color in a.highlight */
+  --inactive-highlight-text: var(--white);        /* text color in a.highlight within non-highlighted blocks */
+
+  /* Testing Summaries */
+  --testing-summary:          var(--white);             /* text color in testing summary */
+  --testing-summary-bg:       var(--black-lighter-2);   /* bg on testing summary */
+  --summary-fail-bg:          var(--black-lighter);     /* bg of summary of failed tests */
+  --summary-pass-bg:          var(--black-lighter);     /* bg of summary of passed tests */
+  --summary-error-bg:         var(--err-red);           /* bg of announcement in summary that tests errored */
+  --summary-err:              var(--white);             /* announcement text that tests errored in testing summary */
+  --summary-err-left-border:  var(--white);             /* vertical border left of error announcement in summary */
+
+  /* Tables */
+  --table-border:       var(--black-lighter-4);   /* border on tables */
+  --table-bg:           var(--black-lighter);     /* bg on tables */
+  --table-even-rows-bg: var(--black-lighter-2);   /* bg on even rows in table */
+  --th-bg:              var(--black);             /* bg on table headers */
+  --th-font-weight:     normal;                   /* font weight on table headers */
+  --table-col-dividers: var(--black-lighter-3);   /* righthand borders separating table columns */
+  --pyret-table-col-dividers: var(--black-lighter-3);  /* vertical borders between Pyret table columns */
+  --pyret-table-row-dividers: var(--black-lighter-3);  /* horizontal borders between Pyret table row */
+
+  /* Spy Blocks */
+  --spy-borders:      var(--black-lighter-2);   /* borders on spy block */
+  --spy-bg:           var(--black-darker);      /* bg on spy block */
+  --spy-odd-rows-bg:  var(--black-lighter);     /* bg on odd table rows of spy block */
+  --spy-even-rows-bg: var(--black);             /* bg on even table rows of spy block */
+
+  /* Spotlights */
+  --spotlighted-text-bg:            var(--black);             /* bg on spotlighted text (should match default bg) */
+  --non-spotlight-bg:               var(--black-lighter-3);   /* bg on non-spotlighted elements during spotlight */
+  --surrounding-check-spotlight-bg: var(--black-lighter-3);   /* bg on check block containing spotlighted test */
+
+  /* Handle that adjusts interactions window size */
+  --repl-handle-gradient-darker:    var(--black-lighter);   /* darker color in REPL handle gradient */
+  --repl-handle-gradient-lighter:   var(--black-lighter-2); /* lighter color in REPL handle gradient */
+  --repl-handle-border:             var(--black-darker-2);  /* border on REPL handle */
+
+  /* CodeMirror snippets */
+  --snippet-border:         var(--black-lighter-2);   /* dashed border around CodeMirror snippets */
+  --snippet-header-bg:      var(--black-darker);      /* CodeMirror snippet header bg color */
+  --snippet-header-border:  var(--black-lighter-2);   /* border between snippet header & code */
+  --check-block-snippet-bg: var(--black);             /* bg of code snippets within check block tests */
+
+  /* Misc. */
+  --img-thumbnail-shadow:       var(--black-lighter-2);   /* box-shadow on hover over image thumbnail in REPL */
+  --cm-in-repl-bg:              #31322b;                /* bg on .repl .CodeMirror */
+  --failed-test-gutter-marker:  var(--failing-yellow);      /* CodeMirror gutter marker bg for failed test */
+
+  /* CodeMirror gutters/line numbers/ruler */
+  --gutter-bg:      var(--black);           /* background of line number gutters */
+  --gutter-border:  var(--black-lighter);   /* border between gutter & definitions window */
+  --line-numbers:   var(--comment-color);   /* line numbers in left gutter */
+  --line-ruler:     var(--red);             /* 100-char line ruler */
+
+  /* REPL */
+  --repl-text-output: #f2f2f2;                  /* text output in the REPL */
+  --repl-prompts:     var(--white);               /* >>> prompt in the REPL */
+  --loader-bg:        rgba(39, 40, 34, 0.5);    /* REPL background during page load */
+  --loader-text:      var(--white);               /* text containing loading messages during page load */
+
+  /* Scrollbars */
+  --scrollbar-theme: dark;
+
+  /* More granular control of check blocks */
+  --check-success-text: var(--success-green);   /* text within successful check block */
+  --check-fail-text:    var(--failing-yellow);  /* text within failing check block */
+  --check-fail-header-font-weight: normal;      /* font weight of header text in failing check */
+  --check-error-text:   var(--err-red);         /* text within erroring check block */
+  --check-error-header-font-weight: normal;     /* font weight of header text in erroring check */
+  --check-fail-border:  0.17em solid var(--failing-yellow);  /* border around failing check blocks */
+  --check-error-border: 0.17em solid var(--err-red);         /* border around erroring check blocks */
+
+  /* Testing summaries */
+  --summary-pass-text: var(--success-green);  /* text saying "N TESTS FAILED" */
+  --summary-fail-text: var(--failing-yellow); /* text saying "N TESTS PASSED" */
+
+  /* darker syntax highlighting colors for text within error highlights */
+  --dark-default-text:    var(--dark-white);
+  --dark-comments:        var(--dark-comment-color); 
+  --dark-booleans:        var(--dark-purple);
+  --dark-built-ins:       var(--dark-blue);
+  --dark-function-names:  var(--dark-white);
+  --dark-variables:       var(--dark-white);
+  --dark-keyword:         var(--dark-red);
+  --dark-numbers:         var(--dark-purple);
+  --dark-rough-nums:      var(--dark-strong-purple);
+  --dark-bad-numbers:     var(--dark-strong-red);
+  --dark-strings:         var(--dark-green);
+  --dark-unterm-strings:  var(--dark-yellow);
+  --dark-types:           var(--dark-blue);
+
+}

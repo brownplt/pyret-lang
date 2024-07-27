@@ -8,10 +8,6 @@ const webpack = require('webpack');
 const isProduction = process.env.NODE_ENV == 'production';
 
 
-const stylesHandler = 'style-loader';
-
-
-
 const config = {
     entry: './src/index.tsx',
     // There are specific warnings of this form:
@@ -61,7 +57,7 @@ const config = {
             },
             {
                 test: /\.css$/i,
-                use: [stylesHandler,'css-loader'],
+                use: ['style-loader','css-loader','import-glob-loader'],
             },
             {
                 test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif)$/i,
