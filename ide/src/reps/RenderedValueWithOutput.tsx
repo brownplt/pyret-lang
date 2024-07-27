@@ -32,8 +32,8 @@ export default class RenderedValueWithOutput extends React.Component<RVWOProps, 
   componentDidMount() {
     const runtime = getAsyncRuntime() as typeof R;
     const { value } = this.props;
-    const vsp : any = runStopify(() => runtime.$tooutput(value));
-    vsp.then((vs : { value: R.ValueSkeleton }) => this.setState({ value: vs.value }));
+    const vsp = runStopify(() => runtime.$tooutput(value));
+    vsp.then((vs) => this.setState({ value: vs.value }));
   }
 
   shouldComponentUpdate(nextProps : RVWOProps, nextState : RVWOState) {
@@ -46,8 +46,8 @@ export default class RenderedValueWithOutput extends React.Component<RVWOProps, 
       console.log('Updating state in RenderedValueWithOutput', prevProps, this.props, prevState, this.state);
       const runtime = getAsyncRuntime() as typeof R;
       const { value } = this.props;
-      const vsp : any = runStopify(() => runtime.$tooutput(value));
-      vsp.then((vs : { value: R.ValueSkeleton }) => this.setState({ value: vs.value }));
+      const vsp = runStopify(() => runtime.$tooutput(value));
+      vsp.then((vs) => this.setState({ value: vs.value }));
     }
   }
 
