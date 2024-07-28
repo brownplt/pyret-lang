@@ -226,7 +226,7 @@ function Chatitor({
   );
   const promptHint = (
     <div style={{
-      width: '48em',
+      maxWidth: '48em',
       textAlign: 'right',
       margin: '0.3em auto',
       transition: isFocused ? 'opacity 0.2s 1s ease-in' : 'opacity 0.2s ease-in',
