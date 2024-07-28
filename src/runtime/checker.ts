@@ -937,7 +937,7 @@ export function renderFancyReason(testResult: TestResult): ErrorDisplay {
         case 's-op-is':
           if (testResult.metadata['on-refinement'] === undefined) {
             para = ED.sequence.make([
-              ED.text("If succeeds only if the "),
+              ED.text("It succeeds only if the "),
               highlightLhs, ED.text(" and "), highlightRhs,
               ED.text(" are equal.")
             ]);
@@ -963,14 +963,9 @@ export function renderFancyReason(testResult: TestResult): ErrorDisplay {
       return ED.error.make([
         testPreamble(testResult.leftSrc, testResult),
         ED.cmcode(makeSrcloc(testResult.metadata.loc)),
-        ED.para.make([
-          testResult.refinement.$name === 'none' ? ED.text("Values not equal") : ED.text("Values not equal, using custom equality"),
-          ED.para.make1(ED.embed(testResult.left)),
-          ED.para.make1(ED.embed(testResult.right)),
-          para,
-          reportValue(highlightLhs, testResult.left),
-          reportValue(highlightRhs, testResult.right)
-        ])
+        ED.para.make1(para),
+        reportValue(highlightLhs, testResult.left),
+        reportValue(highlightRhs, testResult.right)
       ]);
     }
     case 'failure-is-incomparable': {

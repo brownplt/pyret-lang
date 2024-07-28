@@ -10,6 +10,7 @@ import { State } from './state';
 import { Chunk, isInitializedEditor, UninitializedEditor } from './chunk';
 import { Palette } from './palette';
 import { Srcloc } from '../../src/runtime-arr/srcloc.arr';
+import './FailureComponent.css'
 
 type WrapperProps = {
   failure: Failure,

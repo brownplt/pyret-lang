@@ -55,7 +55,7 @@ const CheckBlockHeader = (props: {
       <div className="summary-bits">
         <SummaryBit count={passed} verb={"passed"} />
         <SummaryBit count={failed} verb={"failed"} />
-        {errored > 0 &&  <SummaryBit count={errored} verb={"errored"} />}
+        {errored > 0 && <SummaryBit count={errored} verb={"errored"} />}
       </div>
     </span>
   );
@@ -68,28 +68,19 @@ const TestResult = (props: {
   setActive: () => void,
 }) => {
   const { test, num, setActive } = props;
-  let content;
-  if (test.$name === 'success') {
-    content = (
-      <div className="check-block-test passing-test">
+  const success = (test.$name === 'success');
+  const className = success ? 'passing-test' : 'failing-test';
+  const msg = success ? 'Passed' : 'Failed';
+  return (
+    <div onClick={setActive}>
+      <div className={`check-block-test ${className}`}>
         <header>
-          <a className="hinted-highlight">Test {num}</a> - Passed
+          <a className="hinted-highlight">Test {num + 1}</a> - {msg}
         </header>
+        {!success && <FailureComponent failure={test.rendered as Failure} />}
       </div>
-    );
-  } else {
-    content = (
-      <div className="check-block-test failing-test">
-        <header>
-          <a className="hinted-highlight">Test {num}</a> - Failed
-        </header>
-        <FailureComponent failure={test.rendered as Failure} />
-      </div>
-    )
-  }
-  return <div onClick={setActive}>
-    {content}
-  </div>;
+    </div>
+  );
 }
 
 export function CheckBlock({ testResults, expanded } : {
@@ -137,7 +128,7 @@ export function FullCheckResults({
       message = `${passed} out of ${total} tests passed in this block.`;
     }
     return (
-      <AccordionItem uuid={i} className={`check-block ${blockClass}`}>
+      <AccordionItem key={i} uuid={i} className={`check-block ${blockClass}`}>
         <AccordionItemHeading>
           <AccordionItemButton>
             <span className="check-block-summary">{message}</span>

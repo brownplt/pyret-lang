@@ -1,7 +1,4 @@
-### Values not equal31
-### Values not equal32
-# Note: the error renderings above need to be cleaned up; they're not as
-# legible as the existing Pyret command-line renderings
+### Passed: 0; Failed: 2; Ended in Error: 0; Total: 2
 include global
 
 var x = 1
