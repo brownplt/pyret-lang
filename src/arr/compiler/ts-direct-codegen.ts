@@ -380,6 +380,9 @@ export type Exports = {
         Property("$locations", ArrayExpression(locs))
       ]);
       context.options.dict.log.app("\nrunChecks check option: \n\n<" + context.options.dict.checks + ">\n\n", runtime.ffi.makeNone());
+      // NOTE(Ben): We can't use compileExprScopedChecks to handle module compilation,
+      // because the list of defined values isn't neatly block-scoped, and we can't
+      // run the checks at the very end after the module's been put together.
       const callRunChecks = (!context.importFlags['checker-import']) ? ExpressionStatement(Literal("Skipped runChecks")) :
         ExpressionStatement(
           CallExpression(DotExpression(Identifier(context.curCheckContext), 'runChecks'),
@@ -387,7 +390,16 @@ export type Exports = {
           ));
       const postLoadHook = rtMethod("$postLoadHook", [Literal(context.provides.dict['from-uri']), ans]);
       const assignAns = AssignmentExpression(DotExpression(Identifier(constId("module")), "exports"), postLoadHook);
-      return [assignAns, [...aStmts, callRunChecks, answerVar, ...stmts]];
+      // NOTE(Ben): answerVar must come before callRunChecks, in case answerVar has side effects
+      // This matches current Pyret semantics, e.g. in
+      // var x = 1
+      // check: x is 1 end # fails
+      // x := 2
+      // check: x is 2 end # fails
+      // x := 3
+      // answerVar here is compiled as `answer = $traceVal(x = 3)`, which would otherwise happen
+      // after the callRunChecks, which would make the second test case unwantedly pass.
+      return [assignAns, [...aStmts, answerVar, callRunChecks, ...stmts]];
     }
 
     function compileSOp(context : Context, op: string, lv: J.Expression, rv: J.Expression): J.Expression {
@@ -428,7 +440,7 @@ export type Exports = {
       for (let i = branches.length - 1; i >= 0; i--) {
         const branch = branches[i];
         const [testV, testStmts] = compileExpr(context, branch.dict.test);
-        const [bodyV, bodyStmts] = compileExpr(context, branch.dict.body);
+        const [bodyV, bodyStmts] = compileExprScopedChecks(context, branch.dict.body);
         block = BlockStatement([
           ...testStmts,
           IfStatement(testV, BlockStatement([
@@ -445,7 +457,7 @@ export type Exports = {
       const ans = freshId(compilerName("ans"));
       const [val, valStmts] = compileExpr(context, expr.dict.val);
       const switchBlocks = listToArray(expr.dict.branches).map(b => {
-        const [bodyVal, bodyStmts] = compileExpr(context, b.dict.body);
+        const [bodyVal, bodyStmts] = compileExprScopedChecks(context, b.dict.body);
         switch(b.$name) {
           case 's-cases-branch':
             const argBinds = listToArray(b.dict.args).map((a, i) => {
@@ -460,7 +472,7 @@ export type Exports = {
           }
         }
       });
-      const [elseV, elseStmts] = compileExpr(context, expr.dict._else);
+      const [elseV, elseStmts] = compileExprScopedChecks(context, expr.dict._else);
       const elseCase = Default([...elseStmts, ExpressionStatement(AssignmentExpression(Identifier(ans), elseV))])
       return [
         Identifier(ans),
@@ -1334,6 +1346,24 @@ export type Exports = {
       }
     }
 
+    function compileExprScopedChecks(context : Context, expr: A.Expr): CompileResult {
+      const newContext: Context = { ...context, checkBlockTestCalls: [] }
+      const [ans, ansStmts] = compileExpr(newContext, expr);
+      const callRunChecks: J.Statement[] = [];
+      if (newContext.checkBlockTestCalls.length > 0) {
+        if (!context.importFlags['checker-import']) {
+          callRunChecks.push(ExpressionStatement(Literal("Skipped runChecks")));
+        } else {
+          callRunChecks.push(ExpressionStatement(
+            CallExpression(DotExpression(Identifier(context.curCheckContext), 'runChecks'),
+              [Literal(context.provides.dict['from-uri']), 
+                ArrayExpression(newContext.checkBlockTestCalls)]
+            )));
+        }
+      }
+      return [ans, [...ansStmts, ...callRunChecks]];
+    }
+
     function compileExpr(context : Context, expr : A.Expr) : CompileResult {
       switch(expr.$name) {
         case 's-module':
@@ -1410,7 +1440,7 @@ export type Exports = {
         case 's-op':
           return compileOp(context, expr);
         case 's-lam': {
-          const [ bodyVal, bodyStmts ] = compileExpr(context, expr.dict.body);
+          const [ bodyVal, bodyStmts ] = compileExprScopedChecks(context, expr.dict.body);
           const bindArgs = expr.dict.args as T.List<Variant<A.Bind, "s-bind">>;
           const jsArgs = listToArray(bindArgs).map(a => jsIdOf(a.dict.id));
           return [FunctionExpression(jsIdOf(constId(`lam_${expr.dict.name}`)), jsArgs,
@@ -1466,7 +1496,7 @@ export type Exports = {
         case 's-instantiate': 
           return compileExpr(context, expr.dict.expr);
         case 's-user-block': 
-          return compileExpr(context, expr.dict.body);
+          return compileExprScopedChecks(context, expr.dict.body);
         case 's-template': 
           return [rtMethod("throwUnfinishedTemplate", [context.compileSrcloc(expr.dict.l)]), []];
         case 's-type': 
@@ -1491,7 +1521,7 @@ export type Exports = {
         case 's-if-pipe-else': {
           return compileIf(context,
             listToArray<A.IfBranch | A.IfPipeBranch>(expr.dict.branches),
-            compileExpr(context, expr.dict._else));
+            compileExprScopedChecks(context, expr.dict._else));
         }
         case 's-assign': {
           const [rhs, rhsStmts] = compileExpr(context, expr.dict.value);
