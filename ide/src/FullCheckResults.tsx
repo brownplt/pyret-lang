@@ -98,7 +98,7 @@ export function FullCheckResults({
   const blockResults = checks.renderedChecks.map((checkBlock, i) => {
     const total = checkBlock.testResults.length;
     const passed = checkBlock.testResults.filter((t) => t.$name === 'success').length;
-    const blockClass = `check-block ${passed == total ? 'check-block-success' : 'check-block-failed'}`
+    const blockClass = `${passed == total ? 'check-block-success' : 'check-block-failed'}`
     let message: string;
     if (total === 1) {
       if (passed === total) {
@@ -114,22 +114,21 @@ export function FullCheckResults({
       message = `${passed} out of ${total} tests passed in this block.`;
     }
     return (
-      <AccordionItem uuid={i} className={blockClass}>
+      <AccordionItem uuid={i} className={`check-block ${blockClass}`}>
         <AccordionItemHeading>
-        <AccordionItemButton>
-          Details
-        </AccordionItemButton>
+          <AccordionItemButton>
+            <span className="check-block-summary">{message}</span>
+          </AccordionItemButton>
         </AccordionItemHeading>
-      <AccordionItemPanel>
-        <span className="check-block-summary">{message}</span>
-        {checkBlock.testResults.map((test, testNum) => {
-          return <ActiveContext.Provider value={i === activeCheck} key={`${i}-${testNum}`}>
-            <TestResult num={testNum} editor={renderEditor} test={test} />            
-          </ActiveContext.Provider>;
-         })}
-      </AccordionItemPanel>
-    </AccordionItem>
-  )});
+        <AccordionItemPanel>
+          {checkBlock.testResults.map((test, testNum) => {
+            return <ActiveContext.Provider value={i === activeCheck} key={`${i}-${testNum}`}>
+              <TestResult num={testNum} editor={renderEditor} test={test} />            
+            </ActiveContext.Provider>;
+          })}
+        </AccordionItemPanel>
+      </AccordionItem>
+    )});
 
   if (checks.checkSummary.total === 0) { return null; }
   return <div className="check-block">

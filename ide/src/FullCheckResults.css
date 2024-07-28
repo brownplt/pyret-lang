@@ -107,6 +107,13 @@
 .check-block .accordion__heading > * {
   box-sizing: border-box;
 }
+.check-block .accordion__button {
+  background-color: unset;
+  padding: 0.75rem;
+}
+.check-block .accordion__panel {
+  padding: 0.75rem;
+}
 
 
 /* individual passing test within block */
@@ -208,11 +215,10 @@ body .check-block-errored .check-block-header {
 
 .check-block-success {
   background-color: var(--check-success-bg);
-  margin: 5px;
 }
 
 .check-block-summary {
-  display: block;
+  /* display: block; */
   font-style: italic;
 }
 
