@@ -7,6 +7,7 @@ import { RTMessages } from './rtMessages';
 import * as control from './control';
 import { program } from './path';
 import { CMEditor, NeverError } from './utils';
+import { Srcloc } from '../../src/runtime-arr/srcloc.arr';
 
 const DEVELOPER_MODE = false;
 

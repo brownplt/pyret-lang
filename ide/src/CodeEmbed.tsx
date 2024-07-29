@@ -1,7 +1,7 @@
 import React from 'react';
 import CM from 'codemirror';
 import { UnControlled as UnControlledCM } from 'react-codemirror2';
-import ActiveContext from './ActiveContext';
+import ExpandedBlockContext from './ExpandedBlockContext';
 import { Srcloc } from '../../src/runtime-arr/srcloc.arr';
 import CodeMirror from 'codemirror';
 import TimestampContext from './TimestampContext';
@@ -32,12 +32,12 @@ export default class CodeEmbed extends React.Component<Props, State> {
     const text = doc.getRange({ line: loc['start-line'] - 1, ch: 0 }, { line: loc['end-line'] - 1, ch: lastLineLength })
     return (
       <div className="cm-snippet">
-        <ActiveContext.Consumer>
+        <ExpandedBlockContext.Consumer>
           {active => {
             if(active && this.state) { this.state.editor?.refresh(); }
             return <></>;
           }}
-        </ActiveContext.Consumer>
+        </ExpandedBlockContext.Consumer>
         <TimestampContext.Consumer>
           {timestamp => {
             if(typeof timestamp === 'number' && timestamp !== this.state.lastTimestamp) {

@@ -344,7 +344,7 @@ function array_map(obj: any, callback: any, thisArg?: any) {
   }
   
   /* @stopify flat */
-  function isStopifyRunning() {
+  export function isStopifyRunning() {
     /**
      * The relevant enum is
      * 
@@ -361,10 +361,13 @@ function array_map(obj: any, callback: any, thisArg?: any) {
   /* @stopify flat */
   function stopifyDispatch(stopped : any, native : any) {
     
+    function callStopped(thisArg: any, argsObj : any) {
+      return stopped(thisArg, ...Array.from(argsObj));
+    }
     
     return /* @stopify flat */ function(this : any) {
         if(isStopifyRunning()) {
-            return stopped(this, ...Array.from(arguments));
+            return callStopped(this, arguments);
         }
         else {
             return native.apply(this, arguments);

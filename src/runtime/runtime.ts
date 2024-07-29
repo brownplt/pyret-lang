@@ -25,8 +25,6 @@ const _NUMBER = require("./js-numbers.js");
 const _EQUALITY = require('./equality.js');
 const _PRIMITIVES = require("./primitives.js");
 
-
-
 // *********Spy Stuff*********
 
 function formatSrcloc(loc: Srcloc, showFile: boolean): string {

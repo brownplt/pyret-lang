@@ -1081,9 +1081,9 @@ async function upwait(f : (s : State) => State) {
 
 async function runProgramAsync(state: State) : Promise<void> {
   const {
-    typeCheck, runKind, currentFile, definitionsEditor, topChunk
+    typeCheck, runKind, currentFile, definitionsEditor, topChunk, rerunAllChunks
   } = state;
-  if( !topChunk || topChunk.outdated || topChunk.results.status === 'failed') {
+  if( !topChunk || topChunk.outdated || topChunk.results.status === 'failed' || rerunAllChunks ) {
     const currentFileContents = definitionsEditor.getValue();
     const doc = isInitializedEditor(definitionsEditor) ? definitionsEditor.getDoc().copy(false) : CodeMirror.Doc(definitionsEditor.getValue());
     cleanStopify();

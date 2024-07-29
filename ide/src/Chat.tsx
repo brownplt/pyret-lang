@@ -153,6 +153,17 @@ class Chat extends React.Component<ChatProps, {}> {
     }
   }
 
+  clearAllMarks() {
+    const { chunks, index } = this.props;
+    const editor = chunks[index].editor;
+    if (isInitializedEditor(editor)) {
+      const marks = editor.getAllMarks();
+      for (let i = 0; i < marks.length; i += 1) {
+        marks[i].clear();
+      }
+    }
+  }
+
   scheduleUpdate() {
     const {
       chunks,
@@ -322,6 +333,7 @@ class Chat extends React.Component<ChatProps, {}> {
           }}
           onChange={() => {
             this.scheduleUpdate();
+            this.clearAllMarks();
           }}
           onKeyDown={((editor: CMEditor, event: KeyboardEvent) => {
             // Ctrl-Z, Ctrl-Y/Ctrl-Shift-Z should not occur on document/chunks

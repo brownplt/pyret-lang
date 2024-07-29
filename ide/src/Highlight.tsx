@@ -1,8 +1,10 @@
 import React from 'react';
 import CM from 'codemirror';
+import HighlightsActiveContext from './HighlightsActiveContext';
 
 interface State {
   mark?: CM.TextMarker;
+  active: boolean;
 }
 
 type Props = {
@@ -17,16 +19,21 @@ function posEq(a: CM.Position, b: CM.Position): boolean {
 }
 
 export default class Highlight extends React.PureComponent<Props, State> {
+  constructor(props : Props) {
+    super(props);
+    this.state = { active: false };
+  }
   componentDidMount() {
     const {
       editor, from, to, color,
     } = this.props;
     this.setState({
+      active: false,
       mark: editor.markText(from, to, { css: `background-color: ${color}` }),
     });
   }
 
-  componentDidUpdate(oldProps: Props) {
+  componentDidUpdate(oldProps: Props, oldState: State) {
     const {
       editor, from, to, color,
     } = this.props;
@@ -34,21 +41,17 @@ export default class Highlight extends React.PureComponent<Props, State> {
     if (mark === undefined) {
       throw new Error('mark should be created on mount');
     }
-    if (!posEq(oldProps.from, from) || !posEq(oldProps.to, to) || oldProps.color !== color) {
+    if(!this.state.active) {
+      mark.clear();
+    }
+    const becameActive = oldState.active === false && this.state.active === true;
+    if (becameActive || !posEq(oldProps.from, from) || !posEq(oldProps.to, to) || oldProps.color !== color) {
       mark.clear();
       // eslint-disable-next-line
       this.setState({
         mark: editor.markText(from, to, { css: `background-color: ${color}` }),
       });
       return;
-    }
-    if((this.state.mark as any).explicitlyCleared) {
-      this.setState({
-        mark: editor.markText(from, to, { css: `background-color: ${color}` }),
-      });
-    }
-    else {
-      mark.changed();
     }
   }
 
@@ -61,6 +64,10 @@ export default class Highlight extends React.PureComponent<Props, State> {
   }
 
   render() {
-    return <></>;
+    return <>
+      <HighlightsActiveContext.Consumer>
+        {active => this.setState({ active })}
+      </HighlightsActiveContext.Consumer>
+    </>
   }
 }

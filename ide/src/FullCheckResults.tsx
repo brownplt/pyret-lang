@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import FailureComponent from './FailureComponent';
 import { Failure } from './failure';
 import { isInitializedEditor, UninitializedEditor } from './chunk';
@@ -14,9 +14,10 @@ import {
 
 // Demo styles, see 'Styles' section below for some notes on use.
 import 'react-accessible-accordion/dist/fancy-example.css';
-import ActiveContext from './ActiveContext';
+import ExpandedBlockContext from './ExpandedBlockContext';
 
 import './FullCheckResults.css';
+import HighlightsActiveContext from './HighlightsActiveContext';
 
 
 type Props = {
@@ -62,12 +63,14 @@ const CheckBlockHeader = (props: {
 
 const TestResult = (props: {
   num: number,
-  editor: CMEditor | undefined,
   test: RenderedTestResult,
+  active: boolean,
+  setActive: () => void,
 }) => {
-  const { editor, test, num } = props;
+  const { test, num, setActive } = props;
+  let content;
   if (test.$name === 'success') {
-    return (
+    content = (
       <div className="check-block-test passing-test">
         <header>
           <a className="hinted-highlight">Test {num}</a> - Passed
@@ -75,15 +78,35 @@ const TestResult = (props: {
       </div>
     );
   } else {
-    return (
+    content = (
       <div className="check-block-test failing-test">
         <header>
           <a className="hinted-highlight">Test {num}</a> - Failed
         </header>
-        <FailureComponent editor={editor} failure={test.rendered as Failure} />
+        <FailureComponent failure={test.rendered as Failure} />
       </div>
     )
   }
+  return <div onClick={setActive}>
+    {content}
+  </div>;
+}
+
+export function CheckBlock({ testResults, expanded } : {
+  testResults: RenderedTestResult[],
+  expanded: boolean
+}) {
+  const [activeTest, setActiveTest] = React.useState(0);
+  const testResultsRendered = testResults.map((test, testNum) => {
+    const setActive = useCallback(() => setActiveTest(testNum), []);
+    const active = expanded && testNum === activeTest;
+    return <ExpandedBlockContext.Provider value={expanded} key={testNum}>
+      <HighlightsActiveContext.Provider value={active}>
+        <TestResult num={testNum} test={test} active={active} setActive={setActive} />
+      </HighlightsActiveContext.Provider>
+    </ExpandedBlockContext.Provider>;
+  });
+  return <>{testResultsRendered}</>;
 }
 
 export function FullCheckResults({
@@ -93,7 +116,7 @@ export function FullCheckResults({
 
   const renderEditor = !isInitializedEditor(editor) ? undefined : editor;
 
-  const [activeCheck, setActive] = React.useState(0);
+  const [expandedCheckBlock, setExpandedCheckBlock] = React.useState(0);
 
   const blockResults = checks.renderedChecks.map((checkBlock, i) => {
     const total = checkBlock.testResults.length;
@@ -121,11 +144,7 @@ export function FullCheckResults({
           </AccordionItemButton>
         </AccordionItemHeading>
         <AccordionItemPanel>
-          {checkBlock.testResults.map((test, testNum) => {
-            return <ActiveContext.Provider value={i === activeCheck} key={`${i}-${testNum}`}>
-              <TestResult num={testNum} editor={renderEditor} test={test} />            
-            </ActiveContext.Provider>;
-          })}
+            <CheckBlock testResults={checkBlock.testResults} expanded={expandedCheckBlock === i} />
         </AccordionItemPanel>
       </AccordionItem>
     )});
@@ -137,7 +156,7 @@ export function FullCheckResults({
       allowZeroExpanded
       allowMultipleExpanded={false}
       preExpanded={[0]}
-      onChange={(ids => setActive(Number(ids[0])))}>
+      onChange={(ids => setExpandedCheckBlock(Number(ids[0])))}>
       {blockResults}
     </Accordion>
   </div>

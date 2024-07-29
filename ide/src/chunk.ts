@@ -7,7 +7,6 @@ import { CMEditor } from './utils';
 import CodeMirror from 'codemirror';
 
 export const CHUNKSEP = '#.CHUNK#\n';
-const cmdoc : CodeMirror.Doc = CodeMirror.Doc('', 'javascript');
 export type ChunkSnapshot = { start?: number, end?: number, editorAtLastRun: CodeMirror.Doc}
 export type ChunkFail = { status: 'failed', failures: Failure[] } & ChunkSnapshot;
 export type ChunkSuccess = { status: 'succeeded', objects: RHSObject[] } & ChunkSnapshot;
