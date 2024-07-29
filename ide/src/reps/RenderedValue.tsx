@@ -37,7 +37,7 @@ export default class RenderedValue extends React.Component<RenderedValueProps, R
     if (kind === 'reactor') {
       return (
         <ReactorWidget reactor={value} RenderedValue={RenderedValue} />
-      );      
+      );
     }
     if(USE_VALUESKELETON) { return <RenderedValueWithOutput value={this.props.value} />; }
     switch (kind) {
