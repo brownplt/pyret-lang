@@ -98,7 +98,7 @@ export function CheckBlock({ testResults, expanded } : {
 }) {
   const [activeTest, setActiveTest] = React.useState(0);
   const testResultsRendered = testResults.map((test, testNum) => {
-    const setActive = useCallback(() => setActiveTest(testNum), []);
+    const setActive = () => setActiveTest(testNum);
     const active = expanded && testNum === activeTest;
     return <ExpandedBlockContext.Provider value={expanded} key={testNum}>
       <HighlightsActiveContext.Provider value={active}>
