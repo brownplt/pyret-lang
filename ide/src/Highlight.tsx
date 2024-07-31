@@ -10,7 +10,7 @@ interface State {
 type Props = {
   from: CM.Position,
   to: CM.Position,
-  editor: CM.Editor & CM.Doc,
+  editor: CM.Editor,
   color: string,
 };
 
@@ -29,7 +29,7 @@ export default class Highlight extends React.PureComponent<Props, State> {
     } = this.props;
     this.setState({
       active: false,
-      mark: editor.markText(from, to, { css: `background-color: ${color}` }),
+      mark: editor.getDoc().markText(from, to, { css: `background-color: ${color}` }),
     });
   }
 
@@ -49,7 +49,7 @@ export default class Highlight extends React.PureComponent<Props, State> {
       mark.clear();
       // eslint-disable-next-line
       this.setState({
-        mark: editor.markText(from, to, { css: `background-color: ${color}` }),
+        mark: editor.getDoc().markText(from, to, { css: `background-color: ${color}` }),
       });
       return;
     }

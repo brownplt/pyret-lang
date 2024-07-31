@@ -6,11 +6,12 @@ import { Failure } from './failure';
 import { intersperse, srclocToCodeMirrorPosition } from './utils';
 import Highlight from './Highlight';
 import RenderedValue from './reps/RenderedValueWithOutput';
-import { State } from './state';
+import { EditorMode, State } from './state';
 import { Chunk, isInitializedEditor, UninitializedEditor } from './chunk';
 import { Palette } from './palette';
 import { Srcloc } from '../../src/runtime-arr/srcloc.arr';
 import './FailureComponent.css'
+import { Variant } from '../../src/runtime/types/primitive-types';
 
 type WrapperProps = {
   failure: Failure,
@@ -24,11 +25,12 @@ type StateProps = {
   chunks: Chunk[],
   definitionsEditor: UninitializedEditor | CM.Editor,
   currentFile: string,
-  topChunk: Chunk | undefined
+  topChunk: Chunk | undefined,
+  editorMode: EditorMode
 }
 function mapStateToProps(state: State): StateProps {
-  const { chunks, definitionsEditor, currentFile, topChunk } = state;
-  return { chunks, definitionsEditor, currentFile, topChunk };
+  const { chunks, definitionsEditor, currentFile, topChunk, editorMode } = state;
+  return { chunks, definitionsEditor, currentFile, topChunk, editorMode };
 }
 const connector = connect(mapStateToProps, () => ({}));
 
@@ -39,24 +41,33 @@ function FailurePaletteWrapperUnconnected({
   return <FailureComponent palette={palette} failure={failure} id={id} editor={editor} />;
 }
 
-function findDocForLoc(chunks : Chunk[], currentFile: string, topChunk: Chunk | undefined, loc: Srcloc) {
+function isExamplarTestFile(editorMode: EditorMode, loc: Variant<Srcloc, 'srcloc'>, currentFile: string) {
+  return editorMode === EditorMode.Examplaritor
+    && loc.source.includes("testwheat.arr") && currentFile.includes("test.arr");
+}
+
+function cmForLoc(editorMode : EditorMode, chunks : Chunk[], currentFile: string, topChunk: Chunk | undefined, loc: Srcloc) : { editor?: CM.Editor, doc?: CM.Doc }{
   if (loc.$name === 'builtin') {
-    return undefined;
+    return { editor: undefined, doc: undefined };
   }
   const chunk = chunks.find((c) => loc.source.includes(c.id));
   if (chunk !== undefined && isInitializedEditor(chunk.editor)) {
-    return chunk.results.editorAtLastRun;
+    return { editor: chunk.editor, doc: chunk.editor };
   }
-  if (loc.source.includes("definitions-segment")) {
-    return topChunk?.results.editorAtLastRun;
+  else if (loc.source.includes("definitions-segment")) {
+    return { editor: topChunk?.editor as CM.Editor, doc: topChunk?.editor as CM.Doc };
   }
-  if (loc.source.includes(currentFile)) {
-    return topChunk?.results.editorAtLastRun;
+  else if (loc.source.includes(currentFile)) {
+    return { editor: topChunk?.editor as CM.Editor, doc: topChunk?.editor as CM.Doc };
   }
+  else if (isExamplarTestFile(editorMode, loc, currentFile)) {
+    return { editor: topChunk?.editor as CM.Editor, doc: topChunk?.editor as CM.Doc };
+  }
+  return { editor: undefined, doc: undefined };
 }
 
 function FailureComponentUnconnected({
-  failure, id, editor, chunks, palette, definitionsEditor, currentFile, topChunk
+  failure, id, editor, chunks, palette, editorMode, definitionsEditor, currentFile, topChunk
 }: StateProps & Props) {
   switch (failure.$name) {
     case 'paragraph':
@@ -140,7 +151,7 @@ function FailureComponentUnconnected({
       if (failure.loc.$name !== 'srcloc') {
         throw new Error('Bad type of srcloc for a cmcode');
       }
-      const doc = findDocForLoc(chunks, currentFile, topChunk, failure.loc);
+      const doc = cmForLoc(editorMode, chunks, currentFile, topChunk, failure.loc).doc;
       if(doc) {
         return (
           <CodeEmbed
@@ -161,26 +172,17 @@ function FailureComponentUnconnected({
           return undefined;
         }
         const { from, to } = srclocToCodeMirrorPosition(loc);
-        const chunk = chunks.find((c) => loc.source.includes(c.id));
-        if (chunk !== undefined && isInitializedEditor(chunk.editor)) {
-          return { from, to, editor: chunk.editor };
-        }
-        if (loc.source.includes("definitions-segment") && isInitializedEditor(definitionsEditor)) {
-          return { from, to, editor: definitionsEditor }
-        }
-        if (loc.source.includes(currentFile) && isInitializedEditor(definitionsEditor)) {
-          return { from, to, editor: definitionsEditor }
-        }
-        return undefined;
+        const { doc, editor } = cmForLoc(editorMode, chunks, currentFile, topChunk, loc);
+        return { from, to, doc, editor };
       });
       const locs = calculated.map((attributes) => {
-        if (attributes === undefined) {
+        if (!attributes || !attributes.doc || !attributes.editor) {
           return <></>;
         }
-        const { editor: ed, from, to } = attributes;        
+        const { editor, from, to } = attributes;        
         return (
           <Highlight
-            editor={ed}
+            editor={editor}
             from={from}
             to={to}
             color={color}
@@ -201,7 +203,7 @@ function FailureComponentUnconnected({
             return;
           }
           // We're def scrolling up
-          attributes.editor.scrollIntoView(attributes.from);
+          attributes?.editor?.scrollIntoView(attributes.from);
         });
       };
       return (
