@@ -1406,6 +1406,10 @@ async function runExamplarAsync(state: State) : Promise<any> {
   let correspondingFile: string;
   let firstFailureResult: any = false;
 
+  const definitionsEditor = state.definitionsEditor;
+  const doc = isInitializedEditor(definitionsEditor) ? definitionsEditor.getDoc().copy(true) : CodeMirror.Doc(definitionsEditor.getValue());
+  await upwait((s: State) => handleRunProgramStart(s, doc));
+
   for (let i = 0; i < numWheats; i += 1) {
     const wheatFile = wheatFiles[i];
     const testProgram = insertUserImpl(testTemplate, wheatFile);
