@@ -601,7 +601,7 @@ function handleFileSync(state: State) : State {
   const { structure } = state.projectState;
   const projectPath = `/google-drive/${structure.id}/${structure.name}`;
   const newStructure = recursiveCheckAndSave(projectPath, structure);
-  setImmediate(() => {
+  setTimeout(() => {
     update((s : State) => ({ ...s, headerMessage: 'Saving...' }));
     newStructure.then((updatedStructure) => {
       update((s : State) => ({ ...s, projectState: { type: 'gdrive', structure: updatedStructure } }));
@@ -617,7 +617,7 @@ function handleFileSync(state: State) : State {
         update((s : State) => ({ ...s, headerMessage: 'Could not save.' }));
         console.error("Couldn't sync: ", err);
       });
-  });
+  }, 0);
   return state;
 }
 
@@ -646,7 +646,7 @@ function handleMessageIndexUpdate(state: State, newIndex: MessageTabIndex) {
 
 function handleAddReadyCallback(state : State, cb: () => void) {
   if (state.ready) {
-    setImmediate(cb);
+    setTimeout(cb, 0);
     return state;
   } else {
     return {
