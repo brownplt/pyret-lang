@@ -12,6 +12,8 @@ import { Palette } from './palette';
 import { Srcloc } from '../../src/runtime-arr/srcloc.arr';
 import './FailureComponent.css'
 import { Variant } from '../../src/runtime/types/primitive-types';
+import { getAsyncModuleByName } from './runner';
+import type * as ED_TYPE from '../../src/runtime-arr/error-display.arr';
 
 type WrapperProps = {
   failure: Failure,
@@ -88,6 +90,19 @@ function FailureComponentUnconnected({
           ))}
         </ul>
       );
+    case 'v-sequence': {
+      return (
+        <div>
+          {intersperse(
+            failure.contents.map((f, i) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <FailureComponent palette={palette} failure={f} key={i} id={id} editor={editor} />
+            )),
+            <br/>
+          )}
+        </div>
+      );
+    }
     case 'h-sequence':
       return (
         <>
@@ -125,6 +140,23 @@ function FailureComponentUnconnected({
       return <div><RenderedValue value={failure.val} /></div>;
     case 'text':
       return <>{failure.str}</>;
+    case 'loc-display': {
+      const doc = cmForLoc(editorMode, chunks, currentFile, topChunk, failure.loc).doc;
+      const ED = getAsyncModuleByName('error-display.arr') as typeof ED_TYPE;
+      if (doc) {
+        return <FailureComponent
+          palette={palette}
+          editor={editor}
+          failure={ED.highlight(failure.contents, [failure.loc], Math.floor(Math.random() * -1000 - 1))}
+          />
+      } else {
+        return <>
+          <FailureComponent palette={palette} failure={failure.contents} id={id} editor={editor} />
+          at
+          <FailureComponent palette={palette} failure={ED.loc(failure.loc)} id={id} editor={editor} />
+        </>;
+      }
+    }
     case 'loc':
       if (failure.loc.$name === 'builtin') {
         return (
