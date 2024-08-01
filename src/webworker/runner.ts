@@ -87,7 +87,11 @@ function wrapContent(content: string): string {
 
 let asyncCache : {[key:string]: any} = {};
 let currentRunner: any = null;
-currentRunner = stopify.stopifyLocally("", { newMethod: 'direct' });
+currentRunner = stopify.stopifyLocally("", { newMethod: 'direct' }, { stackSize: 1500, restoreFrames: 1 });
+// NOTE(joe): We specify these both in the RuntimeOpts of stopifyLocally
+// and manually set them to work across some pending Stopify updates/deploys.
+// Settings this on the rts fields should be removed once Stopify updates.
+// See https://github.com/nuprl/Stopify/pull/513
 const rts = stopify.newRTS('lazy');
 rts.stackSize = 1500;
 rts.restoreFrames = 1;
