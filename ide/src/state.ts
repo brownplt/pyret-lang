@@ -106,9 +106,6 @@ export type State = {
      page. Does not affect the size of text in the header and in menus. */
   fontSize: number,
 
-  /* Text mode only. Tracks error highlight source location spans (if any). */
-  definitionsHighlights: number[][],
-
   /* A chunk, intended to have results only, that appears above all other chunks.
      Usually it has an `editor` that refers to the definitions editor. */
   topChunk: Chunk | undefined,
@@ -220,7 +217,6 @@ export const initialState: State = {
   editorLoopDropdownVisible: false,
   editorMode: EditorMode.Chatitor,
   fontSize: 14,
-  definitionsHighlights: [],
   effectQueue: [],
   isFileSaved: false,
   compiling: false,

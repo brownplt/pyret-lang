@@ -794,7 +794,6 @@ function handleRunExamplarFailure(state: State, error: string) : State {
   const failureObj : any = { $name: 'text', str: error };
   return {
     ...state,
-    definitionsHighlights: [],
     messageTabIndex: MessageTabIndex.ErrorMessages,
     topChunk: {
       editor: state.definitionsEditor,
@@ -873,17 +872,9 @@ function handleCompileProgramFailure(state: State, errors: string[]) : State {
   const end = Date.now();
   const failures = errors.map((e) => JSON.parse(e));
   const places = failures.flatMap(getLocs);
-  const asHL = (place: Srcloc) => {
-    if (place.$name !== 'srcloc') {
-      throw new Error('how is a builtin a segment?');
-    }
-    // x:x-x:x (old data structure)
-    return [place['start-line'], place['start-column'], place['end-line'], place['end-column']];
-  };
   return {
     ...state,
     // compiling: false,
-    definitionsHighlights: places.map(asHL),
     messageTabIndex: MessageTabIndex.ErrorMessages,
     topChunk: {
       id: "topChunk",
@@ -905,7 +896,6 @@ function handleCompileExamplarFailure(state: State, errors: string[]) : State {
   const end = Date.now();
   return {
     ...state,
-    definitionsHighlights: [],
     messageTabIndex: MessageTabIndex.ErrorMessages,
     topChunk: {
       id: "topChunk",
@@ -958,7 +948,6 @@ function handleRunProgramFailure(state: State, error: string) : State {
   return {
     ...state,
     // compiling: false,
-    definitionsHighlights: [],
     messageTabIndex: MessageTabIndex.ErrorMessages,
     topChunk: {
       editor: state.definitionsEditor,
@@ -981,7 +970,6 @@ function handleRunProgramSuccess(state : State, result : any) : State {
   const oldTop = state.topChunk!.results;
   return {
     ...state,
-    definitionsHighlights: [],
     topChunk: {
       editor: state.definitionsEditor,
       results: {
@@ -1025,7 +1013,6 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
   return {
     ...state,
     running: { type: 'idle' },
-    definitionsHighlights: [],
     topChunk: {
       id: "topChunk",
       editor: state.definitionsEditor,

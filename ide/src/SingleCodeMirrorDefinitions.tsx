@@ -18,7 +18,6 @@ require('pyret-codemirror-mode/mode/pyret');
 type Props = {
   onEdit: (e : CodeMirror.Editor, s: string) => void,
   onInit: (e : CodeMirror.Editor) => void,
-  highlights: number[][],
   text: string
   // TODO(alex): Do we need to do the connector business here too
   //   or can we just pass from Editor.tsx?

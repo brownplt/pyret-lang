@@ -30,7 +30,6 @@ import FileSync from './FileSync';
 type StateProps = {
   browseRoot: string,
   browsePath: string,
-  definitionsHighlights: number[][],
   definitionsEditor: UninitializedEditor | CMEditor,
   fontSize: number,
   headerMessage: string,
@@ -48,7 +47,6 @@ function mapStateToProps(state: State.State): StateProps {
   return {
     browseRoot: state.browseRoot,
     browsePath: state.browsePath,
-    definitionsHighlights: state.definitionsHighlights,
     definitionsEditor: state.definitionsEditor,
     fontSize: state.fontSize,
     headerMessage: state.headerMessage,
@@ -115,7 +113,6 @@ class Editor extends React.Component<EditorProps, any> {
   makeDefinitions() {
     const {
       editorMode,
-      definitionsHighlights,
       definitionsEditor,
       runProgram: run,
       topChunk
@@ -143,7 +140,6 @@ class Editor extends React.Component<EditorProps, any> {
               this.props.save();
             }}
             onInit={(editor: CodeMirror.Editor) => this.props.update({ definitionsEditor: editor })}
-            highlights={definitionsHighlights}
             run={run}
         />
         );
