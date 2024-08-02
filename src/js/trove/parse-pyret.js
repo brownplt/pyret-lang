@@ -1548,6 +1548,7 @@
       "is=~":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op=~");},
       "is<=>":             function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op<=>");},
       "is-not":            function(l){return RUNTIME.getField(ast, "s-op-is-not").app(l);},
+      "is-not-roughly":    function(l){return RUNTIME.getField(ast, "s-op-is-not-roughly").app(l);},
       "is-not==":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op==");},
       "is-not=~":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op=~");},
       "is-not<=>":         function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op<=>");},

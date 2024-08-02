@@ -1,7 +1,10 @@
-provide *
-provide-types *
+provide:
+  * hiding (is-kv-pairs),
+  type *
+end
 
-import global as _
+import global as G
+include from G: raw-array-duplicate end
 include lists
 
 type Reducer<Acc, InVal, OutVal> = {
@@ -65,7 +68,7 @@ running-sum :: Reducer<Number, Number, Number> = running-reduce(_ + _)
 type KeyValPair<V> = { String; V }
 
 fun is-kv-pairs(arr :: RawArray<Any>) -> Boolean:
-  raw-array-and-mapi(lam<C>(kv :: KeyValPair<C>): true end, arr, 0)
+  raw-array-and-mapi(lam<C>(kv :: KeyValPair<C>, _): true end, arr, 0)
 end
 
 raw-row = {
@@ -91,6 +94,10 @@ fun table-from-raw-array(arr):
   for raw-array-fold(t from with-cols, r from arr, _ from 0):
     t.add-row(r)
   end
+end
+
+fun raw-array-from-table(table):
+  raw-array-map(raw-array-duplicate, table._rows-raw-array)
 end
 
 table-from-rows = {
