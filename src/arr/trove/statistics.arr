@@ -244,7 +244,7 @@ fun matrix-based-multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Nu
   B_pred_fn
 end
 
-fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (Any -> Number):
+fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (List<Number> -> Number):
   doc: "returns a predictor function given a list of list of independent inputs and the correspoinding list of outputs"
   MR.multiple-regression(x_s_s, y_s)
 end
