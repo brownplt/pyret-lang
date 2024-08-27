@@ -31,6 +31,7 @@ import error as E
 import math as math
 import string-dict as SD
 import matrices as MX
+import multiple-regression as MR
 
 fun mean(l :: List<Number>) -> Number:
   doc: "Find the average of a list of numbers"
@@ -224,7 +225,7 @@ end
 
 # please see: https://online.stat.psu.edu/stat462/
 
-fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (List<Number> -> Number):
+fun matrix-based-multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (List<Number> -> Number):
   doc: "returns a predictor function given a list of list of independent inputs and the correspoinding list of outputs"
   intercepts = MX.col-matrix.make(raw-array-of(1, y_s.length()))
   mx_X = intercepts.augment(MX.lists-to-matrix(x_s_s))
@@ -240,6 +241,11 @@ fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (Li
     end
   end
   B_pred_fn
+end
+
+fun multiple-regression(x_s_s :: List<Any>, y_s :: List<Number>) -> (Any -> Number):
+  doc: "returns a predictor function given a list of list of independent inputs and the correspoinding list of outputs"
+  MR.multiple-regression(x_s_s, y_s)
 end
 
 fun linear-regression(x-s :: List<Number>, y-s :: List<Number>) -> (Number -> Number):
