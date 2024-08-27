@@ -174,7 +174,9 @@
           runtime.checkNumber(x);
           result += runtime.num_to_fixnum(x) * B[i+1][0]
         }
-        return runtime.makeNumber(result);
+        console.log('predr result before return', result);
+        return runtime.num_to_roughnum(result);
+        // return runtime.makeNumber(result);
       }
       return runtime.makeFunction(Bfunc, "predictor");
     }
