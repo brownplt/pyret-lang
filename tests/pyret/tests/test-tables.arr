@@ -687,8 +687,13 @@ check "table-from-rows":
   t4 = table-from-rows.make(raw-array-from-list(new-row-list))
 
   nothing does-not-raise # Dummy test to avoid well-formedness errors in the previous row
-end
 
+  [table-from-rows:
+    [list:
+      [raw-row: {"A"; 5}, {"B"; 7}, {"C"; 8}],
+      [raw-row: {"A"; 1}, {"B"; 2}, {"C"; 3}]]]
+    raises "is-raw-array-of-rows"
+end
 
 table-from-column = TS.table-from-column
 table-from-columns = TS.table-from-columns
