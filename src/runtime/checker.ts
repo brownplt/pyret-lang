@@ -235,7 +235,8 @@ type LocsRecord = {
 // Record<CheckOperand, Srcloc | undefined>
 
 export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
-  const blockResults: CheckBlockResult[] = [];
+  // fixme: blockResults no longer constant
+  let blockResults: CheckBlockResult[] = [];
   function addBlockResult(cbr : CheckBlockResult) {
     blockResults.push(cbr);
   }
@@ -690,9 +691,17 @@ export function makeCheckContext(mainModuleName: string, checkAll: boolean) {
     },
   };
 
+  function moduleDirPart(moduleName: string) {
+    return moduleName.replace(/\/([^\/]*)$/, '');
+  }
+
   return {
     runChecks: (moduleName: string, checks: TestCase[]) => {
       console.log(`Running a check-block for ${moduleName} while in mainModule ${mainModuleName}`);
+      if (moduleDirPart(moduleName) !== moduleDirPart(mainModuleName)) {
+        // fixme: blockResults emptied when changing Anchor project dir
+        blockResults = [];
+      }
       if (checkAll || (moduleName === mainModuleName)) {
         checks.forEach(c => {
           const { name, location, keywordCheck, run } = c;

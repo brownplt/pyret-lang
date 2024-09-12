@@ -122,7 +122,11 @@ function failingWheatTests(wheatResults: ExamplarResult[]) {
     const failResults = wheatResults.flatMap(wr => {
         if(wr.result.type !== 'run-result') { return []; }
         console.log("Wheat result: ", wr);
+        // fixme: check that .$renderedChecks exists
+        if (!wr.result.result.result.$renderedChecks) { return []; }
         const checks = wr.result.result.result.$renderedChecks as RenderedCheckResultsAndSummary;
+        // fixme: check that .renderedChecks exists
+        if (!checks.renderedChecks) { return []; }
         const failed = checks.renderedChecks.flatMap((c) => c.testResults.filter((tr) => tr.$name !== 'success'));
         if(failed.length === 0) { return []; }
         return [failed[0].rendered];
