@@ -40,6 +40,7 @@ include from VU: raw-array-fold2, raw-array-map2 end
 import matrix-util as MU
 include from MU:
   data Pivoting,
+  data QRDecomp
 end
 provide from MU: gauss-elim, qr-decomposition, lu-decomposition, gram-schmidt, data Pivoting end
 
@@ -125,6 +126,7 @@ provide:
   mtx-euclidean-norm,
   mtx-l-inf-norm,
   mtx-qr-decomposition,
+  mtx-reduced-qr-decomposition,
   mtx-lu-decomposition,
   mtx-gram-schmidt,
   mtx-is-roughly-zero,
@@ -710,12 +712,13 @@ sharing:
     end
   end,
   
-  method least-squares-solve(self, b :: Matrix) -> Matrix:
-    doc: "Returns the least-squares solution for self * x = b"
-    # Self is m*n
-    if self.rows < self.cols: # Underdetermined case
+  method least-squares-solve(A, b :: Matrix) -> Matrix:
+    doc: "Returns the least-squares solution for A * x = b"
+    # See https://en.wikipedia.org/wiki/QR_decomposition#Using_for_solution_to_linear_inverse_problems
+    # A is m*n
+    if A.rows < A.cols: # Underdetermined case
       # first find the QR factorization of the transpose of A
-      qr = self.transpose().qr-decomposition()
+      qr = A.transpose().qr-decomposition()
       q = qr.Q
       r = qr.R
       # r has the form mtx-stack(r1, zeros), extract the r1 part
@@ -724,14 +727,22 @@ sharing:
       full-r1tinv-b = r1tinv-b.stack(zero-matrix(q.cols, r1tinv-b.cols))
       q * full-r1tinv-b
     else: # Overdetermined case
-      qr = self.qr-decomposition()
-      q = qr.Q
-      r = qr.R
-      # q has the form mtx-stack(q1, zeros), extract the q1 part
-      q1 = q.submatrix(range(0, self.rows), range(0, self.cols))
-      # r has the form mtx-stack(r1, zeros), extract the r1 part
-      r1 = r.submatrix(range(0, r.cols), range(0, r.cols))
+      # See https://en.wikipedia.org/wiki/QR_decomposition#Rectangular_matrix
+      # In a full QR decomposition, A = QR with Q of size m*m and R of size m*n
+      # Q is unitary and R is upper-triangular, which means R has a block of zeros
+      # at the bottom.  So we can rewrite A = QR as
+      # A = [ Q1 Q2 ] * [ R1 0 ]^t = Q1 * R1, with Q1 of size m*n and R1 of size n*n
+      # This can be *much* smaller, and so is much more efficient to compute.
+      # Since we want A * x = b, we get Q1 * R1 * x = b, and solve for x = R1^-1 * Q1^-1 * b:
+      qr = A.reduced-qr-decomposition()
+      q1 = qr.Q
+      r1 = qr.R
       r1.inverse() * (q1.transpose() * b)
+      # A mathematically equivalent formula, but one that is less numerically stable,
+      # uses the "normal equation" A^t * A * x = A^t * b to solve:
+      # See https://en.wikipedia.org/wiki/Linear_regression#Least-squares_estimation_and_related_techniques
+      # A-t = A.transpose()
+      # (A-t * A).inverse() * (A-t * b)
     end
   end,
 
@@ -785,10 +796,17 @@ sharing:
   method qr-decomposition(self) -> {Q :: Matrix, R :: Matrix} block:
     doc: "Returns the QR Decomposition of the matrix"
     elts-array = matrix-to-2d-array(self)
-    ans = MU.qr-decomposition(elts-array, true)
+    ans = MU.qr-decomposition(elts-array, MU.full)
     { Q: matrix-from-2d-array(ans.Q, self.rows, self.rows), R: matrix-from-2d-array(ans.R, self.rows, self.cols) }
   end,
-  
+
+  method reduced-qr-decomposition(self) -> {Q :: Matrix, R :: Matrix} block:
+    doc: "Returns the reduced QR Decomposition of the matrix (when the matrix is rectangular, omits zero blocks)"
+    elts-array = matrix-to-2d-array(self)
+    ans = MU.qr-decomposition(elts-array, MU.reduced)
+    { Q: matrix-from-2d-array(ans.Q, self.rows, self.cols), R: matrix-from-2d-array(ans.R, self.cols, self.cols) }
+  end,
+
   
   method gram-schmidt(self) -> Matrix:
     doc: "Returns an orthogonal matrix whose image is the same as the span of the Matrix's columns"
@@ -1254,6 +1272,9 @@ fun mtx-lu-decomposition(m :: Matrix):
 end
 fun mtx-qr-decomposition(m :: Matrix):
   m.qr-decomposition()
+end
+fun mtx-reduced-qr-decomposition(m :: Matrix):
+  m.reduced-qr-decomposition()
 end
 fun mtx-gram-schmidt(m :: Matrix):
   m.gram-schmidt()
