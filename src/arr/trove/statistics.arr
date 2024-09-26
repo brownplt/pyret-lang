@@ -266,8 +266,9 @@ fun zip-num-lists(lol :: List<List<Number>>) -> List<List<Number>>:
   end
 end
 
-fun multiple-regression-coeffs(t :: Table, input-cols :: List<String>, output-col :: String):
-  doc: "returns a list of regression coefficients, given a table, a list of independent columns, and the corresponding output column"
+fun multiple-regression-coeffs(t :: Table, input-cols :: List<String>, output-col :: String) -> List<Number>:
+  doc: ```Input: a table t, a list of N input column names input-cols, and an output column name output-col;
+          Output: a list of regression coefficients```
   # spy: t, input-cols, output-col end
   x_s_s = zip-num-lists(input-cols.map(lam(col-name :: String): t.get-column(col-name) end))
   # spy: x_s_s end
@@ -282,15 +283,17 @@ fun multiple-regression-coeffs(t :: Table, input-cols :: List<String>, output-co
   MX.mtx-to-list(MX.mtx-least-squares-solve(mx_X, mx_Y))
 end
 
-fun multiple-regression-table(t :: Table, input-cols :: List<String>, output-col :: String):
-  doc: "returns a regression coefficient table, given a table, a list of independent columns, and the corresponding output column"
+fun multiple-regression-table(t :: Table, input-cols :: List<String>, output-col :: String) -> Table:
+  doc: ```Input: a table t, a list of N input column names input-cols, and an output column name output-col;
+          Output: a 2-column table of coefficients with column headers "coefficient-name" and "coefficient-value"```
   B = multiple-regression-coeffs(t, input-cols, output-col)
   coeff-names = input-cols.push("constant")
   [table-from-columns: {"coefficient-name"; coeff-names}, {"coefficient-value"; B}]
 end
 
 fun multiple-regression-fun(t :: Table, input-cols :: List<String>, output-col :: String) -> (List<Number> -> Number):
-  doc: "returns a predictor function, given a table, a list of independent columns, and the corresponding otuput column"
+  doc: ```Input: a table t, a list of N input column names input-cols, and an output column name output-col;
+          Output: a predictor function that takes a list of N input values and returns the predicted output value```
   B = multiple-regression-coeffs(t, input-cols, output-col)
   B_n = B.length() - 1
   fun B_pred_fn(x_s :: List<Number>) -> Number:
