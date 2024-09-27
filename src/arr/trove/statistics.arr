@@ -258,28 +258,18 @@ fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (Li
   matrix-based-multiple-regression(x_s_s, y_s)
 end
 
-fun zip-num-lists(lol :: List<List<Number>>) -> List<List<Number>>:
-  num-cols = lol.length()
-  num-rows = lol.get(0).length()
-  for map(i from range(0, num-rows)):
-    lol.map(lam(l): l.get(i) end)
-  end
-end
-
 fun multiple-regression-coeffs(t :: Table, input-cols :: List<String>, output-col :: String) -> List<Number>:
   doc: ```Input: a table t, a list of N input column names input-cols, and an output column name output-col;
           Output: a list of regression coefficients```
   # spy: t, input-cols, output-col end
-  x_s_s = zip-num-lists(input-cols.map(lam(col-name :: String): t.get-column(col-name) end))
+  x_s_s = MX.table-to-matrix(t.select-columns(input-cols))
   # spy: x_s_s end
-  y_s = t.get-column(output-col)
+  mx_Y = MX.table-to-matrix(t.select-columns([list: output-col]))
   # spy: y_s end
-  intercepts = MX.col-matrix.make(raw-array-of(1, y_s.length()))
+  intercepts = MX.col-matrix.make(raw-array-of(1, mx_Y.rows))
   # spy: intercepts end
-  mx_X = intercepts.augment(MX.lists-to-matrix(x_s_s))
+  mx_X = intercepts.augment(x_s_s)
   # spy: mx_X end
-  mx_Y = MX.col-matrix.make(raw-array-from-list(y_s))
-  # spy: mx_Y end
   MX.mtx-to-list(MX.mtx-least-squares-solve(mx_X, mx_Y))
 end
 
