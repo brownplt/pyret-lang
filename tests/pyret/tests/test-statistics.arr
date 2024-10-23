@@ -1,6 +1,7 @@
 import equality as E
 include statistics
 import lists as L
+# include tables
 
 check "numeric helpers":
   
@@ -148,4 +149,24 @@ check "multiple regression":
   y-s-i   = [list: 33, 42, 45, 51, 53, 61, 62]
   pf-i    = multiple-regression(x-s-s-i, y-s-i)
   pf-i([list: 8, 9]) is-roughly 74.52888
+end
+
+check "multiple regression api":
+  tee = table: x, y, z
+    row: 1, 1, 2
+    row: 2, 3, 5
+    row: 3, 7, 10
+  end
+  Btee = table: coefficient-name, coefficient-value
+    row: 'constant', 0
+    row: 'x', 1
+    row: 'y', 1
+  end
+  pC = multiple-regression-coeffs(tee, [list: 'x', 'y'], 'z')
+  pT = multiple-regression-table(tee, [list: 'x', 'y'], 'z')
+  pF = multiple-regression-fun(tee, [list: 'x', 'y'], 'z')
+  # pC is-roughly [list: ~-3e-15, ~1, ~1]
+  pC is-roughly [list: 0, 1, 1]
+  pT is-roughly Btee
+  pF([list: 4, 3]) is-roughly 7
 end
