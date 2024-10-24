@@ -1,5 +1,5 @@
 provide:
-  * hiding (is-kv-pairs),
+  * hiding (is-kv-pairs, is-raw-array-of-rows),
   type *
 end
 
@@ -88,7 +88,11 @@ fun empty-table(col-names :: List<String>) -> Table:
   end
 end
 
-fun table-from-raw-array(arr):
+fun is-raw-array-of-rows(ra :: RawArray<Any>) -> Boolean:
+  raw-array-fold(lam(base, elt, _): base and is-row(elt) end, true, ra, 0)
+end
+
+fun table-from-raw-array(arr :: RawArray<Any>%(is-raw-array-of-rows)) -> Table:
   col-names = raw-array-get(arr, 0).get-column-names()
   with-cols = empty-table(col-names)
   for raw-array-fold(t from with-cols, r from arr, _ from 0):
