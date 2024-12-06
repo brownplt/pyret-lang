@@ -6,6 +6,7 @@ end
 import global as G
 include from G: raw-array-duplicate end
 include lists
+import table as T
 
 type Reducer<Acc, InVal, OutVal> = {
   one :: (InVal -> {Acc; OutVal}),
@@ -92,7 +93,7 @@ fun is-raw-array-of-rows(ra :: RawArray<Any>) -> Boolean:
   raw-array-fold(lam(base, elt, _): base and is-row(elt) end, true, ra, 0)
 end
 
-fun table-from-raw-array(arr :: RawArray<Any>%(is-raw-array-of-rows)) -> Table:
+fun table-from-raw-array(arr :: T.RawArrayOfRows) -> Table:
   col-names = raw-array-get(arr, 0).get-column-names()
   with-cols = empty-table(col-names)
   for raw-array-fold(t from with-cols, r from arr, _ from 0):

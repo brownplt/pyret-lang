@@ -692,13 +692,13 @@ check "table-from-rows":
     [list:
       [raw-row: {"A"; 5}, {"B"; 7}, {"C"; 8}],
       [raw-row: {"A"; 1}, {"B"; 2}, {"C"; 3}]]]
-    raises "is-raw-array-of-rows"
+    raises "RawArrayOfRows"
 
   [table-from-rows:
     1, [raw-row: {"A"; 1}, {"B"; 2}],
     false, [raw-row: {"A"; 3}, {"B"; 4}],
     "non-row string", [raw-row: {"A"; 5}, {"B"; 6}]]
-    raises "is-raw-array-of-rows"
+    raises "RawArrayOfRows"
 
   [table-from-rows:
     [raw-row: 5, {"B"; 7}, {"C"; 8}],

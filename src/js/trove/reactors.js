@@ -219,7 +219,9 @@
               i += 1;
               return ans;
             });
-            return tables.makeTable(["tick", "state"], rows);
+            console.log('tables =', tables);
+            return gf(tables, "internal").makeTable(["tick", "state"], rows);
+            // return runtime.makeTable(["tick", "state"], rows);
           }
           else {
             runtime.ffi.throwMessageException("Tried to get trace of a reactor that isn't tracing; try calling start-trace() first");

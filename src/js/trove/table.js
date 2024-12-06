@@ -7,7 +7,11 @@
   nativeRequires: [
     "pyret-base/js/type-util"
   ],
-  provides: {},
+  provides: {
+    types: {
+      'RawArrayOfRows': 'tany'
+    }
+  },
   theModule: function(runtime, namespace, uri, VSlib, EQlib, ffi, t) {
     var get = runtime.getField;
 
@@ -22,6 +26,20 @@
 
     var brandRow = runtime.namedBrander("row", ["table: row brander"]);
     var annRow   = runtime.makeBranderAnn(brandRow, "Row");
+
+    var ann = function(name, pred) {
+      return runtime.makePrimitiveAnn(name, pred);
+    };
+
+    function isRawArrayOfRows(raor) {
+      if (!Array.isArray(raor)) return false;
+      for (let i = 0; i < raor.length; i++) {
+        if (!runtime.hasBrand(raor[i], brandRow._brand)) return false;
+      }
+      return true;
+    }
+
+    var annRawArrayOfRows = ann("RawArrayOfRows", isRawArrayOfRows);
 
     var rowGetValue = runtime.makeMethod1(function(self, arg) {
         ffi.checkArity(2, arguments, "get-value", true);
@@ -820,16 +838,20 @@
       }));
     }
     
-    return runtime.makeJSModuleReturn({
-        TableAnn : annTable,
-        RowAnn : annRow,
+    var internal = {
         makeTable: makeTable,
         makeRow: makeRow,
         makeRowFromArray: makeRowFromArray,
         openTable: openTable,
         isTable: isTable,
         isRow: isRow
-      },
-      {});
+      };
+    var types = {
+      Table: annTable, 
+      Row: annRow, 
+      RawArrayOfRows: annRawArrayOfRows
+    };
+    var values = {};
+    return runtime.makeModuleReturn(values, types, internal);
   }
 })
