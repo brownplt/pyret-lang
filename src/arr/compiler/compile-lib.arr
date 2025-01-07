@@ -558,9 +558,6 @@ fun make-standalone(wl, compiled, options):
         | module-as-string(_, _, _, rp) =>
           cases(CS.CompileResult) rp block:
             | ok(code) =>
-              when code.pyret-to-js-runnable() == "":
-                spy: uri: w.locator.uri() end
-              end
               j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
             | err(problems) =>
               all-compile-problems := problems + all-compile-problems
