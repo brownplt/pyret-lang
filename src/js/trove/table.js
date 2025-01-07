@@ -7,7 +7,11 @@
   nativeRequires: [
     "pyret-base/js/type-util"
   ],
-  provides: {},
+  provides: {
+    types: {
+      'RawArrayOfRows': 'tany'
+    }
+  },
   theModule: function(runtime, namespace, uri, VSlib, EQlib, ffi, t) {
     var get = runtime.getField;
 
@@ -23,6 +27,20 @@
     var brandRow = runtime.namedBrander("row", ["table: row brander"]);
     var annRow   = runtime.makeBranderAnn(brandRow, "Row");
 
+    var ann = function(name, pred) {
+      return runtime.makePrimitiveAnn(name, pred);
+    };
+
+    function isRawArrayOfRows(raor) {
+      if (!Array.isArray(raor)) return false;
+      for (let i = 0; i < raor.length; i++) {
+        if (!runtime.hasBrand(raor[i], brandRow._brand)) return false;
+      }
+      return true;
+    }
+
+    var annRawArrayOfRows = ann("RawArrayOfRows", isRawArrayOfRows);
+
     var rowGetValue = runtime.makeMethod1(function(self, arg) {
         ffi.checkArity(2, arguments, "get-value", true);
         runtime.checkArgsInternal2("tables", "get-value",
@@ -36,6 +54,19 @@
         }
       });
 
+    var rowGet = runtime.makeMethod1(function(self, arg) {
+        ffi.checkArity(2, arguments, "get-value", true);
+        runtime.checkArgsInternal2("tables", "get-value",
+          self, annRow, arg, runtime.String);
+        var index = self.$underlyingTable.headerIndex["column:" + arg];
+        if(typeof index === "number") {
+          return ffi.makeSome(self.$rowData[index]);
+        }
+        else {
+          return ffi.makeNone();
+        }
+      });
+    
     var rowGetColumns = runtime.makeMethod0(function(self) {
         ffi.checkArity(1, arguments, "get-column-names", true);
         var cols = Object.keys(self.$underlyingTable.headerIndex).map(function(k) {
@@ -87,6 +118,7 @@
     function makeRow(underlyingTable, rowData) {
       var rowVal = runtime.makeObject({
         "get-value": rowGetValue,
+        "get": rowGet,
         "get-column-names": rowGetColumns,
         "_output": rowOutput,
         "_equals": rowEquals
@@ -311,7 +343,7 @@
           return runtime.equal_always(l[index], r[index]);
         });
         return runtime.safeCall(function() {
-          return runtime.getField(asList, "sort-by").app(compare, equal);
+          return runtime.getField(asList, "stable-sort-by").app(compare, equal);
         }, function(sortedList) {
           return makeTable(headers, runtime.ffi.toArray(sortedList));
         }, "order-sort-by");
@@ -439,8 +471,7 @@
 
         'row-n': runtime.makeMethod1(function(self, row) {
           ffi.checkArity(2, arguments, "row-n", true);
-          runtime.checkArgsInternal2("tables", "row-n", self, annTable, row, runtime.NumInteger);
-          runtime.checkNumNonNegative(row); // NOTE(Ben): These should be converted to a call to checkArgsInternal
+          runtime.checkArgsInternal2("tables", "row-n", self, annTable, row, runtime.NumNatural);
           var rowFix = runtime.num_to_fixnum(row);
           if(rowFix >= rows.length) {
             throw runtime.ffi.throwMessageException("row-n-too-large");
@@ -474,8 +505,7 @@
 
         'column-n': runtime.makeMethod1(function(self, n) {
           ffi.checkArity(2, arguments, "column-n", true);
-          runtime.checkArgsInternal2("tables", "column-n", self, annTable, n, runtime.NumInteger);
-          runtime.checkNumNonNegative(n); // NOTE(Ben): These should be converted to checkArgsInternal1
+          runtime.checkArgsInternal2("tables", "column-n", self, annTable, n, runtime.NumNatural);
           var lookupIndex = runtime.num_to_fixnum(n);
           if(lookupIndex >= headers.length) {
             throw runtime.ffi.throwMessageException("column-n-too-large");
@@ -552,7 +582,7 @@
                 var reducerWrapped = runtime.makeFunction(function(acc, val, ix) {
                   return reduce.app(runtime.getTuple(acc, 0, ["tables"]), val);
                 });
-                return runtime.raw_array_fold(reducerWrapped, one, column.slice(1), 1);
+                return runtime.raw_array_fold(reducerWrapped, one, column, 1);
               }
             }, "reduce-one");
           }, function(answerTuple) {
@@ -808,16 +838,20 @@
       }));
     }
     
-    return runtime.makeJSModuleReturn({
-        TableAnn : annTable,
-        RowAnn : annRow,
+    var internal = {
         makeTable: makeTable,
         makeRow: makeRow,
         makeRowFromArray: makeRowFromArray,
         openTable: openTable,
         isTable: isTable,
         isRow: isRow
-      },
-      {});
+      };
+    var types = {
+      Table: annTable, 
+      Row: annRow, 
+      RawArrayOfRows: annRawArrayOfRows
+    };
+    var values = {};
+    return runtime.makeModuleReturn(values, types, internal);
   }
 })

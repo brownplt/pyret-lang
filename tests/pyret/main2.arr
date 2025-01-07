@@ -10,6 +10,8 @@ import file("./tests/test-binops.arr") as _
 import file("./tests/test-letrec.arr") as _
 import file("./tests/test-output.arr") as _
 import file("./tests/test-array.arr") as _
+import file("./tests/test-matrices.arr") as _
+import file("./tests/test-matrices2.arr") as _
 import file("./tests/test-constructors.arr") as _
 import file("./tests/test-contracts.arr") as _
 import file("./tests/test-s-exp.arr") as _
@@ -47,6 +49,7 @@ import file("./tests/test-import-variable.arr") as _
 import file("./tests/test-constants.arr") as _
 import file("./tests/test-constants-scope.arr") as _
 import file("./tests/test-modules.arr") as _
+import file("./tests/test-timing.arr") as _
 import file("./tests/modules/include-shadow-same.arr") as _
 import file("./tests/modules/import-re-provided.arr") as _
 import file("./tests/modules/test-import-re-provided-data.arr") as _

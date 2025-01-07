@@ -714,6 +714,109 @@ module-const-either = t-module("builtin://either",
   SD.make-string-dict()
     .set("Either", t-either))
 
+module-const-valueskeleton = t-module("builtin://valueskeleton",
+  t-record([string-dict:
+      "ValueSkeleton", t-arrow([list: t-top], t-boolean),
+      "is-ValueSkeleton", t-arrow([list: t-top], t-boolean),
+      "vs-str", t-arrow([list: t-string], t-value-skeleton),
+      "is-vs-str", t-arrow([list: t-top], t-boolean),
+      "vs-value", t-arrow([list: t-top], t-value-skeleton),
+      "is-vs-value", t-arrow([list: t-top], t-boolean),
+      "vs-collection", t-arrow([list: t-string, t-list-app(t-top)], t-value-skeleton),
+      "is-vs-collection", t-arrow([list: t-top], t-boolean),
+      "vs-constr", t-arrow([list: t-string, t-list-app(t-top)], t-value-skeleton),
+      "is-vs-constr", t-arrow([list: t-top], t-boolean),
+      "vs-table", t-arrow([list: t-array(t-string), t-array(t-array(t-top))], t-value-skeleton),
+      "is-table", t-arrow([list: t-top], t-boolean),
+      "vs-row", t-arrow([list: t-array(t-string), t-array(t-top)], t-value-skeleton),
+      "is-row", t-arrow([list: t-top], t-boolean),
+      "vs-seq", t-arrow([list: t-list-app(t-top)], t-value-skeleton),
+      "is-seq", t-arrow([list: t-top], t-boolean)
+  ]),
+  SD.make-string-dict()
+    .set("ValueSkeleton", t-data(
+      "ValueSkeleton",
+      [list: ],
+      [list:
+        t-variant("vs-str",
+          [list:
+            {"s"; t-string}
+          ],
+          [string-dict:
+            "_match", t-top,
+          ]
+          ),
+        t-variant("vs-value",
+          [list:
+            {"s"; t-top}
+          ],
+          [string-dict:
+            "_match", t-top,
+          ]
+          ),
+        t-variant("vs-collection",
+          [list:
+            {"name"; t-string},
+            {"args"; t-list-app(t-top)}
+          ],
+          [string-dict:
+            "_match", t-top,
+          ]
+          ),
+        t-variant("vs-constr",
+          [list:
+            {"name"; t-string},
+            {"args"; t-list-app(t-top)}
+          ],
+          [string-dict:
+            "_match", t-top,
+          ]
+          ),
+        t-variant("vs-table",
+          [list:
+            {"headers"; t-array(t-string)},
+            {"rows"; t-array(t-array(t-top))}
+          ],
+          [string-dict:
+            "_match", t-top,
+          ]
+          ),
+        t-variant("vs-row",
+          [list:
+            {"headers"; t-array(t-string)},
+            {"values"; t-array(t-top)}
+          ],
+          [string-dict:
+            "_match", t-top,
+          ]
+          ),
+        t-variant("vs-seq",
+          [list:
+            {"items"; t-list-app(t-top)}
+          ],
+          [string-dict:
+            "_match", t-top,
+          ]
+          ),
+        t-variant("vs-matrix",
+          [list:
+            {"rows"; t-number},
+            {"cols"; t-number},
+            {"items"; t-array(t-top)}
+          ],
+          [string-dict:
+            "_match", t-top,
+          ]
+          ),
+      ],
+        [string-dict:
+        "_match", t-top
+      ])
+    ),
+  SD.make-string-dict()
+    .set("ValueSkeleton", t-value-skeleton))
+
+  
 s-exp-struct-mems = [string-dict:
   "s-list", t-arrow([list: t-list-app(t-s-exp)], t-s-exp),
   "s-num", t-arrow([list: t-number], t-s-exp),
@@ -853,6 +956,7 @@ default-modules.set-now("builtin://sets", module-const-sets)
 default-modules.set-now("builtin://s-exp", module-const-s-exp)
 default-modules.set-now("builtin://s-exp-structs", module-const-s-exp-structs)
 default-modules.set-now("builtin://json-structs", module-const-json-structs)
+default-modules.set-now("builtin://valueskeleton", module-const-valueskeleton)
 shadow default-modules = default-modules.freeze()
 
 fun make-default-modules() block:

@@ -93,6 +93,13 @@ check "bad objects":
   run-str("{__proto__: 42}") is%(output) compile-error(CS.is-reserved-name)
 end
 
+check "bad constructors":
+  run-str("data Foo: return end") is%(output) compile-error(CS.is-reserved-name)
+  run-str("data Foo: return(x) end") is%(output) compile-error(CS.is-reserved-name)
+  run-str("cases(Foo) 5: | return => 3 end") is%(output) compile-error(CS.is-reserved-name)
+  run-str("cases(Foo) 5: | return(x) => 3 end") is%(output) compile-error(CS.is-reserved-name)
+end
+
 check "malformed blocks":
   c("fun foo():\n" + 
        " x = 10\n" + 
@@ -127,6 +134,26 @@ check "malformed blocks":
   run-str("lam(): x = 5\n fun f(): nothing end end") is%(output) compile-error(CS.is-block-ending)
   run-str("lam(): var x = 5\n y = 4\n fun f(): nothing end end") is%(output) compile-error(CS.is-block-ending)
 
+  run-str(
+    "x = 1\n" +
+    "fun f():\n" +
+    "  [list: 1]\n" +
+    "  spy: x end\n" +
+    "end") is%(output) compile-error(CS.is-block-ending)
+
+  run-str(
+    "x = 1\n" +
+    "fun f() block:\n" +
+    "  [list: 1]\n" +
+    "  spy: x end\n" +
+    "end") is%(output) compile-error(CS.is-block-ending)
+
+  run-str(
+    "x = 1\n" +
+    "fun f() block:\n" +
+    "  spy: x end\n" +
+    "  [list: 1]\n" +
+    "end") is%(output) C.success
 
   c("lam():\n" + 
        "  data D:\n" + 

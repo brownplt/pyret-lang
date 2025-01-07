@@ -1,5 +1,6 @@
 #lang pyret
 
+import constants as constants
 
 provide *
 
@@ -334,4 +335,11 @@ check "rough fractions -- proper, improper, integral -- recognized, provided den
   ~-3/2 is%(within(0.01)) ~-1.5
   num-is-roughnum(~-10/2) is true
   ~-10/2 is%(within(0.1)) ~-5
+end
+
+check:
+  constants.E is%(within(~0.0)) num-exp(1)
+  constants.e is%(within(~0.0)) num-exp(1)
+  constants.PI is%(within(~0.0)) num-acos(0) * 2
+  constants.pi is%(within(~0.0)) num-acos(0) * 2
 end

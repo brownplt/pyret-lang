@@ -264,6 +264,11 @@ check "raw-row":
   [raw-row: {"a"; 3}, {"a"; 5}] raises "Duplicate"
 
   r1["f"] raises "No such column"
+  r1.get("f") is none
+
+  r1.get("a") does-not-raise
+  r1.get("a") is some(3)
+  r1.get-value("a") is 3
 end
 
 
@@ -391,7 +396,7 @@ check "row-n":
   t.row-n(1) is [t.new-row: "beijing", 43]
 
   t.row-n(45) raises-satisfies E.is-message-exception
-  t.row-n(-4) raises-satisfies E.is-generic-type-mismatch
+  t.row-n(-4) raises-satisfies contract(_, C.is-failure-at-arg)
   t.row-n(4.3) raises-satisfies contract(_, C.is-failure-at-arg)
   t.row-n("a") raises-satisfies contract(_, C.is-failure-at-arg)
   t.row-n(44, 45) raises-satisfies E.is-arity-mismatch
@@ -682,8 +687,24 @@ check "table-from-rows":
   t4 = table-from-rows.make(raw-array-from-list(new-row-list))
 
   nothing does-not-raise # Dummy test to avoid well-formedness errors in the previous row
-end
 
+  [table-from-rows:
+    [list:
+      [raw-row: {"A"; 5}, {"B"; 7}, {"C"; 8}],
+      [raw-row: {"A"; 1}, {"B"; 2}, {"C"; 3}]]]
+    raises "RawArrayOfRows"
+
+  [table-from-rows:
+    1, [raw-row: {"A"; 1}, {"B"; 2}],
+    false, [raw-row: {"A"; 3}, {"B"; 4}],
+    "non-row string", [raw-row: {"A"; 5}, {"B"; 6}]]
+    raises "RawArrayOfRows"
+
+  [table-from-rows:
+    [raw-row: 5, {"B"; 7}, {"C"; 8}],
+    [raw-row: {"A"; 1}, {"B"; 2}, {"C"; 3}]]
+    raises "KeyValPair"
+end
 
 table-from-column = TS.table-from-column
 table-from-columns = TS.table-from-columns

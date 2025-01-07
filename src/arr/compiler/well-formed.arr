@@ -289,6 +289,7 @@ fun wf-last-stmt(block-loc, stmt :: A.Expr):
     | s-fun(l, _, _, _, _, _, _, _, _, _) => add-error(C.block-ending(l, block-loc, "fun-binding"))
     | s-data(l, _, _, _, _, _, _, _)      => add-error(C.block-ending(l, block-loc, "data definition"))
     | s-contract(l, _, _, _)              => add-error(C.block-ending(l, block-loc, "contract"))
+    | s-spy-block(l, _, _)                => add-error(C.block-ending(l, block-loc, "spy block"))
     | else => nothing
   end
 end
@@ -552,6 +553,9 @@ well-formed-visitor = A.default-iter-visitor.{
     when (name == "_"):
       add-error(C.underscore-as-pattern(pat-loc))
     end
+    when (reserved-names.has-key(name)):
+      reserved-name(pat-loc, name)
+    end
     ensure-unique-ids(args.map(_.bind))
     ans = lists.all(_.visit(self), args) and body.visit(self)
     parent-block-loc := old-pbl
@@ -562,6 +566,9 @@ well-formed-visitor = A.default-iter-visitor.{
     parent-block-loc := l
     when (name == "_"):
       add-error(C.underscore-as-pattern(pat-loc))
+    end
+    when (reserved-names.has-key(name)):
+      reserved-name(pat-loc, name)
     end
     ans = body.visit(self)
     parent-block-loc := old-pbl
@@ -1058,6 +1065,9 @@ top-level-visitor = A.default-iter-visitor.{
     true
   end,
   method s-variant(self, l, constr-loc, name, binds, with-members) block:
+    when (reserved-names.has-key(name)):
+      reserved-name(constr-loc, name)
+    end
     for each(one-bind from binds.map(_.bind)):
       cases(A.Bind) one-bind:
         | s-bind(_,_,_,_) => nothing
@@ -1076,6 +1086,9 @@ top-level-visitor = A.default-iter-visitor.{
     true
   end,
   method s-singleton-variant(self, l, name, with-members) block:
+    when (reserved-names.has-key(name)):
+      reserved-name(l, name)
+    end
     ensure-unique-ids(fields-to-binds(with-members))
     lists.each(_.visit(well-formed-visitor), with-members)
     true

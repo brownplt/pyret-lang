@@ -690,7 +690,7 @@ data CompileError:
           ED.text(" errored:")],
         ED.cmcode(self.loc),
         [ED.para:
-          ED.text("This name is reserved is reserved by Pyret, and cannot be used as an identifier.")]]
+          ED.text("This name is reserved by Pyret, and cannot be used in a definition.")]]
     end,
     method render-reason(self):
       [ED.error:
@@ -699,7 +699,7 @@ data CompileError:
           ED.code(ED.text(self.id)),
           ED.text(" at "),
           ED.loc(self.loc),
-          ED.text(" is reserved by Pyret, and cannot be used as an identifier.")]]
+          ED.text(" is reserved by Pyret, and cannot be used in a definition.")]]
     end
   | contract-on-import(loc :: Loc, name :: String, import-loc :: Loc, import-uri :: String) with:
     method render-fancy-reason(self):
@@ -1329,7 +1329,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The identifier "),
+              ED.text("The name "),
               ED.code(ED.text(self.name.toname())),
               ED.text(" at "),
               ED.loc(self.name-loc),
@@ -1348,14 +1348,14 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The identifier "),
+              ED.text("The name "),
               ED.code(ED.highlight(ED.text(self.id.id.toname()), [ED.locs: self.id.l], 0)),
               ED.text(" is unbound:")],
              ED.cmcode(self.id.l),
             [ED.para:
               ED.text("It is "),
               ED.highlight(ED.text("used"), [ED.locs: self.id.l], 0),
-              ED.text(" but not previously defined.")]]
+              ED.text(" but not previously defined.  You may need to run the program, or check dashes and capitalization in the name.")]]
       end
     end,
     method render-reason(self):
@@ -1368,12 +1368,12 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The identifier "),
+              ED.text("The name "),
               ED.code(ED.text(self.id.id.toname())),
               ED.text(" at "),
               ED.loc(self.id.l),
               ED.text(" is unbound. It is "),
-              ED.text("used but not previously defined.")]]
+              ED.text("used but not previously defined.  You may need to run the program, or check dashes and capitalization in the name.")]]
       end
     end
   | unbound-var(id :: String, loc :: Loc) with:
@@ -1391,7 +1391,7 @@ data CompileError:
               ED.code(ED.highlight(ED.text(self.id), [ED.locs: self.loc], 0)),
               ED.text(" is unbound. It is "),
               ED.highlight(ED.text("assigned to"), [ED.locs: self.loc], 0),
-              ED.text(" but not previously defined.")]]
+              ED.text(" but not previously defined.  You may need to run the program, or check dashes and capitalization in the name.")]]
       end
     end,
     method render-reason(self):
@@ -1409,7 +1409,7 @@ data CompileError:
               ED.text(" at "),
               ED.loc(self.loc),
               ED.text(" is unbound. It is "),
-              ED.text("used but not previously defined.")]]
+              ED.text("used but not previously defined.  You may need to run the program, or check dashes and capitalization in the name.")]]
       end
     end
   | unbound-type-id(ann :: A.Ann) with:
@@ -1512,7 +1512,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The "),
-          ED.highlight(ED.text("identifier"), [ED.locs: self.loc], self.loc),
+          ED.highlight(ED.text("name"), [ED.locs: self.loc], self.loc),
           ED.text(" is used in a dot-annotation")],
         ED.cmcode(self.loc),
         [ED.para:
@@ -1522,7 +1522,7 @@ data CompileError:
       #### TODO ###
       [ED.error:
         [ED.para-nospace:
-          ED.text("Identifier "),
+          ED.text("The name "),
           ED.text(tostring(self.name)),
           ED.text(" is used in a dot-annotation at "),
           draw-and-highlight(self.loc),
@@ -1592,7 +1592,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("Defining the anonymous recursive identifier "),
+              ED.text("Defining the anonymous recursive binding "),
               ED.code(ED.text("rec _")),
               ED.text(" at "),
               ED.loc(self.loc),
@@ -1626,7 +1626,7 @@ data CompileError:
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The anonymous identifier "),
+              ED.text("The anonymous binding "),
               ED.code(ED.text("shadow _")),
               ED.text(" at "),
               ED.loc(self.loc),
@@ -1824,9 +1824,9 @@ data CompileError:
         | builtin(_) =>
           [ED.error:
             [ED.para:
-              ED.text("The declaration of the identifier named "),
+              ED.text("The declaration named "),
               ED.highlight(ED.code(ED.text(self.id)), [list: self.new-loc], new-loc-color),
-              ED.text(" is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.text(" is preceeded in the same scope by another declaration also named "),
               ED.highlight(ED.code(ED.text(self.id)), [list: self.old-loc], old-loc-color),
               ED.text(".")]]
         | srcloc(_, _, _, _, _, _, _) =>
@@ -1846,22 +1846,22 @@ data CompileError:
         | builtin(_) =>
           [ED.error:
             [ED.para:
-              ED.text("The declaration of the identifier named "),
+              ED.text("The declaration named "),
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.new-loc),
-              ED.text(" is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.text(" is preceeded in the same scope by another declaration also named "),
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.old-loc)]]
         | srcloc(_, _, _, _, _, _, _) =>
           [ED.error:
             [ED.para:
-              ED.text("The declaration of the identifier named "),
+              ED.text("The declaration named "),
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.new-loc),
-              ED.text(" is preceeded in the same scope by a declaration of an identifier also named "),
+              ED.text(" is preceeded in the same scope by another declaration also named "),
               ED.code(ED.text(self.id)),
               ED.text(" at "),
               ED.loc(self.old-loc)]]
@@ -1894,7 +1894,7 @@ data CompileError:
           ED.code(ED.text(self.id)),
           ED.text(" at "),
           ED.loc(self.new-loc),
-          ED.text(" is preceeded in the same object by a field of an identifier also named "),
+          ED.text(" is preceeded in the same object by a field that is also named "),
           ED.code(ED.text(self.id)),
           ED.text(" at "),
           ED.loc(self.old-loc),

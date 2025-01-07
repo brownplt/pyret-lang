@@ -22,7 +22,7 @@ define("pyret-base/js/post-load-hooks", function() {
         runtime["checkEQ"] = runtime.makeCheckType(ffi.isEqualityResult, "EqualityResult");
       },
       "builtin://table": function(table) {
-        table = table.jsmod;
+        table = runtime.getField(runtime.getField(table, "provide-plus-types"), "internal");
         runtime["makeTable"] = table.makeTable;
         runtime["makeRow"] = table.makeRow;
         runtime["makeRowFromArray"] = table.makeRowFromArray;
