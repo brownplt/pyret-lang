@@ -81,74 +81,116 @@ fun uri-to-path(uri, name):
   name + "-" + crypto.sha256(uri)
 end
 
+# NOTE(joe): This is just a little one-off type to represent a simple
+# situation: Builtin pure-JS files are stored in single files with a hash
+# followed by .js, while builtin Pyret files are stored in two files – one with
+# just static info and one with all the generated code. The CLI system needs to
+# know which kind it is to look up the right cached files
+
+data CachedType:
+  | split
+  | single-file
+end
+
+# NOTE(joe): This has its arguments listed instead of taking a Locator because
+# when we have cached, built standalones in releases, we need to do this check
+# without constructing a locator that knows about the source. In that case,
+# it's fine to pass a modified time of 0 to indicate that we're always happy
+# with the compiled version of the file.
+
+fun cached-available(basedir, uri, name, modified-time) -> Option<CachedType>:
+  saved-path = P.join(basedir, uri-to-path(uri, name))
+
+  if (F.file-exists(saved-path + "-static.js") and
+      (F.file-times(saved-path + "-static.js").mtime > modified-time)):
+    some(split)
+  else if (F.file-exists(saved-path + ".js") and
+      (F.file-times(saved-path + ".js").mtime > modified-time)):
+    some(single-file)
+  else:
+    none
+  end
+end
+
+fun get-cached(basedir, uri, name, cache-type):
+  saved-path = P.join(basedir, uri-to-path(uri, name))
+  {static-path; module-path} = cases(CachedType) cache-type:
+                # NOTE(joe): leaving off .js because builtin-raw-locator below
+                # expects no extension
+    | split => {saved-path + "-static"; saved-path + "-module"}
+    | single-file => {saved-path; saved-path}
+  end
+  raw = B.builtin-raw-locator(static-path)
+  {
+    method get-uncached(_): none end,
+    method needs-compile(_, _): false end,
+    method get-modified-time(self):
+      0
+      # F.file-times(static-path + ".js").mtime
+    end,
+    method get-options(self, options):
+      options.{ checks: "none" }
+    end,
+    method get-module(_):
+      raise("Should never fetch source for builtin module " + static-path)
+    end,
+    method get-extra-imports(self):
+      CS.standard-imports
+    end,
+    method get-dependencies(_):
+      deps = raw.get-raw-dependencies()
+      raw-array-to-list(deps).map(CS.make-dep)
+    end,
+    method get-native-modules(_):
+      natives = raw.get-raw-native-modules()
+      raw-array-to-list(natives).map(CS.requirejs)
+    end,
+    method get-globals(_):
+      CS.standard-globals
+    end,
+
+    method uri(_): uri end,
+    method name(_): name end,
+
+    method set-compiled(_, _, _): nothing end,
+    method get-compiled(self):
+      provs = CS.provides-from-raw-provides(self.uri(), {
+          uri: self.uri(),
+          values: raw-array-to-list(raw.get-raw-value-provides()),
+          aliases: raw-array-to-list(raw.get-raw-alias-provides()),
+          datatypes: raw-array-to-list(raw.get-raw-datatype-provides()),
+          modules: raw-array-to-list(raw.get-raw-module-provides())
+        })
+      some(CL.module-as-string(provs, CS.no-builtins, CS.computed-none,
+          CS.ok(JSP.ccp-file(F.real-path(module-path + ".js")))))
+    end,
+
+    method _equals(self, other, req-eq):
+      req-eq(self.uri(), other.uri())
+    end
+  }
+end
+
 fun get-cached-if-available(basedir, loc) block:
   get-cached-if-available-known-mtimes(basedir, loc, [SD.string-dict:])
 end
 fun get-cached-if-available-known-mtimes(basedir, loc, max-dep-times) block:
   saved-path = P.join(basedir, uri-to-path(loc.uri(), loc.name()))
-  #print("Looking for builtin module " + loc.uri() + " at: " + saved-path + "\n")
   dependency-based-mtime =
     if max-dep-times.has-key(loc.uri()): max-dep-times.get-value(loc.uri())
     else: loc.get-modified-time()
     end
-  if not(F.file-exists(saved-path + "-static.js")) or
-     (F.file-times(saved-path + "-static.js").mtime < dependency-based-mtime) block:
-    #print("It wasn't there\n")
-    cases(Option) loc.get-uncached():
-      | some(shadow loc) => loc
-      | none => loc
-    end
-  else:
-    uri = loc.uri()
-    static-path = saved-path + "-static"
-    raw = B.builtin-raw-locator(static-path)
-    {
-      method get-uncached(self): some(loc) end,
-      method needs-compile(_, _): false end,
-      method get-modified-time(self):
-        F.file-times(static-path + ".js").mtime
-      end,
-      method get-options(self, options):
-        options.{ check-mode: false }
-      end,
-      method get-module(_):
-        raise("Should never fetch source for builtin module " + static-path)
-      end,
-      method get-extra-imports(self):
-        CS.standard-imports
-      end,
-      method get-dependencies(_):
-        deps = raw.get-raw-dependencies()
-        raw-array-to-list(deps).map(CS.make-dep)
-      end,
-      method get-native-modules(_):
-        natives = raw.get-raw-native-modules()
-        raw-array-to-list(natives).map(CS.requirejs)
-      end,
-      method get-globals(_):
-        CS.standard-globals
-      end,
-
-      method uri(_): uri end,
-      method name(_): loc.name() end,
-
-      method set-compiled(_, _, _): nothing end,
-      method get-compiled(self):
-        provs = CS.provides-from-raw-provides(self.uri(), {
-            uri: self.uri(),
-            modules: raw-array-to-list(raw.get-raw-module-provides()),
-            values: raw-array-to-list(raw.get-raw-value-provides()),
-            aliases: raw-array-to-list(raw.get-raw-alias-provides()),
-            datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
-          })
-        some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none,
-            CS.ok(JSP.ccp-file(F.real-path(saved-path + "-module.js")))))
-      end,
-
-      method _equals(self, other, req-eq):
-        req-eq(self.uri(), other.uri())
+  cached-type = cached-available(basedir, loc.uri(), loc.name(), dependency-based-mtime)
+  cases(Option) cached-type:
+    | none =>
+      cases(Option) loc.get-uncached():
+        | some(shadow loc) => loc
+        | none => loc
       end
-    }
+
+    | some(ct) => get-cached(basedir, loc.uri(), loc.name(), ct).{
+        method get-uncached(self): some(loc) end
+      }
   end
 end
 
@@ -157,9 +199,24 @@ fun get-file-locator(basedir, real-path):
   get-cached-if-available(basedir, loc)
 end
 
-fun get-builtin-locator(basedir, modname):
-  loc = BL.make-builtin-locator(modname)
-  get-cached-if-available(basedir, loc)
+fun get-builtin-locator(basedir, read-only-basedirs, modname):
+  all-dirs = link(basedir, read-only-basedirs)
+
+  first-available = for find(rob from all-dirs):
+    is-some(cached-available(rob, "builtin://" + modname, modname, 0))
+  end
+  cases(Option) first-available:
+    | none =>
+      cases(Option) BL.maybe-make-builtin-locator(modname) block:
+        | some(loc) =>
+          get-cached-if-available(basedir, loc)
+        | none =>
+          raise("Could not find builtin module " + modname + " in any of " + all-dirs.join-str(", "))
+      end
+    | some(ro-basedir) =>
+      ca = cached-available(ro-basedir, "builtin://" + modname, modname, 0).or-else(split)
+      get-cached(ro-basedir, "builtin://" + modname, modname, ca)
+  end
 end
 
 fun get-builtin-test-locator(basedir, modname):
@@ -169,16 +226,24 @@ fun get-builtin-test-locator(basedir, modname):
   get-cached-if-available(basedir, loc)
 end
 
-fun get-loadable(basedir, l, max-dep-times) -> Option<Loadable>:
+fun get-loadable(basedir, read-only-basedirs, l, max-dep-times) -> Option<Loadable>:
   locuri = l.locator.uri()
-  saved-path = P.join(basedir, uri-to-path(locuri, l.locator.name()))
-  if not(F.file-exists(saved-path + "-static.js")) or
-     (F.file-times(saved-path + "-static.js").mtime < max-dep-times.get-value(locuri)):
-    if not(F.file-exists(saved-path + ".js")) or
-       (F.file-times(saved-path + ".js").mtime < max-dep-times.get-value(locuri)):
-       none
-    else:
-      raw-static = B.builtin-raw-locator(saved-path)
+#  cached = cached-available(basedir, l.locator.uri(), l.locator.name(), l.locator.get-modified-time())
+  first-available = for find(rob from link(basedir, read-only-basedirs)):
+    is-some(cached-available(rob, l.locator.uri(), l.locator.name(), max-dep-times.get-value(locuri)))
+  end
+  cases(Option) first-available block:
+    | none => none
+    | some(found-basedir) => 
+      c = cached-available(found-basedir, l.locator.uri(), l.locator.name(), max-dep-times.get-value(locuri))
+      saved-path = P.join(found-basedir, uri-to-path(locuri, l.locator.name()))
+      {static-path; module-path} = cases(CachedType) c.or-else(single-file):
+        | split =>
+          {saved-path + "-static"; saved-path + "-module.js"}
+        | single-file =>
+          {saved-path; saved-path + ".js"}
+      end
+      raw-static = B.builtin-raw-locator(static-path)
       provs = CS.provides-from-raw-provides(locuri, {
         uri: locuri,
         modules: raw-array-to-list(raw-static.get-raw-module-provides()),
@@ -186,18 +251,7 @@ fun get-loadable(basedir, l, max-dep-times) -> Option<Loadable>:
         aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
       })
-      some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(saved-path + ".js"))))
-    end
-  else:
-    raw-static = B.builtin-raw-locator(saved-path + "-static")
-    provs = CS.provides-from-raw-provides(locuri, {
-      uri: locuri,
-      modules: raw-array-to-list(raw-static.get-raw-module-provides()),
-      values: raw-array-to-list(raw-static.get-raw-value-provides()),
-      aliases: raw-array-to-list(raw-static.get-raw-alias-provides()),
-      datatypes: raw-array-to-list(raw-static.get-raw-datatype-provides())
-    })
-    some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(saved-path + "-module.js"))))
+      some(CS.module-as-string(provs, CS.no-builtins, CS.computed-none, CS.ok(JSP.ccp-file(module-path))))
   end
 end
 
@@ -209,27 +263,33 @@ fun set-loadable(basedir, locator, loadable) -> String block:
   locuri = loadable.provides.from-uri
   cases(CS.CompileResult) loadable.result-printer block:
     | ok(ccp) =>
-      cases(JSP.CompiledCodePrinter) ccp block:
-        | ccp-dict(dict) =>
-          save-static-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-static.js")
-          save-module-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-module.js")
-          fs = F.output-file(save-static-path, false)
-          fm = F.output-file(save-module-path, false)
-          ccp.print-js-static(fs.display)
-          ccp.print-js-runnable(fm.display)
-          fs.flush()
-          fs.close-file()
-          fm.flush()
-          fm.close-file()
-          save-module-path
-        | else =>
-          save-path = P.join(basedir, uri-to-path(locuri, locator.name()) + ".js")
-          f = F.output-file(save-path, false)
-          ccp.print-js-runnable(f.display)
-          f.flush()
-          f.close-file()
-          save-path
+      save-static-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-static.js")
+      save-module-path = P.join(basedir, uri-to-path(locuri, locator.name()) + "-module.js")
+      fs = F.output-file(save-static-path, false)
+      fm = F.output-file(save-module-path, false)
+
+      ccp.print-js-runnable(fm.display)
+
+      # NOTE(joe August 2017): This is a little bit dumb. When caching a file,
+      # if we have enough information, split it into -static and -module
+      # pieces.  If we don't have a dictionary of this information, save two
+      # copies of it. We simply don't have enough metadata floating around to
+      # make good decisions at fetch time. The copying is fairly innocuous,
+      # because it only happens for hand-written JS files, which are smaller.
+      # But this is a point to revisit.
+
+      if JSP.is-ccp-dict(ccp):
+        ccp.print-js-static(fs.display)
+      else:
+        ccp.print-js-runnable(fs.display)
       end
+
+      fs.flush()
+      fs.close-file()
+      fm.flush()
+      fm.close-file()
+
+      save-module-path
     | err(_) => ""
   end
 end
@@ -264,7 +324,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         l = get-builtin-test-locator(ctxt.cache-base-dir, args.first)
         force-check-mode = l.{
           method get-options(self, options):
-            options.{ check-mode: true, type-check: false }
+            options.{ checks: "all", type-check: false }
           end
         }
         CL.located(force-check-mode, ctxt)
@@ -287,25 +347,28 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         raise("Unknown import type: " + protocol)
       end
     | builtin(modname) =>
-      CL.located(get-builtin-locator(ctxt.cache-base-dir, modname), ctxt)
+      CL.located(get-builtin-locator(ctxt.cache-base-dir, ctxt.compiled-read-only-dirs, modname), ctxt)
   end
 end
 
 default-start-context = {
   current-load-path: P.resolve("./"),
-  cache-base-dir: P.resolve("./compiled")
+  cache-base-dir: P.resolve("./compiled"),
+  compiled-read-only-dirs: empty
 }
 
 default-test-context = {
   current-load-path: P.resolve("./"),
-  cache-base-dir: P.resolve("./tests/compiled")
+  cache-base-dir: P.resolve("./tests/compiled"),
+  compiled-read-only-dirs: empty
 }
 
 fun compile(path, options):
   base-module = CS.dependency("file", [list: path])
   base = module-finder({
-    current-load-path: P.resolve("./"),
-    cache-base-dir: options.compiled-cache
+    current-load-path: P.resolve(options.base-dir),
+    cache-base-dir: options.compiled-cache,
+    compiled-read-only-dirs: options.compiled-read-only.map(P.resolve)
   }, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
   compiled = CL.compile-program(wl, options)
@@ -367,8 +430,9 @@ fun build-program(path, options, stats) block:
   print-progress(str)
   base-module = CS.dependency("file", [list: path])
   base = module-finder({
-    current-load-path: P.resolve("./"),
-    cache-base-dir: options.compiled-cache
+    current-load-path: P.resolve(options.base-dir),
+    cache-base-dir: options.compiled-cache,
+    compiled-read-only-dirs: options.compiled-read-only.map(P.resolve)
   }, base-module)
   clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
@@ -381,11 +445,14 @@ fun build-program(path, options, stats) block:
 
   clear-and-print("Loading existing compiled modules...")
 
-  starter-modules = CL.modules-from-worklist(wl, get-loadable(options.compiled-cache, _, _))
+  starter-modules = CL.modules-from-worklist(wl, get-loadable(options.compiled-cache, options.compiled-read-only.map(P.resolve), _, _))
 
-  total-modules = wl.length()
   cached-modules = starter-modules.count-now()
-  var num-compiled = cached-modules
+  total-modules = wl.length() - cached-modules
+  var num-compiled = 0
+  when total-modules == 0:
+    clear-and-print("All modules already compiled. Cleaning up and generating standalone...\n")
+  end
   shadow options = options.{
     method should-profile(_, locator):
       options.add-profiling and (locator.uri() == base.locator.uri())
@@ -422,7 +489,8 @@ fun build-program(path, options, stats) block:
       end
     end
   }
-  CL.compile-standalone(wl, starter-modules, options)
+  ans = CL.compile-standalone(wl, starter-modules, options)
+  ans
 end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
@@ -442,15 +510,18 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
     | left(problems) =>
       handle-compilation-errors(problems, options)
     | right(program) =>
-      config.set-now("out", JSON.j-str(outfile))
+      shadow require-config-path = if not( P.is-absolute( require-config-path ) ):
+          P.resolve(P.join(options.base-dir, require-config-path))
+        else: require-config-path
+        end
+      config.set-now("out", JSON.j-str(P.resolve(P.join(options.base-dir, outfile))))
       when not(config.has-key-now("baseUrl")):
         config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
       end
 
       when options.collect-times: stats.set-now("standalone", time-now()) end
       make-standalone-res = MS.make-standalone(program.natives, program.js-ast,
-        JSON.j-obj(config.freeze()).serialize(), options.standalone-file,
-        options.deps-file, options.this-pyret-dir)
+        JSON.j-obj(config.freeze()).serialize(), options)
 
       html-res = if is-some(options.html-file):
         MS.make-html-file(outfile, options.html-file.value)
@@ -459,7 +530,7 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
       end
 
       ans = make-standalone-res and html-res
-
+      
       when options.collect-times block:
         standalone-end = time-now() - stats.get-value-now("standalone")
         stats.set-now("standalone", [list: "Outputing JS: " + tostring(standalone-end) + "ms"])

@@ -6,6 +6,7 @@ import ast as A
 import srcloc as SL
 import error-display as ED
 import string-dict as SD
+import pathlib as P
 import file("concat-lists.arr") as CL
 import file("type-structs.arr") as T
 import file("js-ast.arr") as J
@@ -2933,9 +2934,12 @@ type CompileOptions = {
 }
 
 default-compile-options = {
+  add-profiling: false,
+  base-dir: ".",
   this-pyret-dir: ".",
   check-mode : true,
   check-all : true,
+  checks: "all",
   type-check : false,
   enable-spies: true,
   allow-shadowed : false,
@@ -2945,7 +2949,10 @@ default-compile-options = {
   proper-tail-calls: true,
   inline-case-body-limit: 5,
   module-eval: true,
+  user-annotations: true,
+  runtime-annotations: true,
   compiled-cache: "compiled",
+  compiled-read-only: empty,
   display-progress: true,
   should-profile: method(_, locator): false end,
   log: lam(s, to-clear):
@@ -2967,6 +2974,15 @@ default-compile-options = {
   deps-file: "build/bundled-node-deps.js",
   standalone-file: "src/js/base/handalone.js"
 }
+
+fun make-default-compile-options(this-pyret-dir):
+  default-compile-options.{
+    base-dir: ".",
+    this-pyret-dir: this-pyret-dir,
+    deps-file: P.resolve(P.join(this-pyret-dir, "bundled-node-deps.js")),
+    standalone-file: P.resolve(P.join(this-pyret-dir, "js/handalone.js")),
+  }
+end
 
 t-pred = t-arrow([list: t-top], t-boolean)
 t-pred2 = t-arrow([list: t-top, t-top], t-boolean)
