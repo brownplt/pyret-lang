@@ -26,7 +26,7 @@
     "mkdirp": "^0.5.1",
     "node-uuid": "^1.4.8",
     "q": "~1.0.1",
-    "requirejs": "~2.1.15",
+    "requirejs": "~2.3.7",
     "s-expression": "~2.2.0",
     "seedrandom": "~2.3.10",
     "sha.js": "^2.4.11",
