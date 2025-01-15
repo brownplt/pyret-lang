@@ -1,7 +1,5 @@
 PYRET_COMP0      = build/phase0/pyret.jarr
-CLOSURE          = java -jar deps/closure-compiler/compiler.jar
 NODE             = node -max-old-space-size=8192
-SWEETJS          = node_modules/sweet.js/bin/sjs --readable-names --module ./src/js/macros.js
 JS               = js
 JSBASE           = $(JS)/base
 JSTROVE          = $(JS)/trove
@@ -13,7 +11,7 @@ PHASE0           = build/phase0
 PHASEA           = build/phaseA
 PHASEB           = build/phaseB
 PHASEC           = build/phaseC
-RELEASE_DIR      = build/release
+BUNDLED_DEPS     = build/bundled-node-deps.js
 # HACK HACK HACK (See https://github.com/npm/npm/issues/3738)
 export PATH      := ./node_modules/.bin:../node_modules/.bin:../../node_modules/.bin:$(PATH)
 SHELL := /bin/bash
@@ -25,29 +23,6 @@ COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBA
 COPY_LIB         = $(wildcard lib/jglr/*.js)
 COMPILER_FILES = $(wildcard src/arr/compiler/*.js) $(wildcard src/arr/compiler/*.arr) $(wildcard src/arr/compiler/locators/*.arr) $(wildcard src/js/trove/*.js) $(wildcard src/arr/trove/*.arr)
 TROVE_ARR_FILES = $(wildcard src/arr/trove/*.arr)
-
-# You can download the script to work with s3 here:
-#
-#     http://aws.amazon.com/code/Amazon-S3/1710
-#
-# On Debian, you need the following packages:
-#
-#  - libterm-shellui-perl
-#  - liblog-log4perl-perl
-#  - libnet-amazon-s3-perl
-#  - libnet-amazon-perl
-#  - libnet-amazon-s3-tools-perl
-#  - parallel
-#
-# You will then need to place your AWS id and secret in ~/.aws, in the
-# following format:
-#
-#     id     = <your aws id>
-#     secret = <your aws secret>
-#
-# Make sure that the s3 script is in your PATH, or modify the value
-# below.
-S3               = s3
 
 PHASEA_ALL_DEPS := $(patsubst src/%,$(PHASEA)/%,$(COPY_JS)) $(patsubst lib/jglr/%.js,$(PHASEA)/js/%.js,$(COPY_LIB)) $(PHASEA)/bundled-node-compile-deps.js $(PHASEA)/bundled-node-deps.js $(PHASEA)/config.json
 PHASEB_ALL_DEPS := $(patsubst src/%,$(PHASEB)/%,$(COPY_JS)) $(patsubst lib/jglr/%.js,$(PHASEB)/js/%.js,$(COPY_LIB)) $(PHASEB)/bundled-node-compile-deps.js $(PHASEB)/bundled-node-deps.js $(PHASEB)/config.json
@@ -340,5 +315,3 @@ new-bootstrap: no-diff-standalone $(PHASE0BUILD)
 	cp -r $(PHASEC)/js $(PHASE0)/
 no-diff-standalone: phaseB phaseC
 	diff $(PHASEB)/pyret.jarr $(PHASEC)/pyret.jarr
-
-
