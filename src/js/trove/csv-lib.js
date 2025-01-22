@@ -8,10 +8,10 @@
         types: {}
     },
     theModule: function(runtime, _, uri, csv) {
-        function parseString(str) {
+        function parseString(str, opts) {
             return runtime.pauseStack((restarter) => {
                 const results = [];
-                const asStream = csv.parseString(str);
+                const asStream = csv.parseString(str, opts.dict);
                 asStream
                     .on('data', (data) => { results.push(data); })
                     .on('end', () => { restarter.resume(results); })
