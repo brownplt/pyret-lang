@@ -41,10 +41,7 @@ fun file-times(path :: String) block:
 end
 
 fun file-to-string(path) block:
-  f = input-file(path)
-  s = f.read-file()
-  f.close-file()
-  s
+  F.file-to-string(path)
 end
 
 real-path = F.real-path
