@@ -41,22 +41,12 @@ fun to-content<A>(csv :: RawArray<RawArray<String>>)
         | string-to-upper(val) == "TRUE" then: DS.c-bool(true)
         | string-to-upper(val) == "FALSE" then: DS.c-bool(false)
         | is-some(string-to-number(val)) then: DS.c-num(string-to-number(val).value)
-        | val == "" then: DS.c-empty
         | otherwise: DS.c-str(val)
       end
     end
   end
 end
 
-fun id-sanitizer(c :: DS.CellContent, row, col):
-  cases(DS.CellContent) c:
-    | c-empty => nothing
-    | c-str(s) => s
-    | c-num(n) => n
-    | c-bool(b) => b
-    | c-custom(a) => a
-  end
-end
 
 fun csv-table-opt(csv :: RawArray<RawArray<String>>, opts :: CSVOptions):
   {
@@ -68,7 +58,7 @@ fun csv-table-opt(csv :: RawArray<RawArray<String>>, opts :: CSVOptions):
           sd.set-now(s.col, s.sanitizer)
         end
         shadow headers = for raw-array-map(h from headers) block:
-          result = { h; sd.get-now(h).or-else(id-sanitizer) }
+          result = { h; sd.get-now(h).or-else(DS.id-sanitizer) }
           i := i + 1
           result
         end
