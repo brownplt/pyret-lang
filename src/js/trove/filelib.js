@@ -5,6 +5,7 @@
       "open-input-file": "tany",
       "open-output-file": "tany",
       "read-file": "tany",
+      "file-to-string": "tany",
       "display": "tany",
       "flush-output-file": "tany",
       "file-times": "tany",
@@ -58,6 +59,20 @@
             throw Error("Expected file in read-file, but got something else");
           }
         }, "read-file"),
+      "file-to-string": RUNTIME.makeFunction(function(path) {
+          RUNTIME.ffi.checkArity(1, arguments, "file-to-string", false);
+          RUNTIME.checkString(path);
+          return RUNTIME.pauseStack(async restarter => {
+            fs.readFile(path, 'utf8', (err, data) => {
+              if (err) {
+                restarter.error(RUNTIME.ffi.throwMessageException(String(err)));
+              } else {
+                restarter.resume(data);
+              }
+            });
+          })
+        }, "file-to-string"),
+
       "display": RUNTIME.makeFunction(function(file, val) {
           RUNTIME.ffi.checkArity(2, arguments, "display", false);
           RUNTIME.checkOpaque(file);

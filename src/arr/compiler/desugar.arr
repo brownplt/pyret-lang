@@ -629,7 +629,7 @@ fun desugar-expr(expr :: A.Expr):
             {src; link(as-option, sanitizers)}
           | s-table-src(_, source) =>
             # Well-formedness ensures that this matches exactly once
-            {some(source); sanitizers}
+            {some(desugar-expr(source)); sanitizers}
         end
       end
 

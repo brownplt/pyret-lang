@@ -173,3 +173,13 @@ fun empty-only(x, col, row):
           + loc + ' as an empty cell')
   end
 end
+
+fun id-sanitizer(c :: CellContent, row, col):
+  cases(CellContent) c:
+    | c-empty => nothing
+    | c-str(s) => s
+    | c-num(n) => n
+    | c-bool(b) => b
+    | c-custom(a) => a
+  end
+end
