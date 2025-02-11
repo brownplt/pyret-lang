@@ -229,7 +229,8 @@
         };
         var getStackP = execRt.makeFunction(getStack, "get-stack");
         var checks = getModuleResultChecks(mr);
-        execRt.runThunk(function() { return toCall.app(checks, getStackP); },
+        const checksFormat = getModuleResultsProgram(mr).runtimeOptions.checksFormat || "text";
+        execRt.runThunk(function() { return toCall.app(checks, getStackP, checksFormat); },
           function(renderedCheckResults) {
             var resumeWith = {
               message: "Unknown error!",
@@ -316,6 +317,7 @@
     // TODO(joe): this should take natives as an argument, as well, and requirejs them
     function runProgram(otherRuntimeObj, realmObj, programString, options, commandLineArguments) {
       var checks = runtime.getField(options, "checks");
+      if(!checks) { checks = "main"; }
       var otherRuntime = runtime.getField(otherRuntimeObj, "runtime").val;
       otherRuntime.setParam("command-line-arguments", runtime.ffi.toArray(commandLineArguments));
       var realm = {
@@ -335,12 +337,12 @@
         // NOTE(joe): This is the place to add checkAll
         if (checks !== "none") {
           var checker = otherRuntime.getField(otherRuntime.getField(realm.instantiated["builtin://checker"], "provide-plus-types"), "values");
-          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checks === "all");
+          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checks);
           otherRuntime.setParam("current-checker", currentChecker);
         }
       }
 
-      var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(otherRuntime, {main: main, checkAll: checks === "all"});
+      var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(otherRuntime, {main: main, checks });
 
       return runtime.pauseStack(function(restarter) {
         var mainReached = false;

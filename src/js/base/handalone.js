@@ -47,7 +47,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
     runtime._checkAnn = function() {};
   }
 
-  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checks: checkFlag("checks") });
+  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checks: checkFlag("checks"), checksFormat: checkFlag("checks-format")});
   postLoadHooks[main] = function(answer) {
     var checks = checkFlag("checks");
     if(checks && checks === "none") { process.exit(EXIT_SUCCESS); }
@@ -65,7 +65,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
     var toCall = runtime.getField(checker, "render-check-results-stack");
     var checks = runtime.getField(answer, "checks");
     return runtime.safeCall(function() {
-      return toCall.app(checks, getStackP);
+      return toCall.app(checks, getStackP, checkFlag("checks-format") || "text");
     }, function(summary) {
       // We're technically on the Pyret stack right now, but don't need to be.
       // So, pause the stack and switch off Pyret stack management so that the

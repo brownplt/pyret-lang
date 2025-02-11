@@ -404,7 +404,7 @@ fun run(path, options, subsequent-command-line-arguments):
       command-line-arguments = link(path, subsequent-command-line-arguments)
       result = L.run-program(R.make-runtime(), L.empty-realm(), program.js-ast.to-ugly-source(), options, command-line-arguments)
       if L.is-success-result(result):
-        L.render-check-results(result)
+        L.render-check-results(result, options.checks-format)
       else:
         _ = propagate-exit(result)
         L.render-error-message(result)
