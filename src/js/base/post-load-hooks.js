@@ -136,8 +136,9 @@ define("pyret-base/js/post-load-hooks", function() {
       },
       "builtin://checker": function(checker) {
         var checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
+        const checks = hookOptions.checks || "main";
         var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(hookOptions.main),
-                                                                                 hookOptions.checkAll);
+                                                                                 checks);
         runtime.setParam("current-checker", currentChecker);
       }
     };

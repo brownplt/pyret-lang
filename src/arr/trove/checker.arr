@@ -695,7 +695,7 @@ sharing:
   method access-stack(self, stack-getter): empty end
 end
 
-fun make-check-context(main-module-name :: String, check-all :: Boolean):
+fun make-check-context(main-module-name :: String, checks-option :: String):
   var block-results = [list: ]
   fun add-block-result(cbr :: CheckBlockResult):
     block-results := [list: cbr] + block-results
@@ -747,19 +747,30 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       add-result(on-failure())
     end
   end
+  fun include-check(name):
+    only-pattern = string-index-of(checks-option, "only:") == 0
+    if only-pattern:
+      pattern = string-substring(checks-option, 5, string-length(checks-option))
+      string-contains(name, pattern)
+    else:
+      true
+    end
+  end
   fun reset-results(): current-results := [list: ] end
   {
     method run-checks(self, module-name, checks):
-      when check-all or (module-name == main-module-name) block:
+      when (checks-option == "all") or (module-name == main-module-name) block:
         for each(c from checks) block:
-          results-before = current-results
-          reset-results()
-          result = run-task(c.run)
-          cases(either.Either) result:
-            | left(v) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, none))
-            | right(err) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, some(err)))
+          when include-check(c.name) block:
+            results-before = current-results
+            reset-results()
+            result = run-task(c.run)
+            cases(either.Either) result:
+              | left(v) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, none))
+              | right(err) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, some(err)))
+            end
+            current-results := results-before
           end
-          current-results := results-before
         end
       end
     end,

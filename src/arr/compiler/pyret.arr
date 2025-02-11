@@ -58,7 +58,7 @@ fun main(args :: List<String>) -> Number block:
     "module-load-dir",
       C.next-val-default(C.Str, ".", none, C.once, "Base directory to search for modules"),
     "checks",
-      C.next-val(C.Str, C.once, "Specify which checks to execute (all, none, or main)"),
+    C.next-val(C.Str, C.once, "Specify which checks to execute (all, none, or main, only:<string>)"),
     "profile",
       C.flag(C.once, "Add profiling information to the main file"),
     "check-all",
