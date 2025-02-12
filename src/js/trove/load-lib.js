@@ -229,7 +229,7 @@
         };
         var getStackP = execRt.makeFunction(getStack, "get-stack");
         var checks = getModuleResultChecks(mr);
-        const checksFormat = getModuleResultsProgram(mr).runtimeOptions.checksFormat || "text";
+        const checksFormat = getModuleResultProgram(mr).runtimeOptions['checksFormat'] || "text";
         execRt.runThunk(function() { return toCall.app(checks, getStackP, checksFormat); },
           function(renderedCheckResults) {
             var resumeWith = {
