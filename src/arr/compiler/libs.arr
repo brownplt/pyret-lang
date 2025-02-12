@@ -41,6 +41,7 @@ import parse-pyret as _
 import pathlib as _
 import reactors as _
 import runtime-lib as _
+import load-lib as _
 import s-exp as _
 import sha as _
 import str-dict as _
