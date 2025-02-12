@@ -100,11 +100,11 @@ function resultSummary(wheatResultArray: ExamplarResult[], chaffResultArray: Exa
 
 function missingBug() {
   return <span className="examplar-bug-icon missed">
-    <FaBugSlash style={{margin: "auto"}} color="#111" size="2em"></FaBugSlash>
+    <FaBug style={{margin: "auto"}} color="#111" size="2em"></FaBug>
   </span>}
 function caughtBug() {
   return <span className="examplar-bug-icon caught">
-    <FaBug style={{margin: "auto"}} color="#111" size="2em"></FaBug>
+    <FaBugSlash style={{margin: "auto"}} color="#111" size="2em"></FaBugSlash>
   </span>
 }
 function chaffWidget(chaffResults: ExamplarResult[]) {
@@ -122,7 +122,11 @@ function failingWheatTests(wheatResults: ExamplarResult[]) {
     const failResults = wheatResults.flatMap(wr => {
         if(wr.result.type !== 'run-result') { return []; }
         console.log("Wheat result: ", wr);
+        // fixme: check that .$renderedChecks exists
+        if (!wr.result.result.result.$renderedChecks) { return []; }
         const checks = wr.result.result.result.$renderedChecks as RenderedCheckResultsAndSummary;
+        // fixme: check that .renderedChecks exists
+        if (!checks.renderedChecks) { return []; }
         const failed = checks.renderedChecks.flatMap((c) => c.testResults.filter((tr) => tr.$name !== 'success'));
         if(failed.length === 0) { return []; }
         return [failed[0].rendered];

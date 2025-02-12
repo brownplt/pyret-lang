@@ -260,6 +260,7 @@ function handleSetBrowsePath(state: State, browsePath: string): State {
 }
 
 function handleSetCurrentFile(state: State, file: string): State {
+  // console.log('tk doing handleSetCurrentFile', file);
   const { effectQueue } = state;
 
   return {
@@ -1027,7 +1028,7 @@ function handleRunExamplarSuccess(state: State, wheatResultArray: any[], chaffRe
 async function runTextProgram(
   typeCheck: boolean, runKind: RunKind, saveFile: string, programText: string,
 ) : Promise<CompileAndRunResult> {
-  //console.log('### runTextProgram', saveFile);
+  // console.log('tk doing runTextProgram', saveFile);
   if (fs.existsSync(saveFile)) {
     fs.unlinkSync(saveFile);
   }
@@ -1076,6 +1077,7 @@ async function runProgramAsync(state: State) : Promise<void> {
     cleanStopify();
     await upwait((s: State) => handleRunProgramStart(s, doc));
     const result = await runTextProgram(typeCheck, runKind, segmentName(currentFile, "definitions"), currentFileContents ?? '');
+    // console.log('tk result=', result);
     if (result.type === 'compile-failure') {
       update((s: State) => handleCompileProgramFailure(s, result.errors));
     } else if (result.type === 'run-failure') {
@@ -1232,6 +1234,7 @@ function runProgramOrSegments(
   runner : (s : State) => Promise<any>,
   updater : (s : State) => State,
 ) : State {
+    // console.log('tk doing runProgramOrSegments', state);
   // TODO(luna): reset rt messages?
   if (state.running.type !== 'idle') { return state; }
   const result : Promise<any> = runner(state);
@@ -1242,6 +1245,7 @@ function runProgramOrSegments(
 }
 
 function handleRunExamplarSuccessFull(state: State, wheatResultArray: any[], chaffResultArray: any[], hintMessage: string, qtmVariations: number, sampleResult: any, reprFile: string) : State {
+  // console.log('tk doing handleRunExamplarSuccessFull', state, wheatResultArray, chaffResultArray);
   const state2 = handleRunExamplarSuccess(state, wheatResultArray, chaffResultArray, hintMessage, qtmVariations, sampleResult, reprFile);
   // const state3 = runProgramOrSegments(state2, runSegmentsAsync, setupRunSegmentsAsync);
   return state2;
@@ -1262,53 +1266,67 @@ function insertUserImpl(s: string, newFile: string) {
   return llOut.join('\n');
 }
 
-function stringPart(str: string, loc: string): string {
-  let e = /(\d+):(\d+)-(\d+):(\d+)/.exec(loc);
-  if (!e) {
-    return '';
+function extractRelevantCode(str: string, loc: any[]) {
+  // console.log('tk doing extractRelevantCode');
+  const l1 : number = loc[1] - 1;
+  const c1 : number = loc[2];
+  const l2 : number = loc[4] - 1;
+  const c2 : number = loc[5];
+  const ss = str.split('\n');
+  // console.log('tk l1', l1, 'c1', c1, 'l2', l2, 'c2', c2);
+  // console.log('tk ss-len', ss.length);
+  let x : string;
+  if (l1 === l2) {
+    x = ss[l1].substring(c1, c2 + 1);
   } else {
-    let l1 : number = Number(e[1]) - 1;
-    let c1 : number = Number(e[2]) - 1;
-    let l2 : number = Number(e[3]) - 1;
-    let c2 : number = Number(e[4]) - 1;
-    const ss = str.split('\n');
-    let x : string;
-    if (l1 == l2) {
-      x = ss[l1].substring(c1, c2 + 1);
-    } else {
-      x = ss[l1].substring(c1);
-      for (let j = l1 + 1; j < l2; j += 1) {
-        x += ss[j];
-      }
-      x += ss[l2].substring(0, c2 + 1);
+    x = ss[l1].substring(c1);
+    for (let j = l1 + 1; j < l2; j+= 1) {
+      x +=  ss[j];
     }
-    return x;
+    x += ss[l2].substring(0, c2 + 1);
   }
+  return x;
 }
 
-function addCodeToCheckArray(checkArray: any[], fileString: string): any[] {
-  const n = checkArray.length;
-  const A = new Array(n);
+function addCodeToCheckArray(checkArray: any[], fileString: string, numOfChecks: number): any[] {
+  // console.log('tk doing addCodeToCheckArray', checkArray);
+  // console.log('tk checkarraylen =', checkArray.length, 'pick=', numOfChecks);
+  let testResultArray = [];
+  let n = checkArray.length;
+  if (numOfChecks > -1) {
+    checkArray = checkArray.slice(n - numOfChecks, n);
+    n = numOfChecks;
+  }
+  // console.log('tk n=', n);
   for (let i = 0; i < n; i += 1) {
     const check = checkArray[i];
-    const excn = check.exception;
-    const relevantCode = stringPart(fileString, check.loc);
-    const qtm = ((/-in-ok/.test(relevantCode) || /-out-ok/.test(relevantCode)) && (/satisfies/.test(relevantCode) || /violates/.test(relevantCode)))
-    A[i] = {
-      success: check.success,
-      exception: check.exception,
-      code: relevantCode,
-      qtm: qtm
+    const testResults = check.testResults;
+    const m = testResults.length;
+    // console.log('tk m=', m);
+    for (let j = 0; j < m; j += 1) {
+      const testResult = testResults[j];
+      // console.log('tk inner loop', j, testResult);
+      // console.log('tk loc=', testResult.metadata.loc);
+      const relevantCode = extractRelevantCode(fileString, testResult.metadata.loc);
+      // console.log('tk relevantCode=', relevantCode);
+      const qtm = ((/-in-ok/.test(relevantCode) || /-out-ok/.test(relevantCode)) && (/satisfies/.test(relevantCode) || /violates/.test(relevantCode)));
+      testResultArray.push({
+        success: (testResult.$name === 'success'),
+        exception: false,
+        code: relevantCode,
+        qtm: qtm
+      });
     }
   }
-  return A;
+  console.log('tk testResultArray =', testResultArray);
+  return testResultArray;
 }
-
 
 async function runExamplarAsync(state: State) : Promise<any> {
   // currentFile is just the standard program.arr, we'll use it to get at
   // our relevant files
   const { typeCheck, runKind, currentFile } = state;
+  // console.log('tk doing runExamplarAsync on', currentFile);
   const { dir } = bfsSetup.path.parse(currentFile);
   let hintMessage: string = '';
   let qtmVariationsArr: any[] = [];
@@ -1329,6 +1347,7 @@ async function runExamplarAsync(state: State) : Promise<any> {
 
   // eslint-disable-next-line
   const testFile: string = dir + '/test.arr';
+  // console.log('tk testFile', testFile);
 
   // eslint-disable-next-line
   const hintsFile: string = dir + '/hints.json';
@@ -1389,13 +1408,16 @@ async function runExamplarAsync(state: State) : Promise<any> {
   let result: any;
   const testTemplate = String(fs.readFileSync(testFile));
 
-  let firstUsableResult = false;
+  let firstUsableResult: any = false;
   let correspondingFile: string;
   let firstFailureResult: any = false;
+  let numOfChecks: number = -1;
 
   const definitionsEditor = state.definitionsEditor;
   const doc = isInitializedEditor(definitionsEditor) ? definitionsEditor.getDoc().copy(true) : CodeMirror.Doc(definitionsEditor.getValue());
   await upwait((s: State) => handleRunProgramStart(s, doc));
+
+  // console.log('tk START WHEATS ETC!!!');
 
   for (let i = 0; i < numWheats; i += 1) {
     const wheatFile = wheatFiles[i];
@@ -1404,8 +1426,9 @@ async function runExamplarAsync(state: State) : Promise<any> {
     const testProgramFile = segmentName(testWheatFile, Number(i).toString())
     // eslint-disable-next-line
     result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+    // console.log('tk result=', result);
     if (result.type === 'compile-failure') {
-      console.log('examplar compile failure in', wheatFile, result);
+      console.log('examplar wheat failure compiling', wheatFile, result);
       if (!firstFailureResult) {
         firstFailureResult = result;
       }
@@ -1414,7 +1437,7 @@ async function runExamplarAsync(state: State) : Promise<any> {
         result
       });
     } else if (result.type === 'run-failure') {
-      console.log('examplar run failure in', wheatFile, result);
+      console.log('examplar wheat failure runnning', wheatFile, result);
       if (!firstFailureResult) {
         firstFailureResult = result;
       }
@@ -1425,11 +1448,14 @@ async function runExamplarAsync(state: State) : Promise<any> {
     } else {
       if (!firstUsableResult) {
         firstUsableResult = result.result;
+        numOfChecks = result.result.result.$checks.length;
         correspondingFile = testProgramFile;
       }
       const checkArray = result.result.result.$checks;
-      const checkArrayWithCode = addCodeToCheckArray(checkArray, testProgram);
-      getQtmVariations(checkArrayWithCode);
+      // console.log('tk checkArray=', checkArray);
+      const checkArrayWithCode = addCodeToCheckArray(checkArray, testProgram, numOfChecks);
+      // console.log('tk checkArrayWithCode=', checkArrayWithCode);
+      // getQtmVariations(checkArrayWithCode);
       // console.log('checkArrayWithCode=', checkArrayWithCode);
       const failureArray = checkArrayWithCode.filter((check: any) => (check.success === false));
       const success = (failureArray.length === 0);
@@ -1445,6 +1471,7 @@ async function runExamplarAsync(state: State) : Promise<any> {
 
   if (numWheats > 0) {
     if (wheatFails === 0) {
+      console.log('all wheats succeeded');
       for (let i = 0; i < numChaffs; i += 1) {
         const chaffFile = chaffFiles[i];
         const testProgram = insertUserImpl(testTemplate, chaffFile);
@@ -1452,8 +1479,9 @@ async function runExamplarAsync(state: State) : Promise<any> {
         const testProgramFile = segmentName(testChaffFile, Number(i).toString())
         // eslint-disable-next-line
         result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+        // console.log('tk result=', result);
         if (result.type === 'compile-failure') {
-          console.log('examplar error in', chaffFile, result);
+          console.log('examplar chaff failure compiling', chaffFile, result);
           if (!firstFailureResult) {
             firstFailureResult = result;
           }
@@ -1462,7 +1490,7 @@ async function runExamplarAsync(state: State) : Promise<any> {
             result
           });
         } else if (result.type === 'run-failure') {
-          console.log('examplar error in', chaffFile, result);
+          console.log('examplar chaff failure running', chaffFile, result);
           if (!firstFailureResult) {
             firstFailureResult = result;
           }
@@ -1473,17 +1501,21 @@ async function runExamplarAsync(state: State) : Promise<any> {
         } else {
           if (!firstUsableResult) {
             firstUsableResult = result.result;
+            numOfChecks = result.result.result.$checks.length;
             correspondingFile = testProgramFile;
           }
           const checkArray = result.result.result.$checks;
-          const checkArrayWithCode = addCodeToCheckArray(checkArray, testProgram);
+          // console.log('tk checkArray=', checkArray);
+          const checkArrayWithCode = addCodeToCheckArray(checkArray, testProgram, numOfChecks);
+          // console.log('tk checkArrayWithCode=', checkArrayWithCode);
           getQtmVariations(checkArrayWithCode);
           const failureArray = checkArrayWithCode.filter((check: any) => (check.success === false));
-          const success = failureArray.length === 0;
+          const success = (failureArray.length === 0);
           chaffResultArray.push({ success, result });
         }
       }
     } else { // i.e., at least one wheat failed
+      console.log('at least one wheat failed');
       //
       for (let i = 0; i < numMutants; i += 1) {
         // console.log('TRYING MUTANTS NOW');
@@ -1493,24 +1525,28 @@ async function runExamplarAsync(state: State) : Promise<any> {
         const testProgramFile = segmentName(testMutantFile, Number(i).toString())
         // eslint-disable-next-line
         result = await runTextProgram(typeCheck, runKind, testProgramFile, testProgram);
+        // console.log('tk result=', result);
         if (result.type === 'compile-failure') {
-          console.log('examplar error in', mutantFile, result);
+          console.log('examplar compile failure in mutant', mutantFile, result);
           if (!firstFailureResult) {
             firstFailureResult = result;
           }
         } else if (result.type === 'run-failure') {
-          console.log('examplar error in', mutantFile, result);
+          console.log('examplar run failure in mutant', mutantFile, result);
           if (!firstFailureResult) {
             firstFailureResult = result;
           }
         } else {
           if (!firstUsableResult) {
             firstUsableResult = result.result;
+            numOfChecks = result.result.result.$checks.length;
             correspondingFile = testProgramFile;
           }
           const checkArray = result.result.result.$checks;
-          const checkArrayWithCode = addCodeToCheckArray(checkArray, testProgram);
-          getQtmVariations(checkArrayWithCode);
+          // console.log('tk checkArray=', checkArray);
+          const checkArrayWithCode = addCodeToCheckArray(checkArray, testProgram, numOfChecks);
+          // console.log('tk checkArrayWithCode=', checkArrayWithCode);
+          // getQtmVariations(checkArrayWithCode);
           const failureArray = checkArrayWithCode.filter((check: any) => (check.success === false));
           const mutantSucceeded = (failureArray.length === 0);
           // console.log('mutantSucceeded is', mutantSucceeded);
