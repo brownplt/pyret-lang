@@ -42,6 +42,7 @@ import file("./tests/test-tuple.arr") as _
 import file("./tests/test-reactor.arr") as _
 import file("./tests/test-tail-call.arr") as _
 import file("./tests/test-parse.arr") as _
+import file("./tests/test-pprint.arr") as _
 import file("./tests/test-parse-errors.arr") as _
 import file("./tests/test-flatness.arr") as _
 import file("./tests/test-module-syntax.arr") as _
