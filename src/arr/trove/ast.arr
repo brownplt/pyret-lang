@@ -1183,13 +1183,16 @@ data Expr:
     ) with:
     method label(self): "s-for" end,
     method tosource(self):
-      ann-part = if is-a-blank(self.ann): PP.mt-doc else: str-arrow + break-one + self.ann.tosource() end
+      ann-part =
+        if is-a-blank(self.ann): PP.mt-doc
+        else: break-one + str-arrow + break-one + self.ann.tosource()
+        end
       header = PP.group(str-for
           + self.iterator.tosource()
           + PP.surround-separate(2 * INDENT, 0, PP.lparen + PP.rparen, PP.lparen, PP.commabreak, PP.rparen,
           self.bindings.map(lam(b): b.tosource() end))
           + PP.group(PP.nest(2 * INDENT,
-            break-one + ann-part + blocky-colon(self.blocky))))
+            ann-part + blocky-colon(self.blocky))))
       PP.surround(INDENT, 1, header, self.body.tosource(), str-end)
     end
   | s-check(

@@ -219,7 +219,7 @@
               i += 1;
               return ans;
             });
-            console.log('tables =', tables);
+            // console.log('tables =', tables);
             return gf(tables, "internal").makeTable(["tick", "state"], rows);
             // return runtime.makeTable(["tick", "state"], rows);
           }
