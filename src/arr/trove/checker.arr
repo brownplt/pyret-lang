@@ -8,6 +8,8 @@ import error as E
 import error-display as ED
 import render-error-display as RED
 import valueskeleton as VS
+import json as J
+import string-dict as SD
 include equality
 
 import ffi as _
@@ -79,7 +81,7 @@ data CheckBlockResult:
       keyword-check :: Boolean,
       test-results :: List<TestResult>,
       maybe-err :: Option<Any>
-    )
+      )
 end
 
 fun report-value(operand, value):
@@ -136,8 +138,8 @@ data TestResult:
                       ed-lhs, ED.text(" and "), ed-rhs,
                       ED.text(" are applied to it.")]
                 end],
-                report-value(ed-lhs, self.left),
-                report-value(ed-rhs, self.right)]
+              report-value(ed-lhs, self.left),
+              report-value(ed-rhs, self.right)]
           | none      => self.render-reason()
         end
       else:
@@ -280,8 +282,8 @@ data TestResult:
                       ed-lhs, ED.text(" and "), ed-rhs,
                       ED.text(" sides are applied to it.")]
                 end],
-                report-value(ed-lhs, self.left),
-                report-value(ed-rhs, self.right)]
+              report-value(ed-lhs, self.left),
+              report-value(ed-rhs, self.right)]
           | none      => self.render-reason()
         end
       else:
@@ -591,9 +593,9 @@ data TestResult:
             [ED.error:
               [ED.para:
                 self.exn-src.test-preamble(test-ast)],
-                # ED.text("The test operator "),
-                # ED.code(ED.text("raises-violates")),
-                # ED.text(" failed for the test:")],
+              # ED.text("The test operator "),
+              # ED.code(ED.text("raises-violates")),
+              # ED.text(" failed for the test:")],
               ED.cmcode(self.loc),
               [ED.para:
                 ED.text("It succeeds only if the "),
@@ -622,8 +624,8 @@ data TestResult:
           VS.vs-value(exn-unwrap(self.exn)),
           VS.vs-value(self.pred)])
     end
-  # This is not so much a test result as an error in a test case:
-  # Maybe pull it out in the future?
+    # This is not so much a test result as an error in a test case:
+    # Maybe pull it out in the future?
   | error-not-boolean(loc :: Loc, refinement, left, left-src, right, right-src, test-result) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       [ED.error:
@@ -695,7 +697,7 @@ sharing:
   method access-stack(self, stack-getter): empty end
 end
 
-fun make-check-context(main-module-name :: String, check-all :: Boolean):
+fun make-check-context(main-module-name :: String, checks-option :: String):
   var block-results = [list: ]
   fun add-block-result(cbr :: CheckBlockResult):
     block-results := [list: cbr] + block-results
@@ -747,19 +749,30 @@ fun make-check-context(main-module-name :: String, check-all :: Boolean):
       add-result(on-failure())
     end
   end
+  fun include-check(name):
+    only-pattern = string-index-of(checks-option, "only:") == 0
+    if only-pattern:
+      pattern = string-substring(checks-option, 5, string-length(checks-option))
+      string-contains(name, pattern)
+    else:
+      true
+    end
+  end
   fun reset-results(): current-results := [list: ] end
   {
     method run-checks(self, module-name, checks):
-      when check-all or (module-name == main-module-name) block:
+      when (checks-option == "all") or (module-name == main-module-name) block:
         for each(c from checks) block:
-          results-before = current-results
-          reset-results()
-          result = run-task(c.run)
-          cases(either.Either) result:
-            | left(v) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, none))
-            | right(err) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, some(err)))
+          when include-check(c.name) block:
+            results-before = current-results
+            reset-results()
+            result = run-task(c.run)
+            cases(either.Either) result:
+              | left(v) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, none))
+              | right(err) => add-block-result(check-block-result(c.name, c.location, c.keyword-check, current-results, some(err)))
+            end
+            current-results := results-before
           end
-          current-results := results-before
         end
       end
     end,
@@ -1361,30 +1374,68 @@ end
 # NOTE(joe): get-stack lets us hide the stack from Pyret's semantics, and
 # require that magical callers provide a get-stack function that produces
 # the list of locations to render
-fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
+fun results-summary(block-results :: List<CheckBlockResult>, get-stack, checks-format) block:
   init = {
-      message: "",
-      errored: 0,
-      passed: 0,
-      failed: 0,
-      total: 0
-    }
-  complete-summary = for fold(summary from init, br from block-results.reverse()):
-    block-summary = for fold(s from init, tr from br.test-results.reverse()):
+    message: "",
+    errored: 0,
+    passed: 0,
+    failed: 0,
+    total: 0
+  }
+  block-init = {
+    message: "",
+    passed: 0,
+    failed: 0,
+    total: 0,
+    results: empty
+  }
+  fun loc-file-name(loc):
+    cases(Loc) loc:
+      | builtin(module-name) => "builtin://" + module-name
+      | srcloc(source, _, _, _, _, _, _) => source
+    end
+  end
+  results = [SD.mutable-string-dict:]
+  for each(br from block-results):
+    results.set-now(loc-file-name(br.loc), empty)
+  end
+
+  complete-summary = for fold(summary from init, br from block-results.reverse()) block:
+    filename = loc-file-name(br.loc)
+    block-summary = for fold(s from block-init, tr from br.test-results.reverse()):
+      result-name = to-repr(tr)
+      shadow result-name = cases(List) string-split(result-name, "("):
+        | empty => result-name
+        | link(r, _) => r
+      end
       cases(TestResult) tr:
-        | success(loc) => s.{
-            message: s.message + "\n  " + loc.format(false) + ": ok",
+        | success(loc) =>
+          message = loc.format(false) + ": ok"
+          s.{
+            message: s.message + "\n  " + message,
             passed: s.passed + 1,
-            total: s.total + 1
+            total: s.total + 1,
+            results: link([SD.string-dict:
+                  "loc", loc.format(true),
+                  "message", message,
+                  "passed", true,
+                  "result-type", result-name
+                ], s.results)
           }
         | else =>
           stack = tr.access-stack(get-stack)
-          m = s.message + "\n  " + tr.loc.format(false) + ": failed because: \n    "
+          m = tr.loc.format(false) + ": failed because: \n    "
             + RED.display-to-string(tr.render-reason(), torepr, stack)
           s.{
-            message: m,
+            message: s.message + "\n  " + m,
             failed: s.failed + 1,
-            total: s.total + 1
+            total: s.total + 1,
+            results: link([SD.string-dict:
+                  "loc", tr.loc.format(true),
+                  "message", m,
+                  "passed", false,
+                  "result-type", result-name
+                ], s.results)
           }
       end
     end
@@ -1404,6 +1455,17 @@ fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
       if block-summary.failed == 0: ""
       else: block-summary.message
       end
+    block-result = [SD.string-dict:
+      "total", block-summary.total,
+      "passed", block-summary.passed,
+      "failed", block-summary.failed,
+      "errored", if is-some(br.maybe-err): ended-in-error else: false end,
+      "name", br.name,
+      "message", message,
+      "loc", br.loc.format(true),
+      "results", block-summary.results
+    ]
+    results.set-now(filename, link(block-result, results.get-value-now(filename)))
     {
       message: with-error-notification + rest-of-message,
       errored: summary.errored + if is-some(br.maybe-err): 1 else: 0 end,
@@ -1412,27 +1474,34 @@ fun results-summary(block-results :: List<CheckBlockResult>, get-stack):
       total: summary.total + block-summary.total
     }
   end
-  if (complete-summary.total == 0) and (complete-summary.errored == 0):
-    complete-summary.{message: "The program didn't define any tests."}
-  else if (complete-summary.failed == 0) and (complete-summary.errored == 0):
-    happy-msg = if complete-summary.passed == 1:
+
+  shadow complete-summary = complete-summary.{ summary: complete-summary.message }
+
+  if checks-format == "text":
+    if (complete-summary.total == 0) and (complete-summary.errored == 0):
+      complete-summary.{message: "The program didn't define any tests."}
+    else if (complete-summary.failed == 0) and (complete-summary.errored == 0):
+      happy-msg = if complete-summary.passed == 1:
         "Looks shipshape, your test passed, mate!"
       else:
         "Looks shipshape, all " + tostring(complete-summary.passed) + " tests passed, mate!"
       end
-    complete-summary.{message: happy-msg}
-  else:
-    c = complete-summary
-    c.{
-      message: c.message + "\n\nPassed: " + tostring(c.passed) + "; Failed: " + tostring(c.failed) + "; Ended in Error: " + tostring(c.errored) + "; Total: " + tostring(c.total) + "\n"
-    }
+      complete-summary.{message: happy-msg}
+    else:
+      c = complete-summary
+      c.{
+        message: c.message + "\n\nPassed: " + tostring(c.passed) + "; Failed: " + tostring(c.failed) + "; Ended in Error: " + tostring(c.errored) + "; Total: " + tostring(c.total) + "\n"
+      }
+    end
+  else if checks-format == "json":
+    complete-summary.{ message: J.to-json(results).serialize() }
   end
 end
 
-fun render-check-results(block-results):
-  results-summary(block-results, lam(err): empty end).message
+fun render-check-results(block-results, checks-format):
+  results-summary(block-results, lam(err): empty end, checks-format).message
 end
 
-fun render-check-results-stack(block-results :: List<CheckBlockResult>, get-stack):
-  results-summary(block-results, get-stack)
+fun render-check-results-stack(block-results :: List<CheckBlockResult>, get-stack, checks-format):
+  results-summary(block-results, get-stack, checks-format)
 end

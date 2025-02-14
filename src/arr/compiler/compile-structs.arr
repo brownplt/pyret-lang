@@ -2940,6 +2940,7 @@ default-compile-options = {
   check-mode : true,
   check-all : true,
   checks: "all",
+  checks-format: "text",
   type-check : false,
   enable-spies: true,
   allow-shadowed : false,

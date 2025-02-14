@@ -2,7 +2,6 @@ provide *
 provide-types *
 
 import global as _
-import base as _
 import string-dict as SD
 include lists
 include arrays

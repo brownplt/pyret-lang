@@ -24,69 +24,71 @@ fun main(args :: List<String>) -> Number block:
 
   options = [D.string-dict:
     "serve",
-      C.flag(C.once, "Start the Pyret server"),
+    C.flag(C.once, "Start the Pyret server"),
     "port",
-      C.next-val-default(C.Str, "1701", none, C.once, "Port to serve on (default 1701, can also be UNIX file socket or windows pipe)"),
+    C.next-val-default(C.Str, "1701", none, C.once, "Port to serve on (default 1701, can also be UNIX file socket or windows pipe)"),
     "build-standalone",
-      C.next-val(C.Str, C.once, "Main Pyret (.arr) file to build as a standalone"),
+    C.next-val(C.Str, C.once, "Main Pyret (.arr) file to build as a standalone"),
     "build-runnable",
-      C.next-val(C.Str, C.once, "Main Pyret (.arr) file to build as a standalone"),
+    C.next-val(C.Str, C.once, "Main Pyret (.arr) file to build as a standalone"),
     "require-config",
-      C.next-val(C.Str, C.once, "JSON file to use for requirejs configuration of build-runnable"),
+    C.next-val(C.Str, C.once, "JSON file to use for requirejs configuration of build-runnable"),
     "outfile",
-      C.next-val(C.Str, C.once, "Output file for build-runnable"),
+    C.next-val(C.Str, C.once, "Output file for build-runnable"),
     "build",
-      C.next-val(C.Str, C.once, "Pyret (.arr) file to build"),
+    C.next-val(C.Str, C.once, "Pyret (.arr) file to build"),
     "run",
-      C.next-val(C.Str, C.once, "Pyret (.arr) file to compile and run"),
+    C.next-val(C.Str, C.once, "Pyret (.arr) file to compile and run"),
     "standalone-file",
-      C.next-val-default(C.Str, "src/js/base/handalone.js", none, C.once, "Path to override standalone JavaScript file for main"),
+    C.next-val-default(C.Str, "src/js/base/handalone.js", none, C.once, "Path to override standalone JavaScript file for main"),
     "builtin-js-dir",
-      C.next-val(C.Str, C.many, "Directory to find the source of builtin js modules"),
+    C.next-val(C.Str, C.many, "Directory to find the source of builtin js modules"),
     "builtin-arr-dir",
-      C.next-val(C.Str, C.many, "Directory to find the source of builtin arr modules"),
+    C.next-val(C.Str, C.many, "Directory to find the source of builtin arr modules"),
     "allow-builtin-overrides",
-      C.flag(C.once, "Allow overlapping builtins defined between builtin-js-dir and builtin-arr-dir"),
+    C.flag(C.once, "Allow overlapping builtins defined between builtin-js-dir and builtin-arr-dir"),
     "no-display-progress",
-      C.flag(C.once, "Skip printing the \"Compiling X/Y\" progress indicator"),
+    C.flag(C.once, "Skip printing the \"Compiling X/Y\" progress indicator"),
     "compiled-read-only-dir",
-      C.next-val(C.Str, C.many, "Additional directories to search to find precompiled versions of modules"),
+    C.next-val(C.Str, C.many, "Additional directories to search to find precompiled versions of modules"),
     "compiled-dir",
-      C.next-val-default(C.Str, "compiled", none, C.once, "Directory to save compiled files to; searched first for precompiled modules"),
+    C.next-val-default(C.Str, "compiled", none, C.once, "Directory to save compiled files to; searched first for precompiled modules"),
     "library",
-      C.flag(C.once, "Don't auto-import basics like list, option, etc."),
+    C.flag(C.once, "Don't auto-import basics like list, option, etc."),
     "module-load-dir",
-      C.next-val-default(C.Str, ".", none, C.once, "Base directory to search for modules"),
+    C.next-val-default(C.Str, ".", none, C.once, "Base directory to search for modules"),
     "checks",
-      C.next-val(C.Str, C.once, "Specify which checks to execute (all, none, or main)"),
+    C.next-val(C.Str, C.once, "Specify which checks to execute (all, none, or main, only:<string>)"),
+    "checks-format",
+    C.next-val-default(C.Str, "text", none, C.once, "Specify check block output format (text, json) (default text)"),
     "profile",
-      C.flag(C.once, "Add profiling information to the main file"),
+    C.flag(C.once, "Add profiling information to the main file"),
     "check-all",
-      C.flag(C.once, "Run checks all modules (not just the main module)"),
+    C.flag(C.once, "Run checks all modules (not just the main module)"),
     "no-check-mode",
-      C.flag(C.once, "Skip checks"),
+    C.flag(C.once, "Skip checks"),
     "no-spies",
-      C.flag(C.once, "Disable printing of all `spy` statements"),
+    C.flag(C.once, "Disable printing of all `spy` statements"),
     "allow-shadow",
-      C.flag(C.once, "Run without checking for shadowed variables"),
+    C.flag(C.once, "Run without checking for shadowed variables"),
     "improper-tail-calls",
-      C.flag(C.once, "Run without proper tail calls"),
+    C.flag(C.once, "Run without proper tail calls"),
     "collect-times",
-      C.flag(C.once, "Collect timing information about compilation"),
+    C.flag(C.once, "Collect timing information about compilation"),
     "type-check",
-      C.flag(C.once, "Type-check the program during compilation"),
+    C.flag(C.once, "Type-check the program during compilation"),
     "inline-case-body-limit",
-      C.next-val-default(C.Num, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body"),
+    C.next-val-default(C.Num, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body"),
     "deps-file",
-      C.next-val(C.Str, C.once, "Provide a path to override the default dependencies file"),
+    C.next-val(C.Str, C.once, "Provide a path to override the default dependencies file"),
     "html-file",
-      C.next-val(C.Str, C.once, "Name of the html file to generate that includes the standalone (only makes sense if deps-file is the result of browserify)"),
+    C.next-val(C.Str, C.once, "Name of the html file to generate that includes the standalone (only makes sense if deps-file is the result of browserify)"),
     "no-module-eval",
-      C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)"),
+    C.flag(C.once, "Produce modules as literal functions, not as strings to be eval'd (may break error source locations)"),
     "no-user-annotations",
-      C.flag(C.once, "Ignore all annotations in .arr files, treating them as if they were blank."),
+    C.flag(C.once, "Ignore all annotations in .arr files, treating them as if they were blank."),
     "no-runtime-annotations",
-      C.flag(C.once, "Ignore all annotations in the runtime, treating them as if they were blank.")
+    C.flag(C.once, "Ignore all annotations in the runtime, treating them as if they were blank.")
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -104,6 +106,7 @@ fun main(args :: List<String>) -> Number block:
         if r.has-key("no-check-mode") or r.has-key("library"): "none"
         else if r.has-key("checks"): r.get-value("checks")
         else: "all" end
+      checks-format = r.get-value("checks-format")
       enable-spies = not(r.has-key("no-spies"))
       allow-shadowed = r.has-key("allow-shadow")
       module-dir = r.get-value("module-load-dir")
@@ -115,10 +118,10 @@ fun main(args :: List<String>) -> Number block:
       add-profiling = r.has-key("profile")
       display-progress = not(r.has-key("no-display-progress"))
       html-file = if r.has-key("html-file"):
-            some(r.get-value("html-file"))
-          else:
-            none
-          end
+        some(r.get-value("html-file"))
+      else:
+        none
+      end
       module-eval = not(r.has-key("no-module-eval"))
       user-annotations = not(r.has-key("no-user-annotations"))
       runtime-annotations = not(r.has-key("no-runtime-annotations"))
@@ -151,29 +154,30 @@ fun main(args :: List<String>) -> Number block:
               end
               compile-opts = CS.make-default-compile-options(this-pyret-dir)
               CLI.build-runnable-standalone(
-                  r.get-value("build-runnable"),
-                  r.get("require-config").or-else(P.resolve(P.join(this-pyret-dir, "config.json"))),
-                  outfile,
-                  compile-opts.{
-                    this-pyret-dir: this-pyret-dir,
-                    standalone-file: standalone-file,
-                    checks : checks,
-                    type-check : type-check,
-                    allow-shadowed : allow-shadowed,
-                    collect-all: false,
-                    collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
-                    ignore-unbound: false,
-                    proper-tail-calls: tail-calls,
-                    compiled-cache: compiled-dir,
-                    compiled-read-only: r.get("compiled-read-only-dir").or-else(empty),
-                    display-progress: display-progress,
-                    inline-case-body-limit: inline-case-body-limit,
-                    deps-file: r.get("deps-file").or-else(compile-opts.deps-file),
-                    html-file: html-file,
-                    module-eval: module-eval,
-                    user-annotations: user-annotations,
-                    runtime-annotations: runtime-annotations
-                  })
+                r.get-value("build-runnable"),
+                r.get("require-config").or-else(P.resolve(P.join(this-pyret-dir, "config.json"))),
+                outfile,
+                compile-opts.{
+                  this-pyret-dir: this-pyret-dir,
+                  standalone-file: standalone-file,
+                  checks : checks,
+                  checks-format: checks-format,
+                  type-check : type-check,
+                  allow-shadowed : allow-shadowed,
+                  collect-all: false,
+                  collect-times: r.has-key("collect-times") and r.get-value("collect-times"),
+                  ignore-unbound: false,
+                  proper-tail-calls: tail-calls,
+                  compiled-cache: compiled-dir,
+                  compiled-read-only: r.get("compiled-read-only-dir").or-else(empty),
+                  display-progress: display-progress,
+                  inline-case-body-limit: inline-case-body-limit,
+                  deps-file: r.get("deps-file").or-else(compile-opts.deps-file),
+                  html-file: html-file,
+                  module-eval: module-eval,
+                  user-annotations: user-annotations,
+                  runtime-annotations: runtime-annotations
+                })
               success-code
             else if r.has-key("serve"):
               port = r.get-value("port")
@@ -195,7 +199,7 @@ fun main(args :: List<String>) -> Number block:
                     compiled-cache: compiled-dir,
                     display-progress: display-progress
                   })
-               |#
+              |#
             else if r.has-key("build"):
               result = CLI.compile(r.get-value("build"),
                 CS.default-compile-options.{

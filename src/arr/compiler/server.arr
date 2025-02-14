@@ -33,6 +33,7 @@ fun compile(options):
       compiled-read-only: options.get("compiled-read-only").or-else(empty),
       standalone-file: options.get("standalone-file").or-else(compile-opts.standalone-file),
       checks: options.get-value("checks"),
+      checks-format: options.get-value("checks-format"),
       display-progress: options.get("display-progress").or-else(true),
       log: options.get("log").or-else(compile-opts.log),
       log-error: options.get("log-error").or-else(compile-opts.log-error),

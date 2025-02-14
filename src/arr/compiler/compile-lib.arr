@@ -571,6 +571,7 @@ fun make-standalone(wl, compiled, options):
 
   runtime-options = J.j-obj(
     [C.clist:
+      J.j-field("checksFormat", j-str(options.checks-format)),
       J.j-field("checks", j-str(check-str)),
       J.j-field("disableAnnotationChecks",
         if options.runtime-annotations:
