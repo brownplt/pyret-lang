@@ -168,7 +168,38 @@ function FailureComponentUnconnected({
         );
       }
       if (id && failure.loc.source.includes(id)) {
-        return <>this message</>;
+        // Referring to a loc in this message
+        const rainbow = ['#fcc', '#fda', '#cff', '#cfc', '#ccf', '#faf', '#fdf'];
+        const color = rainbow[0 % rainbow.length];
+        const calculated = [failure.loc].map((loc) => {
+          const { from, to } = srclocToCodeMirrorPosition(loc);
+          const chunk = chunks.find((c) => loc.source.includes(c.id));
+          if (chunk !== undefined && isInitializedEditor(chunk.editor)) {
+            return { from, to, editor: chunk.editor };
+          }
+          return undefined;
+        });
+        const locs = calculated.map((attributes) => {
+          if (attributes === undefined) {
+            return <></>;
+          }
+          const { editor: ed, from, to } = attributes;
+          return (
+            <Highlight
+              editor={ed}
+              from={from}
+              to={to}
+              color={color}
+              key={to.line * 13 + to.ch}
+            />
+          );
+        });
+        return (
+          <>
+            {`line ${failure.loc['start-line']}`}
+            {locs}
+          </>
+        );
       }
       return (
         <>
