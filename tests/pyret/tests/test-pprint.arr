@@ -42,7 +42,6 @@ fix-numbers = A.default-map-visitor.{
 
 check:
   for each(k from files) block:
-    print(k + "...\n")
     src-str = F.file-to-string(k)
     cases(E.Either) TPH.maybe-parse(src-str) block:
       | left(_) => nothing
