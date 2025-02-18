@@ -488,6 +488,52 @@ data TestResult:
           VS.vs-value(exn-unwrap(self.actual-exn)),
           VS.vs-value(self.exn-place)])
     end,
+  | failure-exn-satisfies-rhs(loc :: Loc, actual-exn, lhs-value) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      if self.loc.is-builtin():
+        self.render-reason(true)
+      else if src-available(self.loc):
+        cases(Option) maybe-ast(self.loc):
+          | some(test-ast) =>
+            [ED.error:
+              on-right.test-preamble(test-ast),
+              ED.cmcode(self.loc),
+              ED.paragraph(
+                [list: ED.text("It did not expect the evaluation of the "),
+                    ED.highlight(ED.text("predicate"),  [ED.locs: test-ast.right.value.l], -3),
+                    ED.text(" to raise an exception:"),
+                    ED.embed(self.actual-exn),
+                    ED.paragraph(
+                      [list: ED.text("Given input on the "),
+                        ED.highlight(ED.text("left side"), [ED.locs: test-ast.left.l], -2),
+                        ED.text(" of the test:"),
+                        ED.paragraph([list: ED.embed(self.lhs-value)])]
+                      )])
+              ]
+          | none => self.render-reason()
+        end
+      else:
+        self.render-reason(false)
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("Got unexpected exception ")],
+        ED.embed(self.actual-exn),
+        [ED.para: ED.text("When evaluating predicate on left side value "), ED.embed(self.lhs-value)]]
+    end,
+    method access-stack(self, get-stack) block:
+      # print("The stack is being accessed")
+      # print(get-stack(self.actual-exn))
+      get-stack(self.actual-exn)
+    end,
+    method _output(self):
+      VS.vs-constr("failure-exn-satisfies-rhs",
+        [list:
+          VS.vs-value(self.loc),
+          VS.vs-value(exn-unwrap(self.actual-exn)),
+          VS.vs-value(self.lhs-value)])
+    end,
   | failure-no-exn(loc :: Loc, exn-expected :: Option<String>, exn-src, wanted :: Boolean) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
       if self.loc.is-builtin() block:
@@ -1011,7 +1057,7 @@ fun make-check-context(main-module-name :: String, checks-option :: String):
           | right(exn) =>
             exn-v = exn-unwrap(exn)
             if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, pv, 1))
-            else: add-result(failure-exn(loc, exn, on-right))
+            else: add-result(failure-exn-satisfies-rhs(loc, exn, lv))
             end
           | left(test-result) =>
             ask:
@@ -1029,7 +1075,7 @@ fun make-check-context(main-module-name :: String, checks-option :: String):
           | right(exn) =>
             exn-v = exn-unwrap(exn)
             if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, pv, 1))
-            else: add-result(failure-exn(loc, exn, on-right))
+            else: add-result(failure-exn-satisfies-rhs(loc, exn, lv))
             end
           | left(cause-result) =>
             ask:
@@ -1060,7 +1106,7 @@ fun make-check-context(main-module-name :: String, checks-option :: String):
           | right(exn) =>
             exn-v = exn-unwrap(exn)
             if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, pv, 1))
-            else: add-result(failure-exn(loc, exn, on-right))
+            else: add-result(failure-exn-satisfies-rhs(loc, exn, lv))
             end
           | left(test-result) =>
             ask:
@@ -1078,7 +1124,7 @@ fun make-check-context(main-module-name :: String, checks-option :: String):
           | right(exn) =>
             exn-v = exn-unwrap(exn)
             if E.is-arity-mismatch(exn-v) or E.is-non-function-app(exn-v): add-result(error-not-pred(loc, pv, 1))
-            else: add-result(failure-exn(loc, exn, on-right))
+            else: add-result(failure-exn-satisfies-rhs(loc, exn, lv))
             end
           | left(cause-result) =>
             ask:

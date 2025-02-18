@@ -11,6 +11,8 @@
       "file-times": "tany",
       "real-path": "tany",
       "exists": "tany",
+      "is-file": "tany",
+      "is-dir": "tany",
       "close-output-file": "tany",
       "close-input-file": "tany",
       "create-dir": "tany",
@@ -144,6 +146,26 @@
           var e = fs.existsSync(s);
           return RUNTIME.makeBoolean(e);
         }, "exists"),
+      "is-file": RUNTIME.makeFunction(function(path) {
+          RUNTIME.ffi.checkArity(1, arguments, "is-file", false);
+          RUNTIME.checkString(path);
+          var s = RUNTIME.unwrap(path);
+          if (!fs.existsSync(s)) {
+            return RUNTIME.makeBoolean(false);
+          }
+          var stats = fs.lstatSync(s);
+          return RUNTIME.makeBoolean(stats.isFile());
+        }, "is-file"),
+      "is-dir": RUNTIME.makeFunction(function(path) {
+          RUNTIME.ffi.checkArity(1, arguments, "is-file", false);
+          RUNTIME.checkString(path);
+          var s = RUNTIME.unwrap(path);
+          if (!fs.existsSync(s)) {
+            return RUNTIME.makeBoolean(false);
+          }
+          var stats = fs.lstatSync(s);
+          return RUNTIME.makeBoolean(stats.isDirectory());
+        }, "is-dir"),
       "close-output-file": RUNTIME.makeFunction(function(file) { 
           RUNTIME.ffi.checkArity(1, arguments, "close-output-file", false);
           RUNTIME.checkOpaque(file);
