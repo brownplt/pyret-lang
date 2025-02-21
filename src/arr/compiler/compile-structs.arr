@@ -3159,6 +3159,7 @@ runtime-provides = provides("builtin://global",
     "raw-array-or-mapi", t-top,
     "raw-array-map", t-top,
     "raw-array-map-1", t-top,
+    "raw-array-join-str", t-top,
     "raw-array-from-list", t-top,
     "raw-array", t-record(
       [string-dict:
