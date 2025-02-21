@@ -36,9 +36,6 @@
     "websocket": "^1.0.34",
     "ws": "^8.18.0"
   },
-  "bin": {
-    "pyret": "src/server/pyret.js"
-  },
   "scripts": {
     "install": "make phaseA-deps",
     "test": "make test-all"
