@@ -32,6 +32,10 @@ fun make(arr :: RawArray) -> Array:
       nothing
     end,
     method length(_): raw-array-length(arr) end,
+
+    method filter(self, f): make(raw-array-filter(f, arr)) end,
+    method map(self, f): make(raw-array-map(f, arr)) end,
+
     method to-list-now(_): raw-array-to-list(arr) end,
     method _equals(self, other, eq):
       eq(self.get-arr(get-arr-key), other.get-arr(get-arr-key))

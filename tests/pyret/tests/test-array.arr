@@ -153,7 +153,7 @@ check:
       none
     end
   end
-  
+
   arr is=~ [raw-array: 0, 25, 100, 225, 400, 625, 900, 1225, 1600, 2025, 2500, 3025, 3600, 4225, 4900, 5625, 6400, 7225, 8100, 9025]
 
   fun slowly(n):
@@ -161,7 +161,7 @@ check:
     else: slowly(n - 1)
     end
   end
-  
+
   fun slow(i) block:
     slowly(3000)
     if num-modulo(i, 2) == 0:
@@ -183,12 +183,23 @@ end
 
 check:
   fun f(v :: Array<Number>) block:
-    when not(is-array(v)): raise("not an Array") end
-    v
-  end
-  f([list: ]) raises "Array"
+    when notaises "Array"
   f([array: ]).to-list-now() is [list: ]
   f([array: ]) satisfies is-array
+end
+
+check "array filter method":
+  a = [array: "apple", "banana", "plum"]
+  p-words = a.filter(lam(s):
+      string-contains(s, "p")
+    end)
+  p-words is=~ [array: "apple", "plum"]
+end
+
+check "array map method":
+  a = [array: "apple", "banana", "plum"]
+  lengths = a.map(string-length)
+  lengths is=~ [array: 5, 6, 4]
 end
 
 check:
@@ -218,11 +229,11 @@ check:
 end
 
 check:
-#  myarr = [array: 1, 2, 3, 4, 5]
-#  answer = for arrays.array-fold(acc from 0, elt from myarr, ix from 0):
-#    acc + elt
-#  end
-#  answer is 15
+  #  myarr = [array: 1, 2, 3, 4, 5]
+  #  answer = for arrays.array-fold(acc from 0, elt from myarr, ix from 0):
+  #    acc + elt
+  #  end
+  #  answer is 15
 
   bigarr = raw-array-of(2, 1000)
   answer2 = for raw-array-fold(acc from 0, elt from bigarr, ix from 0):
@@ -240,8 +251,8 @@ check:
   bigarr2 = raw-array-of(3, 1000)
   answer4 = for raw-array-fold(acc from 0, elt from bigarr, ix from 0):
     acc + (elt * for raw-array-fold(acc2 from 0, elt2 from bigarr2, ix2 from 0):
-      acc2 + elt2
-    end)
+        acc2 + elt2
+      end)
   end
   answer4 is  3 * 1000 * 2 * 1000
 
@@ -289,9 +300,9 @@ check:
   big-array = raw-array-build(lam(x): x end, 5000)
 
   filtered = raw-array-filter(lam(x) block:
-    loop(1000)
-    num-modulo(x, 2) == 0
-  end, big-array)
+      loop(1000)
+      num-modulo(x, 2) == 0
+    end, big-array)
 
   filtered is=~ raw-array-build(lam(x): x * 2 end, 2500)
 end
