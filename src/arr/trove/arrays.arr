@@ -15,7 +15,11 @@ provide-types *
 
 import global as _
 include lists
+import global as G
 import valueskeleton as VS
+
+raw-array-sort-by = G.raw-array-sort-by
+raw-array-sort-nums = G.raw-array-sort-nums
 
 newtype Array as ArrayT
 
@@ -35,6 +39,12 @@ fun make(arr :: RawArray) -> Array:
 
     method filter(self, f): make(raw-array-filter(f, arr)) end,
     method map(self, f): make(raw-array-map(f, arr)) end,
+
+    method sort-nums(self, asc) block:
+      raw-array-sort-nums(arr, asc)
+      self
+    end,
+    method sort-by(self, key, asc): make(raw-array-sort-by(arr, key, asc)) end,
 
     method to-list-now(_): raw-array-to-list(arr) end,
     method _equals(self, other, eq):

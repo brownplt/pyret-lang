@@ -183,7 +183,10 @@ end
 
 check:
   fun f(v :: Array<Number>) block:
-    when notaises "Array"
+    when not(is-array(v)): raise("not an Array") end
+    v
+  end
+  f([list:]) raises "Array"
   f([array: ]).to-list-now() is [list: ]
   f([array: ]) satisfies is-array
 end
@@ -201,6 +204,30 @@ check "array map method":
   lengths = a.map(string-length)
   lengths is=~ [array: 5, 6, 4]
 end
+
+    
+check:
+  a = [array: 9, 2, 3, 1]
+  asc = a.sort-nums(true)
+  a is=~ [array: 1, 2, 3, 9]
+  asc is<=> a
+  
+  desc = a.sort-nums(false)
+  a is=~ [array: 9, 3, 2, 1]
+  desc is<=> a
+end
+    
+
+check:
+  a = [array: "banana", "plum", "apple"]
+  asc = a.sort-by(string-length, true)
+  
+  asc is=~ [array: "plum", "apple", "banana"]
+  asc is-not<=> a
+end
+
+ 
+    
 
 check:
   a1 = raw-array-of(3, 3)
