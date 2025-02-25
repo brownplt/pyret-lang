@@ -20,6 +20,8 @@ import valueskeleton as VS
 
 raw-array-sort-by = G.raw-array-sort-by
 raw-array-sort-nums = G.raw-array-sort-nums
+raw-array-duplicate = G.raw-array-duplicate
+raw-array-concat = G.raw-array-concat
 
 newtype Array as ArrayT
 
@@ -39,6 +41,9 @@ fun make(arr :: RawArray) -> Array:
 
     method filter(self, f): make(raw-array-filter(f, arr)) end,
     method map(self, f): make(raw-array-map(f, arr)) end,
+    method fold(self, f, init, start-index): raw-array-fold(f, init, arr, start-index) end,
+    method concat(self, other): make(raw-array-concat(arr, other.get-arr(get-arr-key))) end,
+    method duplicate(self): make(raw-array-duplicate(arr)) end,
 
     method sort-nums(self, asc) block:
       raw-array-sort-nums(arr, asc)

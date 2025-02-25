@@ -205,6 +205,53 @@ check "array map method":
   lengths is=~ [array: 5, 6, 4]
 end
 
+check "array fold method":
+  a = [array: "a", "b", "c"]
+  str = a.fold(lam(str, elt, i):
+    if i < (a.length() - 1):
+      str + elt + ": " + tostring(i) + ", "
+    else:
+      str + elt + ": " + tostring(i)
+    end
+  end, "", 0)
+  str is "a: 0, b: 1, c: 2"
+end
+
+check:
+  a1 = [array: 5, 6, 7]
+  a2 = [array: 0, 3, 99, -1, 7]
+
+  c = a1.concat(a2)
+  c is=~ [array: 5, 6, 7, 0, 3, 99, -1, 7]
+  
+  a1 is=~ [array: 5, 6, 7]
+  a2 is=~ [array: 0, 3, 99, -1, 7]
+end
+
+check:
+  a = [array: 1, 2, 3]
+  b = a.duplicate()
+  a is=~ b
+  b is=~ a
+
+  a is<=> a
+  a is-not<=> b
+  b is-not<=> a
+  b is<=> b
+
+  a.set-now(1, 1)
+
+  a.get-now(1) is 1
+  b.get-now(1) is 2
+
+  c = [array: {1; 2}, {3; 4}]
+  d = c.duplicate()
+
+  c is-not<=> d
+  c.get-now(0) is<=> d.get-now(0)
+  c.get-now(0) is<=> d.get-now(0)
+end
+
     
 check:
   a = [array: 9, 2, 3, 1]
