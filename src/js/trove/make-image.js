@@ -1,18 +1,18 @@
 ({
   requires: [
-    { "import-type": "builtin", "name": "image-lib" },
-    { "import-type": "builtin", "name": "ffi" }
+    { "import-type": "builtin", "name": "image-lib" }
   ],
   nativeRequires: [
     "pyret-base/js/js-numbers",
     "fs"
   ],
   provides: {},
-  theModule: function(runtime, namespace, uri, imageLib, ffi, jsnums, fs) {
+  theModule: function(runtime, namespace, uri, imageLib, jsnums, fs) {
     var image = runtime.getField(imageLib, "internal");
     
     function makeImageLib(moduleName, annots) {
       const colorDb = image.colorDb;
+      const ffi = runtime.ffi;
 
       const annListImage = annots.annListImage;
       const unwrapListofImage = annots.unwrapListofImage;

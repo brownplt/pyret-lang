@@ -4,6 +4,7 @@ provide *
 provide-types *
 
 import global as _
+import base as _
 
 data Point:
   | point-xy(x :: Number, y :: Number)
