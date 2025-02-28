@@ -3,12 +3,12 @@
     { "import-type": "builtin", "name": "internal-image-shared" },
     { "import-type": "builtin", "name": "color" }
   ],
-  nativeRequires: ["pyret-base/js/js-numbers", "js-md5"],
+  nativeRequires: ["pyret-base/js/js-numbers", "js-md5", "canvas"],
   provides: {
     aliases: { "Image": ["local", "Image"] },
     datatypes: { "Image": ["data", "Image", [], [], {}] }
   },
-  theModule: function(RUNTIME, NAMESPACE, uri, imageImp, colorLib, jsnums, md5) {
+  theModule: function(RUNTIME, NAMESPACE, uri, imageImp, colorLib, jsnums, md5, nodeCanvas) {
     var gf = RUNTIME.getField;
 
     var image = gf(imageImp, "values");
@@ -400,11 +400,19 @@
     // makeCanvas: number number -> canvas
     // Constructs a canvas object of a particular width and height.
     var makeCanvas = function(width, height) {
-      var canvas = document.createElement("canvas");
+      let canvas;
+      if(typeof document !== 'undefined') {
+        canvas = document.createElement("canvas");
+      }
+      else {
+        canvas = nodeCanvas.createCanvas();
+      }
       canvas.width  = width;
       canvas.height = height;
-      canvas.style.width  = canvas.width  + "px";
-      canvas.style.height = canvas.height + "px";
+      if(canvas.style) {
+        canvas.style.width  = canvas.width  + "px";
+        canvas.style.height = canvas.height + "px";
+      }
       return canvas;
     };
 
@@ -427,11 +435,13 @@
         ctx = this.getContext("2d");
         that.render(ctx);
       };
-      jQuery(canvas).bind('afterAttach', onAfterAttach);
+      if(typeof jQuery !== 'undefined') {
+        jQuery(canvas).bind('afterAttach', onAfterAttach);
 
-      // Canvases lose their drawn content on cloning.  data may help us to preserve it.
-      jQuery(canvas).data('toRender', onAfterAttach);
-      // ARIA: use "image" as default text.
+        // Canvases lose their drawn content on cloning.  data may help us to preserve it.
+        jQuery(canvas).data('toRender', onAfterAttach);
+        // ARIA: use "image" as default text.
+      }
       canvas.ariaText = this.ariaText || "image";
       return canvas;
     };
@@ -509,7 +519,9 @@
       // if it's something more sophisticated, render both images to canvases
       // First check canvas dimensions, then go pixel-by-pixel
       var c1 = this.toDomNode(), c2 = other.toDomNode();
-      c1.style.visibility = c2.style.visibility = "hidden";
+      if(c1.style) {
+        c1.style.visibility = c2.style.visibility = "hidden";
+      }
       if(c1.width !== c2.width || c1.height !== c2.height){ return false;}
       try{
         var ctx1 = c1.getContext('2d'), ctx2 = c2.getContext('2d');
@@ -517,8 +529,8 @@
         ctx2.isEqualityTest = true;
         this.render(ctx1); other.render(ctx2);
         // create temporary canvases
-        var slice1 = document.createElement('canvas').getContext('2d'),
-            slice2 = document.createElement('canvas').getContext('2d');
+        var slice1 = makeCanvas(0, 0).getContext('2d'),
+            slice2 = makeCanvas(0, 0).getContext('2d');
         var tileW = Math.min(10000, c1.width); // use only the largest tiles we need for these images
         var tileH = Math.min(10000, c1.height);
         for (var y=0; y < c1.height; y += tileH){
