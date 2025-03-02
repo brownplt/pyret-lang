@@ -479,7 +479,9 @@
       // if it's something more sophisticated, render both images to canvases
       // First check canvas dimensions, then go pixel-by-pixel
       var c1 = this.toDomNode(), c2 = other.toDomNode();
-      c1.style.visibility = c2.style.visibility = "hidden";
+      if(c1.style) {
+        c1.style.visibility = c2.style.visibility = "hidden";
+      }
       var w1 = Math.floor(c1.width),
           h1 = Math.floor(c1.height),
           w2 = Math.floor(c2.width),
@@ -839,9 +841,7 @@
       }
 
       if (canvas.width === 0 || canvas.height === 0) {
-        var blank = canvas.ownerDocument.createElement("canvas");
-        blank.width = 0;
-        blank.height = 0;
+        var blank = makeCanvas(0, 0);
         return blank;
       }
         
@@ -853,16 +853,14 @@
       while (top < bottom && rowBlank(imageData, width, top)) ++top;
       while (bottom - 1 > top && rowBlank(imageData, width, bottom - 1)) --bottom;
       if (top >= bottom) {
-        var blank = canvas.ownerDocument.createElement("canvas");
-        blank.width = 0;
-        blank.height = 0;
+        var blank = makeCanvas(0, 0);
         return blank;
       }
       while (left < right && columnBlank(imageData, width, left, top, bottom)) ++left;
       while (right - 1 > left && columnBlank(imageData, width, right - 1, top, bottom)) --right;
 
       var trimmed = ctx.getImageData(left, top, right - left, bottom - top);
-      var copy = canvas.ownerDocument.createElement("canvas");
+      var copy = makeCanvas(0, 0);
       var copyCtx = copy.getContext("2d");
       copy.width = trimmed.width;
       copy.height = trimmed.height;
