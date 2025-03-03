@@ -160,8 +160,6 @@
 
     var isString = runtime.isString;
 
-    console.log("From untyped: ", imageLib);
-
     var image = runtime.getField(imageLib, "internal");
     var colorDb = image.colorDb;
 

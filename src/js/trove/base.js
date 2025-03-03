@@ -23,8 +23,7 @@
     { "import-type": "builtin", name: "data-source" },
     { "import-type": "builtin", name: "constants" },
     { "import-type": "builtin", name: "s-exp" },
-    { "import-type": "builtin", name: "timing" },
-    { "import-type": "builtin", name: "image" },
+    { "import-type": "builtin", name: "timing" }
   ],
   provides: {},
   nativeRequires: [],

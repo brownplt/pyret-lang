@@ -1438,9 +1438,11 @@
         block.style.verticalAlign = 'baseline';
         result.width = text.offsetWidth;
         result.ascent = block.offsetTop - text.offsetTop;
+        result.baselineOffsets = { blockOffsetTop : block.offsetTop, textOffsetTop : text.offsetTop };
 
         block.style.verticalAlign = 'bottom';
         result.height = block.offsetTop - text.offsetTop;
+        result.bottomOffsets = { blockOffsetTop : block.offsetTop, textOffsetTop : text.offsetTop };
 
         result.descent = result.height - result.ascent;
       } finally {
@@ -1470,11 +1472,17 @@
       this.font += '"' + (this.face !== false ? this.face : "Arial") + '" ';
       this.font += this.family !== false ? ", " + this.family : "";
 
-      var metrics = getTextDimensions(str, this.font);
+      let ctx = makeCanvas(0, 0).getContext("2d");
+      ctx.font = this.font;
+      let metrics = ctx.measureText(str);
+
+      if(typeof document !== 'undefined') {
+        var otherMetrics = getTextDimensions(str, this.font);
+        console.log(metrics, otherMetrics);
+      }
       this.width       = metrics.width;
-      this.height      = metrics.height;
-      // we measure coordinates from the *top* of the image, and getTextDimensions seems to be off by a bit
-      this.alphaBaseline = metrics.ascent + baselineFudge;
+      this.height      = Math.ceil(metrics.actualBoundingBoxAscent) + Math.ceil(metrics.actualBoundingBoxDescent);
+      this.alphaBaseline = Math.ceil(metrics.actualBoundingBoxAscent);
       this.pinholeX    = this.width / 2;
       this.pinholeY    = this.alphaBaseline;
 
@@ -1490,16 +1498,16 @@
 
       // if 'outline' is enabled, use strokeText. Otherwise use fillText
       ctx.fillStyle = this.outline? 'white' : colorString(this.color);
-      ctx.fillText(this.str, 0, this.alphaBaseline - 1); // handle the baseline offset here
+      ctx.fillText(this.str, 0, this.alphaBaseline); // handle the baseline offset here
       if(this.outline){
         ctx.strokeStyle = colorString(this.color);
-        ctx.strokeText(this.str, 0, this.alphaBaseline - 1);
+        ctx.strokeText(this.str, 0, this.alphaBaseline);
       }
       if(this.underline){
           ctx.beginPath();
-          ctx.moveTo(0, this.size);
+          ctx.moveTo(0, this.alphaBaseline);
           // we use this.size, as it is more accurate for underlining than this.height
-          ctx.lineTo(this.width, this.size);
+          ctx.lineTo(this.width, this.alphaBaseline);
           ctx.closePath();
           ctx.strokeStyle = colorString(this.color);
           ctx.stroke();

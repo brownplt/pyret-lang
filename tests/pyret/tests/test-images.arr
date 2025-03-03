@@ -173,10 +173,19 @@ check "properties":
   even-overlay = overlay(circle(20, mode-solid, orange), circle(20, mode-solid, purple))
   image-height(even-overlay) is 40
   image-width(even-overlay) is 40
+  
+  indigo-Good = text-font("Goodbye", 48, indigo, "Helvetica", ff-modern, fs-normal, fw-normal, false)
+  image-height(indigo-Good) is%(within-abs(5)) 45
+  image-baseline(indigo-Good) is%(within-abs(2)) 35
 
-  indigo-text = text-font("Goodbye", 48, indigo, "Helvetica", ff-modern, fs-normal, fw-normal, false)
-  image-height(indigo-text) is%(within-abs(5)) 50
-  image-baseline(indigo-text) is%(within-abs(2)) 43
+  indigo-good = text-font("goodbye", 48, indigo, "Helvetica", ff-modern, fs-normal, fw-normal, false)
+  image-height(indigo-good) is%(within-abs(5)) 41
+  image-baseline(indigo-good) is%(within-abs(2)) 33
+
+  indigo-mm = text-font("mm", 48, indigo, "Helvetica", ff-modern, fs-normal, fw-normal, false)
+  spy: h: image-height(indigo-mm) end
+  image-height(indigo-mm) is%(within-abs(5)) 25
+  image-baseline(indigo-mm) is%(within-abs(2)) 25
 
   image-baseline(rectangle(100, 100, mode-solid, black)) is 100
 
