@@ -184,10 +184,21 @@
         return runtime.pauseStack(function(restarter) {
           const canvas = image.makeCanvas(img.width, img.height);
           img.render(canvas.getContext("2d"));
-          fs.writeFile(path, canvas.toBuffer("image/png"), function(err) {
-            if(err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
-            else { restarter.resume(runtime.nothing); }
-          });
+          if(canvas.toBuffer) {
+            fs.writeFile(path, canvas.toBuffer("image/png"), function(err) {
+              if(err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
+              else { restarter.resume(runtime.nothing); }
+            });
+          }
+          else {
+            canvas.toBlob(async (blob) => {
+              const buffer = new Uint8Array(await blob.arrayBuffer());
+              fs.writeFile(path, buffer, function(err) {
+                if(err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
+                else { restarter.resume(runtime.nothing); }
+              });
+            }, "image/png");
+          }
         });
       }
 
