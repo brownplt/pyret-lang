@@ -180,6 +180,17 @@
         })
       }
 
+      function saveImage(img, path) {
+        return runtime.pauseStack(function(restarter) {
+          const canvas = image.makeCanvas(img.width, img.height);
+          img.render(canvas.getContext("2d"));
+          fs.writeFile(path, canvas.toBuffer("image/png"), function(err) {
+            if(err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
+            else { restarter.resume(runtime.nothing); }
+          });
+        });
+      }
+
       var values = {};
       function f(name, fun) {
         values[name] = runtime.makeFunction(fun, name);
@@ -221,6 +232,11 @@
         c1("image-file", path, annString);
         return imageFile(path);
       }),
+      f("save-image", function(maybeImage, maybePath) {
+        checkArity(2, arguments, "image", false);
+        c2("save-image", maybeImage, annImage, maybePath, annString);
+        return saveImage(unwrapImage(maybeImage), maybePath);
+      })
       f("images-difference", function(maybeImage1, maybeImage2) {
         checkArity(2, arguments, "image", false);
         c2("images-difference", maybeImage1, annImage, maybeImage2, annImage);

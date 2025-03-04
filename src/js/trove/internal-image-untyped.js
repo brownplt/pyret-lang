@@ -61,6 +61,7 @@
       "is-image": ["arrow", ["tany"], "Boolean"],
       "image-url": ["arrow", ["String"], "Image"],
       "image-file": ["arrow", ["String"], "Image"],
+      "save-image": ["arrow", ["Image", "String"], "Image"],
       "images-equal": ["arrow", ["Image", "Image"], "Boolean"],
       "images-difference": ["arrow", ["Image", "Image"], ["tyapp", "Either", ["String", "Number"]]],
       "text": ["arrow", ["String", "Number", "ColorString"], "Image"],
