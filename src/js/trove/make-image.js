@@ -805,7 +805,7 @@
 
       f("rectangle", function(maybeWidth, maybeHeight, maybeMode, maybeColor) {
         checkArity(4, arguments, "rectangle", false);
-        c("square",
+        c("rectangle",
           maybeWidth, annNumNonNegative,
           maybeHeight, annNumNonNegative,
           maybeMode, annMode,

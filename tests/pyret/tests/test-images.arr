@@ -183,7 +183,6 @@ check "properties":
   image-baseline(indigo-good) is%(within-abs(2)) 33
 
   indigo-mm = text-font("mm", 48, indigo, "Helvetica", ff-modern, fs-normal, fw-normal, false)
-  spy: h: image-height(indigo-mm) end
   image-height(indigo-mm) is%(within-abs(5)) 25
   image-baseline(indigo-mm) is%(within-abs(2)) 25
 
@@ -230,3 +229,22 @@ check "predicates":
 
 end
 
+
+check "Crop":
+  cropsquare = crop(0, 0, 100, 100, rectangle(400, 100, mode-solid, red))
+  sq = rectangle(100, 100, mode-solid, red)
+  cropsquare is sq
+end
+
+logo = image-file("img/pyret-logo.png")
+check:
+  image-width(logo) is 501
+  image-height(logo) is 488
+  color-at-position(logo, 250, 280) is color(238, 30, 16, 1)
+end
+
+save-image(logo, "pyret-logo-copy.png")
+logo2 = image-file("pyret-logo-copy.png")
+check:
+  logo is logo2
+end
