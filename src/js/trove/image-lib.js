@@ -710,7 +710,10 @@
     // The following is a hack that we use to allow animated gifs to show
     // as animating on the canvas.
     FileImage.prototype.installHackToSupportAnimatedGifs = function() {
-      if (this.animationHackImg) { return; }
+      if (this.animationHackImg || !this.img.cloneNode) {
+        this.animationHackImg = this.img;
+        return;
+      }
       this.animationHackImg = this.img.cloneNode(true);
       document.body.appendChild(this.animationHackImg);
       this.animationHackImg.style.position = 'absolute';

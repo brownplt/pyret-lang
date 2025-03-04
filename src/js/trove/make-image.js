@@ -5,11 +5,13 @@
   ],
   nativeRequires: [
     "pyret-base/js/js-numbers",
-    "fs"
+    "fs",
+    "canvas"
   ],
   provides: {},
-  theModule: function(runtime, namespace, uri, imageLib, ffi, jsnums, fs) {
+  theModule: function(runtime, namespace, uri, imageLib, ffi, jsnums, fs, canvas) {
     var image = runtime.getField(imageLib, "internal");
+    var Image = canvas.Image; // The polyfill for the browser Image API (passes through raw Image on CPO)
     
     function makeImageLib(moduleName, annots) {
       const colorDb = image.colorDb;
@@ -133,13 +135,19 @@
 
       // Some discussion of this code at https://stackoverflow.com/a/66046176/2718315
       async function bufferToBase64(buffer, mime) {
-        const base64url = await new Promise(r => {
-          const reader = new FileReader()
-          reader.onload = () => r(reader.result)
-          reader.readAsDataURL(new Blob([buffer]))
-        });
-        const data = base64url.slice(base64url.indexOf(",") + 1);
-        return `data:${mime};base64, ${data}`;
+        if(typeof FileReader !== 'undefined') {
+          const base64url = await new Promise(r => {
+            const reader = new FileReader()
+            reader.onload = () => r(reader.result)
+            reader.readAsDataURL(new Blob([buffer]))
+          });
+          const data = base64url.slice(base64url.indexOf(",") + 1);
+          return `data:${mime};base64, ${data}`;
+        }
+        else {
+          const data = buffer.toString('base64');
+          return `data:${mime};base64, ${data}`;
+        }
       }
       const extensiontypes = {
         "png": "image/png",
