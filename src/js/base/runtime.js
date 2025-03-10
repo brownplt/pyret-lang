@@ -4392,7 +4392,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-fold"], 4, $a, false); }
       thisRuntime.checkArgsInternalInline("RawArrays", "raw-array-fold",
         f, thisRuntime.Function, init, thisRuntime.Any, arr, thisRuntime.RawArray, start, thisRuntime.Number);
-      var currentIndex = start - 1;
+      var currentIndex = -1;
       var currentAcc = init;
       var length = arr.length;
       function foldHelp() {
@@ -4402,7 +4402,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             return thisRuntime.makeCont();
           }
           currentIndex += 1;
-          var res = f.app(currentAcc, arr[currentIndex], currentIndex);
+          var res = f.app(currentAcc, arr[currentIndex], currentIndex + start);
           if(isContinuation(res)) { return res; }
           currentAcc = res;
         }

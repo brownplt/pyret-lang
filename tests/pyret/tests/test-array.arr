@@ -329,7 +329,20 @@ check:
       end)
   end
   answer4 is  3 * 1000 * 2 * 1000
+end
 
+check "raw-array-fold nonzero start indices":
+  a = [raw-array: 100, 1000, 10000]
+  ans = for raw-array-fold(acc from 0, elt from a, ix from 7):
+    acc + (elt * ix)
+  end
+  ans is 98700
+
+  a2 = [raw-array: 100, 1000, 10000]
+  ans2 = for raw-array-fold(acc from 0, elt from a, ix from -3):
+    acc + (elt * ix)
+  end
+  ans2 is -12300
 end
 
 check:
