@@ -725,6 +725,7 @@ check "table-from-column":
 end
 
 
+
 check:
   [table-from-columns:] raises "requires at least one"
 end

@@ -580,9 +580,10 @@
               else {
                 var reduce = runtime.getField(reducer, "reduce");
                 var reducerWrapped = runtime.makeFunction(function(acc, val, ix) {
+                  if(ix === 0) { return acc; }
                   return reduce.app(runtime.getTuple(acc, 0, ["tables"]), val);
                 });
-                return runtime.raw_array_fold(reducerWrapped, one, column, 1);
+                return runtime.raw_array_fold(reducerWrapped, one, column, 0);
               }
             }, "reduce-one");
           }, function(answerTuple) {
