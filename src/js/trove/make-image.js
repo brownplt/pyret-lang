@@ -163,7 +163,7 @@
         if(!mime) { throw runtime.ffi.makeMessageException(`Path to image-file did not have a valid extension (got ${extension}), must be one of ${allowedExtensions.join(", ")}`); }
         return runtime.pauseStack(function(restarter) {
           fs.readFile(path, {}, async (err, result) => {
-            if(err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
+            if(err) { restarter.error(runtime.ffi.makeMessageException(String(err))); }
             else {
               // create a data url from the result from readFile stored in result:
               var dataURL = await bufferToBase64(result, mime);
@@ -186,7 +186,7 @@
           img.render(canvas.getContext("2d"));
           if(canvas.toBuffer) {
             fs.writeFile(path, canvas.toBuffer("image/png"), function(err) {
-              if(err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
+              if(err) { restarter.error(runtime.ffi.makeMessageException(String(err))); }
               else { restarter.resume(runtime.nothing); }
             });
           }
@@ -194,7 +194,7 @@
             canvas.toBlob(async (blob) => {
               const buffer = new Uint8Array(await blob.arrayBuffer());
               fs.writeFile(path, buffer, function(err) {
-                if(err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
+                if(err) { restarter.error(runtime.ffi.makeMessageException(String(err))); }
                 else { restarter.resume(runtime.nothing); }
               });
             }, "image/png");
