@@ -655,10 +655,12 @@
         var placeX = unwrapPlaceX(maybePlaceX);
         var placeY = unwrapPlaceY(maybePlaceY);
         var background = unwrapImageOrScene(maybeBackground);
-        if      (placeX == "left"  ) { x = x + img.getWidth()/2; }
-        else if (placeX == "right" ) { x = x - img.getWidth()/2; }
-        if      (placeY == "top"   ) { y = y + img.getHeight()/2; }
-        else if (placeY == "bottom") { y = y - img.getHeight()/2; }
+        if      (placeX == "left"   ) { x = x + img.getWidth()/2; }
+        else if (placeX == "right"  ) { x = x - img.getWidth()/2; }
+        else if (placeX == "pinhole") { x = x + img.getWidth()/2 - img.getPinholeX();    }
+        if      (placeY == "top"    ) { y = y + img.getHeight()/2; }
+        else if (placeY == "bottom" ) { y = y - img.getHeight()/2; }
+        else if (placeY == "pinhole") { y = y + img.getHeight()/2 - img.getPinholeY();    }
 
         if (image.isScene(background)) {
           return makeImage(background.add(img, x, y));
@@ -772,9 +774,7 @@
         var color = unwrapColor(maybeC);
         var img   = unwrapImage(maybeImg);
         var line  = image.makeLineImage(x2 - x1, y2 - y1, color);
-        var leftmost = Math.min(x1, x2);
-        var topmost  = Math.min(y1, y2);
-        return makeImage(image.makeOverlayImage(line, "middle", "center", -leftmost, -topmost, img, "middle", "center"));
+        return makeImage(image.makeOverlayImage(line, "left", "top", 0, 0, img, "left", "top"));
       });
 
       f("scene-line", function(maybeImg, maybeX1, maybeY1, maybeX2, maybeY2, maybeC) {
