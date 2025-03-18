@@ -15,7 +15,7 @@ fun mockable-url-locator(fetch):
             url: url,
             globals: globals,
             method get-uncached(self): none end,
-            method get-modified-time(self): 0 end,
+            method get-modified-time(self): time-now() end,
             method get-options(self, options): options end,
             method get-module(self) block:
                 when ast == nothing block:
