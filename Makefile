@@ -116,13 +116,13 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
 show-comp: build/show-compilation.jarr
 
 $(PHASEA)/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
-	browserify src/js/trove/require-node-compile-dependencies.js -o $@
+	npx browserify src/js/trove/require-node-compile-dependencies.js -o $@
 $(PHASEA)/bundled-node-deps.js: src/js/trove/require-node-dependencies.js
-	browserify src/js/trove/require-node-dependencies.js -o $@
+	npx browserify src/js/trove/require-node-dependencies.js -o $@
 $(PHASEB)/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
-	browserify src/js/trove/require-node-compile-dependencies.js -o $@
+	npx browserify src/js/trove/require-node-compile-dependencies.js -o $@
 $(PHASEC)/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
-	browserify src/js/trove/require-node-compile-dependencies.js -o $@
+	npx browserify src/js/trove/require-node-compile-dependencies.js -o $@
 
 $(PHASEA)/config.json: src/scripts/node_modules-config.json
 	cp $< $@

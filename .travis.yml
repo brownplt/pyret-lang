@@ -1,3 +1,4 @@
+dist: jammy
 env:
   secure: "DKjByY1SB6nMWJWn0z+xXsuABUXerLubdfQzpMAZpq2+TgUwdg2nNkp3s3ydKlKRGSpckBNSAN/0wlcXjduBsm+2PXz5YA5IaZY8r2orFQwMeHyarhIciGuG6zBiPVeWTtOTrR/esUbLULptqV0fwHVvdXbPB38CYVJEdmHgPyM="
 git:

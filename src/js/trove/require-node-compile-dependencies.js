@@ -8,6 +8,12 @@ define("s-expression", [], function() {return sexpr;});
 q = require("q");
 define("q", [], function() {return q;});
 
+jsmd5 = require("js-md5");
+define("js-md5", [], function() {return jsmd5;});
+
+canvas = require("canvas");
+define("canvas", [], function() {return canvas;});
+
 seedrandom = require("seedrandom");
 define("seedrandom", [], function() {return seedrandom;});
 
