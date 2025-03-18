@@ -47,4 +47,7 @@ import sha as _
 import str-dict as _
 import string-dict as _
 import table as _
+import image as _
+import image-typed as _
+import color as _
 
