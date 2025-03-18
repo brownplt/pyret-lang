@@ -27,7 +27,7 @@
                 else {
                     const err = await result.statusText;
                     const message = `Fetching ${url} failed with status ${result.status}: ${err}`;
-                    restarter.error(RUNTIME.ffi.makeRight(message)); 
+                    restarter.resume(RUNTIME.ffi.makeRight(message)); 
                 }
             });
         })

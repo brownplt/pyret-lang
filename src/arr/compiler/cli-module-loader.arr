@@ -19,6 +19,7 @@ import file("concat-lists.arr") as C
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
 import file("locators/file.arr") as FL
+import file("locators/url.arr") as UL
 import file("locators/builtin.arr") as BL
 import file("locators/jsfile.arr") as JSF
 import file("js-of-pyret.arr") as JSP
@@ -320,6 +321,8 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         else:
           raise("Cannot find import " + torepr(dep))
         end
+      else if protocol == "url":
+        CL.located(UL.url-locator(dep.arguments.get(0), CS.standard-globals), ctxt)
       else if protocol == "builtin-test":
         l = get-builtin-test-locator(ctxt.cache-base-dir, args.first)
         force-check-mode = l.{

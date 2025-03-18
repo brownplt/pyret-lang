@@ -11,8 +11,8 @@ define("q", [], function() {return q;});
 jsmd5 = require("js-md5");
 define("js-md5", [], function() {return jsmd5;});
 
-canvas = require("canvas");
-define("canvas", [], function() {return canvas;});
+crossFetch = require("cross-fetch");
+define("cross-fetch", [], function() {return crossFetch;});
 
 seedrandom = require("seedrandom");
 define("seedrandom", [], function() {return seedrandom;});
