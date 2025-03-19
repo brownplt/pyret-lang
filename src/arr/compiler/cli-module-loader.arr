@@ -384,13 +384,15 @@ end
 default-start-context = {
   current-load-path: P.resolve("./"),
   cache-base-dir: P.resolve("./compiled"),
-  compiled-read-only-dirs: empty
+  compiled-read-only-dirs: empty,
+  url-file-mode: CS.all-remote
 }
 
 default-test-context = {
   current-load-path: P.resolve("./"),
   cache-base-dir: P.resolve("./tests/compiled"),
-  compiled-read-only-dirs: empty
+  compiled-read-only-dirs: empty,
+  url-file-mode: CS.all-remote
 }
 
 fun compile(path, options):
