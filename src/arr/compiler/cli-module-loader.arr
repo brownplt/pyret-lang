@@ -360,7 +360,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         CL.located(force-check-mode, ctxt)
       else if protocol == "file-no-cache":
         clp = ctxt.current-load-path
-        real-path = get-real-path(clp, dep)
+        real-path = get-real-path(clp, args.get(0))
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         if F.file-exists(real-path):
           CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
@@ -369,7 +369,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         end
       else if protocol == "js-file":
         clp = ctxt.current-load-path
-        real-path = get-real-path(clp, dep)
+        real-path = get-real-path(clp, args.get(0))
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         locator = JSF.make-jsfile-locator(real-path)
         CL.located(locator, new-context)
