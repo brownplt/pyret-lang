@@ -72,6 +72,7 @@ describe("IO Tests", () => {
   afterAll(() => {
     const result = server.kill('SIGTERM');
     console.log("Kill result: ", result, server.killed);
+    server.unref();
     if(!result) {
       console.error("Server did not kill properly. Unref-ing that process so the process will exit.");
       server.unref();
