@@ -54,7 +54,18 @@ const try_delete_compiled_file = () => {
   catch {}
 }
 
+
 describe("IO Tests", () => {
+  let server;
+  beforeAll(() => {
+    server = cp.spawn(
+      "npx",
+      ["http-server", "-p", "7999", "tests/io-tests/tests/"],
+    );
+  });
+  afterAll(() => {
+    server.kill();
+  });
   glob.sync(`tests/io-tests/tests/test-*.arr`, {}).forEach(f => {
     beforeEach(() => try_delete_compiled_file());
     afterEach(() => try_delete_compiled_file());
