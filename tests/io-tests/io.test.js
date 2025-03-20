@@ -70,11 +70,11 @@ describe("IO Tests", () => {
     );
   });
   afterAll(() => {
-    const result = server.dispose();
-    console.log("Dispose result: ", result);
+    const result = server.kill('SIGTERM');
+    console.log("Kill result: ", result, server.killed);
     if(!result) {
-      console.error("Server did not dispose properly. Exiting.");
-      process.exit(1);
+      console.error("Server did not kill properly. Unref-ing that process so the process will exit.");
+      server.unref();
     }
   });
   glob.sync(`tests/io-tests/tests/test-*.arr`, {}).forEach(f => {
