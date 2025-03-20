@@ -13,6 +13,7 @@ const parse_file_for_expected_std = (f) => {
   let stdioExpected = EMPTY_MESSAGE;
   let stdInToInject = EMPTY_MESSAGE;
   let stderrExpected = EMPTY_MESSAGE;
+  let extraArgs = [];
 
   String(fs.readFileSync(f))
     .split("\n")
@@ -34,12 +35,17 @@ const parse_file_for_expected_std = (f) => {
       if(line.startsWith("###!")) {
         stderrExpected = line.slice(line.indexOf(" ")).trim();
       }
+
+      if(line.startsWith("###@")) {
+        extraArgs = line.slice(line.indexOf(" ")).trim().split(" ");
+      }
   });
 
   return {
     stdioExpected: stdioExpected,
     stdInToInject: stdInToInject,
-    stderrExpected: stderrExpected
+    stderrExpected: stderrExpected,
+    extraArgs: extraArgs
   }
 }
 
@@ -49,12 +55,12 @@ const try_delete_compiled_file = () => {
 }
 
 describe("IO Tests", () => {
-  glob.sync(`tests/io-tests/tests/*.arr`, {}).forEach(f => {
+  glob.sync(`tests/io-tests/tests/test-*.arr`, {}).forEach(f => {
     beforeEach(() => try_delete_compiled_file());
     afterEach(() => try_delete_compiled_file());
 
     describe("Testing " + f, () => {
-      const {stdioExpected, stdInToInject, stderrExpected} = parse_file_for_expected_std(f);
+      const {stdioExpected, stdInToInject, stderrExpected, extraArgs} = parse_file_for_expected_std(f);
 
       test(`it should return io that is expected: ${stdioExpected}`, () => {  
         const compileProcess = cp.spawnSync(
@@ -68,12 +74,12 @@ describe("IO Tests", () => {
             "--builtin-arr-dir","src/arr/trove", 
             "--require-config","src/scripts/standalone-configA.json",
             "--compiled-dir", "tests/compiled/"
-          ],
+          ].concat(extraArgs),
           {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
          
         // at this time, we always expect compilation to succeed
-        expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
         expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
+        expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
 
         const runProcess = cp.spawnSync(
           'node', 
