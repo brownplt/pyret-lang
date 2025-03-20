@@ -13,6 +13,7 @@ const parse_file_for_expected_std = (f) => {
   let stdioExpected = EMPTY_MESSAGE;
   let stdInToInject = EMPTY_MESSAGE;
   let stderrExpected = EMPTY_MESSAGE;
+  let compilestderrExpected = EMPTY_MESSAGE;
   let extraArgs = [];
 
   String(fs.readFileSync(f))
@@ -39,12 +40,17 @@ const parse_file_for_expected_std = (f) => {
       if(line.startsWith("###@")) {
         extraArgs = line.slice(line.indexOf(" ")).trim().split(" ");
       }
+
+      if(line.startsWith("###*")) {
+        compilestderrExpected = line.slice(line.indexOf(" ")).trim();
+      }
   });
 
   return {
     stdioExpected: stdioExpected,
     stdInToInject: stdInToInject,
     stderrExpected: stderrExpected,
+    compilestderrExpected: compilestderrExpected,
     extraArgs: extraArgs
   }
 }
@@ -71,7 +77,7 @@ describe("IO Tests", () => {
     afterEach(() => try_delete_compiled_file());
 
     describe("Testing " + f, () => {
-      const {stdioExpected, stdInToInject, stderrExpected, extraArgs} = parse_file_for_expected_std(f);
+      const {stdioExpected, stdInToInject, stderrExpected, compilestderrExpected, extraArgs} = parse_file_for_expected_std(f);
 
       test(`it should return io that is expected: ${stdioExpected}`, () => {  
         const compileProcess = cp.spawnSync(
@@ -88,9 +94,15 @@ describe("IO Tests", () => {
           ].concat(extraArgs),
           {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
          
-        // at this time, we always expect compilation to succeed
-        expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
-        expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
+        if(compilestderrExpected === "") {
+          expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
+          expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
+        }
+        else {
+          expect(compileProcess.stderr.toString()).toContain(compilestderrExpected);
+          expect(compileProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
+          return; // Don't try to run the program if an error was expected
+        }
 
         const runProcess = cp.spawnSync(
           'node', 
