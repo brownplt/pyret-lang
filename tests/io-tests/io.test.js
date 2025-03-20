@@ -70,7 +70,12 @@ describe("IO Tests", () => {
     );
   });
   afterAll(() => {
-    server.kill();
+    const result = server.dispose();
+    console.log("Dispose result: ", result);
+    if(!result) {
+      console.error("Server did not dispose properly. Exiting.");
+      process.exit(1);
+    }
   });
   glob.sync(`tests/io-tests/tests/test-*.arr`, {}).forEach(f => {
     beforeEach(() => try_delete_compiled_file());
