@@ -18,6 +18,7 @@
     "canvas": "^3.1.0",
     "command-line-args": "^3.0.5",
     "command-line-usage": "^4.0.1",
+    "cross-fetch": "^4.1.0",
     "error-stack-parser": "^2.1.4",
     "fast-csv": "^5.0.2",
     "http": "0.0.0",
@@ -58,5 +59,8 @@
   "bugs": {
     "url": "https://github.com/brownplt/pyret-lang/issues"
   },
-  "homepage": "https://github.com/brownplt/pyret-lang"
+  "homepage": "https://github.com/brownplt/pyret-lang",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
 }

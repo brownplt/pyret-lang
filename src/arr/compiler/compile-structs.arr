@@ -2915,6 +2915,12 @@ data CompileError:
     end
 end
 
+data UrlFileMode:
+  | all-local
+  | all-remote
+  | local-if-present
+end
+
 type CompileOptions = {
   check-mode :: Boolean,
   check-all :: Boolean,
@@ -2930,7 +2936,8 @@ type CompileOptions = {
   standalone-file :: String,
   log :: (String -> Nothing),
   on-compile :: Function, # NOTE: skipping types because the are in compile-lib
-  before-compile :: Function
+  before-compile :: Function,
+  url-file-mode :: UrlFileMode
 }
 
 default-compile-options = {
@@ -2973,7 +2980,8 @@ default-compile-options = {
   method before-compile(_, _): nothing end,
   html-file: none,
   deps-file: "build/bundled-node-deps.js",
-  standalone-file: "src/js/base/handalone.js"
+  standalone-file: "src/js/base/handalone.js",
+  url-file-mode: all-remote
 }
 
 fun make-default-compile-options(this-pyret-dir):

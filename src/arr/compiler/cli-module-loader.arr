@@ -19,6 +19,7 @@ import file("concat-lists.arr") as C
 import file("compile-lib.arr") as CL
 import file("compile-structs.arr") as CS
 import file("locators/file.arr") as FL
+import file("locators/url.arr") as UL
 import file("locators/builtin.arr") as BL
 import file("locators/jsfile.arr") as JSF
 import file("js-of-pyret.arr") as JSP
@@ -296,11 +297,11 @@ end
 
 type CLIContext = {
   current-load-path :: String,
-  cache-base-dir :: String
+  cache-base-dir :: String,
+  url-file-mode :: CS.UrlFileMode
 }
 
-fun get-real-path(current-load-path :: String, dep :: CS.Dependency):
-  this-path = dep.arguments.get(0)
+fun get-real-path(current-load-path :: String, this-path :: String):
   if P.is-absolute(this-path):
     P.relative(current-load-path, this-path)
   else:
@@ -308,17 +309,46 @@ fun get-real-path(current-load-path :: String, dep :: CS.Dependency):
   end
 end
 
+fun locate-file(ctxt :: CLIContext, rel-path :: String):
+  clp = ctxt.current-load-path
+  real-path = get-real-path(clp, rel-path)
+  new-context = ctxt.{current-load-path: P.dirname(real-path)}
+  if F.file-exists(real-path):
+    some(CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context))
+  else:
+    none
+  end
+end
 fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
   cases(CS.Dependency) dep:
     | dependency(protocol, args) =>
       if protocol == "file":
-        clp = ctxt.current-load-path
-        real-path = get-real-path(clp, dep)
-        new-context = ctxt.{current-load-path: P.dirname(real-path)}
-        if F.file-exists(real-path):
-          CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context)
-        else:
-          raise("Cannot find import " + torepr(dep))
+        cases(Option) locate-file(ctxt, args.get(0)):
+          | some(located) => located
+          | none => raise("Cannot find import " + torepr(dep))
+        end
+      else if protocol == "url":
+        CL.located(UL.url-locator(dep.arguments.get(0), CS.standard-globals), ctxt)
+      else if protocol == "url-file":
+        full-url = args.get(0) + "/" + args.get(1)
+        cases(CS.UrlFileMode) ctxt.url-file-mode:
+          | all-remote =>
+            CL.located(UL.url-locator(full-url, CS.standard-globals), ctxt)
+          | all-local =>
+            cases(Option) locate-file(ctxt, args.get(1)):
+              | some(located) =>
+                locator-with-uri = located.locator.{ method uri(self): full-url end }
+                CL.located(locator-with-uri, located.context)
+              | none => raise("Cannot find import " + torepr(dep))
+            end
+          | local-if-present =>
+            cases(Option) locate-file(ctxt, args.get(1)):
+              | some(located) =>
+                locator-with-uri = located.locator.{ method uri(self): full-url end }
+                CL.located(locator-with-uri, located.context)
+              | none =>
+                CL.located(UL.url-locator(full-url, CS.standard-globals), ctxt)
+            end
         end
       else if protocol == "builtin-test":
         l = get-builtin-test-locator(ctxt.cache-base-dir, args.first)
@@ -330,7 +360,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         CL.located(force-check-mode, ctxt)
       else if protocol == "file-no-cache":
         clp = ctxt.current-load-path
-        real-path = get-real-path(clp, dep)
+        real-path = get-real-path(clp, args.get(0))
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         if F.file-exists(real-path):
           CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
@@ -339,7 +369,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         end
       else if protocol == "js-file":
         clp = ctxt.current-load-path
-        real-path = get-real-path(clp, dep)
+        real-path = get-real-path(clp, args.get(0))
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
         locator = JSF.make-jsfile-locator(real-path)
         CL.located(locator, new-context)
@@ -354,13 +384,15 @@ end
 default-start-context = {
   current-load-path: P.resolve("./"),
   cache-base-dir: P.resolve("./compiled"),
-  compiled-read-only-dirs: empty
+  compiled-read-only-dirs: empty,
+  url-file-mode: CS.all-remote
 }
 
 default-test-context = {
   current-load-path: P.resolve("./"),
   cache-base-dir: P.resolve("./tests/compiled"),
-  compiled-read-only-dirs: empty
+  compiled-read-only-dirs: empty,
+  url-file-mode: CS.all-remote
 }
 
 fun compile(path, options):
@@ -368,7 +400,8 @@ fun compile(path, options):
   base = module-finder({
     current-load-path: P.resolve(options.base-dir),
     cache-base-dir: options.compiled-cache,
-    compiled-read-only-dirs: options.compiled-read-only.map(P.resolve)
+    compiled-read-only-dirs: options.compiled-read-only.map(P.resolve),
+    url-file-mode: options.url-file-mode
   }, base-module)
   wl = CL.compile-worklist(module-finder, base.locator, base.context)
   compiled = CL.compile-program(wl, options)
@@ -432,7 +465,8 @@ fun build-program(path, options, stats) block:
   base = module-finder({
     current-load-path: P.resolve(options.base-dir),
     cache-base-dir: options.compiled-cache,
-    compiled-read-only-dirs: options.compiled-read-only.map(P.resolve)
+    compiled-read-only-dirs: options.compiled-read-only.map(P.resolve),
+    url-file-mode: options.url-file-mode
   }, base-module)
   clear-and-print("Compiling worklist...")
   wl = CL.compile-worklist(module-finder, base.locator, base.context)

@@ -20,6 +20,8 @@ define("seedrandom", [], function() {return seedrandom;});
 csv = require("fast-csv");
 define("fast-csv", [], function() {return csv;});
 
+crossFetch = require("cross-fetch");
+define("cross-fetch", [], function() {return crossFetch;});
 
 sourcemap = require("source-map");
 define("source-map", [], function () { return sourcemap; });

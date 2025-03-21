@@ -13,6 +13,8 @@ const parse_file_for_expected_std = (f) => {
   let stdioExpected = EMPTY_MESSAGE;
   let stdInToInject = EMPTY_MESSAGE;
   let stderrExpected = EMPTY_MESSAGE;
+  let compilestderrExpected = EMPTY_MESSAGE;
+  let extraArgs = [];
 
   String(fs.readFileSync(f))
     .split("\n")
@@ -34,12 +36,22 @@ const parse_file_for_expected_std = (f) => {
       if(line.startsWith("###!")) {
         stderrExpected = line.slice(line.indexOf(" ")).trim();
       }
+
+      if(line.startsWith("###@")) {
+        extraArgs = line.slice(line.indexOf(" ")).trim().split(" ");
+      }
+
+      if(line.startsWith("###*")) {
+        compilestderrExpected = line.slice(line.indexOf(" ")).trim();
+      }
   });
 
   return {
     stdioExpected: stdioExpected,
     stdInToInject: stdInToInject,
-    stderrExpected: stderrExpected
+    stderrExpected: stderrExpected,
+    compilestderrExpected: compilestderrExpected,
+    extraArgs: extraArgs
   }
 }
 
@@ -48,18 +60,27 @@ const try_delete_compiled_file = () => {
   catch {}
 }
 
+
 describe("IO Tests", () => {
-  glob.sync(`tests/io-tests/tests/*.arr`, {}).forEach(f => {
+  let server;
+  beforeAll(() => {
+    server = cp.spawn(
+      "npx",
+      ["http-server", "-p", "7999", "tests/io-tests/tests/"],
+    );
+  });
+  afterAll(() => {
+    server.kill('SIGTERM');
+  });
+  glob.sync(`tests/io-tests/tests/test-*.arr`, {}).forEach(f => {
     beforeEach(() => try_delete_compiled_file());
     afterEach(() => try_delete_compiled_file());
 
     describe("Testing " + f, () => {
-      const {stdioExpected, stdInToInject, stderrExpected} = parse_file_for_expected_std(f);
+      const {stdioExpected, stdInToInject, stderrExpected, compilestderrExpected, extraArgs} = parse_file_for_expected_std(f);
 
       test(`it should return io that is expected: ${stdioExpected}`, () => {  
-        const compileProcess = cp.spawnSync(
-          "node",
-          [
+        const args = [
             // according to README.md in root, phaseA is recommended for testing
             "build/phaseA/pyret.jarr",
             "--build-runnable", f, 
@@ -68,12 +89,22 @@ describe("IO Tests", () => {
             "--builtin-arr-dir","src/arr/trove", 
             "--require-config","src/scripts/standalone-configA.json",
             "--compiled-dir", "tests/compiled/"
-          ],
+          ].concat(extraArgs);
+        cp.spawnSync("rm", ["-rf", "tests/compiled/library-code*", "tests/compiled/test-*"]);
+        const compileProcess = cp.spawnSync(
+          "node",
+          args,
           {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
          
-        // at this time, we always expect compilation to succeed
-        expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
-        expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
+        if(compilestderrExpected === "") {
+          expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
+          expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
+        }
+        else {
+          expect(compileProcess.stderr.toString()).toContain(compilestderrExpected);
+          expect(compileProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
+          return; // Don't try to run the program if an error was expected
+        }
 
         const runProcess = cp.spawnSync(
           'node', 
