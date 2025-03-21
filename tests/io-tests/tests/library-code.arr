@@ -2,4 +2,4 @@
 
 provide *
 
-x = 100
+x = "same dir library code"

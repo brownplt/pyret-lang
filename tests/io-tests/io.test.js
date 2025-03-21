@@ -70,8 +70,7 @@ describe("IO Tests", () => {
     );
   });
   afterAll(() => {
-    const result = server.kill('SIGTERM');
-    console.log("Kill result: ", result, server.killed);
+    server.kill('SIGTERM');
   });
   glob.sync(`tests/io-tests/tests/test-*.arr`, {}).forEach(f => {
     beforeEach(() => try_delete_compiled_file());
@@ -81,9 +80,7 @@ describe("IO Tests", () => {
       const {stdioExpected, stdInToInject, stderrExpected, compilestderrExpected, extraArgs} = parse_file_for_expected_std(f);
 
       test(`it should return io that is expected: ${stdioExpected}`, () => {  
-        const compileProcess = cp.spawnSync(
-          "node",
-          [
+        const args = [
             // according to README.md in root, phaseA is recommended for testing
             "build/phaseA/pyret.jarr",
             "--build-runnable", f, 
@@ -92,7 +89,11 @@ describe("IO Tests", () => {
             "--builtin-arr-dir","src/arr/trove", 
             "--require-config","src/scripts/standalone-configA.json",
             "--compiled-dir", "tests/compiled/"
-          ].concat(extraArgs),
+          ].concat(extraArgs);
+        cp.spawnSync("rm", ["-rf", "tests/compiled/library-code*", "tests/compiled/test-*"]);
+        const compileProcess = cp.spawnSync(
+          "node",
+          args,
           {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
          
         if(compilestderrExpected === "") {
