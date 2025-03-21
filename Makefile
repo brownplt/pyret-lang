@@ -277,7 +277,7 @@ pyret-test: phaseA tests/pyret/main2.jarr
 
 .PHONY : pyret-io-test
 pyret-io-test: phaseA
-	npx jest --verbose "tests/io-tests/io.test.js"
+	npx jest --detectOpenHandles --forceExit --verbose "tests/io-tests/io.test.js"
 
 .PHONY : regression-test
 regression-test: tests/pyret/regression.jarr
