@@ -90,7 +90,7 @@ end
 fun csv-table-url(url :: String, opts :: CSVOptions):
   contents = Fetch.fetch(url)
   cases(E.Either) contents:
-    | left(str) => csv-table-str(str, options)
+    | left(str) => csv-table-str(str, opts)
     | right(err) => raise(err)
   end
 end
