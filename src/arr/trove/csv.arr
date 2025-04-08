@@ -1,6 +1,8 @@
 import file as F
 import csv-lib as csv-lib
 import option as O
+import fetch as Fetch
+import either as E
 
 include from O: is-some end
 
@@ -11,8 +13,10 @@ provide:
   csv-table,
   default-options,
   csv-table-opt,
+  csv-table-opt as csv-table-options,
   csv-table-str,
   csv-table-file,
+  csv-table-url,
   type CSVOptions
 end
 
@@ -81,4 +85,12 @@ end
 fun csv-table-file(path :: String, opts :: CSVOptions):
   contents = F.file-to-string(path)
   csv-table-str(contents, opts)
+end
+
+fun csv-table-url(url :: String, opts :: CSVOptions):
+  contents = Fetch.fetch(url)
+  cases(E.Either) contents:
+    | left(str) => csv-table-str(str, options)
+    | right(err) => raise(err)
+  end
 end
