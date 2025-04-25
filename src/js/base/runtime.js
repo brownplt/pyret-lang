@@ -254,7 +254,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
           return "[row: " + row.join(", ") + "]";
         }
-      } else if (thisRuntime.ffi.isVSTable(val)) {
+      } else if (thisRuntime.ffi.isVSTable(val) || thisRuntime.ffi.isVSTableTruncated(val)) {
         // Do this for now until we decide on a string
         // representation
         if (util.isBrowser()) {
@@ -279,10 +279,16 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
           rows.push(curRow);
         }
-        return new AsciiTable().fromJSON({
+        const tableStr = new AsciiTable().fromJSON({
           heading: headers,
           rows: rows
         }).toString();
+        if(thisRuntime.ffi.isVSTableTruncated(val)) {
+          return tableStr + `\n[rendered ${rows.length} of ${thisRuntime.getField(val, "total-rows")} rows]`;
+        }
+        else {
+          return tableStr;
+        }
       } else if (thisRuntime.ffi.isVSMatrix(val)) {
         var ret = [];
         var rows = thisRuntime.getField(val, "rows");

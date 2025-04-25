@@ -813,10 +813,19 @@
           ffi.checkArity(1, arguments, "_output", true);
           var vsValue = get(VS, "vs-value").app;
           var vsString = get(VS, "vs-str").app;
-          return get(VS, "vs-table").app(
-            headers.map(function(hdr){return vsString(hdr);}),
-            rows.map(function(row){return row.map(
-              function(elm){return vsValue(elm);});}));
+          if(rows.length > 1000) {
+            return get(VS, "vs-table-truncated").app(
+              headers.map(function(hdr){return vsString(hdr);}),
+              rows.slice(0, 1000).map(function(row){return row.map(
+                function(elm){return vsValue(elm);});}),
+              rows.length);
+          }
+          else {
+            return get(VS, "vs-table").app(
+              headers.map(function(hdr){return vsString(hdr);}),
+              rows.map(function(row){return row.map(
+                function(elm){return vsValue(elm);});}));
+          }
         }),
 
         'row': runtime.makeMethodN(function(self, ...args) {
