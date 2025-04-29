@@ -19,15 +19,22 @@
             RUNTIME.ffi.checkArity(1, arguments, "fetch", false);
             RUNTIME.checkString(url);
             return RUNTIME.pauseStack(async restarter => {
-                const result = await fetch(url);
-                if(result.ok) {
-                    const text = await result.text();
-                    restarter.resume(RUNTIME.ffi.makeLeft(text));
+                try {
+                    const result = await fetch(url);
+                    if(result.ok) {
+                        const text = await result.text();
+                        restarter.resume(RUNTIME.ffi.makeLeft(text));
+                    }
+                    else {
+                        const err = await result.statusText;
+                        const message = `Fetching ${url} failed with status ${result.status}: ${err}`;
+                        restarter.resume(RUNTIME.ffi.makeRight(message)); 
+                    }
                 }
-                else {
-                    const err = await result.statusText;
-                    const message = `Fetching ${url} failed with status ${result.status}: ${err}`;
-                    restarter.resume(RUNTIME.ffi.makeRight(message)); 
+                catch(e) {
+                    const message = String(e);
+                    const error = `Fetch of ${url} failed with an error. This may mean that the server you're fetching from does not support fetch requests from the browser, or that the URL has a formatting issue. The system-level error was "${message}"`
+                    restarter.resume(RUNTIME.ffi.makeRight(error));
                 }
             });
         })
