@@ -13,6 +13,7 @@
   },
   nativeRequires: ["cross-fetch"],
   theModule: function(RUNTIME, NAMESPACE, uri, fetchLib) {
+    const FETCH_TIMEOUT = 20000;
     const fetch = fetchLib;
     return RUNTIME.makeModuleReturn({
         "fetch": RUNTIME.makeFunction(function(url) {
@@ -20,7 +21,7 @@
             RUNTIME.checkString(url);
             return RUNTIME.pauseStack(async restarter => {
                 try {
-                    const result = await fetch(url);
+                    const result = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT) });
                     if(result.ok) {
                         const text = await result.text();
                         restarter.resume(RUNTIME.ffi.makeLeft(text));
@@ -33,7 +34,7 @@
                 }
                 catch(e) {
                     const message = String(e);
-                    const error = `Fetch of ${url} failed with an error. This may mean that the server you're fetching from does not support fetch requests from the browser, or that the URL has a formatting issue. The system-level error was "${message}"`
+                    const error = `Fetch of ${url} failed with an error. This may mean that the server you're fetching from does not support fetch requests from the browser, the URL has a formatting issue, or the request took longer than ${FETCH_TIMEOUT}ms. The system-level error was "${message}"`
                     restarter.resume(RUNTIME.ffi.makeRight(error));
                 }
             });
