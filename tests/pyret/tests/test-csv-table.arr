@@ -33,7 +33,7 @@ check:
 
   t is table: x, y, z
     row: "a", "b", "c"
-    row: 1, 2, 3
+    row: "1", "2", "3"
   end
   t is t2
   t2 is t3
@@ -60,7 +60,7 @@ zipcodes = ```zip,city,pop
 check:
   zip-table = 
     load-table: zip, city, pop
-      source: csv.csv-table-str(zipcodes, { header-row: true, infer-content: false })
+      source: csv.csv-table-str(zipcodes, { infer-content: false })
       sanitize pop using DS.strict-num-sanitizer
     end
   zip-table is table: zip, city, pop
@@ -72,7 +72,7 @@ check:
 
   excel-zip-table =
     load-table: zip, city, pop
-      source: csv.csv-table-str(zipcodes, { header-row: true, infer-content: true })
+      source: csv.csv-table-str(zipcodes, { infer-content: true })
     end
   excel-zip-table is table: zip, city, pop
     row: 92117,"San Diego",52645

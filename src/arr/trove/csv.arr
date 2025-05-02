@@ -30,7 +30,7 @@ type CSVOptions = {
 
 default-options = {
   header-row: true,
-  infer-content: true
+  infer-content: false
 }
 
 fun to-str-content(csv :: RawArray<RawArray<String>>):
@@ -61,6 +61,7 @@ end
 
 
 fun csv-table-opt(csv :: RawArray<RawArray<String>>, opts :: CSVOptions):
+  shadow opts = builtins.record-concat(default-options, opts)
   {
     load: lam(headers, sanis) block:
         var i = 0
@@ -84,18 +85,19 @@ fun csv-table(csv :: RawArray<RawArray<String>>) -> { load :: Function }:
   csv-table-opt(csv, default-options)
 end
 
-fun csv-table-str(csv :: String, opts :: CSVOptions):
+fun csv-table-str(csv :: String, opts):
+  shadow opts = builtins.record-concat(default-options, opts)
   skip-rows = if opts.header-row: 1 else: 0 end
   rows = csv-lib.parse-string(csv, { skipRows: skip-rows })
   csv-table-opt(rows, opts)
 end
 
-fun csv-table-file(path :: String, opts :: CSVOptions):
+fun csv-table-file(path :: String, opts):
   contents = F.file-to-string(path)
   csv-table-str(contents, opts)
 end
 
-fun csv-table-url(url :: String, opts :: CSVOptions):
+fun csv-table-url(url :: String, opts):
   contents = Fetch.fetch(url)
   cases(E.Either) contents:
     | left(str) => csv-table-str(str, opts)
