@@ -40,12 +40,44 @@ end
 
 check:
   t = load-table: a, b, c
-    source: csv.csv-table-str(abc123, { header-row: true })
+    source: csv.csv-table-str(abc123, { header-row: true, infer-content: true })
   end
 
   t is table: a, b, c
     row: 1, 2, 3
   end
+end
+
+zipcodes = ```zip,city
+92117,San Diego
+90210,Beverly Hills
+01609,Worcester
+01520,Holden
+```
+
+check:
+  zip-table = 
+    load-table: zip, city
+      source: csv.csv-table-str(zipcodes, { header-row: true, infer-content: false })
+    end
+  zip-table is table: zip, city
+    row: "92117","San Diego"
+    row: "90210","Beverly Hills"
+    row: "01609","Worcester"
+    row: "01520","Holden"
+  end
+
+  excel-zip-table =
+    load-table: zip, city
+      source: csv.csv-table-str(zipcodes, { header-row: true, infer-content: true })
+    end
+  excel-zip-table is table: zip, city
+    row: 92117,"San Diego"
+    row: 90210,"Beverly Hills"
+    row: 1609,"Worcester"
+    row: 1520,"Holden"
+  end
+
 end
 
 animals-table-check = table: name, species, sex, age, fixed, legs, pounds, weeks
@@ -87,7 +119,7 @@ check:
   # load the 'animals' sheet as a table
   animals-table = 
     load-table: name, species, sex, age, fixed, legs, pounds, weeks
-      source: csv.csv-table-file("tests/pyret/tests/csvs/animals-ds-2024.csv", { header-row: true })
+      source: csv.csv-table-file("tests/pyret/tests/csvs/animals-ds-2024.csv", { header-row: true, infer-content: true })
     end
   animals-table is animals-table-check
 end

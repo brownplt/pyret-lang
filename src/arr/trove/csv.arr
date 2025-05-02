@@ -24,14 +24,22 @@ import data-source as DS
 import string-dict as SD
 
 type CSVOptions = {
-  header-row :: Boolean
+  header-row :: Boolean,
+  infer-content :: Boolean
 }
 
 default-options = {
-  header-row: true
+  header-row: true,
+  infer-content: true
 }
 
-
+fun to-str-content(csv :: RawArray<RawArray<String>>):
+  for raw-array-map(row from csv):
+    for raw-array-map(val from row):
+      DS.c-str(val)
+    end
+  end
+end
 
 fun to-content<A>(csv :: RawArray<RawArray<String>>)
   -> RawArray<RawArray<DS.CellContent<A>>>:
@@ -56,7 +64,7 @@ fun csv-table-opt(csv :: RawArray<RawArray<String>>, opts :: CSVOptions):
   {
     load: lam(headers, sanis) block:
         var i = 0
-        contents = to-content(csv)
+        contents = if opts.infer-content: to-content(csv) else: to-str-content(csv) end
         sd = [SD.mutable-string-dict:]
         for raw-array-map(s from sanis):
           sd.set-now(s.col, s.sanitizer)
