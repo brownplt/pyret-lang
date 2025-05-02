@@ -537,6 +537,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return val.extendWith(extension);
     }
 
+    function recordConcat(left, right) {
+      if(!isObject(left) || !isObject(right)) {
+        thisRuntime.ffi.throwMessageException("(Internal merge) Tried to extend a non-object");
+      }
+      return left.extendWith(right.dict);
+    }
+
     /**
        Gets the field from an object of the given name
        -Returns the raw field value
@@ -5783,6 +5790,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       'within-rel3' : makeFunction(equalWithinRel3, "within-rel3"),
       'within3' : makeFunction(equalWithin3, "within3"),
+
+      'record-concat': makeFunction(recordConcat, "record-concat")
     });
 
 
