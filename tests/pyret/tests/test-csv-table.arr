@@ -1,5 +1,6 @@
 import csv as csv
 import csv-lib as csv-lib
+import data-source as DS
 
 abc123 = [list: "a,b,c", "1,2,3"].join-str("\n")
 
@@ -48,34 +49,36 @@ check:
   end
 end
 
-zipcodes = ```zip,city
-92117,San Diego
-90210,Beverly Hills
-01609,Worcester
-01520,Holden
+# Population data from niche.com fetched May 2, 2025
+zipcodes = ```zip,city,pop
+92117,San Diego,52645
+90210,Beverly Hills,19652
+01609,Worcester,23184
+01520,Holden,16864
 ```
 
 check:
   zip-table = 
-    load-table: zip, city
+    load-table: zip, city, pop
       source: csv.csv-table-str(zipcodes, { header-row: true, infer-content: false })
+      sanitize pop using DS.strict-num-sanitizer
     end
-  zip-table is table: zip, city
-    row: "92117","San Diego"
-    row: "90210","Beverly Hills"
-    row: "01609","Worcester"
-    row: "01520","Holden"
+  zip-table is table: zip, city, pop
+    row: "92117","San Diego",52645
+    row: "90210","Beverly Hills",19652
+    row: "01609","Worcester",23184
+    row: "01520","Holden",16864
   end
 
   excel-zip-table =
-    load-table: zip, city
+    load-table: zip, city, pop
       source: csv.csv-table-str(zipcodes, { header-row: true, infer-content: true })
     end
-  excel-zip-table is table: zip, city
-    row: 92117,"San Diego"
-    row: 90210,"Beverly Hills"
-    row: 1609,"Worcester"
-    row: 1520,"Holden"
+  excel-zip-table is table: zip, city, pop
+    row: 92117,"San Diego",52645
+    row: 90210,"Beverly Hills",19652
+    row: 1609,"Worcester",23184
+    row: 1520,"Holden",16864
   end
 
 end
