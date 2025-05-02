@@ -40,7 +40,7 @@ animals-table-check = table: name, species, sex, age, fixed, legs, pounds, weeks
 check:
   animals-table =
     load-table: name, species, sex, age, fixed, legs, pounds, weeks
-      source: csv.csv-table-url("http://0.0.0.0:7999/animals-ds-2024.csv", { header-row: true })
+      source: csv.csv-table-url("http://0.0.0.0:7999/animals-ds-2024.csv", csv.default-options.{ header-row: true })
     end
   animals-table is animals-table-check
 end
