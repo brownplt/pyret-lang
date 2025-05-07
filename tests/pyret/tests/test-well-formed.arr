@@ -2,6 +2,10 @@ import file("../../../src/arr/compiler/compile-structs.arr") as CS
 import render-error-display as RED
 import file("../test-compile-helper.arr") as C
 
+run-str = C.run-str
+compile-error = C.compile-error
+output = C.output
+
 sc = lam(test-str): string-contains(_, test-str) end
 
 fun c(str) block:
@@ -21,72 +25,79 @@ fun cok(str):
 end
 
 check "mixed ops":
-  c("true and false or true") satisfies CS.is-mixed-binops
-  c("1 + 2 - 3") satisfies CS.is-mixed-binops
-  c("1 + 2 + 3 * 4") satisfies CS.is-mixed-binops
-  c("1 / 2 + 3 * 4 - 5") satisfies CS.is-mixed-binops
+  run-str("true and false or true") is%(output) compile-error(CS.is-mixed-binops)
+  run-str("1 + 2 - 3") is%(output) compile-error(CS.is-mixed-binops)
+  run-str("1 + 2 + 3 * 4") is%(output) compile-error(CS.is-mixed-binops)
+  run-str("1 / 2 + 3 * 4 - 5") is%(output) compile-error(CS.is-mixed-binops)
 end
 
 check "nullary methods":
-  c("method(): nothing end") satisfies CS.is-no-arguments
-  c("{method foo(): nothing end}") satisfies CS.is-no-arguments
+  run-str("method(): nothing end") is%(output) compile-error(CS.is-no-arguments)
+  run-str("{method foo(): nothing end}") is%(output) compile-error(CS.is-no-arguments)
 end
 
 check "multiple statements on a line":
   msg =  "on the same line"
-  c("(5) (-2)") satisfies CS.is-same-line
-  c("'ab''de'") satisfies CS.is-same-line
-  c("a\"abc\"") satisfies CS.is-same-line
-  c("a=3b=4") satisfies CS.is-same-line
-  c("fun f(x) block: f x end") satisfies CS.is-same-line
-  c("fun f(x) block: f (x) end") satisfies CS.is-same-line
-  cok("fun f(x) block: f\n (x) end\n10") is empty
-  cok("fun f(x) block:\n  f\n  # a comment\n  (x)\nend\n10") is empty
+  run-str("(5) (-2)") is%(output) compile-error(CS.is-same-line)
+  run-str("'ab''de'") is%(output) compile-error(CS.is-same-line)
+  run-str("a\"abc\"") is%(output) compile-error(CS.is-same-line)
+  run-str("a=3b=4") is%(output) compile-error(CS.is-same-line)
+  run-str("fun f(x) block: f x end") is%(output) compile-error(CS.is-same-line)
+  run-str("fun f(x) block: f (x) end") is%(output) compile-error(CS.is-same-line)
+  cok("fun f(x) block: num-sqr(f)\n (x) end\n10") is empty
+  cok("fun f(x) block:\n  num-sqr(f)\n  # a comment\n  (x)\nend\n10") is empty
 end
 
 check "pointless underscores":
-  c("var _ = 5") satisfies CS.is-pointless-var
-  c("shadow _ = 5") satisfies CS.is-pointless-shadow
-  c("rec _ = 5") satisfies CS.is-pointless-rec
+  run-str("var _ = 5") is%(output) compile-error(CS.is-pointless-var)
+  run-str("shadow _ = 5") is%(output) compile-error(CS.is-pointless-shadow)
+  run-str("rec _ = 5") is%(output) compile-error(CS.is-pointless-rec)
 end
 
 check "bad-checks":
-  c("5 is 5") satisfies CS.is-unwelcome-test
-  c("5 is-not 5") satisfies CS.is-unwelcome-test
-  c("5 is== 5") satisfies CS.is-unwelcome-test
-  c("5 is=~ 5") satisfies CS.is-unwelcome-test
-  c("5 is<=> 5") satisfies CS.is-unwelcome-test
-  c("5 satisfies 5") satisfies CS.is-unwelcome-test
-  c("5 violates 5") satisfies CS.is-unwelcome-test
-  c("5 raises 5") satisfies CS.is-unwelcome-test
-  c("5 does-not-raise") satisfies CS.is-unwelcome-test
-  c("5 raises-other-than 5") satisfies CS.is-unwelcome-test
-  c("5 raises-satisfies 5") satisfies CS.is-unwelcome-test
-  c("5 raises-violates 5") satisfies CS.is-unwelcome-test
-  c("lam(): 5 is 5 end") satisfies CS.is-unwelcome-test
-  c("lam(): 5 is-not 5 end") satisfies CS.is-unwelcome-test
-  c("lam(): 5 is== 5 end") satisfies CS.is-unwelcome-test
-  c("lam(): 5 is=~ 5 end") satisfies CS.is-unwelcome-test
-  c("lam(): 5 is<=> 5 end") satisfies CS.is-unwelcome-test
-  c("lam(): 5 satisfies 5 end") satisfies CS.is-unwelcome-test
-  c("lam(): 5 violates 5 end") satisfies CS.is-unwelcome-test
-  c("lam(): 5 raises 5 end") satisfies CS.is-unwelcome-test
-  c("lam(): 5 does-not-raise end") satisfies CS.is-unwelcome-test
-  c("lam(): 5 raises-other-than 5 end") satisfies CS.is-unwelcome-test
-  c("lam(): 5 raises-satisfies 5 end") satisfies CS.is-unwelcome-test
-  c("lam(): 5 raises-violates 5 end") satisfies CS.is-unwelcome-test
-  c("check: 5 satisfies%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
-  c("check: 5 violates%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
-  c("check: 5 is==%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
-  c("check: 5 is=~%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
-  c("check: 5 is<=>%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
-  c("check: 5 raises%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
-  c("check: 5 raises-satisfies%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
-  c("check: 5 raises-violates%(5) 5 end") satisfies CS.is-unwelcome-test-refinement
+  run-str("5 is 5") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("5 is-not 5") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("5 is== 5") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("5 is=~ 5") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("5 is<=> 5") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("5 satisfies 5") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("5 violates 5") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("5 raises 5") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("5 does-not-raise") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("5 raises-other-than 5") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("5 raises-satisfies 5") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("5 raises-violates 5") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 is 5 end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 is-not 5 end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 is== 5 end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 is=~ 5 end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 is<=> 5 end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 satisfies 5 end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 violates 5 end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 raises 5 end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 does-not-raise end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 raises-other-than 5 end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 raises-satisfies 5 end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("lam(): 5 raises-violates 5 end") is%(output) compile-error(CS.is-unwelcome-test)
+  run-str("check: 5 satisfies%(5) 5 end") is%(output) compile-error(CS.is-unwelcome-test-refinement)
+  run-str("check: 5 violates%(5) 5 end") is%(output) compile-error(CS.is-unwelcome-test-refinement)
+  run-str("check: 5 is==%(5) 5 end") is%(output) compile-error(CS.is-unwelcome-test-refinement)
+  run-str("check: 5 is=~%(5) 5 end") is%(output) compile-error(CS.is-unwelcome-test-refinement)
+  run-str("check: 5 is<=>%(5) 5 end") is%(output) compile-error(CS.is-unwelcome-test-refinement)
+  run-str("check: 5 raises%(5) 5 end") is%(output) compile-error(CS.is-unwelcome-test-refinement)
+  run-str("check: 5 raises-satisfies%(5) 5 end") is%(output) compile-error(CS.is-unwelcome-test-refinement)
+  run-str("check: 5 raises-violates%(5) 5 end") is%(output) compile-error(CS.is-unwelcome-test-refinement)
 end
 
 check "bad objects":
-  c("{__proto__: 42}") satisfies CS.is-reserved-name
+  run-str("{__proto__: 42}") is%(output) compile-error(CS.is-reserved-name)
+end
+
+check "bad constructors":
+  run-str("data Foo: return end") is%(output) compile-error(CS.is-reserved-name)
+  run-str("data Foo: return(x) end") is%(output) compile-error(CS.is-reserved-name)
+  run-str("cases(Foo) 5: | return => 3 end") is%(output) compile-error(CS.is-reserved-name)
+  run-str("cases(Foo) 5: | return(x) => 3 end") is%(output) compile-error(CS.is-reserved-name)
 end
 
 check "malformed blocks":
@@ -115,12 +126,34 @@ check "malformed blocks":
        "10")
     satisfies CS.is-block-needed
 
-  c("lam(): x = 5 end") satisfies CS.is-block-ending
-  c("lam(): var x = 5 end") satisfies CS.is-block-ending
-  c("lam(): fun f(): nothing end end") satisfies CS.is-block-ending
-  c("lam(): x = 5\n fun f(): nothing end end") satisfies CS.is-block-ending
-  c("lam(): var x = 5\n y = 4\n fun f(): nothing end end") satisfies CS.is-block-ending
+  c("for map(): end") satisfies CS.is-wf-empty-block
 
+  run-str("lam(): x = 5 end") is%(output) compile-error(CS.is-block-ending)
+  run-str("lam(): var x = 5 end") is%(output) compile-error(CS.is-block-ending)
+  run-str("lam(): fun f(): nothing end end") is%(output) compile-error(CS.is-block-ending)
+  run-str("lam(): x = 5\n fun f(): nothing end end") is%(output) compile-error(CS.is-block-ending)
+  run-str("lam(): var x = 5\n y = 4\n fun f(): nothing end end") is%(output) compile-error(CS.is-block-ending)
+
+  run-str(
+    "x = 1\n" +
+    "fun f():\n" +
+    "  [list: 1]\n" +
+    "  spy: x end\n" +
+    "end") is%(output) compile-error(CS.is-block-ending)
+
+  run-str(
+    "x = 1\n" +
+    "fun f() block:\n" +
+    "  [list: 1]\n" +
+    "  spy: x end\n" +
+    "end") is%(output) compile-error(CS.is-block-ending)
+
+  run-str(
+    "x = 1\n" +
+    "fun f() block:\n" +
+    "  spy: x end\n" +
+    "  [list: 1]\n" +
+    "end") is%(output) C.success
 
   c("lam():\n" + 
        "  data D:\n" + 
@@ -150,15 +183,15 @@ check "malformed blocks":
        "end")
     satisfies CS.is-single-branch-if
 
-  c("lam(): true where: 5 end") satisfies CS.is-unwelcome-where
-  c("method(self): nothing where: 5 end") satisfies CS.is-unwelcome-where
-  c("{method m(self): nothing where: 5 end}") satisfies CS.is-unwelcome-where
+  run-str("lam(): true where: 5 end") is%(output) compile-error(CS.is-unwelcome-where)
+  run-str("method(self): nothing where: 5 end") is%(output) compile-error(CS.is-unwelcome-where)
+  run-str("{method m(self): nothing where: 5 end}") is%(output) compile-error(CS.is-unwelcome-where)
 end
 
 check "table row sizes, non-top-level":
-  c("f(table: a, b row: end)") satisfies CS.is-table-empty-row
-  c("f(table: a, b row: 1 end)") satisfies CS.is-table-row-wrong-size
-  c("f(table: row: end)") satisfies CS.is-table-empty-header
+  run-str("f(table: a, b row: end)") is%(output) compile-error(CS.is-table-empty-row)
+  run-str("f(table: a, b row: 1 end)") is%(output) compile-error(CS.is-table-row-wrong-size)
+  run-str("f(table: row: end)") is%(output) compile-error(CS.is-table-empty-header)
 end
 
 check "table loading checks":
@@ -186,9 +219,9 @@ check "table loading checks":
 end
 
 check "table headers":
-  c("table: a, b, a row: 1, 2, 3 end") satisfies CS.is-table-duplicate-column-name
-  c("load-table: a, b, a source: src end") satisfies CS.is-table-duplicate-column-name
-  c("load-table: timestamp, name, class source: src end") satisfies CS.is-reserved-name
+  run-str("table: a, b, a row: 1, 2, 3 end") is%(output) compile-error(CS.is-table-duplicate-column-name)
+  run-str("load-table: a, b, a source: src end") is%(output) compile-error(CS.is-table-duplicate-column-name)
+  run-str("load-table: timestamp, name, class source: src end") is%(output) compile-error(CS.is-reserved-name)
 end
 
 check "tuple bindings":
@@ -232,13 +265,59 @@ check "empty data definitions":
 end
 
 check "duplicated names in data defintiions":
-  c("data Foo: is-Foo end") satisfies CS.is-duplicate-is-data
-  c("data Foo: Foo end") satisfies CS.is-data-variant-duplicate-name
-  c("data is-Foo3: Foo3 | baz end") satisfies CS.is-duplicate-is-data-variant
-  c("data Foo: bar | is-bar end") satisfies CS.is-duplicate-is-variant
-  c("data Foo: is-bar | bar end") satisfies CS.is-duplicate-is-variant
-  c("data Foo: bar | bar end") satisfies CS.is-duplicate-variant
+  run-str("data Foo: is-Foo end") is%(output) compile-error(CS.is-duplicate-is-data)
+  run-str("data Foo: Foo end") is%(output) compile-error(CS.is-data-variant-duplicate-name)
+  run-str("data is-Foo3: Foo3 | baz end") is%(output) compile-error(CS.is-duplicate-is-data-variant)
+  run-str("data Foo: bar | is-bar end") is%(output) compile-error(CS.is-duplicate-is-variant)
+  run-str("data Foo: is-bar | bar end") is%(output) compile-error(CS.is-duplicate-is-variant)
+  run-str("data Foo: bar | bar end") is%(output) compile-error(CS.is-duplicate-variant)
 end
+
+check "duplicated names in record type":
+  run-str("type foo = {x :: Number, x :: Number}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {y :: Number, y :: Boolean}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {x :: Number, y :: Number, x :: Number}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {x :: Number, y :: Number, x :: Boolean}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {x :: Number, y :: Number, y :: Boolean}") is%(output) compile-error(CS.is-duplicate-field)
+  run-str("type foo = {bar :: Number, bar :: Boolean, bar :: List}") is%(output) compile-error(CS.is-duplicate-field)
+end
+
+check "underscores":
+  run-str("cases(List) _: | empty => 5 end") is%(output) compile-error(CS.is-underscore-as-expr)
+  run-str("cases(List) _: | empty => 5 | else => 6 end") is%(output) compile-error(CS.is-underscore-as-expr)
+  run-str("cases(List) empty: | empty => _ end") is%(output) compile-error(CS.is-underscore-as-expr)
+  run-str("cases(List) empty: | _ => 5 end") is%(output) compile-error(CS.is-underscore-as-pattern)
+  run-str("block:\n _ \n 5 \n end") is%(output) compile-error(CS.is-wf-err)
+  run-str("{ method foo(self): _ end }") is%(output) compile-error(CS.is-underscore-as-expr)
+  run-str("{ fieldname: _ }") is%(output) compile-error(CS.is-underscore-as-expr)
+  run-str("method(self): _ end") is%(output) compile-error(CS.is-underscore-as-expr)
+  run-str("lam(self): _ end") is%(output) compile-error(CS.is-underscore-as-expr)
+  run-str("fun foo(self): _ end") is%(output) compile-error(CS.is-underscore-as-expr)
+  run-str("provide _ end") is%(output) compile-error(CS.is-non-object-provide)
+
+  run-str("table: _, a row: 1, 2 end") is%(output) compile-error(CS.is-underscore-as)
+
+  run-str("{a: 1}.{_: 2}") is%(output) compile-error(CS.is-underscore-as)
+  run-str("{a: 1}._") is%(output) compile-error(CS.is-underscore-as)
+end
+
+check "standalone expressions":
+  cok("1 + 2\n1 + 5") is empty
+  cok("x = 5\n1 == 1\nx") is empty
+  cok("x = 10\nx + 1\nx") is empty
+  cok("x = 5\ny = 12\nx\ny") is empty
+
+  run-str("block: 1 + 2\n1 + 3 end") is%(output) compile-error(CS.is-wf-err)
+  run-str("block: x\ny end") is%(output) compile-error(CS.is-wf-err)
+  run-str("block: x = 10\nx\nx + 1 end") is%(output) compile-error(CS.is-wf-err)
+end
+
+check "empty if blocks":
+  run-str("if true: else if false: 4 end") is%(output) compile-error(CS.is-wf-empty-block)
+  run-str("if true: 4 else if false: end") is%(output) compile-error(CS.is-wf-empty-block)
+  run-str("if true: end") is%(output) compile-error(CS.is-single-branch-if)
+end
+
 
 #|
       it("should notice empty blocks", function(done) {
@@ -383,8 +462,8 @@ end
         P.wait(done);
       });
       it("underscores", function(done) {
-        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end", "The underscore");
-        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end", "The underscore");
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 end") satisfies CS.as-underscore
+        P.checkCompileErrorMsg("cases(List) _: | empty => 5 | else => 6 end") satisfies CS.as-underscore
         P.checkCompileErrorMsg("cases(List) empty: | empty => _ end", "The underscore");
         P.checkCompileErrorMsg("cases(List) empty: | _ => 5 end", "Found a cases branch using _");
         P.checkCompileErrorMsg("block:\n _ \n 5 \n end", "The underscore");

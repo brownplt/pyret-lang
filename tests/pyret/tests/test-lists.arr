@@ -34,6 +34,7 @@ check "range where: block":
   lists.range(0,0) is [list: ]
   lists.range(0,1) is [list: 0]
   lists.range(-5,5) is [list: -5, -4, -3, -2, -1, 0, 1, 2, 3, 4]
+  lists.range(0, 1/2) raises "Integer"
 end
 
 check "repeat where: block":
@@ -75,6 +76,7 @@ check "split-at where: block":
   split-at(4, one-four) is { prefix: one-four, suffix: empty }
   split-at(2, one-four) is { prefix: link(1, link(2, empty)), suffix: link(3, link(4, empty)) }
   split-at(-1, one-four) raises "Invalid index"
+  split-at(1.35, one-four) raises "Invalid index"
   split-at(5, one-four) raises "Index too large"
 end
 
@@ -228,6 +230,12 @@ check "string helper":
   lists.join-str([list:], ",") is ""
   lists.join-str([list: "a"], ",") is "a"
   lists.join-str([list: "a", "b", "c", "d", "e"], "  ") is "a  b  c  d  e"
+
+  lists.join-str-last([list: 1, "2", 3], "+", "-") is "1+2-3"
+  lists.join-str-last([list: ], "+", "-") is ""
+  lists.join-str-last([list: 1], "+", "-") is "1"
+  lists.join-str-last([list: 1, 2], "+", "-") is "1-2"
+  lists.join-str-last([list: 1, 2, 3, 4], "+", "-") is "1+2+3-4"
 end
 
 check "sort as a function":
@@ -252,6 +260,49 @@ check "sort as a function":
       { name: "Joan", age: 43 }]
 end
 
+check "stable sort":
+  #|
+     Builds a collection of triples {0;0;_}, {0;1;_}, ... {0;n;_}, {1;0;_}, {1;1;_}...
+     The first two components are a Cartesian product of [0,250)x[0;4).
+     The third component is simply a sequential number, [0, TOTAL).
+
+     This list is *actually* constructed in the order
+          {249;0;_}, {249;1;_}, ... {248;0,_}, {248;1;_}, ... {0;0;_}...,
+     such that it is in *decreasing* order on the first component of each tuple, and
+     *increasing* order on the other two components.
+
+     The idea is to sort the list by only comparing the first components, both stably and unstably.
+     The *third* component of each tuple helps to tell apart the original items, despite the comparison
+     being agnostic to them.
+  |#
+  fun build-pairs(m, n):
+    raw-array-to-list(raw-array-build(lam(i):
+          raw-array-to-list(raw-array-build(lam(j): {i; j; (i * (m + 1)) + j} end, n))
+        end, m))
+      .foldl(_.append(_), empty)
+  end
+  
+  TOTAL = 1000
+  GROUPS = 250
+  
+  pairs = (build-pairs(GROUPS, TOTAL / GROUPS))
+  
+  fun pair-le(p1, p2):
+    (p1.{0} < p2.{0})
+  end
+  
+  fun pair-eq(p1, p2): 
+    p1.{0} == p2.{0}
+  end
+  
+  stable-sorted = pairs.stable-sort-by(pair-le, pair-eq)
+  unstable-sorted = pairs.sort-by(pair-le, pair-eq)
+  unstable-sorted is-not stable-sorted
+  for each(i from range(0, GROUPS)):
+    stable-sorted.filter({(p): p.{0} == i}) is pairs.filter({(p): p.{0} == i})
+  end
+end
+
 check "distinct":
   lists.distinct([list: ~1, ~1]) is-roughly [list: ~1, ~1]
   lists.distinct([list: ~1, ~1, 1]) is-roughly [list: ~1, ~1, 1]
@@ -268,3 +319,10 @@ check "more utility functions":
   lists.push(empty, 1) is link(1, empty)
 end
 
+check "build":
+  lists.build-list(lam(x): x * 2 end, 6) is [list: 0, 2, 4, 6, 8, 10]
+  lists.build-list(lam(x): to-repr(x) end, 2) is [list: "0", "1"]
+  lists.build-list(lam(x): to-repr(x) end, 0) is empty
+  lists.build-list(lam(x): x * 2 end, -1) raises "NumNonNegative"
+  lists.build-list("not-a-function", -1) raises "Function"
+end

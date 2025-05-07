@@ -5,6 +5,7 @@ import either as E
 import parse-pyret as P
 import string-dict as SD
 import pprint as PP
+import pathlib as PL
 import file("../../src/arr/compiler/desugar.arr") as D
 import file("../../src/arr/compiler/desugar-check.arr") as DC
 import ast as A
@@ -25,7 +26,7 @@ DEFAULT-INLINE-CASE-LIMIT = 5
 
 cl-options = [SD.string-dict:
   "width",
-    C.next-val-default(C.Number, 80, some("w"), C.once, "Pretty-printed width"),
+    C.next-val-default(C.Num, 80, some("w"), C.once, "Pretty-printed width"),
   "standard-builtins",
     C.flag(C.once, "Use standard buildins instead of minimal builtins"),
   "check-mode",
@@ -33,7 +34,7 @@ cl-options = [SD.string-dict:
   "type-check",
     C.flag(C.once, "Type check code"),
   "inline-case-body-limit",
-    C.next-val-default(C.Number, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
+    C.next-val-default(C.Num, DEFAULT-INLINE-CASE-LIMIT, none, C.once, "Set number of steps that could be inlined in case body")
 ]
 
 parsed-options = C.parse-cmdline(cl-options)
@@ -60,7 +61,10 @@ compile-str = lam(filename, options):
   end
 end
 
-println = lam(s): print(s + "\n") end
+println = lam(s) block:
+  print(s)
+  print("\n")
+end
 
 fun pretty-result(result):
   if A.is-Program(result): result.tosource()
@@ -125,10 +129,11 @@ cases (C.ParsedArguments) parsed-options block:
           | left(v) =>
             println("Compilation failed")
             {_; traces} = v
-            traces.get-value-now(file)
+            traces.get-value-now(PL.basename(file, ""))
           | right(v) =>
             {_; traces} = v
-            traces.get-value-now(file)
+            println(traces.keys-now())
+            traces.get-value-now(PL.basename(file, ""))
         end
 
         for each(phase from comp) block:

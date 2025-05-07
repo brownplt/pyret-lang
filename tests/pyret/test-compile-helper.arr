@@ -4,9 +4,11 @@ import load-lib as L
 import string-dict as SD
 import runtime-lib as R
 import pathlib as P
+import render-error-display as RED
 import file("../../src/arr/compiler/compile-lib.arr") as CL
 import file("../../src/arr/compiler/cli-module-loader.arr") as CLI
 import file("../../src/arr/compiler/compile-structs.arr") as CS
+
 
 fun string-to-named-locator(program :: String, name :: String):
   {
@@ -61,7 +63,10 @@ fun run-to-result-typed(loc, base-path):
 end
 
 fun make-base-path-context(base-path):
-  {current-load-path: P.resolve(base-path), cache-base-dir: P.resolve("./tests/compiled")}
+  {current-load-path: P.resolve(base-path),
+   cache-base-dir: P.resolve("./tests/compiled"),
+   compiled-read-only-dirs: empty,
+   url-file-mode: CS.all-remote}
 end
 
 fun compile-str(program):
@@ -83,6 +88,15 @@ fun get-compile-errs(str):
       empty
     | left(errs) =>
       errs.map(_.problems).foldr(_ + _, empty)
+  end
+end
+
+fun get-compile-result(str):
+  cases(E.Either) compile-str(str):
+    | right(loadables) =>
+      loadables.last()
+    | left(errs) =>
+      raise("Unexpected compile error for " + str + "\n" + to-repr(errs))
   end
 end
 
@@ -116,6 +130,18 @@ end
 
 contract-error = { success: false, runtime: true, check-errors: check-contract-error }
 
+fun contract-error-contains(check-err):
+  { success: false,
+    runtime: true,
+    check-errors:
+      lam(errors):
+        msg = L.render-error-message(errors).message
+        string-contains(msg, check-err)
+      end
+  }
+end
+  
+
 fun field-error(fields):
   { success: false,
     runtime: true,
@@ -139,4 +165,10 @@ fun compile-error(check-err):
         end
       end
   }
+end
+
+fun compile-error-messages(str):
+  for lists.map(err from get-compile-errs(str)):
+    RED.display-to-string(err.render-reason(), torepr, empty)
+  end
 end

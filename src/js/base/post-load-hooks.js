@@ -22,7 +22,7 @@ define("pyret-base/js/post-load-hooks", function() {
         runtime["checkEQ"] = runtime.makeCheckType(ffi.isEqualityResult, "EqualityResult");
       },
       "builtin://table": function(table) {
-        table = table.jsmod;
+        table = runtime.getField(runtime.getField(table, "provide-plus-types"), "internal");
         runtime["makeTable"] = table.makeTable;
         runtime["makeRow"] = table.makeRow;
         runtime["makeRowFromArray"] = table.makeRowFromArray;
@@ -30,12 +30,13 @@ define("pyret-base/js/post-load-hooks", function() {
         runtime["checkTable"] = runtime.makeCheckType(table.isTable, "Table");
         runtime["checkRow"] = runtime.makeCheckType(table.isRow, "Row");
         runtime["isTable"] = table.isTable;
-        runtime["isRow"] = table.isTable;
+        runtime["isRow"] = table.isRow;
         runtime["checkWrapTable"] = function(val) {
           runtime.checkTable(val);
           return val;
         };
         runtime.makePrimAnn("Table", table.isTable);
+        runtime.makePrimAnn("Row", table.isRow);
       },
       "builtin://data-source": function(ds) {
         ds = runtime.getField(runtime.getField(ds, "provide-plus-types"), "values");
@@ -135,8 +136,9 @@ define("pyret-base/js/post-load-hooks", function() {
       },
       "builtin://checker": function(checker) {
         var checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
+        const checks = hookOptions.checks || "main";
         var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(hookOptions.main),
-                                                                                 hookOptions.checkAll);
+                                                                                 checks);
         runtime.setParam("current-checker", currentChecker);
       }
     };

@@ -1,28 +1,40 @@
 #lang pyret/library
 
-provide {
-  array: array,
-  build-array: build-array,
-  array-from-list: array-from-list,
-  is-array: is-array,
-  array-of: array-of,
-  array-set-now: array-set-now,
-  array-get-now: array-get-now,
-  array-length: array-length,
-  array-to-list-now: array-to-list-now
-} end
+provide:
+  array,
+  build-array,
+  array-from-list,
+  is-array,
+  array-of,
+  array-set-now,
+  array-get-now,
+  array-length,
+  array-to-list-now,
+  array-filter,
+  array-map,
+  array-fold,
+  array-concat,
+  array-duplicate,
+  array-sort-nums,
+  array-sort-by
+end
 provide-types *
 
 import global as _
-import lists as lists
+import lists as L
+import global as G
 import valueskeleton as VS
-type List = lists.List
+
+raw-array-sort-by = G.raw-array-sort-by
+raw-array-sort-nums = G.raw-array-sort-nums
+raw-array-duplicate = G.raw-array-duplicate
+raw-array-concat = G.raw-array-concat
 
 newtype Array as ArrayT
 
 get-arr-key = {}
 
-fun make(arr :: RawArray) -> Array:
+fun make<A>(arr :: RawArray<A>) -> Array<A>:
   ArrayT.brand({
     method get-arr(_, key):
       if key == get-arr-key: arr else: raise("Cannot get arr externally") end
@@ -33,6 +45,19 @@ fun make(arr :: RawArray) -> Array:
       nothing
     end,
     method length(_): raw-array-length(arr) end,
+
+    method filter(self, f :: (A -> Boolean)): make(raw-array-filter(f, arr)) end,
+    method map<B>(self, f :: (A -> B)) -> Array<B>: make(raw-array-map(f, arr)) end,
+    method fold<B>(self, f :: (B, A, Number -> B), init :: B, start-index :: Number) -> B: raw-array-fold(f, init, arr, start-index) end,
+    method concat(self, other :: Array<A>) -> Array<A>: make(raw-array-concat(arr, other.get-arr(get-arr-key))) end,
+    method duplicate(self) -> Array<A>: make(raw-array-duplicate(arr)) end,
+
+    method sort-nums(self, asc :: Boolean) block:
+      raw-array-sort-nums(arr, asc)
+      self
+    end,
+    method sort-by(self, key :: (A -> Number), asc :: Boolean): make(raw-array-sort-by(arr, key, asc)) end,
+
     method to-list-now(_): raw-array-to-list(arr) end,
     method _equals(self, other, eq):
       eq(self.get-arr(get-arr-key), other.get-arr(get-arr-key))
@@ -57,7 +82,7 @@ end
 
 fun array-from-list(l) block:
   arr = raw-array-of(0, l.length())
-  for lists.each_n(n from 0, elt from l):
+  for L.each_n(n from 0, elt from l):
     raw-array-set(arr, n, elt)
   end
   make(arr)
@@ -80,9 +105,31 @@ fun array-length<a>(arr :: Array<a>) -> Number:
   arr.length()
 end
 
-fun array-to-list-now<a>(arr :: Array<a>) -> List<a>:
+fun array-to-list-now<a>(arr :: Array<a>) -> L.List<a>:
   arr.to-list-now()
 end
+
+
+array-filter :: <A> (A -> Boolean), Array<A> -> Array<A>
+fun array-filter(f, self): self.filter(f) end
+
+array-map :: <A, B> (A -> B), Array<A> -> Array<B>
+fun array-map(f, self): self.map(f) end
+
+array-fold :: <A, B> (B, A, Number -> B), B, Array<A>, Number -> B
+fun array-fold(f, init, self, start-index): self.fold(f, init, start-index) end
+
+array-concat :: <A> Array<A>, Array<A> -> Array<A>
+fun array-concat(self, other): self.concat(other) end
+
+array-duplicate :: <A> Array<A> -> Array<A>
+fun array-duplicate(self): self.duplicate() end
+
+array-sort-nums :: <A> Array<A>, Boolean -> Array<A>
+fun array-sort-nums(self, asc): self.sort-nums(asc) end
+
+array-sort-by :: <A> Array<A>, (A -> Number), Boolean -> Array<A>
+fun array-sort-by(self, key, asc): self.sort-by(key, asc) end
 
 array = {
   make: make,

@@ -1,7 +1,7 @@
 
 ![Yarr](https://raw.github.com/brownplt/pyret-lang/master/img/pyret-banner.png)
 
-[![Build Status](https://travis-ci.org/brownplt/pyret-lang.svg)](https://travis-ci.org/brownplt/pyret-lang)
+[![Build Status](https://api.travis-ci.com/brownplt/pyret-lang.svg?branch=horizon)](https://travis-ci.com/github/brownplt/pyret-lang)
 
 A scripting language.
 
@@ -11,18 +11,31 @@ To read an introduction of the language, visit [the tour](http://www.pyret.org/d
 
 To read the documentation, visit [pyret.org/docs/](http://pyret.org/docs/).
 
-There are two main ways to use Pyret:
+There are three main ways to use Pyret:
 
-1.  If all you want to do is program in Pyret, there is a web-based environment
-at [code.pyret.org](https://code.pyret.org) that lets you run and save programs
-that should be all you need.  If you're a student using Pyret, this is probably
-where you will do your assignments, for example.
+1.  If all you want to do is program in Pyret, there is a web-based
+environment at [code.pyret.org](https://code.pyret.org) that lets you run
+and save programs that should be all you need.  If you're a student using
+Pyret, this is probably where you will do your assignments, for example.
 
-2.  If you want to develop Pyret, or install it for use at the command line,
+2. If all you want to do is program in Pyret **at the command line**, you
+should install `pyret-npm` from https://www.npmjs.com/package/pyret-npm,
+using an install command like:
+
+    ```
+    npm install -g pyret-npm
+    ```
+
+    (If you're new to `node` and `npm`, you might find
+    https://nodejs.dev/learn/an-introduction-to-the-npm-package-manager and
+    https://nodejs.dev/learn/npm-global-or-local-packages useful
+    background).
+
+2.  If you want to contribute to Pyret, or try out experimental features,
 the README starting below is for you.
 
 The use of vocabulary from
-http://reservationsbvi.com/thisoldpirate/glossary.html is recommended when
+http://bvipirate.com/piratespeak/index.html is recommended when
 commenting and reporting issues.
 
 

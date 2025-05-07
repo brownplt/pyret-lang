@@ -1,12 +1,12 @@
-provide *
-provide-types *
+provide:
+  * hiding (is-kv-pairs, is-raw-array-of-rows),
+  type *
+end
 
-import global as _
-import lists as lists
-
-type Row = {
-  get-value :: (String -> Any)
-}
+import global as G
+include from G: raw-array-duplicate end
+include lists
+import table as T
 
 type Reducer<Acc, InVal, OutVal> = {
   one :: (InVal -> {Acc; OutVal}),
@@ -66,26 +66,43 @@ running-min :: Reducer<Number, Number, Number> = running-reduce(num-min)
 
 running-sum :: Reducer<Number, Number, Number> = running-reduce(_ + _)
 
+type KeyValPair<V> = { String; V }
+
+fun is-kv-pairs(arr :: RawArray<Any>) -> Boolean:
+  raw-array-and-mapi(lam<C>(kv :: KeyValPair<C>, _): true end, arr, 0)
+end
+
 raw-row = {
-  make: lam(arr): builtins.raw-make-row(arr) end,
+  make: lam(arr :: RawArray<Any>%(is-kv-pairs)): builtins.raw-make-row(arr) end,
   make0: lam(): builtins.raw-make-row([raw-array:]) end,
-  make1: lam(t): builtins.raw-make-row([raw-array: t]) end,
-  make2: lam(t1, t2): builtins.raw-make-row([raw-array: t1, t2]) end,
-  make3: lam(t1, t2, t3): builtins.raw-make-row([raw-array: t1, t2, t3]) end,
-  make4: lam(t1, t2, t3, t4): builtins.raw-make-row([raw-array: t1, t2, t3, t4]) end,
-  make5: lam(t1, t2, t3, t4, t5): builtins.raw-make-row([raw-array: t1, t2, t3, t4, t5]) end,
+  make1: lam<C1>(t :: KeyValPair<C1>): builtins.raw-make-row([raw-array: t]) end,
+  make2: lam<C1, C2>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>): builtins.raw-make-row([raw-array: t1, t2]) end,
+  make3: lam<C1, C2, C3>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>, t3 :: KeyValPair<C3>): builtins.raw-make-row([raw-array: t1, t2, t3]) end,
+  make4: lam<C1, C2, C3, C4>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>, t3 :: KeyValPair<C3>, t4 :: KeyValPair<C4>): builtins.raw-make-row([raw-array: t1, t2, t3, t4]) end,
+  make5: lam<C1, C2, C3, C4, C5>(t1 :: KeyValPair<C1>, t2 :: KeyValPair<C2>, t3 :: KeyValPair<C3>, t4 :: KeyValPair<C4>, t5 :: KeyValPair<C5>): builtins.raw-make-row([raw-array: t1, t2, t3, t4, t5]) end,
 }
 
-fun table-from-raw-array(arr):
-  cols = raw-array-get(arr, 0).get-column-names()
-  with-cols =
-    for lists.fold(t from table: ignore end.drop("ignore"), 
-            c from cols):
-      t.add-column(c, lists.empty)
-    end
+fun empty-table(col-names :: List<String>) -> Table:
+  for fold(t from table: ignore end.drop("ignore"),
+           c from col-names):
+    t.add-column(c, empty)
+  end
+end
+
+fun is-raw-array-of-rows(ra :: RawArray<Any>) -> Boolean:
+  raw-array-fold(lam(base, elt, _): base and is-row(elt) end, true, ra, 0)
+end
+
+fun table-from-raw-array(arr :: T.RawArrayOfRows) -> Table:
+  col-names = raw-array-get(arr, 0).get-column-names()
+  with-cols = empty-table(col-names)
   for raw-array-fold(t from with-cols, r from arr, _ from 0):
     t.add-row(r)
   end
+end
+
+fun raw-array-from-table(table):
+  raw-array-map(raw-array-duplicate, table._rows-raw-array)
 end
 
 table-from-rows = {
@@ -97,3 +114,40 @@ table-from-rows = {
   make4: lam(t1, t2, t3, t4): table-from-raw-array([raw-array: t1, t2, t3, t4]) end,
   make5: lam(t1, t2, t3, t4, t5): table-from-raw-array([raw-array: t1, t2, t3, t4, t5]) end,
 }
+
+fun table-from-column<A>(col-name :: String, values :: List<A>) -> Table:
+  for fold(t from empty-table([list: col-name]), v from values):
+    t.add-row([raw-row: {col-name; v}])
+  end
+end
+
+table-from-cols :: RawArray<{String; List<Any>}> -> Table
+fun table-from-cols(colspecs):
+  if raw-array-length(colspecs) == 0:
+    raise("table-from-columns requires at least one column")
+  else:
+    {name; vals} = raw-array-get(colspecs, 0)
+    for raw-array-fold(t from table-from-column(name, vals), c from colspecs, i from 0):
+      if i == 0: t
+      else:
+        {cname; cvals} = c
+        t.add-column(cname, cvals)
+      end
+    end
+  end
+end
+
+
+table-from-columns = {
+  make: table-from-cols,
+  make0: lam(): table-from-cols([raw-array:]) end,
+  make1: lam(t): table-from-cols([raw-array: t]) end,
+  make2: lam(t1, t2): table-from-cols([raw-array: t1, t2]) end,
+  make3: lam(t1, t2, t3): table-from-cols([raw-array: t1, t2, t3]) end,
+  make4: lam(t1, t2, t3, t4): table-from-cols([raw-array: t1, t2, t3, t4]) end,
+  make5: lam(t1, t2, t3, t4, t5): table-from-cols([raw-array: t1, t2, t3, t4, t5]) end,
+}
+
+
+
+

@@ -22,3 +22,14 @@ import file("./regression/duplicate-check-block-report.arr") as _
 import file("./regression/escaping-module-uris.arr") as _
 import file("./regression/tail-recursion-arg-order.arr") as _
 import file("./regression/flat-refinement.arr") as _
+import file("./regression/parens-after-comments.arr") as _
+import file("./regression/get-assignments-var-as-expr.arr") as _
+import file("./regression/empty-check-block.arr") as _
+import file("./regression/weave-tuple.arr") as _
+import file("./regression/get-assignments-var-as-expr.arr") as _
+import file("./regression/named-arrow-ann.arr") as _
+import file("./regression/tc-internal-err.arr") as _
+import file("./regression/sloppy-list-filter.arr") as _
+import file("./regression/import-module-defining-but-not-exporting-data.arr") as _
+import file("./regression/render-reason-wrong-op.arr") as _
+import file("./regression/table-reduce.arr") as _

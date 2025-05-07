@@ -25,34 +25,34 @@ var D7 :: Pin = "D7"
 
 data EventCondition:
   | enters(min :: Number, max :: Number) with:
-    _shim-convert(self):
+    method _shim-convert(self):
       tostring(self.min) + "-" + tostring(self.max)
     end
   | exits(min :: Number, max :: Number) with:
-    _shim-convert(self):
+    method _shim-convert(self):
       tostring(self.max) + "-" + tostring(self.min)
     end
   | crosses(mid :: Number) with:
-    _shim-convert(self):
+    method _shim-convert(self):
       tostring(self.mid) + "-" + tostring(self.mid)
     end
   | poll(n :: Number) with:
-    _shim-convert(self):
+    method _shim-convert(self):
       tostring("p" + self.n)
     end
 end
 
 data PinConfig:
   | write(pin :: Pin, event :: String) with:
-    _shim-convert(self):
+    method _shim-convert(self):
       self.event + ":" + self.pin + ":O" + "\n"
     end
   | digital-read(pin :: Pin, event :: String) with:
-    _shim-convert(self):
+    method _shim-convert(self):
       self.event + ":" + self.pin + ":I" + "\n"
     end
   | analog-read(pin :: Pin, event :: String, trigger :: EventCondition) with:
-    _shim-convert(self):
+    method _shim-convert(self):
       self.event + ":" + self.pin + ":I:" + self.trigger._shim-convert() + "\n"
     end
 end

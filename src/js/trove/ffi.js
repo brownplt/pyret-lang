@@ -40,6 +40,31 @@
       return lst;
     }
 
+    function makePyretPos(fileName, p) {
+      var n = runtime.makeNumber;
+      return runtime.getField(S, "srcloc").app(
+        runtime.makeString(fileName),
+        n(p.startRow),
+        n(p.startCol),
+        n(p.startChar),
+        n(p.endRow),
+        n(p.endCol),
+        n(p.endChar)
+      );
+    }
+    function combinePyretPos(fileName, p1, p2) {
+      var n = runtime.makeNumber;
+      return runtime.getField(S, "srcloc").app(
+        runtime.makeString(fileName),
+        n(p1.startRow),
+        n(p1.startCol),
+        n(p1.startChar),
+        n(p2.endRow),
+        n(p2.endCol),
+        n(p2.endChar)
+      );
+    }
+
     function makeTreeSet(arr) {
       return gf(Se, 'list-to-tree-set').app(makeList(arr));
     }
@@ -260,9 +285,10 @@
 
     function throwTypeMismatch(val, typeName) {
       // NOTE(joe): can't use checkPyretVal here, because it will re-enter
-      // this function and blow up... so bottom out at "nothing"
+      // this function and blow up...
       if(!runtime.isPyretVal(val)) {
-        val = runtime.namespace.get("nothing");
+        console.log("Non Pyret value:", val);
+        val = "non-Pyret value; see the console for more details";
       }
       runtime.checkString(typeName);
       raise(err("generic-type-mismatch")(val, typeName));
@@ -448,6 +474,12 @@
         runtime.makeSrcloc(col_loc)));
     }
 
+    function throwParseErrorBadApp(fun_loc, args_loc) {
+      raise(err("parse-error-bad-app")(fun_loc, args_loc));
+    }
+    function throwParseErrorBadFunHeader(fun_loc, args_loc) {
+      raise(err("parse-error-bad-fun-header")(fun_loc, args_loc));
+    }
     function throwParseErrorNextToken(loc, nextToken) {
       raise(err("parse-error-next-token")(loc, nextToken));
     }
@@ -479,17 +511,19 @@
       return err("module-load-failure")(namesList);
     }
 
-    function makeRecordFieldsFail(value, failures) {
+    function makeBadBracketException(loc, val) {
+      runtime.checkPyretVal(val);
+      return contract("bad-bracket-target")(loc, val);
+    }
+    
+    
+    function makeRecordFieldsFail(value, optName, failures) {
       runtime.checkPyretVal(value);
-      return contract("record-fields-fail")(value, failures);
+      return contract("record-fields-fail")(value, optName, failures);
     }
   
-    function makeTupleAnnsFail(value, failures) {
-      return contract("tuple-anns-fail")(value, failures);
-    }
-
-    function makeTupleAnnsFail(value, failures) {
-      return contract("tuple-anns-fail")(value, failures);
+    function makeTupleAnnsFail(value, optName, failures) {
+      return contract("tuple-anns-fail")(value, optName, failures);
     }
 
     function makeFieldFailure(loc, field, reason) {
@@ -509,11 +543,11 @@
       return contract("missing-field")(loc, field);
     }
 
-    function makeTupleLengthMismatch(loc, val, annLength, tupLength) {
+    function makeTupleLengthMismatch(loc, val, optName, annLength, tupLength) {
       checkSrcloc(loc);
       runtime.checkNumber(annLength);
       runtime.checkNumber(tupLength);
-      return contract("tup-length-mismatch")(loc, val, annLength, tupLength);
+      return contract("tup-length-mismatch")(loc, val, optName, annLength, tupLength);
     }
 
     function makeTypeMismatch(val, name) {
@@ -572,6 +606,8 @@
     runtime.makePrimAnn("List", isList);
 
     return runtime.makeJSModuleReturn({
+      makePyretPos : makePyretPos,
+      combinePyretPos : combinePyretPos,
       throwUpdateNonObj : throwUpdateNonObj,
       throwUpdateFrozenRef : throwUpdateFrozenRef,
       throwUpdateNonRef : throwUpdateNonRef,
@@ -616,6 +652,8 @@
       throwUnfinishedTemplate: throwUnfinishedTemplate,
       throwModuleLoadFailureL: throwModuleLoadFailureL,
 
+      throwParseErrorBadApp: throwParseErrorBadApp,
+      throwParseErrorBadFunHeader: throwParseErrorBadFunHeader,
       throwParseErrorNextToken: throwParseErrorNextToken,
       throwParseErrorColonColon: throwParseErrorColonColon,
       throwParseErrorEOF: throwParseErrorEOF,
@@ -624,6 +662,7 @@
       throwParseErrorBadOper: throwParseErrorBadOper,
       throwParseErrorBadCheckOper: throwParseErrorBadCheckOper,
 
+      makeBadBracketException: makeBadBracketException,
       makeRecordFieldsFail: makeRecordFieldsFail,
       makeTupleAnnsFail: makeTupleAnnsFail,
       makeFieldFailure: makeFieldFailure,
@@ -702,11 +741,13 @@
       isValueSkeleton: function(v) { return runtime.unwrap(runtime.getField(VS, "is-ValueSkeleton").app(v)); },
       isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value").app(v)); },
       isVSTable: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-table").app(v)); },
+      isVSTableTruncated: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-table-truncated").app(v)); },
       isVSRow: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-row").app(v)); },
       isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },
       isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
       isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str").app(v)); },
       isVSSeq: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-seq").app(v)); },
+      isVSMatrix: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-matrix").app(v)); },
       vsStr: function(s) {
         runtime.checkString(s);
         return runtime.getField(VS, "vs-str").app(s);
@@ -724,11 +765,13 @@
         var isValueSkeleton = runtime.getField(VS, "is-ValueSkeleton");
         var isValue = runtime.getField(VS, "is-vs-value");
         var isTable = runtime.getField(VS, "is-vs-table");
+        var isTableTruncated = runtime.getField(VS, "is-vs-table-truncated");
         var isRow = runtime.getField(VS, "is-vs-row");
         var isCollection = runtime.getField(VS, "is-vs-collection");
         var isConstr = runtime.getField(VS, "is-vs-constr");
         var isStr = runtime.getField(VS, "is-vs-str");
         var isSeq = runtime.getField(VS, "is-vs-seq");
+        var isMatrix = runtime.getField(VS, "is-vs-matrix");
         if(!(runtime.unwrap(isValueSkeleton.app(skel)) === true)) {
           throwTypeMismatch(skel, "ValueSkeleton");
         }
@@ -744,7 +787,7 @@
             } else if (runtime.unwrap(isRow.app(cur)) === true) {
               Array.prototype.push.apply(worklist, runtime.getField(cur, "headers"));
               Array.prototype.push.apply(worklist, runtime.getField(cur, "values"));
-            } else if (runtime.unwrap(isTable.app(cur)) === true) {
+            } else if (runtime.unwrap(isTable.app(cur)) === true || runtime.unwrap(isTableTruncated.app(cur)) === true) {
               Array.prototype.push.apply(worklist, runtime.getField(cur, "headers"));
               runtime.getField(cur, "rows").forEach(function(row){
                 Array.prototype.push.apply(worklist, row); });
@@ -754,6 +797,8 @@
               // nothing
             } else if (runtime.unwrap(isSeq.app(cur)) === true) {
               Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "items")));
+            } else if (runtime.unwrap(isMatrix.app(cur)) === true) {
+              Array.prototype.push.apply(worklist, runtime.getField(cur, "items"));
             } else {
               throwMessageException("Non-value appeared in skeleton: " + String(cur));
             }

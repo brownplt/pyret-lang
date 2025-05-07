@@ -11,7 +11,8 @@ function (RT, evalLib, fs, profiler) {
     var runtime = RT.makeRuntime({
       initialGas: GAS,
       stdout: function (str) {process.stdout.write(str); },
-      stderr: function (str) {process.stderr.write(str); }
+      stderr: function (str) {process.stderr.write(str); },
+      stdin: process.stdin
     });
 
 /** START PROFILING **/

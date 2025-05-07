@@ -8,12 +8,16 @@ import file("compile-structs.arr") as C
 
 mk-id = D.mk-id
 no-branches-exn = D.no-branches-exn
+flat-prim-app = A.prim-app-info-c(false)
 
 fun no-cases-exn(l, val):
-  A.s-prim-app(l, "throwNoCasesMatched", [list: A.s-srcloc(l, l), val])
+  A.s-prim-app(l, "throwNoCasesMatched", [list: A.s-srcloc(l, l), val], flat-prim-app)
 end
 
 desugar-visitor = A.default-map-visitor.{
+  method s-template(self, l):
+    A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)], flat-prim-app)
+  end,
   method s-cases-else(self, l, typ, val, branches, els, blocky):
     name = A.global-names.make-atom("cases")
     typ-compiled = typ.visit(self)
@@ -56,8 +60,8 @@ fun desugar-post-tc(program :: A.Program, compile-env :: C.CompileEnvironment):
             contains no s-cases, s-cases-else, s-instantiate
         ```
   cases(A.Program) program:
-    | s-program(l, _provide, provided-types, imports, body) =>
-      A.s-program(l, _provide, provided-types, imports, body.visit(desugar-visitor))
+    | s-program(l, _use, _provide, provided-types, provides, imports, body) =>
+      A.s-program(l, _use, _provide, provided-types, provides, imports, body.visit(desugar-visitor))
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end

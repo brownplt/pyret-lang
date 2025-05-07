@@ -7,6 +7,7 @@ import file("js-ast.arr") as J
 import file("gensym.arr") as G
 import file("compile-structs.arr") as CS
 import file("concat-lists.arr") as CL
+import file("flatness.arr") as FL
 import file("js-dag-utils.arr") as DAG
 import file("ast-util.arr") as AU
 import file("type-structs.arr") as T
@@ -100,11 +101,15 @@ j-continue = J.j-continue
 j-while = J.j-while
 j-for = J.j-for
 j-raw-code = J.j-raw-code
+j-undefined = J.j-undefined
 is-j-assign = J.is-j-assign
 make-label-sequence = J.make-label-sequence
 
-fun console-log(lst :: CL.ConcatList) -> J.JStmt:
-  j-expr(j-app(j-id(A.s-name(A.dummy-loc, "console.log")), lst))
+fun console-log(lst :: CL.ConcatList) -> J.JExpr:
+  j-app(j-id(A.s-name(A.dummy-loc, "console.log")), lst)
+end
+fun console-log-stmt(lst :: CL.ConcatList) -> J.JStmt:
+  j-expr(console-log(lst))
 end
 
 is-t-data = T.is-t-data
@@ -178,6 +183,7 @@ rt-name-map = [D.string-dict:
   "getDotAnn", "gDA",
   "getField", "gF",
   "getFieldRef", "gFR",
+  "getBracket", "gB",
   "hasBrand", "hB",
   "isActivationRecord", "isAR",
   "isCont", "isC",
@@ -201,6 +207,8 @@ rt-name-map = [D.string-dict:
   "makeTupleAnn", "mTA",
   "makeVariantConstructor", "mVC",
   "namedBrander", "nB",
+  "profileEnter", "pEn",
+  "profileExit", "pEx",
   "traceEnter", "tEn",
   "traceErrExit", "tErEx",
   "traceExit", "tEx",
@@ -214,9 +222,9 @@ end
 fun obj-of-loc(l):
   cases(Loc) l:
     | builtin(name) => j-list(false, [clist: j-str(name)])
-    | srcloc(_, start-line, start-col, start-char, end-line, end-col, end-char) =>
+    | srcloc(source, start-line, start-col, start-char, end-line, end-col, end-char) =>
       j-list(false, [clist:
-          j-id(const-id("M")),
+          j-str(source),
           j-num(start-line),
           j-num(start-col),
           j-num(start-char),
@@ -244,10 +252,18 @@ fun get-field-unsafe(obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
   j-app(get-field-loc, [clist: obj, field, loc-expr])
 end
 
+fun get-bracket-unsafe(obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
+  rt-method("getBracket", [clist: obj, field, loc-expr])
+end
+
 # When the field may not exist, add source mapping so if we can't find it
 # we get a useful stacktrace
 fun get-field-safe(l, obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
   wrap-with-srcnode(l, get-field-unsafe(obj, field, loc-expr))
+end
+
+fun get-bracket-safe(l, obj :: J.JExpr, field :: J.JExpr, loc-expr :: J.JExpr):
+  wrap-with-srcnode(l, get-bracket-unsafe(obj, field, loc-expr))
 end
 
 fun get-field-ref(obj :: J.JExpr, field :: J.JExpr, loc :: J.JExpr):
@@ -271,6 +287,18 @@ fun rt-method(name, args):
   end
 
   j-method(RUNTIME, rt-name, args)
+end
+
+fun log-and(log, ret):
+  j-bracket(j-list(true, [clist: console-log(log), ret]), j-num(1))
+end
+
+fun get-field(obj, field):
+  rt-method("getField", [clist: obj, j-str(field)])
+end
+
+fun get-module-field(uri, which, name):
+  rt-method("getModuleField", [clist: j-str(uri), j-str(which), j-str(name)])
 end
 
 fun app(l, f, args):
@@ -306,19 +334,33 @@ fun ann-loc(ann):
   end
 end
 
-fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
+fun is-flat-enough(flatness):
+  cases(Option) flatness:
+    | none => false
+    | some(v) => v <= 5
+  end
+end
+
+fun is-function-flat(flatness-env :: FL.FEnv, fun-name :: String) -> Boolean:
+  flatness-opt = flatness-env.get-now(fun-name).or-else(none)
+  is-flat-enough(flatness-opt)
+end
+
+
+
+fun compile-ann(ann :: A.Ann, opt-name :: Option<String>, visitor) -> DAG.CaseResults%(is-c-exp):
   cases(A.Ann) ann:
     | a-name(_, n) => c-exp(j-id(js-id-of(n)), cl-empty)
     | a-type-var(_, _) => c-exp(rt-field("Any"), cl-empty)
     | a-arrow(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
     | a-arrow-argnames(_, _, _, _) => c-exp(rt-field("Function"), cl-empty)
     | a-method(_, _, _) => c-exp(rt-field("Method"), cl-empty)
-    | a-app(l, base, _) => compile-ann(base, visitor)
+    | a-app(l, base, _) => compile-ann(base, opt-name, visitor)
     | a-record(l, fields) =>
       comp-fields =
         for fold(acc from {names: cl-empty, locs: cl-empty, fields: cl-empty, others: cl-empty},
             field from fields):
-          compiled = compile-ann(field.ann, visitor)
+          compiled = compile-ann(field.ann, none, visitor)
           {
             names: cl-snoc(acc.names, j-str(field.name)),
             locs: cl-snoc(acc.locs, visitor.get-loc(field.l)),
@@ -330,27 +372,29 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         rt-method("makeRecordAnn", [clist:
             j-list(false, comp-fields.names),
             j-list(false, comp-fields.locs),
-            j-obj(comp-fields.fields)
+            j-obj(comp-fields.fields),
+            if is-some(opt-name): j-str(opt-name.value) else: j-undefined end
           ]),
         comp-fields.others
         )
     | a-tuple(l, tuple-fields) =>
       comp-fields = for fold(acc from {locs: cl-empty, fields: cl-empty, others: cl-empty},
-         field from tuple-fields):
-       compiled = compile-ann(field, visitor)
-       {
+          field from tuple-fields):
+        compiled = compile-ann(field, opt-name, visitor)
+        {
           locs: cl-snoc(acc.locs, visitor.get-loc(ann-loc(field))),
           fields: cl-snoc(acc.fields, compiled.exp),
           others: cl-append(acc.others, compiled.other-stmts)
-       }
-       end
-     c-exp(
-       rt-method("makeTupleAnn", [clist:
-           j-list(false, comp-fields.locs),
-           j-list(false, comp-fields.fields)
-        ]),
-       comp-fields.others
-      )
+        }
+      end
+      c-exp(
+        rt-method("makeTupleAnn", [clist:
+            j-list(false, comp-fields.locs),
+            j-list(false, comp-fields.fields),
+            if is-some(opt-name): j-str(opt-name.value) else: j-undefined end
+          ]),
+        comp-fields.others
+        )
     | a-pred(l, base, exp) =>
       name = cases(A.Expr) exp:
         | s-id(_, id) => id.toname()
@@ -360,10 +404,13 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         | s-id(l2, id) => N.a-id(l2, id)
         | s-id-letrec(l2, id, ok) => N.a-id-letrec(l2, id, ok)
       end
-      compiled-base = compile-ann(base, visitor)
+      compiled-base = compile-ann(base, opt-name, visitor)
       compiled-exp = expr-to-compile.visit(visitor)
+      is-flat = is-flat-enough(FL.ann-flatness(base, visitor.flatness-env, visitor.type-flatness-env, visitor.module-bindings, visitor.env))
+        and is-function-flat(visitor.flatness-env, exp.id.key())
+      pred-maker = if is-flat: "makeFlatPredAnn" else: "makePredAnn" end
       c-exp(
-        rt-method("makePredAnn", [clist: compiled-base.exp, compiled-exp.exp, j-str(name)]),
+        rt-method(pred-maker, [clist: compiled-base.exp, compiled-exp.exp, j-str(name)]),
         cl-append(compiled-base.other-stmts, compiled-exp.other-stmts)
         )
     | a-dot(l, m, field) =>
@@ -371,7 +418,7 @@ fun compile-ann(ann :: A.Ann, visitor) -> DAG.CaseResults%(is-c-exp):
         rt-method("getDotAnn", [clist:
             visitor.get-loc(l),
             j-str(m.toname()),
-            j-id(js-id-of(m)),
+            j-dot(j-dot(j-id(js-id-of(m)), "dict"), "types"),
             j-str(field)]),
         cl-empty)
     | a-blank => c-exp(rt-field("Any"), cl-empty)
@@ -512,11 +559,12 @@ fun local-bound-vars(kase :: J.JCase, vars) block:
   vars
 end
 
-fun copy-mutable-dict(s :: D.MutableStringDict<A>) -> D.MutableStringDict<A>:
+fun copy-mutable-dict<E>(s :: D.MutableStringDict<E>) -> D.MutableStringDict<E>:
   s.freeze().unfreeze()
 end
 
 var total-time = 0
+
 
 show-stack-trace = false
 fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, args :: List<N.ABind>, opt-arity :: Option<Number>, body :: N.AExpr, should-report-error-frame :: Boolean, is-flat :: Boolean, is-method :: Boolean) -> J.JBlock block:
@@ -616,6 +664,11 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
         else:
           cl-sing(j-expr(j-unop(rt-field("GAS"), j-incr)))
         end +
+        if local-compiler.options.should-profile:
+          cl-sing(j-expr(rt-method("profileExit", [clist: local-compiler.get-loc(l)])))
+        else:
+          cl-empty
+        end +
         cl-sing(j-return(j-id(local-compiler.cur-ans))))))
   ^ cl-snoc(_, j-default(j-block1(
         j-expr(j-method(rt-field("ffi"), "throwSpinnakerError", [clist: local-compiler.get-loc(l), j-id(step)])))))
@@ -671,16 +724,22 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   end
 
   is-activation-record-call = rt-method("isActivationRecord", [clist: j-id(first-arg)])
-  preamble-stmts = if is-flat:
-    first-entry-stmts
-  else:
-    if-check = if first-entry-stmts.is-empty():
-      j-if1(is-activation-record-call, restorer)
+  preamble-stmts =
+    if local-compiler.options.should-profile:
+      cl-sing(j-expr(rt-method("profileEnter", [clist: local-compiler.get-loc(l)])))
     else:
-      j-if(is-activation-record-call, restorer, j-block(first-entry-stmts))
+      cl-empty
+    end +
+    if is-flat:
+      first-entry-stmts
+    else:
+      if-check = if first-entry-stmts.is-empty():
+        j-if1(is-activation-record-call, restorer)
+      else:
+        j-if(is-activation-record-call, restorer, j-block(first-entry-stmts))
+      end
+      cl-sing(if-check)
     end
-    cl-sing(if-check)
-  end
 
   stack-attach-guard =
     if compiler.options.proper-tail-calls:
@@ -758,9 +817,22 @@ fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
             ]))
       cur-target := new-label
       cl-snoc(acc, new-case)
+    else if is-flat-enough(FL.ann-flatness(b.ann, visitor.flatness-env, visitor.type-flatness-env, visitor.module-bindings, visitor.env)):
+      compiled-ann = compile-ann(b.ann, none, visitor)
+      new-label = visitor.make-label()
+      new-case = j-case(cur-target,
+        j-block(cl-append(compiled-ann.other-stmts,
+            [clist:
+              j-expr(j-assign(step, new-label)),
+              j-expr(j-assign(visitor.cur-apploc, visitor.get-loc(b.ann.l))),
+              j-expr(rt-method("_checkAnn",
+                  [clist: visitor.get-loc(b.ann.l), compiled-ann.exp, j-id(js-id-of(b.id))])),
+              j-break])))
+      cur-target := new-label
+      cl-snoc(acc, new-case)
     else:
       ann-result = fresh-id(compiler-name("ann-check"))
-      compiled-ann = compile-ann(b.ann, visitor)
+      compiled-ann = compile-ann(b.ann, none, visitor)
       new-label = visitor.make-label()
       new-case = j-case(cur-target,
         j-block(cl-append(compiled-ann.other-stmts,
@@ -820,7 +892,7 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
     step = visitor.cur-step
     after-ann = visitor.make-label()
     after-ann-case = j-case(after-ann, j-block(compiled-body.block.stmts))
-    compiled-ann = compile-ann(b.ann, visitor)
+    compiled-ann = compile-ann(b.ann, none, visitor)
     ann-result = fresh-id(compiler-name("ann-check"))
     c-block(
       j-block(
@@ -943,7 +1015,7 @@ fun is-id-occurs(target :: A.Name, e :: J.JExpr) block:
   found
 end
 
-fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JExpr>; List<J.JExpr>}:
+fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JStmt>; List<J.JStmt>}:
   doc: ```
        Find an order of assignment statements in `lst` that avoid new variables
        where `limit` is the number of round-robin attempts allowed.
@@ -970,7 +1042,7 @@ fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JExpr>; Li
           if limit == 0:
             tmp-arg = fresh-id(compiler-name('tmp_asgn'))
             {pre; post} = get-assignments(rest, rest.length())
-            {link(j-var(tmp-arg, actual), pre); link(j-assign(formal, j-id(tmp-arg)), post)}
+            {link(j-var(tmp-arg, actual), pre); link(j-expr(j-assign(formal, j-id(tmp-arg))), post)}
           else:
             occurs-any = for any(next-asgn :: J.JExpr%(is-j-assign) from rest):
               is-id-occurs(formal, next-asgn.rhs)
@@ -979,7 +1051,7 @@ fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JExpr>; Li
               get-assignments(rest + [list: asgn], limit - 1)
             else:
               {pre; post} = get-assignments(rest, rest.length())
-              {link(asgn, pre); post}
+              {link(j-expr(asgn), pre); post}
             end
           end
       end
@@ -1011,10 +1083,10 @@ fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-def
             j-block([clist:
               j-expr(j-dot-assign(RUNTIME, "EXN_STACKHEIGHT", j-num(0))),
               j-expr(j-assign(ans, rt-method("makeCont", cl-empty)))]))] +
-        CL.map_list(j-expr, pre + post) +
+        CL.from_list(pre + post) +
         # CL.map_list2(
         #   lam(compiled-arg, arg):
-        #     console-log([clist: j-str(tostring(arg)), j-id(arg)])
+        #     console-log-stmt([clist: j-str(tostring(arg)), j-id(arg)])
         #   end,
         #   compiled-args.to-list(),
         #   compiler.args) +
@@ -1125,7 +1197,7 @@ fun compile-cases-branch(compiler, compiled-val, branch :: N.ACasesBranch, cases
       j-list(false, cl-empty)
     end
     compiled-branch-fun =
-      compile-fun-body(branch.body.l, step, temp-branch, compiler.{allow-tco: false}, branch-args, none, branch.body, true, false, false)
+      compile-fun-body(branch.body.l, step, temp-branch, compiler.{allow-tco: false, options: compiler.options.{should-profile: false}}, branch-args, none, branch.body, true, false, false)
     preamble = cases-preamble(compiler, compiled-val, branch, cases-loc)
     deref-fields = j-expr(j-assign(compiler.cur-ans, j-method(compiled-val, "$app_fields", [clist: j-id(temp-branch), ref-binds-mask])))
     actual-app =
@@ -1267,17 +1339,8 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
 
 end
 
-fun is-function-flat(flatness-env :: D.StringDict<Option<Number>>, fun-name :: String) -> Boolean:
-  flatness-opt-opt = flatness-env.get(fun-name)
-  flatness-opt = cases (Option) flatness-opt-opt:
-    | some(f-opt) => f-opt
-    | none => none
-  end
-  is-some(flatness-opt) and (flatness-opt.value <= 5)
-end
-
-fun is-id-fn-name(flatness-env :: D.StringDict<Option<Number>>, name :: String) -> Boolean:
-    is-some(flatness-env.get(name))
+fun is-id-fn-name(flatness-env :: D.MutableStringDict<Option<Number>>, name :: String) -> Boolean:
+    flatness-env.has-key-now(name)
 end
 
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
@@ -1321,8 +1384,75 @@ fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret
           compile-fun-body(l, new-step, temp, compiler.{allow-tco: true}, effective-args, some(len), body, true, is-flat, false)))])
 end
 
+
+fun compile-split-prim-app(l, compiler, opt-dest, f, args, opt-body):
+  ans = compiler.cur-ans
+  step = compiler.cur-step
+  compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
+  {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+  c-block(
+    j-block(
+      # Update step before the call, so that if it runs out of gas,
+      # the resumer goes to the right step
+      [clist:
+        j-expr(j-assign(step, after-app-label)),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(l)))] +
+      [clist:
+        j-expr(wrap-with-srcnode(l, j-assign(ans, rt-method(f, compiled-args)))),
+        j-break]),
+    new-cases)
+end
+
+
+fun compile-flat-prim-app(l, compiler, opt-dest, f, args, opt-body):
+  ans = compiler.cur-ans
+  compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
+
+  # Generate the code for calling the function
+  call-code = j-expr(wrap-with-srcnode(l, j-assign(ans, rt-method(f, compiled-args))))
+
+  # Compile the body of the let. We split it into two portions:
+  # 1) the code that can be in the same "block" (or case region) and
+  # 2) the rest of the case statements
+  {remaining-code; new-cases} = cases (Option) opt-body:
+    | some(body) =>
+      get-remaining-code(compiler, opt-dest, body, ans)
+    | none =>
+      # Special case: there is no more code after this so just jump to the
+      # special last block in the function
+      body = j-block([clist:
+          j-expr(j-assign(compiler.cur-step, compiler.cur-target)),
+          j-break
+        ])
+      {body; cl-empty}
+  end
+
+  # Now merge the code for calling the function with the next block
+  # (this is basically our optimization, since we're not starting a new case
+  # for the next block)
+  c-block(
+    j-block(cl-cons(call-code, j-block-to-stmt-list(remaining-code))),
+    new-cases)
+end
+
+fun compile-a-prim-app(l :: N.Loc, f :: String, args :: List<N.AVal>,
+    compiler,
+    b :: Option<BindType>,
+    opt-body :: Option<N.AExpr>,
+    app-info :: A.PrimAppInfo):
+
+  app-compiler = if app-info.needs-step:
+    compile-split-prim-app
+  else:
+    compile-flat-prim-app
+  end
+  app-compiler(l, compiler, b, f, args, opt-body)
+end
+
 fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body :: Option<N.AExpr>, else-case :: (DAG.CaseResults -> DAG.CaseResults)):
   cases(N.ALettable) e:
+    | a-prim-app(l2, f, args, app-info) =>
+      compile-a-prim-app(l2, f, args, compiler, b, opt-body, app-info)
     | a-app(l2, f, args, app-info) =>
       compile-a-app(l2, f, args, compiler, b, opt-body, app-info)
     | a-method-app(l2, obj, m, args) =>
@@ -1343,16 +1473,65 @@ fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body
 end
 
 compiler-visitor = {
-  method a-module(self, l, answer, dvs, dts, provides, types, checks):
-    types-obj-fields = for fold(acc from {fields: cl-empty, others: cl-empty}, ann from types):
-      compiled = compile-ann(ann.ann, self)
-      {
-        fields: cl-snoc(acc.fields, j-field(ann.name, compiled.exp)),
-        others: cl-append(acc.others, compiled.other-stmts)
-      }
+  method a-module(self, l, answer, dms, dvs, dts, checks):
+
+    mp-specs = self.prog-provides.specs.filter(A.is-s-provide-module)
+    vp-specs = self.prog-provides.specs.filter(A.is-s-provide-name)
+    tp-specs = self.prog-provides.specs.filter(A.is-s-provide-type)
+    dp-specs = self.prog-provides.specs.filter(A.is-s-provide-data)
+
+    {alias-fields; alias-stmts} = for fold(acc from {cl-empty; cl-empty}, tp from tp-specs):
+      cases(A.NameSpec) tp.name-spec:
+        | s-local-ref(_, name, as-name) =>
+          compiled = compile-ann(A.a-name(l, name), none, self) # TODO(Ben): should be none, or name, or as-name?
+          {
+            cl-snoc(acc.{0}, j-field(as-name.toname(), compiled.exp));
+            cl-append(acc.{1}, compiled.other-stmts)
+          }
+        | s-remote-ref(_, uri, name, as-name) =>
+          {
+            cl-snoc(acc.{0},
+              j-field(as-name.toname(), 
+                  get-module-field(uri, "types", name.toname())));
+            acc.{1}
+          }
+      end
     end
 
-    compiled-provides = provides.visit(self)
+
+    compiled-provides = for CL.map_list(pv from vp-specs):
+      cases(A.NameSpec) pv.name-spec:
+        | s-local-ref(_, name, as-name) =>
+          val-bind = self.bindings.get-value-now(name.key())
+          val-exp = cases(CS.ValueBinder) val-bind.binder:
+            | vb-letrec => j-dot(j-id(js-id-of(name)), "$var")
+            | vb-var => j-id(js-id-of(name))
+            | vb-let => j-id(js-id-of(name))
+          end
+          j-field(as-name.toname(), val-exp)
+        | s-remote-ref(_, uri, name, as-name) =>
+          val-exp = get-module-field(uri, "values", name.toname())
+          
+          j-field(as-name.toname(), val-exp)
+      end
+    end
+
+    {types-fields; types-stmts} = {
+      alias-fields; #+ data-fields;
+      alias-stmts; #+ data-stmts
+    }
+
+    compiled-module-provides = for CL.map_list(pm from mp-specs):
+      cases(A.NameSpec) pm.name-spec:
+        | s-local-ref(_, name, as-name) =>
+          compiled = j-id(js-id-of(name))
+          j-field(as-name.toname(), compiled)
+        | s-remote-ref(_, uri, name, as-name) =>
+          j-field(as-name.toname(), j-bracket(rt-field("modules"), j-str(uri)))
+      end
+    end
+
+
     compiled-answer = answer.visit(self)
     compiled-checks = checks.visit(self)
     c-exp(
@@ -1361,6 +1540,11 @@ compiler-visitor = {
               j-field("answer", compiled-answer.exp),
               j-field("namespace", NAMESPACE),
               j-field("locations", j-id(const-id("L"))),
+              j-field("defined-modules",
+                j-obj(
+                  for CL.map_list(dm from dms):
+                    j-field(dm.name, j-id(js-id-of(dm.value)))
+                  end)),
               j-field("defined-values",
                 j-obj(
                   for CL.map_list(dv from dvs):
@@ -1375,18 +1559,18 @@ compiler-visitor = {
               j-field("defined-types",
                 j-obj(
                   for CL.map_list(dt from dts):
-                    compiled-ann = compile-ann(dt.typ, self).exp
+                    compiled-ann = compile-ann(dt.typ, none, self).exp
                     j-field(dt.name, compiled-ann)
                   end)),
               j-field("provide-plus-types",
                 rt-method("makeObject", [clist: j-obj([clist:
-                        j-field("values", compiled-provides.exp),
-                        j-field("types", j-obj(types-obj-fields.fields))
+                        j-field("values", rt-method("makeObject", [clist: j-obj(compiled-provides)])),
+                        j-field("types", j-obj(types-fields)),
+                        j-field("modules", j-obj(compiled-module-provides))
                     ])])),
               j-field("checks", compiled-checks.exp)])]),
 
-      types-obj-fields.others ^
-      cl-append(_, compiled-provides.other-stmts) ^
+      types-stmts ^
       cl-append(_, compiled-answer.other-stmts) ^
       cl-append(_, compiled-checks.other-stmts))
   end,
@@ -1394,7 +1578,7 @@ compiler-visitor = {
     cases(N.ATypeBind) bind:
       | a-type-bind(l2, name, ann) =>
         visited-body = body.visit(self)
-        compiled-ann = compile-ann(ann, self)
+        compiled-ann = compile-ann(ann, some(name.toname()), self)
         c-block(
           j-block(
             compiled-ann.other-stmts ^
@@ -1477,7 +1661,7 @@ compiler-visitor = {
   method a-app(self, l :: Loc, f :: N.AVal, args :: List<N.AVal>):
     raise("Impossible: a-app directly in compiler-visitor should never happen")
   end,
-  method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>):
+  method a-prim-app(self, l :: Loc, f :: String, args :: List<N.AVal>, app-info :: A.PrimAppInfo):
     visit-args = args.map(_.visit(self))
     set-loc = [clist:
       j-expr(j-assign(self.cur-apploc, self.get-loc(l)))
@@ -1571,8 +1755,31 @@ compiler-visitor = {
   method a-undefined(self, l :: Loc):
     c-exp(undefined, cl-empty)
   end,
+  method a-prim-val(self, l :: Loc, name :: String):
+    c-exp(rt-field(name), cl-empty)
+  end,
   method a-id(self, l :: Loc, id :: A.Name):
     c-exp(j-id(js-id-of(id)), cl-empty)
+  end,
+  method a-id-modref(self, l :: Loc, id :: A.Name, uri :: String, name :: String):
+    c-exp(
+      j-bracket(
+        j-dot(
+          j-dot(
+            j-dot(j-id(js-id-of(id)), "dict"),
+            "values"),
+          "dict"),
+        j-str(name)), cl-empty)
+  end,
+  method a-id-var-modref(self, l :: Loc, id :: A.Name, uri :: String, name :: String):
+    c-exp(
+      j-dot(j-bracket(
+        j-dot(
+          j-dot(
+            j-dot(j-id(js-id-of(id)), "dict"),
+            "values"),
+          "dict"),
+        j-str(name)), "$var"), cl-empty)
   end,
   method a-id-var(self, l :: Loc, id :: A.Name):
     c-exp(j-dot(j-id(js-id-of(id)), "$var"), cl-empty)
@@ -1629,7 +1836,7 @@ compiler-visitor = {
         not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
       end
       compiled-anns = for fold(acc from {anns: cl-empty, others: cl-empty}, m from nonblank-anns):
-        compiled = compile-ann(m.bind.ann, self)
+        compiled = compile-ann(m.bind.ann, none, self)
         {
           anns: cl-snoc(acc.anns, compiled.exp),
           others: cl-append(acc.others, compiled.other-stmts)
@@ -1827,22 +2034,27 @@ fun mk-abbrevs(l):
   ]
 end
 
-fun import-key(i): AU.import-to-dep-anf(i).key() end
+fun import-key(i): AU.import-to-dep(i).key() end
 
 fun compile-type-variant(variant):
-  # TODO -- support with-members
   cases(T.TypeVariant) variant:
     | t-variant(name, members, with-members, l) =>
-      j-list(true, [clist: j-str(name),
-        j-list(false, CL.map_list(lam({mem-name; typ}):
+      compiled-members = j-list(false, CL.map_list(lam({mem-name; typ}):
           if T.is-t-ref(typ):
             j-list(true, [clist: j-str("ref"), j-str(mem-name), compile-provided-type(typ.typ)])
           else:
             j-list(true, [clist: j-str(mem-name), compile-provided-type(typ)])
           end
-        end, members))])
+        end, members))
+      compiled-with-members = j-obj(for cl-map-sd(mem-name from with-members):
+            compile-type-member(mem-name, with-members.get-value(mem-name))
+          end)
+      j-list(true, [clist: j-str(name), compiled-members, compiled-with-members])
     | t-singleton-variant(name, with-members, l) =>
-      j-list(true, [clist: j-str(name)])
+      compiled-with-members = j-obj(for cl-map-sd(mem-name from with-members):
+          compile-type-member(mem-name, with-members.get-value(mem-name))
+        end)
+      j-list(true, [clist: j-str(name), compiled-with-members])
   end
 end
 
@@ -1850,18 +2062,28 @@ fun compile-type-member(name, typ):
   j-field(name, compile-provided-type(typ))
 end
 
-fun compile-provided-data(typ :: T.DataType):
-  cases(T.DataType) typ:
-    | t-data(name, params, variants, members, l) =>
+fun compile-provided-data(de :: CS.DataExport):
+  cases(CS.DataExport) de: 
+    | d-alias(origin, name) =>
       j-list(false,
-        [clist: j-str("data"), j-str(name),
-          j-list(false, for CL.map_list(p from params):
-              j-str(tostring(p))
-            end),
-          j-list(false, CL.map_list(compile-type-variant, variants)),
-          j-obj(for cl-map-sd(mem-name from members):
-            compile-type-member(mem-name, members.get-value(mem-name))
-          end)])
+        [clist: j-str("data-alias"),
+          compile-origin(origin),
+          j-str(name)])
+    | d-type(origin, typ) =>
+      cases(T.DataType) typ:
+        | t-data(name, params, variants, members, l) =>
+          j-list(false,
+            [clist: j-str("data"),
+              compile-origin(origin),
+              j-str(name),
+              j-list(false, for CL.map_list(p from params):
+                  j-str(p.id.key())
+                end),
+              j-list(false, CL.map_list(compile-type-variant, variants)),
+              j-obj(for cl-map-sd(mem-name from members):
+                compile-type-member(mem-name, members.get-value(mem-name))
+              end)])
+    end
   end
 end
 
@@ -1881,7 +2103,7 @@ fun compile-provided-type(typ):
         | dependency(dep) =>
           raise("Dependency-origin names in provided-types shouldn't be possible")
       end
-    | t-var(name, l, _) => j-list(true, [clist: j-str("tid"), j-str(name.toname())])
+    | t-var(name, l, _) => j-list(true, [clist: j-str("tid"), j-str(name.key())]) # NOTE(joe): changed to .key()
     | t-arrow(args, ret, l, _) =>
       j-list(true,
         [clist: j-str("arrow"),
@@ -1891,7 +2113,7 @@ fun compile-provided-type(typ):
         [clist: j-str("tyapp"), compile-provided-type(base),
           j-list(true, CL.map_list(compile-provided-type, args))])
     | t-top(_, _) => j-str("tany")
-    | t-bot(_) => j-str("tbot")
+    | t-bot(_, _) => j-str("tbot")
     | t-record(fields, l, _) =>
       j-list(false,
         [clist: j-str("record"), j-obj(for cl-map-sd(key from fields):
@@ -1904,28 +2126,63 @@ fun compile-provided-type(typ):
       j-list(true,
         [clist: j-str("forall"),
           j-list(false, for CL.map_list(p from params):
-            j-str(tostring(p))
+            j-str(p.id.key())
           end), compile-provided-type(body)])
       # | t-ref(_, _) =>
       # | t-existential(_, _) =>
-      # | t-data-refinement(_, _, _) =>
+    | t-data-refinement(base-typ, variant-name, l, _) =>
+      j-list(true,
+        [clist: j-str("data%"), compile-provided-type(base-typ), j-str(variant-name)])
     | else => j-ternary(j-false, j-str(tostring(typ)), j-str("tany"))
   end
 end
 
+fun srcloc-to-raw(l):
+  cases(SL.Srcloc) l:
+    | builtin(uri) => j-list(true, [clist: j-str(uri)])
+    | srcloc(uri, sl, sc, si, el, ec, ei) =>
+      j-list(true, [clist: j-str(uri), j-num(sl), j-num(sc), j-num(si), j-num(el), j-num(ec), j-num(ei)])
+  end
+end
+
+fun compile-origin(bo):
+  j-obj([clist:
+    j-field("local-bind-site", srcloc-to-raw(bo.local-bind-site)),
+    j-field("definition-bind-site", srcloc-to-raw(bo.definition-bind-site)),
+    j-field("new-definition", j-bool(bo.new-definition)),
+    j-field("uri-of-definition", j-str(bo.uri-of-definition))
+  ])
+end
+
 fun compile-provides(provides):
   cases(CS.Provides) provides:
-    | provides(thismod-uri, values, aliases, data-defs) =>
+    | provides(thismod-uri, modules, values, aliases, data-defs) =>
+      module-fields = for cl-map-sd(m from modules):
+        j-field(m, j-obj([clist: j-field("uri", j-str(modules.get-value(m)))]))
+      end
       value-fields = for cl-map-sd(v from values):
         cases(CS.ValueExport) values.get-value(v):
-          | v-just-type(t) => j-field(v, compile-provided-type(t))
-          | v-var(t) => j-field(v, j-obj([clist:
-              j-field("bind", j-str("var")),
+          | v-alias(origin, name) =>
+            j-field(v, j-obj([clist:
+              j-field("bind", j-str("alias")),
+              j-field("origin", compile-origin(origin)),
+              j-field("original-name", j-str(name)),
+              j-field("typ", j-bool(false))
+            ]))
+          | v-just-type(origin, t) => j-field(v, j-obj([clist:
+              j-field("bind", j-str("let")),
+              j-field("origin", compile-origin(origin)),
               j-field("typ", compile-provided-type(t))
             ]))
-          | v-fun(t, name, flatness) =>
+          | v-var(origin, t) => j-field(v, j-obj([clist:
+              j-field("bind", j-str("var")),
+              j-field("origin", compile-origin(origin)),
+              j-field("typ", compile-provided-type(t))
+            ]))
+          | v-fun(origin, t, name, flatness) =>
             j-field(v, j-obj([clist:
               j-field("bind", j-str("fun")),
+              j-field("origin", compile-origin(origin)),
               j-field("flatness", flatness.and-then(j-num).or-else(j-false)),
               j-field("name", j-str(name)),
               j-field("typ", compile-provided-type(t))
@@ -1939,6 +2196,7 @@ fun compile-provides(provides):
         j-field(a, compile-provided-type(aliases.get-value(a)))
       end
       j-obj([clist:
+          j-field("modules", j-obj(module-fields)),
           j-field("values", j-obj(value-fields)),
           j-field("datatypes", j-obj(data-fields)),
           j-field("aliases", j-obj(alias-fields))
@@ -1946,97 +2204,73 @@ fun compile-provides(provides):
   end
 end
 
-fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-env) block:
+fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides, env) block:
   js-names.reset()
   shadow freevars = freevars.unfreeze()
-  fun inst(id): j-app(j-id(id), [clist: RUNTIME, NAMESPACE]) end
-  imports = imports-in.sort-by(
-      lam(i1, i2): import-key(i1.import-type) < import-key(i2.import-type)  end,
-      lam(i1, i2): import-key(i1.import-type) == import-key(i2.import-type) end
+
+  imports = imports-in.filter(A.is-s-import).sort-by(
+      lam(i1, i2): import-key(i1.file) < import-key(i2.file)  end,
+      lam(i1, i2): import-key(i1.file) == import-key(i2.file) end
     )
 
   for each(i from imports) block:
-    freevars.remove-now(i.vals-name.key())
-    freevars.remove-now(i.types-name.key())
-  end
-
-  import-keys = {vs: [mutable-string-dict:], ts: [mutable-string-dict:]}
-
-  for each(i from imports) block:
-    for each(v from i.values):
-      import-keys.vs.set-now(v.key(), v)
-    end
-    for each(t from i.types):
-      import-keys.ts.set-now(t.key(), t)
+    cases(A.Import) i:
+      | s-import(_, _, mod-name) =>
+        freevars.remove-now(mod-name.key())
+      | else => nothing
     end
   end
 
   free-ids = freevars.map-keys-now(freevars.get-value-now(_))
   module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
   global-binds = for CL.map_list(n from module-and-global-binds.is-false):
-    # NOTE(joe): below, we use the special case for globals for bootstrapping reasons,
-    # because shared compiled files didn't agree on globals
-    cases(A.Name) n:
-      | s-global(s) =>
-        dep = env.globals.values.get-value(n.toname())
-        uri = cases(Option) env.mods.get(dep):
-          | some(d) => d.from-uri
-          | none => raise(dep + " not found in: " + torepr(env.mods))
-        end
-        j-var(js-id-of(n),
-          j-bracket(
-             rt-method("getField", [clist:
-                  j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-                  j-str("defined-values")
-                ]),
-              j-str(n.toname())))
-      | s-type-global(_) =>
-        dep = env.globals.types.get-value(n.toname())
-        uri = cases(Option) env.mods.get(dep):
-          | some(d) => d.from-uri
-          | none => raise(dep + " not found in: " + torepr(env.mods))
-        end
-        j-var(js-id-of(n),
-          j-bracket(
-              rt-method("getField", [clist:
-                  j-bracket(j-dot(RUNTIME, "modules"), j-str(uri)),
-                j-str("defined-types")]),
-              j-str(n.toname())))
+    { maybe-origin; which } =
+      cases(A.Name) n:
+        | s-module-global(s) =>
+          { env.origin-by-module-name(n.toname()); "modules"}
+        | s-global(s) =>
+          { env.origin-by-value-name(n.toname()); "values"}
+        | s-type-global(s) =>
+          { env.origin-by-type-name(n.toname()); "types"}
+      end
+
+    { uri; name } = cases(Option) maybe-origin:
+      | some(origin) => { origin.uri-of-definition; origin.original-name.toname() }
+      | none => raise(n.toname() + " not found")
     end
 
-#    j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))
+    j-var(js-id-of(n), get-module-field(uri, which, name))
   end
+  # MARK(joe): need to do something below for modules that come from
+  # a context like "include"
   module-binds = for CL.map_list(n from module-and-global-binds.is-true):
-    bind-name = cases(A.Name) n:
-      | s-atom(_, _) =>
-        if import-keys.vs.has-key-now(n.key()):
-          n.toname()
-        else if import-keys.ts.has-key-now(n.key()):
-          type-name(n.toname())
-        else:
-          raise("Unaware of imported name: " + n.key())
-        end
+    { which; uri; lookup-name } = ask:
+      | self.bindings.has-key-now(n.key()) then:
+        val-bind = self.bindings.get-value-now(n.key())
+        { "values"; val-bind.origin.uri-of-definition; val-bind.origin.original-name }
+      | self.type-bindings.has-key-now(n.key()) then:
+        typ-bind = self.type-bindings.get-value-now(n.key())
+        { "types"; typ-bind.origin.uri-of-definition; typ-bind.origin.original-name }
+      | self.module-bindings.has-key-now(n.key()) then:
+        mod-bind = self.module-bindings.get-value-now(n.key())
+        { "modules"; mod-bind.origin.uri-of-definition; mod-bind.origin.original-name }
     end
-    j-var(js-id-of(n), j-method(NAMESPACE, "get", [clist: j-str(bind-name)]))
+    j-var(js-id-of(n), get-module-field(uri, which, lookup-name.toname()))
   end
   fun clean-import-name(name):
-    if A.is-s-atom(name) and (name.base == "$import"): fresh-id(name)
+    js-id-of(name)
+    #|if A.is-s-atom(name) and (name.base == "$import"): fresh-id(name)
     else: js-id-of(name)
-    end
+    end|#
   end
-  ids = imports.map(lam(i): clean-import-name(i.vals-name) end)
-  type-imports = imports.filter(N.is-a-import-complete)
-  type-ids = type-imports.map(lam(i): clean-import-name(i.types-name) end)
+  mod-ids = imports.map(lam(i): clean-import-name(i.name) end)
   module-locators = imports.map(lam(i):
-    cases(N.AImportType) i.import-type:
-      | a-import-builtin(_, name) => CS.builtin(name)
-      | a-import-special(_, typ, args) => CS.dependency(typ, args)
-    end
+    AU.import-to-dep(i.file)
   end)
   filenames = imports.map(lam(i):
-      cases(N.AImportType) i.import-type:
-        | a-import-builtin(_, name) => "trove/" + name
-        | a-import-special(_, typ, args) =>
+      cases(A.ImportType) i.file:
+        | s-const-import(_, name) => "trove/" + name
+        | s-special-import(_, typ, args) =>
           if typ == "my-gdrive":
             "@my-gdrive/" + args.first
           else if typ == "shared-gdrive":
@@ -2060,7 +2294,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
       if A.is-s-atom(i) and (i.base == "$import"): js-names.make-atom("$$import")
       else: js-id-of(compiler-name(i.toname()))
       end
-    end, ids)
+    end, mod-ids)
   cases-dispatches = dispatches-box(cl-empty)
   fun wrap-modules(modules, body-name, body-fun) block:
     mod-input-names = CL.map_list(_.input-id, modules)
@@ -2069,23 +2303,8 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
     mod-val-ids = modules.map(get-id)
     moduleVal = const-id("moduleVal")
     j-block(
-      for lists.fold2(acc from cl-empty, m from mod-val-ids, in from mod-input-ids-list):
-        if (in.id.base == "$$import"): acc
-        else: acc ^ cl-snoc(_, j-var(m, rt-method("getField", [clist: in, j-str("values")])))
-        end
-      end +
-      for lists.fold2(acc from cl-empty, mt from type-ids, in from mod-input-ids-list):
-        if (in.id.base == "$$import"): acc
-        else: acc ^ cl-snoc(_, j-var(mt, rt-method("getField", [clist: in, j-str("types")])))
-        end
-      end +
       for CL.map_list(m from modules):
-        j-expr(j-assign(NAMESPACE.id, rt-method("addModuleToNamespace",
-          [clist:
-            NAMESPACE,
-            j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.values)),
-            j-list(false, CL.map_list(lam(i): j-str(i.toname()) end, m.imp.types)),
-            j-id(m.input-id)])))
+        j-var(m.id, j-id(m.input-id))
       end +
       cases-dispatches!dispatches +
       module-binds +
@@ -2104,7 +2323,7 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
               j-str("Evaluating " + body-name.toname())
         ]))])
   end
-  module-specs = for map3(i from imports, id from ids, in-id from input-ids.to-list()):
+  module-specs = for map3(i from imports, id from mod-ids, in-id from input-ids.to-list()):
     { id: id, input-id: in-id, imp: i}
   end
   var locations = cl-empty
@@ -2162,7 +2381,15 @@ fun compile-module(self, l, imports-in, prog, freevars, provides, env, flatness-
   apploc = fresh-id(compiler-name("al"))
   resumer = compiler-name("resumer")
   resumer-bind = N.a-bind(l, resumer, A.a-blank)
-  body-compiler = self.{get-loc: get-loc, get-loc-id: get-loc-id, cur-apploc: apploc, resumer: resumer, allow-tco: false, dispatches: cases-dispatches}
+  body-compiler = self.{
+    prog-provides: prog-provides,
+    get-loc: get-loc,
+    get-loc-id: get-loc-id,
+    cur-apploc: apploc,
+    resumer: resumer,
+    allow-tco: false,
+    dispatches: cases-dispatches
+  }
   visited-body = compile-fun-body(l, step, toplevel-name,
     body-compiler, # resumer gets js-id-of'ed in compile-fun-body
     [list: resumer-bind], none, prog, true, false, false)
@@ -2179,20 +2406,25 @@ end
 
 # Eventually maybe we should have a more general "optimization-env" instead of
 # flatness-env. For now, leave it since our design might change anyway.
-fun splitting-compiler(env, add-phase, flatness-env, provides, options):
+fun splitting-compiler(env, add-phase, { flatness-env; type-flatness-env}, provides, post-env, options):
   compiler-visitor.{
     uri: provides.from-uri,
     add-phase: add-phase,
     options: options,
     flatness-env: flatness-env,
-    method a-program(self, l, _, imports, body) block:
+    type-flatness-env: type-flatness-env,
+    bindings: post-env.bindings,
+    type-bindings: post-env.type-bindings,
+    module-bindings: post-env.module-bindings,
+    env: env,
+    method a-program(self, l, prog-provides, imports, body) block:
       total-time := 0
       # This achieves nothing with our current code-gen, so it's a waste of time
       # simplified = body.visit(remove-useless-if-visitor)
       # add-phase("Remove useless ifs", simplified)
-      freevars = N.freevars-e(body)
+      freevars = N.freevars-prog(N.a-program(l, prog-provides, imports, body))
       add-phase("Freevars-e", freevars)
-      ans = compile-module(self, l, imports, body, freevars, provides, env, flatness-env)
+      ans = compile-module(self, l, prog-provides, imports, body, freevars, provides, env)
       add-phase(string-append("Total simplification: ", tostring(total-time)), nothing)
       ans
     end

@@ -20,9 +20,16 @@ fun horz-list-values(vals):
 end
 
 fun ed-simple-intro(name, loc):
+  ed-simple-intro-a-an(name, loc, "a")
+end
+fun ed-simple-intro-an(name, loc):
+  ed-simple-intro-a-an(name, loc, "an")
+end
+
+fun ed-simple-intro-a-an(name, loc, a-or-an):
   if loc.is-builtin():
     [ED.para:
-      ED.text("Evaluating a " + name + " in "),
+      ED.text("Evaluating " + a-or-an + " " + name + " in "),
       ED.loc(loc),
       ED.text(" errored.")]
   else:
@@ -1727,9 +1734,7 @@ data RuntimeError:
         # TODO: something clever for definitions with zero parameters
         cases(Any) ast:
           | s-op(_,_,_,l,r) =>
-            {[ED.locs: l, r]
-              .filter(is-underscore)
-              .map(_.id.l);
+            {[ED.locs: l, r].filter(is-underscore).map(_.l);
               self.fun-def-loc}
           | s-app(_, _, args) => {args.filter(is-underscore).map(_.l); self.fun-def-loc}
           | s-fun(l, _, _, args, _, _, b, _, _, _) => {args.map(_.l); l.upto(b.l)}
@@ -1740,6 +1745,7 @@ data RuntimeError:
           | s-extend(_, obj, _)   => {[ED.locs: obj.id.l]; self.fun-def-loc}
           | s-update(_, obj, _)   => {[ED.locs: obj.id.l]; self.fun-def-loc}
           | s-get-bang(_, obj, _) => {[ED.locs: obj.id.l]; self.fun-def-loc}
+          | s-for(l, _fun, args, _, b, _) => {args.map(_.l); l.upto(b.l)}
         end
       end
 
@@ -2082,7 +2088,7 @@ data RuntimeError:
       if self.loc.is-builtin():
         [ED.error:
           [ED.para:
-            ED.text("The identifier "), 
+            ED.text("The name "), 
             ED.code(ED.text(self.name)),
             ED.text(" is unbound in "),
             ED.loc(self.loc)],
@@ -2091,7 +2097,7 @@ data RuntimeError:
         [ED.error:
           [ED.para:
             ED.text("The "),
-            ED.highlight(ED.text("identifier"), [ED.locs: self.loc], 0)],
+            ED.highlight(ED.text("name"), [ED.locs: self.loc], 0)],
           ED.cmcode(self.loc),
           [ED.para:
             ED.text(" is unbound. Although it has been previously defined, it is being "),
@@ -2100,7 +2106,7 @@ data RuntimeError:
       else:
         [ED.error:
           [ED.para:
-            ED.text("The identifier "), 
+            ED.text("The name "), 
             ED.code(ED.text(self.name)),
             ED.text(" in "),
             ED.loc(self.loc),
@@ -2111,7 +2117,7 @@ data RuntimeError:
       if self.loc.is-builtin():
         [ED.error:
           [ED.para:
-            ED.text("The identifier "), 
+            ED.text("The name "), 
             ED.code(ED.text(self.name)),
             ED.text(" is unbound in "),
             ED.loc(self.loc)],
@@ -2119,7 +2125,7 @@ data RuntimeError:
       else:
         [ED.error:
           [ED.para:
-            ED.text("The identifier "), 
+            ED.text("The name "), 
             ED.code(ED.text(self.name)),
             ED.text(" in "),
             ED.loc(self.loc),
@@ -2232,7 +2238,80 @@ data RuntimeError:
     end
   | equality-failure(reason :: String, value1, value2) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
-      self.render-reason() # TODO
+      if is-number(self.value1) and is-number(self.value2) block:
+        self.render-reason()
+      else:
+        [ED.error:
+          cases(O.Option) maybe-stack-loc(0, false):
+            | some(loc) =>
+              if loc.is-builtin():
+                [ED.sequence:
+                  ed-simple-intro-an("equality comparison", loc),
+                  [ED.para:
+                    ED.text("The left side was:")],
+                  ED.embed(self.value1),
+                  [ED.para:
+                    ED.text("The right side was:")],
+                  ED.embed(self.value2),
+                  [ED.para:
+                    ED.text("The values are not comparable.")]]
+              else if src-available(loc):
+                cases(O.Option) maybe-ast(loc):
+                  | some(ast) =>
+                    left-loc =  ast.left.l
+                    right-loc = ast.right.l
+                    [ED.sequence:
+                      ed-intro("equality comparison", loc, -1, true),
+                      ED.cmcode(loc),
+                      [ED.para:
+                        ED.text("The "),
+                        ED.highlight(ED.text("left side"), [ED.locs: left-loc],0),
+                        ED.text(" was:")],
+                      ED.embed(self.value1),
+                      [ED.para:
+                        ED.text("The "),
+                        ED.highlight(ED.text("right side"), [ED.locs: right-loc],1),
+                        ED.text(" was:")],
+                      ED.embed(self.value2),
+                      [ED.para:
+                        ED.text("The values are not comparable.")]]
+                  | none      =>
+                    [ED.sequence:
+                      ed-intro("equality comparison", loc, 0, true),
+                      ED.cmcode(loc),
+                      [ED.para: ED.text("The left side was:")],
+                      ED.embed(self.value1),
+                      [ED.para: ED.text("The right side was:")],
+                      ED.embed(self.value2),
+                      [ED.para:
+                        ED.text("The values are not comparable")]]
+                end
+              else:
+                [ED.sequence:
+                  ed-simple-intro-an("equality comparison", loc),
+                  [ED.para: ED.text("The left side was:")],
+                  ED.embed(self.value1),
+                  [ED.para: ED.text("The right side was:")],
+                  ED.embed(self.value2),
+                  [ED.para:
+                    ED.text("The values are not comparable")]]
+              end
+            | none =>
+              [ED.sequence:
+                [ED.para:
+                  ED.text("An equality comparison "),
+                  ED.code(ED.text(self.opname)),
+                  ED.text(") expression errored.")],
+                [ED.para:
+                  ED.text("The left side was:")],
+                ED.embed(self.value1),
+                [ED.para:
+                  ED.text("The right side was:")],
+                ED.embed(self.value2),
+                [ED.para:
+                  ED.text("The " + self.opname + " operator expects to be given two Numbers.")]]
+          end]
+       end
     end,
     method render-reason(self):
       value1 = self.value1
@@ -2243,13 +2322,23 @@ data RuntimeError:
           fun within-error(message):
             [ED.error:
               [ED.para: ED.text(message)],
+              [ED.para: ED.text("The left side was:")],
               [ED.para: ED.embed(value1)],
+              [ED.para: ED.text("The right side was:")],
               [ED.para: ED.embed(value2)],
               [ED.para: ED.text("Consider using the "),
                 ED.code(ED.text("within")), ED.text(" function to compare them instead.")]]
             
           end
-          if num-is-roughnum(value1) and num-is-roughnum(value2):
+          if self.reason == "RoughnumZeroTolerances":
+            [ED.error:
+              [ED.para: ED.text("Pyret cannot be certain that Roughnums are the same to exactly-zero tolerance.")],
+              [ED.para: ED.text("The left side was:")],
+              [ED.para: ED.embed(value1)],
+              [ED.para: ED.text("The right side was:")],
+              [ED.para: ED.embed(value2)],
+              [ED.para: ED.text("Use a larger tolerance, or "), ED.embed(~0), ED.text(" instead.")]]
+          else if num-is-roughnum(value1) and num-is-roughnum(value2):
             within-error("Attempted to compare two Roughnums for equality, which is not allowed:")
           else if num-is-roughnum(value1):
             within-error("Attempted to compare a Roughnum to an Exactnum for equality, which is not allowed:")
@@ -2421,6 +2510,61 @@ data RuntimeError:
 end
 
 data ParseError:
+  | parse-error-bad-app(a, b) with:
+    method render-fancy-reason(self, src-available):
+      if src-available(self.a) and src-available(self.b):
+        [ED.error:
+          [ED.para:
+            ED.text("Pyret thinks this code is probably a function call:")],
+          ED.cmcode(self.a + self.b),
+          [ED.para:
+            ED.text("Function calls must not have space between the "),
+            ED.highlight(ED.text("function expression"), [ED.locs: self.a], 0),
+            ED.text(" and the "),
+            ED.highlight(ED.text("arguments"), [ED.locs: self.b], 1),
+            ED.text(".")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("Pyret thinks the code at "), ED.loc(self.a + self.b),
+            ED.text(" is probably a function call, but there should be no space"),
+            ED.text(" between the function and its arguments.")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Pyret thinks the code at "), ED.loc(self.a + self.b),
+          ED.text(" is probably a function call, but there should be no space"),
+          ED.text(" between the function and its arguments.")]]
+    end
+  | parse-error-bad-fun-header(a, b) with:
+    method render-fancy-reason(self, src-available):
+      if src-available(self.a) and src-available(self.b):
+        [ED.error:
+          [ED.para:
+            ED.text("Pyret thinks this code is probably a function header:")],
+          ED.cmcode(self.a),
+          [ED.para:
+            ED.highlight(ED.text("Function headers"), [ED.locs: self.a], -1),
+            ED.text(" must not have space before the "),
+            ED.highlight(ED.text("arguments"), [ED.locs: self.b], 0),
+            ED.text(".")]]
+      else:
+        [ED.error:
+          [ED.para:
+            ED.text("Pyret thinks the code at "), ED.loc(self.a),
+            ED.text(" is probably a function header, but there should be no space"),
+            ED.text(" before the arguments.")]]
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para:
+          ED.text("Pyret thinks the code at "), ED.loc(self.a + self.b),
+          ED.text(" is probably a function header, but there should be no space"),
+          ED.text(" between the arguments.")]]
+    end
   | parse-error-next-token(loc, next-token :: String) with:
     method render-fancy-reason(self, src-available):
       if src-available(self.loc):
@@ -2516,7 +2660,7 @@ data ParseError:
             ED.text("Pyret thinks the string ")],
           ED.cmcode(self.loc),
           [ED.para:
-            ED.text("is unterminated; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
+            ED.text("is not finished; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
             ED.code(ED.text("```")),
             ED.text(" instead of quotation marks.")]]
       else:
@@ -2524,7 +2668,7 @@ data ParseError:
           [ED.para:
             ED.text("Pyret thinks the string at "),
             ED.loc(self.loc),
-            ED.text("is unterminated; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
+            ED.text("is not finished; you may be missing closing punctuation. If you intended to write a multi-line string, use "),
             ED.code(ED.text("```")),
             ED.text(" instead of quotation marks.")]]
       end
@@ -2582,35 +2726,51 @@ data ParseError:
           draw-and-highlight(self.loc),
           ED.text("; number literals in Pyret require at least one digit before the decimal point.")]]
     end
-  | parse-error-bad-check-operator(loc) with:
+  | parse-error-bad-check-operator(op) with:
     method render-fancy-reason(self, src-available):
-      if src-available(self.loc):
+      if src-available(self.op.l):
         [ED.error: 
           [ED.para:
             ED.text("The "),
-            ED.highlight(ED.text("testing operator"), [ED.locs: self.loc], 0)],
-          ED.cmcode(self.loc),
+            ED.highlight(ED.text("testing operator"), [ED.locs: self.op.l], 0)],
+          ED.cmcode(self.op.l),
           [ED.para:
             ED.text(" must be used inside a "),
             ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
-          [ED.para:
-            ED.text("Did you mean to use one of the comparison operators instead?")]]
+          cases(Any) self.op:
+            | s-op-raises(_) =>
+              [ED.para:
+                ED.text("You may have been looking for the "), ED.code(ED.text("raise")),
+                ED.text(" operator, or perhaps you meant to use a comparison operator instead.")]
+            | else =>
+              [ED.para:
+                ED.text("Did you mean to use one of the comparison operators instead?")]
+          end
+        ]
       else:
         [ED.error: 
           [ED.para-nospace:
             ED.text("The testing operator at "),
-            ED.loc(self.loc),
+            ED.loc(self.op.l),
             ED.text(" must be used inside a "),
             ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
-          [ED.para:
-            ED.text("Did you mean to use one of the comparison operators instead?")]]
+          cases(Any) self.op:
+            | s-raises(_) =>
+              [ED.para:
+                ED.text("You may have been looking for the "), ED.code(ED.text("raise")),
+                ED.text(" operator, or perhaps you meant to use a comparison operator instead.")]
+            | else =>
+              [ED.para:
+                ED.text("Did you mean to use one of the comparison operators instead?")]
+          end
+        ]
       end
     end,
     method render-reason(self):
       [ED.error: 
         [ED.para-nospace:
           ED.text("The testing operator at "),
-          draw-and-highlight(self.loc),
+          draw-and-highlight(self.op.l),
           ED.text(" must be used inside a"),
           ED.code(ED.text("check")), ED.text(" or "), ED.code(ED.text("where")), ED.text(" block.")],
         [ED.para:

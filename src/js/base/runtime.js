@@ -5,14 +5,17 @@ define("pyret-base/js/runtime",
    "pyret-base/js/runtime-util",
    "pyret-base/js/exn-stack-parser",
    "pyret-base/js/secure-loader",
-   "seedrandom"],
-function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom) {
+   "seedrandom",
+   "js-sha256"],
+function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom, sha) {
   Error.stackTraceLimit = Infinity;
   var require = requirejs;
   var AsciiTable;
 
   var codePointAt = codePoint.codePointAt;
   var fromCodePoint = codePoint.fromCodePoint;
+
+  const MAX_ARRAY_SIZE = 4294967295;
 
   /**
      Creates a Pyret runtime
@@ -228,24 +231,30 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
         return s;
       } else if (thisRuntime.ffi.isVSRow(val)) {
-        if (!AsciiTable){
-          AsciiTable = require("ascii-table");
-        }
         var headers = thisRuntime.getField(val, "headers");
         var rowVals = thisRuntime.getField(val, "values");
-        console.log("Before: ", headers, rowVals);
         headers = headers.map(function(h){ return renderValueSkeleton(h, values); });
         rowVals = rowVals.map(function(v) { return renderValueSkeleton(v, values); });
-        console.log("After:", headers, rowVals);
-        var row = [];
-        for (var i = 0; i < headers.length; i++) {
-          row.push(headers[i]);
-          row.push(rowVals[i]);
+        if (!util.isBrowser()) {
+          if (!AsciiTable){
+            AsciiTable = require("ascii-table");
+          }
+          var row = [];
+          for (var i = 0; i < headers.length; i++) {
+            row.push(headers[i]);
+            row.push(rowVals[i]);
+          }
+          var table = new AsciiTable();
+          table.addRow(row);
+          return table.toString();
+        } else {
+          var row = [];
+          for (var i = 0; i < headers.length; i++) {
+            row.push(JSON.stringify(headers[i]) + " => " + rowVals[i]);
+          }
+          return "[row: " + row.join(", ") + "]";
         }
-        var table = new AsciiTable();
-        table.addRow(row);
-        return table.toString();
-      } else if (thisRuntime.ffi.isVSTable(val)) {
+      } else if (thisRuntime.ffi.isVSTable(val) || thisRuntime.ffi.isVSTableTruncated(val)) {
         // Do this for now until we decide on a string
         // representation
         if (util.isBrowser()) {
@@ -270,10 +279,30 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
           rows.push(curRow);
         }
-        return new AsciiTable().fromJSON({
+        const tableStr = new AsciiTable().fromJSON({
           heading: headers,
           rows: rows
         }).toString();
+        if(thisRuntime.ffi.isVSTableTruncated(val)) {
+          return tableStr + `\n[rendered ${rows.length} of ${thisRuntime.getField(val, "total-rows")} rows]`;
+        }
+        else {
+          return tableStr;
+        }
+      } else if (thisRuntime.ffi.isVSMatrix(val)) {
+        var ret = [];
+        var rows = thisRuntime.getField(val, "rows");
+        var cols = thisRuntime.getField(val, "cols");
+        var items = thisRuntime.getField(val, "items");
+        var i = 0;
+        for (var row = 0; row < rows; row++) {
+          var curRow = [];
+          for (var col = 0; col < cols; col++) {
+            curRow.push(renderValueSkeleton(items[i++], values));
+          }
+          ret.push("[" + curRow.join(", ") + "]");
+        }
+        return "[" + ret.join(", ") + "]";
       }
     }
 
@@ -474,6 +503,22 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.getFieldLoc(obj, field, ["runtime"]);
     }
 
+    function getBracket(loc, obj, field) {
+      checkArityC(loc, 3, arguments, false);
+      if (obj && obj.dict && obj.dict["get-value"]) {
+        var gV = getColonFieldLoc(obj, "get-value", loc);
+        if (thisRuntime.isMethod(gV)) {
+          return gV.full_meth(obj, field);
+        } else if (thisRuntime.isFunction(gV)) {
+          return gV.app(field);
+        }
+      }
+      raiseJSJS(
+        thisRuntime.ffi.contractFail(
+          makeSrcloc(loc),
+          thisRuntime.ffi.makeBadBracketException(makeSrcloc(loc), obj)));
+    }
+
     function getMaker(obj, makerField, exprLoc, constrLoc) {
       var maker = isObject(obj) && obj.dict[makerField];
       if (!isFunction(maker)) {
@@ -490,6 +535,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function extendObj(loc, val, extension) {
       if (!isObject(val)) { thisRuntime.ffi.throwExtendNonObject(makeSrcloc(loc), val); }
       return val.extendWith(extension);
+    }
+
+    function recordConcat(left, right) {
+      if(!isObject(left) || !isObject(right)) {
+        thisRuntime.ffi.throwMessageException("(Internal merge) Tried to extend a non-object");
+      }
+      return left.extendWith(right.dict);
     }
 
     /**
@@ -685,7 +737,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this.app   = fun;
 
       /**@type {string}*/
-      this.name = name || "<anonymous function>";
+      this.name = name || "anonymous";
     }
 
     /**Clones the function
@@ -733,7 +785,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this['full_meth']   = full_meth;
 
       /**@type {string}*/
-      this.name = name || "<anonymous method>";
+      this.name = name || "anonymous";
 
     }
 
@@ -1427,12 +1479,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       for (i = 0; i < s.length; i++) {
         var val = s.charCodeAt(i);
         switch(val) {
-        case 7: ret.push('\\a'); break;
-        case 8: ret.push('\\b'); break;
         case 9: ret.push('\\t'); break;
         case 10: ret.push('\\n'); break;
-        case 11: ret.push('\\v'); break;
-        case 12: ret.push('\\f'); break;
         case 13: ret.push('\\r'); break;
         case 34: ret.push('\\"'); break;
         case 92: ret.push('\\\\'); break;
@@ -1707,6 +1755,27 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       else { return toReprJS(val, ReprMethods._tostring); }
     }, "tostring");
 
+    /**
+       Prints the value to the world by passing the repr to stdout
+       @param {!PBase} val
+
+       @return {!PBase} the value given in
+    */
+    var displayAsString = function(val) {
+      if (isString(val)) {
+        theOutsideWorld.stdout(val);
+        return val;
+      }
+      else {
+        return thisRuntime.safeCall(function() {
+          return toReprJS(val, ReprMethods._tostring);
+        }, function(repr) {
+          theOutsideWorld.stdout(repr);
+          return val;
+        }, "display");
+      }
+    }
+
     var print = makeFunction(
       /**
          Prints the value to the world by passing the repr to stdout
@@ -1716,37 +1785,43 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       */
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print"], 1, $a, false); }
-
-        return thisRuntime.safeCall(function() {
-          return display.app(val);
-        }, function(_) {
-          return val;
-        }, "print");
+        return displayAsString(val);
       }, "print");
 
     var display = makeFunction(
       /**
-         Prints the value to the world by passing the repr to stdout
+         Displays the value using whatever parameterized displayRenderer is installed.
+         By default, this behaves the same as `print`.
          @param {!PBase} val
 
          @return {!PBase} the value given in
       */
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display"], 1, $a, false); }
-        if (isString(val)) {
-          theOutsideWorld.stdout(val);
-          return val;
-        }
-        else {
-          return thisRuntime.safeCall(function() {
-            return toReprJS(val, ReprMethods._tostring);
-          }, function(repr) {
-            theOutsideWorld.stdout(repr);
-            return val;
-          }, "display");
-        }
+        var displayRenderer = getParamOrSetDefault("displayRenderer", displayAsString);
+        return displayRenderer(val);
       }, "display");
 
+    /**
+       Prints the value to the world by passing the repr to stderr
+       @param {!PBase} val
+
+       @return {!PBase} the value given in
+    */
+    var errorDisplayAsString = function(val) {
+      if (isString(val)) {
+        theOutsideWorld.stderr(val);
+        return val;
+      }
+      else {
+        return thisRuntime.safeCall(function() {
+          return toReprJS(val, ReprMethods._tostring);
+        }, function(repr) {
+          theOutsideWorld.stderr(repr);
+          return val;
+        }, "display-error");
+      }
+    };
     var print_error = makeFunction(
       /**
          Prints the value to the world by passing the repr to stderr
@@ -1757,11 +1832,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["print-error"], 1, $a, false); }
 
-        return thisRuntime.safeCall(function() {
-          return display_error.app(val);
-        }, function(_) {
-          return val;
-        }, "print-error");
+        return errorDisplayAsString(val);
       }, "print-error");
 
     var display_error = makeFunction(
@@ -1773,18 +1844,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       */
       function(val){
         if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["display-error"], 1, $a, false); }
-        if (isString(val)) {
-          theOutsideWorld.stderr(val);
-          return val;
-        }
-        else {
-          return thisRuntime.safeCall(function() {
-            return toReprJS(val, ReprMethods._tostring);
-          }, function(repr) {
-            theOutsideWorld.stderr(repr);
-            return val;
-          }, "display-error");
-        }
+        var errorDisplayRenderer = getParamOrSetDefault("errorDisplayRenderer", errorDisplayAsString);
+        return errorDisplayRenderer(val);
       }, "display-error");
 
     /********************
@@ -1908,7 +1969,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       else if (thisRuntime.ffi.isUnknown(e1)) { return e1; }
     }
 
-    // equal3 :: PyretVal * PyretVal * Bool * (PyretNum U Undefined) * (Boolean U Undefined) -> EqualityResult
+    // equal3 :: PyretVal * PyretVal * Bool * (PyretNum U Undefined) * (smooth U rel U abs) -> EqualityResult
 
     // JS function from Pyret values to Pyret equality answers
 
@@ -1925,8 +1986,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     // rel is a flag that indicates whether the tolerance should be
     // interpreted as _absolute_ (two numbers are equal +/- tol) or _relative_
-    // (two numbers are equal +/- n * tol, where tol is between 0 and 1)
-    function equal3(left, right, alwaysFlag, tol, rel) {
+    // (two numbers are equal +/- n * tol, where tol is between 0 and 1),
+    // or _smoothed_ (two numbers are equal +/- (n+1) * tol, where tol is between 0 and 1)
+
+    // fromWithin is a flag that indicates whether the tolerance came from
+    // a call to within() or one of its variants, or whether it was implicit
+    // (This affects the error message that gets generated)
+    function equal3(left, right, alwaysFlag, tol, rel, fromWithin) {
       if(tol === undefined) { // means that we aren't doing any kind of within
         var isIdentical = identical3(left, right);
         if (!thisRuntime.ffi.isNotEqual(isIdentical)) { return isIdentical; } // if Equal or Unknown...
@@ -1972,19 +2038,25 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             continue;
           } else if (isNumber(curLeft) && isNumber(curRight)) {
             if (tol) {
-              if (rel) {
-                if (jsnums.roughlyEqualsRel(curLeft, curRight, tol, NumberErrbacks)) {
-                  continue;
-                } else {
-                  toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
-                }
-              } else if (jsnums.roughlyEquals(curLeft, curRight, tol, NumberErrbacks)) {
+              var comp;
+              if (rel === TOL_IS_REL) {
+                comp = jsnums.roughlyEqualsRel(curLeft, curRight, tol, false, NumberErrbacks);
+              } else if (rel === TOL_IS_SMOOTH) {
+                comp = jsnums.roughlyEqualsRel(curLeft, curRight, tol, true, NumberErrbacks);
+              } else {
+                // (rel === TOL_IS_ABS)
+                comp = jsnums.roughlyEquals(curLeft, curRight, tol, NumberErrbacks);
+              }
+              if (comp) {
                 continue;
               } else {
                 toCompare.curAns = thisRuntime.ffi.notEqual.app(current.path, curLeft, curRight);
               }
             } else if (jsnums.isRoughnum(curLeft) || jsnums.isRoughnum(curRight)) {
-              toCompare.curAns = thisRuntime.ffi.unknown.app("Roughnums", curLeft, curRight);
+              toCompare.curAns = thisRuntime.ffi.unknown.app(
+                fromWithin ? "RoughnumZeroTolerances" : "Roughnums",
+                curLeft,
+                curRight);
             } else if (jsnums.equals(curLeft, curRight, NumberErrbacks)) {
               continue;
             } else {
@@ -2177,13 +2249,23 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return reenterEqualFun(left, right);
     }
 
+    var EQUAL_ALWAYS = true;
+    var EQUAL_NOW = false;
+
+    var TOL_IS_SMOOTH = "smooth";
+    var TOL_IS_REL = "rel";
+    var TOL_IS_ABS = "abs";
+
+    var FROM_WITHIN = true;
+    var FROM_OP = false;
+
     function equalWithinAbsNow3(tol) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now3"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("equality", "within-abs-now3",
         tol, thisRuntime.NumNonNegative);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now3(...)"], 2, $a, false); }
-        return equal3(l, r, false, tol);
+        return equal3(l, r, EQUAL_NOW, tol, TOL_IS_ABS, FROM_WITHIN);
       }, "within-abs-now3(...)");
     };
 
@@ -2193,8 +2275,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         relTol, thisRuntime.Number);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now3(...)"], 2, $a, false); }
-        return equal3(l, r, false, relTol, true);
+        return equal3(l, r, EQUAL_NOW, relTol, TOL_IS_REL, FROM_WITHIN);
       }, "within-rel-now3(...)");
+    };
+
+    function equalWithinNow3(relTol) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-now3"], 1, $a, false); }
+      thisRuntime.checkArgsInternal1("equality", "within-now3",
+        relTol, thisRuntime.Number);
+      return makeFunction(function(l, r) {
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-now3(...)"], 2, $a, false); }
+        return equal3(l, r, EQUAL_NOW, relTol, TOL_IS_SMOOTH, FROM_WITHIN);
+      }, "within-now3(...)");
     };
 
     function equalWithinAbs3(tol) {
@@ -2204,7 +2296,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs3(...)"], 2, $a, false); }
-        return equal3(l, r, true, tol);
+        return equal3(l, r, EQUAL_ALWAYS, tol, TOL_IS_ABS, FROM_WITHIN);
       }, "within-abs3(...)");
     };
 
@@ -2214,8 +2306,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         relTol, thisRuntime.Number);
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel3(...)"], 2, $a, false); }
-        return equal3(l, r, true, relTol);
+        return equal3(l, r, EQUAL_ALWAYS, relTol, TOL_IS_REL, FROM_WITHIN);
       }, "within-rel3(...)");
+    };
+
+    function equalWithin3(relTol) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within3"], 1, $a, false); }
+      thisRuntime.checkArgsInternal1("equality", "within3",
+        relTol, thisRuntime.Number);
+      return makeFunction(function(l, r) {
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within3(...)"], 2, $a, false); }
+        return equal3(l, r, EQUAL_ALWAYS, relTol, TOL_IS_SMOOTH, FROM_WITHIN);
+      }, "within3(...)");
     };
 
     function equalityToBool(ans) {
@@ -2233,7 +2335,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs-now(...)"], 2, $a, false); }
         return safeCall(function() {
-          return equal3(l, r, false, tol);
+          return equal3(l, r, EQUAL_NOW, tol, TOL_IS_ABS, FROM_WITHIN);
         }, equalityToBool, "within-abs-now(...)");
       }, "within-abs-now(...)");
     };
@@ -2245,7 +2347,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-abs(...)"], 2, $a, false); }
         return safeCall(function () {
-          return equal3(l, r, true, tol);
+          return equal3(l, r, EQUAL_ALWAYS, tol, TOL_IS_ABS, FROM_WITHIN);
         }, equalityToBool, "within-abs(...)");
       }, "within-abs(...)");
     };
@@ -2257,7 +2359,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel-now(...)"], 2, $a, false); }
         return safeCall(function () {
-          return equal3(l, r, false, relTol, true);
+          return equal3(l, r, EQUAL_NOW, relTol, TOL_IS_REL, FROM_WITHIN);
         }, equalityToBool, "within-rel-now(...)");
       }, "within-rel-now(...)");
     };
@@ -2269,39 +2371,96 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makeFunction(function(l, r) {
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-rel(...)"], 2, $a, false); }
         return safeCall(function () {
-          return equal3(l, r, true, relTol, true);
+          return equal3(l, r, EQUAL_ALWAYS, relTol, TOL_IS_REL, FROM_WITHIN);
         }, equalityToBool, "within-rel(...)");
       }, "within-rel(...)");
+    };
+
+    function equalWithinNow(relTol) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-now"], 1, $a, false); }
+      thisRuntime.checkArgsInternal1("equality", "within-now",
+        relTol, thisRuntime.Number);
+      return makeFunction(function(l, r) {
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within-now(...)"], 2, $a, false); }
+        return safeCall(function () {
+          return equal3(l, r, EQUAL_NOW, relTol, TOL_IS_SMOOTH, FROM_WITHIN);
+        }, equalityToBool, "within-now(...)");
+      }, "within-now(...)");
+    };
+
+    function equalWithin(relTol) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within"], 1, $a, false); }
+      thisRuntime.checkArgsInternal1("equality", "within",
+        relTol, thisRuntime.Number);
+      return makeFunction(function(l, r) {
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within(...)"], 2, $a, false); }
+        return safeCall(function () {
+          return equal3(l, r, EQUAL_ALWAYS, relTol, TOL_IS_SMOOTH, FROM_WITHIN);
+        }, equalityToBool, "within(...)");
+      }, "within(...)");
     };
 
     // JS function from Pyret values to Pyret equality answers
     function equalAlways3(left, right) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always3"], 2, $a, false); }
-      return equal3(left, right, true);
+      return equal3(left, right, EQUAL_ALWAYS, 0, TOL_IS_ABS, /*fromWithin?*/false);
     };
     // JS function from Pyret values to Pyret booleans (or throws)
     function equalAlways(v1, v2) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always"], 2, $a, false); }
-      if(typeof v1 === "number" || typeof v1 === "string" || typeof v1 === "boolean") {
+      if (((typeof v1 === 'number')  && (typeof v2 === 'number')) ||
+          ((typeof v1 === 'string')  && (typeof v2 === 'string')) ||
+          ((typeof v1 === 'boolean') && (typeof v2 === 'boolean'))) {
         return v1 === v2;
       }
       return safeCall(function() {
-        return equal3(v1, v2, true);
+        return equal3(v1, v2, EQUAL_ALWAYS, 0, TOL_IS_ABS, /*fromWithin?*/false);
       }, equalityToBool, "equal-always");
     };
     // JS function from Pyret values to Pyret equality answers
     function equalNow3(left, right) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now3"], 2, $a, false); }
-      return equal3(left, right, false);
+      return equal3(left, right, EQUAL_NOW, 0, TOL_IS_ABS, /*fromWithin?*/false);
     };
     // JS function from Pyret values to Pyret booleans (or throws)
     function equalNow(v1, v2) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now"], 2, $a, false); }
       return safeCall(function() {
-        return equal3(v1, v2, false);
+        return equal3(v1, v2, EQUAL_NOW, 0, TOL_IS_ABS, /*fromWithin?*/false);
       }, equalityToBool, "equal-now");
     };
 
+    const ROUGH_TOL = jsnums.fromFixnum(0.000001, NumberErrbacks);
+    // JS function from Pyret values to Pyret equality answers
+    function roughlyEqualAlways3(left, right) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always3"], 2, $a, false); }
+      return equal3(left, right, EQUAL_ALWAYS, ROUGH_TOL, TOL_IS_SMOOTH, /*fromWithin?*/false);
+    };
+    // JS function from Pyret values to Pyret booleans (or throws)
+    function roughlyEqualAlways(v1, v2) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-always"], 2, $a, false); }
+      if (((typeof v1 === 'number')  && (typeof v2 === 'number')) ||
+          ((typeof v1 === 'string')  && (typeof v2 === 'string')) ||
+          ((typeof v1 === 'boolean') && (typeof v2 === 'boolean'))) {
+        return v1 === v2;
+      }
+      return safeCall(function() {
+        return equal3(v1, v2, EQUAL_ALWAYS, ROUGH_TOL, TOL_IS_SMOOTH, /*fromWithin?*/false);
+      }, equalityToBool, "roughly-equal-always");
+    };
+    // JS function from Pyret values to Pyret equality answers
+    function roughlyEqualNow3(left, right) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now3"], 2, $a, false); }
+      return equal3(left, right, EQUAL_NOW, ROUGH_TOL, TOL_IS_SMOOTH, /*fromWithin?*/false);
+    };
+    // JS function from Pyret values to Pyret booleans (or throws)
+    function roughlyEqualNow(v1, v2) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["equal-now"], 2, $a, false); }
+      return safeCall(function() {
+        return equal3(v1, v2, EQUAL_NOW, ROUGH_TOL, TOL_IS_SMOOTH, /*fromWithin?*/false);
+      }, equalityToBool, "roughly-equal-now");
+    };
+    
     // JS function from Pyret values to JS booleans
     // Needs to be a worklist algorithm to avoid blowing the stack
     function same(left, right) {
@@ -2404,15 +2563,35 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function identical3(v1, v2) {
       if (isFunction(v1) && isFunction(v2)) {
         return thisRuntime.ffi.unknown.app("Functions", v1,  v2);
-      } else if (isMethod(v1) && isMethod(v2)) {
-        return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
-      } else if (jsnums.isRoughnum(v1) && jsnums.isRoughnum(v2)) {
-        return thisRuntime.ffi.unknown.app('Roughnums', v1,  v2);
-      } else if (v1 === v2) {
-        return thisRuntime.ffi.equal;
-      } else {
-        return thisRuntime.ffi.notEqual.app("", v1, v2);
       }
+      if (isMethod(v1) && isMethod(v2)) {
+        return thisRuntime.ffi.unknown.app('Methods', v1,  v2);
+
+      }
+      var v1IsNum = jsnums.isPyretNumber(v1);
+      var v2IsNum = jsnums.isPyretNumber(v2);
+      if (v1IsNum && v2IsNum) {
+        var v1IsRough = jsnums.isRoughnum(v1);
+        var v2IsRough = jsnums.isRoughnum(v2);
+
+        if (v1IsRough && v2IsRough) {
+          return thisRuntime.ffi.unknown.app('Roughnums', v1,  v2);
+        }
+        else if (v1IsRough || v2IsRough) {
+          return thisRuntime.ffi.notEqual.app("Numbers", v1, v2);
+        }
+        else if (jsnums.equals(v1, v2, NumberErrbacks)) {
+          return thisRuntime.ffi.equal; 
+        }
+        else {
+          return thisRuntime.ffi.notEqual.app("Numbers", v1, v2); 
+        }
+      }
+      if (v1 === v2) {
+        return thisRuntime.ffi.equal;
+      }
+
+      return thisRuntime.ffi.notEqual.app("", v1, v2);
     };
     // Pyret function from Pyret values to Pyret equality answers
     var identical3Py = makeFunction(function(v1, v2) {
@@ -2508,7 +2687,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
 
     function isCheapAnnotation(ann) {
-      return !(ann.refinement || ann instanceof PRecordAnn || (ann instanceof PTupleAnn && !ann.isCheap));
+      return ann.flat;
     }
 
     function checkAnn(compilerLoc, ann, val, after) {
@@ -2812,7 +2991,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function PPrimAnn(name, pred) {
       this.name = name;
       this.pred = pred;
-      this.refinement = false;
+      this.flat = true;
     }
     PPrimAnn.prototype.checkOrFail = function(passed, val, loc) {
       var that = this;
@@ -2854,11 +3033,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
     function PAnnList(anns) {
       this.anns = anns;
-      var refinement = true;
-//      for(var i = 0; i < anns.length; i++) {
-//        if(anns[i].refinement) { refinement = true; }
-//      }
-      this.refinement = refinement;
+      this.flat = true;
+      for(var i = 0; i < anns.length; i++) {
+        if(!anns[i].flat) { this.flat = false; }
+      }
     }
 
     function makePAnnList(anns) {
@@ -2894,15 +3072,41 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       this.ann = ann;
       this.pred = pred;
       this.predname = predname;
-      this.refinement = true;
+      this.flat = false; // Default, see below
     }
     function makePredAnn(ann, pred, predname) {
       checkFunction(pred);
       checkString(predname);
       return new PPredAnn(ann, pred, predname);
     }
+    function makeFlatPredAnn(ann, pred, predname) {
+      checkFunction(pred);
+      checkString(predname);
+      var newAnn = new PPredAnn(ann, pred, predname);
+      newAnn.flat = true;
+      return newAnn;
+    }
     PPredAnn.prototype.check = function(compilerLoc, val) {
+      function fail() {
+        return thisRuntime.ffi.contractFail(
+          makeSrcloc(compilerLoc),
+          thisRuntime.ffi.makePredicateFailure(val, that.predname));
+      }
       var that = this;
+
+      // NOTE(joe): fast, safe path for flat refinement
+      if(that.flat) {
+        var result = that.ann.check(compilerLoc, val);
+        if(thisRuntime.ffi.isOk(result)) {
+          var predPassed = that.pred.app(val);
+          if(predPassed) { return thisRuntime.ffi.contractOk; }
+          else { return fail(); }
+        }
+        else {
+          return result;
+        }
+      }
+
       return safeCall(function() {
         return that.ann.check(compilerLoc, val);
       }, function(result) {
@@ -2914,18 +3118,16 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
               return thisRuntime.ffi.contractOk;
             }
             else {
-              return thisRuntime.ffi.contractFail(
-                makeSrcloc(compilerLoc),
-                thisRuntime.ffi.makePredicateFailure(val, that.predname));
+              return fail();
             }
           },
-                          "PPredAnn.check (after the check)")
+          "PPredAnn.check (after the check)")
         }
         else {
           return result;
         }
       },
-                      "PPredAnn.check");
+      "PPredAnn.check");
     }
 
     function makeBranderAnn(brander, name) {
@@ -2936,89 +3138,80 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
 
 
-    function PTupleAnn(locs, anns) {
+    function PTupleAnn(locs, anns, optName) {
       this.locs = locs;
       this.anns = anns;
-      var hasRefinement = false;
-      var isCheap = true;
+      this.flat = true;
+      this.optName = optName;
       for (var i = 0; i < anns.length; i++) {
-        hasRefinement = hasRefinement || anns[i].refinement;
-        isCheap = isCheap && isCheapAnnotation(anns[i]);
+        if(!anns[i].flat) { this.flat = false; }
       }
-      this.refinement = hasRefinement;
-      this.isCheap = isCheap;
     }
 
-    function makeTupleAnn(locs, anns) {
-      return new PTupleAnn(locs, anns);
+    function makeTupleAnn(locs, anns, optName) {
+      return new PTupleAnn(locs, anns, optName);
+    }
+    PTupleAnn.prototype.nameAsOpt = function() {
+      if (this.optName === undefined) { return thisRuntime.ffi.makeNone(); }
+      return thisRuntime.ffi.makeSome(this.optName);
     }
     PTupleAnn.prototype.check = function(compilerLoc, val) {
       var that = this;
+      var name = this.optName !== undefined ? this.optName : "Tuple";
       if(!isTuple(val)) {
         return thisRuntime.ffi.contractFail(
             makeSrcloc(compilerLoc),
-            thisRuntime.ffi.makeTypeMismatch(val, "Tuple")
+            thisRuntime.ffi.makeTypeMismatch(val, name)
           );
       }
       if(that.anns.length != val.vals.length) {
         //return ffi.throwMessageException("lengths not equal");
         return that.createTupleLengthMismatch(makeSrcloc(compilerLoc), val, that.anns.length, val.vals.length);
       }
-      if (this.isCheap) {
-        for (var i = 0; i < this.anns.length; i++) {
-          // is this right, or should this.locs be indexed in reversed order?
-          var result = this.anns[i].check(this.locs[i], val.vals[i]);
-          if (thisRuntime.ffi.isFail(result))
-            return this.createTupleFailureError(compilerLoc, val, this.anns[i], result);
-        }
-        return thisRuntime.ffi.contractOk;
-      }
 
-      // Fast path for no refinements, since arbitrary stack space can't be consumed
-      if(!that.hasRefinement) {
+      // Fast path for flat refinements, since arbitrary stack space can't be consumed
+      if(that.flat) {
         for(var i = 0; i < that.anns.length; i++) {
           var result = that.anns[i].check(that.locs[i], val.vals[i]);
           if(!thisRuntime.ffi.isOk(result)) {
-            return result;
+            return this.createTupleFailureError(compilerLoc, val, i, result);
+            //return result;
           }
         }
         return thisRuntime.ffi.contractOk;
       }
 
-      // Slow path for annotations with refinements, which may call back into Pyret
-      function deepCheckFields(remainingAnns) {
-        var thisAnn;
+      // Slow path for annotations with nonflat refinements, which may call back into Pyret
+      function deepCheckFields(curIndex) {
         return safeCall(function() {
-          var thisChecker = remainingAnns.pop();
-          thisAnn = thisChecker;
-          return thisChecker.check(that.locs[that.locs.length - remainingAnns.length], val.vals[remainingAnns.length]);
+          var thisChecker = that.anns[curIndex];
+          return thisChecker.check(that.locs[curIndex], val.vals[curIndex]);
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) {
-            if(remainingAnns.length === 0) { return thisRuntime.ffi.contractOk; }
-            else { return deepCheckFields(remainingAnns); }
+            if(curIndex === that.anns.length - 1) { return thisRuntime.ffi.contractOk; }
+            else { return deepCheckFields(curIndex + 1); }
           }
           else if(thisRuntime.ffi.isFail(result)) {
-            return that.createTupleFailureError(compilerLoc, val, thisAnn, result);
+            return that.createTupleFailureError(compilerLoc, val, curIndex, result);
             //return ffi.throwMessageException("types are wrong");
           }
         },
         "PTupleAnn:deepCheckFields");
       }
       if(that.anns.length === 0) { return thisRuntime.ffi.contractOk; }
-      else { return deepCheckFields(that.anns.slice()); }
+      else { return deepCheckFields(0); }
     }
     PTupleAnn.prototype.createTupleLengthMismatch = function(compilerLoc, val, annLength, tupLength) {
-      return thisRuntime.ffi.contractFail(compilerLoc, thisRuntime.ffi.makeTupleLengthMismatch(compilerLoc, val, annLength, tupLength));
+      return thisRuntime.ffi.contractFail(
+        compilerLoc,
+        thisRuntime.ffi.makeTupleLengthMismatch(compilerLoc, val, this.nameAsOpt(), annLength, tupLength));
     };
-    PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, ann, result) {
-      var that = this;
-      var loc;
-      for(var i = 0; i < that.anns.length; i++) {
-        if(that.anns[i] === ann) { loc = that.locs[i]; }
-      }
+    PTupleAnn.prototype.createTupleFailureError = function(compilerLoc, val, fieldIndex, result) {
+      var loc = this.locs[fieldIndex];
+      var ann = this.anns[fieldIndex];
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
-        thisRuntime.ffi.makeTupleAnnsFail(val, thisRuntime.ffi.makeList([
+        thisRuntime.ffi.makeTupleAnnsFail(val, this.nameAsOpt(), thisRuntime.ffi.makeList([
             thisRuntime.ffi.makeAnnFailure(
               makeSrcloc(loc),
               ann,
@@ -3035,18 +3228,22 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
 
 
-    function PRecordAnn(fields, locs, anns) {
+    function PRecordAnn(fields, locs, anns, optName) {
       this.fields = fields;
       this.locs = locs;
       this.anns = anns;
-      var hasRefinement = false;
+      this.flat = true;
+      this.optName = optName;
       for (var i = 0; i < fields.length; i++) {
-        hasRefinement = hasRefinement || anns[fields[i]].refinement;
+        if(!anns[fields[i]].flat) { this.flat = false; }
       }
-      this.refinement = hasRefinement;
     }
-    function makeRecordAnn(fields, locs, anns) {
-      return new PRecordAnn(fields, locs, anns);
+    function makeRecordAnn(fields, locs, anns, optName) {
+      return new PRecordAnn(fields, locs, anns, optName);
+    }
+    PRecordAnn.prototype.nameAsOpt = function() {
+      if (this.optName === undefined) { return thisRuntime.ffi.makeNone(); }
+      return thisRuntime.ffi.makeSome(this.optName);
     }
     PRecordAnn.prototype.createMissingFieldsError = function(compilerLoc, val) {
       var that = this;
@@ -3062,7 +3259,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
-        thisRuntime.ffi.makeRecordFieldsFail(val, thisRuntime.ffi.makeList(missingFields))
+        thisRuntime.ffi.makeRecordFieldsFail(val, this.nameAsOpt(), thisRuntime.ffi.makeList(missingFields))
       );
     };
     PRecordAnn.prototype.createRecordFailureError = function(compilerLoc, val, field, result) {
@@ -3073,7 +3270,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
       return thisRuntime.ffi.contractFail(
         makeSrcloc(compilerLoc),
-        thisRuntime.ffi.makeRecordFieldsFail(val, thisRuntime.ffi.makeList([
+        thisRuntime.ffi.makeRecordFieldsFail(val, this.nameAsOpt(), thisRuntime.ffi.makeList([
           thisRuntime.ffi.makeFieldFailure(
             makeSrcloc(loc),
             field,
@@ -3084,10 +3281,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     };
     PRecordAnn.prototype.check = function(compilerLoc, val) {
       var that = this;
+      var name = this.optName !== undefined ? this.optName : "record";
       if(!isObject(val)) {
         return thisRuntime.ffi.contractFail(
           makeSrcloc(compilerLoc),
-          thisRuntime.ffi.makeTypeMismatch(val, "Object")
+          thisRuntime.ffi.makeTypeMismatch(val, name)
         );
       }
       for(var i = 0; i < that.fields.length; i++) {
@@ -3096,8 +3294,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         }
       }
 
-      // Fast path: no refinements, so no deep stack/pause potential
-      if(!that.hasRefinement) {
+      // Fast path: flat computation, so no deep stack/pause potential
+      if(that.flat) {
         for(var i = 0; i < that.fields.length; i++) {
           var thisField = that.fields[i];
           var result = that.anns[thisField].check(that.locs[i], getColonField(val, thisField));
@@ -3108,17 +3306,17 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return thisRuntime.ffi.contractOk;
       }
 
-      // Slow path: has refinement, so need to stack guard
-      function deepCheckFields(remainingFields) {
+      // Slow path: not flat, so need to stack guard
+      function deepCheckFields(curIndex) {
         var thisField;
         return safeCall(function() {
-          thisField = remainingFields.pop();
+          thisField = that.fields[curIndex];
           var thisChecker = that.anns[thisField];
-          return thisChecker.check(that.locs[that.locs.length - remainingFields.length], getColonField(val, thisField));
+          return thisChecker.check(that.locs[curIndex], getColonField(val, thisField));
         }, function(result) {
           if(thisRuntime.ffi.isOk(result)) {
-            if(remainingFields.length === 0) { return thisRuntime.ffi.contractOk; }
-            else { return deepCheckFields(remainingFields); }
+            if(curIndex === that.locs.length - 1) { return thisRuntime.ffi.contractOk; }
+            else { return deepCheckFields(curIndex + 1); }
           }
           else if(thisRuntime.ffi.isFail(result)) {
             return that.createRecordFailureError(compilerLoc, val, thisField, result);
@@ -3127,7 +3325,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         "PRecordAnn:deepCheckFields");
       }
       if(that.fields.length === 0) { return thisRuntime.ffi.contractOk; }
-      else { return deepCheckFields(that.fields.slice()); }
+      else { return deepCheckFields(0); }
     }
 
     /********************
@@ -3580,6 +3778,15 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var TRACE_DEPTH = 0;
     var SHOW_TRACE = true;
     var TOTAL_VARS = 0;
+    var PROFILE = [];
+    const getTime = ((typeof process !== "undefined") && process.hrtime) ? process.hrtime
+          : (((typeof performance !== "undefined") && performance.now) ? performance.now : Date.now);
+    function profileEnter(loc) {
+      PROFILE.push([loc, true, getTime()]);
+    }
+    function profileExit(loc) {
+      PROFILE.push([loc, false, getTime()]);
+    }
     function traceEnter(name, vars) {
       if (!SHOW_TRACE) return;
       TRACE_DEPTH++;
@@ -3942,30 +4149,36 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }
     }
 
+    var check_array_size = function(name, size) {
+      checkNumInteger(size);
+      checkNumNonNegative(size);
+      // NOTE(joe):
+      // Per https://www.ecma-international.org/ecma-262/5.1/#sec-9.6, we
+      // couldn't create anything larger anyway atop JS, and 4 billion elements
+      // ought to be enough for anyone (cue laughter from 2050)
+      if(jsnums.greaterThan(size, MAX_ARRAY_SIZE)) {
+        thisRuntime.throwMessageException(name + ": cannot create array larger than " + MAX_ARRAY_SIZE);
+      }
+    }
+
     var raw_array_from_list = function(lst) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("RawArrays", "raw-array-from-list", lst, thisRuntime.List);
       return thisRuntime.ffi.toArray(lst);
     };
 
-    var raw_array_join_str = function(arr, str) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-join-str"], 2, $a, false); }
-      thisRuntime.checkArgsInternal2("RawArrays", "raw-array-join-str",
-        arr, thisRuntime.RawArray, str, thisRuntime.String);
-      return arr.join(str);
-    };
-
     var raw_array_of = function(val, len) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-of"], 2, $a, false); }
       thisRuntime.checkArgsInternal1("RawArrays", "raw-array-of",
         len, thisRuntime.Number);
+      check_array_size("raw-array-of", len);
       var arr = new Array(len);
       var i = 0;
       while(i < len) {
         arr[i++] = val;
       }
       return arr;
-    }
+    };
 
     var raw_array_build = function(f, len) {
       if (thisRuntime.isActivationRecord(f)) {
@@ -3991,6 +4204,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         cleanQuit = false;
         $ans = thisRuntime.makeCont();
       }
+
+      check_array_size("raw-array-build", len);
 
       while (cleanQuit && (curIdx < len)) {
         if (--thisRuntime.RUNGAS <= 0) {
@@ -4023,7 +4238,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           thisRuntime.makeActivationRecord(["raw-array-build"], raw_array_build, $step, [f, len], [curIdx, arr]);
         return $ans;
       }
-    }
+    };
 
     var raw_array_build_opt = function(f, len) {
       if (thisRuntime.isActivationRecord(f)) {
@@ -4035,8 +4250,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         f = $ar.args[0];
         len = $ar.args[1];
       } else {
-        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build"], 2, $a, false); }
-        thisRuntime.checkArgsInternal2("RawArrays", "raw-array-build",
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-build-opt"], 2, $a, false); }
+        thisRuntime.checkArgsInternal2("RawArrays", "raw-array-build-opt",
           f, thisRuntime.Function, len, thisRuntime.Number);
         var curIdx = 0;
         var arr = new Array();
@@ -4050,6 +4265,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         cleanQuit = false;
       }
 
+      check_array_size("raw-array-build-opt", len);
       while (cleanQuit && curIdx < len) {
         if (--thisRuntime.RUNGAS <= 0) {
           thisRuntime.EXN_STACKHEIGHT = 0;
@@ -4083,7 +4299,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           thisRuntime.makeActivationRecord(["raw-array-build-opt"], raw_array_build_opt, $step, [f, len], [curIdx, arr]);
         return $ans;
       }
-    }
+    };
 
     var raw_array_get = function(arr, ix) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-get"], 2, $a, false); }
@@ -4093,12 +4309,38 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return arr[ix];
     };
 
+    var raw_array_sort_nums = function(arr, asc) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("RawArrays", "raw-array-sort-nums", arr, thisRuntime.RawArray, asc, thisRuntime.Boolean);
+      const wrappedLT = (x, y) => jsnums.lessThan(x,y)?    -1 : jsnums.roughlyEquals(x, y, 0)? 0 : 1;
+      const wrappedGT = (x, y) => jsnums.greaterThan(x,y)? -1 : jsnums.roughlyEquals(x, y, 0)? 0 : 1;
+      arr.sort(asc? wrappedLT : wrappedGT);
+      return arr;
+    };
+
+    var raw_array_sort_by = function(arr, comp, asc) {
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 3, $a, false); }
+      thisRuntime.checkArgsInternal3("RawArrays", "raw-array-sort-by", arr, thisRuntime.RawArray, comp, thisRuntime.Function, asc, thisRuntime.Boolean);
+      return thisRuntime.safeCall(function() {
+        debugger
+        return raw_array_map(comp, arr);
+      }, function (arrKeys) {
+        debugger
+        const zipped = arr.map((v, i) => [v, arrKeys[i]]);
+        const compLT = (x, y) => jsnums.lessThan(x[1], y[1])? -1 : jsnums.roughlyEquals(x[1], y[1], 0) ? 0 : 1;
+        const compGT = (x, y) => jsnums.greaterThan(x[1], y[1])? -1 : jsnums.roughlyEquals(x[1], y[1], 0) ? 0 : 1;
+        zipped.sort(asc ? compLT : compGT);
+        return zipped.map((v) => v[0]);
+      }, "raw_array_sort_by");
+    };
+      
+
     var raw_array_obj_destructure = function(arr, keys) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-obj-destructure"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("RawArrays", "raw-array-obj-destructure",
         arr, thisRuntime.RawArray, keys, thisRuntime.RawArray);
 
-      var obj = {}
+      var obj = {};
       for(var i = 0; i < keys.length; i++) {
         obj[keys[i]] = arr[i];
       }
@@ -4143,6 +4385,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return arr.concat(other);
     };
 
+    var raw_array_duplicate = function(arr) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-duplicate"], 1, $a); }
+      thisRuntime.checkArray(arr);
+      return [].concat(arr);
+    }
+
     var raw_array_maker = makeObject({
       make:  makeFunction(raw_array_constructor, "raw-array:make"),
       make0: makeFunction(function() { return []; }, "raw-array:make0"),
@@ -4157,7 +4405,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-fold"], 4, $a, false); }
       thisRuntime.checkArgsInternalInline("RawArrays", "raw-array-fold",
         f, thisRuntime.Function, init, thisRuntime.Any, arr, thisRuntime.RawArray, start, thisRuntime.Number);
-      var currentIndex = start - 1;
+      var currentIndex = -1;
       var currentAcc = init;
       var length = arr.length;
       function foldHelp() {
@@ -4167,7 +4415,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             return thisRuntime.makeCont();
           }
           currentIndex += 1;
-          var res = f.app(currentAcc, arr[currentIndex], currentIndex);
+          var res = f.app(currentAcc, arr[currentIndex], currentIndex + start);
           if(isContinuation(res)) { return res; }
           currentAcc = res;
         }
@@ -4223,7 +4471,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           return res;
         }
         return foldFun();
-      }
+      };
     };
 
     var raw_array_and_mapi = raw_array_bool_mapper("raw-array-and-mapi", true, false);
@@ -4374,6 +4622,47 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return foldFun();
     };
 
+
+    var raw_list_join_str_last = function(lst, sep, lastSep) {
+      if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-list-join-str-last"], 3, $a, false); }
+      thisRuntime.checkArgsInternal3("Lists", "raw-list-join-str-last",
+        lst, thisRuntime.List, sep, thisRuntime.String, lastSep, thisRuntime.String);
+      var currentAcc = [];
+      var currentLst = lst;
+      var currentFst;
+      function foldHelp() {
+        while(thisRuntime.ffi.isLink(currentLst)) {
+          if(--thisRuntime.RUNGAS <= 0) {
+            thisRuntime.EXN_STACKHEIGHT = 0;
+            return thisRuntime.makeCont();
+          }
+          currentFst = thisRuntime.getColonField(currentLst, "first");
+          currentLst = thisRuntime.getColonField(currentLst, "rest");
+          var res = tostring.app(currentFst);
+          if(isContinuation(res)) { return res; }
+          currentAcc.push(res);
+        }
+        if (currentAcc.length <= 1) { return currentAcc.join(sep); }
+        var lastElem = currentAcc.pop();
+        return currentAcc.join(sep) + lastSep + lastElem;
+      }
+      function foldFun($ar) {
+        if (thisRuntime.isInitializedActivationRecord($ar)) {
+          currentAcc.push($ar.ans);
+        }
+        var res = foldHelp();
+        if(isContinuation(res)) {
+          res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
+            ["raw-list-join-str-last"],
+            foldFun,
+            0, // step doesn't matter here
+            [], []);
+        }
+        return res;
+      }
+      return foldFun();
+    };
+
     /**
      * Similar to `raw_array_map`, but applies a specific function to
      * the first item in the array
@@ -4433,7 +4722,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           currentLst = thisRuntime.getColonField(currentLst, "rest");
           var res = f.app(currentFst);
           if(isContinuation(res)) { return res; }
-          if(res) {
+          if(!(isBoolean(res))) {
+            return thisRuntime.ffi.throwNonBooleanCondition(["raw-list-filter"], "Boolean", res);
+          }
+          if(isPyretTrue(res)){
             currentAcc.push(currentFst);
           }
         }
@@ -4578,6 +4870,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         l, thisRuntime.String, r, thisRuntime.String);
       return thisRuntime.makeBoolean(l.indexOf(r) !== -1);
     }
+    var string_starts_with = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-starts-with"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-starts-with",
+        l, thisRuntime.String, r, thisRuntime.String);
+      return thisRuntime.makeBoolean(l.startsWith(r));
+    }
+    var string_ends_with = function(l, r) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-ends-with"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-ends-with",
+        l, thisRuntime.String, r, thisRuntime.String);
+      return thisRuntime.makeBoolean(l.endsWith(r));
+    }
     var string_length = function(s) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-length"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Strings", "string-length",
@@ -4681,6 +4985,23 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal2("Strings", "string-index-of",
         s, thisRuntime.String, find, thisRuntime.String);
       return thisRuntime.makeNumberBig(s.indexOf(find));
+    }
+    var string_findIndexOpt = function(s, find) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-find-opt"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-find-opt",
+        s, thisRuntime.String, find, thisRuntime.String);
+      var idx = s.indexOf(find);
+      if (jsnums.lessThan(idx, 0)) return thisRuntime.ffi.makeNone();
+      return thisRuntime.ffi.makeSome(thisRuntime.makeNumberBig(idx));
+    }
+    var string_getIndex = function(s, find) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-get-index"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-find",
+        s, thisRuntime.String, find, thisRuntime.String);
+      var idx = s.indexOf(find);
+      if (jsnums.lessThan(idx, 0))
+        thisRuntime.ffi.throwMessageException(`string-find: Target string \"${find}\" was not found inside source string \"${s}\"`);
+      return thisRuntime.makeNumberBig(idx);
     }
     var string_to_code_point = function(s) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-to-code-point"], 1, $a, false); }
@@ -4795,8 +5116,19 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within-rel"], 2, $a, false); }
         thisRuntime.checkArgsInternal2("Numbers", "from within-rel",
           l, thisRuntime.Number, r, thisRuntime.Number);
-        return makeBoolean(jsnums.roughlyEqualsRel(l, r, relTol, NumberErrbacks));
+        return makeBoolean(jsnums.roughlyEqualsRel(l, r, relTol, false, NumberErrbacks));
       }, "num-within-rel(...)");
+    }
+
+    var num_within = function(relTol) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["within"], 1, $a, false); }
+      thisRuntime.checkArgsInternal1("Numbers", "within", relTol, thisRuntime.Number);
+      return makeFunction(function(l, r) {
+        if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["from within"], 2, $a, false); }
+        thisRuntime.checkArgsInternal2("Numbers", "from within",
+          l, thisRuntime.Number, r, thisRuntime.Number);
+        return makeBoolean(jsnums.roughlyEqualsRel(l, r, relTol, true, NumberErrbacks));
+      }, "num-within(...)");
     }
 
     var num_max = function(l, r) {
@@ -4878,16 +5210,6 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.makeNumberBig(jsnums.remainder(n, m, NumberErrbacks));
     }
 
-    var num_truncate = function(n) {
-      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate"], 1, $a, false); }
-      thisRuntime.checkArgsInternal1("Numbers", "num-truncate",
-        n, thisRuntime.Number);
-      if (jsnums.greaterThanOrEqual(n, 0, NumberErrbacks)) {
-        return thisRuntime.makeNumberBig(jsnums.floor(n, NumberErrbacks));
-      } else {
-        return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));
-      }
-    }
     var num_sqrt = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqrt"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-sqrt",
@@ -4900,9 +5222,19 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         n, thisRuntime.Number);
       return thisRuntime.makeNumberBig(jsnums.sqr(n, NumberErrbacks));
     }
+    var num_truncate = function(n) {
+      if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate"], 1, $a, false); }
+      thisRuntime.checkArgsInternal1("Numbers", "num-truncate",
+        n, thisRuntime.Number);
+      if (jsnums.greaterThanOrEqual(n, 0, NumberErrbacks)) {
+        return thisRuntime.makeNumberBig(jsnums.floor(n, NumberErrbacks));
+      } else {
+        return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));
+      }
+    }
     var num_ceiling = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-ceiling"], 1, $a, false); }
-      thisRuntime.checkArgsInternal1("Numbers", "num-celing",
+      thisRuntime.checkArgsInternal1("Numbers", "num-ceiling",
         n, thisRuntime.Number);
       return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));
     }
@@ -4923,6 +5255,76 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal1("Numbers", "num-round-even",
         n, thisRuntime.Number);
       return thisRuntime.makeNumberBig(jsnums.roundEven(n, NumberErrbacks));
+    }
+    var num_truncate_digits = function(n, digits) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate-digits"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-truncate-digits",
+                                     n, thisRuntime.Number, digits, thisRuntime.NumInteger);
+      var tenDigits = jsnums.expt(10, digits, NumberErrbacks);
+      return jsnums.divide(num_truncate(jsnums.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    }
+    var num_ceiling_digits = function(n, digits) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-ceiling"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-ceiling-digits",
+                                     n, thisRuntime.Number, digits, thisRuntime.NumInteger);
+      var tenDigits = jsnums.expt(10, digits, NumberErrbacks);
+      return jsnums.divide(num_ceiling(jsnums.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    }
+    var num_floor_digits = function(n, digits) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-floor"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-floor-digits",
+                                     n, thisRuntime.Number, digits, thisRuntime.NumInteger);
+      var tenDigits = jsnums.expt(10, digits, NumberErrbacks);
+      return jsnums.divide(num_floor(jsnums.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    }
+    var num_round_digits = function(n, digits) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-round-digits",
+                                     n, thisRuntime.Number, digits, thisRuntime.NumInteger);
+      var tenDigits = jsnums.expt(10, digits, NumberErrbacks);
+      return jsnums.divide(num_round(jsnums.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    }
+    var num_round_even_digits = function(n, digits) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round-even"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-round-even-digits",
+                                     n, thisRuntime.Number, digits, thisRuntime.NumInteger);
+      var tenDigits = jsnums.expt(10, digits, NumberErrbacks);
+      return jsnums.divide(num_round_even(jsnums.multiply(n, tenDigits, NumberErrbacks)), tenDigits, NumberErrbacks);
+    }
+    var num_truncate_place = function(n, place) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate-place"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-truncate-place",
+                                     n, thisRuntime.Number, place, thisRuntime.NumInteger);
+      var tenPlace = jsnums.expt(10, place, NumberErrbacks);
+      return jsnums.multiply(num_truncate(jsnums.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    }
+    var num_ceiling_place = function(n, place) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-ceiling"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-ceiling-place",
+                                     n, thisRuntime.Number, place, thisRuntime.NumInteger);
+      var tenPlace = jsnums.expt(10, place, NumberErrbacks);
+      return jsnums.multiply(num_ceiling(jsnums.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    }
+    var num_floor_place = function(n, place) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-floor"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-floor-place",
+                                     n, thisRuntime.Number, place, thisRuntime.NumInteger);
+      var tenPlace = jsnums.expt(10, place, NumberErrbacks);
+      return jsnums.multiply(num_floor(jsnums.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    }
+    var num_round_place = function(n, place) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-round-place",
+                                     n, thisRuntime.Number, place, thisRuntime.NumInteger);
+      var tenPlace = jsnums.expt(10, place, NumberErrbacks);
+      return jsnums.multiply(num_round(jsnums.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
+    }
+    var num_round_even_place = function(n, place) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round-even"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-round-even-place",
+                                     n, thisRuntime.Number, place, thisRuntime.NumInteger);
+      var tenPlace = jsnums.expt(10, place, NumberErrbacks);
+      return jsnums.multiply(num_round_even(jsnums.divide(n, tenPlace, NumberErrbacks)), tenPlace, NumberErrbacks);
     }
     var num_log = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-log"], 1, $a, false); }
@@ -5081,6 +5483,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var mod = staticMods[uri];
         // CONSOLE.log(uri, mod);
 
+        var hash = sha.create();
+        hash.update(uri);
+        realm.static[uri] = { mod: mod, uriHashed: hash.hex() };
+
         var reqs = mod.requires;
         if(depMap[uri] === undefined) {
           throw new Error("Module has no entry in depmap: " + uri);
@@ -5090,10 +5496,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           if(duri === undefined) {
             throw new Error("Module not found in depmap: " + depToString(d) + " while loading " + uri);
           }
-          if(realm[duri] === undefined) {
+          if(realm.instantiated[duri] === undefined) {
             throw new Error("Module not loaded yet: " + depToString(d) + " while loading " + uri);
           }
-          return getExported(realm[duri]);
+          return getExported(realm.instantiated[duri]);
         });
 
         return thisRuntime.safeCall(function() {
@@ -5114,7 +5520,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           function continu() {
             return runStandalone(staticMods, realm, depMap, toLoad.slice(1), postLoadHooks);
           }
-          if(realm[uri]) {
+          if(realm.instantiated[uri]) {
             return continu();
           }
           return thisRuntime.safeCall(function() {
@@ -5151,8 +5557,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             }
           },
           function(r) {
-            // CONSOLE.log("Result from module: ", r);
-            realm[uri] = r;
+            // CONSOLE.log("Result from module: ", uri, r);
+            realm.instantiated[uri] = r;
             if(uri in postLoadHooks) {
               return thisRuntime.safeCall(function() {
                 return postLoadHooks[uri](r);
@@ -5184,6 +5590,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         "provide-plus-types": thisRuntime.makeObject({
           "values": thisRuntime.makeObject(values),
           "types": types,
+          "modules": {},
           "internal": internal || {}
         })
       });
@@ -5229,11 +5636,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       function makeConstructor() {
         var argNames = constructor.$fieldNames;
-        var hasRefinement = false;
+        var flat = true;
         var checkAnns = checkAnnsThunk();
         checkAnns.forEach(function(a) {
-          if(!isCheapAnnotation(a)) {
-            hasRefinement = true;
+          if(!a.flat) {
+            flat = false;
           }
         });
         var constructorBody =
@@ -5258,7 +5665,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         var arityCheck = "var $l = arguments.length; if($l !== 1) { var $t = new Array($l); for(var $i = 0;$i < $l;++$i) { $t[$i] = arguments[$i]; } thisRuntime.checkArityC(L[7],1,$t,false); }";
 
         var checksPlusBody = "";
-        if(hasRefinement) {
+        if(!flat) {
           checksPlusBody = "return thisRuntime.checkConstructorArgs2(checkAnns, [" + checkArgs.join(",") + "], checkLocs, " + constArr(checkMuts) + ", function() {\n" +
             constructorBody + "\n" +
           "});";
@@ -5314,6 +5721,18 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return args;
     }
 
+    function getModuleField(uri, which, name) {
+      var mod = thisRuntime.modules[uri];
+      var ppt = thisRuntime.getField(mod, "provide-plus-types");
+      var dict = thisRuntime.getField(ppt, which);
+      if(which === "values") {
+        return thisRuntime.getField(dict, name);
+      }
+      else {
+        return dict[name];
+      }
+    }
+
     function addModuleToNamespace(namespace, valFields, typeFields, moduleObj) {
       var newns = Namespace.namespace({});
       valFields.forEach(function(vf) {
@@ -5349,22 +5768,30 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         return thisRuntime.makeRowFromArray(arr);
       }),
 
-
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
-      'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
+      'raw-array-sort-nums': makeFunction(raw_array_sort_nums,"raw-array-sort-nums"),
+      'raw-array-sort-by': makeFunction(raw_array_sort_by,"raw-array-sort-by"),
       'get-value': makeFunction(getValue, "get-value"),
-      'list-to-raw-array': makeFunction(raw_array_from_list, "raw-array-from-list"),
       'has-field': makeFunction(hasField, "has-field"),
+
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
+      'raw-array-to-list': makeFunction(raw_array_to_list, "raw-array-to-list"),
       'raw-list-map': makeFunction(raw_list_map, "raw-list-map"),
       'raw-list-filter': makeFunction(raw_list_filter, "raw-list-filter"),
       'raw-list-fold': makeFunction(raw_list_fold, "raw-list-fold"),
+      'raw-list-join-str-last': makeFunction(raw_list_join_str_last, "raw-list-join-str-last"),
+
       'current-checker': makeFunction(function() {
         if (arguments.length !== 0) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["current-checker"], 0, $a, false); }
         return getParam("current-checker");
       }, "current-checker"),
       'trace-value': makeFunction(traceValue, "trace-value"),
-      'spy': makeFunction(spy, "spy")
+      'spy': makeFunction(spy, "spy"),
+
+      'within-rel3' : makeFunction(equalWithinRel3, "within-rel3"),
+      'within3' : makeFunction(equalWithin3, "within3"),
+
+      'record-concat': makeFunction(recordConcat, "record-concat")
     });
 
 
@@ -5465,7 +5892,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       // (see handalone.js)
       'is-table': makeFunction(function(v) {
         return thisRuntime.isTable(v);
-      }, "is-tuple"),
+      }, "is-table"),
+      'is-row': makeFunction(function(v) {
+        return thisRuntime.isRow(v);
+      }, "is-row"),
 
       'run-task': makeFunction(execThunk, "run-task"),
 
@@ -5498,13 +5928,23 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num-atan2': makeFunction(num_atan2, "num-atan2"),
       'num-modulo': makeFunction(num_modulo, "num-modulo"),
       'num-remainder': makeFunction(num_remainder, "num-remainder"),
-      'num-truncate': makeFunction(num_truncate, "num-truncate"),
       'num-sqrt': makeFunction(num_sqrt, "num-sqrt"),
       'num-sqr': makeFunction(num_sqr, "num-sqr"),
+      'num-truncate': makeFunction(num_truncate, "num-truncate"),
       'num-ceiling': makeFunction(num_ceiling, "num-ceiling"),
       'num-floor': makeFunction(num_floor, "num-floor"),
       'num-round': makeFunction(num_round, "num-round"),
       'num-round-even': makeFunction(num_round_even, "num-round-even"),
+      'num-truncate-digits': makeFunction(num_truncate_digits, "num-truncate"),
+      'num-ceiling-digits': makeFunction(num_ceiling_digits, "num-ceiling-digits"),
+      'num-floor-digits': makeFunction(num_floor_digits, "num-floor-digits"),
+      'num-round-digits': makeFunction(num_round_digits, "num-round-digits"),
+      'num-round-even-digits': makeFunction(num_round_even_digits, "num-round-even-digits"),
+      'num-truncate-place': makeFunction(num_truncate_place, "num-truncate"),
+      'num-ceiling-place': makeFunction(num_ceiling_place, "num-ceiling-place"),
+      'num-floor-place': makeFunction(num_floor_place, "num-floor-place"),
+      'num-round-place': makeFunction(num_round_place, "num-round-place"),
+      'num-round-even-place': makeFunction(num_round_even_place, "num-round-even-place"),
       'num-log': makeFunction(num_log, "num-log"),
       'num-exp': makeFunction(num_exp, "num-exp"),
       'num-exact': makeFunction(num_exact, "num-exact"),
@@ -5526,6 +5966,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       'string-equal': makeFunction(string_equals, "string-equal"),
       'string-contains': makeFunction(string_contains, "string-contains"),
+      'string-starts-with': makeFunction(string_starts_with, "string-starts-with"),
+      'string-ends-with': makeFunction(string_ends_with, "string-ends-with"),
       'string-append': makeFunction(string_append, "string-append"),
       'string-length': makeFunction(string_length, "string-length"),
       'string-isnumber': makeFunction(string_isnumber, "string-isnumber"),
@@ -5544,6 +5986,10 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'string-to-lower': makeFunction(string_tolower, "string-to-lower"),
       'string-explode': makeFunction(string_explode, "string-explode"),
       'string-index-of': makeFunction(string_indexOf, "string-index-of"),
+      'string-find-opt': makeFunction(string_findIndexOpt, "string-find-opt"),
+      'string-find-index': makeFunction(string_findIndexOpt, "string-find-opt"),
+      'string-find': makeFunction(string_getIndex, "string-find"),
+      'string-get-index': makeFunction(string_getIndex, "string-get-index"),
       'string-to-code-point': makeFunction(string_to_code_point, "string-to-code-point"),
       'string-from-code-point': makeFunction(string_from_code_point, "string-from-code-point"),
       'string-to-code-points': makeFunction(string_to_code_points, "string-to-code-points"),
@@ -5555,18 +6001,22 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'raw-array-build': makeFunction(raw_array_build, "raw-array-build"),
       'raw-array-build-opt': makeFunction(raw_array_build_opt, "raw-array-build-opt"),
       'raw-array-get': makeFunction(raw_array_get, "raw-array-get"),
+      'raw-array-sort-nums': makeFunction(raw_array_sort_nums,"raw-array-sort-nums"),
+      'raw-array-sort-by': makeFunction(raw_array_sort_by,"raw-array-sort-by"),
       'raw-array-set': makeFunction(raw_array_set, "raw-array-set"),
       'raw-array-length': makeFunction(raw_array_length, "raw-array-length"),
       'raw-array-to-list': makeFunction(raw_array_to_list, "raw-array-to-list"),
       'raw-array-from-list': makeFunction(raw_array_from_list, "raw-array-from-list"),
-      'raw-array-join-str': makeFunction(raw_array_join_str, "raw-array-join-str"),
       'raw-array-fold': makeFunction(raw_array_fold, "raw-array-fold"),
+      'raw-array-concat': makeFunction(raw_array_concat, "raw-array-concat"),
+      'raw-array-duplicate': makeFunction(raw_array_duplicate, "raw-array-duplicate"),
       'raw-array-and-mapi': makeFunction(raw_array_and_mapi, "raw-array-and-mapi"),
       'raw-array-or-mapi': makeFunction(raw_array_or_mapi, "raw-array-or-mapi"),
       'raw-array-map': makeFunction(raw_array_map, "raw-array-map"),
       'raw-array-map-1': makeFunction(raw_array_map1, "raw-array-map-1"),
       'raw-array-filter': makeFunction(raw_array_filter, "raw-array-filter"),
       'raw-array': raw_array_maker,
+
       'raw-each-loop': makeFunction(eachLoop, "raw-each-loop"),
 
       'not': makeFunction(bool_not, "not"),
@@ -5583,6 +6033,12 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'equal-always3': makeFunction(equalAlways3, "equal-always3"),
       'equal-always': makeFunction(equalAlways, "equal-always"),
 
+      'roughly-equal': makeFunction(roughlyEqualAlways, "roughly-equal"),
+      'roughly-equal-now3': makeFunction(roughlyEqualNow3, "roughly-equal-now3"),
+      'roughly-equal-now': makeFunction(roughlyEqualNow, "roughly-equal-now"),
+      'roughly-equal-always3': makeFunction(roughlyEqualAlways3, "roughly-equal-always3"),
+      'roughly-equal-always': makeFunction(roughlyEqualAlways, "roughly-equal-always"),
+
       'within-abs-now3' : makeFunction(equalWithinAbsNow3, "within-abs-now3"),
       'within-rel-now3' : makeFunction(equalWithinRelNow3, "within-rel-now3"),
       'within-abs3' : makeFunction(equalWithinAbs3, "within-abs3"),
@@ -5592,11 +6048,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'within-abs': makeFunction(equalWithinAbs, "within-abs"),
       'within-rel': makeFunction(equalWithinRel, "within-rel"),
 
-      'num-within': makeFunction(num_within_rel, "num-within"),
-      'within-now3' : makeFunction(equalWithinRelNow3, "within-now3"),
-      'within3' : makeFunction(equalWithinRel3, "within3"),
-      'within-now': makeFunction(equalWithinRelNow, "within-now"),
-      'within': makeFunction(equalWithinRel, "within"),
+      'num-within': makeFunction(num_within, "num-within"),
+      'within-now3' : makeFunction(equalWithinNow3, "within-now3"),
+      'within3' : makeFunction(equalWithin3, "within3"),
+      'within-now': makeFunction(equalWithinNow, "within-now"),
+      'within': makeFunction(equalWithin, "within"),
 
       'exn-unwrap': makeFunction(getExnValue, "exn-unwrap")
 
@@ -5605,6 +6061,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     //Export the runtime
     //String keys should be used to prevent renaming
     var thisRuntime = {
+      'builtins': builtins,
       'run': run,
       'runThunk': runThunk,
       'execThunk': execThunk,
@@ -5618,6 +6075,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'spy': spy,
 
 
+      'profileEnter' : profileEnter,
+      'profileExit' : profileExit,
+      'getProfile' : function() { return PROFILE; },
       'traceEnter': traceEnter,
       'traceExit': traceExit,
       'traceErrExit': traceErrExit,
@@ -5645,6 +6105,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'checkConstructorArgs2': checkConstructorArgs2,
       'getDotAnn': getDotAnn,
       'makePredAnn': makePredAnn,
+      'makeFlatPredAnn': makeFlatPredAnn,
       'makePrimitiveAnn': makePrimitiveAnn,
       'makeBranderAnn': makeBranderAnn,
       'makeRecordAnn': makeRecordAnn,
@@ -5664,6 +6125,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'getFieldLoc'      : getFieldLoc,
       'getFieldRef'      : getFieldRef,
       'getFields'        : getFields,
+      'getBracket'       : getBracket,
       'getColonField'    : getColonField,
       'getColonFieldLoc' : getColonFieldLoc,
       'getTuple'         : getTuple,
@@ -5811,6 +6273,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num_to_string': num_tostring,
       'num_tostring_digits': num_tostring_digits,
       'num_to_fixnum': num_to_fixnum,
+      'num_to_roughnum': num_to_roughnum,
 
       'string_contains': string_contains,
       'string_append': string_append,
@@ -5830,6 +6293,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'string_indexOf': string_indexOf,
 
       'raw_array_of': raw_array_of,
+      'raw_array_build': raw_array_build,
       'raw_array_get': raw_array_get,
       'raw_array_obj_destructure': raw_array_obj_destructure,
       'raw_array_set': raw_array_set,
@@ -5855,9 +6319,14 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'equal_now': equalNow,
       'equal_always3': equalAlways3,
       'equal_always': equalAlways,
+      'roughly_equal': roughlyEqualAlways,
+      'roughly_equal_now3': roughlyEqualNow3,
+      'roughly_equal_now': roughlyEqualNow,
+      'roughly_equal_always3': roughlyEqualAlways3,
+      'roughly_equal_always': roughlyEqualAlways,
       'combineEquality': combineEquality,
 
-      'within': equalWithinRel, //?
+      'within': equalWithin,
 
       'makeReactor': makeReactor,
 
@@ -5922,6 +6391,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'makeJSModuleReturn' : makeJSModuleReturn,
       'makeModuleReturn' : makeModuleReturn,
 
+      'getModuleField' : getModuleField,
       'addModuleToNamespace' : addModuleToNamespace,
 
       'globalModuleObject' : makeObject({
@@ -5929,7 +6399,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         "defined-types": runtimeTypeBindings,
         "provide-plus-types": makeObject({
           "values": makeObject(runtimeNamespaceBindings),
-          "types": runtimeTypeBindings
+          "types": runtimeTypeBindings,
+          "modules": {}
         })
       }),
 
@@ -5950,6 +6421,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'clearParam' : clearParam,
       'stdout' : theOutsideWorld.stdout,
       'stderr' : theOutsideWorld.stderr,
+      'stdin'  : theOutsideWorld.stdin,
       'console' : CONSOLE,
 
       'makePrimAnn': makePrimAnn
@@ -5959,6 +6431,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     makePrimAnn("Exactnum", jsnums.isRational);
     makePrimAnn("Roughnum", jsnums.isRoughnum);
     makePrimAnn("NumInteger", jsnums.isInteger);
+    makePrimAnn("NumNatural", function(v) {
+      return isNumber(v) && jsnums.isInteger(v) && jsnums.isNonNegative(v);
+    });
     makePrimAnn("NumRational", jsnums.isRational);
     makePrimAnn("NumPositive", jsnums.isPositive);
     makePrimAnn("NumNegative", jsnums.isNegative);
@@ -5997,6 +6472,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         'getDotAnn': 'gDA',
         'getField': 'gF',
         'getFieldRef': 'gFR',
+        'getBracket': 'gB',
         'hasBrand': 'hB',
         'isActivationRecord': 'isAR',
         'isCont': 'isC',
@@ -6020,6 +6496,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         'makeTupleAnn': 'mTA',
         'makeVariantConstructor': 'mVC',
         'namedBrander': 'nB',
+        'profileEnter': 'pEn',
+        'profileExit': 'pEx',
         'traceEnter': 'tEn',
         'traceErrExit': 'tErEx',
         'traceExit': 'tEx',

@@ -1,19 +1,12 @@
 #lang pyret/library
 provide *
 provide-types *
+
 import global as _
-import option as O
-import either as E
+include option
+include either
 import equality as equality
 import valueskeleton as VS
-none = O.none
-is-none = O.is-none
-some = O.some
-is-some = O.is-some
-type Option = O.Option
-left = E.left
-right = E.right
-type Either = E.Either
 
 data List<a>:
   | empty with:
@@ -22,22 +15,7 @@ data List<a>:
       0
     end,
 
-    method each(self :: List<a>, f :: (a -> Nothing)) -> Nothing:
-      doc: "Takes a function and calls that function for each element in the list. Returns nothing"
-      nothing
-    end,
-
-    method map<b>(self, f :: (a -> b)) -> List<b>:
-      doc: "Takes a function and returns a list of the result of applying that function every element in this list"
-      empty
-    end,
-
-    method filter(self :: List<a>, f :: (a -> Boolean)) -> List<a>:
-      doc: "Takes a predicate and returns a list containing the items in this list for which the predicate returns true."
-      empty
-    end,
-
-    method find(self :: List<a>, f :: (a -> Boolean)) -> O.Option<a>:
+    method find(self :: List<a>, f :: (a -> Boolean)) -> Option<a>:
       doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
       none
     end,
@@ -86,8 +64,10 @@ data List<a>:
       raise('last: took last of empty list')
     end,
 
-    method reverse(self :: List<a>) -> List<a>:
-      doc: "Returns a new list containing the same elements as this list, in reverse order"
+    method stable-sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
+      doc: ```Takes a comparator to check for elements that are strictly greater
+            or less than one another, and an equality procedure for elements that are
+            equal, and sorts the list accordingly.  The sort is guaranteed to be stable.```
       self
     end,
 
@@ -103,37 +83,11 @@ data List<a>:
             sorted by the default ordering and equality```
       self
     end,
-
-    method join-str(self :: List<a>, str :: String) -> String:
-      doc: ```Returns a string containing the tostring() forms of the elements of this list,
-            joined by the provided separator string```
-      ""
-    end,
-    method join-str-last(self :: List<a>, sep :: String, last-sep :: String) -> String:
-      ""
-    end
   | link(first :: a, rest :: List<a>) with:
 
     method length(self :: List<a>) -> Number:
       doc: "Takes no other arguments and returns the number of links in the list"
       1 + self.rest.length()
-    end,
-
-    method each(self :: List<a>, f :: (a -> Nothing)) -> Nothing:
-      doc: "Takes a function and calls that function for each element in the list. Returns nothing"
-      each(f, self)
-    end,
-
-    method map<b>(self, f :: (a -> b)) -> List<b>:
-      doc: "Takes a function and returns a list of the result of applying that function every element in this list"
-      map(f, self)
-    end,
-
-    method filter(self :: List<a>, f :: (a -> Boolean)) -> List<a>:
-      doc: "Takes a predicate and returns a list containing the items in this list for which the predicate returns true."
-      if f(self.first): self.first ^ link(_, self.rest.filter(f))
-      else:             self.rest.filter(f)
-      end
     end,
 
     method partition(self :: List<a>, f :: (a -> Boolean)) -> {is-true :: List<a>, is-false :: List<a>}:
@@ -143,7 +97,7 @@ data List<a>:
       partition(f, self)
     end,
 
-    method find(self :: List<a>, f :: (a -> Boolean)) -> O.Option<a>:
+    method find(self :: List<a>, f :: (a -> Boolean)) -> Option<a>:
       doc: "Takes a predicate and returns on option containing either the first item in this list that passes the predicate, or none"
       find(f, self)
     end,
@@ -187,9 +141,11 @@ data List<a>:
       end
     end,
 
-    method reverse(self :: List<a>) -> List<a>:
-      doc: "Returns a new list containing the same elements as this list, in reverse order"
-      reverse-help(self, empty)
+    method stable-sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
+      doc: ```Takes a comparator to check for elements that are strictly greater
+            or less than one another, and an equality procedure for elements that are
+            equal, and sorts the list accordingly.  The sort is guaranteed to be stable.```
+      stable-sort-by(self, cmp, eq)
     end,
 
     method sort-by(self :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a> block:
@@ -221,34 +177,31 @@ data List<a>:
             sorted by the default ordering and equality```
       self.sort-by(lam(e1,e2): e1 < e2 end, within(~0))
     end,
-
-    method join-str(self :: List<a>, str :: String) -> String:
-      doc: ```Returns a string containing the tostring() forms of the elements of this list,
-            joined by the provided separator string```
-      if is-link(self.rest):
-         tostring(self.first) + str + self.rest.join-str(str)
-      else:
-         tostring(self.first)
-      end
-    end,
-    method join-str-last(self :: List<a>, sep :: String, last-sep :: String) -> String:
-      doc: ```Returns a string containing the tostring() forms of the elements of this list,
-            joined by the provided separator string, and the provided last-separator before the last string```
-      if is-link(self.rest):
-        if is-empty(self.rest.rest):
-          tostring(self.first) + last-sep + tostring(self.rest.first)
-        else:
-          tostring(self.first) + sep + self.rest.join-str-last(sep, last-sep)
-        end
-      else:
-         tostring(self.first)
-      end
-    end,
 sharing:
   method _output(self :: List<a>) -> VS.ValueSkeleton: VS.vs-collection("list", self.map(VS.vs-value)) end,
-  
+
   method _plus(self :: List<a>, other :: List<a>) -> List<a>:
     self.append(other)
+  end,
+
+  method map<b>(self, f :: (a -> b)) -> List<b>:
+    doc: "Takes a function and returns a list of the result of applying that function every element in this list"
+    map(f, self)
+  end,
+
+  method filter(self :: List<a>, f :: (a -> Boolean)) -> List<a>:
+    doc: "Takes a predicate and returns a list containing the items in this list for which the predicate returns true."
+    filter(f, self)
+  end,
+
+  method each(self :: List<a>, f :: (a -> Nothing)) -> Nothing:
+    doc: "Takes a function and calls that function for each element in the list. Returns nothing"
+    each(f, self)
+  end,
+
+  method reverse(self :: List<a>) -> List<a>:
+    doc: "Returns a new list containing the same elements as this list, in reverse order"
+    reverse(self)
   end,
 
   method push(self :: List<a>, elt :: a) -> List<a>:
@@ -280,17 +233,16 @@ sharing:
     doc: "Returns the list without the element if found, or the whole list if it is not"
     remove(self, e)
   end,
-  method join-str2(self :: List<a>, str :: String) -> String:
+  method join-str(self :: List<a>, sep :: String) -> String:
     doc: ```Returns a string containing the tostring() forms of the elements of this list,
           joined by the provided separator string.```
-    # Note: use array's join string for performance
-    before-to-string = builtins.raw-array-from-list(self)
-    init-array = raw-array-of("", raw-array-length(before-to-string))
-    for raw-array-fold(result from init-array, elt from before-to-string, index from 0):
-      raw-array-set(result, index, tostring(elt))
-    end
-      ^ builtins.raw-array-join-str(_, str)
-  end
+    join-str(self, sep)
+  end,
+  method join-str-last(self :: List<a>, sep :: String, last-sep :: String) -> String:
+    doc: ```Returns a string containing the tostring() forms of the elements of this list,
+            joined by the provided separator string, and the provided last-separator before the last string```
+    join-str-last(self, sep, last-sep)
+  end,
 end
 
 fun length<a>(lst :: List<a>) -> Number:
@@ -377,19 +329,14 @@ end
 
 fun reverse<a>(lst :: List<a>) -> List<a>:
   doc: "Returns a new list containing the same elements as this list, in reverse order"
-  reverse-help(lst, empty)
+  fold(lam(acc, elt): link(elt, acc) end, empty, lst)
+where:
+  reverse([list: ]) is [list: ]
+  reverse([list: 1, 3]) is [list: 3, 1]
 end
 
 fun push<a>(l :: List<a>, elt :: a) -> List<a>:
   link(elt, l)
-end
-
-fun reverse-help<a>(lst :: List<a>, tail :: List<a>) -> List<a>:
-  doc: "Returns a new list containing the same elements as this list, in reverse order"
-  builtins.raw-list-fold(lam(acc, elt): link(elt, acc) end, tail, lst)
-where:
-  reverse([list: ]) is [list: ]
-  reverse([list: 1, 3]) is [list: 3, 1]
 end
 
 fun last<a>(lst :: List<a>) -> a:
@@ -408,6 +355,77 @@ fun last<a>(lst :: List<a>) -> a:
   end
 end
 
+fun stable-sort-by<a>(lst :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
+  doc: ```Takes a comparator to check for elements that are strictly greater
+       or less than one another, and an equality procedure for elements that are
+       equal, and sorts the given list accordingly.  The sort is guaranteed to be stable.```
+  fun mergesort(arr, scratch, low, high):
+    if ((high - low) <= 1) block:
+      arr
+    else:
+      mid = num-floor((low + high) / 2)
+      mergesort(arr, scratch, low, mid)
+      mergesort(arr, scratch, mid, high)
+      merge(arr, scratch, low, mid, high)
+      arr
+    end
+  end
+  fun merge(source, scratch, low, mid, high) block:
+    var curLowIdx = low
+    var curHiIdx = mid
+    var curCopyIdx = low
+    fun copyPart1():
+      when (curLowIdx < mid) and (curHiIdx < high) block:
+        curLow = raw-array-get(source, curLowIdx)
+        curHi = raw-array-get(source, curHiIdx)
+        if cmp(curLow, curHi) or eq(curLow, curHi) block:
+          raw-array-set(scratch, curCopyIdx, curLow)
+          curLowIdx := curLowIdx + 1
+        else:
+          raw-array-set(scratch, curCopyIdx, curHi)
+          curHiIdx := curHiIdx + 1
+        end
+        curCopyIdx := curCopyIdx + 1
+        copyPart1()
+      end
+    end
+    fun copyPart2():
+      when (curLowIdx < mid) block:
+        raw-array-set(scratch, curCopyIdx, raw-array-get(source, curLowIdx))
+        curLowIdx := curLowIdx + 1
+        curCopyIdx := curCopyIdx + 1
+        copyPart2()
+      end
+    end
+    fun copyPart3():
+      when (curHiIdx < high) block:
+        raw-array-set(scratch, curCopyIdx, raw-array-get(source, curHiIdx))
+        curHiIdx := curHiIdx + 1
+        curCopyIdx := curCopyIdx + 1
+        copyPart2()
+      end
+    end
+    fun copyPart4(cur):
+      when cur < high block:
+        raw-array-set(source, cur, raw-array-get(scratch, cur))
+        copyPart4(cur + 1)
+      end
+    end
+    copyPart1()
+    copyPart2()
+    copyPart3()
+    copyPart4(low)
+    source
+  end
+  arr = raw-array-from-list(lst)
+  scratch = raw-array-from-list(lst)
+  raw-array-to-list(mergesort(arr, scratch, 0, raw-array-length(arr)))
+end
+
+fun stable-sort<a>(lst :: List<a>) -> List<a>:
+  stable-sort-by(lst, lam(e1,e2): e1 < e2 end, within(~0))
+end
+
 fun sort-by<a>(lst :: List<a>, cmp :: (a, a -> Boolean), eq :: (a, a -> Boolean)) -> List<a>:
   lst.sort-by(cmp, eq)
 end
@@ -419,10 +437,10 @@ end
 fun range(start :: Number, stop :: Number) -> List<Number>:
   doc: "Creates a list of numbers, starting with start, ending with stop-1"
   if start > stop: raise("range: start greater than stop: ("
-                                 + tostring(start)
-                                 + ", "
-                                 + tostring(stop)
-                                 + ")")
+        + tostring(start)
+        + ", "
+        + tostring(stop)
+        + ")")
   else: raw-array-to-list(raw-array-build(_ + start, stop - start))
   end
 end
@@ -499,7 +517,7 @@ fun remove<a>(lst :: List<a>, elt :: a) -> List<a>:
   end
 end
 
-fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> O.Option<a>:
+fun find<a>(f :: (a -> Boolean), lst :: List<a>) -> Option<a>:
   doc: ```Returns some(elem) where elem is the first elem in lst for which
         f(elem) returns true, or none otherwise```
   if is-empty(lst):
@@ -515,7 +533,7 @@ end
 
 fun split-at<a>(n :: Number, lst :: List<a>) -> { prefix :: List<a>, suffix :: List<a> } block:
   doc: "Splits the list into two lists, one containing the first n elements, and the other containing the rest"
-  when n < 0:
+  when (n < 0) or not(num-is-integer(n)):
     raise("Invalid index")
   end
   var prefix = empty
@@ -644,7 +662,7 @@ end
 
 fun each<a>(f :: (a -> Nothing), lst :: List<a>) -> Nothing block:
   doc: "Calls f for each elem in lst, and returns nothing"
-  builtins.raw-list-fold(lam(_, elt): f(elt) end, nothing, lst)
+  fold(lam(_, elt): f(elt) end, nothing, lst)
   nothing
 end
 
@@ -746,7 +764,7 @@ fun fold-while<a, b>(f :: (a, b -> Either<a, a>), base :: a, lst :: List<b>) -> 
   cases(List) lst:
     | empty => base
     | link(elt, r) =>
-      cases(E.Either) f(base, elt):
+      cases(Either) f(base, elt):
         | left(v) => fold-while(f, v, r)
         | right(v) => v
       end
@@ -758,8 +776,6 @@ fun fold<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
         starting with the initial value```
   builtins.raw-list-fold(f, base, lst)
 end
-
-rec foldl = fold
 
 fun foldr<a, b>(f :: (a, b -> a), base :: a, lst :: List<b>) -> a:
   doc: ```Takes a function, an initial value and a list, and folds the function over the list from the right,
@@ -836,9 +852,6 @@ fun member<a>(lst :: List<a>, elt :: a) -> Boolean:
   equality.to-boolean(member3(lst, elt))
 end
 
-member-always3 = member3
-member-always = member
-
 fun member-now3<a>(lst :: List<a>, elt :: a) -> equality.EqualityResult:
   member-with(lst, elt, equal-now3)
 end
@@ -888,9 +901,9 @@ fun filter-values<a>(lst :: List<Option<a>>) -> List<a>:
         | some(v) => link(v, filter-values(rest))
       end
   end
-end  
+end
 
-fun distinct(l :: List) -> List:
+fun distinct<A>(l :: List<A>) -> List<A>:
   doc: "returns a list with exactly the distinct elements of the original list removing the first instance"
   cases (List) l:
     | empty => empty
@@ -927,13 +940,32 @@ where:
   take-while(_ == true, [list: true, true, false, true]) is { [list: true, true]; [list: false, true] }
 end
 
-fun join-str(l :: List<String>, s :: String) -> String:
-  l.join-str(s)
+fun join-str<a>(l :: List<a>, sep :: String) -> String:
+  builtins.raw-list-join-str-last(l, sep, sep)
+where:
+  join-str([list: 1, "2", 3], "+") is "1+2+3"
+  join-str([list: ], "+") is ""
+  join-str([list: 1], "+") is "1"
+  join-str([list: 1, 2], "+") is "1+2"
 end
 
-fun join-str-last(l :: List<String>, sep :: String, last-sep :: String) -> String:
-  l.join-str-last(sep, last-sep)
+fun join-str-last<a>(l :: List<a>, sep :: String, last-sep :: String) -> String:
+  builtins.raw-list-join-str-last(l, sep, last-sep)
+where:
+  join-str-last([list: 1, "2", 3], "+", "-") is "1+2-3"
+  join-str-last([list: ], "+", "-") is ""
+  join-str-last([list: 1], "+", "-") is "1"
+  join-str-last([list: 1, 2], "+", "-") is "1-2"
+  join-str-last([list: 1, 2, 3, 4], "+", "-") is "1+2+3-4"
 end
+
+fun build-list<A>(f :: (Number -> A), size :: Number) -> List<A>:
+  raw-array-to-list(raw-array-build(f, size))
+end
+
+member-always3 = member3
+member-always = member
+foldl = fold
 
 list = {
   make: raw-array-to-list,

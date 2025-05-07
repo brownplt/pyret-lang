@@ -2,9 +2,12 @@
   nativeRequires: ["source-map"],
   requires: [],
   provides: {
-    "to-string-with-source-map": "tany",
-    "source-node": "tany",
-    "is-source-node": "tany",
+    values: {
+      "to-string-with-source-map": "tany",
+      "source-node": "tany",
+      "is-source-node": "tany",
+      "new-map": "tany"
+    }
   },
   theModule: function(runtime, namespace, uri, sourceMap) {
     const SN = sourceMap.SourceNode;

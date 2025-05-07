@@ -1,40 +1,25 @@
-#lang pyret/library
-
-provide {
-  set: list-set,
-  list-set: list-set,
-  tree-set: tree-set,
-  empty-set: empty-list-set,
-  empty-list-set: empty-list-set,
-  empty-tree-set: empty-tree-set,
-  list-to-set: list-to-list-set,
-  list-to-list-set: list-to-list-set,
-  list-to-tree-set: list-to-tree-set,
-  fold: set-fold,
-  all: set-all,
-  any: set-any
-} end
-provide-types *
+provide:
+  list-set as set,
+  list-set as list-set,
+  tree-set as tree-set,
+  empty-list-set as empty-set,
+  empty-list-set as empty-list-set,
+  empty-tree-set as empty-tree-set,
+  list-to-list-set as list-to-set,
+  list-to-list-set as list-to-list-set,
+  list-to-tree-set as list-to-tree-set,
+  set-fold as fold,
+  set-all as all,
+  set-any as any,
+  data Set,
+  data AVLTree
+end
 
 import global as _
-import pick as pick
-import lists as lists
-import error as error
-import option as option
-import arrays as arrays
+include pick
+include lists
 import equality as equality
 import valueskeleton as VS
-
-type List = lists.List
-List = lists.is-List
-empty = lists.empty
-link = lists.link
-is-empty = lists.is-empty
-fold = lists.fold
-
-type Pick = pick.Pick
-pick-none = pick.pick-none
-pick-some = pick.pick-some
 
 # SETS
 
@@ -44,12 +29,12 @@ data AVLTree:
     method contains(self, val :: Any) -> Boolean: false end,
     method insert(self, val :: Any) -> AVLTree: mkbranch(val, leaf, leaf) end,
     method remove(self, val :: Any) -> AVLTree: leaf end,
-    method preorder(self) -> lists.List: empty end,
-    method inorder(self) -> lists.List: empty end,
-    method postorder(self) -> lists.List: empty end,
-    method revpreorder(self) -> lists.List: empty end,
-    method revinorder(self) -> lists.List: empty end,
-    method revpostorder(self) -> lists.List: empty end,
+    method preorder(self) -> List: empty end,
+    method inorder(self) -> List: empty end,
+    method postorder(self) -> List: empty end,
+    method revpreorder(self) -> List: empty end,
+    method revinorder(self) -> List: empty end,
+    method revpostorder(self) -> List: empty end,
     method fold-preorder(self, f, base): base end,
     method fold-inorder(self, f, base): base end,
     method fold-postorder(self, f, base): base end,
@@ -90,35 +75,47 @@ data AVLTree:
         rebalance(mkbranch(self.value, self.left, self.right.remove(val)))
       end
     end,
-    method preorder(self) -> lists.List:
-      doc: "Returns a list of all elements from a left-to-right preorder traversal"
+    method preorder(self) -> List:
+      doc: ```Returns a list of all elements from a left-to-right preorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order L, R, val.
+           ```
       fun knil(l, x): link(x, l) end # needed because argument order of link is backwards to fold
-      self.fold-revpreorder(knil, empty) # reversed because knil is reversed
+      self.fold-revpostorder(knil, empty) # reversed because knil is reversed
     end,
-    method inorder(self) -> lists.List:
-      doc: "Returns a list of all elements from a left-to-right inorder traversal"
+    method inorder(self) -> List:
+      doc: ```Returns a list of all elements from a left-to-right inorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order L, val, R.
+           ```
       fun knil(l, x): link(x, l) end
       self.fold-revinorder(knil, empty)
     end,
-    method postorder(self) -> lists.List:
-      doc: "Returns a list of all elements from a left-to-right postorder traversal"
+    method postorder(self) -> List:
+      doc: ```Returns a list of all elements from a left-to-right postorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order val, L, R.
+           ```
       fun knil(l, x): link(x, l) end
-      self.fold-revpostorder(knil, empty)
+      self.fold-revpreorder(knil, empty)
     end,
-    method revpreorder(self) -> lists.List:
-      doc: "Returns a list of all elements from a right-to-left preorder traversal"
+    method revpreorder(self) -> List:
+      doc: ```Returns a list of all elements from a right-to-left preorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order val, R, L.
+           ```
       fun knil(l, x): link(x, l) end
-      self.fold-preorder(knil, empty)
+      self.fold-postorder(knil, empty)
     end,
-    method revinorder(self) -> lists.List:
-      doc: "Returns a list of all elements from a right-to-leftinorder traversal"
+    method revinorder(self) -> List:
+      doc: ```Returns a list of all elements from a right-to-left inorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order R, val, L.
+           ```
       fun knil(l, x): link(x, l) end
       self.fold-inorder(knil, empty)
     end,
-    method revpostorder(self) -> lists.List:
-      doc: "Returns a list of all elements from a roght-to-left postorder traversal"
+    method revpostorder(self) -> List:
+      doc: ```Returns a list of all elements from a right-to-left postorder traversal:
+           Given a tree `branch(val, L, R)`, this produces the order R, L, val.
+           ```
       fun knil(l, x): link(x, l) end
-      self.fold-postorder(knil, empty)
+      self.fold-preorder(knil, empty)
     end,
     method fold-preorder(self, f, base):
       doc: ```Folds the elements contained in the tree into a single value with f.
@@ -158,7 +155,7 @@ data AVLTree:
       f(self.value) or self.right.all(f) or self.left.all(f)
     end
 sharing:
-  method to-list(self) -> lists.List:
+  method to-list(self) -> List:
     doc: "Returns a list of all elements from a inorder traversal"
     self.inorder()
   end,
@@ -261,17 +258,28 @@ check:
   tree1 =
     branch(4, 666, branch(2, 666, branch(1, 666, leaf, leaf), branch(3, 666, leaf, leaf)),
       branch(6, 666, branch(5, 666, leaf, leaf), leaf))
-  tree1.inorder() is   [list: 1, 2, 3, 4, 5, 6]
-  tree1.preorder() is  [list: 4, 2, 1, 3, 6, 5]
-  tree1.postorder() is [list: 1, 3, 2, 5, 6, 4]
-  tree1.revinorder() is   [list: 6, 5, 4, 3, 2, 1]
-  tree1.revpreorder() is  [list: 5, 6, 3, 1, 2, 4]
-  tree1.revpostorder() is [list: 4, 6, 5, 2, 3, 1]
+  tree1.preorder() 
+    is [list: 4, 2, 1, 3, 6, 5]
+    because [list: tree1.value] + tree1.left.preorder() + tree1.right.preorder()
+  tree1.inorder() 
+    is [list: 1, 2, 3, 4, 5, 6] 
+    because tree1.left.inorder() + [list: tree1.value] + tree1.right.inorder()
+  tree1.postorder()
+    is [list: 1, 3, 2, 5, 6, 4]
+    because tree1.left.postorder() + tree1.right.postorder() + [list: tree1.value]
+  tree1.revpreorder() 
+    is [list: 4, 6, 5, 2, 3, 1]
+    because [list: tree1.value] + tree1.right.revpreorder() + tree1.left.revpreorder()
+  tree1.revinorder()
+    is [list: 6, 5, 4, 3, 2, 1]
+    because tree1.right.revinorder() + [list: tree1.value] + tree1.left.revinorder()
+  tree1.revpostorder()
+    is [list: 5, 6, 3, 1, 2, 4]
+    because tree1.right.revpostorder() + tree1.left.revpostorder() + [list: tree1.value]
 end
 
-
 data Set:
-  | list-set(elems :: lists.List) with:
+  | list-set(elems :: List) with:
     method pick(self):
       lst = self.elems
       cases(List) lst:
@@ -314,7 +322,7 @@ data Set:
       list-set(self.elems.remove(elem))
     end,
 
-    method to-list(self) -> lists.List:
+    method to-list(self) -> List:
       doc: 'Convert a set into a list of elements.'
       self.elems
     end,
@@ -399,7 +407,7 @@ data Set:
       tree-set(self.elems.remove(elem))
     end,
 
-    method to-list(self) -> lists.List:
+    method to-list(self) -> List:
       doc: 'Convert a set into a list of elements.'
       self.elems.inorder()
     end,
@@ -455,7 +463,7 @@ sharing:
         equality.NotEqual("set size", self, other)
       else:
         for fold(result from equality.Equal, elt from self-list):
-          result-for-elt = lists.member-with(other-list, elt, eq)
+          result-for-elt = member-with(other-list, elt, eq)
           equality.equal-and(result, result-for-elt)
         end
       end
@@ -566,25 +574,25 @@ fun set-fold(f, base, s :: Set):
   s.fold(f, base)
 end
 
-fun list-to-set(lst :: lists.List, base-set :: Set) -> Set:
+fun list-to-set(lst :: List, base-set :: Set) -> Set:
   doc: "Convert a list into a set."
-  for lists.fold(s from base-set, elem from lst):
+  for fold(s from base-set, elem from lst):
     s.add(elem)
   end
 end
 
-fun list-to-list-set(lst :: lists.List) -> Set:
+fun list-to-list-set(lst :: List) -> Set:
   doc: "Convert a list into a list-based set."
   list-to-set(lst, list-set(empty))
 end
 
-fun list-to-tree-set(lst :: lists.List) -> Set:
+fun list-to-tree-set(lst :: List) -> Set:
   doc: "Convert a list into a tree-based set."
   list-to-set(lst, tree-set(leaf))
 end
 
-fun list-to-tree(lst :: lists.List):
-  for lists.fold(tree from leaf, elt from lst):
+fun list-to-tree(lst :: List):
+  for fold(tree from leaf, elt from lst):
     tree.insert(elt)
   end
 end

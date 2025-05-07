@@ -26,14 +26,16 @@ var generated-binds = SD.make-mutable-string-dict()
 
 fun g(id): A.s-global(id) end
 fun gid(l, id): A.s-id(l, g(id)) end
-fun bid(l, name): A.s-dot(l, A.s-id(l, g("builtins")), name) end
+fun bid(l, name): A.s-dot(l, A.s-prim-val(l, "builtins"), name) end
+
+flat-prim-app = A.prim-app-info-c(false)
 
 fun check-bool<T>(l, e, cont :: (A.Expr -> T)) -> T:
-  cont(A.s-prim-app(l, "checkWrapBoolean", [list: e]))
+  cont(A.s-prim-app(l, "checkWrapBoolean", [list: e], flat-prim-app))
 end
 
 fun check-table<T>(l, e, cont :: (A.Expr -> T)) -> T:
-  cont(A.s-prim-app(l, "checkWrapTable", [list: e]))
+  cont(A.s-prim-app(l, "checkWrapTable", [list: e], flat-prim-app))
 end
 
 fun check-ann(l :: S.Srcloc, expr :: A.Expr, ann :: A.Ann) -> A.Expr:
@@ -72,16 +74,16 @@ end
 
 
 fun no-branches-exn(l, typ):
-  A.s-prim-app(l, "throwNoBranchesMatched", [list: A.s-srcloc(l, l), A.s-str(l, typ)])
+  A.s-prim-app(l, "throwNoBranchesMatched", [list: A.s-srcloc(l, l), A.s-str(l, typ)], flat-prim-app)
 end
 fun bool-exn(l, typ, val):
-  A.s-prim-app(l, "throwNonBooleanCondition", [list: A.s-srcloc(l, l), A.s-str(l, typ), val])
+  A.s-prim-app(l, "throwNonBooleanCondition", [list: A.s-srcloc(l, l), A.s-str(l, typ), val], flat-prim-app)
 end
 fun bool-op-exn(l, position, typ, val):
-  A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val])
+  A.s-prim-app(l, "throwNonBooleanOp", [list: A.s-srcloc(l, l), A.s-str(l, position), A.s-str(l, typ), val], flat-prim-app)
 end
 fun template-exn(l):
-  A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)])
+  A.s-prim-app(l, "throwUnfinishedTemplate", [list: A.s-srcloc(l, l)], flat-prim-app)
 end
 
 fun desugar-afield(f :: A.AField) -> A.AField:
@@ -97,7 +99,7 @@ fun desugar-ann(a :: A.Ann) -> A.Ann:
     | a-arrow(l, args, ret, use-parens) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
     | a-arrow-argnames(l, args, ret, use-parens) =>
-      A.a-arrow-argnames(l, args.map(desugar-ann), desugar-ann(ret), use-parens)
+      A.a-arrow-argnames(l, args.map(desugar-afield), desugar-ann(ret), use-parens)
     | a-method(l, args, ret) =>
       A.a-arrow(l, args.map(desugar-ann), desugar-ann(ret), true)
     | a-app(l, base, args) =>
@@ -128,22 +130,22 @@ fun desugar(program :: A.Program):
             appear in binding positions as in s-let-bind, s-letrec-bind)
         ```
   cases(A.Program) program block:
-    | s-program(l, _provide, provided-types, imports, body) =>
+    | s-program(l, _use, _provide, provided-types, provides, imports, body) =>
       generated-binds := SD.make-mutable-string-dict()
-      {ast: A.s-program(l, _provide, provided-types, imports, desugar-expr(body)), new-binds: generated-binds}
+      {ast: A.s-program(l, _use, _provide, provided-types, provides, imports, desugar-expr(body)), new-binds: generated-binds}
     | else => raise("Attempt to desugar non-program: " + torepr(program))
   end
 end
 
 fun mk-id-ann(loc, base, ann) block:
   a = names.make-atom(base)
-  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-let, a, ann, none))
+  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc, a), C.vb-let, a, ann))
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id(loc, a) }
 end
 
 fun mk-id-var-ann(loc, base, ann) block:
   a = names.make-atom(base)
-  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc), C.vb-var, a, ann, none))
+  generated-binds.set-now(a.key(), C.value-bind(C.bo-local(loc, a), C.vb-var, a, ann))
   { id: a, id-b: A.s-bind(loc, false, a, ann), id-e: A.s-id-var(loc, a) }
 end
 
@@ -228,8 +230,8 @@ fun ds-curry-nullary(rebuild-node, l, obj, m):
   else:
     rebuild-node(l, desugar-expr(obj), m)
   end
-where:
-  nothing
+# where:
+#   nothing
   #d = A.dummy-loc
   #ds-ed = ds-curry-nullary(A.s-dot, d, A.s-id(d, "_"), A.s-id(d, "x"))
 #  ds-ed satisfies
@@ -353,19 +355,19 @@ end
 
 fun desugar-expr(expr :: A.Expr):
   cases(A.Expr) expr:
-    | s-module(l, answer, dv, dt, provides, types, checks) =>
-      A.s-module(l, desugar-expr(answer), dv, dt, desugar-expr(provides), types.map(desugar-afield), desugar-expr(checks))
+    | s-module(l, answer, dm, dv, dt, checks) =>
+      A.s-module(l, desugar-expr(answer), dm, dv, dt, desugar-expr(checks))
     | s-instantiate(l, inner-expr, params) =>
       A.s-instantiate(l, desugar-expr(inner-expr), params.map(desugar-ann))
     | s-block(l, stmts) =>
       A.s-block(l, stmts.map(desugar-expr))
     | s-user-block(l, body) =>
       desugar-expr(body)
-    | s-template(l) => template-exn(l)
+    | s-template(l) => expr # template-exn(l)
     | s-app(l, f, args) =>
       ds-curry(l, f, args.map(desugar-expr))
-    | s-prim-app(l, f, args) =>
-      A.s-prim-app(l, f, args.map(desugar-expr))
+    | s-prim-app(l, f, args, app-info) =>
+      A.s-prim-app(l, f, args.map(desugar-expr), app-info)
     | s-lam(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
       A.s-lam(l, name, params, args.map(desugar-bind), desugar-ann(ann), doc, desugar-expr(body), _check-loc, desugar-opt(desugar-expr, _check), blocky)
     | s-method(l, name, params, args, ann, doc, body, _check-loc, _check, blocky) =>
@@ -435,7 +437,9 @@ fun desugar-expr(expr :: A.Expr):
     | s-assign(l, id, val) => A.s-assign(l, id, desugar-expr(val))
     | s-dot(l, obj, field) => ds-curry-nullary(A.s-dot, l, obj, field)
     | s-bracket(l, obj, key) =>
-      ds-curry(l, bid(l, "get-value"), [list: desugar-expr(obj), desugar-expr(key)])
+      ds-curry-binop(l, desugar-expr(obj), desugar-expr(key), lam(e1, e2):
+          A.s-prim-app(l, "getBracket", [list: A.s-srcloc(l, l), e1, e2], A.prim-app-info-c(true))
+        end)
     | s-get-bang(l, obj, field) => ds-curry-nullary(A.s-get-bang, l, obj, field)
     | s-update(l, obj, fields) => ds-curry-nullary(A.s-update, l, obj, fields.map(desugar-member))
     | s-extend(l, obj, fields) => ds-curry-nullary(A.s-extend, l, obj, fields.map(desugar-member))
@@ -483,7 +487,7 @@ fun desugar-expr(expr :: A.Expr):
           else if op == "op<>":
             ds-curry-binop(l, desugar-expr(left), desugar-expr(right),
               lam(e1, e2):
-                A.s-prim-app(l, "not", [list: A.s-app(l, gid(l, "equal-always"), [list: e1, e2])])
+                A.s-prim-app(l, "not", [list: A.s-app(l, gid(l, "equal-always"), [list: e1, e2])], flat-prim-app)
               end)
           else if op == "opor":
             fun helper(operands):
@@ -521,6 +525,8 @@ fun desugar-expr(expr :: A.Expr):
           end
       end
     | s-id(l, x) => expr
+    | s-id-modref(_, _, _, _) => expr
+    | s-id-var-modref(_, _, _, _) => expr
     | s-id-var(l, x) => expr
     | s-id-letrec(_, _, _) => expr
     | s-srcloc(_, _) => expr
@@ -534,7 +540,7 @@ fun desugar-expr(expr :: A.Expr):
     | s-obj(l, fields) => A.s-obj(l, fields.map(desugar-member))
     | s-tuple(l, fields) => A.s-tuple(l, fields.map(desugar-expr))
     | s-tuple-get(l, tup, index, index-loc) => A.s-tuple-get(l, desugar-expr(tup), index, index-loc)
-    | s-ref(l, ann) => A.s-ann(l, desugar-ann(ann))
+    | s-ref(l, ann) => A.s-ref(l, desugar-ann(ann))
     | s-construct(l, modifier, constructor, elts) =>
       cases(A.ConstructModifier) modifier:
         | s-construct-normal =>
@@ -544,20 +550,20 @@ fun desugar-expr(expr :: A.Expr):
             A.s-app(constructor.l,
               A.s-prim-app(constructor.l, "getMaker" + tostring(len),
                 [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make" + tostring(len)),
-                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
+                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)], flat-prim-app),
               desugared-elts)
           else:
             A.s-app(constructor.l,
               A.s-prim-app(constructor.l, "getMaker",
                 [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "make"),
-                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
+                  A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)], flat-prim-app),
               [list: A.s-array(l, desugared-elts)])
           end
         | s-construct-lazy =>
           A.s-app(constructor.l,
             A.s-prim-app(constructor.l, "getLazyMaker",
               [list: desugar-expr(constructor), A.s-str(A.dummy-loc, "lazy-make"),
-                A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)]),
+                A.s-srcloc(A.dummy-loc, l), A.s-srcloc(A.dummy-loc, constructor.l)], flat-prim-app),
             [list: A.s-array(l,
                   elts.map(lam(elt): desugar-expr(A.s-lam(elt.l, "", empty, empty, A.a-blank, "", elt, none, none, false)) end))])
       end
@@ -575,12 +581,13 @@ fun desugar-expr(expr :: A.Expr):
           this-field = fields-by-name.get-value-now(f)
           this-field-l = this-field.l
           A.s-data-field(this-field-l, f, A.s-prim-app(this-field-l, "makeSome",
-              [list: A.s-check-expr(this-field-l, desugar-expr(this-field), field-names.get-value(f)(this-field-l))]))
+              [list: A.s-check-expr(this-field-l, desugar-expr(this-field), field-names.get-value(f)(this-field-l))],
+              flat-prim-app))
         else:
-          A.s-data-field(l, f, A.s-prim-app(l, "makeNone", [list:]))
+          A.s-data-field(l, f, A.s-prim-app(l, "makeNone", [list:], flat-prim-app))
         end
       end
-      A.s-prim-app(l, "makeReactor", [list: desugar-expr(init), A.s-obj(l, option-fields)])
+      A.s-prim-app(l, "makeReactor", [list: desugar-expr(init), A.s-obj(l, option-fields)], flat-prim-app)
     | s-table(l, headers, rows) =>
       shadow l = A.dummy-loc
       column-names = for map(header from headers):
@@ -597,7 +604,7 @@ fun desugar-expr(expr :: A.Expr):
       end
       A.s-prim-app(l, "makeTable",
         [list: A.s-array(l, column-names),
-               A.s-array(l, rows)])
+               A.s-array(l, rows)], flat-prim-app)
     | s-paren(l, e) => desugar-expr(e)
     # NOTE(john): see preconditions; desugar-scope should have already happened
     | s-let(_, _, _, _)           => raise("s-let should have already been desugared")
@@ -605,8 +612,8 @@ fun desugar-expr(expr :: A.Expr):
     # NOTE(joe): see preconditions; desugar-checks should have already happened
     | s-check(l, name, body, keyword-check) =>
       A.s-check(l, name, desugar-expr(body), keyword-check)
-    | s-check-test(l, op, refinement, left, right) =>
-      A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right))
+    | s-check-test(l, op, refinement, left, right, cause) =>
+      A.s-check-test(l, op, desugar-opt(desugar-expr, refinement), desugar-expr(left), desugar-opt(desugar-expr, right), desugar-opt(desugar-expr, cause))
     | s-load-table(l, headers, spec) =>
       dummy = A.dummy-loc
       {src; sanitizers} = for fold(acc from {none; empty}, s from spec):
@@ -614,7 +621,7 @@ fun desugar-expr(expr :: A.Expr):
         cases(A.LoadTableSpec) s:
           | s-sanitize(_, name, sanitizer) =>
             # Convert to loader option
-            as-option = A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "as-loader-option"),
+            as-option = A.s-app(l, bid(l, "as-loader-option"),
               [list:
                 A.s-str(dummy, "sanitizer"),
                 A.s-str(dummy, name.toname()),
@@ -622,7 +629,7 @@ fun desugar-expr(expr :: A.Expr):
             {src; link(as-option, sanitizers)}
           | s-table-src(_, source) =>
             # Well-formedness ensures that this matches exactly once
-            {some(source); sanitizers}
+            {some(desugar-expr(source)); sanitizers}
         end
       end
 
@@ -638,7 +645,7 @@ fun desugar-expr(expr :: A.Expr):
           A.s-array(dummy, headers.map(lam(h): A.s-str(l, h.name) end)),
           A.s-array(dummy, sanitizers)])
 
-      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "open-table"), [list: loaded])
+      A.s-app(l, bid(l, "open-table"), [list: loaded])
 
     | s-table-extend(l, column-binds, extensions) =>
       # NOTE(philip): I am fairly certain that this will need to be moved
@@ -750,11 +757,11 @@ fun desugar-expr(expr :: A.Expr):
             columns.map(lam(column):
                 A.s-let-bind(A.dummy-loc, column.val.id-b,
                   A.s-prim-app(A.dummy-loc, "raw_array_get",
-                    [list: row.id-e, column.idx.id-e])) end),
+                    [list: row.id-e, column.idx.id-e], flat-prim-app)) end),
               A.s-prim-app(A.dummy-loc, "raw_array_concat", [list:
                   row.id-e,
                   A.s-array(A.dummy-loc,
-                    extensions.map(process-extension(first)))]), true),
+                    extensions.map(process-extension(first)))], flat-prim-app), true),
           none, none, true)
       end
 
@@ -767,19 +774,20 @@ fun desugar-expr(expr :: A.Expr):
             get-table-column(l, column-binds.table.l, tbl.id-e, column)) end)),
         # Table Construction
         A.s-block(A.dummy-loc, [list:
-          A.s-block(A.dummy-loc, extensions.map(lam(extension):
-            check-no-column(l, tbl.id-e, column-binds.l, extension.name, extension.l) end)),
-          A.s-prim-app(A.dummy-loc, "makeTable", [list:
-            # Header
-            A.s-prim-app(A.dummy-loc, "raw_array_concat", [list:
-              A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
-              A.s-array(A.dummy-loc,  extensions.map(lam(e):A.s-str(e.l, e.name) end))]),
-            # Data
-              with-initialized-reducers(
-                A.s-app(l, A.s-id(l, A.s-global("raw-array-map-1")), [list:
-                    data-pop-mapfun(true),
-                    data-pop-mapfun(false),
-                    A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")]))])]), true)
+            A.s-block(A.dummy-loc, extensions.map(lam(extension):
+                check-no-column(l, tbl.id-e, column-binds.l, extension.name, extension.l) end)),
+            A.s-prim-app(A.dummy-loc, "makeTable", [list:
+                # Header
+                A.s-prim-app(A.dummy-loc, "raw_array_concat", [list:
+                    A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
+                    A.s-array(A.dummy-loc,  extensions.map(lam(e):A.s-str(e.l, e.name) end))],
+                  flat-prim-app),
+                # Data
+                with-initialized-reducers(
+                  A.s-app(l, A.s-id(l, A.s-global("raw-array-map-1")), [list:
+                      data-pop-mapfun(true),
+                      data-pop-mapfun(false),
+                      A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")]))], flat-prim-app)]), true)
     | s-table-update(l, column-binds, updates) =>
       row = mk-id(A.dummy-loc, "row")
       new-row = mk-id(A.dummy-loc, "new-row-row")
@@ -802,37 +810,38 @@ fun desugar-expr(expr :: A.Expr):
 
       A.s-let-expr(A.dummy-loc,
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
-          check-table(column-binds.table.l, desugar-expr(column-binds.table), lam(t): t end)),
-        # Column Index Bindings
-        columns.map(lam(column):
-          A.s-let-bind(A.dummy-loc, column.idx.id-b,
-            get-table-column(l, column-binds.table.l, tbl.id-e, column)) end))
-        .append(updates.map(lam(update):
-            A.s-let-bind(A.dummy-loc, update.idx.id-b,
+            check-table(column-binds.table.l, desugar-expr(column-binds.table), lam(t): t end)),
+          # Column Index Bindings
+          columns.map(lam(column):
+              A.s-let-bind(A.dummy-loc, column.idx.id-b,
+              get-table-column(l, column-binds.table.l, tbl.id-e, column)) end))
+            .append(updates.map(lam(update):
+              A.s-let-bind(A.dummy-loc, update.idx.id-b,
               get-table-column(l, column-binds.table.l, tbl.id-e, update)) end)),
         # Table Construction
-          A.s-prim-app(A.dummy-loc, "makeTable", [list:
+        A.s-prim-app(A.dummy-loc, "makeTable", [list:
             # Header
             A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
             # Data
             A.s-app(l, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
-              A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
-                A.s-let-expr(A.dummy-loc,
-                  link(
-                    A.s-let-bind(A.dummy-loc, new-row.id-b,
-                      A.s-prim-app(A.dummy-loc, "raw_array_concat", [list:
-                        row.id-e, A.s-array(A.dummy-loc, empty)])),
-                    columns.map(lam(column):
-                      A.s-let-bind(A.dummy-loc, column.val.id-b,
-                        A.s-prim-app(A.dummy-loc, "raw_array_get",
-                            [list: new-row.id-e, column.idx.id-e])) end)),
+                A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
+                  A.s-let-expr(A.dummy-loc,
+                    link(
+                      A.s-let-bind(A.dummy-loc, new-row.id-b,
+                        A.s-prim-app(A.dummy-loc, "raw_array_concat", [list:
+                            row.id-e, A.s-array(A.dummy-loc, empty)], flat-prim-app)),
+                      columns.map(lam(column):
+                          A.s-let-bind(A.dummy-loc, column.val.id-b,
+                            A.s-prim-app(A.dummy-loc, "raw_array_get",
+                            [list: new-row.id-e, column.idx.id-e], flat-prim-app)) end)),
                     A.s-let-expr(A.dummy-loc,
                       updates.map(lam(update):
-                        A.s-let-bind(A.dummy-loc, new-row.id-b,
-                          A.s-prim-app(A.dummy-loc, "raw_array_set", [list:
-                            new-row.id-e, update.idx.id-e, update.val])) end),
+                          A.s-let-bind(A.dummy-loc, new-row.id-b,
+                            A.s-prim-app(A.dummy-loc, "raw_array_set", [list:
+                              new-row.id-e, update.idx.id-e, update.val], flat-prim-app)) end),
                       new-row.id-e, true), true), none, none, true),
-              A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
+                A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])],
+          flat-prim-app), true)
     | s-table-select(l, columns, table) =>
       row = mk-id(A.dummy-loc, "row")
       tbl = mk-id(l, "table")
@@ -858,8 +867,8 @@ fun desugar-expr(expr :: A.Expr):
               A.s-array(A.dummy-loc,
                 columns.map(lam(c):
                   A.s-prim-app(A.dummy-loc, "raw_array_get",
-                      [list: row.id-e, c.idx.id-e]) end)), none, none, true),
-            A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
+                      [list: row.id-e, c.idx.id-e], flat-prim-app) end)), none, none, true),
+            A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])], flat-prim-app), true)
     | s-table-extract(l, column, table) =>
       tbl = mk-id(table.l, "table")
       col = mk-id(A.dummy-loc, column.s)
@@ -873,8 +882,8 @@ fun desugar-expr(expr :: A.Expr):
         A.s-prim-app(A.dummy-loc, "raw_array_to_list", [list:
           A.s-app(l, A.s-id(A.dummy-loc, g("raw-array-map")), [list:
             A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
-              A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row.id-e, col.id-e]), none, none, true),
-             A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
+              A.s-prim-app(A.dummy-loc, "raw_array_get", [list: row.id-e, col.id-e], flat-prim-app), none, none, true),
+             A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])], flat-prim-app), true)
     | s-table-order(l, table, ordering) =>
       ordering-raw-arr = for map(o from ordering):
         A.s-array(o.l, [list: A.s-bool(o.l, o.direction == A.ASCENDING), A.s-str(o.l, o.column.s)])
@@ -897,27 +906,28 @@ fun desugar-expr(expr :: A.Expr):
 
       A.s-let-expr(A.dummy-loc,
         link(A.s-let-bind(A.dummy-loc, tbl.id-b,
-          check-table(column-binds.table.l, desugar-expr(column-binds.table), lam(t): t end)),
-        # Column Index Bindings
-        columns.map(lam(column):
-          A.s-let-bind(A.dummy-loc, column.idx.id-b,
-            get-table-column(l, column-binds.table.l, tbl.id-e, column)) end)),
+            check-table(column-binds.table.l, desugar-expr(column-binds.table), lam(t): t end)),
+          # Column Index Bindings
+          columns.map(lam(column):
+              A.s-let-bind(A.dummy-loc, column.idx.id-b,
+              get-table-column(l, column-binds.table.l, tbl.id-e, column)) end)),
         # Table Construction
         A.s-prim-app(A.dummy-loc, "makeTable", [list:
-          # Header
-          A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
-          # Data
-          A.s-app(l, A.s-id(A.dummy-loc, g("raw-array-filter")), [list:
-            A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
-              A.s-let-expr(A.dummy-loc,
-                columns.map(lam(column):
-                  A.s-let-bind(A.dummy-loc, column.val.id-b,
-                    A.s-prim-app(A.dummy-loc, "raw_array_get",
-                          [list: row.id-e, column.idx.id-e])) end),
+            # Header
+            A.s-dot(A.dummy-loc, tbl.id-e, "_header-raw-array"),
+            # Data
+            A.s-app(l, A.s-id(A.dummy-loc, g("raw-array-filter")), [list:
+                A.s-lam(A.dummy-loc, "", empty,  [list: row.id-b], A.a-blank, "",
+                  A.s-let-expr(A.dummy-loc,
+                    columns.map(lam(column):
+                        A.s-let-bind(A.dummy-loc, column.val.id-b,
+                          A.s-prim-app(A.dummy-loc, "raw_array_get",
+                          [list: row.id-e, column.idx.id-e], flat-prim-app)) end),
                     A.s-let-expr(A.dummy-loc,
                       [list: A.s-let-bind(predicate.l, pred-res.id-b, desugar-expr(predicate))],
                       pred-res.id-e, true), true), none, none, true),
-            A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])]), true)
+                A.s-dot(A.dummy-loc, tbl.id-e, "_rows-raw-array")])],
+          flat-prim-app), true)
     | s-spy-block(l, message, contents) =>
       ds-message = cases(Option<A.Expr>) message:
         | none => A.s-str(l, "")
@@ -925,8 +935,8 @@ fun desugar-expr(expr :: A.Expr):
       end
       ds-contents-list = for map(spy-exp from contents):
         cases(A.SpyField) spy-exp:
-          | s-spy-name(l2, name) => {A.s-srcloc(l2, l2); A.s-str(l2, name.id.toname()); desugar-expr(name)}
-          | s-spy-expr(l2, name, value) => {A.s-srcloc(l2, l2); A.s-str(l2, name); desugar-expr(value)}
+          | s-spy-expr(l2, name, value, _) =>
+            {A.s-srcloc(l2, l2); A.s-str(l2, name); desugar-expr(value)}
         end
       end
       ds-contents = for L.foldr(acc from {empty; empty; empty}, ds-content from ds-contents-list):
@@ -936,9 +946,11 @@ fun desugar-expr(expr :: A.Expr):
           ds-content.{2} ^ link(_, acc.{2})
         }
       end
-      A.s-app(l, A.s-dot(l, A.s-id(l, A.s-global("builtins")), "spy"),
+      A.s-app(l, bid(l, "spy"),
         [list: A.s-srcloc(l, l), ds-message,
           A.s-array(l, ds-contents.{0}), A.s-array(l, ds-contents.{1}), A.s-array(l, ds-contents.{2})])
+    | s-prim-val(l, name) => expr
+    | s-array(l, vals) => A.s-array(l, vals.map(desugar-expr))
     | else => raise("NYI (desugar): " + torepr(expr))
   end
 where:
@@ -963,14 +975,14 @@ where:
   ds(prog2)
     is A.s-block(d,
     [list:  A.s-app(d,
-        A.s-prim-app(d, "getMaker3", [list: A.s-id(d, A.s-name(d, "list")), A.s-str(d, "make3"), A.s-srcloc(d, d), A.s-srcloc(d, d)]),
+        A.s-prim-app(d, "getMaker3", [list: A.s-id(d, A.s-name(d, "list")), A.s-str(d, "make3"), A.s-srcloc(d, d), A.s-srcloc(d, d)], flat-prim-app),
         [list:  one, two, A.s-app(d, id("_plus"), [list: one, two])])])
 
   prog3 = p("[list: 1,2,1 + 2,1,2,2 + 1]")
   ds(prog3)
     is A.s-block(d,
     [list:  A.s-app(d,
-        A.s-prim-app(d, "getMaker", [list: A.s-id(d, A.s-name(d, "list")), A.s-str(d, "make"), A.s-srcloc(d, d), A.s-srcloc(d, d)]),
+        A.s-prim-app(d, "getMaker", [list: A.s-id(d, A.s-name(d, "list")), A.s-str(d, "make"), A.s-srcloc(d, d), A.s-srcloc(d, d)], flat-prim-app),
         [list:  A.s-array(d,
             [list: one, two, A.s-app(d, id("_plus"), [list: one, two]),
               one, two, A.s-app(d, id("_plus"), [list: two, one])])])])

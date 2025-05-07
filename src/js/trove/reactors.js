@@ -4,7 +4,9 @@
     { "import-type": "builtin", "name": "valueskeleton" },
     { "import-type": "builtin", "name": "table" }
   ],
-  nativeRequires: [],
+  nativeRequires: [
+    "pyret-base/js/js-numbers",
+  ],
   provides: {
     shorthands: {
       "RofA": ["tyapp", ["local", "Reactor"], [["tid", "a"]]],
@@ -15,11 +17,14 @@
                  origin: { "import-type": "uri", uri: "builtin://reactor-events" },
                  name: "RawKeyEventType" },
       "Image": { tag: "name",
-                 origin: { "import-type": "uri", uri: "builtin://image" },
+                 origin: { "import-type": "uri", uri: "builtin://image-lib" },
                  name: "Image" },
       "ValueSkeleton": { tag: "name",
-                 origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
-                 name: "ValueSkeleton" }
+                         origin: { "import-type": "uri", uri: "builtin://valueskeleton" },
+                         name: "ValueSkeleton" },
+      "Table": { tag: "name",
+                 origin: { "import-type": "uri", uri: "builtin://global" },
+                 name: "Table" }
     },
     values: {
       "keypress": ["arrow", ["String"], ["local", "Event"]],
@@ -34,13 +39,13 @@
       "get-instance": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
       "draw": ["forall", ["a"], ["arrow", ["RofA"], "Image"]],
       "interact": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
-      "interact-trace": ["forall", ["a"], ["arrow", ["RofA"], "Any"]],
-      "simulate-trace": ["forall", ["a"], ["arrow", ["RofA", "Number"], "Any"]],
+      "interact-trace": ["forall", ["a"], ["arrow", ["RofA"], "Table"]],
+      "simulate-trace": ["forall", ["a"], ["arrow", ["RofA", "Number"], "Table"]],
       "start-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
       "stop-trace": ["forall", ["a"], ["arrow", ["RofA"], "RofA"]],
       "get-trace": ["forall", ["a"], ["arrow", ["RofA"], ["List", ["tid", "a"]]]],
-      "get-trace-as-table": ["forall", ["a"], ["arrow", ["RofA"], "Any"]],
-      "react": ["forall", ["a"], ["arrow", ["RofA", ["local", "Event"]], "RofA"]],
+      "get-trace-as-table": ["forall", ["a"], ["arrow", ["RofA"], "Table"]],
+      "react": ["forall", ["a"], ["arrow", ["RofA", ["local", "Event"]], "RofA"]]
     },
     aliases: {
       "Event": "ReactorEvent",
@@ -65,7 +70,7 @@
     },
   },
 
-  theModule: function(runtime, _, uri, reactorEvents, VSlib, tables, reactorLib) {
+  theModule: function(runtime, _, uri, reactorEvents, VSlib, tables, jsnums) {
     var gf = runtime.getField;
     var gmf = function(m, f) { return gf(runtime.getField(m, "values"), f); }
     var gtf = function(m, f) { return gf(m, "types")[f]; }
@@ -76,8 +81,29 @@
 
     var checkArity = runtime.ffi.checkArity;
 
-    var annEvent = gtf(reactorEvents, "Event");
+    const c = function(name, ...argsAndAnns) {
+      runtime.checkArgsInternalInline("reactors", name, ...argsAndAnns);
+    };
+    const c1 = function(name, arg, ann) {
+      runtime.checkArgsInternal1("reactors", name, arg, ann);
+    };
+    const c2 = function(name, arg1, ann1, arg2, ann2) {
+      runtime.checkArgsInternal2("reactors", name, arg1, ann1, arg2, ann2);
+    };
+    const c3 = function(name, arg1, ann1, arg2, ann2, arg3, ann3) {
+      runtime.checkArgsInternal3("reactors", name, arg1, ann1, arg2, ann2, arg3, ann3);
+    };
 
+    var ann = function(name, pred) {
+      return runtime.makePrimitiveAnn(name, pred);
+    };
+
+    var annEvent = gtf(reactorEvents, "Event");
+    var annNatural = runtime.makeFlatPredAnn(runtime.Number, runtime.makeFunction(function(val) {
+        return jsnums.isInteger(val) && jsnums.greaterThanOrEqual(val, 0, runtime.NumberErrbacks);
+    }, "Natural Number"), "Natural Number");
+    var annObject = runtime.Object;
+    
     function applyBrand(brand, val) {
       return gf(brand, "brand").app(val);
     }
@@ -92,7 +118,7 @@
     }
     var makeReactor = function(init, fields) {
       runtime.ffi.checkArity(2, arguments, "reactor", false);
-      runtime.checkObject(fields);
+      c1("make-reactor", fields, annObject);
       var handlerDict = {};
       Object.keys(fields.dict).forEach(function(f) {
         if(runtime.ffi.isSome(gf(fields, f))) {
@@ -104,9 +130,11 @@
     var makeReactorRaw = function(init, handlers, tracing, trace) {
       var o = runtime.makeObject({
         "get-value": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "get-value", true);
           return init;
         }),
         "draw": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "draw", true);
           if(!handlers.hasOwnProperty("to-draw")) {
             runtime.ffi.throwMessageException("Cannot draw() because no to-draw was specified on this reactor.");
           }
@@ -114,6 +142,7 @@
           return drawer.app(init);
         }),
         "interact-trace": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "interact-trace", true);
           return runtime.safeThen(function() {
             return gf(self, "start-trace").app();
           }).then(function(val) {
@@ -123,6 +152,8 @@
           }).start();
         }),
         "simulate-trace": runtime.makeMethod1(function(self, limit) {
+          checkArity(2, arguments, "simulate-trace", true);
+          c1("simulate-trace", limit, annNatural);
           function help(r, i) {
             return r.then(function(rval) {
               if(i <= 0) {
@@ -150,6 +181,7 @@
           return help(withTracing, limit).start();
         }),
         interact: runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "interact", true);
           if(externalInteractionHandler === null) {
             runtime.ffi.throwMessageException("No interaction set up for this context (please report a bug if you are using code.pyret.org and see this message)");
           }
@@ -170,12 +202,15 @@
           }, "interact");
         }),
         "start-trace": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "start-trace", true);
           return makeReactorRaw(init, handlers, true, [init]);
         }),
         "stop-trace": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "stop-trace", true);
           return makeReactorRaw(init, handlers, false, []);
         }),
         "get-trace": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "get-trace", true);
           if(tracing) {
             return runtime.ffi.makeList(trace);
           }
@@ -184,6 +219,7 @@
           }
         }),
         "get-trace-as-table": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "get-trace-as-table", true);
           if(tracing) {
             var i = 0;
             var rows = trace.map(function(state) {
@@ -191,13 +227,17 @@
               i += 1;
               return ans;
             });
-            return tables.makeTable(["tick", "state"], rows);
+            // console.log('tables =', tables);
+            return gf(tables, "internal").makeTable(["tick", "state"], rows);
+            // return runtime.makeTable(["tick", "state"], rows);
           }
           else {
             runtime.ffi.throwMessageException("Tried to get trace of a reactor that isn't tracing; try calling start-trace() first");
           }
         }),
         react: runtime.makeMethod1(function(self, event) {
+          checkArity(2, arguments, "react", true);
+          c1("react", event, annEvent);
           function callOrError(handlerName, args) {
             if(handlers.hasOwnProperty(handlerName)) {
               var funObj = handlers[handlerName].app;
@@ -252,6 +292,7 @@
             }, "react:stop-when");
         }),
         "is-stopped": runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "is-stopped", true);
           if(handlers["stop-when"]) {
             return handlers["stop-when"].app(init);
           }
@@ -260,6 +301,7 @@
           }
         }),
         _output: runtime.makeMethod0(function(self) {
+          checkArity(1, arguments, "_output", true);
           return runtime.getField(VS, "vs-constr").app(
             "reactor",
             runtime.ffi.makeList([ gf(VS, "vs-value").app(init) ]));
@@ -268,67 +310,63 @@
       return applyBrand(brandReactor, o);
     }
 
-    var c = function(name, ...argsAndAnns) {
-      runtime.checkArgsInternalInline("reactors", name, ...argsAndAnns);
-    }
-
     function getValue(reactor) {
       checkArity(1, arguments, "reactors", false);
-      c("get-value", reactor, annReactor);
+      c1("get-value", reactor, annReactor);
       return runtime.getField(reactor, "get-value").app();
     }
 
     function draw(reactor) {
       checkArity(1, arguments, "reactors", false);
-      c("draw", reactor, annReactor);
+      c1("draw", reactor, annReactor);
       return runtime.getField(reactor, "draw").app();
     }
 
     function interact(reactor) {
       checkArity(1, arguments, "reactors", false);
-      c("interact", reactor, annReactor);
+      c1("interact", reactor, annReactor);
       return runtime.getField(reactor, "interact").app();
     }
 
     function react(reactor, event) {
       checkArity(2, arguments, "reactors", false);
-      c("react", reactor, annReactor, event, annEvent);
+      c2("react", reactor, annReactor, event, annEvent);
       return runtime.getField(reactor, "react").app(event);
     }
 
     function getTrace(reactor) {
       checkArity(1, arguments, "reactors", false);
-      c("get-trace", reactor, annReactor);
+      c1("get-trace", reactor, annReactor);
       return runtime.getField(reactor, "get-trace").app();
     }
 
     function getTraceAsTable(reactor) {
       checkArity(1, arguments, "reactors", false);
-      c("get-trace-as-table", reactor, annReactor);
+      c1("get-trace-as-table", reactor, annReactor);
       return runtime.getField(reactor, "get-trace-as-table").app();
     }
 
     function startTrace(reactor) {
       checkArity(1, arguments, "reactors", false);
-      c("start-trace", reactor, annReactor);
+      c1("start-trace", reactor, annReactor);
       return runtime.getField(reactor, "start-trace").app();
     }
 
     function interactTrace(reactor) {
       checkArity(1, arguments, "reactors", false);
-      c("interact-trace", reactor, annReactor);
+      c1("interact-trace", reactor, annReactor);
       return runtime.getField(reactor, "interact-trace").app();
     }
 
     function simulateTrace(reactor, limit) {
       checkArity(2, arguments, "reactors", false);
-      c("simulate-trace", reactor, annReactor, limit, runtime.NumInteger);
+      c2("simulate-trace", reactor, annReactor, limit, runtime.NumInteger);
       return runtime.getField(reactor, "simulate-trace").app(limit);
     }
 
     function stopTrace(reactor) {
       checkArity(1, arguments, "reactors", false);
-      c("stop-trace", reactor, annReactor);
+      c1("stop-trace", reactor, annReactor);
       return runtime.getField(reactor, "stop-trace").app();
     }
 

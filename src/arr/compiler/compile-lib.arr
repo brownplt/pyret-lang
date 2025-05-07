@@ -96,9 +96,6 @@ type Either = E.Either
 
 mtd = [SD.string-dict:]
 
-# for re-export
-standard-builtins = CS.standard-builtins
-
 type URI = String
 
 data PyretCode:
@@ -106,11 +103,10 @@ data PyretCode:
   | pyret-ast(ast :: A.Program)
 end
 
-data Loadable:
-  | module-as-string(provides :: CS.Provides, compile-env :: CS.CompileEnvironment, result-printer :: CS.CompileResult<JSP.CompiledCodePrinter>)
-end
-
 type ModuleResult = Any
+
+type Loadable = CS.Loadable
+module-as-string = CS.module-as-string
 
 type Provides = CS.Provides
 
@@ -188,18 +184,22 @@ end
 
 fun get-import-type(i):
   cases(A.Import) i:
-    | s-import(_, f, _) => f
-    | s-import-types(_, f, _, _) => f
-    | s-include(_, f) => f
-    | s-import-complete(_, _, _, f, _, _) => f
-    | s-import-fields(_, _, f) => f
+    | s-import(_, f, _) => some(f)
+    | s-import-types(_, f, _, _) => some(f)
+    | s-include(_, f) => some(f)
+    | s-import-fields(_, _, f) => some(f)
+    | s-include-from(_, _, _) => none
   end
 end
 
 fun get-dependencies(p :: PyretCode, uri :: URI) -> List<CS.Dependency>:
   parsed = get-ast(p, uri)
-  for map(s from parsed.imports.map(get-import-type)):
+  from-imports = for map(s from lists.filter-map(get-import-type, parsed.imports)):
     AU.import-to-dep(s)
+  end
+  cases(Option) parsed._use:
+    | none  => from-imports
+    | some(u) => link(AU.import-to-dep(u.mod), from-imports)
   end
 end
 
@@ -214,32 +214,6 @@ fun const-dict<a>(strs :: List<String>, val :: a) -> SD.StringDict<a>:
   end
 end
 
-fun get-provides(p :: PyretCode, uri :: URI) -> Provides:
-  parsed = get-ast(p, uri)
-  vals-part =
-    cases (A.Provide) parsed._provide:
-      | s-provide-none(l) => mtd
-      | s-provide-all(l) =>
-        const-dict(A.toplevel-ids(parsed).map(_.toname()), CS.v-just-there)
-      | s-provide(l, e) =>
-        cases (A.Expr) e:
-          | s-obj(_, mlist) => const-dict(mlist.map(_.name), CS.v-just-there)
-          | else => raise("Non-object expression in provide: " + l.format(true))
-        end
-    end
-  types-part =
-    cases(A.ProvideTypes) parsed.provided-types:
-      | s-provide-types-none(l) => mtd
-      | s-provide-types-all(l) =>
-        type-ids = A.block-type-ids(parsed.block)
-        type-strs = type-ids.map(lam(i): i.name.toname() end)
-        const-dict(type-strs, CS.t-just-there)
-      | s-provide-types(l, anns) =>
-        const-dict(anns.map(_.name), CS.t-just-there)
-    end
-  CS.provides(vals-part, types-part)
-end
-
 type ToCompile = { locator :: Locator, dependency-map :: SD.MutableStringDict<Locator> }
 
 fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
@@ -248,9 +222,13 @@ fun dict-map<a, b>(sd :: SD.MutableStringDict, f :: (String, a -> b)):
   end
 end
 
-dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
+dummy-provides = lam(uri): CS.provides(uri, SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict(), SD.make-string-dict()) end
 
-fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a) -> List<ToCompile> block:
+fun compile-worklist<a>(dfind, locator, context):
+  compile-worklist-known-modules(dfind, locator, context, SD.make-mutable-string-dict())
+end
+
+fun compile-worklist-known-modules<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Locator, context :: a, current-modules :: SD.MutableStringDict<Provides>) -> List<ToCompile> block:
   temp-marked = SD.make-mutable-string-dict()
   var topo = empty
   fun visit(shadow locator :: Locator, shadow context :: a, curr-path :: List<Locator>) block:
@@ -270,8 +248,10 @@ fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Lo
           found
         end
         # visit all dependents
-        for map(f from found-mods):
-          visit(f.locator, f.context, link(f.locator, curr-path))
+        for each(f from found-mods):
+          when not(current-modules.has-key-now(f.locator.uri())):
+            visit(f.locator, f.context, link(f.locator, curr-path))
+          end
         end
         # add current locator to head of topo sort
         topo := {locator: locator, dependency-map: pmap} ^ link(_, topo)
@@ -286,6 +266,34 @@ fun compile-worklist<a>(dfind :: (a, CS.Dependency -> Located<a>), locator :: Lo
   ans
 end
 
+fun modules-from-worklist(wl, get-loadable) block:
+  max-dep-times = dep-times-from-worklist(wl)
+  maybe-modules = for map(t from wl):
+    get-loadable(t, max-dep-times)
+  end
+  modules = [SD.mutable-string-dict:]
+  for each2(m from maybe-modules, t from wl):
+    cases(Option<Loadable>) m:
+      | none => nothing
+      | some(shadow m) =>
+        modules.set-now(t.locator.uri(), m)
+    end
+  end
+  modules
+end
+
+fun dep-times-from-worklist(wl):
+  for fold(sd from [SD.string-dict:], shadow located from wl):
+    cur-mod-time = located.locator.get-modified-time()
+    dm = located.dependency-map
+    max-dep-time = for SD.fold-keys-now(mdt from cur-mod-time, dep-key from dm):
+      dep-loc = dm.get-value-now(dep-key)
+      num-max(sd.get-value(dep-loc.uri()), mdt)
+    end
+    sd.set(located.locator.uri(), max-dep-time)
+  end
+end
+
 type CompiledProgram = {loadables :: List<Loadable>, modules :: SD.MutableStringDict<Loadable>}
 
 fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> CompiledProgram block:
@@ -295,7 +303,7 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
     if not(cache.has-key-now(uri)) block:
       provide-map = dict-map(
           w.dependency-map,
-          lam(_, v): cache.get-value-now(v.uri()).provides end
+          lam(_, v): v.uri() end
       )
       options.before-compile(w.locator)
       {loadable :: Loadable; trace :: List} = compile-module(w.locator, provide-map, cache, options)
@@ -304,8 +312,8 @@ fun compile-program-with(worklist :: List<ToCompile>, modules, options) -> Compi
       # - One canonicalized for the local cache
       cache.set-now(uri, loadable)
       local-loadable = cases(Loadable) loadable:
-        | module-as-string(provides, env, result) =>
-          module-as-string(AU.localize-provides(provides, env), env, result)
+        | module-as-string(provides, env, post-env, result) =>
+          module-as-string(AU.localize-provides(provides, env), env, post-env, result)
       end
       # allow on-compile to return a new loadable
       options.on-compile(w.locator, local-loadable, trace)
@@ -328,17 +336,21 @@ fun unique(lst):
   sets.list-to-list-set(lst).to-list()
 end
 
-fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>, modules, options) -> {Loadable; List} block:
+fun compile-module(locator :: Locator, provide-map :: SD.StringDict<URI>, modules, options) -> {Loadable; List} block:
+  doc: ```
+    Invariant: provide-map maps dependency keys to URIs
+    which ALL must be keys in modules.
+  ```
   G.reset()
   A.global-names.reset()
   #print("Compiling module: " + locator.uri() + "\n")
-  env = CS.compile-env(locator.get-globals(), provide-map)
+  env = CS.compile-env(locator.get-globals(), modules, provide-map)
   cases(Option<Loadable>) locator.get-compiled() block:
     | some(loadable) =>
       #print("Module is already compiled\n")
       cases(Loadable) loadable:
-        | module-as-string(pvds, ce-unused, m) =>
-          {module-as-string(AU.canonicalize-provides(pvds, env), ce-unused, m); empty}
+        | module-as-string(pvds, ce-unused, post-env, m) =>
+          {module-as-string(AU.canonicalize-provides(pvds, env), ce-unused, post-env, m); empty}
       end
     | none =>
       #print("Module is being freshly compiled\n")
@@ -365,33 +377,32 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
       var ast-ended = AU.append-nothing-if-necessary(ast)
       ast := nothing
       add-phase("Added nothing", ast-ended)
-      ast-ended := AU.wrap-toplevels(ast-ended)
       var wf = W.check-well-formed(ast-ended)
       ast-ended := nothing
       add-phase("Checked well-formedness", wf)
-      checker = if options.check-mode and not(is-builtin-module(locator.uri())):
+      checker = if not(options.checks == "none") and not(is-builtin-module(locator.uri())):
         CH.desugar-check
       else:
         CH.desugar-no-checks
       end
       cases(CS.CompileResult) wf block:
         | ok(_) =>
-          var wf-ast = wf.code
+          var wf-ast = AU.wrap-toplevels(wf.code)
           wf := nothing
           var checked = checker(wf-ast)
           wf-ast := nothing
-          add-phase(if options.check-mode: "Desugared (with checks)" else: "Desugared (skipping checks)" end, checked)
+          add-phase(if not(options.checks == "none"): "Desugared (with checks)" else: "Desugared (skipping checks)" end, checked)
           var imported = AU.wrap-extra-imports(checked, libs)
           checked := nothing
           add-phase("Added imports", imported)
           var scoped = RS.desugar-scope(imported, env)
           imported := nothing
           add-phase("Desugared scope", scoped)
-          var named-result = RS.resolve-names(scoped.ast, env)
+          var named-result = RS.resolve-names(scoped.ast, locator.uri(), env)
           var any-errors = scoped.errors + named-result.errors
           scoped := nothing
           if is-link(any-errors) block:
-            { module-as-string(dummy-provides(locator.uri()), env, CS.err(unique(any-errors)));
+            { module-as-string(dummy-provides(locator.uri()), env, CS.computed-none, CS.err(unique(any-errors)));
               if options.collect-all or options.collect-times:
                 phase("Result", named-result.ast, time-now(), ret).tolist()
               else:
@@ -399,18 +410,33 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               end }
           else:
             add-phase("Resolved names", named-result)
-            var provides = AU.get-named-provides(named-result, locator.uri(), env)
+            var spied =
+              if options.enable-spies: named-result.ast
+              else: named-result.ast.visit(A.default-map-visitor.{
+                    method s-block(self, l, stmts):
+                      A.s-block(l, stmts.foldr(lam(stmt, acc):
+                            if A.is-s-spy-block(stmt): acc
+                            else: link(stmt.visit(self), acc)
+                            end
+                          end, empty))
+                    end
+                  })
+              end
+            var provides = dummy-provides(locator.uri())
             # Once name resolution has happened, any newly-created s-binds must be added to bindings...
-            var desugared = D.desugar(named-result.ast)
-            named-result.bindings.merge-now(desugared.new-binds)
+            var desugared = D.desugar(spied)
+            spied := nothing
+            named-result.env.bindings.merge-now(desugared.new-binds)
             # ...in order to be checked for bad assignments here
             any-errors := RS.check-unbound-ids-bad-assignments(desugared.ast, named-result, env)
             add-phase("Fully desugared", desugared.ast)
             var type-checked =
-              if options.type-check:
-                type-checked = T.type-check(desugared.ast, env, modules)
+              if is-link(any-errors):
+                CS.err(unique(any-errors))
+              else if options.type-check:
+                type-checked = T.type-check(desugared.ast, env, named-result.env, modules)
                 if CS.is-ok(type-checked) block:
-                  provides := AU.get-typed-provides(type-checked.code, locator.uri(), env)
+                  provides := AU.get-typed-provides(named-result, type-checked.code, locator.uri(), env)
                   CS.ok(type-checked.code.ast)
                 else:
                   type-checked
@@ -419,10 +445,10 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
               end
             desugared := nothing
             add-phase("Type Checked", type-checked)
+            shadow options = options.{should-profile: options.should-profile(locator)}
             cases(CS.CompileResult) type-checked block:
               | ok(_) =>
                 var tc-ast = type-checked.code
-                type-checked := nothing
                 var dp-ast = DP.desugar-post-tc(tc-ast, env)
                 tc-ast := nothing
                 var cleaned = dp-ast
@@ -431,22 +457,26 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
                             .visit(AU.inline-lams)
                             .visit(AU.set-recursive-visitor)
                             .visit(AU.set-tail-visitor)
-                add-phase("Cleaned AST", cleaned)
-                {final-provides; cr} = if is-empty(any-errors):
-                  JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.bindings, provides, options)
-                else:
-                  if options.collect-all and options.ignore-unbound:
-                    JSP.trace-make-compiled-pyret(add-phase, cleaned, env, options)
-                  else:
-                    {provides; add-phase("Result", CS.err(unique(any-errors)))}
-                  end
+                when not(options.user-annotations):
+                  cleaned := cleaned.visit(AU.strip-annotations-visitor)
                 end
+                add-phase("Cleaned AST", cleaned)
+                when not(options.type-check) block:
+                  provides := AU.get-named-provides(named-result, locator.uri(), env)
+                end
+                {final-provides; cr} = JSP.trace-make-compiled-pyret(add-phase, cleaned, env, named-result.env, provides, options)
                 cleaned := nothing
                 canonical-provides = AU.canonicalize-provides(final-provides, env)
-                mod-result = module-as-string(canonical-provides, env, cr)
+                #|
+                spy "compile-lib:canonicalize-provides":
+                  final-provides,
+                  canonical-provides
+                end
+                |#
+                mod-result = module-as-string(canonical-provides, env, named-result.env, cr)
                 {mod-result; if options.collect-all or options.collect-times: ret.tolist() else: empty end}
               | err(_) =>
-                { module-as-string(dummy-provides(locator.uri()), env, type-checked);
+                { module-as-string(provides, env, CS.computed-none, type-checked);
                   if options.collect-all or options.collect-times:
                     phase("Result", type-checked, time-now(), ret).tolist()
                   else: empty
@@ -454,7 +484,7 @@ fun compile-module(locator :: Locator, provide-map :: SD.StringDict<CS.Provides>
             end
           end
         | err(_) =>
-          { module-as-string(dummy-provides(locator.uri()), env, wf) ;
+          { module-as-string(dummy-provides(locator.uri()), env, CS.computed-none, wf) ;
             if options.collect-all or options.collect-times:
               phase("Result", wf, time-now(), ret).tolist()
             else: empty
@@ -467,7 +497,7 @@ type PyretAnswer = Any
 type PyretMod = Any
 
 fun is-error-compilation(cr):
-  is-module-as-string(cr) and CS.is-err(cr.result-printer)
+  CS.is-module-as-string(cr) and CS.is-err(cr.result-printer)
 end
 
 fun run-program(ws :: List<ToCompile>, prog :: CompiledProgram, realm :: L.Realm, runtime :: R.Runtime, options):
@@ -525,7 +555,7 @@ fun make-standalone(wl, compiled, options):
   static-modules = j-obj(for C.map_list(w from wl):
       loadable = compiled.modules.get-value-now(w.locator.uri())
       cases(Loadable) loadable:
-        | module-as-string(_, _, rp) =>
+        | module-as-string(_, _, _, rp) =>
           cases(CS.CompileResult) rp block:
             | ok(code) =>
               j-field(w.locator.uri(), J.j-raw-code(code.pyret-to-js-runnable()))
@@ -535,6 +565,22 @@ fun make-standalone(wl, compiled, options):
           end
       end
     end)
+
+
+  check-str = if not(options.check-mode): "none" else: options.checks end
+
+  runtime-options = J.j-obj(
+    [C.clist:
+      J.j-field("checksFormat", j-str(options.checks-format)),
+      J.j-field("checks", j-str(check-str)),
+      J.j-field("disableAnnotationChecks",
+        if options.runtime-annotations:
+          j-false
+        else:
+          j-true
+        end)
+    ])
+
   cases(List) all-compile-problems:
     | link(_, _) => left(all-compile-problems)
     | empty =>
@@ -560,7 +606,8 @@ fun make-standalone(wl, compiled, options):
           j-field("staticModules", static-modules),
           j-field("depMap", depmap),
           j-field("toLoad", to-load),
-          j-field("uris", uris)
+          j-field("uris", uris),
+          j-field("runtimeOptions", runtime-options)
         ])
 
       right({

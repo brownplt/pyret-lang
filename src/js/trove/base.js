@@ -13,6 +13,7 @@
     { "import-type": "builtin", name: "sets" },
     { "import-type": "builtin", name: "contracts" },
     { "import-type": "builtin", name: "srcloc" },
+    { "import-type": "builtin", name: "string-dict" },
     { "import-type": "builtin", name: "render-error-display" },
     { "import-type": "builtin", name: "checker" },
     { "import-type": "builtin", name: "ffi" },
@@ -20,7 +21,9 @@
     { "import-type": "builtin", name: "tables" },
     { "import-type": "builtin", name: "reactors" },
     { "import-type": "builtin", name: "data-source" },
-    { "import-type": "builtin", "name": "s-exp" },
+    { "import-type": "builtin", name: "constants" },
+    { "import-type": "builtin", name: "s-exp" },
+    { "import-type": "builtin", name: "timing" }
   ],
   provides: {},
   nativeRequires: [],

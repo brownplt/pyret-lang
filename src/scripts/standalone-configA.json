@@ -33,8 +33,7 @@
       "requirejs": "empty:",
       "s-expression": "empty:",
       "seedrandom": "empty:",
-      "websocket": "empty:",
-      "source-map": "empty:",
-      "stacktrace-js": "empty:"
+      "ws": "empty:",
+      "source-map": "empty:"
     }
 }

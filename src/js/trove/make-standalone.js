@@ -1,7 +1,12 @@
 ({
   requires: [],
   nativeRequires: ["path", "fs"],
-  provides: {},
+  provides: {
+    values: {
+      "make-standalone": "tany",
+      "make-html-file": "tany"
+    }
+  },
   theModule: function(runtime, namespace, uri, path, fs) {
 
     var READ_OPTIONS = {encoding: 'utf8'};
@@ -40,13 +45,15 @@
       returns: The string produced by resolving dependencies with requirejs
 
     */
-    function makeStandalone(deps, body, configJSON, standaloneFile, depsFile, thisPyretDir) {
-      runtime.checkArity(6, arguments, ["make-standalone"], false);
+    function makeStandalone(deps, body, configJSON, options) {
+      runtime.checkArity(4, arguments, ["make-standalone"], false);
       runtime.checkList(deps);
       runtime.checkPyretVal(body);
       runtime.checkString(configJSON);
-      runtime.checkString(standaloneFile);
-      runtime.checkString(depsFile);
+      var standaloneFile = runtime.getField(options, "standalone-file");
+      var depsFile = runtime.getField( options, "deps-file");
+      var thisPyretDir = runtime.getField( options, "this-pyret-dir" );
+      var baseDir = runtime.getField( options, "base-dir" );
 
       var AMD_LOADER = path.join(thisPyretDir, "js/amd_loader.js");
 
@@ -55,7 +62,6 @@
 
       // TODO(joe): make sure this gets embedded correctly in the built version; can't
       // necessarily rely on this path
-      console.log(process.cwd());
       var config = JSON.parse(configJSON);
       var storeDir = config["baseUrl"];
       var handalone = fs.readFileSync(standaloneFile, READ_OPTIONS);
@@ -64,15 +70,10 @@
       var depsStrs = depsArr.map(function(d) { return '"' + d + '"'; });
       var depsLine = "[" + depsStrs.join(",") + "]";
 
-      var programRequires = "requirejs(" + depsLine + ")"
-      fs.writeFileSync(path.join(storeDir, "program-require.js"), programRequires);
-
       if(!("out" in config)) {
         runtime.ffi.throwMessageException("make-standalone config must have an 'out' field");
       }
       var realOut = config.out;
-      config.out = path.join(storeDir, "program-deps.js");
-      config.name = "program-require";
       if(!config["use-raw-files"]) {
         throw new Error("Cannot not use raw-files! RequireJS is gone");
       }
@@ -93,7 +94,15 @@
       //fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
       //fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
       Object.keys(filesToFetch).forEach(function(f) {
-        var contents = fs.readFileSync(filesToFetch[f], {encoding: 'utf8'});
+        if (filesToFetch[f].indexOf( "$PYRET" ) !== -1) {
+          var filename = filesToFetch[f].replace("$PYRET", thisPyretDir);
+        } else if (!path.isAbsolute( filesToFetch[f] )) {
+          var filename = path.resolve( path.join( baseDir, filesToFetch[f] ));
+        } else {
+          var filename = filesToFetch[f];
+        }
+
+        var contents = fs.readFileSync(filename, {encoding: 'utf8'});
         fs.writeSync(outFile, contents);
       });
       fs.writeSync(outFile, "define(\"program\", " + depsLine + ", function() {\nreturn ");

@@ -264,6 +264,11 @@ check "raw-row":
   [raw-row: {"a"; 3}, {"a"; 5}] raises "Duplicate"
 
   r1["f"] raises "No such column"
+  r1.get("f") is none
+
+  r1.get("a") does-not-raise
+  r1.get("a") is some(3)
+  r1.get-value("a") is 3
 end
 
 
@@ -370,7 +375,7 @@ check "add-row":
   t.add-row(t2.row(true, true, 12)) is answer
 
   t.add-row("a", t.row(true, true, 12)) raises-satisfies E.is-arity-mismatch
-  t.add-row(table: a end) raises-satisfies E.is-generic-type-mismatch
+  t.add-row(table: a end) raises-satisfies contract(_, C.is-failure-at-arg)
 
   t.add-row([raw-row:]) raises "row-length"
   t.add-row([raw-row: {"a"; true}, {"b"; true}, {"c"; false}, {"d"; 22}]) raises "row-length"
@@ -391,9 +396,9 @@ check "row-n":
   t.row-n(1) is [t.new-row: "beijing", 43]
 
   t.row-n(45) raises-satisfies E.is-message-exception
-  t.row-n(-4) raises-satisfies E.is-generic-type-mismatch
-  t.row-n(4.3) raises-satisfies E.is-generic-type-mismatch
-  t.row-n("a") raises-satisfies E.is-generic-type-mismatch
+  t.row-n(-4) raises-satisfies contract(_, C.is-failure-at-arg)
+  t.row-n(4.3) raises-satisfies contract(_, C.is-failure-at-arg)
+  t.row-n("a") raises-satisfies contract(_, C.is-failure-at-arg)
   t.row-n(44, 45) raises-satisfies E.is-arity-mismatch
 end
 
@@ -502,6 +507,14 @@ check "select-columns":
   t.select-columns([list: 1]) raises-satisfies E.is-generic-type-mismatch
   t.select-columns([list: "a"], 2) raises-satisfies E.is-arity-mismatch
 
+  # Regression from https://github.com/brownplt/pyret-lang/issues/1348
+  table-examp = table: a, b, c, d, e
+    row: "Bob", 12, "blue", 62, false
+    row: "Alice", 17, "green", 55, true
+    row: "Eve", 13, "red", 70, false
+  end
+
+  table-examp.select-columns([list: "a", "b", "c", "d", "e"]).row-n(4) raises-satisfies E.is-message-exception
 end
 
 check "filter":
@@ -552,6 +565,91 @@ check "filter-by":
 
 end
 
+check "transform-column":
+  t = table: a, b, c, d, e
+    row: 1, 2, 3, 4, 5
+    row: 10, 11, 12, 13, 14
+  end
+
+  t2 = t.transform-column("b", lam(x): x * 10 end)
+  t2 is table: a, b, c, d, e
+    row: 1, 20, 3, 4, 5
+    row: 10, 110, 12, 13, 14
+  end
+
+  t3 = t.transform-column("e", lam(x): x * 10 end)
+  t3 is table: a, b, c, d, e
+    row: 1, 2, 3, 4, 50
+    row: 10, 11, 12, 13, 140
+  end
+
+  t4 = t.transform-column("a", lam(x): x * 10 end)
+  t4 is table: a, b, c, d, e
+    row: 10, 2, 3, 4, 5
+    row: 100, 11, 12, 13, 14
+  end
+
+  t5 = t4.transform-column("c", lam(x): x * 10 end)
+  t5 is table: a, b, c, d, e
+    row: 10, 2, 30, 4, 5
+    row: 100, 11, 120, 13, 14
+  end
+
+  t.transform-column("g", lam(x): x end) raises "but it doesn't exist (existing column name(s) were a, b, c, d, e)"
+
+  t-empty = table: a, b end
+  t-empty.transform-column("a", lam(x): raise("should not reach here") end) is t-empty
+
+end
+
+check "rename-column":
+  t = table: a, b, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+  end
+
+  t2 = t.rename-column("b", "z")
+  t2 is table: a, z, c
+    row: 1, 2, 3
+    row: 4, 5, 6
+  end
+  t2.get-column("z") is [list: 2, 5]
+  t.get-column("z") raises "does not have a column"
+  t2.get-column("b") raises "does not have a column"
+  t.get-column("b") is [list: 2, 5]
+
+  t.rename-column("b", "b") raises "already exists"
+  t.rename-column("z", "b") raises "doesn't exist"
+end
+
+
+check "build-column":
+  t = table: a, b
+    row: 1, 2
+    row: 4, 5
+  end
+
+  with-c = t.build-column("c", {(r): r["b"] + 5})
+  with-c is table: a, b, c
+    row: 1, 2, 7
+    row: 4, 5, 10
+  end
+
+  with-c-and-d = with-c.build-column("d", {(r): num-to-string(r["c"])})
+  with-c-and-d is table: a, b, c, d
+    row: 1, 2, 7, "7"
+    row: 4, 5, 10, "10"
+  end
+
+  with-c-and-d.build-column("d", lam(x): x end) raises "(existing column names were a, b, c, d)"
+  t.build-column("a", lam(x): x end) raises "(existing column names were a, b)"
+
+  t.build-column("z", lam(x) block:
+    x satisfies is-row
+    x
+  end)
+end
+
 check "table-from-rows":
   table-from-rows = TS.table-from-rows
   [table-from-rows:
@@ -588,7 +686,102 @@ check "table-from-rows":
   ] + t2.all-rows()
   t4 = table-from-rows.make(raw-array-from-list(new-row-list))
 
-  nothing
+  nothing does-not-raise # Dummy test to avoid well-formedness errors in the previous row
+
+  [table-from-rows:
+    [list:
+      [raw-row: {"A"; 5}, {"B"; 7}, {"C"; 8}],
+      [raw-row: {"A"; 1}, {"B"; 2}, {"C"; 3}]]]
+    raises "RawArrayOfRows"
+
+  [table-from-rows:
+    1, [raw-row: {"A"; 1}, {"B"; 2}],
+    false, [raw-row: {"A"; 3}, {"B"; 4}],
+    "non-row string", [raw-row: {"A"; 5}, {"B"; 6}]]
+    raises "RawArrayOfRows"
+
+  [table-from-rows:
+    [raw-row: 5, {"B"; 7}, {"C"; 8}],
+    [raw-row: {"A"; 1}, {"B"; 2}, {"C"; 3}]]
+    raises "KeyValPair"
+end
+
+table-from-column = TS.table-from-column
+table-from-columns = TS.table-from-columns
+col1 = range(0, 100)
+col2 = range(500, 600)
+col3 = range(1000, 1100)
+
+check "table-from-column":
+  t = table-from-column("a", col1).add-column("b", col2).add-column("c", col3)
+
+  t.length() is 100
+  t.column-names() is [list: "a", "b", "c"]
+  cs = t.all-columns()
+  cs.get(0) is col1
+  cs.get(1) is col2
+  cs.get(2) is col3
+  cs.length() is 3
 end
 
 
+
+check:
+  [table-from-columns:] raises "requires at least one"
+end
+check:
+  tfc1 = [table-from-columns: {"a"; col1}]
+  tfc1.column-names() is [list: "a"]
+  cs = tfc1.all-columns()
+  cs.get(0) is col1
+  cs.length() is 1
+end
+check:
+  tfc2 = [table-from-columns: {"a"; col1}, {"b"; col2}]
+  tfc2.column-names() is [list: "a", "b"]
+  cs = tfc2.all-columns()
+  cs.get(0) is col1
+  cs.get(1) is col2
+
+  cs.length() is 2
+end
+check:
+  tfc3 = [table-from-columns: {"a"; col1}, {"b"; col2}, {"c"; col3}]
+  tfc3.column-names() is [list: "a", "b", "c"]
+  cs = tfc3.all-columns()
+  cs.get(0) is col1
+  cs.get(1) is col2
+  cs.get(2) is col3
+  cs.length() is 3
+end
+check:
+  tfc4 = [table-from-columns: {"a"; col1}, {"b"; col2}, {"c"; col3}, {"d"; col2}]
+  tfc4.column-names() is [list: "a", "b", "c", "d"]
+  cs = tfc4.all-columns()
+  cs.get(0) is col1
+  cs.get(1) is col2
+  cs.get(2) is col3
+  cs.get(3) is col2
+  cs.length() is 4
+end
+check:
+  tfc5 = [table-from-columns: {"a"; col1}, {"b"; col2}, {"c"; col3}, {"d"; col2}, {"e"; col1}]
+  tfc5.column-names() is [list: "a", "b", "c", "d", "e"]
+  cs = tfc5.all-columns()
+  cs.get(0) is col1
+  cs.get(1) is col2
+  cs.get(2) is col3
+  cs.get(3) is col2
+  cs.get(4) is col1
+  cs.length() is 5
+end
+
+check "empty table-from-columns":
+  t = [table-from-columns:
+    {"a"; [list: ]},
+    {"b"; [list: ]}
+  ]
+
+  t.length() is 0
+  t.column-names() is [list: "a", "b"]
+end

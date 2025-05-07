@@ -1,11 +1,29 @@
 ({
   requires: [],
-  provides: {},
+  provides: {
+    values: {
+      "open-input-file": "tany",
+      "open-output-file": "tany",
+      "read-file": "tany",
+      "file-to-string": "tany",
+      "display": "tany",
+      "flush-output-file": "tany",
+      "file-times": "tany",
+      "real-path": "tany",
+      "exists": "tany",
+      "is-file": "tany",
+      "is-dir": "tany",
+      "close-output-file": "tany",
+      "close-input-file": "tany",
+      "create-dir": "tany",
+      "list-files": "tany"
+    }
+  },
   nativeRequires: ["fs"],
   theModule: function(RUNTIME, NAMESPACE, uri, fs) {
     function InputFile(name) {
       this.name = name;
-      this.fd = fs.openSync(name, "r")
+      this.fd = fs.openSync(name, "r");
     }
 
     function OutputFile(name, append) {
@@ -43,6 +61,20 @@
             throw Error("Expected file in read-file, but got something else");
           }
         }, "read-file"),
+      "file-to-string": RUNTIME.makeFunction(function(path) {
+          RUNTIME.ffi.checkArity(1, arguments, "file-to-string", false);
+          RUNTIME.checkString(path);
+          return RUNTIME.pauseStack(async restarter => {
+            fs.readFile(path, 'utf8', (err, data) => {
+              if (err) {
+                restarter.error(RUNTIME.ffi.throwMessageException(String(err)));
+              } else {
+                restarter.resume(data);
+              }
+            });
+          })
+        }, "file-to-string"),
+
       "display": RUNTIME.makeFunction(function(file, val) {
           RUNTIME.ffi.checkArity(2, arguments, "display", false);
           RUNTIME.checkOpaque(file);
@@ -114,6 +146,26 @@
           var e = fs.existsSync(s);
           return RUNTIME.makeBoolean(e);
         }, "exists"),
+      "is-file": RUNTIME.makeFunction(function(path) {
+          RUNTIME.ffi.checkArity(1, arguments, "is-file", false);
+          RUNTIME.checkString(path);
+          var s = RUNTIME.unwrap(path);
+          if (!fs.existsSync(s)) {
+            return RUNTIME.makeBoolean(false);
+          }
+          var stats = fs.lstatSync(s);
+          return RUNTIME.makeBoolean(stats.isFile());
+        }, "is-file"),
+      "is-dir": RUNTIME.makeFunction(function(path) {
+          RUNTIME.ffi.checkArity(1, arguments, "is-file", false);
+          RUNTIME.checkString(path);
+          var s = RUNTIME.unwrap(path);
+          if (!fs.existsSync(s)) {
+            return RUNTIME.makeBoolean(false);
+          }
+          var stats = fs.lstatSync(s);
+          return RUNTIME.makeBoolean(stats.isDirectory());
+        }, "is-dir"),
       "close-output-file": RUNTIME.makeFunction(function(file) { 
           RUNTIME.ffi.checkArity(1, arguments, "close-output-file", false);
           RUNTIME.checkOpaque(file);

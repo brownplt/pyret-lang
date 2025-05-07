@@ -1,6 +1,8 @@
 ({
   requires: [],
-  provides: {},
+  provides: {
+    values: { "command-line-arguments": ["arrow", [], ["List", "String"]] } 
+  },
   nativeRequires: [],
   theModule: function(runtime, _, uri) {
     return runtime.makeModuleReturn(

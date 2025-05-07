@@ -8,7 +8,19 @@
     "pyret-base/js/pyret-tokenizer",
     "pyret-base/js/pyret-parser"
   ],
-  provides: {},
+  provides: {
+    shorthands: {
+      "Program": {
+          tag: "name",
+          origin: { "import-type": "uri", uri: "builtin://ast" },
+          name: "Program"
+        }
+    },
+    values: {
+      "surface-parse": ["arrow", ["String", "String"], "Program"],
+      "maybe-surface-parse": ["arrow", ["String", "String"], ["Option", "Program"]],
+    }
+  },
   theModule: function(RUNTIME, NAMESPACE, uri, srclocLib, astLib, listsLib, tokenizer, parser) {
     var srcloc = RUNTIME.getField(srclocLib, "values");
     var ast = RUNTIME.getField(astLib, "values");
@@ -17,31 +29,11 @@
     var link = RUNTIME.getField(lists, "link");
     var empty = RUNTIME.getField(lists, "empty");
 
+    var makePyretPos = RUNTIME.ffi.makePyretPos;
+    var combinePyretPos = RUNTIME.ffi.combinePyretPos;
+
     //var data = "#lang pyret\n\nif (f(x) and g(y) and h(z) and i(w) and j(u)): true else: false end";
-    function makePyretPos(fileName, p) {
-      var n = RUNTIME.makeNumber;
-      return RUNTIME.getField(srcloc, "srcloc").app(
-        RUNTIME.makeString(fileName),
-        n(p.startRow),
-        n(p.startCol),
-        n(p.startChar),
-        n(p.endRow),
-        n(p.endCol),
-        n(p.endChar)
-      );
-    }
-    function combinePyretPos(fileName, p1, p2) {
-      var n = RUNTIME.makeNumber;
-      return RUNTIME.getField(srcloc, "srcloc").app(
-        RUNTIME.makeString(fileName),
-        n(p1.startRow),
-        n(p1.startCol),
-        n(p1.startChar),
-        n(p2.endRow),
-        n(p2.endCol),
-        n(p2.endChar)
-      );
-    }
+    
     function isSignedNumberAsStmt(stmt) {
       var node = stmt;
       if (node.name !== "stmt") return false;       node = node.kids[0];
@@ -67,6 +59,7 @@
         }
       }
     }
+
     function translate(node, fileName) {
       // NOTE: This translation could blow the stack for very deep ASTs
       // We might have to rewrite the whole algorithm
@@ -81,6 +74,41 @@
           throw new Error("Cannot find " + node.name + " in translators");
         return translators[node.name](node);
       }
+
+      function nameSpec(node, constructor) {
+        return RUNTIME.getField(ast, constructor).app(
+            pos(node.pos),
+            tr(node.kids[0])
+        );
+      }
+      function typeSpec(node, constructor) {
+        return RUNTIME.getField(ast, constructor).app(
+            pos(node.pos),
+            tr(node.kids[1])
+        );
+      }
+      function dataSpec(node, constructor) {
+        var hidings;
+        node.kids[1].name = 'name-spec';
+        if(node.kids.length === 2) {
+          hidings = makeListTr([]);
+        }
+        else {
+          hidings = tr(node.kids[2]);
+        }
+        return RUNTIME.getField(ast, constructor).app(
+            pos(node.pos),
+            tr(node.kids[1]),
+            hidings
+            );
+      }
+      function moduleSpec(node, constructor) {
+        return RUNTIME.getField(ast, constructor).app(
+            pos(node.pos),
+            tr(node.kids[1])
+        );
+      }
+
       var pos = function(p) { return makePyretPos(fileName, p); };
       var pos2 = function(p1, p2) { return combinePyretPos(fileName, p1, p2); };
       function makeListTr(arr, start, end, onto, f) {
@@ -130,29 +158,127 @@
           var prelude = tr(node.kids[0]);
           var body = tr(node.kids[1]);
           return RUNTIME.getField(ast, 's-program')
-            .app(pos(node.pos), prelude.provide, prelude.provideTypes, prelude.imports, body);
+            .app(pos(node.pos), prelude.use, prelude.provides, prelude.provideTypes, prelude.allProvides, prelude.imports, body);
         },
         'prelude': function(node) {
-          var provide;
-          var provideTypes;
-          var kids = node.kids.slice(0);
-          if (kids.length > 0 && kids[0].name === "provide-stmt") {
-            provide = tr(kids.shift());
-          } else {
-            provide = RUNTIME.getField(ast, 's-provide-none').app(pos(node.pos));
+          var use = RUNTIME.makeNone();
+          var provides = undefined;
+          var provideTypes = undefined;
+          var allProvides = [];
+          var imports = [];
+
+          node.kids.forEach(function(kid, i) {
+            if(kid.name === "use-stmt") {
+              use = RUNTIME.makeSome(tr(kid));
+            }
+            else if(provideTypes === undefined && kid.kids[0].name === 'provide-types-stmt') {
+              provideTypes = tr(kid);
+            }
+            else if(provides === undefined && kid.kids[0].name === 'provide-vals-stmt') {
+              provides = tr(kid);
+            }
+            else if (kid.kids[0].name === 'provide-block') {
+              allProvides.push(kid);
+            }
+            else if (kid.kids[0].name === "INCLUDE" || kid.kids[0].name === "IMPORT") {
+              imports.push(kid);
+            }
+          });
+          if(provides === undefined) {
+            provides = RUNTIME.getField(ast, "s-provide-none").app(pos(node.pos));
           }
-          if (kids.length > 0 && kids[0].name === "provide-types-stmt") {
-            provideTypes = tr(kids.shift());
-          } else {
-            provideTypes = RUNTIME.getField(ast, 's-provide-types-none').app(pos(node.pos));
+          if(provideTypes === undefined) {
+            provideTypes = RUNTIME.getField(ast, "s-provide-types-none").app(pos(node.pos));
           }
           return {
-            provide : provide,
-            provideTypes : provideTypes,
-            imports : makeListTr(kids)
+            use: use,
+            provides: provides,
+            provideTypes: provideTypes,
+            allProvides: makeListTr(allProvides),
+            imports: makeListTr(imports)
           };
         },
+        'use-stmt': function(node) {
+          return RUNTIME.getField(ast, "s-use").app(pos(node.pos), name(node.kids[1]), tr(node.kids[2]));
+        },
+        'include-spec': function(node) {
+          return tr(node.kids[0]);
+        },
+        'include-data-spec': function(node) {
+          return dataSpec(node, 's-include-data');
+        },
+        'include-type-spec': function(node) {
+          return typeSpec(node, 's-include-type');
+        },
+        'include-name-spec': function(node) {
+          return nameSpec(node, 's-include-name');
+        },
+        'include-module-spec': function(node) {
+          return moduleSpec(node, 's-include-module');
+        },
+        'hiding-spec': function(node) {
+          return makeListComma(node.kids, 2, node.kids.length - 1, name);
+        },
+        'module-ref': function(node) {
+          return makeListComma(node.kids, 0, node.kids.length, name);
+        },
+        'name-spec': function(node) {
+          if(node.kids[0].name === "STAR" || node.kids[0].name === "TIMES") {
+            if(node.kids.length === 1) {
+              return RUNTIME.getField(ast, "s-star").app(
+                pos(node.pos), makeListTr([]));
+            }
+            else {
+              return RUNTIME.getField(ast, "s-star").app(
+                pos(node.pos), tr(node.kids[1]));
+            }
+          }
+          else if(node.kids.length === 1) {
+            return RUNTIME.getField(ast, "s-module-ref").app(
+              pos(node.pos), tr(node.kids[0]), RUNTIME.ffi.makeNone());
+          }
+          else {
+            return RUNTIME.getField(ast, "s-module-ref").app(
+              pos(node.pos),
+              tr(node.kids[0]),
+              RUNTIME.ffi.makeSome(name(node.kids[2])));
+          }
+        },
+        'provide-spec': function(node) {
+          return tr(node.kids[0]);
+        },
+        'provide-name-spec': function(node) {
+          return nameSpec(node, 's-provide-name');
+        },
+        'provide-data-spec': function(node) {
+          return dataSpec(node, 's-provide-data');
+        },
+        'provide-type-spec': function(node) {
+          return typeSpec(node, 's-provide-type');
+        },
+        'provide-module-spec': function(node) {
+          return moduleSpec(node, 's-provide-module');
+        },
         'provide-stmt': function(node) {
+          return tr(node.kids[0]);
+        },
+        'provide-block': function(node) {
+          var skippedLast = 1;
+          if(node.kids[node.kids.length - 2].name === "COMMA") skippedLast = 2;
+          if(node.kids[0].name === "PROVIDECOLON") {
+            return RUNTIME.getField(ast, "s-provide-block").app(
+              pos(node.pos),
+              makeListTr([]),
+              makeListComma(node.kids, 1, node.kids.length - skippedLast));
+          }
+          else {
+            return RUNTIME.getField(ast, "s-provide-block").app(
+              pos(node.pos),
+              tr(node.kids[2]),
+              makeListComma(node.kids, 4, node.kids.length - skippedLast));
+          }
+        },
+        'provide-vals-stmt': function(node) {
           if (node.kids.length === 2) {
             // (provide-stmt PROVIDE STAR)
             return RUNTIME.getField(ast, 's-provide-all')
@@ -164,7 +290,7 @@
           }
         },
         'provide-types-stmt': function(node) {
-          if (node.kids[1].name === "STAR") {
+          if (node.kids[1].name === "STAR" || node.kids[1].name === "TIMES") {
             return RUNTIME.getField(ast, 's-provide-types-all').app(pos(node.pos));
           } else {
             // will produce record-ann
@@ -185,7 +311,13 @@
               return RUNTIME.getField(ast, 's-import-types')
                 .app(pos(node.pos), tr(node.kids[1]), name(node.kids[3]), name(node.kids[5]));
             }
-          } else if (node.kids[0].name === "INCLUDE") {
+          } else if (node.kids[0].name === "INCLUDE" && node.kids[1].name === "FROM") {
+            var skippedLast = 1;
+            if (node.kids[node.kids.length - 2].name === "COMMA") skippedLast++;
+            return RUNTIME.getField(ast, 's-include-from').app(pos(node.pos), 
+              tr(node.kids[2]),
+              makeListComma(node.kids, 4, node.kids.length - skippedLast));
+          } else if (node.kids[0].name === "INCLUDE" && node.kids[1].name !== "FROM") {
             // (import-stmt INCLUDE import-source)
             return RUNTIME.getField(ast, 's-include').app(pos(node.pos), tr(node.kids[1]));
           } else {
@@ -239,11 +371,11 @@
         },
         'spy-field': function(node) {
           if (node.kids.length === 1) {
-            return RUNTIME.getField(ast, 's-spy-name')
-              .app(pos(node.pos), tr(node.kids[0]));
+            return RUNTIME.getField(ast, 's-spy-expr')
+              .app(pos(node.pos), symbol(node.kids[0].kids[0]), tr(node.kids[0]), RUNTIME.makeBoolean(true));
           } else {
             return RUNTIME.getField(ast, 's-spy-expr')
-              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]));
+              .app(pos(node.pos), symbol(node.kids[0]), tr(node.kids[2]), RUNTIME.makeBoolean(false));
           }
         },
         'data-with': function(node) {
@@ -395,22 +527,31 @@
             .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[2]));
         },
         'contract-stmt': function(node) {
-          // (contract-stmt NAME COLONCOLON ann)
+          // (contract-stmt NAME COLONCOLON ty-params ann)
           return RUNTIME.getField(ast, 's-contract')
-            .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]));
+            .app(pos(node.pos), name(node.kids[0]), tr(node.kids[2]), tr(node.kids[3]));
         },
         'fun-header': function(node) {
           // (fun-header ty-params args return-ann)
-          return {
-            tyParams: tr(node.kids[0]),
-            args: tr(node.kids[1]),
-            returnAnn: tr(node.kids[2])
-          };
+          if (node.kids[1].name === "bad-args") {
+            return {
+              lparenPos: pos(node.kids[1].kids[0].pos)
+            };
+          } else {
+            return {
+              tyParams: tr(node.kids[0]),
+              args: tr(node.kids[1]),
+              returnAnn: tr(node.kids[2])
+            };
+          }
         },
         'fun-expr': function(node) {
           // (fun-expr FUN fun-name fun-header COLON doc body check END)
           var isBlock = (node.kids[3].name === "BLOCK");
           var header = tr(node.kids[2]);
+          if (header.lparenPos) {
+            RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[3].pos), header.lparenPos);
+          }
           var checkRes = tr(node.kids[6]);
           return RUNTIME.getField(ast, 's-fun')
             .app(pos(node.pos), symbol(node.kids[1]),
@@ -464,18 +605,33 @@
             // (check-test left op)
             //             0    1
             return RUNTIME.getField(ast, 's-check-test')
-              .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeNone());
-          } else if (kids.length === 3) {
-            // (check-test left op right)
-            //             0    1  2
+              .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeNone(), RUNTIME.ffi.makeNone());
+          } else {
+            var refinement, right, because;
+            if (kids[2].name === "PERCENT") {
+              // (check-test left op PERCENT LPAREN refinement RPAREN right ...)
+              //             0    1                 4                 6
+              refinement = RUNTIME.ffi.makeSome(tr(kids[4]));
+              right = RUNTIME.ffi.makeSome(tr(kids[6]));
+            } else if (kids[2].name === "BECAUSE") {
+              // (check-test left does-not-raise because ...)
+              refinement = RUNTIME.ffi.makeNone();
+              right = RUNTIME.ffi.makeNone();
+            } else {
+              // (check-test left op right ...)
+              //             0    1  2
+              refinement = RUNTIME.ffi.makeNone();
+              right = RUNTIME.ffi.makeSome(tr(kids[2]));
+            }
+            if (kids[kids.length - 2].name === "BECAUSE") {
+              // (check-test ... right BECAUSE cause)
+              //                       len-2   len-1
+              because = RUNTIME.ffi.makeSome(tr(kids[kids.length - 1]));
+            } else {
+              because = RUNTIME.ffi.makeNone();
+            }
             return RUNTIME.getField(ast, 's-check-test')
-              .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeNone(), tr(kids[0]), RUNTIME.ffi.makeSome(tr(kids[2])));
-          }
-          else {
-            // (check-test left op PERCENT LPAREN refinement RPAREN right)
-            //             0    1                 4                 6
-            return RUNTIME.getField(ast, 's-check-test')
-              .app(pos(node.pos), tr(kids[1]), RUNTIME.ffi.makeSome(tr(kids[4])), tr(kids[0]), RUNTIME.ffi.makeSome(tr(kids[6])));
+              .app(pos(node.pos), tr(kids[1]), refinement, tr(kids[0]), right, because);
           }
         },
         'binop-expr': function(node) {
@@ -684,6 +840,9 @@
             // (obj-field METHOD key fun-header COLON doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
+            if (header.lparenPos) {
+              RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[3].pos), header.lparenPos);
+            }
             var checkRes = tr(node.kids[6])
             return RUNTIME.getField(ast, 's-method-field')
               .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
@@ -864,6 +1023,9 @@
             // (field METHOD key fun-header (BLOCK|COLON) doc body check END)
             var isBlock = (node.kids[3].name === "BLOCK");
             var header = tr(node.kids[2]);
+            if (header.lparenPos) {
+              RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[3].pos), header.lparenPos);
+            }
             var checkRes = tr(node.kids[6])
             return RUNTIME.getField(ast, "s-method-field")
               .app(pos(node.pos), tr(node.kids[1]), header.tyParams, header.args, header.returnAnn,
@@ -1007,9 +1169,14 @@
           }
         },
         'app-expr': function(node) {
-          // (app-expr f args)
-          return RUNTIME.getField(ast, 's-app')
-            .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
+          if (node.kids.length > 2) {
+            RUNTIME.ffi.throwParseErrorBadApp(pos(node.kids[0].pos),
+                                              pos2(node.kids[1].pos, node.kids[node.kids.length - 1].pos));
+          } else {
+            // (app-expr f args)
+            return RUNTIME.getField(ast, 's-app')
+              .app(pos(node.pos), tr(node.kids[0]), tr(node.kids[1]));
+          }
         },
         'id-expr': function(node) {
           // (id-expr x)
@@ -1095,6 +1262,9 @@
           // (lambda-expr LAM fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
+          if (header.lparenPos) {
+            RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[2].pos), header.lparenPos);
+          }
           var checkRes = tr(node.kids[5]);
           return RUNTIME.getField(ast, 's-lam')
             .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
@@ -1104,6 +1274,9 @@
           // (method-expr METHOD fun-header COLON doc body check END)
           var isBlock = (node.kids[2].name === "BLOCK");
           var header = tr(node.kids[1]);
+          if (header.lparenPos) {
+            RUNTIME.ffi.throwParseErrorBadFunHeader(pos2(node.kids[0].pos, node.kids[2].pos), header.lparenPos);
+          }
           var checkRes = tr(node.kids[5]);
           return RUNTIME.getField(ast, 's-method')
             .app(pos(node.pos), RUNTIME.makeString(""), header.tyParams, header.args, header.returnAnn,
@@ -1375,6 +1548,7 @@
       "is=~":              function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op=~");},
       "is<=>":             function(l){return RUNTIME.getField(ast, "s-op-is-op").app(l, "op<=>");},
       "is-not":            function(l){return RUNTIME.getField(ast, "s-op-is-not").app(l);},
+      "is-not-roughly":    function(l){return RUNTIME.getField(ast, "s-op-is-not-roughly").app(l);},
       "is-not==":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op==");},
       "is-not=~":          function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op=~");},
       "is-not<=>":         function(l){return RUNTIME.getField(ast, "s-op-is-not-op").app(l, "op<=>");},
@@ -1401,7 +1575,7 @@
         if (countParses == 0) {
           var nextTok = toks.curTok;
           message = "There were " + countParses + " potential parses.\n" +
-                      "Parse failed, next token is " + nextTok.toString(true) +
+                      "Parse failed, next token is " + nextTok.toRepr(true) +
                       " at " + fileName + ", " + nextTok.pos.toString(true);
           if (toks.isEOF(nextTok))
             RUNTIME.ffi.throwParseErrorEOF(makePyretPos(fileName, nextTok.pos));
@@ -1409,12 +1583,12 @@
             RUNTIME.ffi.throwParseErrorUnterminatedString(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "BAD-NUMBER")
             RUNTIME.ffi.throwParseErrorBadNumber(makePyretPos(fileName, nextTok.pos));
-          else if (nextTok.name === "BAD-OPER")
+          else if (nextTok.name === "BAD-OPER" || nextTok.name === "STAR")
             RUNTIME.ffi.throwParseErrorBadOper(makePyretPos(fileName, nextTok.pos));
           else if (nextTok.name === "COLONCOLON")
             RUNTIME.ffi.throwParseErrorColonColon(makePyretPos(fileName, nextTok.pos));
           else if (typeof opLookup[String(nextTok.value).trim()] === "function")
-            RUNTIME.ffi.throwParseErrorBadCheckOper(makePyretPos(fileName, nextTok.pos));
+            RUNTIME.ffi.throwParseErrorBadCheckOper(opLookup[String(nextTok.value).trim()](makePyretPos(fileName, nextTok.pos)));
           else
             RUNTIME.ffi.throwParseErrorNextToken(makePyretPos(fileName, nextTok.pos), nextTok.value || nextTok.toString(true));
         }

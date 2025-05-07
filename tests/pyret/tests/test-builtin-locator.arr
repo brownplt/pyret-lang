@@ -26,6 +26,8 @@ check:
   #   "make-mutable-string-dict", "mutable-string-dict"]
 end
 
+NUM-BUILTIN-MODULES = 26
+
 check:
   modules = SD.make-mutable-string-dict()
   modules.set-now("foo",
@@ -70,16 +72,16 @@ check:
       CM.dependency("protocol", [list: "bar"]),
       CM.builtin("string-dict")]
   wlist = CL.compile-worklist(dfind, floc, {})
-  wlist.length() is 27
+  wlist.length() is NUM-BUILTIN-MODULES + 5
   wlist.get(0).locator.uri() is "builtin://global"
   wlist.get(0).locator.name() is "global"
   wlist.get(1).locator.uri() is "builtin://valueskeleton"
   wlist.get(1).locator.name() is "valueskeleton"
   wlist.get(2).locator.uri() is "builtin://string-dict"
   wlist.get(2).locator.name() is "string-dict"
-  wlist.get(25).locator.uri() is "protocol://bar"
-  wlist.get(25).locator is string-to-locator("bar")
-  wlist.get(26).locator is floc
+  wlist.get(NUM-BUILTIN-MODULES + 3).locator.uri() is "protocol://bar"
+  wlist.get(NUM-BUILTIN-MODULES + 3).locator is string-to-locator("bar")
+  wlist.get(NUM-BUILTIN-MODULES + 4).locator is floc
 
   # TODO(joe): this requires some better eval support than we have
   # ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
@@ -87,7 +89,7 @@ check:
 
   bazloc = string-to-locator("baz")
   wlist2 = CL.compile-worklist(dfind, bazloc, {})
-  wlist2.length() is 26
+  wlist2.length() is NUM-BUILTIN-MODULES + 4
   # TODO(joe): this requires some better eval support than we have
   # ans2 = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)
   # ans2.v satisfies L.is-success-result
