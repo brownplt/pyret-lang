@@ -7,6 +7,7 @@ import checker as _
 import cmdline as _
 import constants as _
 import contracts as _
+import csv as _
 import data-source as _
 import either as _
 import equality as _
