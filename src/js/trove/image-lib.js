@@ -1479,10 +1479,6 @@
       ctx.font = this.font;
       let metrics = ctx.measureText(str);
 
-      if(typeof document !== 'undefined') {
-        var otherMetrics = getTextDimensions(str, this.font);
-        console.log(metrics, otherMetrics);
-      }
       this.width       = metrics.width;
       this.height      = Math.ceil(metrics.actualBoundingBoxAscent) + Math.ceil(metrics.actualBoundingBoxDescent);
       this.alphaBaseline = Math.ceil(metrics.actualBoundingBoxAscent);
