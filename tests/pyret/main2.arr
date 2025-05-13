@@ -28,6 +28,7 @@ import file("./tests/test-record-concat.arr") as _
 import file("./tests/test-rec.arr") as _
 import file("./tests/test-compile-errors.arr") as _
 import file("./tests/test-well-formed.arr") as _
+import file("./tests/test-filesystem.arr") as _
 import file("./tests/test-file.arr") as _
 import file("./tests/test-path.arr") as _
 import file("./tests/test-repl.arr") as _

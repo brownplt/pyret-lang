@@ -3872,6 +3872,20 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makePause(pause, resumer);
     }
 
+    function pauseAwait(p) {
+      if(!('then' in p)) { return p; }
+
+      return pauseStack(async (restarter) => {
+        try {
+          const result = await p;
+          return restarter.resume(result);
+        }
+        catch(e) {
+          return restarter.error(e);
+        }
+      });
+    }
+
     function PausePackage() {
       this.resumeVal = null;
       this.errorVal = null;
@@ -6118,6 +6132,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'isPause'     : isPause,
 
       'pauseStack'  : pauseStack,
+      'await'       : pauseAwait,
       'schedulePause'  : schedulePause,
       'breakAll' : breakAll,
 
