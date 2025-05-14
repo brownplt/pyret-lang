@@ -73,7 +73,8 @@
             readFile: wrap(readFile),
             writeFile: wrap(writeFile),
             stat: wrap(stat),
-            resolve: wrap(resolve)
+            resolve: wrap(resolve),
+            init: initializedOK
         });
     }
 })
