@@ -20,6 +20,9 @@ define("seedrandom", [], function() {return seedrandom;});
 sourcemap = require("source-map");
 define("source-map", [], function () { return sourcemap; });
 
+buffer = require("buffer");
+define("buffer", [], function () { return buffer; });
+
 jssha256 = require("js-sha256");
 define("js-sha256", [], function () { return jssha256; });
 

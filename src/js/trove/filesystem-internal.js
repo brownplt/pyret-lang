@@ -64,9 +64,12 @@
             };
         }
 
-
         async function resolve(...paths) {
             return path.resolve(...paths);
+        }
+
+        async function exists(p) {
+            return fsp.exists(p);
         }
 
         return runtime.makeJSModuleReturn({
@@ -74,7 +77,7 @@
             writeFile: wrap(writeFile),
             stat: wrap(stat),
             resolve: wrap(resolve),
-            init: initializedOK
+            exists: wrap(exists),
         });
     }
 })

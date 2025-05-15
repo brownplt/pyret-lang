@@ -2,6 +2,7 @@ provide *
 import builtin-modules as B
 import string-dict as SD
 import file as F
+import filesystem as FS
 import pathlib as P
 import parse-pyret as PP
 import file("../compile-lib.arr") as CL
@@ -56,7 +57,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
     method needs-compile(_, _): false end,
     method get-uncached(_): none end,
     method get-modified-time(self):
-      F.file-times(P.join(basedir, builtin-name + ".js")).mtime
+      FS.stat(P.join(basedir, builtin-name + ".js")).mtime
     end,
     method get-options(self, options):
       options.{ check-mode: false, type-check: false }
@@ -106,7 +107,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
   var ast = nothing
   {
     method get-modified-time(self):
-      F.file-times(path).mtime
+      FS.stat(path).mtime
     end,
     method get-uncached(_): none end,
     method get-options(self, options):
@@ -118,7 +119,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
         when not(F.file-exists(path)):
           raise("File " + path + " does not exist")
         end
-        ast := CL.pyret-ast(PP.surface-parse(F.file-to-string(path), self.uri()))
+        ast := CL.pyret-ast(PP.surface-parse(FS.read-file-string(path), self.uri()))
       end
       ast
     end,
@@ -143,8 +144,8 @@ fun make-builtin-arr-locator(basedir, builtin-name):
       # NOTE(joe): Until we serialize provides correctly, just return false here
       cpath = path + ".js"
       if F.file-exists(path) and F.file-exists(cpath):
-        stimes = F.file-times(path)
-        ctimes = F.file-times(cpath)
+        stimes = FS.stat(path)
+        ctimes = FS.stat(cpath)
         ctimes.mtime <= stimes.mtime
       else:
         true
@@ -159,8 +160,8 @@ fun make-builtin-arr-locator(basedir, builtin-name):
         # overwrite the original file for the source while this method is
         # running.  We can explicitly open and lock files with appropriate
         # APIs to mitigate this in the happy, sunny future.
-        stimes = F.file-times(path)
-        ctimes = F.file-times(cpath)
+        stimes = FS.stat(path)
+        ctimes = FS.stat(cpath)
         if ctimes.mtime > stimes.mtime:
           raw = B.builtin-raw-locator(path)
           provs = convert-provides(self.uri(), {

@@ -29,6 +29,9 @@ define("source-map", [], function () { return sourcemap; });
 jssha256 = require("js-sha256");
 define("js-sha256", [], function () { return jssha256; });
 
+buffer = require("buffer");
+define("buffer", [], function () { return buffer; });
+
 fs = nodeRequire("fs");
 define("fs", [], function () { return fs; });
 
