@@ -96,12 +96,16 @@ describe("IO Tests", () => {
           args,
           {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
          
+        function anywhere(s) {
+          return new RegExp(".*" + s + ".*", "s");
+        }
+         
         if(compilestderrExpected === "") {
           expect(compileProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
           expect(compileProcess.status).toEqual(SUCCESS_EXIT_CODE);
         }
         else {
-          expect(compileProcess.stderr.toString()).toContain(compilestderrExpected);
+          expect(compileProcess.stderr.toString()).toMatch(anywhere(compilestderrExpected));
           expect(compileProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
           return; // Don't try to run the program if an error was expected
         }
@@ -113,11 +117,11 @@ describe("IO Tests", () => {
 
         if (stderrExpected !== EMPTY_MESSAGE) {
           expect(runProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
-          expect(runProcess.stderr.toString()).toMatch(new RegExp(stderrExpected));
+          expect(runProcess.stderr.toString()).toMatch(anywhere(stderrExpected));
         } 
         else {
           expect(runProcess.status).toEqual(SUCCESS_EXIT_CODE);
-          expect(runProcess.stdout.toString()).toMatch(new RegExp(stdioExpected));
+          expect(runProcess.stdout.toString()).toMatch(anywhere(stdioExpected));
         }
       });
     });
