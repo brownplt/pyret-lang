@@ -194,9 +194,9 @@
           runtime.checkArray(contents[i]);
           if (contents[i].length !== headers.length) {
             if (i === 0) {
-              runtime.ffi.throwMessageException("Contents must match header size");
+              throw runtime.ffi.throwRowLengthMismatch(names, contents[i]);
             } else {
-              runtime.ffi.throwMessageException("Contents must be rectangular");
+              throw runtime.ffi.throwMessageException("Contents must be rectangular");
             }
           }
           // This loop is stack safe, since it's just a brand-checker
@@ -352,7 +352,7 @@
 
       function makeRowFromValues(vals) {
         if(headers.length !== vals.length) {
-          throw runtime.ffi.throwRowLengthMismatch(makeTable(headers, []), vals);
+          throw runtime.ffi.throwRowLengthMismatch(headers, vals);
         }
         return makeRow({ headerIndex: headerIndex }, vals);
       }

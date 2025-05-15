@@ -1932,9 +1932,9 @@ data RuntimeError:
           [ED.error:
             ed-intro("row construction", l, -1, true),
             [ED.para: ED.text("The row could not be constructed because the number of expected columns didn't match the number of provided values.")],
-            [ED.para: ED.text("Expected columns:")],
+            [ED.para: ED.text("Expected " + num-to-string(raw-array-length(self.colnames)) + " columns:")],
             ED.embed(self.colnames),
-            [ED.para: ED.text("Provided values:")],
+            [ED.para: ED.text("Provided " + num-to-string(raw-array-length(self.provided-vals)) + " values:")],
             horz-list-values(raw-array-to-list(self.provided-vals))]
         | none => self.render-reason()
       end
@@ -1942,10 +1942,10 @@ data RuntimeError:
     method render-reason(self):
       [ED.error:
         [ED.para: ED.text("The row could not be constructed because the number of columns didn't match the number of provided values.")],
-        [ED.para: ED.text("Expected columns:")],
+        [ED.para: ED.text("Expected " + num-to-string(raw-array-length(self.colnames)) + " columns:")],
         ED.embed(self.colnames),
-        [ED.para: ED.text("Provided values:")],
-        vert-list-values(raw-array-to-list(self.provided-vals))]
+        [ED.para: ED.text("Provided " + num-to-string(raw-array-length(self.provided-vals)) + " values:")],
+        horz-list-values(raw-array-to-list(self.provided-vals))]
     end
 
   | col-length-mismatch(colname, expected, actual, value) with:

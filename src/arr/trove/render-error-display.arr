@@ -18,7 +18,7 @@ end
 fun display-to-string(e :: ED.ErrorDisplay, embed-display, stack):
   help = display-to-string(_, embed-display, stack)
   cases(ED.ErrorDisplay) e:
-    | paragraph(contents) => contents.map(help).join-str("")
+    | paragraph(contents) => "\n" + contents.map(help).join-str("")
     | text(str) => str
     | embed(val) => 
       cases(E.Either) run-task(lam(): exn-unwrap(val).render-reason() end):
