@@ -5,9 +5,10 @@
     provides: {
         values: {
             'read-file-string': ["arrow", ["String"], "String"],
-            'write-file-string': ["arrow", ["String", "String"], "String"],
+            'write-file-string': ["arrow", ["String", "String"], "Nothing"],
             'stat': ["arrow", ["String"], "Any"],
             'resolve': ["arrow", ["String"], "String"],
+            'exists': ["arrow", ["String"], "Boolean"],
         },
         types: {}
     },
@@ -41,11 +42,17 @@
             });
             return runtime.await(result);
         }
+        function exists(path) {
+            runtime.checkArgsInternal1('filesystem', 'exists', path, runtime.String);
+            const result = fsInternal.exists(path);
+            return runtime.await(result);
+        }
         return runtime.makeModuleReturn({
             'read-file-string': runtime.makeFunction(readFileString),
             'write-file-string': runtime.makeFunction(writeFileString),
             'stat': runtime.makeFunction(stat),
             'resolve': runtime.makeFunction(resolve),
+            'exists': runtime.makeFunction(exists),
         }, {});
     }
 })

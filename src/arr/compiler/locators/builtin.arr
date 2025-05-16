@@ -1,7 +1,6 @@
 provide *
 import builtin-modules as B
 import string-dict as SD
-import file as F
 import filesystem as FS
 import pathlib as P
 import parse-pyret as PP
@@ -116,7 +115,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     end,
     method get-module(self) block:
       when ast == nothing block:
-        when not(F.file-exists(path)):
+        when not(FS.exists(path)):
           raise("File " + path + " does not exist")
         end
         ast := CL.pyret-ast(PP.surface-parse(FS.read-file-string(path), self.uri()))
@@ -143,7 +142,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
       # does not handle provides from dependencies currently
       # NOTE(joe): Until we serialize provides correctly, just return false here
       cpath = path + ".js"
-      if F.file-exists(path) and F.file-exists(cpath):
+      if FS.exists(path) and FS.exists(cpath):
         stimes = FS.stat(path)
         ctimes = FS.stat(cpath)
         ctimes.mtime <= stimes.mtime
@@ -153,7 +152,7 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     end,
     method get-compiled(self):
       cpath = path + ".js"
-      if F.file-exists(path) and F.file-exists(cpath):
+      if FS.exists(path) and FS.exists(cpath):
         # NOTE(joe):
         # Since we're not explicitly acquiring locks on files, there is a race
         # condition in the next few lines – a user could potentially delete or
@@ -187,7 +186,7 @@ end
 fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> block:
   matching-arr-files = for map(p from builtin-arr-dirs):
     full-path = P.join(p, builtin-name + ".arr")
-    if F.file-exists(full-path):
+    if FS.exists(full-path):
       some(full-path)
     else:
       none
@@ -195,7 +194,7 @@ fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> blo
   end.filter(is-some).map(_.value)
   matching-js-files = for map(p from builtin-js-dirs):
     full-path = P.join(p, builtin-name + ".js")
-    if F.file-exists(full-path):
+    if FS.exists(full-path):
       some(full-path)
     else:
       none

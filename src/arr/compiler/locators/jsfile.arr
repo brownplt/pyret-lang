@@ -1,6 +1,5 @@
 provide *
 import builtin-modules as B
-import file as F
 import filesystem as FS
 import pathlib as P
 import file("./builtin.arr") as BL
