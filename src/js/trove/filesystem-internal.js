@@ -69,7 +69,10 @@
         }
 
         async function exists(p) {
-            return fsp.exists(p);
+            // NOTE(joe): this is sync because the async version is deprecated
+            // See https://nodejs.org/dist/latest-v10.x/docs/api/fs.html#fs_fs_existssync_path
+            // Also, `exists` is not defined on the `fs.promises` api
+            return fs.existsSync(p);
         }
 
         return runtime.makeJSModuleReturn({
