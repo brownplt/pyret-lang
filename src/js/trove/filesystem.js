@@ -9,6 +9,7 @@
             'stat': ["arrow", ["String"], "Any"],
             'resolve': ["arrow", ["String"], "String"],
             'exists': ["arrow", ["String"], "Boolean"],
+            'join': ["arrow", ["String", "String"], "String"]
         },
         types: {}
     },
@@ -28,6 +29,10 @@
         }
         function resolve(path) {
             const result = fsInternal.resolve(path);
+            return runtime.await(result);
+        }
+        function join(path1, path2) {
+            const result = fsInternal.join(path1, path2);
             return runtime.await(result);
         }
         function stat(path) {
@@ -53,6 +58,7 @@
             'stat': runtime.makeFunction(stat),
             'resolve': runtime.makeFunction(resolve),
             'exists': runtime.makeFunction(exists),
+            'join': runtime.makeFunction(join),
         }, {});
     }
 })

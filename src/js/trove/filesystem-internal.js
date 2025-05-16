@@ -34,11 +34,11 @@
         }
         const fsp = fs.promises;
         function wrap(f) {
-            return async function(...args) {
-                if(!initializedOK) {
+            if(initializedOK) { return f; }
+            else {
+                return async function(...args) {
                     throw runtime.ffi.makeMessageException(`filesystem-internal: Cannot call ${f.name} because fs.promises not available`)
                 }
-                return f(...args);
             }
         }
         async function readFile(p) {
@@ -75,12 +75,18 @@
             return fs.existsSync(p);
         }
 
+        async function join(...paths) {
+            return path.join(...paths);
+        }
+
         return runtime.makeJSModuleReturn({
             readFile: wrap(readFile),
             writeFile: wrap(writeFile),
             stat: wrap(stat),
             resolve: wrap(resolve),
             exists: wrap(exists),
+            join: wrap(join),
+            'path-sep': path.sep,
         });
     }
 })

@@ -51,12 +51,12 @@ fun set-typable-builtins(uris :: List<String>):
 end
 
 fun make-builtin-js-locator(basedir, builtin-name):
-  raw = B.builtin-raw-locator(P.join(basedir, builtin-name))
+  raw = B.builtin-raw-locator(FS.join(basedir, builtin-name))
   {
     method needs-compile(_, _): false end,
     method get-uncached(_): none end,
     method get-modified-time(self):
-      FS.stat(P.join(basedir, builtin-name + ".js")).mtime
+      FS.stat(FS.join(basedir, builtin-name + ".js")).mtime
     end,
     method get-options(self, options):
       options.{ check-mode: false, type-check: false }
@@ -92,7 +92,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
       some(CL.module-as-string(provs, CM.no-builtins, CM.computed-none,
-          CM.ok(JSP.ccp-file(P.join(basedir, builtin-name + ".js")))))
+          CM.ok(JSP.ccp-file(FS.join(basedir, builtin-name + ".js")))))
     end,
 
     method _equals(self, other, req-eq):
@@ -102,7 +102,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
 end
 
 fun make-builtin-arr-locator(basedir, builtin-name):
-  path = P.join(basedir, builtin-name + ".arr")
+  path = FS.join(basedir, builtin-name + ".arr")
   var ast = nothing
   {
     method get-modified-time(self):
@@ -185,7 +185,7 @@ end
 
 fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> block:
   matching-arr-files = for map(p from builtin-arr-dirs):
-    full-path = P.join(p, builtin-name + ".arr")
+    full-path = FS.join(p, builtin-name + ".arr")
     if FS.exists(full-path):
       some(full-path)
     else:
@@ -193,7 +193,7 @@ fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> blo
     end
   end.filter(is-some).map(_.value)
   matching-js-files = for map(p from builtin-js-dirs):
-    full-path = P.join(p, builtin-name + ".js")
+    full-path = FS.join(p, builtin-name + ".js")
     if FS.exists(full-path):
       some(full-path)
     else:
