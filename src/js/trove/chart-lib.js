@@ -134,7 +134,7 @@
     }
 
     function convertPointer(p) {
-      return {v: toFixnum(get(p, 'value')) , f: get(p, 'label')}
+      return {value: toFixnum(get(p, 'value')) , label: get(p, 'label')}
     }
 
 
@@ -703,8 +703,17 @@
           type: 'linear',
           axes: 'left',
         },
-        anchorProp: 'baseline',
-        anchor: 'bottom',
+        images: {
+          anchorProp: 'baseline',
+          anchor: 'bottom',
+        },
+        pointers: {
+          rangeIndex: 1,
+          offsetDir: 'dx',
+          offsetValue: 10,
+          align: 'left',
+          baseline: 'middle'
+        }
       },
       horizontal: {
         primary: {
@@ -719,8 +728,17 @@
           type: 'linear',
           axes: 'bottom',
         },
-        anchorProp: 'align',
-        anchor: 'right',
+        images: {
+          anchorProp: 'align',
+          anchor: 'right',
+        },
+        pointers: {
+          rangeIndex: 0,
+          offsetDir: 'dy',
+          offsetValue: -5,
+          align: 'center',
+          baseline: 'bottom'
+        }
       }
 
     };
@@ -1039,12 +1057,21 @@
       const height = get(globalOptions, 'height');
       const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
       const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
-      const data = {
+      const dataTable = {
         name: 'table',
         values: [],
         transform: []
       };
-      data.transform.push(
+      const imagesTable = {
+        name: 'images',
+        source: 'table',
+        transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
+      };
+      const pointersTable = {
+        name: 'pointers',
+        values: [],
+      };
+      dataTable.transform.push(
         {
           "type": "stack",
           "groupby": ["label"],
@@ -1079,7 +1106,49 @@
         { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1 }
       ];
-      const marks = [
+      const marks = [];
+      const colors_list = get_colors_list(rawData);
+      const default_color = get_default_color(rawData);
+      const pointers_list = get_pointers_list(rawData);
+      const pointer_color = get_pointer_color(rawData);
+      const axis = get_axis(rawData);
+      // console.log(JSON.stringify({pointers_list, pointer_color, axis}, null, 2));
+      const interval_color = get_interval_color(rawData); 
+      const colors_list_length = colors_list.length;
+
+
+      // ASSERT: if we're using custom images, there will be a 4th column
+      const hasImage = table[0].length == 4;
+      const dotChartP = get(rawData, 'dot-chart');
+
+      function chooseColor(seriesIndex, itemIndex, numSeries) {
+        const relevantIndex = (numSeries === 1) ? itemIndex : seriesIndex;
+        if (relevantIndex < colors_list.length) { return colors_list[relevantIndex]; }
+        if (default_color) { return default_color; }
+        return seriesIndex;
+      }
+
+      function imageToCanvas(img) {
+        const canvas = canvasLib.createCanvas(img.getWidth(), img.getHeight());
+        const ctx = canvas.getContext('2d');
+        img.render(ctx);
+        return canvas;
+      }
+      
+      // Adds each row of bar data and bar_color data
+      table.forEach(function (row, i) {
+        dataTable.values.push({
+          label: row[0],
+          value: toFixnum(row[1]),
+          color: chooseColor(0, i, 1),
+          image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
+          annotation: (row[3] && RUNTIME.ffi.isOption.app(row[3])) ? cases(RUNTIME.ffi.isOption, 'Option', row[3], {
+            none: () => 0,
+            some: (v) => v
+          }) : 0
+        });
+      });
+      marks.push(
         {
           "type": "rect",
           "from": {"data": "table"},
@@ -1108,7 +1177,7 @@
         },
         {
           "type": "image",
-          "from": {"data": "table"},
+          "from": {"data": "images"},
           "encode": {
             "enter": {
               [axesConfig.primary.dir]: {"scale": "primary", "field": "label"},
@@ -1122,51 +1191,51 @@
               "strokeWidth": {"value": 10},
               "strokeOpacity": {"value": 1},
               "aspect": {"value": false},
-              [axesConfig.anchorProp]: {"value": axesConfig.anchor},
+              [axesConfig.images.anchorProp]: {"value": axesConfig.images.anchor},
+              "tooltip": {
+                "signal": "{title: datum.label, Values: datum.value}"
+              }
             }
           }
         }
-      ];
-      const colors_list = get_colors_list(rawData);
-      const default_color = get_default_color(rawData);
-      const pointers_list = get_pointers_list(rawData);
-      const pointer_color = get_pointer_color(rawData);
-      const axis = get_axis(rawData);
-      const interval_color = get_interval_color(rawData); 
-      const colors_list_length = colors_list.length;
+      );        
 
-
-      // ASSERT: if we're using custom images, there will be a 4th column
-      const hasImage = table[0].length == 4;
-      const dotChartP = get(rawData, 'dot-chart');
-
-      function chooseColor(seriesIndex, itemIndex, numSeries) {
-        const relevantIndex = (numSeries === 1) ? itemIndex : seriesIndex;
-        if (relevantIndex < colors_list.length) { return colors_list[relevantIndex]; }
-        if (default_color) { return default_color; }
-        return seriesIndex;
-      }
-
-      function imageToCanvas(img) {
-        const canvas = canvasLib.createCanvas(img.getWidth(), img.getHeight());
-        const ctx = canvas.getContext('2d');
-        img.render(ctx);
-        return canvas;
-      }
-      
-      // Adds each row of bar data and bar_color data
-      table.forEach(function (row, i) {
-        data.values.push({
-          label: row[0],
-          value: toFixnum(row[1]),
-          color: chooseColor(0, i, 1),
-          image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
-          annotation: (row[3] && RUNTIME.ffi.isOption.app(row[3])) ? cases(RUNTIME.ffi.isOption, 'Option', row[3], {
-            none: () => 0,
-            some: (v) => v
-          }) : 0
-        });
+      // Add pointers
+      pointers_list.forEach((pointer) => {
+        pointersTable.values.push(pointer);
       });
+      marks.push(
+        {
+          type: "rule",
+          from: { data: "pointers" },
+          encode: {
+            enter: {
+              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'value' },
+              [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'value' },
+              [axesConfig.primary.dir]: { signal: "range('primary')[0]"},
+              [axesConfig.primary.dir + '2']: { signal: "range('primary')[1]"},
+              stroke: { value: pointer_color },
+              strokeWidth: { value: 1 },
+              opacity: { value: 1 }
+            }
+          }
+        },
+        {
+          type: 'text',
+          from: { data: 'pointers' },
+          encode: {
+            enter: {
+              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'value' },
+              [axesConfig.primary.dir]: { signal: `range('primary')[${axesConfig.pointers.rangeIndex}]` },
+              [axesConfig.pointers.offsetDir]: { value: axesConfig.pointers.offsetValue },
+              align: { value: axesConfig.pointers.align },
+              baseline: { value: axesConfig.pointers.baseline },
+              text: { field: 'label' },
+              fill: { value: pointer_color }
+            }
+          }
+        }
+      );
       // addAnnotations(data, rawData);
       // addIntervals(data, rawData);
 
@@ -1197,7 +1266,7 @@
          to the data. There is also a problem: When the pointers are too close to each other, one or 
          both of them disappear!
       */
-      if (pointers_list.length > 0) {
+      if (false && pointers_list.length > 0) {
 
         // Add and Attach Empty Data Stack/bar to 2nd axis + Color it
         data.addColumn('number', 'Pointers');
@@ -1224,12 +1293,12 @@
         padding: 0,
         autosize: "fit",
         background,
-        data: [data],
+        data: [ dataTable, imagesTable, pointersTable ],
         signals,
         scales,
         axes,
         marks,
-        options,
+        // options,
         // config: {
         //   range: {
         //     category: default_colors
@@ -2264,7 +2333,7 @@ ${labelRow}`;
     function renderStaticImage(processed, globalOptions, rawData) {
       return RUNTIME.pauseStack(restarter => {
         try {
-          console.log(JSON.stringify(processed, (k, v) => k === 'image' ? v.ariaText : v, 2));
+          console.log(JSON.stringify(processed, (k, v) => (v && IMAGE.isImage(v)) ? v.ariaText : v, 2));
           const width = toFixnum(get(globalOptions, 'width'));
           const height = toFixnum(get(globalOptions, 'height'));
           const canvas = new canvasLib.Canvas(width, height);

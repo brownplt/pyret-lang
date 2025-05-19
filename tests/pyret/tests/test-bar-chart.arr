@@ -7,13 +7,16 @@ colors =       [list: C.red,   C.orange, C.yellow, C.green, C.blue,   C.purple, 
 langs =        [list: "Pyret", "OCaml",  "C",      "C++",   "Python", "Racket", "Smalltalk"]
 popularities = [list: 10,      -6,        1,        3,       5,        8,        9]
 # images = colors.map(I.circle(30, I.mode-solid, _))
-images = colors.map({(_): I.square(30, I.mode-outline, C.black)})
+images = colors.map(I.triangle(30, I.mode-solid, _))
 a-series = from-list.bar-chart(langs, popularities)
   .color(C.purple)
   .colors(colors)
 
-b-series = from-list.image-bar-chart(images, langs, popularities)
+b-series = from-list.#|image-|#bar-chart(#|images, |#langs, popularities)
+  .horizontal(true)
   .colors(colors.reverse())
+  .add-pointers([list: 2.5, 3.5], [list: "hi", "bye"])
+  .pointer-color(C.maroon)
 
 rendered = render-chart(b-series).background-color(C.gray)
 
