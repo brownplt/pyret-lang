@@ -665,12 +665,8 @@
           return {
             domainMax : toFixnum(get(axisdata, 'axisTop')), 
             domainMin : toFixnum(get(axisdata, 'axisBottom')),
-            domainRaw : pointers.map(p => p.v),
-            encode: {
-              labels: {
-                update: pointers.map(p => p.l)
-              }
-            }
+            domainRaw : pointers.map(p => p.value),
+            labels: pointers.map(p => p.label)
           };
         }
       });
@@ -1057,6 +1053,16 @@
       const height = get(globalOptions, 'height');
       const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
       const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
+      const colors_list = get_colors_list(rawData);
+      const default_color = get_default_color(rawData);
+      const pointers_list = get_pointers_list(rawData);
+      const pointer_color = get_pointer_color(rawData);
+      const axis = get_axis(rawData);
+      // console.log(JSON.stringify({pointers_list, pointer_color, axis}, null, 2));
+      const interval_color = get_interval_color(rawData); 
+      const colors_list_length = colors_list.length;
+
+
       const dataTable = {
         name: 'table',
         values: [],
@@ -1102,19 +1108,25 @@
           "range": { scheme: "google" }
         }
       ];
+      if (axis) {
+        scales.push({
+          name: "secondaryLabels",
+          type: "ordinal",
+          domain: axis.domainRaw,
+          range: axis.labels
+        });
+      }
       const axes = [
         { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1 }
       ];
+      if (axis) {
+        axes[1].values = axis.domainRaw;
+        axes[1].encode = {
+          labels: { update: { text: { signal: "scale('secondaryLabels', datum.value)" } } }
+        };
+      }
       const marks = [];
-      const colors_list = get_colors_list(rawData);
-      const default_color = get_default_color(rawData);
-      const pointers_list = get_pointers_list(rawData);
-      const pointer_color = get_pointer_color(rawData);
-      const axis = get_axis(rawData);
-      // console.log(JSON.stringify({pointers_list, pointer_color, axis}, null, 2));
-      const interval_color = get_interval_color(rawData); 
-      const colors_list_length = colors_list.length;
 
 
       // ASSERT: if we're using custom images, there will be a 4th column

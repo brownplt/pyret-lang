@@ -17,6 +17,7 @@ b-series = from-list.#|image-|#bar-chart(#|images, |#langs, popularities)
   .colors(colors.reverse())
   .add-pointers([list: 2.5, 3.5], [list: "hi", "bye"])
   .pointer-color(C.maroon)
+.format-axis({(v): "Label " + to-string(v)})
 
 rendered = render-chart(b-series).background-color(C.gray)
 
