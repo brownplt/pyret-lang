@@ -41,3 +41,5 @@ define("path", [], function () { return path; });
 http = nodeRequire("http");
 define("http", [], function () {return http;});
 
+vegaMin = nodeRequire(nodeRequire('node:path').dirname(nodeRequire.resolve('vega')) + '/vega.js');
+define("vegaMin", [], function () {return global.vega;});
