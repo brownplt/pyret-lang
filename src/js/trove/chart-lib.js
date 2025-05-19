@@ -703,6 +703,8 @@
           type: 'linear',
           axes: 'left',
         },
+        anchorProp: 'baseline',
+        anchor: 'bottom',
       },
       horizontal: {
         primary: {
@@ -717,6 +719,8 @@
           type: 'linear',
           axes: 'bottom',
         },
+        anchorProp: 'align',
+        anchor: 'right',
       }
 
     };
@@ -1052,13 +1056,13 @@
       const signals = [];
       const scales = [
         {
-          "name": axesConfig.primary.dir,
+          "name": "primary",
           "type": "band",
           "range": axesConfig.primary.range,
           "domain": {"data": "table", "field": "label"}
         },
         {
-          "name": axesConfig.secondary.dir,
+          "name": "secondary",
           "type": "linear",
           "range": axesConfig.secondary.range,
           "nice": true, "zero": true,
@@ -1072,8 +1076,8 @@
         }
       ];
       const axes = [
-        { orient: axesConfig.primary.axes, scale: axesConfig.primary.dir, zindex: 1 },
-        { orient: axesConfig.secondary.axes, scale: axesConfig.secondary.dir, zindex: 1 }
+        { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
+        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1 }
       ];
       const marks = [
         {
@@ -1081,12 +1085,12 @@
           "from": {"data": "table"},
           "encode": {
             "enter": {
-              "x": {"scale": "x", "field": "label"},
-              "width": {"scale": "x", "band": 1, "offset": -1},
-              "y": {"scale": "y", "field": "value0"},
-              "y2": {"scale": "y", "field": "value1"},
+              [axesConfig.primary.dir]: {"scale": "primary", "field": "label"},
+              [axesConfig.primary.range]: {"scale": "primary", "band": 1, "offset": -1},
+              [axesConfig.secondary.dir]: {"scale": "secondary", "field": "value0"},
+              [axesConfig.secondary.dir + '2']: {"scale": "secondary", "field": "value1"},
               "fill": [
-                // { test: 'isValid(datum.image)', value: 'transparent' },
+                { test: 'isValid(datum.image)', value: 'transparent' },
                 { test: 'isString(datum.color)', field: 'color' },
                 { field: 'color', scale: 'color' }
               ],
@@ -1107,17 +1111,18 @@
           "from": {"data": "table"},
           "encode": {
             "enter": {
-              // TODO: make this horizontal-able
-              "x": {"scale": "x", "field": "label"},
-              "y": {"signal": "max(scale('y', datum.value0), scale('y', datum.value1))"},
-              "width": {"scale": "x", "band": 1, "offset": -1},
-              "height": {"signal": "abs(scale('y', datum.value1) - scale('y', datum.value0))"},
+              [axesConfig.primary.dir]: {"scale": "primary", "field": "label"},
+              [axesConfig.secondary.dir]: {
+                "signal": "max(scale('secondary', datum.value0), scale('secondary', datum.value1))"
+              },
+              [axesConfig.primary.range]: {"scale": "primary", "band": 1, "offset": -1},
+              [axesConfig.secondary.range]: {"signal": "abs(scale('secondary', datum.value1) - scale('secondary', datum.value0))"},
               "image": {"field": "image"},
               "stroke": {"value": "#666666"},
               "strokeWidth": {"value": 10},
               "strokeOpacity": {"value": 1},
               "aspect": {"value": false},
-              "baseline": {"value": "bottom"},
+              [axesConfig.anchorProp]: {"value": axesConfig.anchor},
             }
           }
         }
@@ -1136,11 +1141,9 @@
       const dotChartP = get(rawData, 'dot-chart');
 
       function chooseColor(seriesIndex, itemIndex, numSeries) {
-        console.log(seriesIndex, itemIndex, numSeries, colors_list, default_color);
         const relevantIndex = (numSeries === 1) ? itemIndex : seriesIndex;
         if (relevantIndex < colors_list.length) { return colors_list[relevantIndex]; }
         if (default_color) { return default_color; }
-        console.log("returning seriesIndex");
         return seriesIndex;
       }
 
@@ -1148,13 +1151,11 @@
         const canvas = canvasLib.createCanvas(img.getWidth(), img.getHeight());
         const ctx = canvas.getContext('2d');
         img.render(ctx);
-        console.log("image to canvas: ", img.ariaText);
         return canvas;
       }
       
       // Adds each row of bar data and bar_color data
       table.forEach(function (row, i) {
-        console.log(row);
         data.values.push({
           label: row[0],
           value: toFixnum(row[1]),
