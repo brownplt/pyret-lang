@@ -1065,47 +1065,32 @@
       const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
       const colors_list = get_colors_list(rawData);
       const default_color = get_default_color(rawData);
-      const pointers_list = get_pointers_list(rawData);
-      const pointer_color = get_pointer_color(rawData);
       const axis = get_axis(rawData);
       // console.log(JSON.stringify({pointers_list, pointer_color, axis}, null, 2));
-      const interval_color = get_interval_color(rawData); 
       const colors_list_length = colors_list.length;
 
+      const data = [];
+      
 
       const dataTable = {
         name: 'table',
         values: [],
-        transform: []
+        transform: [
+          {
+            type: "formula",
+            as: "fillColor",
+            expr: "isString(datum.color) ? datum.color : scale('color', datum.color)"
+          },
+          {
+            "type": "stack",
+            "groupby": ["label"],
+            "sort": {"field": "series"},
+            "field": "value",
+            "as": ["value0", "value1"],
+          }
+        ]
       };
-      const imagesTable = {
-        name: 'images',
-        source: 'table',
-        transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
-      };
-      const pointersTable = {
-        name: 'pointers',
-        values: [],
-      };
-      const annotationsTable = {
-        name: 'annotations',
-        source: 'table',
-        transform: [ { type: 'filter', expr: 'isValid(datum.annotation)' } ]
-      };
-      dataTable.transform.push(
-        {
-          type: "formula",
-          as: "fillColor",
-          expr: "isString(datum.color) ? datum.color : scale('color', datum.color)"
-        },
-        {
-          "type": "stack",
-          "groupby": ["label"],
-          "sort": {"field": "series"},
-          "field": "value",
-          "as": ["value0", "value1"],
-        }
-      );
+      data.push(dataTable);
       const signals = [];
       const scales = [
         {
@@ -1171,6 +1156,9 @@
       // allAnnotations : Option<String>[][], where allAnnotations[label][series] is the optional annotation
       // for the value of a given axis label and a given data-series within that label
       const allAnnotations = get(rawData, 'annotations') || [];
+      // allAnnotations : num[][], where allAnnotations[label][series] is the list of interval data
+      // for the value of a given axis label and a given data-series within that label
+      const allIntervals = get(rawData, 'intervals') || []
       const NONEann = RUNTIME.ffi.makeNone();
       table.forEach(function (row, i) {
         // NOTE(Ben): this is almost certainly wrong, but I'll figure it out when I get to multi-bar-charts
@@ -1191,62 +1179,76 @@
           color: chooseColor(0, i, 1),
           image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
           annotation,
-          series
+          series,
+          intervals: (allIntervals[i] || [])[series]
         });
       });
-      marks.push(
-        {
-          "type": "rect",
-          "name": "bars",
-          "from": {"data": "table"},
-          "encode": {
-            "enter": {
-              [axesConfig.primary.dir]: {"scale": "primary", "field": "label"},
-              [axesConfig.primary.range]: {"scale": "primary", "band": 1, "offset": -1},
-              [axesConfig.secondary.dir]: {"scale": "secondary", "field": "value0"},
-              [axesConfig.secondary.dir + '2']: {"scale": "secondary", "field": "value1"},
-              "fill": [
-                { test: 'isValid(datum.image)', value: 'transparent' },
-                { field: 'fillColor' }
-              ],
-              "tooltip": {
-                "signal": "{title: datum.label, Values: datum.value}"
-              }
-            },
-            "update": {
-              "fillOpacity": {"value": 1},
-            },
-            "hover": {
-              "fillOpacity": {"value": 0.5}
+      marks.push({
+        "type": "rect",
+        "name": "bars",
+        "from": {"data": "table"},
+        "encode": {
+          "enter": {
+            [axesConfig.primary.dir]: {"scale": "primary", "field": "label"},
+            [axesConfig.primary.range]: {"scale": "primary", "band": 1, "offset": -1},
+            [axesConfig.secondary.dir]: {"scale": "secondary", "field": "value0"},
+            [axesConfig.secondary.dir + '2']: {"scale": "secondary", "field": "value1"},
+            "fill": [
+              { test: 'isValid(datum.image)', value: 'transparent' },
+              { field: 'fillColor' }
+            ],
+            "tooltip": {
+              "signal": "{title: datum.label, Values: datum.value}"
             }
+          },
+          "update": {
+            "fillOpacity": {"value": 1},
+          },
+          "hover": {
+            "fillOpacity": {"value": 0.5}
           }
-        },
-        {
-          "type": "image",
-          "from": {"data": "images"},
-          "encode": {
-            "enter": {
-              [axesConfig.primary.dir]: {"scale": "primary", "field": "label"},
-              [axesConfig.secondary.dir]: {
-                "signal": "max(scale('secondary', datum.value0), scale('secondary', datum.value1))"
-              },
-              [axesConfig.primary.range]: {"scale": "primary", "band": 1, "offset": -1},
-              [axesConfig.secondary.range]: {"signal": "abs(scale('secondary', datum.value1) - scale('secondary', datum.value0))"},
-              "image": {"field": "image"},
-              "stroke": {"value": "#666666"},
-              "strokeWidth": {"value": 10},
-              "strokeOpacity": {"value": 1},
-              "aspect": {"value": false},
-              [axesConfig.images.anchorProp]: {"value": axesConfig.images.anchor},
-              "tooltip": {
-                "signal": "{title: datum.label, Values: datum.value}"
-              }
+        }
+      });
+
+      // Add images
+      const imagesTable = {
+        name: 'images',
+        source: 'table',
+        transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
+      };
+      data.push(imagesTable);
+      marks.push({
+        "type": "image",
+        "from": {"data": "images"},
+        "encode": {
+          "enter": {
+            [axesConfig.primary.dir]: {"scale": "primary", "field": "label"},
+            [axesConfig.secondary.dir]: {
+              "signal": "max(scale('secondary', datum.value0), scale('secondary', datum.value1))"
+            },
+            [axesConfig.primary.range]: {"scale": "primary", "band": 1, "offset": -1},
+            [axesConfig.secondary.range]: {"signal": "abs(scale('secondary', datum.value1) - scale('secondary', datum.value0))"},
+            "image": {"field": "image"},
+            "stroke": {"value": "#666666"},
+            "strokeWidth": {"value": 10},
+            "strokeOpacity": {"value": 1},
+            "aspect": {"value": false},
+            [axesConfig.images.anchorProp]: {"value": axesConfig.images.anchor},
+            "tooltip": {
+              "signal": "{title: datum.label, Values: datum.value}"
             }
           }
         }
-      );
+      });
 
       // Add pointers
+      const pointersTable = {
+        name: 'pointers',
+        values: [],
+      };
+      data.push(pointersTable);
+      const pointers_list = get_pointers_list(rawData);
+      const pointer_color = get_pointer_color(rawData);
       pointers_list.forEach((pointer) => {
         pointersTable.values.push(pointer);
       });
@@ -1282,7 +1284,14 @@
           }
         }
       );
+      
       // Add annotations
+      const annotationsTable = {
+        name: 'annotations',
+        source: 'table',
+        transform: [ { type: 'filter', expr: 'isValid(datum.annotation)' } ]
+      };
+      data.push(annotationsTable);
       marks.push({
         type: "text",
         from: { data: "annotations"},
@@ -1308,8 +1317,75 @@
           }
         }
       });
+
+      // Add intervals
+      const interval_color = get_interval_color(rawData); 
+      const intervalsTable = {
+        name: 'intervals',
+        source: 'table',
+        transform: [
+          { type: 'filter', expr: 'isArray(datum.intervals)' },
+          { type: 'formula', as: 'intervalExtent', expr: 'extent(datum.intervals)' }
+        ]
+      };
+      data.push(intervalsTable);
+      const intervalTicksTable = {
+        name: 'intervalTicks',
+        source: 'intervals',
+        transform: [
+          { type: 'flatten', fields: ['intervals'], as: ['intervalTick'] }
+        ]
+      };
+      data.push(intervalTicksTable);
+      marks.push(
+        {
+          type: 'rule',
+          from: { data: 'intervals' }, 
+          encode: {
+            enter: {
+              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalExtent[0]' },
+              [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'intervalExtent[1]' },
+              [axesConfig.primary.dir]: {
+                scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 }
+              },
+              [axesConfig.primary.dir + '2']: {
+                scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 }
+              },
+              stroke: { value: interval_color },
+              strokeWidth: { value: 1 },
+              opacity: { value: 1 }
+            }
+          }
+        },
+        {
+          type: 'rule',
+          from: { data: 'intervalTicks' },
+          encode: {
+            enter: {
+              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalTick' },
+              [axesConfig.primary.dir]: {
+                scale: 'primary', field: 'label',
+                offset: {
+                  scale: 'primary', band: 0.5,
+                  offset: { signal: "-0.5 * min(bandwidth('primary'), 10)" },
+                }
+              },
+              [axesConfig.primary.dir + 2]: {
+                scale: 'primary', field: 'label',
+                offset: {
+                  scale: 'primary', band: 0.5,
+                  offset: { signal: "0.5 * min(bandwidth('primary'), 10)" },
+                }
+              },
+              stroke: { value: interval_color },
+              strokeWidth: { value: 1 },
+              opacity: { value: 1 }
+            }
+          }
+        }
+      );
       
-      // addAnnotations(data, rawData);
+      
       // addIntervals(data, rawData);
 
       let options = {
@@ -1366,7 +1442,7 @@
         padding: 0,
         autosize: "fit",
         background,
-        data: [ dataTable, imagesTable, pointersTable, annotationsTable ],
+        data,
         signals,
         scales,
         axes,

@@ -18,6 +18,10 @@ b-series = from-list.#|image-|#bar-chart(#|images, |#langs, popularities)
   .add-pointers([list: 2.5, 3.5], [list: "hi", "bye"])
   .pointer-color(C.maroon)
 .annotations(langs.map({(l): some(string-explode(l).reverse().join-str(""))}))
+.intervals(for map_n(i from 0, _ from colors):
+  [list: -5 + i, i, 5 + i, 3 + i]
+end)
+#.interval-color(C.chartreuse)
 .format-axis({(v): "Label " + to-string(v)})
 
 rendered = render-chart(b-series).background-color(C.gray)
