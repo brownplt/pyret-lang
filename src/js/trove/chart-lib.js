@@ -709,6 +709,11 @@
           offsetValue: 10,
           align: 'left',
           baseline: 'middle'
+        },
+        annotations: {
+          align: 'center',
+          baseline: 'top',
+          offset: 5
         }
       },
       horizontal: {
@@ -734,6 +739,11 @@
           offsetValue: -5,
           align: 'center',
           baseline: 'bottom'
+        },
+        annotations: {
+          align: 'right',
+          baseline: 'middle',
+          offset: -5
         }
       }
 
@@ -1077,11 +1087,21 @@
         name: 'pointers',
         values: [],
       };
+      const annotationsTable = {
+        name: 'annotations',
+        source: 'table',
+        transform: [ { type: 'filter', expr: 'isValid(datum.annotation)' } ]
+      };
       dataTable.transform.push(
+        {
+          type: "formula",
+          as: "fillColor",
+          expr: "isString(datum.color) ? datum.color : scale('color', datum.color)"
+        },
         {
           "type": "stack",
           "groupby": ["label"],
-          "sort": {"field": "annotation"},
+          "sort": {"field": "series"},
           "field": "value",
           "as": ["value0", "value1"],
         }
@@ -1148,21 +1168,36 @@
       }
       
       // Adds each row of bar data and bar_color data
+      // allAnnotations : Option<String>[][], where allAnnotations[label][series] is the optional annotation
+      // for the value of a given axis label and a given data-series within that label
+      const allAnnotations = get(rawData, 'annotations') || [];
+      const NONEann = RUNTIME.ffi.makeNone();
       table.forEach(function (row, i) {
+        // NOTE(Ben): this is almost certainly wrong, but I'll figure it out when I get to multi-bar-charts
+        const series = (row[3] && RUNTIME.ffi.isOption.app(row[3])) ? cases(RUNTIME.ffi.isOption, 'Option', row[3], {
+          none: () => 0,
+          some: (v) => v
+        }) : 0;
+        const seriesAnnotations = allAnnotations[i] || [];
+        const annotationOpt = seriesAnnotations[series] || NONEann;
+        const annotation = cases(RUNTIME.ffi.isOption, 'Option', annotationOpt, {
+          none: () => undefined,
+          some: (v) => v
+        });
+
         dataTable.values.push({
           label: row[0],
           value: toFixnum(row[1]),
           color: chooseColor(0, i, 1),
           image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
-          annotation: (row[3] && RUNTIME.ffi.isOption.app(row[3])) ? cases(RUNTIME.ffi.isOption, 'Option', row[3], {
-            none: () => 0,
-            some: (v) => v
-          }) : 0
+          annotation,
+          series
         });
       });
       marks.push(
         {
           "type": "rect",
+          "name": "bars",
           "from": {"data": "table"},
           "encode": {
             "enter": {
@@ -1172,8 +1207,7 @@
               [axesConfig.secondary.dir + '2']: {"scale": "secondary", "field": "value1"},
               "fill": [
                 { test: 'isValid(datum.image)', value: 'transparent' },
-                { test: 'isString(datum.color)', field: 'color' },
-                { field: 'color', scale: 'color' }
+                { field: 'fillColor' }
               ],
               "tooltip": {
                 "signal": "{title: datum.label, Values: datum.value}"
@@ -1210,7 +1244,7 @@
             }
           }
         }
-      );        
+      );
 
       // Add pointers
       pointers_list.forEach((pointer) => {
@@ -1248,6 +1282,33 @@
           }
         }
       );
+      // Add annotations
+      marks.push({
+        type: "text",
+        from: { data: "annotations"},
+        encode: {
+          enter: {
+            [axesConfig.secondary.dir]: {
+              // NOTE(Ben): Scaling *after* choosing the greater *value-space* endpoint,
+              // to choose rightmost and topmost
+              signal: 'max(datum.value0, datum.value1)',
+              scale: 'secondary',
+              offset: axesConfig.annotations.offset
+            },
+            [axesConfig.primary.dir]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
+            fill: [
+              // NOTE(Ben): fillColor is computed by the transform above
+              { test: 'contrast("white", datum.fillColor) > contrast("black", datum.fillColor)',
+                value: "white" },
+              { value: "black" }
+            ],
+            align: { value: axesConfig.annotations.align },
+            baseline: { value: axesConfig.annotations.baseline },
+            text: { field: "annotation" }
+          }
+        }
+      });
+      
       // addAnnotations(data, rawData);
       // addIntervals(data, rawData);
 
@@ -1305,7 +1366,7 @@
         padding: 0,
         autosize: "fit",
         background,
-        data: [ dataTable, imagesTable, pointersTable ],
+        data: [ dataTable, imagesTable, pointersTable, annotationsTable ],
         signals,
         scales,
         axes,
