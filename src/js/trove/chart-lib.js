@@ -1200,7 +1200,7 @@
               { field: 'fillColor' }
             ],
             "tooltip": {
-              "signal": "{title: datum.label, Values: datum.value}"
+              "signal": "{title: datum.label, Values: datum.value, Intervals: datum.intervals}"
             }
           },
           "update": {
@@ -1237,7 +1237,7 @@
             "aspect": {"value": false},
             [axesConfig.images.anchorProp]: {"value": axesConfig.images.anchor},
             "tooltip": {
-              "signal": "{title: datum.label, Values: datum.value}"
+              "signal": "{title: datum.label, Values: datum.value, Intervals: datum.intervals}"
             }
           }
         }
@@ -1345,6 +1345,7 @@
           from: { data: 'intervals' }, 
           encode: {
             enter: {
+              interactive: false,
               [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalExtent[0]' },
               [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'intervalExtent[1]' },
               [axesConfig.primary.dir]: {
@@ -1364,6 +1365,7 @@
           from: { data: 'intervalTicks' },
           encode: {
             enter: {
+              interactive: false,
               [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalTick' },
               [axesConfig.primary.dir]: {
                 scale: 'primary', field: 'label',
@@ -2474,11 +2476,24 @@ ${labelRow}`;
 
       // serialize the whole SVG element, in case of custom image overlays
       // then pass the URI to imageReturn`
-      let svg = result.chart.container.querySelector('svg');
-      let svg_xml = (new XMLSerializer()).serializeToString(svg);
-      let dataURI = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg_xml)));
-      // NOTE: THIS DOESN'T WORK, signature is wrong
-      imageDataReturn(dataURI, restarter, x => x);
+      result.view.toSVG().then((svg) => {
+        let dataURI = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
+        const rawImage = new Image();
+        rawImage.onload = () => {
+          restarter.resume(
+            RUNTIME.makeOpaque(
+              IMAGE.makeFileImage(url, rawImage),
+              IMAGE.imageEquals
+            )
+          );
+        };
+        rawImage.onerror = e => {
+          restarter.error(
+            RUNTIME.ffi.makeMessageException(
+              'unable to load the image: ' + e.message));
+        };
+        rawImage.src = dataURI;
+      })
     }
 
     function renderStaticImage(processed, globalOptions, rawData) {
@@ -2507,66 +2522,60 @@ ${labelRow}`;
     function renderInteractiveChart(processed, globalOptions, rawData) {
       // TODO(Ben)
       return RUNTIME.pauseStack(restarter => {
-        const root = $('<div/>');
-        const overlay = $('<div/>', {style: 'position: absolute'});
+        try {
+          const root = $('<div/>');
+          const overlay = $('<div/>', {style: 'position: relative'});
 
+          const width = toFixnum(get(globalOptions, 'width'));
+          const height = toFixnum(get(globalOptions, 'height'));
+          const vegaTooltipHandler = new vegaTooltip.Handler();
+          const view = new vega.View(vega.parse(processed), {
+            container: overlay[0],
+            renderer: 'svg',
+            hover: true,
+            tooltip: vegaTooltipHandler.call
+          });
+          view.width(width).height(height).resize();
 
-        let result = null;
-
-        function draw(optMutator) {
-          optMutator = optMutator ? optMutator : x => x;
-          if (result != null) {
-            result.chart.draw(result.data, optMutator(result.options));
-          }
-        }
-
-        function setup(restarter) {
-          var tmp = f(globalOptions, rawData);
-          tmp.chart = new tmp.chartType(root[0]);
+          var tmp = processed;
+          tmp.view = view;
           const options = {
             backgroundColor: {fill: 'transparent'},
-            title: get(globalOptions, 'title'),
+            title: (get(globalOptions, 'title') || {}).text,
           };
-
-          if ('mutators' in tmp) {
-            tmp.mutators.forEach(fn => fn(options, globalOptions, rawData));
-          }
 
           tmp.options = $.extend({}, options, 'options' in tmp ? tmp.options : {});
 
-          if ('overlay' in tmp) tmp.overlay(overlay, restarter, tmp.chart, root);
+          delete tmp.width;
+          delete tmp.height;
 
           // only mutate result when everything is setup
-          result = tmp;
+          const result = tmp;
           // this draw will have a wrong width / height, but do it for now so
           // that overlay works
-          draw();
-          // must append the overlay _after_ drawing to make the overlay appear
-          // correctly
-          root.append(overlay);
-          // return true;
+          view.runAsync()
+            .then(() => {
+              // return true;
+              RUNTIME.getParam('chart-port')({
+                root: root[0],
+                onExit: () => {
+                  // In case the tooltip was currently being shown while the window was being closed
+                  $("#vg-tooltip-element").removeClass("visible");
+                  onExitRetry(() => result, restarter);
+                },
+                draw: () => {
+                  // must append the overlay _after_ drawing to make the overlay appear
+                  // correctly
+                  view.runAsync().then(() => root.append(overlay))
+                },
+                windowOptions: {  },
+                isInteractive: true,
+                getImageURI: () => view.toImageURI('png'),
+              });
+            });
+        } catch(e) {
+          return restarter.error(e);
         }
-
-        google.charts.setOnLoadCallback(() => {
-          try{
-            setup(restarter)
-          } catch (e) {
-            return restarter.error(e);
-          }
-          RUNTIME.getParam('chart-port')({
-            root: root[0],
-            onExit: () => onExitRetry(() => result, restarter),
-            draw: draw,
-            windowOptions: {
-              width: toFixnum(get(globalOptions, 'width')),
-              height: toFixnum(get(globalOptions, 'height'))
-            },
-            isInteractive: isInteractive,
-            getImageURI: () => result.chart.getImageURI(),
-            // thunk it here b/c apparently getImageURI is going to be mutated
-            // by Google
-          });
-        });
       });
     }
     

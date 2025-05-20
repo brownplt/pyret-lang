@@ -13,7 +13,7 @@ a-series = from-list.bar-chart(langs, popularities)
   .colors(colors)
 
 b-series = from-list.#|image-|#bar-chart(#|images, |#langs, popularities)
-#  .horizontal(true)
+  .horizontal(true)
   .colors(colors.reverse())
   .add-pointers([list: 2.5, 3.5], [list: "hi", "bye"])
   .pointer-color(C.maroon)
