@@ -1123,7 +1123,9 @@
       }
       const axes = [
         { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
-        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1 }
+        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1, grid: false },
+        // redraw the axis just for its gridlines, but beneath everything else in z-order
+        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0, grid: true, ticks: false, labels: false }
       ];
       if (axis) {
         axes[1].values = axis.domainRaw;
