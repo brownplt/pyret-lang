@@ -16,7 +16,7 @@ include option
 import image-structs as I
 import internal-image-untyped as IM
 import sets as S
-import chart-lib as CL
+import charts-lib as CL
 import either as E
 import string-dict as SD
 import valueskeleton as VS
