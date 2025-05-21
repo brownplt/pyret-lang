@@ -1006,6 +1006,12 @@
             none: () => undefined,
             some: (v) => v
           });
+          let intervals = (allIntervals[i] || [])[series]
+          if (intervals && intervals.length === 0) {
+            intervals = undefined;
+          } else {
+            intervals = intervals.map(toFixnum);
+          }
           
           dataTable.values.push({
             label: row[0],
@@ -1014,7 +1020,7 @@
             image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
             annotation,
             series,
-            intervals: (allIntervals[i] || [])[series]
+            intervals
           });
         });
       });
@@ -1035,10 +1041,15 @@
             "tooltip": tooltip
           },
           "update": {
-            "fillOpacity": {"value": 1},
+            strokeOpacity: { value: 0 }
           },
           "hover": {
-            "fillOpacity": {"value": 0.5}
+            strokeWidth: { value: 2 },
+            strokeOpacity: { value: 1 },
+            stroke: [
+              { test: 'contrast("white", datum.fillColor) > contrast("black", datum.fillColor)', value: 'white' },
+              { value: 'black' }
+            ]
           }
         }
       });
@@ -1075,6 +1086,163 @@
         }
       });
     }
+
+    function addPointers(globalOptions, rawData, primaryScale, data, marks) {
+      const horizontal = isTrue(get(rawData, 'horizontal'));
+      const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
+      const pointersTable = {
+        name: 'pointers',
+        values: [],
+      };
+      data.push(pointersTable);
+      const pointers_list = get_pointers_list(rawData);
+      const pointer_color = get_pointer_color(rawData);
+      pointers_list.forEach((pointer) => {
+        pointersTable.values.push(pointer);
+      });
+      marks.push(
+        {
+          type: "rule",
+          from: { data: "pointers" },
+          encode: {
+            enter: {
+              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'value' },
+              [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'value' },
+              [axesConfig.primary.dir]: { signal: `range('${primaryScale}')[0]`},
+              [axesConfig.primary.dir + '2']: { signal: `range('${primaryScale}')[1]`},
+              stroke: { value: pointer_color },
+              strokeWidth: { value: 1 },
+              opacity: { value: 1 }
+            }
+          }
+        },
+        {
+          type: 'text',
+          from: { data: 'pointers' },
+          encode: {
+            enter: {
+              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'value' },
+              [axesConfig.primary.dir]: { signal: `range('${primaryScale}')[${axesConfig.pointers.rangeIndex}]` },
+              [axesConfig.pointers.offsetDir]: { value: axesConfig.pointers.offsetValue },
+              align: { value: axesConfig.pointers.align },
+              baseline: { value: axesConfig.pointers.baseline },
+              text: { field: 'label' },
+              fill: { value: pointer_color }
+            }
+          }
+        }
+      );
+    }
+    
+    function addAnnotations(globalOptions, rawData, tableSource, primaryField, primaryScale, data, marks) {
+      const horizontal = isTrue(get(rawData, 'horizontal'));
+      const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
+      const annotationsTable = {
+        name: 'annotations',
+        source: tableSource,
+        transform: [ { type: 'filter', expr: 'isValid(datum.annotation)' } ]
+      };
+      data.push(annotationsTable);
+      marks.push({
+        type: "text",
+        from: { data: "annotations"},
+        encode: {
+          enter: {
+            [axesConfig.secondary.dir]: {
+              // NOTE(Ben): Scaling *after* choosing the greater *value-space* endpoint,
+              // to choose rightmost and topmost
+              signal: 'max(datum.value0, datum.value1)',
+              scale: 'secondary',
+              offset: axesConfig.annotations.offset
+            },
+            [axesConfig.primary.dir]: {
+              scale: primaryScale, field: primaryField, offset: { scale: primaryScale, band: 0.5 }
+            },
+            fill: [
+              // NOTE(Ben): fillColor is computed by the transform above
+              { test: 'contrast("white", datum.fillColor) > contrast("black", datum.fillColor)',
+                value: "white" },
+              { value: "black" }
+            ],
+            align: { value: axesConfig.annotations.align },
+            baseline: { value: axesConfig.annotations.baseline },
+            text: { field: "annotation" }
+          }
+        }
+      });
+    }
+
+    function addIntervals(globalOptions, rawData, tableSource, primaryField, primaryScale, data, marks) {
+      const horizontal = isTrue(get(rawData, 'horizontal'));
+      const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
+      const interval_color = get_interval_color(rawData); 
+      const intervalsTable = {
+        name: 'intervals',
+        source: tableSource,
+        transform: [
+          { type: 'filter', expr: 'isArray(datum.intervals)' },
+          { type: 'formula', as: 'intervalExtent', expr: 'extent(datum.intervals)' }
+        ]
+      };
+      data.push(intervalsTable);
+      const intervalTicksTable = {
+        name: 'intervalTicks',
+        source: 'intervals',
+        transform: [
+          { type: 'flatten', fields: ['intervals'], as: ['intervalTick'] }
+        ]
+      };
+      data.push(intervalTicksTable);
+      marks.push(
+        {
+          type: 'rule',
+          from: { data: 'intervals' }, 
+          encode: {
+            enter: {
+              interactive: false,
+              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalExtent[0]' },
+              [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'intervalExtent[1]' },
+              [axesConfig.primary.dir]: {
+                scale: primaryScale, field: primaryField, offset: { scale: primaryScale, band: 0.5 }
+              },
+              [axesConfig.primary.dir + '2']: {
+                scale: primaryScale, field: primaryField, offset: { scale: primaryScale, band: 0.5 }
+              },
+              stroke: { value: interval_color },
+              strokeWidth: { value: 1 },
+              opacity: { value: 1 }
+            }
+          }
+        },
+        {
+          type: 'rule',
+          from: { data: 'intervalTicks' },
+          encode: {
+            enter: {
+              interactive: false,
+              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalTick' },
+              [axesConfig.primary.dir]: {
+                scale: primaryScale, field: primaryField,
+                offset: {
+                  scale: primaryScale, band: 0.5,
+                  offset: { signal: `-0.5 * min(bandwidth('${primaryScale}'), 10)` },
+                }
+              },
+              [axesConfig.primary.dir + 2]: {
+                scale: primaryScale, field: primaryField,
+                offset: {
+                  scale: primaryScale, band: 0.5,
+                  offset: { signal: `0.5 * min(bandwidth('${primaryScale}'), 10)` },
+                }
+              },
+              stroke: { value: interval_color },
+              strokeWidth: { value: 1 },
+              opacity: { value: 1 }
+            }
+          }
+        }
+      );
+    }      
     
     function barChart(globalOptions, rawData) {
       // Variables and constants 
@@ -1141,7 +1309,7 @@
         });
       }
       const axes = [
-        { orient: axesConfig.primary.axes, scale: primaryScale, zindex: 1 },
+        { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1, grid: false },
         // redraw the axis just for its gridlines, but beneath everything else in z-order
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0, grid: true, ticks: false, labels: false }
@@ -1166,152 +1334,11 @@
 
       addImages(globalOptions, rawData, "primary", tooltips, data, marks);
 
-      // Add pointers
-      const pointersTable = {
-        name: 'pointers',
-        values: [],
-      };
-      data.push(pointersTable);
-      const pointers_list = get_pointers_list(rawData);
-      const pointer_color = get_pointer_color(rawData);
-      pointers_list.forEach((pointer) => {
-        pointersTable.values.push(pointer);
-      });
-      marks.push(
-        {
-          type: "rule",
-          from: { data: "pointers" },
-          encode: {
-            enter: {
-              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'value' },
-              [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'value' },
-              [axesConfig.primary.dir]: { signal: `range('${primaryScale}')[0]`},
-              [axesConfig.primary.dir + '2']: { signal: `range('${primaryScale}')[1]`},
-              stroke: { value: pointer_color },
-              strokeWidth: { value: 1 },
-              opacity: { value: 1 }
-            }
-          }
-        },
-        {
-          type: 'text',
-          from: { data: 'pointers' },
-          encode: {
-            enter: {
-              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'value' },
-              [axesConfig.primary.dir]: { signal: `range('${primaryScale}')[${axesConfig.pointers.rangeIndex}]` },
-              [axesConfig.pointers.offsetDir]: { value: axesConfig.pointers.offsetValue },
-              align: { value: axesConfig.pointers.align },
-              baseline: { value: axesConfig.pointers.baseline },
-              text: { field: 'label' },
-              fill: { value: pointer_color }
-            }
-          }
-        }
-      );
-      
-      // Add annotations
-      const annotationsTable = {
-        name: 'annotations',
-        source: 'table',
-        transform: [ { type: 'filter', expr: 'isValid(datum.annotation)' } ]
-      };
-      data.push(annotationsTable);
-      marks.push({
-        type: "text",
-        from: { data: "annotations"},
-        encode: {
-          enter: {
-            [axesConfig.secondary.dir]: {
-              // NOTE(Ben): Scaling *after* choosing the greater *value-space* endpoint,
-              // to choose rightmost and topmost
-              signal: 'max(datum.value0, datum.value1)',
-              scale: 'secondary',
-              offset: axesConfig.annotations.offset
-            },
-            [axesConfig.primary.dir]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
-            fill: [
-              // NOTE(Ben): fillColor is computed by the transform above
-              { test: 'contrast("white", datum.fillColor) > contrast("black", datum.fillColor)',
-                value: "white" },
-              { value: "black" }
-            ],
-            align: { value: axesConfig.annotations.align },
-            baseline: { value: axesConfig.annotations.baseline },
-            text: { field: "annotation" }
-          }
-        }
-      });
+      addPointers(globalOptions, rawData, "primary", data, marks);
 
-      // Add intervals
-      const interval_color = get_interval_color(rawData); 
-      const intervalsTable = {
-        name: 'intervals',
-        source: 'table',
-        transform: [
-          { type: 'filter', expr: 'isArray(datum.intervals)' },
-          { type: 'formula', as: 'intervalExtent', expr: 'extent(datum.intervals)' }
-        ]
-      };
-      data.push(intervalsTable);
-      const intervalTicksTable = {
-        name: 'intervalTicks',
-        source: 'intervals',
-        transform: [
-          { type: 'flatten', fields: ['intervals'], as: ['intervalTick'] }
-        ]
-      };
-      data.push(intervalTicksTable);
-      marks.push(
-        {
-          type: 'rule',
-          from: { data: 'intervals' }, 
-          encode: {
-            enter: {
-              interactive: false,
-              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalExtent[0]' },
-              [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'intervalExtent[1]' },
-              [axesConfig.primary.dir]: {
-                scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 }
-              },
-              [axesConfig.primary.dir + '2']: {
-                scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 }
-              },
-              stroke: { value: interval_color },
-              strokeWidth: { value: 1 },
-              opacity: { value: 1 }
-            }
-          }
-        },
-        {
-          type: 'rule',
-          from: { data: 'intervalTicks' },
-          encode: {
-            enter: {
-              interactive: false,
-              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalTick' },
-              [axesConfig.primary.dir]: {
-                scale: 'primary', field: 'label',
-                offset: {
-                  scale: 'primary', band: 0.5,
-                  offset: { signal: "-0.5 * min(bandwidth('primary'), 10)" },
-                }
-              },
-              [axesConfig.primary.dir + 2]: {
-                scale: 'primary', field: 'label',
-                offset: {
-                  scale: 'primary', band: 0.5,
-                  offset: { signal: "0.5 * min(bandwidth('primary'), 10)" },
-                }
-              },
-              stroke: { value: interval_color },
-              strokeWidth: { value: 1 },
-              opacity: { value: 1 }
-            }
-          }
-        }
-      );
-      
+      addAnnotations(globalOptions, rawData, "table", "label", "primary", data, marks);
+
+      addIntervals(globalOptions, rawData, "table", "label", "primary", data, marks);
       
       // addIntervals(data, rawData);
 
@@ -1420,7 +1447,8 @@
       const legends = get(rawData, 'legends');
       // console.log(JSON.stringify({pointers_list, pointer_color, axis}, null, 2));
       const stackType = get(rawData, 'is-stacked');
-      const isStacked = get(rawData, 'is-stacked') !== 'none';
+      const isStacked = stackType !== 'none';
+      const isNotFullStacked = (stackType !== 'relative') && (stackType !== 'percent');
 
       const data = [];
 
@@ -1442,24 +1470,25 @@
       };
       data.push(dataTable);
       if (isStacked) {
+        if (stackType !== 'absolute') {
+          dataTable.transform.push(
+            {
+              type: "joinaggregate",
+              groupby: ["label"],
+              ops: ["sum"],
+              fields: ["rawValue"],
+              as: ["totalValue"]
+            },
+            {
+              type: "formula",
+              as: "value",
+              expr: "datum.rawValue/datum.totalValue",
+            }
+          );
+        } else {
+          dataTable.transform.push({ type: 'formula', as: 'value', expr: 'datum.rawValue' });
+        }            
         dataTable.transform.push(
-          {
-            type: "joinaggregate",
-            groupby: ["label"],
-            ops: ["sum"],
-            fields: ["rawValue"],
-            as: ["totalValue"]
-          },
-          {
-            type: "formula",
-            as: "value",
-            expr: "datum.rawValue/datum.totalValue",
-          },
-          {
-            type: "formula",
-            as: "percent",
-            expr: "datum.value * 100",
-          },
           {
             "type": "stack",
             "groupby": ["label"],
@@ -1517,9 +1546,11 @@
       }
       const axes = [
         { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
-        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1, grid: false },
+        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1,
+          grid: false, ticks: isNotFullStacked, labels: isNotFullStacked },
         // redraw the axis just for its gridlines, but beneath everything else in z-order
-        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0, grid: true, ticks: false, labels: false }
+        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0,
+          grid: true, ticks: !isNotFullStacked, labels: !isNotFullStacked }
       ];
       if (axis) {
         axes[1].values = axis.domainRaw;
@@ -1527,6 +1558,10 @@
           labels: { update: { text: { signal: "scale('secondaryLabels', datum.value)" } } }
         };
       }
+      if (stackType === 'percent') {
+        axes[1].format = axes[2].format = '.2%';
+      }
+
       const marks = [];
 
       const groupMark = {
@@ -1538,6 +1573,7 @@
             groupby: 'label'
           }
         },
+        data: [],
         encode: {
           enter: {
             [axesConfig.primary.dir]: { scale: 'primary', field: 'label' }
@@ -1582,7 +1618,29 @@
                          dataTable,
                          (isStacked ? marks : groupMark.marks));
 
-      addImages(globalOptions, rawData, primaryScaleName, tooltips, data, (isStacked ? marks : groupMark.marks));
+      // NOTE(Ben): Multi-bar charts don't support images per bar, though I suppose we could.
+      // addImages(globalOptions, rawData, primaryScaleName, tooltips, data, (isStacked ? marks : groupMark.marks));
+
+      // always use the ungrouped primary scale, so it stretches across the whole chart
+      addPointers(globalOptions, rawData, "primary", data, marks);
+
+      addAnnotations(globalOptions, rawData,
+                     (isStacked ? "table" : "facet"),
+                     (isStacked ? "label" : "series"),
+                     (isStacked ? "primary" : "primaryGrouped"),
+                     (isStacked ? data : groupMark.data),
+                     (isStacked ? marks : groupMark.marks));
+
+      if (!isStacked) {
+        addIntervals(globalOptions, rawData,
+                     (isStacked ? "table" : "facet"),
+                     (isStacked ? "label" : "series"),
+                     (isStacked ? "primary" : "primaryGrouped"),
+                     (isStacked ? data : groupMark.data),
+                     (isStacked ? marks : groupMark.marks));
+      }
+      
+
       
       // // Initializes the Columns of the data 
       // data.addColumn('string', 'Label');
