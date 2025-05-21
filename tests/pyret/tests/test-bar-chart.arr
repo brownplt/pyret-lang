@@ -4,6 +4,7 @@ import charts as VC
 import color as C
 import image-typed as I
 
+#|
 colors =       [list: C.red,   C.orange, C.yellow, C.green, C.blue,   C.purple, C.pink]
 langs =        [list: "Pyret", "OCaml",  "C",      "C++",   "Python", "Racket", "Smalltalk"]
 popularities = [list: 10,      -6,        1,        3,       5,        8,        9]
@@ -29,10 +30,10 @@ va-series = VC.from-list.grouped-bar-chart(
     [list: 894368,1558919,725973,1311479,3596343,3239173,1575308],
     [list: 737462,1345341,679201,1203944,3157759,3414001,1910571]],
   ages)
-# .horizontal(true)
+ # .horizontal(true)
  .colors(colors.reverse())
   .add-pointers([list: 0.2500000, 0.3500000], [list: "hi", "bye"])
-  .stacking-type(VC.grouped)
+  .stacking-type(VC.relative)
   .pointer-color(C.maroon)
   # .intervals(for map_n(series from 0, _ from states):
   #   for map_n(legend from -5, _ from ages):
@@ -60,8 +61,14 @@ vb-series = VC.from-list.#|image-|#bar-chart(#|images, |#langs, popularities)
   .interval-color(C.chartreuse)
   .format-axis({(v): "Label " + to-string(v)})
 
-rendered = VC.render-chart(va-series).background-color(C.gray).title("Hi!").width(1000)
+rendered = VC.render-chart(va-series).background-color(C.gray).title("Hi!")
 .x-axis("This way!").y-axis("That way!")
+|#
 
+va-series = VC.from-list.labeled-histogram(
+  range(1, 100).map(lam(x): "foo " + num-to-string(x) end),
+  range(1, 100).map(lam(_): num-random(1000) end))
+rendered = VC.render-chart(va-series).background-color(C.gray)
+  .x-axis("This way!").y-axis("That way!")
 
 I.save-image(rendered.get-image(), 'test-bar-chart.png')

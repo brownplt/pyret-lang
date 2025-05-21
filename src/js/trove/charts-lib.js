@@ -1662,120 +1662,158 @@
 
     function histogram(globalOptions, rawData) {
       const table = get(rawData, 'tab');
-      const data = new google.visualization.DataTable();
+      const title = get(globalOptions, 'title');
+      const width = get(globalOptions, 'width');
+      const height = get(globalOptions, 'height');
+      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
 
-      data.addColumn('string', 'Label');
-      data.addColumn('number', '');
+      const data = [];
+      const signals = [];
+      const marks = [];
       
-      var max, min;
-      var val = null;
-      var hasAtLeastTwoValues = false;
-      data.addRows(table.map(row => {
-        var valfix = toFixnum(row[1]);
-        if(val !== null && val !== valfix) { hasAtLeastTwoValues = true; }
-        if(val === null) { val = valfix; }
-        if(max === undefined) { max = valfix; }
-        if(min === undefined) { min = valfix; }
-        if(valfix > max) { max = valfix; }
-        if(valfix < min) { min = valfix; }
-        return [row[0], valfix];
-      }));
-
-      // ASSERT: if we're using custom images, there will be a 4th column
-      const hasImage = table[0].length == 3;
-
-      // set legend to none because there's only one data set
-      const options = {
-        legend: {position: 'none'}, 
-        histogram: {},
-        series : {
-          0 : { dataOpacity : hasImage? 0 : 1.0 }
+      const dataTable = {
+        name: 'table',
+        values: [],
+        transform: [
+          {
+            type: 'extent',
+            field: 'value',
+            signal: 'dataRange'
+          },
+          {
+            type: 'bin',
+            field: 'value',
+            extent: { signal: 'dataRange' },
+            nice: true
+          },
+          {
+            type: 'stack',
+            groupby: ['bin0', 'bin1'],
+            sort: { field: 'value' },
+            offset: 'zero', // could be "center"
+            as: ['y0', 'y1']
+          },
+        ]
+      }
+      data.push(dataTable);
+      table.forEach((row, i) => {
+        dataTable.values.push({
+          label: row[0],
+          value: toFixnum(row[1]),
+          image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
+        });
+      });
+      const tooltip = "{ title: datum.label, Value: datum.value }"
+      const color = getColorOrDefault(get(rawData, 'color'), default_colors[0])
+      
+      marks.push({
+        type: 'rect',
+        name: 'blocks',
+        from: { data: 'table' },
+        encode: {
+          enter: {
+            x: { scale: 'binScale', field: 'bin0', offset: 1 },
+            x2: { scale: 'binScale', field: 'bin1', offset: -1 },
+            y: { scale: 'countScale', field: 'y0', offset: -1 },
+            y2: { scale: 'countScale', field: 'y1', offset: 1 },
+            fill: [
+              { test: 'isValid(datum.image)', value: 'transparent' },
+              { value: color }
+            ],
+            tooltip: { signal: tooltip }
+          }
         }
+      });
+
+      const imagesTable = {
+        name: 'images',
+        source: 'table',
+        transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
       };
-
-      cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'bin-width'), {
-        none: function () {},
-        some: function (binWidth) {
-          // NOTE(joe, aug 2019): The chart library has a bug for histograms with
-          // a single unique value (https://jsfiddle.net/L0y64fbo/2/), so thisi
-          // hackaround makes it so this case can't come up.
-          if(hasAtLeastTwoValues) {
-            options.histogram.bucketSize = toFixnum(binWidth);
+      data.push(imagesTable);
+      marks.push({
+        type: 'image',
+        from: { data: 'images' },
+        encode: {
+          enter: {
+            x: { scale: 'binScale', field: 'bin0' },
+            x2: { scale: 'binScale', field: 'bin1' },
+            y: { scale: 'countScale', field: 'y0' },
+            y2: { scale: 'countScale', field: 'y1' },
+            image: { field: 'image' },
+            aspect: { value: false },
+            tooltip: { signal: tooltip }
           }
         }
       });
 
-      cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'max-num-bins'), {
-        none: function () {},
-        some: function (maxNumBins) {
-          options.histogram.maxNumBuckets = toFixnum(maxNumBins);
-        }
-      });
-
-      cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'min-num-bins'), {
-        none: function () {
-          if(options.histogram.bucketSize !== undefined) {
-            options.histogram.minNumBuckets = Math.floor((max - min) / options.histogram.bucketSize) + 1; 
-          }
+      const scales = [
+        {
+          name: 'binScale',
+          type: 'linear',
+          range: 'width',
+          domain: { data: 'table', field: 'bin1' }
         },
-        some: function (minNumBins) {
-          options.histogram.minNumBuckets = toFixnum(minNumBins);
+        {
+          name: 'countScale',
+          type: 'linear',
+          range: 'height',
+          domain: { data: 'table', field: 'y1' }
         }
-      });
+      ];
 
-      cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'color'), {
-        none: function () {},
-        some: function (color) {
-          options.colors = [convertColor(color)];
-        }
-      });
+      const xAxisLabel = get(globalOptions, 'x-axis');
+      const yAxisLabel = get(globalOptions, 'y-axis');
+      const axes = [
+        { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel },
+        { orient: 'left', scale: 'countScale', grid: true, title: yAxisLabel }
+      ];
       
+      // cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'bin-width'), {
+      //   none: function () {},
+      //   some: function (binWidth) {
+      //     // NOTE(joe, aug 2019): The chart library has a bug for histograms with
+      //     // a single unique value (https://jsfiddle.net/L0y64fbo/2/), so thisi
+      //     // hackaround makes it so this case can't come up.
+      //     if(hasAtLeastTwoValues) {
+      //       options.histogram.bucketSize = toFixnum(binWidth);
+      //     }
+      //   }
+      // });
+
+      // cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'max-num-bins'), {
+      //   none: function () {},
+      //   some: function (maxNumBins) {
+      //     options.histogram.maxNumBuckets = toFixnum(maxNumBins);
+      //   }
+      // });
+
+      // cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'min-num-bins'), {
+      //   none: function () {
+      //     if(options.histogram.bucketSize !== undefined) {
+      //       options.histogram.minNumBuckets = Math.floor((max - min) / options.histogram.bucketSize) + 1; 
+      //     }
+      //   },
+      //   some: function (minNumBins) {
+      //     options.histogram.minNumBuckets = toFixnum(minNumBins);
+      //   }
+      // });
+
       return {
-        data: data,
-        options: options,
-        chartType: google.visualization.Histogram,
+        "$schema": "https://vega.github.io/schema/vega/v6.json",
+        description: title,
+        title: title ? { text: title } : '',
+        width,
+        height,
+        padding: 0,
+        autosize: 'fit',
+        background,
+        data,
+        signals,
+        scales,
+        axes,
+        marks,
         onExit: defaultImageReturn,
-        mutators: [backgroundMutator, axesNameMutator, yAxisRangeMutator, xAxisRangeMutator],
-        overlay: (overlay, restarter, chart, container) => {
-          if(!hasImage) return;
-
-          // if custom images are defined, use the image at that location
-          // and overlay it atop each dot
-          google.visualization.events.addListener(chart, 'ready', function () {
-            // HACK(Emmanuel): 
-            // The only way to hijack rect events is to walk the DOM here
-            // If Google changes the DOM, these lines will likely break
-            const svgRoot = chart.container.querySelector('svg');
-            const rectRoot = svgRoot.children[1].children[1].children[1];
-            const rects = rectRoot.children;
-
-            // remove any labels that have previously been drawn
-            $('.__img_labels').each((idx, n) => $(n).remove());
-
-            // sort the table in value-order, so the images are in the same
-            // order as the data used to draw the rects
-            table.sort((r1,r2) => (toFixnum(r1[1]) < toFixnum(r2[1]))? -1 : 0)
-
-            // walk the table and swap in the images for the rects
-            table.forEach(function (row, i) {
-              const rect = rects[i];
-              // make an image element for the img, from the SVG namespace
-              const imgDOM = row[2].val.toDomNode();
-              row[2].val.render(imgDOM.getContext('2d'), 0, 0);
-              let imageElt = document.createElementNS("http://www.w3.org/2000/svg", 'image');
-              imageElt.classList.add('__img_labels'); // tag for later garbage collection
-              imageElt.setAttributeNS(null, 'href', imgDOM.toDataURL());
-              // position it using the position of the corresponding rect
-              imageElt.setAttribute('preserveAspectRatio', 'none');
-              imageElt.setAttribute('x', rects[i].getAttribute('x'));
-              imageElt.setAttribute('y', rects[i].getAttribute('y'));
-              imageElt.setAttribute('width', rects[i].getAttribute('width'));
-              imageElt.setAttribute('height', rects[i].getAttribute('height'));
-              Object.assign(imageElt, rects[i]); // we should probably not steal *everything*...
-              rectRoot.appendChild(imageElt);
-            });
-          })
-        }
       };
     }
 
@@ -2485,7 +2523,7 @@ ${labelRow}`;
         'pie-chart': notImp('pie-chart'), //makeFunction(pieChart),
         'bar-chart': makeFunction(barChart),
         'multi-bar-chart': makeFunction(multiBarChart),
-        'histogram': notImp('histogram'), //makeFunction(histogram),
+        'histogram': makeFunction(histogram),
         'box-plot': notImp('box-plot'), //makeFunction(boxPlot),
         'plot': notImp('plot'), //makeFunction(plot),
       }, 
