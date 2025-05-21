@@ -1670,6 +1670,13 @@
       const data = [];
       const signals = [];
       const marks = [];
+
+      const binTransform = {
+        type: 'bin',
+        field: 'value',
+        extent: { signal: 'dataRange' },
+        nice: true
+      };
       
       const dataTable = {
         name: 'table',
@@ -1680,12 +1687,7 @@
             field: 'value',
             signal: 'dataRange'
           },
-          {
-            type: 'bin',
-            field: 'value',
-            extent: { signal: 'dataRange' },
-            nice: true
-          },
+          binTransform,
           {
             type: 'stack',
             groupby: ['bin0', 'bin1'],
@@ -1712,10 +1714,10 @@
         from: { data: 'table' },
         encode: {
           enter: {
-            x: { scale: 'binScale', field: 'bin0', offset: 1 },
-            x2: { scale: 'binScale', field: 'bin1', offset: -1 },
-            y: { scale: 'countScale', field: 'y0', offset: -1 },
-            y2: { scale: 'countScale', field: 'y1', offset: 1 },
+            x: { scale: 'binScale', field: 'bin0', offset: 0.5 },
+            x2: { scale: 'binScale', field: 'bin1', offset: -0.5 },
+            y: { scale: 'countScale', field: 'y0', offset: -0.5 },
+            y2: { scale: 'countScale', field: 'y1', offset: 0.5 },
             fill: [
               { test: 'isValid(datum.image)', value: 'transparent' },
               { value: color }
@@ -1769,35 +1771,21 @@
         { orient: 'left', scale: 'countScale', grid: true, title: yAxisLabel }
       ];
       
-      // cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'bin-width'), {
-      //   none: function () {},
-      //   some: function (binWidth) {
-      //     // NOTE(joe, aug 2019): The chart library has a bug for histograms with
-      //     // a single unique value (https://jsfiddle.net/L0y64fbo/2/), so thisi
-      //     // hackaround makes it so this case can't come up.
-      //     if(hasAtLeastTwoValues) {
-      //       options.histogram.bucketSize = toFixnum(binWidth);
-      //     }
-      //   }
-      // });
+      cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'bin-width'), {
+        none: function () {},
+        some: function (binWidth) {
+          binTransform.step = toFixed(binWidth);
+          binTransform.nice = false;
+        }
+      });
 
-      // cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'max-num-bins'), {
-      //   none: function () {},
-      //   some: function (maxNumBins) {
-      //     options.histogram.maxNumBuckets = toFixnum(maxNumBins);
-      //   }
-      // });
-
-      // cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'min-num-bins'), {
-      //   none: function () {
-      //     if(options.histogram.bucketSize !== undefined) {
-      //       options.histogram.minNumBuckets = Math.floor((max - min) / options.histogram.bucketSize) + 1; 
-      //     }
-      //   },
-      //   some: function (minNumBins) {
-      //     options.histogram.minNumBuckets = toFixnum(minNumBins);
-      //   }
-      // });
+      cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'max-num-bins'), {
+        none: function () {},
+        some: function (maxNumBins) {
+          binTransform.maxbins = toFixnum(maxNumBins);
+          binTransform.nice = false;
+        }
+      });
 
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
