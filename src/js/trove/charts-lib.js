@@ -618,7 +618,9 @@
       });
     }
 
-    function get_default_color(rawData) { 
+    function get_default_color(rawData) {
+      if (!RUNTIME.hasField(rawData, 'color')) return "";
+      
       // Sets up the default color [Default Bar Color if not specified in color_list]
       return cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'color'), {
         none: function () {
@@ -747,103 +749,6 @@
         }
       }
 
-    };
-
-    const verticalBarChart = {
-      "$schema": "https://vega.github.io/schema/vega/v6.json",
-      "description": "A basic bar chart example, with value labels shown upon pointer hover.",
-      "width": 400,
-      "height": 200,
-      "padding": 5,
-
-      "data": [
-        {
-          "name": "table",
-          "values": [
-            {"category": "A", "amount": 28},
-            {"category": "B", "amount": 55},
-            {"category": "C", "amount": 43},
-            {"category": "D", "amount": 91},
-            {"category": "E", "amount": 81},
-            {"category": "F", "amount": 53},
-            {"category": "G", "amount": 19},
-            {"category": "H", "amount": 87}
-          ]
-        }
-      ],
-
-      "signals": [
-        {
-          "name": "tooltip",
-          "value": {},
-          "on": [
-            {"events": "rect:pointerover", "update": "datum"},
-            {"events": "rect:pointerout",  "update": "{}"}
-          ]
-        }
-      ],
-
-      "scales": [
-        {
-          "name": "xscale",
-          "type": "band",
-          "domain": {"data": "table", "field": "category"},
-          "range": "width",
-          "padding": 0.05,
-          "round": true
-        },
-        {
-          "name": "yscale",
-          "domain": {"data": "table", "field": "amount"},
-          "nice": true,
-          "range": "height"
-        }
-      ],
-
-      "axes": [
-        { "orient": "bottom", "scale": "xscale" },
-        { "orient": "left", "scale": "yscale" }
-      ],
-
-      "marks": [
-        {
-          "type": "rect",
-          "from": {"data":"table"},
-          "encode": {
-            "enter": {
-              "x": {"scale": "xscale", "field": "category"},
-              "width": {"scale": "xscale", "band": 1},
-              "y": {"scale": "yscale", "field": "amount"},
-              "y2": {"scale": "yscale", "value": 0}
-            },
-            "update": {
-              "fill": {"value": "steelblue"}
-            },
-            "hover": {
-              "fill": {"value": "red"}
-            }
-          }
-        },
-        {
-          "type": "text",
-          "encode": {
-            "enter": {
-              "align": {"value": "center"},
-              "baseline": {"value": "bottom"},
-              "fill": {"value": "#333"}
-            },
-            "update": {
-              "x": {"scale": "xscale", "signal": "tooltip.category", "band": 0.5},
-              "y": {"scale": "yscale", "signal": "tooltip.amount", "offset": -2},
-              "text": {"signal": "tooltip.amount"},
-              "fillOpacity": [
-                {"test": "datum === tooltip", "value": 0},
-                {"value": 1}
-              ]
-            }
-          }
-        }
-      ]
     };
 
     const verticalStackedBarChart = {
@@ -1053,9 +958,126 @@
       ]
     }
 
+
+    function chooseColor(colorsList, defaultColor, seriesIndex, itemIndex, numSeries) {
+      const relevantIndex = (numSeries === 1) ? itemIndex : seriesIndex;
+      if (relevantIndex < colorsList.length) { return colorsList[relevantIndex]; }
+      if (defaultColor) { return defaultColor; }
+      return seriesIndex;
+    }
+
+    function imageToCanvas(img) {
+      const canvas = canvasLib.createCanvas(img.getWidth(), img.getHeight());
+      const ctx = canvas.getContext('2d');
+      img.render(ctx);
+      return canvas;
+    }
+
+    /*
+      globalOptions and rawData: as in other functions
+      marksSource: either "table" or "facet", depending on whether it's grouped
+      dataTable: outparameter array to store the data values
+      marks: outparam array to store the marks
+     */
+    function constructDataTable(globalOptions, rawData, marksSource, heightField, primaryScale, tooltip, dataTable, marks) {
+      const horizontal = isTrue(get(rawData, 'horizontal'));
+      const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
+      const table = get(rawData, 'tab');
+      const colors_list = get_colors_list(rawData);
+      const default_color = get_default_color(rawData);
+
+      // Adds each row of bar data and bar_color data
+      // allAnnotations : Option<String>[][], where allAnnotations[label][series] is the optional annotation
+      // for the value of a given axis label and a given data-series within that label
+      const allAnnotations = get(rawData, 'annotations') || [];
+      // allAnnotations : num[][], where allAnnotations[label][series] is the list of interval data
+      // for the value of a given axis label and a given data-series within that label
+      const allIntervals = get(rawData, 'intervals') || []
+      const NONEann = RUNTIME.ffi.makeNone();
+      
+      table.forEach(function (row, i) {
+        if (!(row[1] instanceof Array)) {
+          row[1] = [row[1]];
+        }
+        const seriesAnnotations = allAnnotations[i] || [];
+        row[1].forEach(function (value, series) {
+          const annotationOpt = seriesAnnotations[series] || NONEann;
+          const annotation = cases(RUNTIME.ffi.isOption, 'Option', annotationOpt, {
+            none: () => undefined,
+            some: (v) => v
+          });
+          
+          dataTable.values.push({
+            label: row[0],
+            value: toFixnum(value),
+            color: chooseColor(colors_list, default_color, series, i, row[1].length),
+            image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
+            annotation,
+            series,
+            intervals: (allIntervals[i] || [])[series]
+          });
+        });
+      });
+      marks.push({
+        "type": "rect",
+        "name": "bars",
+        "from": {"data": marksSource},
+        "encode": {
+          "enter": {
+            [axesConfig.primary.dir]: {"scale": primaryScale, "field": heightField},
+            [axesConfig.primary.range]: {"scale": primaryScale, "band": 1, "offset": -1},
+            [axesConfig.secondary.dir]: {"scale": "secondary", "field": "value0"},
+            [axesConfig.secondary.dir + '2']: {"scale": "secondary", "field": "value1"},
+            "fill": [
+              { test: 'isValid(datum.image)', value: 'transparent' },
+              { field: 'fillColor' }
+            ],
+            "tooltip": tooltip
+          },
+          "update": {
+            "fillOpacity": {"value": 1},
+          },
+          "hover": {
+            "fillOpacity": {"value": 0.5}
+          }
+        }
+      });
+    }
+
+    function addImages(globalOptions, rawData, primaryScale, tooltip, data, marks) {
+      const horizontal = isTrue(get(rawData, 'horizontal'));
+      const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
+      const imagesTable = {
+        name: 'images',
+        source: 'table',
+        transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
+      };
+      data.push(imagesTable);
+      marks.push({
+        "type": "image",
+        "from": {"data": "images"},
+        "encode": {
+          "enter": {
+            [axesConfig.primary.dir]: {"scale": primaryScale, "field": "label"},
+            [axesConfig.secondary.dir]: {
+              "signal": "max(scale('secondary', datum.value0), scale('secondary', datum.value1))"
+            },
+            [axesConfig.primary.range]: {"scale": primaryScale, "band": 1, "offset": -1},
+            [axesConfig.secondary.range]: {"signal": "abs(scale('secondary', datum.value1) - scale('secondary', datum.value0))"},
+            "image": {"field": "image"},
+            "stroke": {"value": "#666666"},
+            "strokeWidth": {"value": 10},
+            "strokeOpacity": {"value": 1},
+            "aspect": {"value": false},
+            [axesConfig.images.anchorProp]: {"value": axesConfig.images.anchor},
+            "tooltip": tooltip
+          }
+        }
+      });
+    }
+    
     function barChart(globalOptions, rawData) {
       // Variables and constants 
-      const table = get(rawData, 'tab');
       const horizontal = isTrue(get(rawData, 'horizontal'));
       const axisloc = horizontal ? 'hAxes' : 'vAxes';
       const title = get(globalOptions, 'title');
@@ -1063,11 +1085,7 @@
       const height = get(globalOptions, 'height');
       const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
       const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
-      const colors_list = get_colors_list(rawData);
-      const default_color = get_default_color(rawData);
       const axis = get_axis(rawData);
-      // console.log(JSON.stringify({pointers_list, pointer_color, axis}, null, 2));
-      const colors_list_length = colors_list.length;
 
       const data = [];
       
@@ -1079,7 +1097,7 @@
           {
             type: "formula",
             as: "fillColor",
-            expr: "isString(datum.color) ? datum.color : scale('color', datum.color)"
+            expr: "isString(datum.color) ? datum.color : scale('color', datum.series)"
           },
           {
             "type": "stack",
@@ -1122,7 +1140,7 @@
         });
       }
       const axes = [
-        { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
+        { orient: axesConfig.primary.axes, scale: primaryScale, zindex: 1 },
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1, grid: false },
         // redraw the axis just for its gridlines, but beneath everything else in z-order
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0, grid: true, ticks: false, labels: false }
@@ -1134,114 +1152,18 @@
         };
       }
       const marks = [];
-
-
-      // ASSERT: if we're using custom images, there will be a 4th column
-      const hasImage = table[0].length == 4;
-      const dotChartP = get(rawData, 'dot-chart');
-
-      function chooseColor(seriesIndex, itemIndex, numSeries) {
-        const relevantIndex = (numSeries === 1) ? itemIndex : seriesIndex;
-        if (relevantIndex < colors_list.length) { return colors_list[relevantIndex]; }
-        if (default_color) { return default_color; }
-        return seriesIndex;
-      }
-
-      function imageToCanvas(img) {
-        const canvas = canvasLib.createCanvas(img.getWidth(), img.getHeight());
-        const ctx = canvas.getContext('2d');
-        img.render(ctx);
-        return canvas;
-      }
-      
-      // Adds each row of bar data and bar_color data
-      // allAnnotations : Option<String>[][], where allAnnotations[label][series] is the optional annotation
-      // for the value of a given axis label and a given data-series within that label
-      const allAnnotations = get(rawData, 'annotations') || [];
-      // allAnnotations : num[][], where allAnnotations[label][series] is the list of interval data
-      // for the value of a given axis label and a given data-series within that label
-      const allIntervals = get(rawData, 'intervals') || []
-      const NONEann = RUNTIME.ffi.makeNone();
-      table.forEach(function (row, i) {
-        // NOTE(Ben): this is almost certainly wrong, but I'll figure it out when I get to multi-bar-charts
-        const series = (row[3] && RUNTIME.ffi.isOption.app(row[3])) ? cases(RUNTIME.ffi.isOption, 'Option', row[3], {
-          none: () => 0,
-          some: (v) => v
-        }) : 0;
-        const seriesAnnotations = allAnnotations[i] || [];
-        const annotationOpt = seriesAnnotations[series] || NONEann;
-        const annotation = cases(RUNTIME.ffi.isOption, 'Option', annotationOpt, {
-          none: () => undefined,
-          some: (v) => v
-        });
-
-        dataTable.values.push({
-          label: row[0],
-          value: toFixnum(row[1]),
-          color: chooseColor(0, i, 1),
-          image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
-          annotation,
-          series,
-          intervals: (allIntervals[i] || [])[series]
-        });
-      });
-      marks.push({
-        "type": "rect",
-        "name": "bars",
-        "from": {"data": "table"},
-        "encode": {
-          "enter": {
-            [axesConfig.primary.dir]: {"scale": "primary", "field": "label"},
-            [axesConfig.primary.range]: {"scale": "primary", "band": 1, "offset": -1},
-            [axesConfig.secondary.dir]: {"scale": "secondary", "field": "value0"},
-            [axesConfig.secondary.dir + '2']: {"scale": "secondary", "field": "value1"},
-            "fill": [
-              { test: 'isValid(datum.image)', value: 'transparent' },
-              { field: 'fillColor' }
-            ],
-            "tooltip": {
-              "signal": "{title: datum.label, Values: datum.value, Intervals: datum.intervals}"
-            }
-          },
-          "update": {
-            "fillOpacity": {"value": 1},
-          },
-          "hover": {
-            "fillOpacity": {"value": 0.5}
-          }
+      const tooltips = [
+        {
+          test: "isArray(datum.intervals) && datum.intervals.length > 0",
+          signal: "{title: datum.label, Values: datum.value, Intervals: datum.intervals}"
+        },
+        {
+          signal: "{title: datum.label, Values: datum.value}"
         }
-      });
+      ];
+      constructDataTable(globalOptions, rawData, "table", "label", "primary", tooltips, dataTable, marks);
 
-      // Add images
-      const imagesTable = {
-        name: 'images',
-        source: 'table',
-        transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
-      };
-      data.push(imagesTable);
-      marks.push({
-        "type": "image",
-        "from": {"data": "images"},
-        "encode": {
-          "enter": {
-            [axesConfig.primary.dir]: {"scale": "primary", "field": "label"},
-            [axesConfig.secondary.dir]: {
-              "signal": "max(scale('secondary', datum.value0), scale('secondary', datum.value1))"
-            },
-            [axesConfig.primary.range]: {"scale": "primary", "band": 1, "offset": -1},
-            [axesConfig.secondary.range]: {"signal": "abs(scale('secondary', datum.value1) - scale('secondary', datum.value0))"},
-            "image": {"field": "image"},
-            "stroke": {"value": "#666666"},
-            "strokeWidth": {"value": 10},
-            "strokeOpacity": {"value": 1},
-            "aspect": {"value": false},
-            [axesConfig.images.anchorProp]: {"value": axesConfig.images.anchor},
-            "tooltip": {
-              "signal": "{title: datum.label, Values: datum.value, Intervals: datum.intervals}"
-            }
-          }
-        }
-      });
+      addImages(globalOptions, rawData, "primary", tooltips, data, marks);
 
       // Add pointers
       const pointersTable = {
@@ -1262,8 +1184,8 @@
             enter: {
               [axesConfig.secondary.dir]: { scale: 'secondary', field: 'value' },
               [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'value' },
-              [axesConfig.primary.dir]: { signal: "range('primary')[0]"},
-              [axesConfig.primary.dir + '2']: { signal: "range('primary')[1]"},
+              [axesConfig.primary.dir]: { signal: `range('${primaryScale}')[0]`},
+              [axesConfig.primary.dir + '2']: { signal: `range('${primaryScale}')[1]`},
               stroke: { value: pointer_color },
               strokeWidth: { value: 1 },
               opacity: { value: 1 }
@@ -1276,7 +1198,7 @@
           encode: {
             enter: {
               [axesConfig.secondary.dir]: { scale: 'secondary', field: 'value' },
-              [axesConfig.primary.dir]: { signal: `range('primary')[${axesConfig.pointers.rangeIndex}]` },
+              [axesConfig.primary.dir]: { signal: `range('${primaryScale}')[${axesConfig.pointers.rangeIndex}]` },
               [axesConfig.pointers.offsetDir]: { value: axesConfig.pointers.offsetValue },
               align: { value: axesConfig.pointers.align },
               baseline: { value: axesConfig.pointers.baseline },
@@ -1392,51 +1314,6 @@
       
       // addIntervals(data, rawData);
 
-      let options = {
-        legend: {
-          position: 'none'
-        }, 
-        intervals: {
-          color : interval_color, 
-        },
-        series : { 
-          0 : { dataOpacity : (hasImage || dotChartP)? 0 : 1.0 }
-        }
-      };
-      
-      options[axisloc] = { 
-        0: { 
-          viewWindow: { max: axis.top, min: axis.bottom }, 
-          ticks: axis.ticks
-        }
-      };
-      
-      /* NOTE(John & Edward, Dec 2020): 
-         Our goal for the part below was to add pointers (Specific Named Ticks) on another VAxis. 
-         The Current Chart library necessitates that we assign at least one stack/bar to the 
-         second axis in order for it to show up, and we have to fix the min/max of each axis 
-         manually to make sure that both are consistent with each other rather than being relative 
-         to the data. There is also a problem: When the pointers are too close to each other, one or 
-         both of them disappear!
-      */
-      if (false && pointers_list.length > 0) {
-
-        // Add and Attach Empty Data Stack/bar to 2nd axis + Color it
-        data.addColumn('number', 'Pointers');
-        options['series'] = { 1: { color: pointer_color, targetAxisIndex: 1 } };
-
-        // Update Options to include the new axis ticks consistent with the first axis
-        options[axisloc][1] = { 
-          viewWindow: { 
-            max: axis.top, 
-            min: axis.bottom
-          },
-          gridlines: { color: pointer_color },
-          ticks: pointers_list, 
-          textStyle: { color: pointer_color }
-        };
-      }
-
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
@@ -1451,13 +1328,6 @@
         scales,
         axes,
         marks,
-        // options,
-        // config: {
-        //   range: {
-        //     category: default_colors
-        //   }
-        // },
-        // chartType: horizontal ? google.visualization.BarChart : google.visualization.ColumnChart,
         onExit: defaultImageReturn,
         // gChartMutators: [backgroundMutator, axesNameMutator, yAxisRangeMutator],
         gChartOverlay: (overlay, restarter, chart, container) => {
@@ -1536,96 +1406,321 @@
 
 
     function multiBarChart(globalOptions, rawData) {
-      // Variables and Constants
-      const table = get(rawData, 'tab');
-      const legends = get(rawData, 'legends');
-      const horizontal = get(rawData, 'horizontal');
+      // Variables and constants
+      const horizontal = isTrue(get(rawData, 'horizontal'));
       const axisloc = horizontal ? 'hAxes' : 'vAxes';
-      const data = new google.visualization.DataTable();
-      const pointers_list = get_pointers_list(rawData);
-      const pointer_color = get_pointer_color(rawData);
-      const axis = get_axis(rawData);
-      const interval_color = get_interval_color(rawData); 
+      const title = get(globalOptions, 'title');
+      const width = get(globalOptions, 'width');
+      const height = get(globalOptions, 'height');
+      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
+      const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
       const colors_list = get_colors_list(rawData);
-      if (colors_list.length < legends.length) {
-        colors_list.push(...default_colors.slice(0, legends.length - colors_list.length));
-      }
+      const axis = get_axis(rawData);
+      const legends = get(rawData, 'legends');
+      // console.log(JSON.stringify({pointers_list, pointer_color, axis}, null, 2));
+      const isStacked = get(rawData, 'is-stacked') !== 'none';
 
-      // Initializes the Columns of the data 
-      data.addColumn('string', 'Label');
-      legends.forEach(legend => data.addColumn('number', legend));
-
-      // Adds each row of bar data
-      data.addRows(table.map(row => [row[0]].concat(row[1].map(n => toFixnum(n)))));
-      addAnnotations(data, rawData);
-      addIntervals(data, rawData);
-
-      let options = {
-        isStacked: get(rawData, 'is-stacked'),
-        series: colors_list.map(c => ({color: c, targetAxisIndex: 0})),
-        legend: {
-          position: horizontal ? 'right' : 'top', 
-          maxLines: data.getNumberOfColumns() - 1
-        }, 
-        intervals: { 
-          color : interval_color, 
-        }
-      };
-
+      const data = [];
       
-      options[axisloc] = { 
-        0: { 
-          viewWindow: { max: axis.top, min: axis.bottom }, 
-          ticks: axis.ticks 
-        }
-      };
-      
-      /* NOTE(John & Edward, Dec 2020): 
-         Our goal for the part below was to add pointers (Specific Named Ticks) on another VAxis. 
-         The Current Chart library necessitates that we assign at least one stack/bar to the 
-         second axis in order for it to show up, and we have to fix the min/max of each axis 
-         manually to make sure that both are consistent with each other rather than being relative 
-         to the data. There is also a problem: When the pointers are too close to each other, one or 
-         both of them disappear!
-      */
 
-      if (pointers_list.length > 0) { 
-        colors_list = colors_list.slice(0, legends.length);
-        
-        // Add and Attach Empty Data Stack/bar to 2nd axis + Color it
-        data.addColumn('number', 'Pointers')
-
-        for (let i = 0; i < data.getNumberOfColumns() - 1; i++) {
-          if (options['series'][i] == null) {
-            options['series'][i] = {color: pointer_color, targetAxisIndex: 1};
-          }
-        }
-
-        // Update Options to include the new axis ticks consistent with the first axis
-        options[axisloc][1] = { 
-          viewWindow: { 
-            max: axis.top, 
-            min: axis.bottom
+      const dataTable = {
+        name: 'table',
+        values: [],
+        transform: [
+          {
+            type: "formula",
+            as: "fillColor",
+            expr: "isString(datum.color) ? datum.color : scale('color', datum.series)"
           },
-          gridlines: { color: pointer_color },
-          ticks: pointers_list, 
-          textStyle: { color: pointer_color }
-        };
-      } else {
-        for (let i = 0; i < data.getNumberOfColumns() - 1; i++) {
-          if (options['series'][i] == null) {
-            options['series'][i] = {color: 'black', targetAxisIndex: 0};
+          {
+            type: "formula",
+            as: "desc",
+            expr: "isString(datum.annotation) ? datum.annotation : scale('legends', datum.series)"
           }
+        ]
+      };
+      data.push(dataTable);
+      if (isStacked) {
+        dataTable.transform.push({
+          "type": "stack",
+          "groupby": ["label"],
+          "sort": {"field": "series"},
+          "field": "value",
+          "as": ["value0", "value1"],
+        });
+      } else {
+        dataTable.transform.push(
+          // Since there is no stacking happening, each bar goes from 0 to the value
+          { type: 'formula', as: 'value0', expr: '0' },
+          { type: 'formula', as: 'value1', expr: 'datum.value' },
+        );
+      }
+      const signals = [];
+      const scales = [
+        {
+          name: "primary",
+          type: "band",
+          range: axesConfig.primary.range,
+          domain: {"data": "table", "field": "label"},
+          padding: 0.2
+        },
+        {
+          name: "secondary",
+          type: "linear",
+          range: axesConfig.secondary.range,
+          nice: true, "zero": true,
+          domain: {"data": "table", "field": "value"}
+        },
+        {
+          name: "color",
+          type: "ordinal",
+          domain: Array.from(Array(default_colors.length).keys()),
+          range: { scheme: "google" }
+        },
+        {
+          name: "legends",
+          type: "ordinal",
+          domain: Array.from(Array(legends.length).keys()),
+          range: legends
+        }
+      ];
+      if (axis) {
+        scales.push({
+          name: "secondaryLabels",
+          type: "ordinal",
+          domain: axis.domainRaw,
+          range: axis.labels
+        });
+      }
+      const axes = [
+        { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
+        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1, grid: false },
+        // redraw the axis just for its gridlines, but beneath everything else in z-order
+        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0, grid: true, ticks: false, labels: false }
+      ];
+      if (axis) {
+        axes[1].values = axis.domainRaw;
+        axes[1].encode = {
+          labels: { update: { text: { signal: "scale('secondaryLabels', datum.value)" } } }
+        };
+      }
+      const marks = [];
+
+      const groupMark = {
+        type: 'group',
+        from: {
+          facet: {
+            data: 'table',
+            name: 'facet',
+            groupby: 'label'
+          }
+        },
+        encode: {
+          enter: {
+            [axesConfig.primary.dir]: { scale: 'primary', field: 'label' }
+          }
+        },
+        signals: [
+          { name: axesConfig.primary.range, update: "bandwidth('primary')" }
+        ],
+        scales: [
+          {
+            name: 'primaryGrouped',
+            type: 'band',
+            range: axesConfig.primary.range,
+            domain: { data: 'facet', field: 'series' }
+          }
+        ],
+        marks: []
+      };
+      if (!isStacked) {
+        marks.push(groupMark);
+      }
+
+      const primaryScale = (isStacked ? "primary" : "primaryGrouped");
+      const tooltips = [
+        {
+          test: "isArray(datum.intervals) && datum.intervals.length > 0",
+          signal: "{title: datum.label, Series: datum.desc, Value: datum.value, Intervals: datum.intervals}"
+        },
+        {
+          signal: "{title: datum.label, Series: datum.desc, Value: datum.value}"
+        }
+      ];
+      constructDataTable(globalOptions, rawData,
+                         (isStacked ? "table" : "facet"),
+                         (isStacked ? "label" : "series"),
+                         primaryScale,
+                         tooltips,
+                         dataTable,
+                         (isStacked ? marks : groupMark.marks));
+
+      addImages(globalOptions, rawData, primaryScale, tooltips, data, (isStacked ? marks : groupMark.marks));
+      
+      // // Initializes the Columns of the data 
+      // data.addColumn('string', 'Label');
+      // legends.forEach(legend => data.addColumn('number', legend));
+
+      // // Adds each row of bar data
+      // data.addRows(table.map(row => [row[0]].concat(row[1].map(n => toFixnum(n)))));
+      // addAnnotations(data, rawData);
+      // addIntervals(data, rawData);
+
+      // let options = {
+      //   isStacked,
+      //   series: colors_list.map(c => ({color: c, targetAxisIndex: 0})),
+      //   legend: {
+      //     position: horizontal ? 'right' : 'top', 
+      //     maxLines: data.getNumberOfColumns() - 1
+      //   }, 
+      //   intervals: { 
+      //     color : interval_color, 
+      //   }
+      // };
+
+      
+      // options[axisloc] = { 
+      //   0: { 
+      //     viewWindow: { max: axis.top, min: axis.bottom }, 
+      //     ticks: axis.ticks 
+      //   }
+      // };
+      
+      // /* NOTE(John & Edward, Dec 2020): 
+      //    Our goal for the part below was to add pointers (Specific Named Ticks) on another VAxis. 
+      //    The Current Chart library necessitates that we assign at least one stack/bar to the 
+      //    second axis in order for it to show up, and we have to fix the min/max of each axis 
+      //    manually to make sure that both are consistent with each other rather than being relative 
+      //    to the data. There is also a problem: When the pointers are too close to each other, one or 
+      //    both of them disappear!
+      // */
+
+      // if (pointers_list.length > 0) { 
+      //   colors_list = colors_list.slice(0, legends.length);
+        
+      //   // Add and Attach Empty Data Stack/bar to 2nd axis + Color it
+      //   data.addColumn('number', 'Pointers')
+
+      //   for (let i = 0; i < data.getNumberOfColumns() - 1; i++) {
+      //     if (options['series'][i] == null) {
+      //       options['series'][i] = {color: pointer_color, targetAxisIndex: 1};
+      //     }
+      //   }
+
+      //   // Update Options to include the new axis ticks consistent with the first axis
+      //   options[axisloc][1] = { 
+      //     viewWindow: { 
+      //       max: axis.top, 
+      //       min: axis.bottom
+      //     },
+      //     gridlines: { color: pointer_color },
+      //     ticks: pointers_list, 
+      //     textStyle: { color: pointer_color }
+      //   };
+      // } else {
+      //   for (let i = 0; i < data.getNumberOfColumns() - 1; i++) {
+      //     if (options['series'][i] == null) {
+      //       options['series'][i] = {color: 'black', targetAxisIndex: 0};
+      //     }
+      //   }
+      // }
+      
+      // return {
+      //   data: data,
+      //   options: options,
+      //   chartType: horizontal ? google.visualization.BarChart : google.visualization.ColumnChart,
+      //   onExit: defaultImageReturn,
+      //   mutators: [backgroundMutator, axesNameMutator, yAxisRangeMutator],
+      // };
+
+      return {
+        "$schema": "https://vega.github.io/schema/vega/v6.json",
+        description: title,
+        title: title ? { text: title } : '',
+        width,
+        height,
+        padding: 0,
+        autosize: "fit",
+        background,
+        data,
+        signals,
+        scales,
+        axes,
+        marks,
+        onExit: defaultImageReturn,
+        // gChartMutators: [backgroundMutator, axesNameMutator, yAxisRangeMutator],
+        gChartOverlay: (overlay, restarter, chart, container) => {
+
+          if (!hasImage && !dotChartP) return;
+
+          // if custom images are defined, use the image at that location
+          // and overlay it atop each dot
+
+
+          google.visualization.events.addListener(chart, 'ready', function () {
+            // HACK(Emmanuel): 
+            // If Google changes the DOM for charts, these lines will likely break
+            const svgRoot = chart.container.querySelector('svg');
+            const rects = svgRoot.children[1].children[1].children[1].children;
+            $('.__img_labels').each((idx, n) => $(n).remove());
+
+            if (hasImage) {
+              // Render each rect above the old ones, using the image as a pattern
+              table.forEach(function (row, i) {
+                const rect = rects[i];
+                // make an image element for the img, from the SVG namespace
+                const imgDOM = row[2].val.toDomNode();
+                row[2].val.render(imgDOM.getContext('2d'), 0, 0);
+                let imageElt = document.createElementNS("http://www.w3.org/2000/svg", 'image');
+                imageElt.classList.add('__img_labels'); // tag for later garbage collection
+                imageElt.setAttributeNS(null, 'href', imgDOM.toDataURL());
+                // position it using the position of the corresponding rect
+                imageElt.setAttribute('preserveAspectRatio', 'none');
+                imageElt.setAttribute('x', rects[i].getAttribute('x'));
+                imageElt.setAttribute('y', rects[i].getAttribute('y'));
+                imageElt.setAttribute('width', rects[i].getAttribute('width'));
+                imageElt.setAttribute('height', rects[i].getAttribute('height'));
+                Object.assign(imageElt, rects[i]); // we should probably not steal *everything*...
+                svgRoot.appendChild(imageElt);
+              });
+            }
+
+            if (dotChartP) {
+              table.forEach(function (row, i) {
+                // console.log('row', i, '=', row);
+                const rect = rects[i];
+                // console.log('rect', i, '=', rect);
+                const num_elts = row[1];
+                const rect_x = Number(rect.getAttribute('x'));
+                const rect_y = Number(rect.getAttribute('y'));
+                const rect_height = Number(rect.getAttribute('height'));
+                const unit_height = rect_height/num_elts;
+                const rect_width = Number(rect.getAttribute('width'));
+                const rect_fill = rect.getAttribute('fill');
+                // const rect_fill_opacity = Number(rect.getAttribute('fill-opacity'));
+                // const rect_stroke = rect.getAttribute('stroke');
+                // const rect_stroke_width = Number(rect.getAttribute('stroke-width'));
+                rect.setAttribute('stroke-width', 0);
+                for (let j = 0; j < num_elts; j++) {
+                  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                  circle.classList.add('__img_labels');
+                  circle.setAttribute('r', rect_width/8);
+                  circle.setAttribute('cx', rect_x + rect_width/2);
+                  circle.setAttribute('cy', rect_y + (num_elts - j - 0.5)*unit_height);
+                  circle.setAttribute('fill', rect_fill);
+                  // circle.setAttribute('fill-opacity', rect_fill_opacity);
+                  // circle.setAttribute('stroke', rect_stroke);
+                  // circle.setAttribute('stroke-width', rect_stroke_width);
+                  // console.log('adding circle elt', i, j, '=', circle);
+                  svgRoot.appendChild(circle);
+                }
+              });
+            }
+
+          });
+
         }
       }
-      
-      return {
-        data: data,
-        options: options,
-        chartType: horizontal ? google.visualization.BarChart : google.visualization.ColumnChart,
-        onExit: defaultImageReturn,
-        mutators: [backgroundMutator, axesNameMutator, yAxisRangeMutator],
-      };
     }
 
     function boxPlot(globalOptions, rawData) {
@@ -2502,7 +2597,7 @@ ${labelRow}`;
           console.log(JSON.stringify(processed, (k, v) => (v && IMAGE.isImage(v)) ? v.ariaText : v, 2));
           const width = toFixnum(get(globalOptions, 'width'));
           const height = toFixnum(get(globalOptions, 'height'));
-          const canvas = new canvasLib.Canvas(width, height);
+          const canvas = canvasLib.createCanvas(width, height);
           const view = new vega.View(vega.parse(processed));
           const externalContext = canvas.getContext('2d');
           view.width(width).height(height).resize();
@@ -2522,7 +2617,6 @@ ${labelRow}`;
     function renderInteractiveChart(processed, globalOptions, rawData) {
       // TODO(Ben)
       return RUNTIME.pauseStack(restarter => {
-        try {
           const root = $('<div/>');
           const overlay = $('<div/>', {style: 'position: relative'});
 
@@ -2553,6 +2647,7 @@ ${labelRow}`;
           const result = tmp;
           // this draw will have a wrong width / height, but do it for now so
           // that overlay works
+        try {
           view.runAsync()
             .then(() => {
               // return true;
@@ -2598,7 +2693,7 @@ ${labelRow}`;
       {
         'pie-chart': notImp('pie-chart'), //makeFunction(pieChart),
         'bar-chart': makeFunction(barChart),
-        'multi-bar-chart': notImp('multi-bar-chart'), //makeFunction(multiBarChart),
+        'multi-bar-chart': makeFunction(multiBarChart),
         'histogram': notImp('histogram'), //makeFunction(histogram),
         'box-plot': notImp('box-plot'), //makeFunction(boxPlot),
         'plot': notImp('plot'), //makeFunction(plot),
