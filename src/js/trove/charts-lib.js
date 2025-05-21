@@ -1009,7 +1009,7 @@
           
           dataTable.values.push({
             label: row[0],
-            value: toFixnum(value),
+            rawValue: toFixnum(value),
             color: chooseColor(colors_list, default_color, series, i, row[1].length),
             image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
             annotation,
@@ -1099,6 +1099,7 @@
             as: "fillColor",
             expr: "isString(datum.color) ? datum.color : scale('color', datum.series)"
           },
+          { type: "formula", as: "value", expr: "datum.rawValue" },
           {
             "type": "stack",
             "groupby": ["label"],
@@ -1418,10 +1419,10 @@
       const axis = get_axis(rawData);
       const legends = get(rawData, 'legends');
       // console.log(JSON.stringify({pointers_list, pointer_color, axis}, null, 2));
+      const stackType = get(rawData, 'is-stacked');
       const isStacked = get(rawData, 'is-stacked') !== 'none';
 
       const data = [];
-      
 
       const dataTable = {
         name: 'table',
@@ -1441,36 +1442,58 @@
       };
       data.push(dataTable);
       if (isStacked) {
-        dataTable.transform.push({
-          "type": "stack",
-          "groupby": ["label"],
-          "sort": {"field": "series"},
-          "field": "value",
-          "as": ["value0", "value1"],
-        });
+        dataTable.transform.push(
+          {
+            type: "joinaggregate",
+            groupby: ["label"],
+            ops: ["sum"],
+            fields: ["rawValue"],
+            as: ["totalValue"]
+          },
+          {
+            type: "formula",
+            as: "value",
+            expr: "datum.rawValue/datum.totalValue",
+          },
+          {
+            type: "formula",
+            as: "percent",
+            expr: "datum.value * 100",
+          },
+          {
+            "type": "stack",
+            "groupby": ["label"],
+            "sort": {"field": "series"},
+            "field": "value",
+            "as": ["value0", "value1"],
+          }
+        );
       } else {
         dataTable.transform.push(
+          { type: "formula", as: "value", expr: "datum.rawValue" },
           // Since there is no stacking happening, each bar goes from 0 to the value
           { type: 'formula', as: 'value0', expr: '0' },
           { type: 'formula', as: 'value1', expr: 'datum.value' },
         );
       }
       const signals = [];
+      const primaryScale = {
+        name: "primary",
+        type: "band",
+        range: axesConfig.primary.range,
+        domain: {"data": "table", "field": "label"},
+        padding: 0.2
+      };
+      const secondaryScale = {
+        name: "secondary",
+        type: "linear",
+        range: axesConfig.secondary.range,
+        nice: true, "zero": true,
+        domain: {"data": "table", "field": "value1"}
+      };
       const scales = [
-        {
-          name: "primary",
-          type: "band",
-          range: axesConfig.primary.range,
-          domain: {"data": "table", "field": "label"},
-          padding: 0.2
-        },
-        {
-          name: "secondary",
-          type: "linear",
-          range: axesConfig.secondary.range,
-          nice: true, "zero": true,
-          domain: {"data": "table", "field": "value"}
-        },
+        primaryScale,
+        secondaryScale,
         {
           name: "color",
           type: "ordinal",
@@ -1533,29 +1556,33 @@
         ],
         marks: []
       };
+      let tooltipValue = "datum.Value";
       if (!isStacked) {
         marks.push(groupMark);
+      } else {
+        tooltipValue = `(datum.rawValue + ' (' + format(datum.value, '.2${stackType === 'percent' ? '%' : ''}') + ')')`;
       }
 
-      const primaryScale = (isStacked ? "primary" : "primaryGrouped");
+
+      const primaryScaleName = (isStacked ? "primary" : "primaryGrouped");
       const tooltips = [
         {
           test: "isArray(datum.intervals) && datum.intervals.length > 0",
-          signal: "{title: datum.label, Series: datum.desc, Value: datum.value, Intervals: datum.intervals}"
+          signal: `{title: datum.label, Series: datum.desc, Value: ${tooltipValue}, Intervals: datum.intervals}`
         },
         {
-          signal: "{title: datum.label, Series: datum.desc, Value: datum.value}"
+          signal: `{title: datum.label, Series: datum.desc, Value: ${tooltipValue}}`
         }
       ];
       constructDataTable(globalOptions, rawData,
                          (isStacked ? "table" : "facet"),
                          (isStacked ? "label" : "series"),
-                         primaryScale,
+                         primaryScaleName,
                          tooltips,
                          dataTable,
                          (isStacked ? marks : groupMark.marks));
 
-      addImages(globalOptions, rawData, primaryScale, tooltips, data, (isStacked ? marks : groupMark.marks));
+      addImages(globalOptions, rawData, primaryScaleName, tooltips, data, (isStacked ? marks : groupMark.marks));
       
       // // Initializes the Columns of the data 
       // data.addColumn('string', 'Label');
