@@ -1037,18 +1037,18 @@
               { test: 'isValid(datum.image)', value: 'transparent' },
               { scale: 'color', field: 'series' }
             ],
-            "tooltip": tooltip
-          },
-          "update": {
-            strokeOpacity: { value: 0 }
-          },
-          "hover": {
+            "tooltip": tooltip,
             strokeWidth: { value: 2 },
-            strokeOpacity: { value: 1 },
             stroke: [
               { test: 'contrast("white", scale("color", datum.series)) > contrast("black", scale("color", datum.series))', value: 'white' },
               { value: 'black' }
             ]
+          },
+          "update": {
+            strokeOpacity: { signal: "hoveredSeries == datum.series ? 1 : 0" }
+          },
+          "hover": {
+            strokeOpacity: { value: 1 },
           }
         }
       });
@@ -1357,7 +1357,6 @@
         axes,
         marks,
         onExit: defaultImageReturn,
-        // gChartMutators: [backgroundMutator, axesNameMutator, yAxisRangeMutator],
         gChartOverlay: (overlay, restarter, chart, container) => {
 
           if (!hasImage && !dotChartP) return;
@@ -1367,32 +1366,6 @@
 
 
           google.visualization.events.addListener(chart, 'ready', function () {
-            // HACK(Emmanuel): 
-            // If Google changes the DOM for charts, these lines will likely break
-            const svgRoot = chart.container.querySelector('svg');
-            const rects = svgRoot.children[1].children[1].children[1].children;
-            $('.__img_labels').each((idx, n) => $(n).remove());
-
-            if (hasImage) {
-              // Render each rect above the old ones, using the image as a pattern
-              table.forEach(function (row, i) {
-                const rect = rects[i];
-                // make an image element for the img, from the SVG namespace
-                const imgDOM = row[2].val.toDomNode();
-                row[2].val.render(imgDOM.getContext('2d'), 0, 0);
-                let imageElt = document.createElementNS("http://www.w3.org/2000/svg", 'image');
-                imageElt.classList.add('__img_labels'); // tag for later garbage collection
-                imageElt.setAttributeNS(null, 'href', imgDOM.toDataURL());
-                // position it using the position of the corresponding rect
-                imageElt.setAttribute('preserveAspectRatio', 'none');
-                imageElt.setAttribute('x', rects[i].getAttribute('x'));
-                imageElt.setAttribute('y', rects[i].getAttribute('y'));
-                imageElt.setAttribute('width', rects[i].getAttribute('width'));
-                imageElt.setAttribute('height', rects[i].getAttribute('height'));
-                Object.assign(imageElt, rects[i]); // we should probably not steal *everything*...
-                svgRoot.appendChild(imageElt);
-              });
-            }
 
             if (dotChartP) {
               table.forEach(function (row, i) {
@@ -1445,7 +1418,6 @@
       const colors_list = get_colors_list(rawData);
       const axis = get_axis(rawData);
       const legendsList = get(rawData, 'legends');
-      // console.log(JSON.stringify({pointers_list, pointer_color, axis}, null, 2));
       const stackType = get(rawData, 'is-stacked');
       const isStacked = stackType !== 'none';
       const isNotFullStacked = (stackType !== 'relative') && (stackType !== 'percent');
@@ -1500,7 +1472,30 @@
           { type: 'formula', as: 'value1', expr: 'datum.value' },
         );
       }
-      const signals = [];
+      const signals = [
+        {
+          "name": "hoveredSeries",
+          "value": "null",
+          "on": [
+            {
+              "events": [
+                { "markname": "legend-labels", "type": "mouseover" },
+                { "markname": "legend-symbols", "type": "mouseover"}
+              ],
+              "force": true,
+              "update": "datum.value"
+            },
+            {
+              "events": [
+                { "markname": "legend-labels", "type": "mouseout" },
+                { "markname": "legend-symbols", "type": "mouseout"}
+              ],
+              "force": true,
+              "update": "null"
+            },
+          ]
+        }
+      ];
       const primaryScale = {
         name: "primary",
         type: "band",
@@ -1646,29 +1641,6 @@
                      (isStacked ? marks : groupMark.marks));
       }
       
-
-      
-      // // Initializes the Columns of the data 
-      // data.addColumn('string', 'Label');
-      // legends.forEach(legend => data.addColumn('number', legend));
-
-      // // Adds each row of bar data
-      // data.addRows(table.map(row => [row[0]].concat(row[1].map(n => toFixnum(n)))));
-      // addAnnotations(data, rawData);
-      // addIntervals(data, rawData);
-
-      // let options = {
-      //   isStacked,
-      //   series: colors_list.map(c => ({color: c, targetAxisIndex: 0})),
-      //   legend: {
-      //     position: horizontal ? 'right' : 'top', 
-      //     maxLines: data.getNumberOfColumns() - 1
-      //   }, 
-      //   intervals: { 
-      //     color : interval_color, 
-      //   }
-      // };
-
       const legends = [
         {
           direction: horizontal ? 'vertical' : 'horizontal',
@@ -1678,65 +1650,23 @@
           fill: 'color',
           symbolType: 'square',
           encode: {
-            labels: { update: { text: { scale: 'legends', field: 'value' } } }
+            labels: {
+              name: 'legend-labels',
+              interactive: true,
+              update: {
+                text: { scale: 'legends', field: 'value' },
+                cursor: { value: 'pointer' },
+              }
+            },
+            symbols: {
+              name: 'legend-symbols',
+              interactive: true,
+              update: { cursor: { value: 'pointer' } }
+            }
           }
         }
       ];
       
-      // options[axisloc] = { 
-      //   0: { 
-      //     viewWindow: { max: axis.top, min: axis.bottom }, 
-      //     ticks: axis.ticks 
-      //   }
-      // };
-      
-      // /* NOTE(John & Edward, Dec 2020): 
-      //    Our goal for the part below was to add pointers (Specific Named Ticks) on another VAxis. 
-      //    The Current Chart library necessitates that we assign at least one stack/bar to the 
-      //    second axis in order for it to show up, and we have to fix the min/max of each axis 
-      //    manually to make sure that both are consistent with each other rather than being relative 
-      //    to the data. There is also a problem: When the pointers are too close to each other, one or 
-      //    both of them disappear!
-      // */
-
-      // if (pointers_list.length > 0) { 
-      //   colors_list = colors_list.slice(0, legends.length);
-        
-      //   // Add and Attach Empty Data Stack/bar to 2nd axis + Color it
-      //   data.addColumn('number', 'Pointers')
-
-      //   for (let i = 0; i < data.getNumberOfColumns() - 1; i++) {
-      //     if (options['series'][i] == null) {
-      //       options['series'][i] = {color: pointer_color, targetAxisIndex: 1};
-      //     }
-      //   }
-
-      //   // Update Options to include the new axis ticks consistent with the first axis
-      //   options[axisloc][1] = { 
-      //     viewWindow: { 
-      //       max: axis.top, 
-      //       min: axis.bottom
-      //     },
-      //     gridlines: { color: pointer_color },
-      //     ticks: pointers_list, 
-      //     textStyle: { color: pointer_color }
-      //   };
-      // } else {
-      //   for (let i = 0; i < data.getNumberOfColumns() - 1; i++) {
-      //     if (options['series'][i] == null) {
-      //       options['series'][i] = {color: 'black', targetAxisIndex: 0};
-      //     }
-      //   }
-      // }
-      
-      // return {
-      //   data: data,
-      //   options: options,
-      //   chartType: horizontal ? google.visualization.BarChart : google.visualization.ColumnChart,
-      //   onExit: defaultImageReturn,
-      //   mutators: [backgroundMutator, axesNameMutator, yAxisRangeMutator],
-      // };
-
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
@@ -1753,42 +1683,9 @@
         marks,
         legends,
         onExit: defaultImageReturn,
-        // gChartMutators: [backgroundMutator, axesNameMutator, yAxisRangeMutator],
         gChartOverlay: (overlay, restarter, chart, container) => {
 
           if (!hasImage && !dotChartP) return;
-
-          // if custom images are defined, use the image at that location
-          // and overlay it atop each dot
-
-
-          google.visualization.events.addListener(chart, 'ready', function () {
-            // HACK(Emmanuel): 
-            // If Google changes the DOM for charts, these lines will likely break
-            const svgRoot = chart.container.querySelector('svg');
-            const rects = svgRoot.children[1].children[1].children[1].children;
-            $('.__img_labels').each((idx, n) => $(n).remove());
-
-            if (hasImage) {
-              // Render each rect above the old ones, using the image as a pattern
-              table.forEach(function (row, i) {
-                const rect = rects[i];
-                // make an image element for the img, from the SVG namespace
-                const imgDOM = row[2].val.toDomNode();
-                row[2].val.render(imgDOM.getContext('2d'), 0, 0);
-                let imageElt = document.createElementNS("http://www.w3.org/2000/svg", 'image');
-                imageElt.classList.add('__img_labels'); // tag for later garbage collection
-                imageElt.setAttributeNS(null, 'href', imgDOM.toDataURL());
-                // position it using the position of the corresponding rect
-                imageElt.setAttribute('preserveAspectRatio', 'none');
-                imageElt.setAttribute('x', rects[i].getAttribute('x'));
-                imageElt.setAttribute('y', rects[i].getAttribute('y'));
-                imageElt.setAttribute('width', rects[i].getAttribute('width'));
-                imageElt.setAttribute('height', rects[i].getAttribute('height'));
-                Object.assign(imageElt, rects[i]); // we should probably not steal *everything*...
-                svgRoot.appendChild(imageElt);
-              });
-            }
 
             if (dotChartP) {
               table.forEach(function (row, i) {
@@ -2720,7 +2617,6 @@ ${labelRow}`;
     }
 
     function renderInteractiveChart(processed, globalOptions, rawData) {
-      // TODO(Ben)
       return RUNTIME.pauseStack(restarter => {
           const root = $('<div/>');
           const overlay = $('<div/>', {style: 'position: relative'});
