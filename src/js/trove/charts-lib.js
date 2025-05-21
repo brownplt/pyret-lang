@@ -31,7 +31,6 @@
                           '#8b0707','#651067','#329262','#5574a6','#3b3eac',
                           '#b77322','#16d620','#b91383','#f4359e','#9c5935',
                           '#a9c413','#2a778d','#668d1c','#bea413','#0c5922','#743411'];
-    vega.scheme('google', default_colors);
     
     function notImp(name) {
       return RUNTIME.makeFunction(() => {
@@ -1036,7 +1035,7 @@
             [axesConfig.secondary.dir + '2']: {"scale": "secondary", "field": "value1"},
             "fill": [
               { test: 'isValid(datum.image)', value: 'transparent' },
-              { field: 'fillColor' }
+              { scale: 'color', field: 'series' }
             ],
             "tooltip": tooltip
           },
@@ -1047,7 +1046,7 @@
             strokeWidth: { value: 2 },
             strokeOpacity: { value: 1 },
             stroke: [
-              { test: 'contrast("white", datum.fillColor) > contrast("black", datum.fillColor)', value: 'white' },
+              { test: 'contrast("white", scale("color", datum.series)) > contrast("black", scale("color", datum.series))', value: 'white' },
               { value: 'black' }
             ]
           }
@@ -1160,7 +1159,7 @@
             },
             fill: [
               // NOTE(Ben): fillColor is computed by the transform above
-              { test: 'contrast("white", datum.fillColor) > contrast("black", datum.fillColor)',
+              { test: 'contrast("white", scale("color", datum.series)) > contrast("black", scale("color", datum.color))',
                 value: "white" },
               { value: "black" }
             ],
@@ -1264,7 +1263,7 @@
         transform: [
           {
             type: "formula",
-            as: "fillColor",
+            as: "color",
             expr: "isString(datum.color) ? datum.color : scale('color', datum.series)"
           },
           { type: "formula", as: "value", expr: "datum.rawValue" },
@@ -1308,6 +1307,7 @@
           range: axis.labels
         });
       }
+      // TODO: AXES
       const axes = [
         { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1, grid: false },
@@ -1444,7 +1444,7 @@
       const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
       const colors_list = get_colors_list(rawData);
       const axis = get_axis(rawData);
-      const legends = get(rawData, 'legends');
+      const legendsList = get(rawData, 'legends');
       // console.log(JSON.stringify({pointers_list, pointer_color, axis}, null, 2));
       const stackType = get(rawData, 'is-stacked');
       const isStacked = stackType !== 'none';
@@ -1456,11 +1456,6 @@
         name: 'table',
         values: [],
         transform: [
-          {
-            type: "formula",
-            as: "fillColor",
-            expr: "isString(datum.color) ? datum.color : scale('color', datum.series)"
-          },
           {
             type: "formula",
             as: "desc",
@@ -1526,14 +1521,14 @@
         {
           name: "color",
           type: "ordinal",
-          domain: Array.from(Array(default_colors.length).keys()),
-          range: { scheme: "google" }
+          domain: {data: "table", field: "series"},
+          range: [...colors_list, ...default_colors]
         },
         {
           name: "legends",
           type: "ordinal",
-          domain: Array.from(Array(legends.length).keys()),
-          range: legends
+          domain: Array.from(Array(legendsList.length).keys()),
+          range: legendsList
         }
       ];
       if (axis) {
@@ -1560,6 +1555,17 @@
       }
       if (stackType === 'percent') {
         axes[1].format = axes[2].format = '.2%';
+      }
+      // These labels are *specifically directional*, not *logical* -- if a graph is flipped
+      // from horizontal to vertical, the labels don't also get flipped.
+      const xAxisLabel = get(globalOptions, 'x-axis');
+      const yAxisLabel = get(globalOptions, 'y-axis');
+      if (horizontal) {
+        axes[isNotFullStacked ? 1 : 2].title = yAxisLabel;
+        axes[0].title = xAxisLabel;
+      } else {
+        axes[isNotFullStacked ? 1 : 2].title = xAxisLabel;
+        axes[0].title = yAxisLabel;
       }
 
       const marks = [];
@@ -1663,6 +1669,19 @@
       //   }
       // };
 
+      const legends = [
+        {
+          direction: horizontal ? 'vertical' : 'horizontal',
+          orient: horizontal ? 'right' : 'top',
+          columns: horizontal ? 1 : 4,
+          type: 'symbol',
+          fill: 'color',
+          symbolType: 'square',
+          encode: {
+            labels: { update: { text: { scale: 'legends', field: 'value' } } }
+          }
+        }
+      ];
       
       // options[axisloc] = { 
       //   0: { 
@@ -1732,6 +1751,7 @@
         scales,
         axes,
         marks,
+        legends,
         onExit: defaultImageReturn,
         // gChartMutators: [backgroundMutator, axesNameMutator, yAxisRangeMutator],
         gChartOverlay: (overlay, restarter, chart, container) => {

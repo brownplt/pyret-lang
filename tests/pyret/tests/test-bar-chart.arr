@@ -29,18 +29,23 @@ va-series = VC.from-list.grouped-bar-chart(
     [list: 894368,1558919,725973,1311479,3596343,3239173,1575308],
     [list: 737462,1345341,679201,1203944,3157759,3414001,1910571]],
   ages)
-#  .horizontal(true)
-#  .colors(colors.reverse())
-  .add-pointers([list: 2.5, 3.5], [list: "hi", "bye"])
-  .stacking-type(VC.relative)
+# .horizontal(true)
+ .colors(colors.reverse())
+  .add-pointers([list: 0.2500000, 0.3500000], [list: "hi", "bye"])
+  .stacking-type(VC.grouped)
   .pointer-color(C.maroon)
-#  .annotations(states.map({(s): ages.map({(a): some(s + "/" + a)})}))
+  # .intervals(for map_n(series from 0, _ from states):
+  #   for map_n(legend from -5, _ from ages):
+  #     [list: series, legend, (series + legend)].map(500000 * _)
+  #   end
+  # end)
+# .annotations(states.map({(s): ages.map({(a): some(s + "/" + a)})}))
 #  .annotations(langs.map({(l): some(string-explode(l).reverse().join-str(""))}))
-#  .intervals(for map_n(i from 0, _ from colors):
-#    [list: -5 + i, i, 5 + i, 3 + i]
-#  end)
-  .interval-color(C.chartreuse)
-#  .format-axis({(v): "Label " + to-string(v)})
+ # .intervals(for map_n(i from 0, _ from colors):
+ #   [list: -5 + i, i, 5 + i, 3 + i]
+ # end)
+ .interval-color(C.chartreuse)
+ .format-axis({(v): "Label " + to-string(v)})
 
 
 vb-series = VC.from-list.#|image-|#bar-chart(#|images, |#langs, popularities)
@@ -55,6 +60,8 @@ vb-series = VC.from-list.#|image-|#bar-chart(#|images, |#langs, popularities)
   .interval-color(C.chartreuse)
   .format-axis({(v): "Label " + to-string(v)})
 
-rendered = VC.render-chart(va-series).background-color(C.gray).title("Hi!")
+rendered = VC.render-chart(va-series).background-color(C.gray).title("Hi!").width(1000)
+.x-axis("This way!").y-axis("That way!")
+
 
 I.save-image(rendered.get-image(), 'test-bar-chart.png')
