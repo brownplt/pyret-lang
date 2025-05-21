@@ -1480,40 +1480,37 @@
 
           if (!hasImage && !dotChartP) return;
 
-            if (dotChartP) {
-              table.forEach(function (row, i) {
-                // console.log('row', i, '=', row);
-                const rect = rects[i];
-                // console.log('rect', i, '=', rect);
-                const num_elts = row[1];
-                const rect_x = Number(rect.getAttribute('x'));
-                const rect_y = Number(rect.getAttribute('y'));
-                const rect_height = Number(rect.getAttribute('height'));
-                const unit_height = rect_height/num_elts;
-                const rect_width = Number(rect.getAttribute('width'));
-                const rect_fill = rect.getAttribute('fill');
-                // const rect_fill_opacity = Number(rect.getAttribute('fill-opacity'));
-                // const rect_stroke = rect.getAttribute('stroke');
-                // const rect_stroke_width = Number(rect.getAttribute('stroke-width'));
-                rect.setAttribute('stroke-width', 0);
-                for (let j = 0; j < num_elts; j++) {
-                  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                  circle.classList.add('__img_labels');
-                  circle.setAttribute('r', rect_width/8);
-                  circle.setAttribute('cx', rect_x + rect_width/2);
-                  circle.setAttribute('cy', rect_y + (num_elts - j - 0.5)*unit_height);
-                  circle.setAttribute('fill', rect_fill);
-                  // circle.setAttribute('fill-opacity', rect_fill_opacity);
-                  // circle.setAttribute('stroke', rect_stroke);
-                  // circle.setAttribute('stroke-width', rect_stroke_width);
-                  // console.log('adding circle elt', i, j, '=', circle);
-                  svgRoot.appendChild(circle);
-                }
-              });
-            }
-
-          });
-
+          if (dotChartP) {
+            table.forEach(function (row, i) {
+              // console.log('row', i, '=', row);
+              const rect = rects[i];
+              // console.log('rect', i, '=', rect);
+              const num_elts = row[1];
+              const rect_x = Number(rect.getAttribute('x'));
+              const rect_y = Number(rect.getAttribute('y'));
+              const rect_height = Number(rect.getAttribute('height'));
+              const unit_height = rect_height/num_elts;
+              const rect_width = Number(rect.getAttribute('width'));
+              const rect_fill = rect.getAttribute('fill');
+              // const rect_fill_opacity = Number(rect.getAttribute('fill-opacity'));
+              // const rect_stroke = rect.getAttribute('stroke');
+              // const rect_stroke_width = Number(rect.getAttribute('stroke-width'));
+              rect.setAttribute('stroke-width', 0);
+              for (let j = 0; j < num_elts; j++) {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.classList.add('__img_labels');
+                circle.setAttribute('r', rect_width/8);
+                circle.setAttribute('cx', rect_x + rect_width/2);
+                circle.setAttribute('cy', rect_y + (num_elts - j - 0.5)*unit_height);
+                circle.setAttribute('fill', rect_fill);
+                // circle.setAttribute('fill-opacity', rect_fill_opacity);
+                // circle.setAttribute('stroke', rect_stroke);
+                // circle.setAttribute('stroke-width', rect_stroke_width);
+                // console.log('adding circle elt', i, j, '=', circle);
+                svgRoot.appendChild(circle);
+              }
+            });
+          }
         }
       }
     }
