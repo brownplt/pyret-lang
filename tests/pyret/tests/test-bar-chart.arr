@@ -63,12 +63,24 @@ vb-series = VC.from-list.#|image-|#bar-chart(#|images, |#langs, popularities)
 
 rendered = VC.render-chart(va-series).background-color(C.gray).title("Hi!")
 .x-axis("This way!").y-axis("That way!")
-|#
+
+
 
 va-series = VC.from-list.labeled-histogram(
   range(1, 100).map(lam(x): "foo " + num-to-string(x) end),
   range(1, 100).map(lam(_): num-random(1000) end))
 rendered = VC.render-chart(va-series).background-color(C.gray)
   .x-axis("This way!").y-axis("That way!")
+ |#
+ 
+
+rendered = VC.render-chart(VC.from-list.exploding-pie-chart(
+    range(1, 10).map({(i): "Label " + to-string(i)}),
+    range(1, 10).map(_ * 3),
+    range(1, 10).map({(i): 0.05 * (num-sin(i) + 1)}))
+    .rotate(90)
+    .collapse-threshold(0.07)
+    .piehole(0.25)
+  ).background-color(C.gray)
 
 I.save-image(rendered.get-image(), 'test-bar-chart.png')

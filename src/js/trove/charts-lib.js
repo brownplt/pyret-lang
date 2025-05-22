@@ -470,130 +470,260 @@
     //////////////////////////////////////////////////////////////////////////////
 
     function pieChart(globalOptions, rawData) {
-      const table = get(rawData, 'tab');
-      const default_colors = ['#3366CC', '#DC3912', '#FF9900', '#109618', '#990099',
-                              '#3B3EAC', '#0099C6', '#DD4477', '#66AA00', '#B82E2E',
-                              '#316395', '#994499', '#22AA99', '#AAAA11', '#6633CC',
-                              '#E67300', '#8B0707', '#329262', '#5574A6', '#3B3EAC']
-      var colors_list = get_colors_list(rawData);
+      /*
+        Note: Most of the complexity here is due to supporting the "collapsed" wedge of values,
+        which means giving it a gray color, and putting it last in the slice order and the legend order.
+        But, there are lots of colors in the color scale, and we don't know how many pie wedges will
+        precede the "collapsed" wedge, so we don't know what index it will have,
+        so we can't easily just put gray into the color scale.
 
-      if (colors_list.length < default_colors.length) {
-        default_colors.splice(0, colors_list.length, ...colors_list);
-        colors_list = default_colors;
-        colors_list = colors_list.slice(0, table.length);
-      }
-      const new_colors_list = table.map(row => colors_list[row[3]])
-      colors_list = new_colors_list
+        The solution is to stagger the dataflow a few steps:
+        0. Construct a rawData table, and compute the sum of the value column
+        1. Partition the rawData into two tables, largeEnough and collapsed, based on whether their 
+           value is less than the collapseThreshold fraction of the computed total sum.
+           In the collapsed table, aggregate all rows into one summed row.
+        2. Create the color scale and base it only on the largeEnough values.
+        3. Concatenate the largeEnough and collapsed tables, and compute a new color field
+        4. Create a sortedColor scale whose domain and range come from the concatenated table
+        5. Use the sortedColor scale for the ordering of the legend.
+       */
+      const table = get(rawData, 'tab');
+      const title = get(globalOptions, 'title');
+      const width = get(globalOptions, 'width');
+      const height = get(globalOptions, 'height');
+      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
+      const COLLAPSED_ID = -1;
+      
+      const data = [];
+      const signals = [];
+      const marks = [];
+      const colors_list = get_colors_list(rawData);
+      const scales = [
+        {
+          name: 'color',
+          type: 'ordinal',
+          domain: { data: 'largeEnough', field: 'id' },
+          range: [...colors_list, ...default_colors]
+        },
+        {
+          name: 'sortedColor',
+          type: 'ordinal',
+          domain: { data: 'table', field: 'id' },
+          range: { data: 'table', field: 'color' }
+        },
+        {
+          name: 'legends',
+          type: 'ordinal',
+          domain: [COLLAPSED_ID, ...Array(table.length).keys()],
+          range: ['Other', ...table.map((row) => row[0])]
+        },
+        {
+          name: 'valuePercent',
+          type: 'linear',
+          domain: {data: 'table', field: 'endAngle'},
+          range: [0, 1]
+        }
+      ];
       
       const threeD = get(rawData, 'threeD');
       const piehole = toFixnum(get(rawData, 'piehole'));
       const startingAngle = toFixnum(get(rawData, 'startingAngle'));
       const collapseThreshold = toFixnum(get(rawData, 'collapseThreshold'));
 
-      // ASSERT: if we're using custom images, the third column will be an object
-      const hasImage = typeof table[0][3] == 'object';
+      signals.push(
+        { name: 'centerX', update: 'width / 2' },
+        { name: 'centerY', update: 'height / 2' },
+        { name: 'outerRadius', update: 'min(width / 2, height / 2)' },
+        { name: 'innerRadius', update: `outerRadius * ${piehole}` },
+        { name: 'cornerRadius', update: "0" }, // allows for rounded corners on each wedge
+        { name: 'startAngle', update: "0" }, // start and end angle support rendering only
+        { name: 'endAngle', update: `${2 * Math.PI}` },   // a wedge of a pie, rather than the whole circle
+        { name: 'padAngle', update: "0" }, // supports gaps between wedges
+        { name: 'rotation', update: `${startingAngle * Math.PI / 180}` }, // in radians
+        { name: 'collapseThreshold', update: `${collapseThreshold}` },
+        {
+          name: "hoveredId",
+          value: "null",
+          on: [
+            {
+              events: [
+                { markname: "legend-labels", type: "mouseover" },
+                { markname: "legend-symbols", type: "mouseover"}
+              ],
+              force: true,
+              update: "datum.value"
+            },
+            {
+              events: [
+                { markname: "legend-labels", type: "mouseout" },
+                { markname: "legend-symbols", type: "mouseout"}
+              ],
+              force: true,
+              update: "null"
+            },
+          ]
+        }
+      );
 
-      const data = new google.visualization.DataTable();
-      data.addColumn('string', 'Label');
-      data.addColumn('number', 'Value');
-      data.addRows(table.map(row => [row[0], toFixnum(row[1])]));
+      const dataTable = {
+        name: 'rawTable',
+        values: table.map((row, i) => ({
+          id: i,
+          label: row[0],
+          value: toFixnum(row[1]),
+          offset: toFixnum(row[2]),
+          // TODO: image would be from row[3], if we could support it
+        })),
+        transform: [
+          { type: 'joinaggregate', ops: ['sum'], fields: ['value'], as: ['total'] }
+        ]
+      };
+      data.push(dataTable);
+      const largeEnough = {
+        name: 'largeEnough',
+        source: 'rawTable',
+        transform: [
+          { type: 'filter', expr: 'datum.value >= (collapseThreshold * datum.total)' }
+        ]
+      }
+      data.push(largeEnough);
+      const collapsed = {
+        name: 'collapsed',
+        source: 'rawTable',
+        transform: [
+          { type: 'filter', expr: 'datum.value < (collapseThreshold * datum.total)' },
+          { type: 'aggregate', ops: ['sum'], fields: ['value'], as: ['value'] },
+          { type: 'formula', as: 'label', expr: '"Other"' },
+          { type: 'formula', as: 'id', expr: '-1' },
+          { type: 'formula', as: 'offset', expr: '0' }
+        ]
+      };
+      data.push(collapsed);
+      const filtered = {
+        name: 'table',
+        source: ['largeEnough', 'collapsed'],
+        transform: [
+          {
+            type: "pie",
+            field: "value",
+            startAngle: {signal: "startAngle"},
+            endAngle: {signal: "endAngle"},
+          },
+          {
+            type: 'formula',
+            as: 'color',
+            expr: `datum.id == ${COLLAPSED_ID} ? 'gray' : scale('color', datum.id)`
+          },
+          { type: 'formula', as: 'startAngle', expr: 'datum.startAngle + rotation' },
+          { type: 'formula', as: 'endAngle', expr: 'datum.endAngle + rotation' },
+          {
+            type: 'formula',
+            as: 'midAngle',
+            expr: '(datum.startAngle + datum.endAngle) / 2'
+          },
+          // NOTE: angle 0 points *upward*, not *rightward*, so sin and cos
+          // are out of phase and therefore swapped from what might be expected.
+          { type: 'formula', as: 'offsetX', expr: 'datum.offset * sin(datum.midAngle)' },
+          { type: 'formula', as: 'offsetY', expr: 'datum.offset * cos(datum.midAngle)' },
+          { type: 'formula', as: 'textX', expr: '(datum.offset + 0.9 * outerRadius) * sin(datum.midAngle)' },
+          { type: 'formula', as: 'textY', expr: '(datum.offset + 0.9 * outerRadius) * cos(datum.midAngle)' },
+        ]
+      };
+      data.push(filtered);
+
+      const tooltip = "{ title: datum.label, Value: datum.value + \" (\" + format(scale(\"valuePercent\", datum.endAngle - datum.startAngle), \".2%\") + \")\" }"
+      marks.push(
+        {
+          type: "arc",
+          name: "arcs",
+          from: { data: "table" },
+          encode: {
+            enter: {
+              fill: { field: "color" },
+              strokeWidth: { value: 2 },
+              stroke: [
+                { test: 'contrast("white", datum.color) > contrast("black", datum.color)', value: 'white' },
+                { value: 'black' }
+              ]
+            },
+            update: {
+              id: { signal: 'datum.id' },
+              x: { signal: "centerX + (datum.offsetX * outerRadius)" },
+              y: { signal: "centerY - (datum.offsetY * outerRadius)" },
+              startAngle: { field: "startAngle" },
+              endAngle: { field: "endAngle" },
+              padAngle: { signal: "padAngle" },
+              innerRadius: { signal: "innerRadius" },
+              outerRadius: { signal: "outerRadius" },
+              cornerRadius: { signal: "cornerRadius" },
+              strokeOpacity: { signal: "hoveredId == datum.id ? 1 : 0" },
+              tooltip: { signal: tooltip },
+            },
+            hover: {
+              strokeOpacity: { value: 1 },
+            }
+          }
+        },
+        {
+          type: 'text',
+          from: { data: 'table' },
+          encode: {
+            update: {
+              fill: [
+                {
+                  test: 'contrast("white", datum.color) > contrast("black", datum.color)',
+                  value: 'white'
+                },
+                { value: 'black' }
+              ],
+              text: { signal: 'format(scale("valuePercent", datum.endAngle - datum.startAngle), ".2%")' },
+              xc: { signal: "centerX + datum.textX" },
+              yc: { signal: "centerY - datum.textY" },
+              align: { value: "center" },
+              baseline: { value: "middle" }
+            }
+          }
+        });
+
+      const legends = [
+        {
+          type: 'symbol',
+          fill: 'sortedColor',
+          symbolType: 'square',
+          encode: {
+            labels: {
+              name: 'legend-labels',
+              interactive: true,
+              update: {
+                text: { scale: 'legends', field: 'value' },
+                cursor: { value: 'pointer' },
+              }
+            },
+            symbols: {
+              name: 'legend-symbols',
+              interactive: true,
+              update: { cursor: { value: 'pointer' } }
+            }
+          }
+        }
+      ];
 
       return {
-        data: data,
-        options: {
-          slices: table.map((row, i) => ({
-            color: hasImage? "transparent" : colors_list[i], 
-            offset: toFixnum(row[2])
-          })),
-          legend: {
-            alignment: 'end'
-          },
-          is3D: threeD,
-          pieHole: piehole,
-          pieStartAngle: startingAngle,
-          sliceVisibilityThreshold: collapseThreshold,
-        },
-        chartType: google.visualization.PieChart,
+        "$schema": "https://vega.github.io/schema/vega/v6.json",
+        description: title,
+        title: title ? { text: title } : '',
+        width,
+        height,
+        padding: 0,
+        autosize: 'fit',
+        background,
+        data,
+        signals,
+        scales,
+        marks,
+        legends,
         onExit: defaultImageReturn,
-        mutators: [backgroundMutator],
-        overlay: (overlay, restarter, chart, container) => {
-          // If we don't have images, our work is done!
-          if(!hasImage) { return; }
-          
-          // if custom images are defined, use the image at that location
-          // and overlay it atop each dot
-          google.visualization.events.addListener(chart, 'ready', function () {
-            // HACK(Emmanuel): 
-            // The only way to hijack marker events is to walk the DOM here
-            // If Google changes the DOM, these lines will likely break
-            const svgRoot = chart.container.querySelector('svg');
-
-            // The order of SVG slices is *not* the order of the rows in the table!!
-            //   - 1 or 2 slices: drawn in reverse order
-            //   - More than 2 slices: the first row in the table is the first SVG 
-            //       slice, but the rest are in reverse order
-            let slices;
-            if(table.length <= 2) {
-              slices = Array.prototype.slice.call(svgRoot.children, 2, -1).reverse();
-            } else {
-              slices = Array.prototype.slice.call(svgRoot.children, 3, -1).reverse();
-              slices.unshift(svgRoot.children[2]);
-            }
-            const defs = svgRoot.children[0];
-            const legendImgs = svgRoot.children[1].querySelectorAll('g[column-id]');
-
-            // remove any labels that have previously been drawn
-            $('.__img_labels').each((idx, n) => $(n).remove());
-
-            // Render each slice under the old ones, using the image as a pattern
-            table.forEach((row, i) => {            
-              const oldDot = legendImgs[i].querySelector('circle');
-              const oldSlice = slices[i];
-              
-              // render the image to an img tag
-              const imgDOM = row[3].val.toDomNode();
-              row[3].val.render(imgDOM.getContext('2d'), 0, 0);
-              
-              // make an SVGimage element from the img tag, and make it the size of the slice
-              const sliceBox = oldSlice.getBoundingClientRect();
-              const imageElt = document.createElementNS("http://www.w3.org/2000/svg", 'image');
-              imageElt.classList.add('__img_labels'); // tag for later garbage collection
-              imageElt.setAttributeNS(null, 'href', imgDOM.toDataURL());
-              imageElt.setAttribute('width',  Math.max(sliceBox.width, sliceBox.height));
-
-              // create a pattern from that image
-              const patternElt = document.createElementNS("http://www.w3.org/2000/svg", 'pattern');
-              patternElt.setAttribute(  'x',    0);
-              patternElt.setAttribute(  'y',    0);
-              patternElt.setAttribute('width',  1);
-              patternElt.setAttribute('height', 1);
-              patternElt.setAttribute( 'id',   'pic'+i);
-
-              // make a new slice, copy elements from the old slice, and fill with the pattern
-              const newSlice = document.createElementNS("http://www.w3.org/2000/svg", 'path');
-              Object.assign(newSlice, oldSlice); // we should probably not steal *everything*...
-              newSlice.setAttribute(  'd',       oldSlice.firstChild.getAttribute('d'));
-              newSlice.setAttribute( 'fill',         'url(#pic'+i+')');
-
-              // add the image to the pattern and the pattern to the defs
-              patternElt.appendChild(imageElt);
-              defs.append(patternElt);
-
-              // insert the new slice before the now-transparent old slice
-              oldSlice.parentNode.insertBefore(newSlice, oldSlice)
-              
-              // make a new dot, then set size and position of dot to replace the old dot
-              const newDot = imageElt.cloneNode(true);
-              const radius = oldDot.r.animVal.value;
-              newDot.setAttribute('x',       oldDot.cx.animVal.value - radius);
-              newDot.setAttribute('y',       oldDot.cy.animVal.value - radius);
-              newDot.setAttribute('width',   radius * 2);
-              newDot.setAttribute('height',  radius * 2);
-              oldDot.parentNode.replaceChild(newDot, oldDot);
-            });
-          });
-        }
-      }
+      };
     }
 
     //////////// Bar Chart Getter Functions /////////////////
@@ -838,7 +968,7 @@
             ]
           },
           "update": {
-            strokeOpacity: { signal: "hoveredSeries == datum.series ? 1 : 0" }
+            strokeOpacity: { signal: "hoveredId == datum.id ? 1 : 0" }
           },
           "hover": {
             strokeOpacity: { value: 1 },
@@ -1100,7 +1230,7 @@
           range: axis.labels
         });
       }
-      // TODO: AXES
+
       const axes = [
         { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1, grid: false },
@@ -2508,7 +2638,7 @@ ${labelRow}`;
 
     return RUNTIME.makeModuleReturn(
       {
-        'pie-chart': notImp('pie-chart'), //makeFunction(pieChart),
+        'pie-chart': makeFunction(pieChart),
         'bar-chart': makeFunction(barChart),
         'multi-bar-chart': makeFunction(multiBarChart),
         'histogram': makeFunction(histogram),
