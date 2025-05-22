@@ -2520,26 +2520,15 @@ ${labelRow}`;
     }
 
     function defaultImageReturn(restarter, result) {
-      /*
-        We in fact should put imageReturn(...) inside
-
-        google.visualization.events.addListener(result.chart, 'ready', () => {
-        ...
-        });
-
-        However, somehow this event is never triggered, so we will just call
-        it here to guarantee that it will return.
-      */
-
       // serialize the whole SVG element, in case of custom image overlays
-      // then pass the URI to imageReturn`
+      // then pass the URI to imageReturn
       result.view.toSVG().then((svg) => {
         let dataURI = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
         const rawImage = new Image();
         rawImage.onload = () => {
           restarter.resume(
             RUNTIME.makeOpaque(
-              IMAGE.makeFileImage(url, rawImage),
+              IMAGE.makeFileImage(svg, rawImage),
               IMAGE.imageEquals
             )
           );
@@ -2578,36 +2567,36 @@ ${labelRow}`;
 
     function renderInteractiveChart(processed, globalOptions, rawData) {
       return RUNTIME.pauseStack(restarter => {
-          const root = $('<div/>');
-          const overlay = $('<div/>', {style: 'position: relative'});
+        const root = $('<div/>');
+        const overlay = $('<div/>', {style: 'position: relative'});
 
-          const width = toFixnum(get(globalOptions, 'width'));
-          const height = toFixnum(get(globalOptions, 'height'));
-          const vegaTooltipHandler = new vegaTooltip.Handler();
-          const view = new vega.View(vega.parse(processed), {
-            container: overlay[0],
-            renderer: 'svg',
-            hover: true,
-            tooltip: vegaTooltipHandler.call
-          });
-          view.width(width).height(height).resize();
+        const width = toFixnum(get(globalOptions, 'width'));
+        const height = toFixnum(get(globalOptions, 'height'));
+        const vegaTooltipHandler = new vegaTooltip.Handler();
+        const view = new vega.View(vega.parse(processed), {
+          container: overlay[0],
+          renderer: 'svg',
+          hover: true,
+          tooltip: vegaTooltipHandler.call
+        });
+        view.width(width).height(height).resize();
 
-          var tmp = processed;
-          tmp.view = view;
-          const options = {
-            backgroundColor: {fill: 'transparent'},
-            title: (get(globalOptions, 'title') || {}).text,
-          };
+        var tmp = processed;
+        tmp.view = view;
+        const options = {
+          backgroundColor: {fill: 'transparent'},
+          title: (get(globalOptions, 'title') || {}).text,
+        };
 
-          tmp.options = $.extend({}, options, 'options' in tmp ? tmp.options : {});
+        tmp.options = $.extend({}, options, 'options' in tmp ? tmp.options : {});
 
-          delete tmp.width;
-          delete tmp.height;
+        delete tmp.width;
+        delete tmp.height;
 
-          // only mutate result when everything is setup
-          const result = tmp;
-          // this draw will have a wrong width / height, but do it for now so
-          // that overlay works
+        // only mutate result when everything is setup
+        const result = tmp;
+        // this draw will have a wrong width / height, but do it for now so
+        // that overlay works
         try {
           view.runAsync()
             .then(() => {
