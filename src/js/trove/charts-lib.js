@@ -968,7 +968,7 @@
             ]
           },
           "update": {
-            strokeOpacity: { signal: "hoveredId == datum.id ? 1 : 0" }
+            strokeOpacity: { signal: "hoveredSeries == datum.series ? 1 : 0" }
           },
           "hover": {
             strokeOpacity: { value: 1 },
@@ -1200,7 +1200,9 @@
         ]
       };
       data.push(dataTable);
-      const signals = [];
+      const signals = [
+        { name: "hoveredSeries", update: "null" }
+      ];
       const scales = [
         {
           "name": "primary",
@@ -1219,7 +1221,7 @@
           "name": "color",
           "type": "ordinal",
           "domain": Array.from(Array(default_colors.length).keys()),
-          "range": { scheme: "google" }
+          "range": default_colors
         }
       ];
       if (axis) {
@@ -1237,6 +1239,18 @@
         // redraw the axis just for its gridlines, but beneath everything else in z-order
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0, grid: true, ticks: false, labels: false }
       ];
+      // These labels are *specifically directional*, not *logical* -- if a graph is flipped
+      // from horizontal to vertical, the labels don't also get flipped.
+      const xAxisLabel = get(globalOptions, 'x-axis');
+      const yAxisLabel = get(globalOptions, 'y-axis');
+      if (horizontal) {
+        axes[0].title = yAxisLabel;
+        axes[1].title = xAxisLabel;
+      } else {
+        axes[0].title = xAxisLabel;
+        axes[1].title = yAxisLabel;
+      }
+
       if (axis) {
         axes[1].values = axis.domainRaw;
         axes[1].encode = {
@@ -1479,11 +1493,11 @@
       const xAxisLabel = get(globalOptions, 'x-axis');
       const yAxisLabel = get(globalOptions, 'y-axis');
       if (horizontal) {
-        axes[isNotFullStacked ? 1 : 2].title = yAxisLabel;
-        axes[0].title = xAxisLabel;
+        axes[isNotFullStacked ? 0 : 2].title = yAxisLabel;
+        axes[1].title = xAxisLabel;
       } else {
-        axes[isNotFullStacked ? 1 : 2].title = xAxisLabel;
-        axes[0].title = yAxisLabel;
+        axes[isNotFullStacked ? 0 : 2].title = xAxisLabel;
+        axes[1].title = yAxisLabel;
       }
 
       const marks = [];
