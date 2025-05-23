@@ -907,7 +907,7 @@
         values: [...get_pointers_list(rawData)],
         transform: [{
           type: 'filter',
-          expr: 'inrange(datum.value, domain("primary"))'
+          expr: 'inrange(datum.value, domain("secondary"))'
         }]
       })
       const pointer_color = get_pointer_color(rawData);
@@ -1315,13 +1315,19 @@
           range: axis.labels
         });
       }
+      // These labels are *specifically directional*, not *logical* -- if a graph is flipped
+      // from horizontal to vertical, the labels don't also get flipped.
+      const axisLabels = {
+        x: get(globalOptions, 'x-axis'),
+        y: get(globalOptions, 'y-axis')
+      };
       const axes = [
-        { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
+        { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1, title: axisLabels[axesConfig.primary.dir] },
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1,
           grid: false, ticks: isNotFullStacked, labels: isNotFullStacked },
         // redraw the axis just for its gridlines, but beneath everything else in z-order
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0,
-          grid: true, ticks: !isNotFullStacked, labels: !isNotFullStacked }
+          grid: true, ticks: !isNotFullStacked, labels: !isNotFullStacked, title: axisLabels[axesConfig.secondary.dir] }
       ];
       if (axis) {
         axes[1].values = axis.domainRaw;
@@ -1331,17 +1337,6 @@
       }
       if (stackType === 'percent') {
         axes[1].format = axes[2].format = '.2%';
-      }
-      // These labels are *specifically directional*, not *logical* -- if a graph is flipped
-      // from horizontal to vertical, the labels don't also get flipped.
-      const xAxisLabel = get(globalOptions, 'x-axis');
-      const yAxisLabel = get(globalOptions, 'y-axis');
-      if (horizontal) {
-        axes[isNotFullStacked ? 0 : 2].title = yAxisLabel;
-        axes[1].title = xAxisLabel;
-      } else {
-        axes[isNotFullStacked ? 0 : 2].title = xAxisLabel;
-        axes[1].title = yAxisLabel;
       }
 
       const marks = [];
@@ -1419,7 +1414,7 @@
                      (isStacked ? data : groupMark.data),
                      (isStacked ? marks : groupMark.marks));
 
-      if (!isStacked) {
+      if (isNotFullStacked) {
         addIntervals(globalOptions, rawData,
                      (isStacked ? "table" : "facet"),
                      (isStacked ? "label" : "series"),
