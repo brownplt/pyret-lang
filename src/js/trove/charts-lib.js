@@ -2569,9 +2569,11 @@ ${labelRow}`;
       return RUNTIME.pauseStack(restarter => {
         const root = $('<div/>');
         const overlay = $('<div/>', {style: 'position: relative'});
-
-        const width = toFixnum(get(globalOptions, 'width'));
-        const height = toFixnum(get(globalOptions, 'height'));
+        root.append(overlay);
+        
+        // Unfortunately these need to be mutable, to allow for resizing the chart as the dialog resizes
+        let width = toFixnum(get(globalOptions, 'width'));
+        let height = toFixnum(get(globalOptions, 'height'));
         const vegaTooltipHandler = new vegaTooltip.Handler();
         const view = new vega.View(vega.parse(processed), {
           container: overlay[0],
@@ -2608,10 +2610,19 @@ ${labelRow}`;
                   $("#vg-tooltip-element").removeClass("visible");
                   onExitRetry(() => result, restarter);
                 },
-                draw: () => {
-                  // must append the overlay _after_ drawing to make the overlay appear
-                  // correctly
-                  view.runAsync().then(() => root.append(overlay))
+                draw: (ui) => {
+                  if (ui && ui.size && ui.originalSize) {
+                    // Unfortunately, there seems to be a 4.5px mismatch in heights, if we simply
+                    // set the view's size to the container's size.  So instead,
+                    // integrate the changes in dialog size over time, and only resize the chart
+                    // when the dialog has finished resizing.
+                    width += ui.size.width - ui.originalSize.width;
+                    height += ui.size.height - ui.originalSize.height;
+                    view.width(width).height(height).resize();
+                  }
+                  // This doubled-up approach of render/resize/re-render seems to produce
+                  // better-sized results than a single render does
+                  view.runAsync().then(() => root.view.resize().runAsync())
                 },
                 windowOptions: {  },
                 isInteractive: true,
