@@ -217,116 +217,6 @@
 
     //////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Adds multiple columns with the given properties and values after data
-     * columns
-     * 
-     * For example, if given:
-     * colProperties:
-     *   {type: 'string', role: 'style'}
-     * colValues:
-     *   [
-     *     [['red', 'black'], ['white', 'blue'], ['green', 'purple']],
-     *     []
-     *   ]
-     * addNSpecialColumns will add 2 style columns after the first data column
-     * and no columns after the second data column.
-     * 
-     * The number of columns added after a particular data column do not have to
-     * agree. It is possible to add one special value on one row and two
-     * special values on another row.
-     * 
-     * https://jsfiddle.net/eyanje/u83kaf92/
-     * 
-     * @param {DataTable} table a table to expand
-     * @param {object} colProperties an object specifying column properties
-     * @param {Array<Array<*>>>} colValues rows of groups of values to insert
-     */
-    function addNSpecialColumns(table, colProperties, colValues) {
-      let dataColNums = [];
-      let nDataCols;
-      let groupWidths;
-      for (let i = 1; i < table.getNumberOfColumns(); i++) {
-        const role = table.getColumnRole(i);
-        if (role === '' || role === 'data') {
-          dataColNums.push(i);
-        }
-      }
-      nDataCols = dataColNums.length;
-      // Check column count
-      // Should never run -- Pyret checks all column counts properly
-      // This should be somewhat caught in the try-catch around setup(restarter),
-      // unless it's been moved
-      colValues.forEach((row, rowN) => {
-        if (row.length !== nDataCols) {
-          throw new Error(`Incorrect column count in row ${rowN}.`
-                          + ` Expected ${nDataCols}, given ${row.length}.`);
-        }
-      });
-      // Tally columns needed for each group
-      groupWidths = dataColNums.map(() => 0);
-      colValues.forEach(row => {
-        row.forEach((group, groupN) => {
-          groupWidths[groupN] = Math.max(group.length, groupWidths[groupN]);
-        });
-      });
-      // Add columns in reverse order
-      for (let groupIndex = nDataCols - 1; groupIndex >= 0; groupIndex--) {
-        for (let i = 0; i < groupWidths[groupIndex]; i++) {
-          table.insertColumn(dataColNums[groupIndex] + 1, colProperties);
-        }
-      }
-      // Adjust dataColNums to match expanded table
-      let sum = 0;
-      dataColNums.forEach((dataColNum, i) => {
-        dataColNums[i] += sum;
-        sum += groupWidths[i];
-      });
-      // Add columns in reverse order to avoid extra calculations
-      colValues.forEach((row, rowN) => {
-        row.forEach((group, groupN) => {
-          group.forEach((val, i) => {
-            table.setValue(rowN, dataColNums[groupN] + i + 1, val);
-          });
-        })
-      });
-    }
-
-    /**
-     * Adds columns with the given properties and values after data columns
-     * 
-     * For example, you may use this function to add columns with properties
-     * {type: 'string', role: 'style'} and values
-     * [['red', 'black'] ['white', 'blue'], ['green', 'purple']], to add
-     * two style columns to a table with 3 rows and 2 columns.
-     * 
-     * @param {DataTable} table a table to expand
-     * @param {object} colProperties an object specifying column properties
-     * @param {Array<Array<*>>>} colValues rows of values to insert
-     */
-    function addSpecialColumns(table, colProperties, colValues) {
-      addNSpecialColumns(table, colProperties,
-                         colValues.map(r => r.map(c => [c])));
-    }
-
-    function addAnnotations(data, rawData) {
-      const rawAnnotations = get(rawData, 'annotations').map(row =>
-        row.map(col =>
-          cases(RUNTIME.ffi.isOption, 'Option', col, {
-            none: function () {},
-            some: function (annotation) { return annotation; }
-          })
-        )
-      );
-      const colProperties = { type: 'string', role: 'annotation' };
-      addSpecialColumns(table, colProperties, rawAnnotations);
-    }
-
-    function addIntervals(table, rawData) {
-      const colProperties = {type: 'number', role: 'interval'};
-      addNSpecialColumns(table, colProperties, get(rawData, 'intervals'));
-    }
-
     function selectMultipleMutator(options, globalOptions, _) {
       const multiple = get(globalOptions, 'multiple');
       if (multiple) {
@@ -1012,16 +902,15 @@
     function addPointers(globalOptions, rawData, primaryScale, data, marks) {
       const horizontal = isTrue(get(rawData, 'horizontal'));
       const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
-      const pointersTable = {
+      data.push({
         name: 'pointers',
-        values: [],
-      };
-      data.push(pointersTable);
-      const pointers_list = get_pointers_list(rawData);
+        values: [...get_pointers_list(rawData)],
+        transform: [{
+          type: 'filter',
+          expr: 'inrange(datum.value, domain("primary"))'
+        }]
+      })
       const pointer_color = get_pointer_color(rawData);
-      pointers_list.forEach((pointer) => {
-        pointersTable.values.push(pointer);
-      });
       marks.push(
         {
           type: "rule",
@@ -1065,6 +954,9 @@
         transform: [ { type: 'filter', expr: 'isValid(datum.annotation)' } ]
       };
       data.push(annotationsTable);
+      const textOffset = (horizontal
+                          ? { signal: "bandwidth('primary') * (1 + (datum.series % 2)) / 3" }
+                          : { scale: primaryScale, band: 0.5 });
       marks.push({
         type: "text",
         from: { data: "annotations"},
@@ -1077,12 +969,10 @@
               scale: 'secondary',
               offset: axesConfig.annotations.offset
             },
-            [axesConfig.primary.dir]: {
-              scale: primaryScale, field: primaryField, offset: { scale: primaryScale, band: 0.5 }
-            },
+            [axesConfig.primary.dir]: { scale: primaryScale, field: primaryField, offset: textOffset },
             fill: [
               // NOTE(Ben): fillColor is computed by the transform above
-              { test: 'contrast("white", scale("color", datum.series)) > contrast("black", scale("color", datum.color))',
+              { test: 'contrast("white", scale("color", datum.series)) > contrast("black", scale("color", datum.series))',
                 value: "white" },
               { value: "black" }
             ],
@@ -1115,6 +1005,7 @@
         ]
       };
       data.push(intervalTicksTable);
+      const fromBottom = { scale: 'secondary', field: 'value0', offset: { scale: 'secondary', value: 0, mult: -1 } }
       marks.push(
         {
           type: 'rule',
@@ -1122,8 +1013,8 @@
           encode: {
             enter: {
               interactive: false,
-              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalExtent[0]' },
-              [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'intervalExtent[1]' },
+              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalExtent[0]', offset: fromBottom },
+              [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'intervalExtent[1]', offset: fromBottom },
               [axesConfig.primary.dir]: {
                 scale: primaryScale, field: primaryField, offset: { scale: primaryScale, band: 0.5 }
               },
@@ -1142,7 +1033,7 @@
           encode: {
             enter: {
               interactive: false,
-              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalTick' },
+              [axesConfig.secondary.dir]: { scale: 'secondary', field: 'intervalTick', offset: fromBottom },
               [axesConfig.primary.dir]: {
                 scale: primaryScale, field: primaryField,
                 offset: {
@@ -1215,7 +1106,7 @@
           "type": "linear",
           "range": axesConfig.secondary.range,
           "nice": true, "zero": true,
-          "domain": {"data": "table", "field": "value"}
+          "domain": axis ? { signal: 'extent(domain("secondaryLabels"))' } : {"data": "table", "field": "value"}
         },
         {
           "name": "color",
@@ -1277,8 +1168,6 @@
 
       addIntervals(globalOptions, rawData, "table", "label", "primary", data, marks);
       
-      // addIntervals(data, rawData);
-
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
@@ -1294,51 +1183,6 @@
         axes,
         marks,
         onExit: defaultImageReturn,
-        gChartOverlay: (overlay, restarter, chart, container) => {
-
-          if (!hasImage && !dotChartP) return;
-
-          // if custom images are defined, use the image at that location
-          // and overlay it atop each dot
-
-
-          google.visualization.events.addListener(chart, 'ready', function () {
-
-            if (dotChartP) {
-              table.forEach(function (row, i) {
-                // console.log('row', i, '=', row);
-                const rect = rects[i];
-                // console.log('rect', i, '=', rect);
-                const num_elts = row[1];
-                const rect_x = Number(rect.getAttribute('x'));
-                const rect_y = Number(rect.getAttribute('y'));
-                const rect_height = Number(rect.getAttribute('height'));
-                const unit_height = rect_height/num_elts;
-                const rect_width = Number(rect.getAttribute('width'));
-                const rect_fill = rect.getAttribute('fill');
-                // const rect_fill_opacity = Number(rect.getAttribute('fill-opacity'));
-                // const rect_stroke = rect.getAttribute('stroke');
-                // const rect_stroke_width = Number(rect.getAttribute('stroke-width'));
-                rect.setAttribute('stroke-width', 0);
-                for (let j = 0; j < num_elts; j++) {
-                  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                  circle.classList.add('__img_labels');
-                  circle.setAttribute('r', rect_width/8);
-                  circle.setAttribute('cx', rect_x + rect_width/2);
-                  circle.setAttribute('cy', rect_y + (num_elts - j - 0.5)*unit_height);
-                  circle.setAttribute('fill', rect_fill);
-                  // circle.setAttribute('fill-opacity', rect_fill_opacity);
-                  // circle.setAttribute('stroke', rect_stroke);
-                  // circle.setAttribute('stroke-width', rect_stroke_width);
-                  // console.log('adding circle elt', i, j, '=', circle);
-                  svgRoot.appendChild(circle);
-                }
-              });
-            }
-
-          });
-
-        }
       };
     }
 
@@ -1445,7 +1289,7 @@
         type: "linear",
         range: axesConfig.secondary.range,
         nice: true, "zero": true,
-        domain: {"data": "table", "field": "value1"}
+        domain: (axis && isNotFullStacked) ? { signal: 'extent(domain("secondaryLabels"))' } : {"data": "table", "field": "value1"}
       };
       const scales = [
         primaryScale,
@@ -1534,7 +1378,13 @@
       if (!isStacked) {
         marks.push(groupMark);
       } else {
-        tooltipValue = `(datum.rawValue + ' (' + format(datum.value, '.2${stackType === 'percent' ? '%' : ''}') + ')')`;
+        if (stackType === 'percent') {
+          tooltipValue = `(datum.rawValue + ' (' + format(datum.value, '.2%') + ')')`;
+        } else if (stackType === 'relative') {
+          tooltipValue = `(datum.rawValue + ' (' + format(datum.value, '.4') + ')')`;
+        } else {
+          tooltipValue = 'datum.rawValue';
+        }
       }
 
 
@@ -1620,42 +1470,6 @@
         marks,
         legends,
         onExit: defaultImageReturn,
-        gChartOverlay: (overlay, restarter, chart, container) => {
-
-          if (!hasImage && !dotChartP) return;
-
-          if (dotChartP) {
-            table.forEach(function (row, i) {
-              // console.log('row', i, '=', row);
-              const rect = rects[i];
-              // console.log('rect', i, '=', rect);
-              const num_elts = row[1];
-              const rect_x = Number(rect.getAttribute('x'));
-              const rect_y = Number(rect.getAttribute('y'));
-              const rect_height = Number(rect.getAttribute('height'));
-              const unit_height = rect_height/num_elts;
-              const rect_width = Number(rect.getAttribute('width'));
-              const rect_fill = rect.getAttribute('fill');
-              // const rect_fill_opacity = Number(rect.getAttribute('fill-opacity'));
-              // const rect_stroke = rect.getAttribute('stroke');
-              // const rect_stroke_width = Number(rect.getAttribute('stroke-width'));
-              rect.setAttribute('stroke-width', 0);
-              for (let j = 0; j < num_elts; j++) {
-                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                circle.classList.add('__img_labels');
-                circle.setAttribute('r', rect_width/8);
-                circle.setAttribute('cx', rect_x + rect_width/2);
-                circle.setAttribute('cy', rect_y + (num_elts - j - 0.5)*unit_height);
-                circle.setAttribute('fill', rect_fill);
-                // circle.setAttribute('fill-opacity', rect_fill_opacity);
-                // circle.setAttribute('stroke', rect_stroke);
-                // circle.setAttribute('stroke-width', rect_stroke_width);
-                // console.log('adding circle elt', i, j, '=', circle);
-                svgRoot.appendChild(circle);
-              }
-            });
-          }
-        }
       }
     }
 
@@ -1824,7 +1638,11 @@
       
       const dataTable = {
         name: 'table',
-        values: [],
+        values: table.map((row, i) => ({
+          label: row[0],
+          value: toFixnum(row[1]),
+          image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
+        })),
         transform: [
           {
             type: 'extent',
@@ -1842,13 +1660,6 @@
         ]
       }
       data.push(dataTable);
-      table.forEach((row, i) => {
-        dataTable.values.push({
-          label: row[0],
-          value: toFixnum(row[1]),
-          image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
-        });
-      });
       const tooltip = "{ title: datum.label, Value: datum.value }"
       const color = getColorOrDefault(get(rawData, 'color'), default_colors[0])
       
