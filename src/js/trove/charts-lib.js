@@ -1584,34 +1584,34 @@
             },
             {
               type: "rect",
-              from: {  data: "table" },
-              name: "minTick",
+              from: { data: "table" },
+              name: "minTicks",
               encode: {
                 enter: {
                   fill: { value: color },
-                  [axesConfig.primary.range]: { value: 1 }
+                  [axesConfig.secondary.range]: { value: 2 }
                 },
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
-                  [S]: { scale: "secondary",  field: "lowWhisker" },
-                  [S2]: { scale: "secondary", field: "lowWhisker" },
+                  [axesConfig.primary.range]: { scale: 'primary', band: 0.25 },
+                  [S]: { scale: "secondary", field: "lowWhisker"},
                   tooltip: { signal: tooltip }
                 }
               }
             },
             {
               type: "rect",
-              from: {  data: "table" },
-              name: "maxTick",
+              from: { data: "table" },
+              name: "maxTicks",
               encode: {
                 enter: {
                   fill: { value: color },
-                  [axesConfig.primary.range]: { value: 1 }
+                  [axesConfig.secondary.range]: { value: 2 }
                 },
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
-                  [S]: { scale: "secondary",  field: "highWhisker" },
-                  [S2]: { scale: "secondary", field: "highWhisker" },
+                  [axesConfig.primary.range]: { scale: 'primary', band: 0.25 },
+                  [S]: { scale: "secondary", field: "highWhisker"},
                   tooltip: { signal: tooltip }
                 }
               }
