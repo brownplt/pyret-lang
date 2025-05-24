@@ -1825,102 +1825,150 @@
 
     function histogram(globalOptions, rawData) {
       const table = get(rawData, 'tab');
+      const binWidth = cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'bin-width'), {
+        none: () => undefined,
+        some: (binWidth) => toFixed(binWidth)
+      });
+
+      const maxNumBins = cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'max-num-bins'), {
+        none: () => undefined,
+        some: (maxNumBins) => toFixnum(maxNumBinx)
+      });
+
       const title = get(globalOptions, 'title');
       const width = get(globalOptions, 'width');
       const height = get(globalOptions, 'height');
       const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
 
-      const data = [];
-      const signals = [];
-      const marks = [];
-
-      const binTransform = {
-        type: 'bin',
-        field: 'value',
-        extent: { signal: 'dataRange' },
-        nice: true
-      };
+      const data = [
+        {
+          name: 'rawTable',
+          values: table.map((row, i) => ({
+            label: row[0],
+            value: toFixnum(row[1]),
+            image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
+          })),
+          transform: [
+            {
+              type: 'extent',
+              field: 'value',
+              signal: 'dataRange'
+            },
+            {
+              type: 'bin',
+              field: 'value',
+              extent: { signal: 'dataRange' },
+              maxbinx: maxNumBins,
+              step: binWidth,
+              nice: (maxNumBins === undefined && binWidth === undefined)
+            },
+            {
+              type: 'stack',
+              groupby: ['bin0', 'bin1'],
+              sort: { field: 'value' },
+              offset: 'zero', // could be "center"
+              as: ['y0', 'y1']
+            },
+          ]
+        },
+        {
+          name: 'summaryTable',
+          source: 'rawTable',
+          transform: [
+            // ONLY draw summary boxes if the datum boxes are too small
+            { type: 'filter', expr: '!showIndividualBoxes' },
+            {
+              type: 'aggregate',
+              groupby: ['bin0', 'bin1'],
+              ops: ['min', 'max', 'count'],
+              fields: ['y0', 'y1', 'y0'],
+              as: ['y0', 'y1', 'count']
+            }
+          ]
+        },
+        {
+          name: 'table',
+          source: 'rawTable',
+          transform: [ { type: 'filter', expr: 'showIndividualBoxes' } ]
+        },
+        {
+          name: 'images',
+          source: 'table',
+          transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
+        }
+      ];
+      const signals = [
+        { name: 'boxHeight', update: "height / abs(domain('countScale')[0] - domain('countScale')[1])" },
+        { name: 'showIndividualBoxes', update: 'boxHeight >= 5' }
+      ];
       
-      const dataTable = {
-        name: 'table',
-        values: table.map((row, i) => ({
-          label: row[0],
-          value: toFixnum(row[1]),
-          image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
-        })),
-        transform: [
-          {
-            type: 'extent',
-            field: 'value',
-            signal: 'dataRange'
-          },
-          binTransform,
-          {
-            type: 'stack',
-            groupby: ['bin0', 'bin1'],
-            sort: { field: 'value' },
-            offset: 'zero', // could be "center"
-            as: ['y0', 'y1']
-          },
-        ]
-      }
-      data.push(dataTable);
-      const tooltip = "{ title: datum.label, Value: datum.value }"
+      const perItemTooltip = "{ title: datum.label, Value: datum.value }"
+      const summaryTooltip = "{ title: ['Too many items to', 'display separately'], Items: datum.count }"
       const color = getColorOrDefault(get(rawData, 'color'), default_colors[0])
       
-      marks.push({
-        type: 'rect',
-        name: 'blocks',
-        from: { data: 'table' },
-        encode: {
-          enter: {
-            x: { scale: 'binScale', field: 'bin0', offset: 0.5 },
-            x2: { scale: 'binScale', field: 'bin1', offset: -0.5 },
-            y: { scale: 'countScale', field: 'y0', offset: -0.5 },
-            y2: { scale: 'countScale', field: 'y1', offset: 0.5 },
-            fill: [
-              { test: 'isValid(datum.image)', value: 'transparent' },
-              { value: color }
-            ],
-            tooltip: { signal: tooltip }
+      const marks = [
+        {
+          type: 'rect',
+          name: 'blocks',
+          from: { data: 'table' },
+          encode: {
+            enter: {
+              x: { scale: 'binScale', field: 'bin0', offset: 0.5 },
+              x2: { scale: 'binScale', field: 'bin1', offset: -0.5 },
+              y: { scale: 'countScale', field: 'y0', offset: -0.5 },
+              y2: { scale: 'countScale', field: 'y1', offset: 0.5 },
+              fill: [
+                { test: 'isValid(datum.image)', value: 'transparent' },
+                { value: color }
+              ],
+              tooltip: { signal: perItemTooltip }
+            }
+          }
+        },
+        {
+          type: 'image',
+          from: { data: 'images' },
+          encode: {
+            enter: {
+              x: { scale: 'binScale', field: 'bin0' },
+              x2: { scale: 'binScale', field: 'bin1' },
+              y: { scale: 'countScale', field: 'y0' },
+              y2: { scale: 'countScale', field: 'y1' },
+              image: { field: 'image' },
+              aspect: { value: false },
+              tooltip: { signal: perItemTooltip }
+            }
+          }
+        },
+        {
+          type: 'rect',
+          name: 'summaryBlocks',
+          from: { data: 'summaryTable' },
+          encode: {
+            enter: {
+              x: { scale: 'binScale', field: 'bin0', offset: 0.5 },
+              x2: { scale: 'binScale', field: 'bin1', offset: -0.5 },
+              y: { scale: 'countScale', field: 'y0', offset: -0.5 },
+              y2: { scale: 'countScale', field: 'y1', offset: 0.5 },
+              fill: { value: color },
+              tooltip: { signal: summaryTooltip }
+            }
           }
         }
-      });
-
-      const imagesTable = {
-        name: 'images',
-        source: 'table',
-        transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
-      };
-      data.push(imagesTable);
-      marks.push({
-        type: 'image',
-        from: { data: 'images' },
-        encode: {
-          enter: {
-            x: { scale: 'binScale', field: 'bin0' },
-            x2: { scale: 'binScale', field: 'bin1' },
-            y: { scale: 'countScale', field: 'y0' },
-            y2: { scale: 'countScale', field: 'y1' },
-            image: { field: 'image' },
-            aspect: { value: false },
-            tooltip: { signal: tooltip }
-          }
-        }
-      });
+      ];
 
       const scales = [
         {
           name: 'binScale',
           type: 'linear',
           range: 'width',
-          domain: { data: 'table', field: 'bin1' }
+          domain: { data: 'rawTable', field: 'bin1' }
         },
         {
           name: 'countScale',
           type: 'linear',
           range: 'height',
-          domain: { data: 'table', field: 'y1' }
+          domain: { data: 'rawTable', field: 'y1' }
         }
       ];
 
@@ -1931,21 +1979,6 @@
         { orient: 'left', scale: 'countScale', grid: true, title: yAxisLabel }
       ];
       
-      cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'bin-width'), {
-        none: function () {},
-        some: function (binWidth) {
-          binTransform.step = toFixed(binWidth);
-          binTransform.nice = false;
-        }
-      });
-
-      cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'max-num-bins'), {
-        none: function () {},
-        some: function (maxNumBins) {
-          binTransform.maxbins = toFixnum(maxNumBins);
-          binTransform.nice = false;
-        }
-      });
 
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
@@ -2561,7 +2594,7 @@ ${labelRow}`;
     function renderStaticImage(processed, globalOptions, rawData) {
       return RUNTIME.pauseStack(restarter => {
         try {
-          console.log(JSON.stringify(processed, (k, v) => (v && IMAGE.isImage(v)) ? v.ariaText : v, 2));
+          console.log(JSON.stringify(processed, (k, v) => (v && (IMAGE.isImage(v) || (v instanceof canvasLib.Canvas))) ? v.ariaText : v, 2));
           const width = toFixnum(get(globalOptions, 'width'));
           const height = toFixnum(get(globalOptions, 'height'));
           const canvas = canvasLib.createCanvas(width, height);
@@ -2590,7 +2623,19 @@ ${labelRow}`;
         // Unfortunately these need to be mutable, to allow for resizing the chart as the dialog resizes
         let width = toFixnum(get(globalOptions, 'width'));
         let height = toFixnum(get(globalOptions, 'height'));
-        const vegaTooltipHandler = new vegaTooltip.Handler();
+        const vegaTooltipHandler = new vegaTooltip.Handler({
+          formatTooltip: (value, valueToHtml, maxDepth, baseURL) => {
+            if (typeof value === 'object') {
+              const { title, ...rest } = value;
+              if (title instanceof Array) {
+                const titleStr = `<h2>${title.map(valueToHtml).join('<br/>')}</h2>`;
+                const restStr = vegaTooltip.formatValue(rest, valueToHtml, maxDepth, baseURL);
+                return titleStr + restStr;
+              }
+            }
+            return vegaTooltip.formatValue(value, valueToHtml, maxDepth, baseURL);
+          }
+        });
         const view = new vega.View(vega.parse(processed), {
           container: overlay[0],
           renderer: 'svg',
