@@ -1827,7 +1827,7 @@
       const table = get(rawData, 'tab');
       const binWidth = cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'bin-width'), {
         none: () => undefined,
-        some: (binWidth) => toFixed(binWidth)
+        some: (binWidth) => toFixnum(binWidth)
       });
 
       const maxNumBins = cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'max-num-bins'), {
@@ -1859,14 +1859,14 @@
               field: 'value',
               extent: { signal: 'dataRange' },
               maxbinx: maxNumBins,
-              step: binWidth,
-              nice: (maxNumBins === undefined && binWidth === undefined)
+              step: { signal: 'binWidth' },
+              nice: true
             },
             {
               type: 'stack',
               groupby: ['bin0', 'bin1'],
               sort: { field: 'value' },
-              offset: 'zero', // could be "center"
+              offset: 'zero',
               as: ['y0', 'y1']
             },
           ]
@@ -1899,11 +1899,17 @@
       ];
       const signals = [
         { name: 'boxHeight', update: "height / abs(domain('countScale')[0] - domain('countScale')[1])" },
-        { name: 'showIndividualBoxes', update: 'boxHeight >= 5' }
+        { name: 'showIndividualBoxes', update: 'boxHeight >= 5' },
+        { name: 'binWidth', update: `${binWidth}` }
       ];
-      
-      const perItemTooltip = "{ title: datum.label, Value: datum.value }"
-      const summaryTooltip = "{ title: ['Too many items to', 'display separately'], Items: datum.count }"
+
+      const rangeFormatStr = '"[" + trim(format(datum.bin0, "5~f")) + ", " + trim(format(datum.bin1, "5~f")) + "]"';
+      const perItemTooltip = `{ title: datum.label, Range: ${rangeFormatStr}, Value: datum.value }`;
+      const summaryTooltip = `{
+        title: ['Too many items to', 'display separately'],
+        Range: ${rangeFormatStr},
+        Items: datum.count
+      }`;
       const color = getColorOrDefault(get(rawData, 'color'), default_colors[0])
       
       const marks = [
@@ -1975,7 +1981,11 @@
       const xAxisLabel = get(globalOptions, 'x-axis');
       const yAxisLabel = get(globalOptions, 'y-axis');
       const axes = [
-        { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel },
+        { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel,
+          format: '5~r',
+          values: (binWidth
+                   ? { signal: `sequence(range('binScale')[0], range('binScale')[1] + binWidth, binWidth)` }
+                   : undefined) },
         { orient: 'left', scale: 'countScale', grid: true, title: yAxisLabel }
       ];
       
