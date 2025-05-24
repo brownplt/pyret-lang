@@ -274,7 +274,21 @@ fun multi-prep-axis(stack-type :: StackType, value-lists :: CL.LoLoN)
   end
 end
 
-fun get-box-data(label :: String, lst :: List<Number>) -> RawArray:
+
+type BoxData = {
+  label :: String,
+  max-val :: Number,
+  min-val :: Number,
+  first-quartile :: Number,
+  median :: Number,
+  third-quartile :: Number,
+  high-whisker :: Number,
+  low-whisker :: Number,
+  high-outliers :: RawArray<Number>,
+  low-outliers :: RawArray<Number>
+}
+
+fun get-box-data(label :: String, lst :: List<Number>) -> BoxData:
     n = lst.length()
     shadow lst = lst.sort()
     median = ST.median(lst)
@@ -288,16 +302,26 @@ fun get-box-data(label :: String, lst :: List<Number>) -> RawArray:
     iqr = third-quartile - first-quartile
     high-outliers = for filter(shadow n from lst):
       n > (third-quartile + (1.5 * iqr))
-    end ^ builtins.raw-array-from-list
+    end
     low-outliers = for filter(shadow n from lst):
       n < (first-quartile - (1.5 * iqr))
-    end ^ builtins.raw-array-from-list
+    end
     min-val = lst.first
     max-val = lst.last()
-    low-whisker = lst.drop(raw-array-length(low-outliers)).get(0)
-    high-whisker = lst.get(n - raw-array-length(high-outliers) - 1)
-    [list: label, max-val, min-val, first-quartile, median, third-quartile, high-whisker, low-whisker, high-outliers, low-outliers]
-      ^ builtins.raw-array-from-list
+    low-whisker = lst.get(low-outliers.length())
+    high-whisker = lst.get(n - high-outliers.length() - 1)
+    {
+     label: label,
+      max-val: max-val,
+      min-val: min-val,
+      first-quartile: first-quartile,
+      median: median,
+      third-quartile: third-quartile,
+      high-whisker: high-whisker,
+      low-whisker: low-whisker,
+      high-outliers: builtins.raw-array-from-list(high-outliers),
+      low-outliers: builtins.raw-array-from-list(low-outliers)
+    }
 end
 
 ################################################################################

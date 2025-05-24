@@ -1124,23 +1124,20 @@
         });
       }
 
-      const axes = [
-        { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1 },
-        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1, grid: false },
-        // redraw the axis just for its gridlines, but beneath everything else in z-order
-        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0, grid: true, ticks: false, labels: false }
-      ];
       // These labels are *specifically directional*, not *logical* -- if a graph is flipped
       // from horizontal to vertical, the labels don't also get flipped.
-      const xAxisLabel = get(globalOptions, 'x-axis');
-      const yAxisLabel = get(globalOptions, 'y-axis');
-      if (horizontal) {
-        axes[0].title = yAxisLabel;
-        axes[1].title = xAxisLabel;
-      } else {
-        axes[0].title = xAxisLabel;
-        axes[1].title = yAxisLabel;
-      }
+      const axisLabels = {
+        x: get(globalOptions, 'x-axis'),
+        y: get(globalOptions, 'y-axis')
+      };
+      const axes = [
+        { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1, title: axisLabels[axesConfig.primary.dir] },
+        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1,
+          grid: false, title: axisLabels[axesConfig.secondary.dir] },
+        // redraw the axis just for its gridlines, but beneath everything else in z-order
+        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0,
+          grid: true, ticks: false, labels: false }
+      ];
 
       if (axis) {
         axes[1].values = axis.domainRaw;
@@ -1327,8 +1324,11 @@
           grid: false, ticks: isNotFullStacked, labels: isNotFullStacked },
         // redraw the axis just for its gridlines, but beneath everything else in z-order
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0,
-          grid: true, ticks: !isNotFullStacked, labels: !isNotFullStacked, title: axisLabels[axesConfig.secondary.dir] }
+          grid: true, ticks: !isNotFullStacked, labels: !isNotFullStacked }
       ];
+      // set the axis with the ticks to have the title, so they don't overlap
+      axes[isNotFullStacked ? 1 : 2].title = axisLabels[axesConfig.secondary.dir];
+      
       if (axis) {
         axes[1].values = axis.domainRaw;
         axes[1].encode = {
@@ -1469,23 +1469,265 @@
     }
 
     function boxPlot(globalOptions, rawData) {
-      let table = get(rawData, 'tab');
-      const dimension = toFixnum(get(rawData, 'height'));
-      // TODO: are these two supposed to be on ChartWindow or DataSeries?
-      const horizontal = get(rawData, 'horizontal');
-      const showOutliers = get(rawData, 'show-outliers');
+      const horizontal = isTrue(get(rawData, 'horizontal'));
+      const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
+      const table = get(rawData, 'tab');
+      const showOutliers = isTrue(get(rawData, 'show-outliers'));
       const axisName = horizontal ? 'hAxis' : 'vAxis';
-      const chartType = horizontal ? google.visualization.BarChart : google.visualization.ColumnChart;
-      const data = new google.visualization.DataTable();
+      const color = getColorOrDefault(get(rawData, 'color'), default_colors[0]);
 
-      const color = cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'color'), {
-        none: function () {
-          return "#777";
-        },
-        some: function (color) {
-          return convertColor(color);
-        }
+      const title = get(globalOptions, 'title');
+      const width = get(globalOptions, 'width');
+      const height = get(globalOptions, 'height');
+      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
+      const min = cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'min'), {
+        none: () => undefined,
+        some: (min) => toFixnum(min)
       });
+      const max = cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'max'), {
+        none: () => undefined,
+        some: (max) => toFixnum(max)
+      });
+
+      const data = [
+        {
+          name: 'table',
+          values: table.map((boxInfo) => ({
+            label: get(boxInfo, 'label'),
+            maxVal: toFixnum(get(boxInfo, 'max-val')),
+            minVal: toFixnum(get(boxInfo, 'min-val')),
+            firstQuartile: toFixnum(get(boxInfo, 'first-quartile')),
+            median: toFixnum(get(boxInfo, 'median')),
+            thirdQuartile: toFixnum(get(boxInfo, 'third-quartile')),
+            highWhisker: toFixnum(get(boxInfo, 'high-whisker')),
+            lowWhisker: toFixnum(get(boxInfo, 'low-whisker')),
+            highOutliers: get(boxInfo, 'high-outliers').map(toFixnum),
+            lowOutliers: get(boxInfo, 'low-outliers').map(toFixnum),
+          })),
+        },
+        { name: 'placeholder', values: [true] }, // need a table with 1 value to construct non-data-driven marks
+        {
+          name: 'highOutliers',
+          source: 'table',
+          transform: [
+            { type: 'filter', expr: `${showOutliers}` },
+            { type: 'flatten', fields: ['highOutliers'], as: ['highOutlier'] }
+          ]
+        },
+        {
+          name: 'lowOutliers',
+          source: 'table',
+          transform: [
+            { type: 'filter', expr: `${showOutliers}` },
+            { type: 'flatten', fields: ['highOutliers'], as: ['highOutlier'] }
+          ]
+        },        
+      ]
+
+      const signals = [
+        { name: 'minValue',
+          update: 'extent(pluck(data("table"), "minVal"))[0]' },
+        { name: 'maxValue',
+          update: 'extent(pluck(data("table"), "maxVal"))[1]' }
+      ];
+      const outlierTooltip = `, 'bottom whisker': datum.lowWhisker, 'top whisker': datum.highWhisker`;
+      const tooltip = `{
+        title: datum.label,
+        minimum: datum.minVal,
+        maximum: datum.maxVal,
+        'first quartile': datum.firstQuartile,
+        median: datum.median,
+        'third quartile': datum.thirdQuartile
+        ${showOutliers ? outlierTooltip : ''}
+      }`;
+      
+      // Abbreviations for orientation-independent property names
+      const P = axesConfig.primary.dir;
+      const P2 = P + '2';
+      const PC = P + 'c';
+      const S = axesConfig.secondary.dir;
+      const S2 = S + '2';
+      const SC = S + 'c';
+      const marks = [
+        {
+          type: "group",
+          name: "clip",
+          clip: true,
+          from: { data: 'placeholder' },
+          encode: {
+            // Use this clipping rectangle to ensure that no marks extend outside the chart area, even
+            // if the user specified an overlay-small chart region
+            enter: {
+              [P]: { signal: 'range("primary")[0]' },
+              [P2]: { signal: 'range("primary")[1]' },
+              [S]: { signal: 'range("secondary")[0]' },
+              [S2]: { signal: 'range("secondary")[1]' },
+            }
+          },
+          marks: [
+            {
+              type: "rect",
+              from: {  data: "table" },
+              name: "whiskers",
+              encode: {
+                enter: {
+                  fill: { value: color },
+                  [axesConfig.primary.range]: { value: 1 }
+                },
+                update: {
+                  [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
+                  [S]: { scale: "secondary",  field: "lowWhisker" },
+                  [S2]: { scale: "secondary", field: "highWhisker" },
+                  tooltip: { signal: tooltip }
+                },
+              }
+            },
+            {
+              type: "rect",
+              from: {  data: "table" },
+              name: "minTick",
+              encode: {
+                enter: {
+                  fill: { value: color },
+                  [axesConfig.primary.range]: { value: 1 }
+                },
+                update: {
+                  [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
+                  [S]: { scale: "secondary",  field: "lowWhisker" },
+                  [S2]: { scale: "secondary", field: "highWhisker" },
+                  tooltip: { signal: tooltip }
+                }
+              }
+            },
+            {
+              type: "rect",
+              from: { data: "table" },
+              name: "IQRs",
+              encode: {
+                enter: {
+                  fill: { value: color },
+                  fillOpacity: { value: 0.5 },
+                  stroke: { value: color },
+                  strokeWidth: { value: 2 },
+                  cornerRadius: { value: 4 }
+                },
+                update: {
+                  [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
+                  [axesConfig.primary.range]: { scale: 'primary', band: 0.5 },
+                  [S]: { scale: "secondary", field: "firstQuartile" },
+                  [S2]: { scale: "secondary", field: "thirdQuartile" },
+                  tooltip: { signal: tooltip }
+                }
+              }
+            },
+            {
+              type: "rect",
+              from: { data: "table" },
+              name: "medians",
+              encode: {
+                enter: {
+                  fill: { value: color },
+                  [axesConfig.secondary.range]: { value: 2 }
+                },
+                update: {
+                  [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
+                  [axesConfig.primary.range]: { scale: 'primary', band: 0.5 },
+                  [S]: { scale: "secondary", field: "median"},
+                  tooltip: { signal: tooltip }
+                }
+              }
+            },
+            {
+              type: "shape",
+              from: { data: "lowOutliers" },
+              name: "lowOutlierMarks",
+              encode: {
+                enter: {
+                  fill: { value: color },
+                  fillOpacity: { value: 0.25 },
+                  stroke: { value: color },
+                  strokeWidth: { value: 2 },
+                  size: { scale: 'primary', band: 0.09 } // 1/3 of a bandwidth, square
+                },
+                update: {
+                  [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
+                  [SC]: { scale: 'secondary', field: 'lowOutlier' },
+                  tooltip: { signal: tooltip }
+                }
+              },
+            },
+            {
+              type: "shape",
+              from: { data: "highOutliers" },
+              name: "highOutlierMarks",
+              encode: {
+                enter: {
+                  fill: { value: color },
+                  fillOpacity: { value: 0.25 },
+                  stroke: { value: color },
+                  strokeWidth: { value: 2 },
+                  size: { scale: 'primary', band: 0.09 } // 1/3 of a bandwidth, square
+                },
+                update: {
+                  [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
+                  [SC]: { scale: 'secondary', field: 'highOutlier' },
+                  tooltip: { signal: tooltip }
+                }
+              },
+            }
+          ]
+        }
+      ];
+      const scales = [
+        {
+          name: "primary",
+          type: "band",
+          range: axesConfig.primary.range,
+          domain: { data: "table", field: "label" },
+          padding: 0.2
+        },
+        {
+          name: "secondary",
+          type: "linear",
+          range: axesConfig.secondary.range,
+          nice: true, "zero": false,
+          domain: [min !== undefined ? min : { signal: 'minValue' },
+                   max !== undefined ? max : { signal: 'maxValue' }]
+        },
+      ];
+      // These labels are *specifically directional*, not *logical* -- if a graph is flipped
+      // from horizontal to vertical, the labels don't also get flipped.
+      const axisLabels = {
+        x: get(globalOptions, 'x-axis'),
+        y: get(globalOptions, 'y-axis')
+      };
+      const axes = [
+        { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1, title: axisLabels[axesConfig.primary.dir] },
+        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 1, grid:
+          false, title: axisLabels[axesConfig.secondary.dir] },
+        // redraw the axis just for its gridlines, but beneath everything else in z-order
+        { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0, grid:
+          true, ticks: false, labels: false }
+      ];
+      
+      return {
+        "$schema": "https://vega.github.io/schema/vega/v6.json",
+        description: title,
+        title: title ? { text: title } : '',
+        width,
+        height,
+        padding: 0,
+        autosize: 'fit',
+        background,
+        data,
+        signals,
+        scales,
+        axes,
+        marks,
+        onExit: defaultImageReturn,
+      };
+
+      
 
 
       const intervalOptions = {
@@ -1560,57 +1802,6 @@
           .concat([tooltip])
           .concat(row[9]).concat(row[8]);
       });
-
-      data.addRows(rowsToAdd);
-      const options = {
-        tooltip: {isHtml: true},
-        legend: {position: 'none'},
-        lineWidth: 0,
-        intervals: {
-          barWidth: 0.25,
-          boxWidth: 0.8,
-          lineWidth: 2,
-          color: color,
-          style: 'boxes'
-        },
-        interval: intervalOptions,
-        dataOpacity: 0,
-      };
-
-      /* NOTE(Oak): manually set the default max to coincide with bar charts' height
-       * so that the bar charts are concealed (the automatic value from Google
-       * is likely to screw this up)
-       */
-      const axisOpts = {
-        maxValue: dimension,
-        viewWindow: {
-          max: dimension
-        },      
-      };
-      /* NOTE(Emmanuel): if min and max are set, override these defaults
-       * 
-       */
-      cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'min'), {
-        none: function () {},
-        some: function (min) {
-          axisOpts.viewWindow.min = toFixnum(min);
-        }
-      });
-      cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'max'), {
-        none: function () {},
-        some: function (max) {
-          axisOpts.viewWindow.max = toFixnum(max);
-        }
-      });
-      options[axisName] = axisOpts;
-
-      return {
-        data: data,
-        options: options,
-        chartType: chartType,
-        onExit: defaultImageReturn,
-        mutators: [backgroundMutator, axesNameMutator],
-      };
     }
 
     function histogram(globalOptions, rawData) {
@@ -2462,7 +2653,7 @@ ${labelRow}`;
         'bar-chart': makeFunction(barChart),
         'multi-bar-chart': makeFunction(multiBarChart),
         'histogram': makeFunction(histogram),
-        'box-plot': notImp('box-plot'), //makeFunction(boxPlot),
+        'box-plot': makeFunction(boxPlot),
         'plot': notImp('plot'), //makeFunction(plot),
       }, 
       {
