@@ -3,8 +3,8 @@ use context essentials2020
 import charts as VC
 import color as C
 import image-typed as I
-
 #|
+
 colors =       [list: C.red,   C.orange, C.yellow, C.green, C.blue,   C.purple, C.pink]
 langs =        [list: "Pyret", "OCaml",  "C",      "C++",   "Python", "Racket", "Smalltalk"]
 popularities = [list: 10,      -6,        1,        3,       5,        8,        9]
@@ -48,7 +48,7 @@ va-series = VC.from-list.grouped-bar-chart(
  .interval-color(C.chartreuse)
  .format-axis({(v): "Label " + to-string(v)})
 
-
+#|
 vb-series = VC.from-list.#|image-|#bar-chart(#|images, |#langs, popularities)
   .horizontal(true)
   .colors(colors.reverse())
@@ -63,15 +63,14 @@ vb-series = VC.from-list.#|image-|#bar-chart(#|images, |#langs, popularities)
 
 rendered = VC.render-chart(va-series).background-color(C.gray).title("Hi!")
 .x-axis("This way!").y-axis("That way!")
+|#
 
 
-
-va-series = VC.from-list.labeled-histogram(
-  range(1, 100).map(lam(x): "foo " + num-to-string(x) end),
-  range(1, 100).map(lam(_): num-random(1000) end))
-rendered = VC.render-chart(va-series).background-color(C.gray)
-  .x-axis("This way!").y-axis("That way!")
- |#
+# va-hist = VC.from-list.labeled-histogram(
+#   range(1, 100).map(lam(x): "foo " + num-to-string(x) end),
+#   range(1, 100).map(lam(_): num-random(1000) end))
+# rendered = VC.render-chart(va-hist).background-color(C.gray)
+#   .x-axis("This way!").y-axis("That way!")
  
 
 rendered = VC.render-chart(VC.from-list.exploding-pie-chart(
@@ -83,4 +82,18 @@ rendered = VC.render-chart(VC.from-list.exploding-pie-chart(
     .piehole(0.25)
   ).background-color(C.gray)
 
+I.save-image(rendered.get-image(), 'test-bar-chart.png')
+
+|#
+
+
+va-box = VC.from-list.box-plot(for map(x from range(0, 5)):
+    # for map(y from range(0, 10) + range(50, 60) + range(100, 200)):
+    #   (100 * x) + num-sqr(y) + num-expt(5, x)
+    # end
+    (range(40, 43) + range(70, 73) + range(50, 60)).map(_ + x)
+  end).color(C.steel-blue).horizontal(true)
+rendered = VC.render-chart(va-box).background-color(C.gray).title("Hi!")
+#.min(15500).max(30500)
+.x-axis("This way!").y-axis("That way!")
 I.save-image(rendered.get-image(), 'test-bar-chart.png')

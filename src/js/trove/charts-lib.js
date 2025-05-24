@@ -1519,7 +1519,7 @@
           source: 'table',
           transform: [
             { type: 'filter', expr: `${showOutliers}` },
-            { type: 'flatten', fields: ['highOutliers'], as: ['highOutlier'] }
+            { type: 'flatten', fields: ['lowOutliers'], as: ['lowOutlier'] }
           ]
         },        
       ]
@@ -1594,6 +1594,23 @@
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
                   [S]: { scale: "secondary",  field: "lowWhisker" },
+                  [S2]: { scale: "secondary", field: "lowWhisker" },
+                  tooltip: { signal: tooltip }
+                }
+              }
+            },
+            {
+              type: "rect",
+              from: {  data: "table" },
+              name: "maxTick",
+              encode: {
+                enter: {
+                  fill: { value: color },
+                  [axesConfig.primary.range]: { value: 1 }
+                },
+                update: {
+                  [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
+                  [S]: { scale: "secondary",  field: "highWhisker" },
                   [S2]: { scale: "secondary", field: "highWhisker" },
                   tooltip: { signal: tooltip }
                 }
@@ -1638,16 +1655,17 @@
               }
             },
             {
-              type: "shape",
+              type: "symbol",
               from: { data: "lowOutliers" },
               name: "lowOutlierMarks",
               encode: {
                 enter: {
+                  shape: { value: 'M -1 -1 L 1 1 M 1 -1 L -1 1' },
                   fill: { value: color },
                   fillOpacity: { value: 0.25 },
                   stroke: { value: color },
                   strokeWidth: { value: 2 },
-                  size: { scale: 'primary', band: 0.09 } // 1/3 of a bandwidth, square
+                  size: { scale: 'primary', band: 1 }
                 },
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
@@ -1657,16 +1675,17 @@
               },
             },
             {
-              type: "shape",
+              type: "symbol",
               from: { data: "highOutliers" },
               name: "highOutlierMarks",
               encode: {
                 enter: {
+                  shape: { value: 'M -1 -1 L 1 1 M 1 -1 L -1 1' },
                   fill: { value: color },
                   fillOpacity: { value: 0.25 },
                   stroke: { value: color },
                   strokeWidth: { value: 2 },
-                  size: { scale: 'primary', band: 0.09 } // 1/3 of a bandwidth, square
+                  size: { scale: 'primary', band: 1 }
                 },
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
