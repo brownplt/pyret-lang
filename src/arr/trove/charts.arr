@@ -76,16 +76,16 @@ fun check-positive-sides(v :: Number) -> Boolean block:
   true
 end
 
-fun check-positive-dent(v :: Number) -> Boolean block: 
-  when v < -1: 
-    raise("regular-polygon-shape: dent cannot be less than -1")
+fun check-valid-dent(v :: Number) -> Boolean block: 
+  when (v < 0) or (v > 1): 
+    raise("regular-polygon-shape: dent must be between 0 and 1")
   end
   true
 end
 
 data PointShape: 
   | circle-shape
-  | regular-polygon-shape(sides :: NumInteger%(check-positive-sides), dent :: Number%(check-positive-dent))
+  | regular-polygon-shape(sides :: NumInteger%(check-positive-sides), dent :: Number%(check-valid-dent))
 end
 
 ################################################################################
@@ -1176,8 +1176,15 @@ default-line-plot-series = {
   dot-chart: false,
 }
 
+type ScatterPoint = {
+  x :: Number,
+  y :: Number,
+  label :: String,
+  image :: Option<IM.Image>
+}
+          
 type ScatterPlotSeries = {
-  ps :: List<Posn>,
+  ps :: List<ScatterPoint>,
   color :: Option<I.Color>,
   legend :: String,
   point-size :: Number,
@@ -1411,6 +1418,7 @@ type PlotChartWindowObject = {
   y-axis :: String,
   x-min :: Option<Number>,
   x-max :: Option<Number>,
+  y-min :: Option<Number>,
   y-max :: Option<Number>,
   num-samples :: Number,
   multiple :: Boolean, 
@@ -1737,6 +1745,9 @@ fun image-line-plot-from-list(images :: CL.LoI, xs :: CL.LoN, ys :: CL.LoN) -> D
   } ^ line-plot-series
 end
 
+fun get-scatter-point(x :: Number, y :: Number, label :: String, optimg :: Option<IM.Image>) -> ScatterPoint:
+  { x: x, y: y, label: label, image: optimg }
+end
 fun scatter-plot-from-list(xs :: CL.LoN, ys :: CL.LoN) -> DataSeries block:
   when xs.length() <> ys.length():
     raise('scatter-plot: xs and ys should have the same length')
@@ -1744,7 +1755,7 @@ fun scatter-plot-from-list(xs :: CL.LoN, ys :: CL.LoN) -> DataSeries block:
   xs.each(check-num)
   ys.each(check-num)
   default-scatter-plot-series.{
-    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]}, xs, ys, xs.map({(_): ''}), xs.map({(_): false}))
+    ps: map4(get-scatter-point, xs, ys, xs.map({(_): ''}), xs.map({(_): none}))
   } ^ scatter-plot-series
 end
 
@@ -1762,7 +1773,7 @@ fun labeled-scatter-plot-from-list(
   ys.each(check-num)
   labels.each(check-string)
   default-scatter-plot-series.{
-    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]}, xs, ys, labels, xs.map({(_): false}))
+    ps: map4(get-scatter-point, xs, ys, labels, xs.map({(_): none}))
   } ^ scatter-plot-series
 end
 
@@ -1780,7 +1791,7 @@ fun image-scatter-plot-from-list(
   ys.each(check-num)
   images.each(check-image)
   default-scatter-plot-series.{
-    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]}, xs, ys, xs.map({(_): ''}), images)
+    ps: map4(get-scatter-point, xs, ys, xs.map({(_): ''}), images.map(some))
   } ^ scatter-plot-series
 end
 
@@ -1959,9 +1970,7 @@ fun num-dot-chart-from-list(x-values :: CL.LoN) -> DataSeries block:
   end
   scatter-plot-ys = x-values.map(lam(_): 0 end)
   default-scatter-plot-series.{
-    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]},
-      x-values, scatter-plot-ys,
-      x-values.map({(_): ''}), x-values.map({(_): false})),
+    ps: map4(get-scatter-point, x-values, scatter-plot-ys, x-values.map({(_): ''}), x-values.map({(_): none})),
     dot-chart: true
   } ^ scatter-plot-series
 end
@@ -1981,9 +1990,7 @@ fun labeled-num-dot-chart-from-list(labels :: CL.LoS, x-values :: CL.LoN) -> Dat
   end
   scatter-plot-ys = x-values.map(lam(_): 0 end)
   default-scatter-plot-series.{
-    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]},
-      x-values, scatter-plot-ys, labels,
-      x-values.map({(_): false})),
+    ps: map4(get-scatter-point, x-values, scatter-plot-ys, labels, x-values.map({(_): none})),
     dot-chart: true
   } ^ scatter-plot-series
 end
@@ -2636,7 +2643,7 @@ fun render-charts(lst :: List<DataSeries>) -> ChartWindow:
       _ = check-render-x-axis(self)
       _ = check-render-y-axis(self)
 
-      bboxes-ls = get-list-of-bounding-boxes(line-plots.map(_.ps) + scatter-plots.map(_.ps), self, snd)
+      bboxes-ls = get-list-of-bounding-boxes(line-plots.map(_.ps)#| + scatter-plots.map(_.ps)|#, self, snd)
 
       i-xyy = interval-plots.map(_.bothys) # list of list of xyy arrays
 
@@ -2671,9 +2678,9 @@ fun render-charts(lst :: List<DataSeries>) -> ChartWindow:
           | some(shadow function-plots-data) => function-plots-data
         end
 
-        scatters-arr = for map(p from scatter-plots + function-plots-data):
-          ps-to-arr(p.{ps: p.ps.filter(in-bound-xy(_, self))})
-        end ^ reverse ^ builtins.raw-array-from-list
+        # scatters-arr = for map(p from scatter-plots + function-plots-data):
+        #   ps-to-arr(p.{ps: p.ps.filter(in-bound-xy(_, self))})
+        # end ^ reverse ^ builtins.raw-array-from-list
 
         lines-arr = for map(p from line-plots):
           ps-to-arr(p.{ps: line-plot-edge-cut(p.ps, self)})
@@ -2683,10 +2690,20 @@ fun render-charts(lst :: List<DataSeries>) -> ChartWindow:
           ps-to-arr(p.{ps: p.ps.filter(in-bound-xy(_, self))})
         end ^ reverse ^ builtins.raw-array-from-list
 
-        ret = CL.plot(self, {scatters: scatters-arr, lines: lines-arr, intervals: intervals-arr})
-        cases (E.Either<Any, IM.Image>) ret:
-          | left(new-self) => helper(new-self, none)
-          | right(image) => image
+        ret = CL.plot(self, {
+          scatters: builtins.raw-array-from-list(scatter-plots), 
+          lines: builtins.raw-array-from-list(line-plots),
+          intervals: builtins.raw-array-from-list(interval-plots),
+          functions: builtins.raw-array-from-list(function-plots)
+        })
+        # NOTE(Ben): THIS IS A POLYFILL FOR NOW,
+        # until I remove the Either callback hooking mechanism altogether.
+        if (IM.is-image(ret)): ret
+        else:
+          cases (E.Either<Any, IM.Image>) ret:
+            | left(new-self) => helper(new-self, none)
+            | right(image) => image
+          end
         end
       end
       helper(self, some(function-plots-data))

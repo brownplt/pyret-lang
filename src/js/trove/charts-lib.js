@@ -252,35 +252,21 @@
         }
       });
     }
-    function axesNameMutator(options, globalOptions, _) {
-      const hAxis = ('hAxis' in options) ? options.hAxis : {};
-      const vAxis = ('vAxis' in options) ? options.vAxis : {};
+    function collectAxisNames(options, globalOptions) {
+      const hAxis = options.hAxis ??= {};
+      const vAxis = options.vAxis ??= {};
       hAxis.title = get(globalOptions, 'x-axis');
       vAxis.title = get(globalOptions, 'y-axis');
-      $.extend(options, {hAxis: hAxis, vAxis: vAxis});
+      return options;
     }
 
-    function gridlinesMutator(options, globalOptions, _) {
-      const hAxis = ('hAxis' in options) ? options.hAxis : {};
-      const vAxis = ('vAxis' in options) ? options.vAxis : {};
+    function getGridlines(options, globalOptions) {
+      const hAxis = options.hAxis ??= {};
+      const vAxis = options.vAxis ??= {};
 
-      const gridlineColor = cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'gridlineColor'), {
-        none: function () {
-          return '#aaa';
-        },
-        some: function (color) {
-          return convertColor(color);
-        }
-      });
+      const gridlineColor = getColorOrDefault(get(globalOptions, 'gridlineColor'), "#aaa");
 
-      const minorGridlineColor = cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'minorGridlineColor'), {
-        none: function () {
-          return '#ddd';
-        },
-        some: function (color) {
-          return convertColor(color);
-        }
-      });
+      const minorGridlineColor = getColorOrDefault(get(globalOptions, 'minorGridlineColor'), "#ddd");
 
       const minorGridlineMinspacing = toFixnum(get(globalOptions, 'minorGridlineMinspacing'))
 
@@ -304,7 +290,7 @@
         hAxis.minorGridlines = {count: 0};
         vAxis.minorGridlines = {count: 0};
       }
-      $.extend(options, {hAxis: hAxis, vAxis: vAxis});
+      return options;
     }
 
     function yAxisRangeMutator(options, globalOptions, _) {
@@ -616,6 +602,20 @@
       };
     }
 
+    function getOrDefault(opt, defaultVal) {
+      return cases(RUNTIME.ffi.isOption, 'Option', opt, {
+        none: () => defaultVal,
+        some: (v) => v
+      });
+    }
+    
+    function getNumOrDefault(optNum, defaultNum) {
+      return cases(RUNTIME.ffi.isOption, 'Option', optNum, {
+        none: () => defaultNum,
+        some: toFixnum
+      });
+    }
+
     //////////// Bar Chart Getter Functions /////////////////
 
     function getColorOrDefault(optColor, defaultColor) {
@@ -641,14 +641,7 @@
       if (!RUNTIME.hasField(rawData, 'color')) return "";
       
       // Sets up the default color [Default Bar Color if not specified in color_list]
-      return cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'color'), {
-        none: function () {
-          return "";
-        },
-        some: function (color) {
-          return convertColor(color);
-        }
-      });
+      return getColorOrDefault(get(rawData, 'color'), '');
     }
 
     function get_pointers_list(rawData) {
@@ -665,14 +658,7 @@
 
     function get_pointer_color(rawData) { 
       // Sets up the pointer color
-      return cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'pointer-color'), {
-        none: function () {
-          return 'black';
-        },
-        some: function (color) {
-          return convertColor(color);
-        }
-      });
+      return getColorOrDefault(get(rawData, 'pointer-color'), 'black');
     }
 
     function get_axis(rawData) {
@@ -695,14 +681,7 @@
 
     function get_interval_color(rawData) { 
       // Sets up the default interval color
-      return cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'default-interval-color'), {
-        none: function () {
-          return 'black';
-        },
-        some: function (color) {
-          return convertColor(color);
-        }
-      });
+      return getColorOrDefault(get(rawData, 'default-interval-color'), 'black');
     }
 
     /////////////////////////////////////////////////////////
@@ -814,10 +793,7 @@
         const seriesAnnotations = allAnnotations[i] || [];
         row[1].forEach(function (value, series) {
           const annotationOpt = seriesAnnotations[series] || NONEann;
-          const annotation = cases(RUNTIME.ffi.isOption, 'Option', annotationOpt, {
-            none: () => undefined,
-            some: (v) => v
-          });
+          const annotation = getOrDefault(annotationOpt, undefined);
           let intervals = (allIntervals[i] || [])[series]
           if (intervals && intervals.length === 0) {
             intervals = undefined;
@@ -1480,14 +1456,8 @@
       const width = get(globalOptions, 'width');
       const height = get(globalOptions, 'height');
       const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
-      const min = cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'min'), {
-        none: () => undefined,
-        some: (min) => toFixnum(min)
-      });
-      const max = cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'max'), {
-        none: () => undefined,
-        some: (max) => toFixnum(max)
-      });
+      const min = getNumOrDefault(get(globalOptions, 'min'), undefined);
+      const max = getNumOrDefault(get(globalOptions, 'max'), undefined);
 
       const data = [
         {
@@ -1505,7 +1475,6 @@
             lowOutliers: get(boxInfo, 'low-outliers').map(toFixnum),
           })),
         },
-        { name: 'placeholder', values: [true] }, // need a table with 1 value to construct non-data-driven marks
         {
           name: 'highOutliers',
           source: 'table',
@@ -1553,7 +1522,6 @@
           type: "group",
           name: "clip",
           clip: true,
-          from: { data: 'placeholder' },
           encode: {
             // Use this clipping rectangle to ensure that no marks extend outside the chart area, even
             // if the user specified an overlay-small chart region
@@ -1825,15 +1793,9 @@
 
     function histogram(globalOptions, rawData) {
       const table = get(rawData, 'tab');
-      const binWidth = cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'bin-width'), {
-        none: () => undefined,
-        some: (binWidth) => toFixnum(binWidth)
-      });
+      const binWidth = getNumOrDefault(get(rawData, 'bin-width'), undefined);
 
-      const maxNumBins = cases(RUNTIME.ffi.isOption, 'Option', get(rawData, 'max-num-bins'), {
-        none: () => undefined,
-        some: (maxNumBins) => toFixnum(maxNumBinx)
-      });
+      const maxNumBins = getNumOrDefault(get(rawData, 'max-num-bins'), undefined);
 
       const title = get(globalOptions, 'title');
       const width = get(globalOptions, 'width');
@@ -2008,10 +1970,290 @@
       };
     }
 
+    function scatterPlot(globalOptions, rawData, config) {
+      const prefix = config.prefix || ''
+      const defaultColor = config.defaultColor || default_colors[0];
+      const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
+      const legend = get(rawData, 'legend');
+      const pointSize = toFixnum(get(rawData, 'point-size'));
+      const pointshapeType = get(rawData, 'pointshapeType');
+      const pointshapeSides = toFixnum(get(rawData, 'pointshapeSides'));
+      const pointshapeDent = toFixnum(get(rawData, 'pointshapeDent'));
+      const pointshapeRotation = toFixnum(get(rawData, 'pointshapeRotation'));
+      const trendlineType = getOrDefault(get(rawData, 'trendlineType'), null);
+      const trendlineColor = getColorOrDefault(get(rawData, 'trendlineColor'), 'green');
+      const trendlineWidth = toFixnum(get(rawData, 'trendlineWidth'));
+      const trendlineOpacity = toFixnum(get(rawData, 'trendlineOpacity'));
+      const trendlineDegree = toFixnum(get(rawData, 'trendlineDegree'));
+      const isDotChart = isTrue(get(rawData, 'dot-chart'));
+
+      const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
+
+      const data = [
+        {
+          name: `${prefix}rawTable`,
+          values: points.map((p) => ({
+            label: get(p, 'label'),
+            x: toFixnum(get(p, 'x')),
+            y: toFixnum(get(p, 'y')),
+            image: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+              none: () => undefined,
+              some: imageToCanvas
+            })
+          })),
+          transform: []
+        },
+        {
+          name: `${prefix}table`,
+          source: `${prefix}rawTable`,
+          transform: [ { type: 'filter', expr: '!isValid(datum.image)' } ]
+        },
+        {
+          name: `${prefix}images`,
+          source: `${prefix}rawTable`,
+          transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
+        },
+      ];
+      const signals = [
+        { name: `${prefix}extentX`, update: `extent(pluck(data("${prefix}rawTable"), "x"))` },
+        { name: `${prefix}extentY`, update: `extent(pluck(data("${prefix}rawTable"), "y"))` },
+        { name: `${prefix}crosshair`,
+          // NOTE: start it in bounds, so as not to affect the drawing scale or area
+          update: `{x: ${prefix}extentX[0], y: ${prefix}extentY[0]}`,
+          on: [
+            {
+              events: [
+                { markname: `${prefix}ImageMarks`, type: 'click' },
+                { markname: `${prefix}ShapeMarks`, type: 'click' }
+              ],
+              force: true,
+              update: `${prefix}crosshair === datum ? { x: 0, y: 0 } : datum`
+            }
+          ]
+        },
+        { name: `${prefix}crosshairOpacity`, update: `0`,
+          on: [
+            {
+              events: [
+                { markname: `${prefix}ImageMarks`, type: 'click' },
+                { markname: `${prefix}ShapeMarks`, type: 'click' }
+              ],
+              force: true,
+              update: `${prefix}crosshair === datum ? 1 : 0`
+            },            
+          ]
+        }
+      ];
+      const scales = [
+        { name: `${prefix}xscale`,
+          type: 'linear',
+          domain: { signal: `${prefix}extentX` },
+          range: 'width',
+          nice: true },
+        { name: `${prefix}yscale`,
+          type: 'linear',
+          domain: { signal: `${prefix}extentY` },
+          range: 'height',
+          nice: true }
+      ];
+      const axes = [
+        { orient: 'bottom', scale: `${prefix}xscale`, zindex: 1, title: "TBD XAxis" },
+        { orient: 'left', scale: `${prefix}yscale`, zindex: 1, title: "TBD YAxis" },
+      ];
+      const marks = [];
+      marks.push(
+        {
+          type: 'rule',
+          name: 'vertRule',
+          encode: {
+            update: {
+              x: { scale: `${prefix}xscale`, signal: `${prefix}crosshair.x` },
+              x2: { scale: `${prefix}xscale`, signal: `${prefix}crosshair.x` },
+              y: { signal: `range('${prefix}yscale')[0]` },
+              y2: { signal: `range('${prefix}yscale')[1]` },
+              stroke: { value: color },
+              strokeWidth: { value: 1 },
+              strokeOpacity: { signal: `${prefix}crosshairOpacity` }
+            },
+          }
+        },
+        {
+          type: 'rule',
+          name: 'horzRule',
+          encode: {
+            update: {
+              x: { signal: `range('${prefix}xscale')[0]` },
+              x2: { signal: `range('${prefix}xscale')[1]` },
+              y: { scale: `${prefix}yscale`, signal: `${prefix}crosshair.y` },
+              y2: { scale: `${prefix}yscale`, signal: `${prefix}crosshair.y` },
+              stroke: { value: color },
+              strokeWidth: { value: 1 },
+              strokeOpacity: { signal: `${prefix}crosshairOpacity` }
+            },
+          }
+        }
+      );
+      const tooltips = [
+        { test: 'datum.label != ""',
+          signal: `{ title: "${legend}", Label: datum.label, x: datum.x, y: datum.y }` },
+        { signal: `{ title: "${legend}", x: datum.x, y: datum.y }` },
+      ];
+      marks.push({
+        type: 'image',
+        from: { data: `${prefix}images` },
+        name: `${prefix}ImageMarks`,
+        encode: {
+          enter: {
+            x: { scale: `${prefix}xscale`, field: 'x' },
+            y: { scale: `${prefix}yscale`, field: 'y' },
+            width: { value: pointSize },
+            height: { value: pointSize },
+            image: { field: 'image' },
+            tooltip: tooltips
+          }
+        }
+      });
+      if (pointshapeType === 'circle') {
+        marks.push({
+          type: 'symbol',
+          from: { data: `${prefix}table` },
+          name: `${prefix}ShapeMarks`,
+          encode: {
+            enter: {
+              shape: { value: 'circle' },
+              size: { value: pointSize * pointSize },
+              x: { scale: `${prefix}xscale`, field: 'x' },
+              y: { scale: `${prefix}yscale`, field: 'y' },
+              fill: { value: color },
+              tooltip: tooltips
+            }
+          }
+        });
+      } else if (pointshapeType === 'polygon') {
+        const oneDegreeAsRadian = Math.PI / 180;
+        const angleBetweenPoints = (2 * Math.PI) / (2 * pointshapeSides);  // each side is paired with a dent
+        // According to https://vega.github.io/vega/docs/marks/symbol/,
+        // we don't have a predefined star symbol, so we'll use an SVG path string
+        // with intended bounding box of [-1,1]x[-1,1]
+        // A dent of 1 will produce a regular polygon with straight lines, while
+        // a dent of 0 will produce a spiky star with zero-width arms.
+        // Starting with the first two points of a regular polygon of unit radius,
+        // compute the midpoint between them, and use its radius to provide an absolute
+        // scale for what dent==0 means.
+        const firstMidpointX = (Math.cos(2 * angleBetweenPoints) + 1) / 2;
+        const firstMidpointY = Math.sin(2 * angleBetweenPoints) / 2;
+        const firstMidpointRad = Math.sqrt(firstMidpointX * firstMidpointX + firstMidpointY * firstMidpointY);
+        const dentRad = pointshapeDent * firstMidpointRad;
+        
+        const svgPathComponents = [];
+        svgPathComponents.push('M');
+        // NOTE: we want 0degrees to point up, so sin and cos are swapped, and y is negated
+        for (let i = 0; i < pointshapeSides; i++) {
+          const rads = 2 * i * angleBetweenPoints;
+          if (i !== 0) { svgPathComponents.push('L'); }
+          svgPathComponents.push(Math.sin(rads));
+          svgPathComponents.push(-Math.cos(rads));
+          svgPathComponents.push('L')
+          svgPathComponents.push(dentRad * Math.sin(rads + angleBetweenPoints));
+          svgPathComponents.push(-dentRad * Math.cos(rads + angleBetweenPoints));
+        }
+        svgPathComponents.push('Z');
+        const svgPath = svgPathComponents.join(' ');
+        marks.push({
+          type: 'symbol',
+          from: { data: `${prefix}table` },
+          name: `${prefix}ShapeMarks`,
+          encode: {
+            enter: {
+              shape: { value: svgPath },
+              size: { value: pointSize * pointSize },
+              x: { scale: `${prefix}xscale`, field: 'x' },
+              y: { scale: `${prefix}yscale`, field: 'y' },
+              fill: { value: color },
+              stroke: { value: color },
+              strokeWidth: { value: 1 },
+              tooltip: tooltips
+            }
+          }
+        });
+      }
+        
+      return {
+        data,
+        signals,
+        scales,
+        axes,
+        marks,
+      };
+    }
+
+    function linePlot(globalOptions, rawData, config) {
+      const prefix = config.prefix || ''
+      const defaultColor = config.defaultColor || default_colors[0];
+    }
+
+    function intervalPlot(globalOptions, rawData, config) {
+      const prefix = config.prefix || ''
+      const defaultColor = config.defaultColor || default_colors[0];
+    }
+
+    function functionPlot(globalOptions, rawData, config) {
+      const prefix = config.prefix || ''
+      const defaultColor = config.defaultColor || default_colors[0];
+      const numSamples = toFixnum(get(globalOptions, 'num-samples'));
+      const showSamples = isTrue(get(globalOptions, 'is-show-samples'));
+      // NOTE(Ben): We can use view.data(`${prefix}rawTable`, ...newData...)
+      // to replace the existing data points in the _current_ view, so that
+      // we do not have to reconstruct a new vega.View or restart the rendering process.
+      // See https://vega.github.io/vega/docs/api/view/#view_data
+    }
+
+    function composeCharts(globalOptions, charts) {
+      const xMinValue = getNumOrDefault(get(globalOptions, 'x-min'), undefined);
+      const xMaxValue = getNumOrDefault(get(globalOptions, 'x-max'), undefined);
+      const yMinValue = getNumOrDefault(get(globalOptions, 'x-min'), undefined);
+      const yMaxValue = getNumOrDefault(get(globalOptions, 'x-max'), undefined);
+      const width = toFixnum(get(globalOptions, 'width'));
+      const height = toFixnum(get(globalOptions, 'height'));
+      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
+      const title = get(globalOptions, 'title');
+      const multiple = isTrue(get(globalOptions, 'multiple'));
+      const gridlines = getGridlines({}, globalOptions);
+      // console.log(gridlines);
+      return {
+        "$schema": "https://vega.github.io/schema/vega/v6.json",
+        description: title,
+        title: title ? { text: title } : '',
+        width,
+        height,
+        padding: 0,
+        autosize: "fit",
+        background,
+        ...charts[0], // FOR NOW!
+        onExit: defaultImageReturn,
+      };
+    }
+
     function plot(globalOptions, rawData) {
       const scatters = get(rawData, 'scatters');
       const lines = get(rawData, 'lines');
       const intervals = get(rawData, 'intervals');
+      const functions = get(rawData, 'functions');
+      let i = 0;
+      function nextColor() {
+        return default_colors[i++ % default_colors.length];
+      }
+      return composeCharts(globalOptions, [
+        ...scatters.map((s, n) => scatterPlot(globalOptions, s,
+                                              { prefix: `scatter${n}`, defaultColor: nextColor() })),
+        ...lines.map((l, n) => linePlot(globalOptions, l,
+                                       { prefix: `line${n}`, defaultColor: nextColor() })),
+        ...intervals.map((i, n) => intervalPlot(globalOptions, i,
+                                                { prefix: `interval${n}`, defaultColor: nextColor() })),
+        ...functions.map((f, n) => functionPlot(globalOptions, f,
+                                               { prefix: `function${n}`, defaultColor: nextColor() }))
+      ]);
+      
       const minIntervalIndex = scatters.length + lines.length;
       const data = new google.visualization.DataTable();
       data.addColumn('number', 'X');
@@ -2351,7 +2593,7 @@ ${labelRow}`;
         mutators: [axesNameMutator,
                    yAxisRangeMutator,
                    xAxisRangeMutator,
-                   gridlinesMutator,
+                   // gridlinesMutator,
                    backgroundMutator, 
                    selectMultipleMutator,
                    dotPlotAxesMutator],
@@ -2728,7 +2970,7 @@ ${labelRow}`;
         'multi-bar-chart': makeFunction(multiBarChart),
         'histogram': makeFunction(histogram),
         'box-plot': makeFunction(boxPlot),
-        'plot': notImp('plot'), //makeFunction(plot),
+        'plot': makeFunction(plot),
       }, 
       {
         "LoC": ann("List<Color>", checkListWith(IMAGE.isColorOrColorString)),
