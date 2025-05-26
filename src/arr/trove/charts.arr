@@ -442,9 +442,9 @@ end
 trendline-type-method = method(self, trendlineType :: TrendlineType):
 cases (TrendlineType) trendlineType: 
     | no-trendline => self.constr()(self.obj.{trendlineType: none})
-    | linear => self.constr()(self.obj.{trendlineType: some("linear")})
-    | exponential => self.constr()(self.obj.{trendlineType: some("exponential")})
-    | polynomial(degree) => self.constr()(self.obj.{trendlineType: some("polynomial"), trendlineDegree: degree})
+    | linear => self.constr()(self.obj.{trendlineType: some("poly"), trendlineDegree: 1})
+    | exponential => self.constr()(self.obj.{trendlineType: some("exp")})
+    | polynomial(degree) => self.constr()(self.obj.{trendlineType: some("poly"), trendlineDegree: degree})
   end
   
 end

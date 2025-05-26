@@ -110,7 +110,7 @@ weights = [list: 40, 5.2, 32, 0.5, 7.6, 33, 1.7, 5, 22, 0.07, 4, 2.7, 8.5, 1.8, 
 labels = range(0, weights.length()).map({(n): "Label " + to-string(n)})
   
 scatter = VC.from-list.labeled-scatter-plot(labels, ages, weights)
-  .point-shape(VC.regular-polygon-shape(5, 0.5)).point-size(20).legend("Hi!")
+  .point-shape(VC.regular-polygon-shape(5, 0.5)).point-size(20).legend("Hi!").trendline-type(VC.linear)
 
 # rendered = VC.render-chart(VC.from-list.histogram(vals).bin-width(7.15)).height(400).background-color(C.gray)
 rendered = VC.render-chart(scatter).height(600).background-color(C.gray)

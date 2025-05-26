@@ -1974,7 +1974,7 @@
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
       const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
-      const legend = get(rawData, 'legend');
+      const legend = get(rawData, 'legend') || config.legend;
       const pointSize = toFixnum(get(rawData, 'point-size'));
       const pointshapeType = get(rawData, 'pointshapeType');
       const pointshapeSides = toFixnum(get(rawData, 'pointshapeSides'));
@@ -2093,6 +2093,88 @@
           }
         }
       );
+      if (trendlineType) {
+        data.push(
+          {
+            name: `${prefix}regression`,
+            source: `${prefix}rawTable`,
+            transform: [{
+              type: 'regression',
+              method: trendlineType,
+              order: trendlineDegree,
+              x: { field: 'x' },
+              y: { field: 'y' },
+              as: ['u', 'v']
+            }]
+          },
+          {
+            name: `${prefix}regressionParams`,
+            source: `${prefix}rawTable`,
+            transform: [{
+              type: 'regression',
+              method: trendlineType,
+              order: trendlineDegree,
+              params: true,
+              x: { field: 'x' },
+              y: { field: 'y' },
+            }]
+          },
+        )
+        let tooltipTitle;
+        const formatNum = (exp) => `trim(format(${exp}, '4~f'))`;
+        const regressionParam = (idx) => `data('${prefix}regressionParams')[0].coef[${idx}]`;
+        if (trendlineType === 'linear') {
+          tooltipTitle = `${formatNum(regressionParam(0))} + ' * X + ' + ${formatNum(regressionParam(1))}`;
+        } else if (trendlineType === 'exp') {
+          tooltipTitle = `${formatNum(regressionParam(0))} + '* e ^ (' + ${formatNum(regressionParam(1))} + ' * X)'`;
+        } else if (trendlineType === 'poly') {
+          const params = Array.from(Array(trendlineDegree + 1)).map((_, i) => formatNum(regressionParam(i)));
+          const xPows = params.map((_, i) => {
+            if (i == 0) return '';
+            if (i == 1) return 'X';
+            return `X^${i}`
+          });
+          tooltipTitle = '';
+          for (let i = trendlineDegree; i >= 0; i--) {
+            if (i < trendlineDegree) { tooltipTitle += " + ' + ' + "; }
+            if (i == 0) { tooltipTitle += params[i]; }
+            else { tooltipTitle += `${params[i]} + ' * ${xPows[i]}'`; }
+          }
+        }
+        tooltipTitle = `replace(${tooltipTitle}, /\\\\+ -/, '- ')`;
+        marks.push(
+          {
+            type: 'line',
+            from: { data: `${prefix}regression` },
+            encode: {
+              enter: {
+                x: { scale: `${prefix}xscale`, field: 'u' },
+                y: { scale: `${prefix}yscale`, field: 'v' },
+                stroke: { value: trendlineColor },
+                strokeWidth: { value: trendlineWidth },
+                opacity: { value: trendlineOpacity },
+                tooltip: { signal: `{ title: "Trend for ${legend}", Trend: ${tooltipTitle}, x: ${formatNum('datum.u')}, y: ${formatNum('datum.v')} }` }
+              }
+            }
+          },
+          {
+            type: 'symbol',
+            from: { data: `${prefix}regression` },
+            encode: {
+              enter: {
+                x: { scale: `${prefix}xscale`, field: 'u' },
+                y: { scale: `${prefix}yscale`, field: 'v' },
+                stroke: { value: trendlineColor },
+                strokeWidth: { value: trendlineWidth },
+                size: { value: trendlineWidth * trendlineWidth },
+                opacity: { value: trendlineOpacity },
+                tooltip: { signal: `{ title: "Trend for ${legend}", Trend: ${tooltipTitle}, x: ${formatNum('datum.u'
+)}, y: ${formatNum('datum.v')} }` }
+              }
+            }
+          }
+        );
+      }
       const tooltips = [
         { test: 'datum.label != ""',
           signal: `{ title: "${legend}", Label: datum.label, x: datum.x, y: datum.y }` },
@@ -2243,15 +2325,24 @@
       function nextColor() {
         return default_colors[i++ % default_colors.length];
       }
+      function nextPlot() { return `Plot ${i}`; }
       return composeCharts(globalOptions, [
-        ...scatters.map((s, n) => scatterPlot(globalOptions, s,
-                                              { prefix: `scatter${n}`, defaultColor: nextColor() })),
-        ...lines.map((l, n) => linePlot(globalOptions, l,
-                                       { prefix: `line${n}`, defaultColor: nextColor() })),
-        ...intervals.map((i, n) => intervalPlot(globalOptions, i,
-                                                { prefix: `interval${n}`, defaultColor: nextColor() })),
-        ...functions.map((f, n) => functionPlot(globalOptions, f,
-                                               { prefix: `function${n}`, defaultColor: nextColor() }))
+        ...scatters.map((s, n) => scatterPlot(
+          globalOptions, s,
+          { prefix: `scatter${n}`, defaultColor: nextColor(), legend: nextPlot() }
+        )),
+        ...lines.map((l, n) => linePlot(
+          globalOptions, l,
+          { prefix: `line${n}`, defaultColor: nextColor(), legend: nextPlot() }
+        )),
+        ...intervals.map((i, n) => intervalPlot(
+          globalOptions, i,
+          { prefix: `interval${n}`, defaultColor: nextColor(), legend: nextPlot() }
+        )),
+        ...functions.map((f, n) => functionPlot(
+          globalOptions, f,
+          { prefix: `function${n}`, defaultColor: nextColor(), legend: nextPlot() }
+        ))
       ]);
       
       const minIntervalIndex = scatters.length + lines.length;
