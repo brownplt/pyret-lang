@@ -1713,7 +1713,7 @@ fun line-plot-from-list(xs :: CL.LoN, ys :: CL.LoN) -> DataSeries block:
   xs.each(check-num)
   ys.each(check-num)
   default-line-plot-series.{
-    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]}, xs, ys, xs.map({(_): ''}), xs.map({(_): false}))
+    ps: map4(get-scatter-point, xs, ys, xs.map({(_): ''}), xs.map({(_): none}))
   } ^ line-plot-series
 end
 
@@ -1727,7 +1727,7 @@ fun labeled-line-plot-from-list(labels :: CL.LoS, xs :: CL.LoN, ys :: CL.LoN) ->
   xs.each(check-num)
   ys.each(check-num)
   default-line-plot-series.{
-    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]}, xs, ys, labels, xs.map({(_): false}))
+    ps: map4(get-scatter-point, xs, ys, labels, xs.map({(_): none}))
   } ^ line-plot-series
 end
 
@@ -1741,7 +1741,7 @@ fun image-line-plot-from-list(images :: CL.LoI, xs :: CL.LoN, ys :: CL.LoN) -> D
   xs.each(check-num)
   ys.each(check-num)
   default-line-plot-series.{
-    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]}, xs, ys, xs.map({(_): ''}), images)
+    ps: map4(get-scatter-point, xs, ys, xs.map({(_): ''}), images.map(some))
   } ^ line-plot-series
 end
 
@@ -2643,7 +2643,7 @@ fun render-charts(lst :: List<DataSeries>) -> ChartWindow:
       _ = check-render-x-axis(self)
       _ = check-render-y-axis(self)
 
-      bboxes-ls = get-list-of-bounding-boxes(line-plots.map(_.ps)#| + scatter-plots.map(_.ps)|#, self, snd)
+      bboxes-ls = get-list-of-bounding-boxes(empty #|line-plots.map(_.ps) + scatter-plots.map(_.ps)|#, self, snd)
 
       i-xyy = interval-plots.map(_.bothys) # list of list of xyy arrays
 
@@ -2682,9 +2682,9 @@ fun render-charts(lst :: List<DataSeries>) -> ChartWindow:
         #   ps-to-arr(p.{ps: p.ps.filter(in-bound-xy(_, self))})
         # end ^ reverse ^ builtins.raw-array-from-list
 
-        lines-arr = for map(p from line-plots):
-          ps-to-arr(p.{ps: line-plot-edge-cut(p.ps, self)})
-        end ^ reverse ^ builtins.raw-array-from-list
+        # lines-arr = for map(p from line-plots):
+        #   ps-to-arr(p.{ps: line-plot-edge-cut(p.ps, self)})
+        # end ^ reverse ^ builtins.raw-array-from-list
 
         intervals-arr = for map(p from interval-plots):
           ps-to-arr(p.{ps: p.ps.filter(in-bound-xy(_, self))})

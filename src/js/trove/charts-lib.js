@@ -1998,8 +1998,16 @@
             y: toFixnum(get(p, 'y')),
             image: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
               none: () => undefined,
-              some: imageToCanvas
-            })
+              some: (opaqueImg) => imageToCanvas(opaqueImg.val)
+            }),
+            imageOffsetX: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+              none: () => undefined,
+              some: (opaqueImg) => opaqueImg.val.getPinholeX() / opaqueImg.val.getWidth()
+            }),
+            imageOffsetY: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+              none: () => undefined,
+              some: (opaqueImg) => opaqueImg.val.getPinholeY() / opaqueImg.val.getHeight()
+            }),
           })),
           transform: []
         },
@@ -2146,6 +2154,7 @@
           {
             type: 'line',
             from: { data: `${prefix}regression` },
+            name: `${prefix}regressionLine`,
             encode: {
               enter: {
                 x: { scale: `${prefix}xscale`, field: 'u' },
@@ -2154,22 +2163,28 @@
                 strokeWidth: { value: trendlineWidth },
                 opacity: { value: trendlineOpacity },
                 tooltip: { signal: `{ title: "Trend for ${legend}", Trend: ${tooltipTitle}, x: ${formatNum('datum.u')}, y: ${formatNum('datum.v')} }` }
-              }
+              },
             }
           },
           {
             type: 'symbol',
             from: { data: `${prefix}regression` },
+            name: `${prefix}regressionSymbols`,
             encode: {
               enter: {
                 x: { scale: `${prefix}xscale`, field: 'u' },
                 y: { scale: `${prefix}yscale`, field: 'v' },
-                stroke: { value: trendlineColor },
-                strokeWidth: { value: trendlineWidth },
-                size: { value: trendlineWidth * trendlineWidth },
-                opacity: { value: trendlineOpacity },
                 tooltip: { signal: `{ title: "Trend for ${legend}", Trend: ${tooltipTitle}, x: ${formatNum('datum.u'
 )}, y: ${formatNum('datum.v')} }` }
+              },
+              update: {
+                stroke: { value: trendlineColor },
+                strokeWidth: { value: trendlineWidth },
+                size: { value: Math.max(40, trendlineWidth * trendlineWidth) },
+                opacity: { value: 0 },
+              },
+              hover: {
+                opacity: { value: trendlineOpacity },
               }
             }
           }
@@ -2186,8 +2201,8 @@
         name: `${prefix}ImageMarks`,
         encode: {
           enter: {
-            x: { scale: `${prefix}xscale`, field: 'x' },
-            y: { scale: `${prefix}yscale`, field: 'y' },
+            x: { scale: `${prefix}xscale`, field: 'x', offset: { signal: `${-pointSize} * datum.imageOffsetX` } },
+            y: { scale: `${prefix}yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
             width: { value: pointSize },
             height: { value: pointSize },
             image: { field: 'image' },
@@ -2208,6 +2223,10 @@
               y: { scale: `${prefix}yscale`, field: 'y' },
               fill: { value: color },
               tooltip: tooltips
+            },
+            update: {
+              fill: { value: color },
+              stroke: { value: color },
             }
           }
         });
@@ -2251,10 +2270,12 @@
               size: { value: pointSize * pointSize },
               x: { scale: `${prefix}xscale`, field: 'x' },
               y: { scale: `${prefix}yscale`, field: 'y' },
-              fill: { value: color },
-              stroke: { value: color },
               strokeWidth: { value: 1 },
               tooltip: tooltips
+            },
+            update: {
+              fill: { value: color },
+              stroke: { value: color },
             }
           }
         });
@@ -2272,6 +2293,34 @@
     function linePlot(globalOptions, rawData, config) {
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
+      const lineWidth = toFixnum(get(rawData, 'lineWidth'));
+      const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
+      const asScatterPlot = scatterPlot(globalOptions, rawData, config);
+      const marks = asScatterPlot.marks;
+      const markShapeMarks = marks.find((m) => m.name === `${prefix}ShapeMarks`);
+      if (markShapeMarks) {
+        markShapeMarks.encode.enter.size.value = Math.max(40, markShapeMarks.encode.enter.size.value);
+        markShapeMarks.encode.hover = markShapeMarks.encode.update;
+        markShapeMarks.encode.update = {
+          fill: { signal: `${prefix}crosshair === datum ? '${color}' : 'transparent'` },
+          stroke: { signal: `${prefix}crosshair === datum ? '${color}' : 'transparent'` },
+        }
+      }
+      marks.push({
+        type: 'line',
+        from: { data: `${prefix}rawTable` },
+        name: `${prefix}Line`,
+        encode: {
+          enter: {
+            x: { scale: `${prefix}xscale`, field: 'x' },
+            y: { scale: `${prefix}yscale`, field: 'y' },
+            stroke: { value: color },
+            strokeWidth: { value: lineWidth },
+            tooltip: marks[marks.length - 1].encode.enter.tooltips
+          }
+        }
+      });
+      return asScatterPlot;
     }
 
     function intervalPlot(globalOptions, rawData, config) {
