@@ -5,7 +5,7 @@ git:
   submodules: false
 language: node_js
 node_js:
-- 18
+- 20
 install:
 - npm update
 - make install
