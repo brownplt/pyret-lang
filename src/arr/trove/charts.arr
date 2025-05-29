@@ -1229,8 +1229,14 @@ default-dot-plot-series = {
   point-size: 8
 }
 
+type IntervalPoint = {
+  label :: String,
+  x :: Number,
+  y :: Number,
+  delta :: Number,
+  image :: Option<IM.Image>
+}
 type IntervalChartSeries = {
-  tab :: TableIntern,
   axisdata :: Option<AxisData>,
   color :: Option<I.Color>,
   pointers :: Option<RawArray<Pointer>>,
@@ -1254,8 +1260,7 @@ type IntervalChartSeries = {
   pointshapeSides :: NumInteger,
   pointshapeDent :: Number,
   pointshapeRotation :: Number,
-  bothys :: List<Posn>,
-  ps :: List<Posn>,
+  ps :: List<IntervalPoint>
 }
 
 default-interval-chart-series = {
@@ -2181,16 +2186,31 @@ fun stacked-bar-chart-from-list(
   data-series.make-axis(max-positive-height, max-negative-height)
 end
 
-fun interval-chart-from-list(
+fun map5<a, b, c, d, e, f>(f :: (a, b, c, d, e -> f), l1 :: List<a>, l2 :: List<b>, l3 :: List<c>, l4 :: List<d>, l5 :: List<e>) -> List<f>:
+  doc: "Returns a list made up of f(e1, e2, e3, e4, e5) for each e1 in l1, e2 in l2, e3 in l3, e4 in l4, e5 in l5"
+  if is-empty(l1) or is-empty(l2) or is-empty(l3) or is-empty(l4) or is-empty(l5):
+    empty
+  else:
+    f(l1.first, l2.first, l3.first, l4.first, l5.first) ^ link(_, map5(f, l1.rest, l2.rest, l3.rest, l4.rest, l5.rest))
+  end
+end
+
+fun get-interval-point(x :: Number, y :: Number, delta :: Number, label :: String, optimg :: Option<IM.Image>):
+  { x: x, y: y, delta: delta, label: label, image: optimg }
+end
+
+fun labeled-interval-chart-from-list(
+  labels :: CL.LoS,
   xs :: CL.LoN,
   ys :: CL.LoN,
   deltas :: CL.LoN
 ) -> DataSeries block:
   doc: ```
-       Consumes a list of x's, a list of y's, and a list of deltas
+       Consumes a list of labels, a list of x's, a list of y's, and a list of deltas
        and constructs an line plot with stick intervals pointing
        from each y to the corresponding delta
        ```
+  labels-length = labels.length()
   xs-length = xs.length()
   ys-length = ys.length()
   deltas-length = deltas.length()
@@ -2200,19 +2220,23 @@ fun interval-chart-from-list(
   when xs-length <> deltas-length:
     raise('interval-chart: deltas should have the same length as xs and ys')
   end
+  when xs-length <> labels-length:
+    raise('interval-chart: labels should have the same length as xs and ys')
+  end
   when xs-length == 0:
     raise('interval-chart: need at least one datum')
   end
   xs.each(check-num)
   ys.each(check-num)
   deltas.each(check-num)
-  yprimes = map2(lam(y, delta): y - delta end, ys, deltas)
 
   default-interval-chart-series.{
-    tab: to-table3-n(xs, ys, yprimes), #new
-    bothys: map3({(x, y, yp): [raw-array: x, y, yp]}, xs, ys, yprimes),
-    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]}, xs, ys, xs.map({(_): ''}), xs.map({(_): none})),
+    ps: map5(get-interval-point, xs, ys, deltas, labels, xs.map({(_): none}))
   } ^ interval-chart-series
+end
+
+fun interval-chart-from-list(xs :: CL.LoN, ys :: CL.LoN, deltas :: CL.LoN) -> DataSeries:
+  labeled-interval-chart-from-list(xs.map({(_): ''}), xs, ys, deltas)
 end
 
 fun box-plot-from-list(values :: CL.LoLoN) -> DataSeries:
@@ -2694,31 +2718,31 @@ fun render-charts(lst :: List<DataSeries>) -> ChartWindow:
 
       bboxes-ls = get-list-of-bounding-boxes(empty #|line-plots.map(_.ps) + scatter-plots.map(_.ps)|#, self, snd)
 
-      i-xyy = interval-plots.map(_.bothys) # list of list of xyy arrays
+      # i-xyy = interval-plots.map(_.bothys) # list of list of xyy arrays
 
-      bboxes-i-1 = get-list-of-bounding-boxes(i-xyy, self, snd)
+      # bboxes-i-1 = get-list-of-bounding-boxes(i-xyy, self, snd)
          
-      bboxes-i-2 = get-list-of-bounding-boxes(i-xyy, self, thd)
+      # bboxes-i-2 = get-list-of-bounding-boxes(i-xyy, self, thd)
 
-      bbox = (bboxes-ls.append(bboxes-i-1).append(bboxes-i-2)) ^ merge-bounding-box
+      # bbox = (bboxes-ls.append(bboxes-i-1).append(bboxes-i-2)) ^ merge-bounding-box
 
-      {x-min; x-max} = bound-result-to-bounds(
-        get-bound-result(self.x-min, bbox, _.x-min),
-        get-bound-result(self.x-max, bbox, _.x-max))
+      # {x-min; x-max} = bound-result-to-bounds(
+      #   get-bound-result(self.x-min, bbox, _.x-min),
+      #   get-bound-result(self.x-max, bbox, _.x-max))
 
-      shadow self = self.{x-min: x-min, x-max: x-max}
+      # shadow self = self.{x-min: x-min, x-max: x-max}
 
-      function-plots-data = function-plots
-        .map(generate-xy(_, self.x-min.value, self.x-max.value, self.num-samples))
+      # function-plots-data = function-plots
+      #   .map(generate-xy(_, self.x-min.value, self.x-max.value, self.num-samples))
 
-      bbox-combined = link(bbox, function-plots-data.map(_.ps).map(get-bounding-box))
-        ^ merge-bounding-box
+      # bbox-combined = link(bbox, function-plots-data.map(_.ps).map(get-bounding-box))
+      #   ^ merge-bounding-box
 
-      {y-min; y-max} = bound-result-to-bounds(
-        get-bound-result(self.y-min, bbox-combined, _.y-min),
-        get-bound-result(self.y-max, bbox-combined, _.y-max))
+      # {y-min; y-max} = bound-result-to-bounds(
+      #   get-bound-result(self.y-min, bbox-combined, _.y-min),
+      #   get-bound-result(self.y-max, bbox-combined, _.y-max))
 
-      shadow self = self.{y-min: y-min, y-max: y-max}
+      # shadow self = self.{y-min: y-min, y-max: y-max}
 
       fun helper(shadow self, shadow function-plots-data :: Option) -> IM.Image:
         shadow function-plots-data = cases (Option) function-plots-data:
@@ -2755,7 +2779,7 @@ fun render-charts(lst :: List<DataSeries>) -> ChartWindow:
           end
         end
       end
-      helper(self, some(function-plots-data))
+      helper(self, some(empty))
     end
   } ^ plot-chart-window
 where:
@@ -2806,4 +2830,5 @@ from-list = {
   labeled-box-plot: labeled-box-plot-from-list,
   box-plot: box-plot-from-list,
   interval-chart: interval-chart-from-list,
+  labeled-interval-chart: labeled-interval-chart-from-list,
 }

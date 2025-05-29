@@ -2102,6 +2102,8 @@
     } 
 
     function scatterPlot(globalOptions, rawData, config) {
+      const xAxisLabel = get(globalOptions, 'x-axis');
+      const yAxisLabel = get(globalOptions, 'y-axis');
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
       const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
@@ -2195,8 +2197,8 @@
           nice: true }
       ];
       const axes = [
-        { orient: 'bottom', scale: `${prefix}xscale`, zindex: 1, title: "TBD XAxis" },
-        { orient: 'left', scale: `${prefix}yscale`, zindex: 1, title: "TBD YAxis" },
+        { orient: 'bottom', scale: `${prefix}xscale`, zindex: 1, title: xAxisLabel },
+        { orient: 'left', scale: `${prefix}yscale`, zindex: 1, title: yAxisLabel },
       ];
       const marks = [];
       marks.push(
@@ -2454,8 +2456,170 @@
     }
 
     function intervalPlot(globalOptions, rawData, config) {
+      const xAxisLabel = get(globalOptions, 'x-axis');
+      const yAxisLabel = get(globalOptions, 'y-axis');
+      const legend = get(rawData, 'legend') || config.legend;
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
+      const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
+      const intervalStyle = get(rawData, 'style');
+      const intervalStickWidth = toFixnum(get(rawData, 'stick-width'));
+      const intervalFillOpacity = ((intervalStyle == 'boxes') ? 0 : 1);
+      const pointColor = getColorOrDefault(get(rawData, 'pointer-color'), 'black')
+      const pointSize = toFixnum(get(rawData, 'point-size'));
+
+      const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
+      const data = [
+        {
+          name: `${prefix}rawTable`,
+          values: points.map((p) => ({
+            label: get(p, 'label'),
+            x: toFixnum(get(p, 'x')),
+            y: toFixnum(get(p, 'y')),
+            delta: toFixnum(get(p, 'delta')),
+            image: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+              none: () => undefined,
+              some: (opaqueImg) => imageToCanvas(opaqueImg.val)
+            }),
+            imageOffsetX: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+              none: () => undefined,
+              some: (opaqueImg) => opaqueImg.val.getPinholeX() / opaqueImg.val.getWidth()
+            }),
+            imageOffsetY: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+              none: () => undefined,
+              some: (opaqueImg) => opaqueImg.val.getPinholeY() / opaqueImg.val.getHeight()
+            }),
+          })),
+          transform: [
+            { type: 'formula', as: 'yprime', expr: 'datum.y + datum.delta' }
+          ]
+        },
+        {
+          name: `${prefix}table`,
+          source: `${prefix}rawTable`,
+          transform: [ { type: 'filter', expr: '!isValid(datum.image)' } ]
+        },
+        {
+          name: `${prefix}images`,
+          source: `${prefix}rawTable`,
+          transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
+        },
+        {
+          name: `${prefix}yExtents`,
+          source: `${prefix}rawTable`,
+          transform: [
+            { type: 'aggregate',
+              fields: ['y', 'y', 'yprime', 'yprime'],
+              ops: ['min', 'max', 'min', 'max'],
+              as: ['ymin', 'ymax', 'yprimemin', 'yprimemax'] },
+            { type: 'formula', as: 'min', expr: 'min(datum.ymin, datum.yprimemin)' },
+            { type: 'formula', as: 'max', expr: 'max(datum.ymax, datum.yprimemax)' }
+            ]
+        }
+      ];
+      const signals = [
+        { name: `${prefix}extentX`, update: `extent(pluck(data("${prefix}rawTable"), "x"))` },
+        { name: `${prefix}extentRawY`, update: `extent(pluck(data("${prefix}rawTable"), "y"))` },
+        { name: `${prefix}extentPrime`, update: `extent(pluck(data("${prefix}rawTable"), "yprime"))` },
+        { name: `${prefix}extentY`, update: `[data("${prefix}yExtents")[0].min, data("${prefix}yExtents")[0].max]` }
+      ]
+
+      const scales = [
+        { name: `${prefix}xscale`,
+          type: 'linear',
+          domain: { signal: `${prefix}extentX` },
+          range: 'width',
+          nice: false },
+        { name: `${prefix}yscale`,
+          type: 'linear',
+          domain: { signal: `${prefix}extentY` },
+          range: 'height',
+          nice: false }
+      ];
+      const axes = [
+        { orient: 'bottom', scale: `${prefix}xscale`, zindex: 1, title: xAxisLabel },
+        { orient: 'left', scale: `${prefix}yscale`, zindex: 1, title: yAxisLabel },
+      ];
+      const tooltip = {
+        signal: `{ title: datum.label, x: datum.x, y: datum.y, ŷ: datum.yprime, 'y - ŷ': datum.delta }`
+      };
+      const marks = [
+        {
+          type: 'image',
+          from: { data: `${prefix}images` },
+          name: `${prefix}ImageMarks`,
+          encode: {
+            enter: {
+              x: { scale: `${prefix}xscale`, field: 'x', offset: { signal: `${-pointSize} * datum.imageOffsetX` } },
+              y: { scale: `${prefix}yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
+              width: { value: pointSize },
+              height: { value: pointSize },
+              image: { field: 'image' },
+              tooltip
+            }
+          }
+        },
+        {
+          type: 'symbol',
+          from: { data: `${prefix}table` },
+          name: `${prefix}DataMarks`,
+          encode: {
+            enter: {
+              shape: { value: 'circle' },
+              size: { value: pointSize * pointSize },
+              xc: { scale: `${prefix}xscale`, field: 'x' },
+              yc: { scale: `${prefix}yscale`, field: 'y' },
+              fill: { value: pointColor },
+              tooltip
+            },
+            update: {
+              fill: { value: pointColor },
+              stroke: { value: pointColor },
+            }
+          }
+        },
+        {
+          type: 'rule',
+          name: `${prefix}IntervalBars`,
+          from: { data: `${prefix}rawTable` },
+          encode: {
+            enter: {
+              x: { scale: `${prefix}xscale`, field: 'x' },
+              y: { scale: `${prefix}yscale`, field: 'y' },
+              y2: { scale: `${prefix}yscale`, field: 'yprime' },
+              stroke: { value: color },
+              strokeWidth: { value: intervalStickWidth },
+            }
+          }
+        },
+        {
+          type: 'symbol',
+          from: { data: `${prefix}table` },
+          name: `${prefix}IntervalMarks`,
+          encode: {
+            enter: {
+              shape: { value: 'circle' },
+              size: { value: pointSize * pointSize },
+              xc: { scale: `${prefix}xscale`, field: 'x' },
+              yc: { scale: `${prefix}yscale`, field: 'yprime' },
+              fill: { value: color },
+              tooltip
+            },
+            update: {
+              fill: { value: color },
+              stroke: { value: color },
+            }
+          }
+        },
+      ];
+
+      return {
+        data,
+        signals,
+        scales,
+        axes,
+        marks
+      };
     }
 
     function functionPlot(globalOptions, rawData, config) {
