@@ -10,7 +10,11 @@
             'resolve': ["arrow", ["String"], "String"],
             'exists': ["arrow", ["String"], "Boolean"],
             'join': ["arrow", ["String", "String"], "String"],
-            'create-dir': ["arrow", ["String"], "String"]
+            'create-dir': ["arrow", ["String"], "String"],
+            'basename': ["arrow", ["String"], "String"],
+            'dirname': ["arrow", ["String"], "String"],
+            'relative': ["arrow", ["String", "String"], "String"],
+            'is-absolute': ["arrow", ["String"], "Boolean"],
         },
         types: {}
     },
@@ -58,6 +62,26 @@
             const result = fsInternal.createDir(path);
             return runtime.await(result);
         }
+        function basename(path) {
+            runtime.checkArgsInternal1('filesystem', 'basename', path, runtime.String);
+            const result = fsInternal.basename(path);
+            return runtime.await(result);
+        }
+        function dirname(path) {
+            runtime.checkArgsInternal1('filesystem', 'dirname', path, runtime.String);
+            const result = fsInternal.dirname(path);
+            return runtime.await(result);
+        }
+        function relative(from, to) {
+            runtime.checkArgsInternal2('filesystem', 'relative', from, runtime.String, to, runtime.String);
+            const result = fsInternal.relative(from, to);
+            return runtime.await(result);
+        }
+        function isAbsolute(path) {
+            runtime.checkArgsInternal1('filesystem', 'is-absolute', path, runtime.String);
+            const result = fsInternal.isAbsolute(path);
+            return runtime.await(result);
+        }
         return runtime.makeModuleReturn({
             'read-file-string': runtime.makeFunction(readFileString),
             'write-file-string': runtime.makeFunction(writeFileString),
@@ -66,6 +90,10 @@
             'exists': runtime.makeFunction(exists),
             'join': runtime.makeFunction(join),
             'create-dir': runtime.makeFunction(createDir),
+            'basename': runtime.makeFunction(basename),
+            'dirname': runtime.makeFunction(dirname),
+            'relative': runtime.makeFunction(relative),
+            'is-absolute': runtime.makeFunction(isAbsolute),
         }, {});
     }
 })

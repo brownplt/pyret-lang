@@ -85,7 +85,18 @@
              * filesystemprovider) */
             return fsp.mkdir(p);
         }
-
+        async function relative(from, to) {
+            return path.relative(from, to);
+        }
+        async function isAbsolute(p) {
+            return path.isAbsolute(p);
+        }
+        async function basename(p) {
+            return path.basename(p);
+        }
+        async function dirname(p) {
+            return path.dirname(p);
+        }
         return runtime.makeJSModuleReturn({
             readFile: wrap(readFile),
             writeFile: wrap(writeFile),
@@ -95,6 +106,10 @@
             join: wrap(join),
             'path-sep': path.sep,
             createDir: wrap(createDir),
+            relative: wrap(relative),
+            isAbsolute: wrap(isAbsolute),
+            basename: wrap(basename),
+            dirname: wrap(dirname),
         });
     }
 })
