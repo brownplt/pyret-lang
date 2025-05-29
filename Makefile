@@ -14,7 +14,7 @@ PHASEC           = build/phaseC
 BUNDLED_DEPS     = build/bundled-node-deps.js
 # HACK HACK HACK (See https://github.com/npm/npm/issues/3738)
 export PATH      := ./node_modules/.bin:../node_modules/.bin:../../node_modules/.bin:$(PATH)
-SHELL := /bin/bash
+SHELL := /usr/bin/env bash
 
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
