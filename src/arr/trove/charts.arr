@@ -1082,7 +1082,6 @@ type BarChartSeries = {
   annotations :: RawArray<RawArray<Option<String>>>,
   intervals :: RawArray<RawArray<RawArray<Number>>>,
   default-interval-color :: Option<I.Color>,
-  dot-chart :: Boolean,
 }
 
 default-bar-chart-series = {
@@ -1093,7 +1092,6 @@ default-bar-chart-series = {
   axisdata: none, 
   horizontal: false, 
   default-interval-color: none,
-  dot-chart: false,
 }
 
 type MultiBarChartSeries = { 
@@ -1153,7 +1151,6 @@ type LinePlotSeries = {
   pointshapeSides :: NumInteger, 
   pointshapeDent :: Number, 
   pointshapeRotation :: Number,
-  dot-chart :: Boolean,
 }
 
 default-line-plot-series = {
@@ -1173,7 +1170,6 @@ default-line-plot-series = {
   pointshapeSides: 5,
   pointshapeDent: 0.5,
   pointshapeRotation: 0,
-  dot-chart: false,
 }
 
 type ScatterPoint = {
@@ -1197,7 +1193,6 @@ type ScatterPlotSeries = {
   pointshapeSides :: NumInteger, 
   pointshapeDent :: Number, 
   pointshapeRotation :: Number,
-  dot-chart :: Boolean,
 }
 
 default-scatter-plot-series = {
@@ -1213,7 +1208,25 @@ default-scatter-plot-series = {
   trendlineWidth: 3, 
   trendlineOpacity: 0.3,
   trendlineDegree: 3,  
-  dot-chart: false
+}
+
+type DotPoint = {
+  value :: Number,
+  label :: String,
+  image :: Option<IM.Image>
+}
+
+type DotPlotSeries = {
+  ps :: List<DotPoint>,
+  color :: Option<I.Color>,
+  legend :: String,
+  point-size :: Number,
+}
+
+default-dot-plot-series = {
+  color: none,
+  legend: '',
+  point-size: 8
 }
 
 type IntervalChartSeries = {
@@ -1243,7 +1256,6 @@ type IntervalChartSeries = {
   pointshapeRotation :: Number,
   bothys :: List<Posn>,
   ps :: List<Posn>,
-  dot-chart :: Boolean,
 }
 
 default-interval-chart-series = {
@@ -1267,7 +1279,6 @@ default-interval-chart-series = {
   pointshapeSides: 5,
   pointshapeDent: 0.5,
   pointshapeRotation: 0,
-  dot-chart: false,
 }
 
 type FunctionPlotSeries = {
@@ -1335,6 +1346,23 @@ type PieChartWindowObject = {
 }
 
 default-pie-chart-window-object :: PieChartWindowObject = default-chart-window-object
+
+type DotChartWindowObject = {
+  title :: String,
+  width :: Number,
+  height :: Number,
+  backgroundColor :: Option<I.Color>,
+  borderSize :: Number, 
+  borderColor :: Option<I.Color>, 
+  render :: ( -> IM.Image),
+  x-axis :: String,
+  y-axis :: String
+}
+
+default-dot-chart-window-object :: DotChartWindowObject = default-chart-window-object.{
+  x-axis: '',
+  y-axis: ''
+}
 
 type BarChartWindowObject = {
   title :: String,
@@ -1485,6 +1513,18 @@ data DataSeries:
       end
       self.constr()(self.obj.{point-size: point-size})
     end,
+  | dot-plot-series(obj :: DotPlotSeries) with:
+    is-single: true,
+    constr: {(): dot-plot-series},
+    color: color-method,
+    legend: legend-method,
+    labels: labels-method,
+    method point-size(self, point-size :: Number) block:
+      when point-size < 0: 
+        raise("point-size: Point Size must be non-negative")
+      end
+      self.constr()(self.obj.{point-size: point-size})
+    end,
   | function-plot-series(obj :: FunctionPlotSeries) with:
     is-single: false,
     constr: {(): function-plot-series},
@@ -1625,6 +1665,10 @@ end
 data ChartWindow:
   | pie-chart-window(obj :: PieChartWindowObject) with:
     constr: {(): pie-chart-window},
+  | dot-chart-window(obj :: DotChartWindowObject) with:
+    constr: {(): dot-chart-window},
+    x-axis: x-axis-method,
+    y-axis: y-axis-method,
   | box-plot-chart-window(obj :: BoxChartWindowObject) with:
     constr: {(): box-plot-chart-window},
     x-axis: x-axis-method,
@@ -1959,6 +2003,9 @@ fun bar-chart-from-list(labels :: CL.LoS, values :: CL.LoN) -> DataSeries block:
   data-series.make-axis(max-positive-height, max-negative-height)
 end
 
+fun get-dot-point(value :: Number, label :: String, optimg :: Option<IM.Image>) -> DotPoint:
+  { value: value, label: label, image: optimg }
+end
 fun num-dot-chart-from-list(x-values :: CL.LoN) -> DataSeries block:
   doc: ```
        Consume a (possibly repeating, unordered) list of numbers
@@ -1968,11 +2015,9 @@ fun num-dot-chart-from-list(x-values :: CL.LoN) -> DataSeries block:
   when x-values.length() == 0:
     raise("num-dot-chart: can't have empty data")
   end
-  scatter-plot-ys = x-values.map(lam(_): 0 end)
-  default-scatter-plot-series.{
-    ps: map4(get-scatter-point, x-values, scatter-plot-ys, x-values.map({(_): ''}), x-values.map({(_): none})),
-    dot-chart: true
-  } ^ scatter-plot-series
+  default-dot-plot-series.{
+    ps: map3(get-dot-point, x-values, x-values.map({(_): ''}), x-values.map({(_): none})),
+  } ^ dot-plot-series
 end
 
 fun labeled-num-dot-chart-from-list(labels :: CL.LoS, x-values :: CL.LoN) -> DataSeries block:
@@ -1988,11 +2033,9 @@ fun labeled-num-dot-chart-from-list(labels :: CL.LoS, x-values :: CL.LoN) -> Dat
   when labels.length() <> x-values.length():
     raise("num-dot-chart: the lists of numbers and labels must have the same length")
   end
-  scatter-plot-ys = x-values.map(lam(_): 0 end)
-  default-scatter-plot-series.{
-    ps: map4(get-scatter-point, x-values, scatter-plot-ys, labels, x-values.map({(_): none})),
-    dot-chart: true
-  } ^ scatter-plot-series
+  default-dot-plot-series.{
+    ps: map3(get-dot-point, x-values, labels, x-values.map({(_): none})),
+  } ^ dot-plot-series
 end
 
 fun dot-chart-from-list(input-labels :: CL.LoS) -> DataSeries block:
@@ -2168,7 +2211,7 @@ fun interval-chart-from-list(
   default-interval-chart-series.{
     tab: to-table3-n(xs, ys, yprimes), #new
     bothys: map3({(x, y, yp): [raw-array: x, y, yp]}, xs, ys, yprimes),
-    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]}, xs, ys, xs.map({(_): ''}), xs.map({(_): false})),
+    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]}, xs, ys, xs.map({(_): ''}), xs.map({(_): none})),
   } ^ interval-chart-series
 end
 
@@ -2315,6 +2358,12 @@ fun render-chart(s :: DataSeries) -> ChartWindow:
     | function-plot-series(_) => render-charts([list: s])
     | scatter-plot-series(_) => render-charts([list: s])
     | interval-chart-series(_) => render-charts([list: s])
+    | dot-plot-series(obj) =>
+      default-dot-chart-window-object.{
+        method render(self) block:
+          CL.dot-chart(self, obj) 
+        end
+      } ^ dot-chart-window
     | pie-chart-series(obj) =>
       default-pie-chart-window-object.{
         method render(self): CL.pie-chart(self, obj) end
@@ -2686,9 +2735,9 @@ fun render-charts(lst :: List<DataSeries>) -> ChartWindow:
         #   ps-to-arr(p.{ps: line-plot-edge-cut(p.ps, self)})
         # end ^ reverse ^ builtins.raw-array-from-list
 
-        intervals-arr = for map(p from interval-plots):
-          ps-to-arr(p.{ps: p.ps.filter(in-bound-xy(_, self))})
-        end ^ reverse ^ builtins.raw-array-from-list
+        # intervals-arr = for map(p from interval-plots):
+        #   ps-to-arr(p.{ps: p.ps.filter(in-bound-xy(_, self))})
+        # end ^ reverse ^ builtins.raw-array-from-list
 
         ret = CL.plot(self, {
           scatters: builtins.raw-array-from-list(scatter-plots), 

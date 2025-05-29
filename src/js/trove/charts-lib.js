@@ -10,6 +10,7 @@
   provides: {
     values: {
       'pie-chart': "tany",
+      'dot-chart': "tany",
       'bar-chart': "tany",
       'multi-bar-chart': "tany",
       'histogram': "tany",
@@ -1821,7 +1822,7 @@
               field: 'value',
               extent: { signal: 'dataRange' },
               maxbinx: maxNumBins,
-              step: { signal: 'binWidth' },
+              step: binWidth ? { signal: 'binWidth' } : undefined,
               nice: true
             },
             {
@@ -1862,7 +1863,7 @@
       const signals = [
         { name: 'boxHeight', update: "height / abs(domain('countScale')[0] - domain('countScale')[1])" },
         { name: 'showIndividualBoxes', update: 'boxHeight >= 5' },
-        { name: 'binWidth', update: `${binWidth}` }
+        { name: 'binWidth', update: `${binWidth ?? 0}` }
       ];
 
       const rangeFormatStr = '"[" + trim(format(datum.bin0, "5~f")) + ", " + trim(format(datum.bin1, "5~f")) + "]"';
@@ -1970,6 +1971,136 @@
       };
     }
 
+    function dotChart(globalOptions, rawData) {
+      const defaultColor = default_colors[0];
+      const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
+      const legend = get(rawData, 'legend') || '';
+      const pointSize = toFixnum(get(rawData, 'point-size'));
+
+      const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
+
+      const title = get(globalOptions, 'title');
+      const width = get(globalOptions, 'width');
+      const height = get(globalOptions, 'height');
+      const xAxisLabel = get(globalOptions, 'x-axis');
+      const yAxisLabel = get(globalOptions, 'y-axis');
+      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
+
+      const data = [
+        {
+          name: 'rawTable',
+          values: points.map((p) => ({
+            label: get(p, 'label'),
+            value: toFixnum(get(p, 'value')),
+            image: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+              none: () => undefined,
+              some: (opaqueImg) => imageToCanvas(opaqueImg.val)
+            }),
+            imageOffsetX: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+              none: () => undefined,
+              some: (opaqueImg) => opaqueImg.val.getPinholeX() / opaqueImg.val.getWidth()
+            }),
+            imageOffsetY: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+              none: () => undefined,
+              some: (opaqueImg) => opaqueImg.val.getPinholeY() / opaqueImg.val.getHeight()
+            }),
+          })),
+          transform: [
+            { type: 'extent', field: 'value', signal: 'dataRange' }
+          ]
+        },
+        {
+          name: 'binnedTable',
+          source: 'rawTable',
+          transform: [
+            { type: 'formula', as: 'binNum', expr: 'floor((datum.value - dataRange[0]) / binSize)' },
+            { type: 'formula', as: 'bin0', expr: 'datum.binNum * binSize + dataRange[0]' },
+            { type: 'formula', as: 'bin1', expr: 'datum.bin0 + binSize' },
+            { type: 'stack', groupby: ['binNum'], offset: 'zero', as: ['y0', 'y1'] }
+          ]
+        }
+      ];
+      const signals = [
+        { name: 'dotSize', value: pointSize },
+        { name: 'binSize', update: 'invert("binScale", dotSize)' },
+        { name: 'actualDotSize', update: 'scale("dotScale", 0) - scale("dotScale", 1)' },
+        { name: 'headspace', value: '0.25' },
+        { name: 'wrapMaxY', update: 'floor(domain("dotScale")[1] * (1 - headspace))' }
+      ];
+      const scales = [
+        {
+          name: 'binScale',
+          type: 'linear',
+          range: { signal: '[0, width - dotSize / 2]' },
+          domain: { data: 'rawTable', field: 'value' }
+        },
+        {
+          name: 'dotScale',
+          type: 'linear',
+          range: { signal: '[height, dotSize / 2]' },
+          domain: { signal: '[0, floor(height / dotSize)]' }
+        }
+      ];
+      const axes = [
+        { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel, format: '5~r' },
+        { orient: 'bottom', scale: 'binScale', zindex: 0, grid: true, ticks: false, labels: false },
+        { orient: 'left', scale: 'dotScale', grid: false, ticks: false, labels: false, title: yAxisLabel, zindex: 1 }
+      ];
+      const marks = [
+        // {
+        //   type: 'rule',
+        //   name: 'binLines',
+        //   from: { data: 'binnedTable' },
+        //   encode: {
+        //     update: {
+        //       x: { scale: 'binScale', field: 'bin0' },
+        //       y: { signal: 'range("dotScale")[0]' },
+        //       y2: { signal: 'range("dotScale")[1]' },
+        //       strokeWidth: { value: 1 },
+        //       stroke: { value: 'black' }
+        //     }
+        //   }
+        // },
+        {
+          type: 'symbol',
+          name: 'dots',
+          from: { data: 'binnedTable' },
+          encode: {
+            enter: {
+              shape: { value: 'circle' },
+              fillOpacity: { value: 0.5 },
+              size: { signal: 'dotSize * dotSize' },
+              fill: { value: color },
+              stroke: { value: 'white' },
+              strokeWidth: { value: 0.25 },
+              tooltip: '{ title: datum.Label, Value: datum.value, BinNum: datum.binNum, Bin0: datum.bin0, Bin1: datum.bin1 }'
+            },
+            update: {
+              xc: { scale: 'binScale', field: 'value' },
+              yc: { signal: 'scale("dotScale", 0) - actualDotSize * (0.5 + datum.y0 % wrapMaxY)' }
+            }
+          }
+        }
+      ];
+
+      return {
+        "$schema": "https://vega.github.io/schema/vega/v6.json",
+        description: title,
+        title: title ? { text: title } : '',
+        width,
+        height,
+        padding: 0,
+        autosize: 'fit',
+        background,
+        data,
+        signals,
+        scales,
+        axes,
+        marks,
+        onExit: defaultImageReturn,
+      };
+    } 
+
     function scatterPlot(globalOptions, rawData, config) {
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
@@ -1985,7 +2116,6 @@
       const trendlineWidth = toFixnum(get(rawData, 'trendlineWidth'));
       const trendlineOpacity = toFixnum(get(rawData, 'trendlineOpacity'));
       const trendlineDegree = toFixnum(get(rawData, 'trendlineDegree'));
-      const isDotChart = isTrue(get(rawData, 'dot-chart'));
 
       const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
 
@@ -2436,7 +2566,7 @@
 
         const rowTemplate = new Array(combined.length * 4 + 1).fill(null);
         const intervalP = (i >= minIntervalIndex);
-        const dotChartP = Boolean(get(p, 'dot-chart'));
+        const dotChartP = false; //Boolean(get(p, 'dot-chart'));
 
         if(dotChartP) {
           data.addRows(get(p, 'ps').map(row => {
@@ -2502,7 +2632,7 @@ ${labelRow}`;
 
       // ASSERT: if we're using custom images, *every* series will have idx 3 defined
       const hasImage = combined.every(p => get(p, 'ps').filter(p => p[3]).length > 0);
-      const dotChartP = combined.some(p => get(p, 'dot-chart'));
+      const dotChartP = false; //combined.some(p => get(p, 'dot-chart'));
       const replaceDefaultSVG = (hasImage || dotChartP);
 
       const options = {
@@ -3110,6 +3240,7 @@ ${labelRow}`;
         'multi-bar-chart': makeFunction(multiBarChart),
         'histogram': makeFunction(histogram),
         'box-plot': makeFunction(boxPlot),
+        'dot-chart': makeFunction(dotChart),
         'plot': makeFunction(plot),
       }, 
       {
