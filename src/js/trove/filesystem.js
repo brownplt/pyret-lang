@@ -29,7 +29,7 @@
         }
         function writeFileString(path, data) {
             runtime.checkArgsInternal2('filesystem', 'write-file-string', path, runtime.String, data, runtime.String);
-            const result = fsInternal.writeFile(path, Buffer.alloc(data.length, data, 'utf8'));
+            const result = fsInternal.writeFile(path, Buffer.alloc(data.length, data, 'utf8')).then(() => runtime.nothing);
             return runtime.await(result);
         }
         function resolve(path) {
@@ -59,7 +59,7 @@
         }
         function createDir(path) {
             runtime.checkArgsInternal1('filesystem', 'create-dir', path, runtime.String);
-            const result = fsInternal.createDir(path);
+            const result = fsInternal.createDir(path).then(() => runtime.nothing);
             return runtime.await(result);
         }
         function basename(path) {
