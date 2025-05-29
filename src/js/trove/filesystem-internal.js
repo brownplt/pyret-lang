@@ -79,6 +79,13 @@
             return path.join(...paths);
         }
 
+        async function createDir(p) {
+            /* NOTE(joe): this does not create parent dirs because other
+             * platforms may not support it (in particular VScode
+             * filesystemprovider) */
+            return fsp.mkdir(p);
+        }
+
         return runtime.makeJSModuleReturn({
             readFile: wrap(readFile),
             writeFile: wrap(writeFile),
@@ -87,6 +94,7 @@
             exists: wrap(exists),
             join: wrap(join),
             'path-sep': path.sep,
+            createDir: wrap(createDir),
         });
     }
 })

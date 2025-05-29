@@ -9,7 +9,8 @@
             'stat': ["arrow", ["String"], "Any"],
             'resolve': ["arrow", ["String"], "String"],
             'exists': ["arrow", ["String"], "Boolean"],
-            'join': ["arrow", ["String", "String"], "String"]
+            'join': ["arrow", ["String", "String"], "String"],
+            'create-dir': ["arrow", ["String"], "String"]
         },
         types: {}
     },
@@ -52,6 +53,11 @@
             const result = fsInternal.exists(path);
             return runtime.await(result);
         }
+        function createDir(path) {
+            runtime.checkArgsInternal1('filesystem', 'create-dir', path, runtime.String);
+            const result = fsInternal.createDir(path);
+            return runtime.await(result);
+        }
         return runtime.makeModuleReturn({
             'read-file-string': runtime.makeFunction(readFileString),
             'write-file-string': runtime.makeFunction(writeFileString),
@@ -59,6 +65,7 @@
             'resolve': runtime.makeFunction(resolve),
             'exists': runtime.makeFunction(exists),
             'join': runtime.makeFunction(join),
+            'create-dir': runtime.makeFunction(createDir),
         }, {});
     }
 })

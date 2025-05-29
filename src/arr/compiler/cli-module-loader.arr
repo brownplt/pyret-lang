@@ -10,8 +10,8 @@ import pathlib as P
 import sha as crypto
 import string-dict as SD
 import render-error-display as RED
+import filesystem as Filesystem
 import file as F
-import filelib as FS
 import error as ERR
 import system as SYS
 import file("js-ast.arr") as J
@@ -102,11 +102,11 @@ end
 fun cached-available(basedir, uri, name, modified-time) -> Option<CachedType>:
   saved-path = P.join(basedir, uri-to-path(uri, name))
 
-  if (F.file-exists(saved-path + "-static.js") and
-      (F.file-times(saved-path + "-static.js").mtime > modified-time)):
+  if (Filesystem.exists(saved-path + "-static.js") and
+      (Filesystem.stat(saved-path + "-static.js").mtime > modified-time)):
     some(split)
-  else if (F.file-exists(saved-path + ".js") and
-      (F.file-times(saved-path + ".js").mtime > modified-time)):
+  else if (Filesystem.exists(saved-path + ".js") and
+      (Filesystem.stat(saved-path + ".js").mtime > modified-time)):
     some(single-file)
   else:
     none
@@ -127,7 +127,6 @@ fun get-cached(basedir, uri, name, cache-type):
     method needs-compile(_, _): false end,
     method get-modified-time(self):
       0
-      # F.file-times(static-path + ".js").mtime
     end,
     method get-options(self, options):
       options.{ checks: "none" }
@@ -163,7 +162,7 @@ fun get-cached(basedir, uri, name, cache-type):
           modules: raw-array-to-list(raw.get-raw-module-provides())
         })
       some(CL.module-as-string(provs, CS.no-builtins, CS.computed-none,
-          CS.ok(JSP.ccp-file(F.real-path(module-path + ".js")))))
+          CS.ok(JSP.ccp-file(Filesystem.resolve(module-path + ".js")))))
     end,
 
     method _equals(self, other, req-eq):
@@ -258,8 +257,8 @@ end
 
 fun set-loadable(basedir, locator, loadable) -> String block:
   doc: "Returns the module path of the cached file"
-  when not(FS.exists(basedir)):
-    FS.create-dir(basedir)
+  when not(Filesystem.exists(basedir)):
+    Filesystem.create-dir(basedir)
   end
   locuri = loadable.provides.from-uri
   cases(CS.CompileResult) loadable.result-printer block:
@@ -313,7 +312,7 @@ fun locate-file(ctxt :: CLIContext, rel-path :: String):
   clp = ctxt.current-load-path
   real-path = get-real-path(clp, rel-path)
   new-context = ctxt.{current-load-path: P.dirname(real-path)}
-  if F.file-exists(real-path):
+  if Filesystem.exists(real-path):
     some(CL.located(get-file-locator(ctxt.cache-base-dir, real-path), new-context))
   else:
     none
@@ -362,7 +361,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         clp = ctxt.current-load-path
         real-path = get-real-path(clp, args.get(0))
         new-context = ctxt.{current-load-path: P.dirname(real-path)}
-        if F.file-exists(real-path):
+        if Filesystem.exists(real-path):
           CL.located(FL.file-locator(real-path, CS.standard-globals), new-context)
         else:
           raise("Cannot find import " + torepr(dep))
@@ -529,7 +528,7 @@ end
 
 fun build-runnable-standalone(path, require-config-path, outfile, options) block:
   stats = SD.make-mutable-string-dict()
-  config = JSON.read-json(F.file-to-string(require-config-path)).dict.unfreeze()
+  config = JSON.read-json(Filesystem.read-file-string(require-config-path)).dict.unfreeze()
   cases(Option) config.get-now("typable-builtins"):
     | none => nothing
     | some(tb) =>
