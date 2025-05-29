@@ -16,3 +16,37 @@ check:
   FS.exists(p2) is false
 end
 
+check:
+    FS.relative("/a/b/c", "/d/e/f") is "../../../d/e/f"
+    FS.relative("a/b/c", "d/e/f") is "../../../d/e/f"
+    FS.relative(FS.resolve("a/b/c"), FS.resolve("d/e/f")) is "../../../d/e/f"
+    FS.relative("a/b/c", "file.arr") is "../../../file.arr"
+    FS.relative(".", "a/b/c/file.arr") is "a/b/c/file.arr"
+    FS.relative("a", "a/b/c/file.arr") is "b/c/file.arr"
+    FS.relative("a/b", "a/b/c/file.arr") is "c/file.arr"
+
+    FS.relative("a/b/c", "a/b/file.arr") is "../file.arr"
+end
+
+check:
+    "/" satisfies FS.is-absolute
+    "/a/b/c" satisfies FS.is-absolute
+    "/../a/b/c" satisfies FS.is-absolute
+    "/a/../c/d" satisfies FS.is-absolute
+    "../../../../../../../../.." violates FS.is-absolute
+    "." violates FS.is-absolute
+    ".." violates FS.is-absolute
+    "a/b/c" violates FS.is-absolute
+    "./a/b/c" violates FS.is-absolute
+end
+
+check:
+    FS.basename("/a/b/c") is "c"
+    FS.basename("/a/b/c.arr") is "c.arr"
+    FS.basename("rel/dir/c.arr") is "c.arr"
+    FS.basename("a") is "a"
+
+    FS.dirname("a") is "."
+    FS.dirname(".") is "."
+    FS.dirname("./a/b/c/file.txt") is "./a/b/c"
+end
