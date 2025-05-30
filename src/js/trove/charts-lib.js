@@ -134,7 +134,7 @@
     }
 
     function convertPointer(p) {
-      return {value: toFixnum(get(p, 'value')) , label: get(p, 'label')}
+      return { value: toFixnum(get(p, 'value')) , label: get(p, 'label') }
     }
 
 
@@ -397,7 +397,7 @@
         {
           name: 'valuePercent',
           type: 'linear',
-          domain: {data: 'table', field: 'endAngle'},
+          domain: { data: 'table', field: 'endAngle' },
           range: [0, 1]
         }
       ];
@@ -412,31 +412,31 @@
         { name: 'centerY', update: 'height / 2' },
         { name: 'outerRadius', update: 'min(width / 2, height / 2)' },
         { name: 'innerRadius', update: `outerRadius * ${piehole}` },
-        { name: 'cornerRadius', update: "0" }, // allows for rounded corners on each wedge
-        { name: 'startAngle', update: "0" }, // start and end angle support rendering only
+        { name: 'cornerRadius', update: '0' }, // allows for rounded corners on each wedge
+        { name: 'startAngle', update: '0' }, // start and end angle support rendering only
         { name: 'endAngle', update: `${2 * Math.PI}` },   // a wedge of a pie, rather than the whole circle
-        { name: 'padAngle', update: "0" }, // supports gaps between wedges
+        { name: 'padAngle', update: '0' }, // supports gaps between wedges
         { name: 'rotation', update: `${startingAngle * Math.PI / 180}` }, // in radians
         { name: 'collapseThreshold', update: `${collapseThreshold}` },
         {
-          name: "hoveredId",
-          value: "null",
+          name: 'hoveredId',
+          value: 'null',
           on: [
             {
               events: [
-                { markname: "legend-labels", type: "mouseover" },
-                { markname: "legend-symbols", type: "mouseover"}
+                { markname: 'legend-labels', type: 'mouseover' },
+                { markname: 'legend-symbols', type: 'mouseover' }
               ],
               force: true,
-              update: "datum.value"
+              update: 'datum.value'
             },
             {
               events: [
-                { markname: "legend-labels", type: "mouseout" },
-                { markname: "legend-symbols", type: "mouseout"}
+                { markname: 'legend-labels', type: 'mouseout' },
+                { markname: 'legend-symbols', type: 'mouseout' }
               ],
               force: true,
-              update: "null"
+              update: 'null'
             },
           ]
         }
@@ -481,10 +481,10 @@
         source: ['largeEnough', 'collapsed'],
         transform: [
           {
-            type: "pie",
-            field: "value",
-            startAngle: {signal: "startAngle"},
-            endAngle: {signal: "endAngle"},
+            type: 'pie',
+            field: 'value',
+            startAngle: { signal: 'startAngle' },
+            endAngle: { signal: 'endAngle' },
           },
           {
             type: 'formula',
@@ -508,15 +508,17 @@
       };
       data.push(filtered);
 
-      const tooltip = "{ title: datum.label, Value: datum.value + \" (\" + format(scale(\"valuePercent\", datum.endAngle - datum.startAngle), \".2%\") + \")\" }"
+      const tooltip = {
+        signal: '{ title: datum.label, Value: datum.value + " (" + format(scale("valuePercent", datum.endAngle - datum.startAngle), ".2%") + ")" }'
+      };
       marks.push(
         {
-          type: "arc",
-          name: "arcs",
-          from: { data: "table" },
+          type: 'arc',
+          name: 'arcs',
+          from: { data: 'table' },
           encode: {
             enter: {
-              fill: { field: "color" },
+              fill: { field: 'color' },
               strokeWidth: { value: 2 },
               stroke: [
                 { test: 'contrast("white", datum.color) > contrast("black", datum.color)', value: 'white' },
@@ -525,16 +527,16 @@
             },
             update: {
               id: { signal: 'datum.id' },
-              x: { signal: "centerX + (datum.offsetX * outerRadius)" },
-              y: { signal: "centerY - (datum.offsetY * outerRadius)" },
-              startAngle: { field: "startAngle" },
-              endAngle: { field: "endAngle" },
-              padAngle: { signal: "padAngle" },
-              innerRadius: { signal: "innerRadius" },
-              outerRadius: { signal: "outerRadius" },
-              cornerRadius: { signal: "cornerRadius" },
-              strokeOpacity: { signal: "hoveredId == datum.id ? 1 : 0" },
-              tooltip: { signal: tooltip },
+              x: { signal: 'centerX + (datum.offsetX * outerRadius)' },
+              y: { signal: 'centerY - (datum.offsetY * outerRadius)' },
+              startAngle: { field: 'startAngle' },
+              endAngle: { field: 'endAngle' },
+              padAngle: { signal: 'padAngle' },
+              innerRadius: { signal: 'innerRadius' },
+              outerRadius: { signal: 'outerRadius' },
+              cornerRadius: { signal: 'cornerRadius' },
+              strokeOpacity: { signal: 'hoveredId == datum.id ? 1 : 0' },
+              tooltip,
             },
             hover: {
               strokeOpacity: { value: 1 },
@@ -554,10 +556,10 @@
                 { value: 'black' }
               ],
               text: { signal: 'format(scale("valuePercent", datum.endAngle - datum.startAngle), ".2%")' },
-              xc: { signal: "centerX + datum.textX" },
-              yc: { signal: "centerY - datum.textY" },
-              align: { value: "center" },
-              baseline: { value: "middle" }
+              xc: { signal: 'centerX + datum.textX' },
+              yc: { signal: 'centerY - datum.textY' },
+              align: { value: 'center' },
+              baseline: { value: 'middle' }
             }
           }
         });
@@ -814,30 +816,30 @@
         });
       });
       marks.push({
-        "type": "rect",
-        "name": "bars",
-        "from": {"data": marksSource},
-        "encode": {
-          "enter": {
-            [axesConfig.primary.dir]: {"scale": primaryScale, "field": heightField},
-            [axesConfig.primary.range]: {"scale": primaryScale, "band": 1, "offset": -1},
-            [axesConfig.secondary.dir]: {"scale": "secondary", "field": "value0"},
-            [axesConfig.secondary.dir + '2']: {"scale": "secondary", "field": "value1"},
-            "fill": [
+        type: 'rect',
+        name: 'bars',
+        from: { data: marksSource },
+        encode: {
+          enter: {
+            [axesConfig.primary.dir]: { scale: primaryScale, field: heightField },
+            [axesConfig.primary.range]: { scale: primaryScale, band: 1, offset: -1 },
+            [axesConfig.secondary.dir]: { scale: 'secondary', field: 'value0' },
+            [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'value1' },
+            fill: [
               { test: 'isValid(datum.image)', value: 'transparent' },
               { scale: 'color', field: 'series' }
             ],
-            "tooltip": tooltip,
+            tooltip,
             strokeWidth: { value: 2 },
             stroke: [
               { test: 'contrast("white", scale("color", datum.series)) > contrast("black", scale("color", datum.series))', value: 'white' },
               { value: 'black' }
             ]
           },
-          "update": {
-            strokeOpacity: { signal: "hoveredSeries == datum.series ? 1 : 0" }
+          update: {
+            strokeOpacity: { signal: 'hoveredSeries == datum.series ? 1 : 0' }
           },
-          "hover": {
+          hover: {
             strokeOpacity: { value: 1 },
           }
         }
@@ -854,23 +856,23 @@
       };
       data.push(imagesTable);
       marks.push({
-        "type": "image",
-        "from": {"data": "images"},
-        "encode": {
-          "enter": {
-            [axesConfig.primary.dir]: {"scale": primaryScale, "field": "label"},
+        type: 'image',
+        from: { data: 'images' },
+        encode: {
+          enter: {
+            [axesConfig.primary.dir]: { scale: primaryScale, field: 'label' },
             [axesConfig.secondary.dir]: {
-              "signal": "max(scale('secondary', datum.value0), scale('secondary', datum.value1))"
+              signal: 'max(scale("secondary", datum.value0), scale("secondary", datum.value1))'
             },
-            [axesConfig.primary.range]: {"scale": primaryScale, "band": 1, "offset": -1},
-            [axesConfig.secondary.range]: {"signal": "abs(scale('secondary', datum.value1) - scale('secondary', datum.value0))"},
-            "image": {"field": "image"},
-            "stroke": {"value": "#666666"},
-            "strokeWidth": {"value": 10},
-            "strokeOpacity": {"value": 1},
-            "aspect": {"value": false},
-            [axesConfig.images.anchorProp]: {"value": axesConfig.images.anchor},
-            "tooltip": tooltip
+            [axesConfig.primary.range]: { scale: primaryScale, band: 1, offset: -1 },
+            [axesConfig.secondary.range]: { signal: 'abs(scale("secondary", datum.value1) - scale("secondary", datum.value0))' },
+            image: { field: 'image' },
+            stroke: { value: '#666666' },
+            strokeWidth: { value: 10 },
+            strokeOpacity: { value: 1 },
+            aspect: { value: false },
+            [axesConfig.images.anchorProp]: { value: axesConfig.images.anchor },
+            tooltip
           }
         }
       });
@@ -890,14 +892,14 @@
       const pointer_color = get_pointer_color(rawData);
       marks.push(
         {
-          type: "rule",
-          from: { data: "pointers" },
+          type: 'rule',
+          from: { data: 'pointers' },
           encode: {
             enter: {
               [axesConfig.secondary.dir]: { scale: 'secondary', field: 'value' },
               [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'value' },
-              [axesConfig.primary.dir]: { signal: `range('${primaryScale}')[0]`},
-              [axesConfig.primary.dir + '2']: { signal: `range('${primaryScale}')[1]`},
+              [axesConfig.primary.dir]: { signal: `range('${primaryScale}')[0]` },
+              [axesConfig.primary.dir + '2']: { signal: `range('${primaryScale}')[1]` },
               stroke: { value: pointer_color },
               strokeWidth: { value: 1 },
               opacity: { value: 1 }
@@ -932,11 +934,11 @@
       };
       data.push(annotationsTable);
       const textOffset = (horizontal
-                          ? { signal: "bandwidth('primary') * (1 + (datum.series % 2)) / 3" }
+                          ? { signal: 'bandwidth("primary") * (1 + (datum.series % 2)) / 3' }
                           : { scale: primaryScale, band: 0.5 });
       marks.push({
-        type: "text",
-        from: { data: "annotations"},
+        type: 'text',
+        from: { data: 'annotations' },
         encode: {
           enter: {
             [axesConfig.secondary.dir]: {
@@ -950,12 +952,12 @@
             fill: [
               // NOTE(Ben): fillColor is computed by the transform above
               { test: 'contrast("white", scale("color", datum.series)) > contrast("black", scale("color", datum.series))',
-                value: "white" },
-              { value: "black" }
+                value: 'white' },
+              { value: 'black' }
             ],
             align: { value: axesConfig.annotations.align },
             baseline: { value: axesConfig.annotations.baseline },
-            text: { field: "annotation" }
+            text: { field: 'annotation' }
           }
         }
       });
@@ -1053,49 +1055,49 @@
         values: [],
         transform: [
           {
-            type: "formula",
-            as: "color",
-            expr: "isString(datum.color) ? datum.color : scale('color', datum.series)"
+            type: 'formula',
+            as: 'color',
+            expr: 'isString(datum.color) ? datum.color : scale("color", datum.series)'
           },
-          { type: "formula", as: "value", expr: "datum.rawValue" },
+          { type: 'formula', as: 'value', expr: 'datum.rawValue' },
           {
-            "type": "stack",
-            "groupby": ["label"],
-            "sort": {"field": "series"},
-            "field": "value",
-            "as": ["value0", "value1"],
+            type: 'stack',
+            groupby: ['label'],
+            sort: { field: 'series' },
+            field: 'value',
+            as: ['value0', 'value1'],
           }
         ]
       };
       data.push(dataTable);
       const signals = [
-        { name: "hoveredSeries", update: "null" }
+        { name: 'hoveredSeries', update: 'null' }
       ];
       const scales = [
         {
-          "name": "primary",
-          "type": "band",
-          "range": axesConfig.primary.range,
-          "domain": {"data": "table", "field": "label"}
+          name: 'primary',
+          type: 'band',
+          range: axesConfig.primary.range,
+          domain: { data: 'table', field: 'label' }
         },
         {
-          "name": "secondary",
-          "type": "linear",
-          "range": axesConfig.secondary.range,
-          "nice": true, "zero": true,
-          "domain": axis ? { signal: 'extent(domain("secondaryLabels"))' } : {"data": "table", "field": "value"}
+          name: 'secondary',
+          type: 'linear',
+          range: axesConfig.secondary.range,
+          nice: true, zero: true,
+          domain: axis ? { signal: 'extent(domain("secondaryLabels"))' } : { data: 'table', field: 'value' }
         },
         {
-          "name": "color",
-          "type": "ordinal",
-          "domain": Array.from(Array(default_colors.length).keys()),
-          "range": default_colors
+          name: 'color',
+          type: 'ordinal',
+          domain: Array.from(Array(default_colors.length).keys()),
+          range: default_colors
         }
       ];
       if (axis) {
         scales.push({
-          name: "secondaryLabels",
-          type: "ordinal",
+          name: 'secondaryLabels',
+          type: 'ordinal',
           domain: axis.domainRaw,
           range: axis.labels
         });
@@ -1119,28 +1121,28 @@
       if (axis) {
         axes[1].values = axis.domainRaw;
         axes[1].encode = {
-          labels: { update: { text: { signal: "scale('secondaryLabels', datum.value)" } } }
+          labels: { update: { text: { signal: 'scale("secondaryLabels", datum.value)' } } }
         };
       }
       const marks = [];
       const tooltips = [
         {
-          test: "isArray(datum.intervals) && datum.intervals.length > 0",
-          signal: "{title: datum.label, Values: datum.value, Intervals: datum.intervals}"
+          test: 'isArray(datum.intervals) && datum.intervals.length > 0',
+          signal: '{ title: datum.label, Values: datum.value, Intervals: datum.intervals }'
         },
         {
-          signal: "{title: datum.label, Values: datum.value}"
+          signal: '{ title: datum.label, Values: datum.value }'
         }
       ];
-      constructDataTable(globalOptions, rawData, "table", "label", "primary", tooltips, dataTable, marks);
+      constructDataTable(globalOptions, rawData, 'table', 'label', 'primary', tooltips, dataTable, marks);
 
-      addImages(globalOptions, rawData, "primary", tooltips, data, marks);
+      addImages(globalOptions, rawData, 'primary', tooltips, data, marks);
 
-      addPointers(globalOptions, rawData, "primary", data, marks);
+      addPointers(globalOptions, rawData, 'primary', data, marks);
 
-      addAnnotations(globalOptions, rawData, "table", "label", "primary", data, marks);
+      addAnnotations(globalOptions, rawData, 'table', 'label', 'primary', data, marks);
 
-      addIntervals(globalOptions, rawData, "table", "label", "primary", data, marks);
+      addIntervals(globalOptions, rawData, 'table', 'label', 'primary', data, marks);
       
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
@@ -1149,7 +1151,7 @@
         width,
         height,
         padding: 0,
-        autosize: "fit",
+        autosize: 'fit',
         background,
         data,
         signals,
@@ -1184,9 +1186,9 @@
         values: [],
         transform: [
           {
-            type: "formula",
-            as: "desc",
-            expr: "isString(datum.annotation) ? datum.annotation : scale('legends', datum.series)"
+            type: 'formula',
+            as: 'desc',
+            expr: 'isString(datum.annotation) ? datum.annotation : scale("legends", datum.series)'
           }
         ]
       };
@@ -1195,16 +1197,16 @@
         if (stackType !== 'absolute') {
           dataTable.transform.push(
             {
-              type: "joinaggregate",
-              groupby: ["label"],
-              ops: ["sum"],
-              fields: ["rawValue"],
-              as: ["totalValue"]
+              type: 'joinaggregate',
+              groupby: ['label'],
+              ops: ['sum'],
+              fields: ['rawValue'],
+              as: ['totalValue']
             },
             {
-              type: "formula",
-              as: "value",
-              expr: "datum.rawValue/datum.totalValue",
+              type: 'formula',
+              as: 'value',
+              expr: 'datum.rawValue/datum.totalValue',
             }
           );
         } else {
@@ -1212,16 +1214,16 @@
         }            
         dataTable.transform.push(
           {
-            "type": "stack",
-            "groupby": ["label"],
-            "sort": {"field": "series"},
-            "field": "value",
-            "as": ["value0", "value1"],
+            type: 'stack',
+            groupby: ['label'],
+            sort: { field: 'series' },
+            field: 'value',
+            as: ['value0', 'value1'],
           }
         );
       } else {
         dataTable.transform.push(
-          { type: "formula", as: "value", expr: "datum.rawValue" },
+          { type: 'formula', as: 'value', expr: 'datum.rawValue' },
           // Since there is no stacking happening, each bar goes from 0 to the value
           { type: 'formula', as: 'value0', expr: '0' },
           { type: 'formula', as: 'value1', expr: 'datum.value' },
@@ -1229,62 +1231,62 @@
       }
       const signals = [
         {
-          "name": "hoveredSeries",
-          "value": "null",
-          "on": [
+          name: 'hoveredSeries',
+          value: 'null',
+          on: [
             {
-              "events": [
-                { "markname": "legend-labels", "type": "mouseover" },
-                { "markname": "legend-symbols", "type": "mouseover"}
+              events: [
+                { markname: 'legend-labels', type: 'mouseover' },
+                { markname: 'legend-symbols', type: 'mouseover' }
               ],
-              "force": true,
-              "update": "datum.value"
+              force: true,
+              update: 'datum.value'
             },
             {
-              "events": [
-                { "markname": "legend-labels", "type": "mouseout" },
-                { "markname": "legend-symbols", "type": "mouseout"}
+              events: [
+                { markname: 'legend-labels', type: 'mouseout' },
+                { markname: 'legend-symbols', type: 'mouseout' }
               ],
-              "force": true,
-              "update": "null"
+              force: true,
+              update: 'null'
             },
           ]
         }
       ];
       const primaryScale = {
-        name: "primary",
-        type: "band",
+        name: 'primary',
+        type: 'band',
         range: axesConfig.primary.range,
-        domain: {"data": "table", "field": "label"},
+        domain: { data: 'table', field: 'label' },
         padding: 0.2
       };
       const secondaryScale = {
-        name: "secondary",
-        type: "linear",
+        name: 'secondary',
+        type: 'linear',
         range: axesConfig.secondary.range,
-        nice: true, "zero": true,
-        domain: (axis && isNotFullStacked) ? { signal: 'extent(domain("secondaryLabels"))' } : {"data": "table", "field": "value1"}
+        nice: true, zero: true,
+        domain: (axis && isNotFullStacked) ? { signal: 'extent(domain("secondaryLabels"))' } : { data: 'table', field: 'value1' }
       };
       const scales = [
         primaryScale,
         secondaryScale,
         {
-          name: "color",
-          type: "ordinal",
-          domain: {data: "table", field: "series"},
+          name: 'color',
+          type: 'ordinal',
+          domain: { data: 'table', field: 'series' },
           range: [...colors_list, ...default_colors]
         },
         {
-          name: "legends",
-          type: "ordinal",
+          name: 'legends',
+          type: 'ordinal',
           domain: Array.from(Array(legendsList.length).keys()),
           range: legendsList
         }
       ];
       if (axis) {
         scales.push({
-          name: "secondaryLabels",
-          type: "ordinal",
+          name: 'secondaryLabels',
+          type: 'ordinal',
           domain: axis.domainRaw,
           range: axis.labels
         });
@@ -1309,7 +1311,7 @@
       if (axis) {
         axes[1].values = axis.domainRaw;
         axes[1].encode = {
-          labels: { update: { text: { signal: "scale('secondaryLabels', datum.value)" } } }
+          labels: { update: { text: { signal: 'scale("secondaryLabels", datum.value)' } } }
         };
       }
       if (stackType === 'percent') {
@@ -1334,7 +1336,7 @@
           }
         },
         signals: [
-          { name: axesConfig.primary.range, update: "bandwidth('primary')" }
+          { name: axesConfig.primary.range, update: 'bandwidth("primary")' }
         ],
         scales: [
           {
@@ -1346,7 +1348,7 @@
         ],
         marks: []
       };
-      let tooltipValue = "datum.Value";
+      let tooltipValue = 'datum.Value';
       if (!isStacked) {
         marks.push(groupMark);
       } else {
@@ -1360,19 +1362,19 @@
       }
 
 
-      const primaryScaleName = (isStacked ? "primary" : "primaryGrouped");
+      const primaryScaleName = (isStacked ? 'primary' : 'primaryGrouped');
       const tooltips = [
         {
-          test: "isArray(datum.intervals) && datum.intervals.length > 0",
-          signal: `{title: datum.label, Series: datum.desc, Value: ${tooltipValue}, Intervals: datum.intervals}`
+          test: 'isArray(datum.intervals) && datum.intervals.length > 0',
+          signal: `{ title: datum.label, Series: datum.desc, Value: ${tooltipValue}, Intervals: datum.intervals }`
         },
         {
-          signal: `{title: datum.label, Series: datum.desc, Value: ${tooltipValue}}`
+          signal: `{ title: datum.label, Series: datum.desc, Value: ${tooltipValue} }`
         }
       ];
       constructDataTable(globalOptions, rawData,
-                         (isStacked ? "table" : "facet"),
-                         (isStacked ? "label" : "series"),
+                         (isStacked ? 'table' : 'facet'),
+                         (isStacked ? 'label' : 'series'),
                          primaryScaleName,
                          tooltips,
                          dataTable,
@@ -1382,20 +1384,20 @@
       // addImages(globalOptions, rawData, primaryScaleName, tooltips, data, (isStacked ? marks : groupMark.marks));
 
       // always use the ungrouped primary scale, so it stretches across the whole chart
-      addPointers(globalOptions, rawData, "primary", data, marks);
+      addPointers(globalOptions, rawData, 'primary', data, marks);
 
       addAnnotations(globalOptions, rawData,
-                     (isStacked ? "table" : "facet"),
-                     (isStacked ? "label" : "series"),
-                     (isStacked ? "primary" : "primaryGrouped"),
+                     (isStacked ? 'table' : 'facet'),
+                     (isStacked ? 'label' : 'series'),
+                     (isStacked ? 'primary' : 'primaryGrouped'),
                      (isStacked ? data : groupMark.data),
                      (isStacked ? marks : groupMark.marks));
 
       if (isNotFullStacked) {
         addIntervals(globalOptions, rawData,
-                     (isStacked ? "table" : "facet"),
-                     (isStacked ? "label" : "series"),
-                     (isStacked ? "primary" : "primaryGrouped"),
+                     (isStacked ? 'table' : 'facet'),
+                     (isStacked ? 'label' : 'series'),
+                     (isStacked ? 'primary' : 'primaryGrouped'),
                      (isStacked ? data : groupMark.data),
                      (isStacked ? marks : groupMark.marks));
       }
@@ -1433,7 +1435,7 @@
         width,
         height,
         padding: 0,
-        autosize: "fit",
+        autosize: 'fit',
         background,
         data,
         signals,
@@ -1520,8 +1522,8 @@
       const SC = S + 'c';
       const marks = [
         {
-          type: "group",
-          name: "clip",
+          type: 'group',
+          name: 'clip',
           clip: true,
           encode: {
             // Use this clipping rectangle to ensure that no marks extend outside the chart area, even
@@ -1535,9 +1537,9 @@
           },
           marks: [
             {
-              type: "rect",
-              from: {  data: "table" },
-              name: "whiskers",
+              type: 'rect',
+              from: {  data: 'table' },
+              name: 'whiskers',
               encode: {
                 enter: {
                   fill: { value: color },
@@ -1545,16 +1547,16 @@
                 },
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
-                  [S]: { scale: "secondary",  field: "lowWhisker" },
-                  [S2]: { scale: "secondary", field: "highWhisker" },
+                  [S]: { scale: 'secondary',  field: 'lowWhisker' },
+                  [S2]: { scale: 'secondary', field: 'highWhisker' },
                   tooltip: { signal: tooltip }
                 },
               }
             },
             {
-              type: "rect",
-              from: { data: "table" },
-              name: "minTicks",
+              type: 'rect',
+              from: { data: 'table' },
+              name: 'minTicks',
               encode: {
                 enter: {
                   fill: { value: color },
@@ -1563,15 +1565,15 @@
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
                   [axesConfig.primary.range]: { scale: 'primary', band: 0.25 },
-                  [S]: { scale: "secondary", field: "lowWhisker"},
+                  [S]: { scale: 'secondary', field: 'lowWhisker' },
                   tooltip: { signal: tooltip }
                 }
               }
             },
             {
-              type: "rect",
-              from: { data: "table" },
-              name: "maxTicks",
+              type: 'rect',
+              from: { data: 'table' },
+              name: 'maxTicks',
               encode: {
                 enter: {
                   fill: { value: color },
@@ -1580,15 +1582,15 @@
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
                   [axesConfig.primary.range]: { scale: 'primary', band: 0.25 },
-                  [S]: { scale: "secondary", field: "highWhisker"},
+                  [S]: { scale: 'secondary', field: 'highWhisker' },
                   tooltip: { signal: tooltip }
                 }
               }
             },
             {
-              type: "rect",
-              from: { data: "table" },
-              name: "IQRs",
+              type: 'rect',
+              from: { data: 'table' },
+              name: 'IQRs',
               encode: {
                 enter: {
                   fill: { value: color },
@@ -1600,16 +1602,16 @@
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
                   [axesConfig.primary.range]: { scale: 'primary', band: 0.5 },
-                  [S]: { scale: "secondary", field: "firstQuartile" },
-                  [S2]: { scale: "secondary", field: "thirdQuartile" },
+                  [S]: { scale: 'secondary', field: 'firstQuartile' },
+                  [S2]: { scale: 'secondary', field: 'thirdQuartile' },
                   tooltip: { signal: tooltip }
                 }
               }
             },
             {
-              type: "rect",
-              from: { data: "table" },
-              name: "medians",
+              type: 'rect',
+              from: { data: 'table' },
+              name: 'medians',
               encode: {
                 enter: {
                   fill: { value: color },
@@ -1618,15 +1620,15 @@
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
                   [axesConfig.primary.range]: { scale: 'primary', band: 0.5 },
-                  [S]: { scale: "secondary", field: "median"},
+                  [S]: { scale: 'secondary', field: 'median' },
                   tooltip: { signal: tooltip }
                 }
               }
             },
             {
-              type: "symbol",
-              from: { data: "lowOutliers" },
-              name: "lowOutlierMarks",
+              type: 'symbol',
+              from: { data: 'lowOutliers' },
+              name: 'lowOutlierMarks',
               encode: {
                 enter: {
                   shape: { value: 'M -1 -1 L 1 1 M 1 -1 L -1 1' },
@@ -1644,9 +1646,9 @@
               },
             },
             {
-              type: "symbol",
-              from: { data: "highOutliers" },
-              name: "highOutlierMarks",
+              type: 'symbol',
+              from: { data: 'highOutliers' },
+              name: 'highOutlierMarks',
               encode: {
                 enter: {
                   shape: { value: 'M -1 -1 L 1 1 M 1 -1 L -1 1' },
@@ -1668,17 +1670,17 @@
       ];
       const scales = [
         {
-          name: "primary",
-          type: "band",
+          name: 'primary',
+          type: 'band',
           range: axesConfig.primary.range,
-          domain: { data: "table", field: "label" },
+          domain: { data: 'table', field: 'label' },
           padding: 0.2
         },
         {
-          name: "secondary",
-          type: "linear",
+          name: 'secondary',
+          type: 'linear',
           range: axesConfig.secondary.range,
-          nice: true, "zero": false,
+          nice: true, zero: false,
           domain: [min !== undefined ? min : { signal: 'minValue' },
                    max !== undefined ? max : { signal: 'maxValue' }]
         },
@@ -1861,7 +1863,7 @@
         }
       ];
       const signals = [
-        { name: 'boxHeight', update: "height / abs(domain('countScale')[0] - domain('countScale')[1])" },
+        { name: 'boxHeight', update: 'height / abs(domain("countScale")[0] - domain("countScale")[1])' },
         { name: 'showIndividualBoxes', update: 'boxHeight >= 5' },
         { name: 'binWidth', update: `${binWidth ?? 0}` }
       ];
@@ -2159,7 +2161,7 @@
         { name: `${prefix}extentY`, update: `extent(pluck(data("${prefix}rawTable"), "y"))` },
         { name: `${prefix}crosshair`,
           // NOTE: start it in bounds, so as not to affect the drawing scale or area
-          update: `{x: ${prefix}extentX[0], y: ${prefix}extentY[0]}`,
+          update: `{ x: ${prefix}extentX[0], y: ${prefix}extentY[0] }`,
           on: [
             {
               events: [
@@ -2791,7 +2793,7 @@
         width,
         height,
         padding: 0,
-        autosize: "fit",
+        autosize: 'fit',
         background,
         ...charts[0], // FOR NOW!
         onExit: defaultImageReturn,
@@ -3154,20 +3156,6 @@ ${labelRow}`;
         }
       }
 
-      const pointshapeType = get(ser0, 'pointshapeType');
-      const pointshapeSides = toFixnum(get(ser0, 'pointshapeSides'));
-      const pointshapeDent = toFixnum(get(ser0, 'pointshapeDent'));
-      const pointshapeRotation = toFixnum(get(ser0, 'pointshapeRotation'));
-      const apothem = Math.cos(Math.PI / pointshapeSides)
-      
-      if (pointshapeType != 'circle') {
-        options['pointShape'] = {
-          type: 'star',
-          sides: pointshapeSides, 
-          dent: (pointshapeDent + 1) * apothem + 0.01,
-          rotation: pointshapeRotation,
-        }
-      }
 
       if (isTrue(get(globalOptions, 'interact'))) {
         $.extend(options, {
@@ -3179,23 +3167,11 @@ ${labelRow}`;
       }
 
       return {
-        data: data,
-        options: options,
-        chartType: google.visualization.LineChart,
-        onExit: (restarter, result) => {
-          let svg = result.chart.container.querySelector('svg');
-          let svg_xml = (new XMLSerializer()).serializeToString(svg);
-          let dataURI = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg_xml)));
-          imageReturn(
-            dataURI,
-            restarter,
-            RUNTIME.ffi.makeRight)
-        },
-        mutators: [axesNameMutator,
-                   yAxisRangeMutator,
-                   xAxisRangeMutator,
-                   // gridlinesMutator,
-                   backgroundMutator, 
+        mutators: [// axesNameMutator,
+                   // yAxisRangeMutator,
+                   // xAxisRangeMutator,
+                   // // gridlinesMutator,
+                   // backgroundMutator, 
                    selectMultipleMutator,
                    dotPlotAxesMutator],
         overlay: (overlay, restarter, chart, container) => {
@@ -3294,107 +3270,8 @@ ${labelRow}`;
                 .append(redrawG);
             }
           }
-
-          if (!replaceDefaultSVG) { return; } // If we don't have images, our work is done!
-          
-          // if custom images are defined, use the image at that location
-          // and overlay it atop each dot
-          google.visualization.events.addListener(chart, 'ready', function () {
-            // HACK(Emmanuel): 
-            // The only way to hijack marker events is to walk the DOM here
-            // If Google changes the DOM, these lines will likely break
-            // NOTE(joe, April 2022): It sort of happened. When we made the legend
-            // sometimes not show (autohiding on single series), it shifted the
-            // index. So this would only work if .title() was set. Use
-            // legendEnabled to decided which index to look up.
-            // This is brittle and needs to be revisited
-            const svgRoot = chart.container.querySelector('svg');
-            const layout = chart.getChartLayoutInterface();
-            // remove any labels that have previously been drawn
-            $('.__img_labels').each((idx, n) => $(n).remove());
-
-            let markers;
-            if(legendEnabled) {
-              markers = svgRoot.children[2].children[2].children;
-            } else {
-              markers = svgRoot.children[1].children[2].children;
-            }
-            if (hasImage) {
-
-              // for each point, (1) find the x,y location, (2) render the SVGImage,
-              // (3) center it on the datapoint, (4) steal all the events
-              // and (5) add it to the chart
-              combined.forEach((p, i) => {
-                get(p, 'ps').filter(p => p[3]).forEach((p, i) => {
-                  const xPos = layout.getXLocation(data.getValue(i, 0));
-                  const yPos = layout.getYLocation(data.getValue(i, 1));
-                  const imgDOM = p[3].val.toDomNode();
-                  p[3].val.render(imgDOM.getContext('2d'), 0, 0);
-                  // make an image element from the SVG namespace
-                  let imageElt = document.createElementNS("http://www.w3.org/2000/svg", 'image');
-                  imageElt.classList.add('__img_labels'); // tag for later garbage collection
-                  imageElt.setAttributeNS(null, 'href', imgDOM.toDataURL());
-                  imageElt.setAttribute('x', xPos - imgDOM.width/2);  // center the image
-                  imageElt.setAttribute('y', yPos - imgDOM.height/2); // center the image
-                  Object.assign(imageElt, markers[i]); // we should probably not steal *everything*...
-                  svgRoot.appendChild(imageElt);
-                });
-              });
-            }
-
-            if (dotChartP) {
-              // get bounding box of graph boundaries, and set the
-              // chartCeiling to reserve the top 20% of the graph area
-              const graphBounds  = svgRoot.children[1].children[0].getBoundingClientRect();
-              let   chartCeiling = graphBounds.top - svgRoot.getBoundingClientRect().top;
-              chartCeiling      += 0.2 * graphBounds.height;
-              const usableHeight = 0.8 * graphBounds.height
-
-              const circles = [...markers].filter(m => m.nodeName == 'circle');
-              const diameter = toFixnum(get(combined[0], 'point-size'));
-              const circleR = diameter / 2;
-              let prevDotArray = [];
-              function tooClose(x, y) {
-                return prevDotArray.some( n => 
-                  (Math.abs(x - n[0]) < diameter) && (Math.abs(y - n[1]) < diameter)
-                );
-              }
-
-              // compute circleY, and add a new SVG to the graph
-              circles.forEach( (circle, i) => {
-                const circleX = Number(circle.getAttribute('cx'));
-                
-                // Shift the circle up by r+1, so it sits on the x-axis
-                let   circleY = Number(circle.getAttribute('cy')) - (circleR + 1);
-                
-                // If it's too close to any existing circle, shift up by 1 diameter
-                while (tooClose(circleX, circleY)) { circleY -= diameter;}
-                
-                // If the new circleY goes above the ceiling, place it randomly
-                // within the first 80% of the vHeight, using (1-random^2) to
-                // bias the randomness towards low portions of the graph
-                if(circleY < chartCeiling) {
-                  const randomVHeight = (1 - Math.random()**2) * usableHeight;
-                  circleY = randomVHeight + chartCeiling - circleR;
-                }
-                // save the location of the new dot along with all the others
-                prevDotArray.push([circleX, circleY]);
-
-                const circleElt = circle.cloneNode(false);
-                circleElt.classList.add('__img_labels'); // tag for later gc
-                circleElt.setAttribute('cy', circleY);
-                circleElt.setAttribute('r', circleR);
-                circleElt.setAttribute('stroke', 'white');
-                circleElt.setAttribute('stroke-width', '1');
-                circleElt.setAttribute('fill-opacity', '0.8');
-                Object.assign(circleElt, circle); // we should probably not steal *everything*...
-                svgRoot.appendChild(circleElt);
-              });
-
-            }
-          });
-        },
-      };
+        }
+      }
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -3422,26 +3299,18 @@ ${labelRow}`;
     }
 
     function defaultImageReturn(restarter, result) {
-      // serialize the whole SVG element, in case of custom image overlays
-      // then pass the URI to imageReturn
-      result.view.toSVG().then((svg) => {
-        let dataURI = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svg)));
-        const rawImage = new Image();
-        rawImage.onload = () => {
-          restarter.resume(
-            RUNTIME.makeOpaque(
-              IMAGE.makeFileImage(svg, rawImage),
-              IMAGE.imageEquals
-            )
-          );
-        };
-        rawImage.onerror = e => {
-          restarter.error(
-            RUNTIME.ffi.makeMessageException(
-              'unable to load the image: ' + e.message));
-        };
-        rawImage.src = dataURI;
-      })
+      const view = result.view;
+      const width = view.width();
+      const height = view.height();
+      const canvas = canvasLib.createCanvas(width, height);
+      const externalContext = canvas.getContext('2d');
+      try {
+        view.runAsync()
+          .then(() => view.toCanvas(1, { externalContext }))
+          .then(() => imageDataReturn(externalContext.getImageData(0, 0, width, height), restarter, x => x));
+      } catch (e) {
+        return restarter.error(e);
+      }
     }
 
     function renderStaticImage(processed, globalOptions, rawData) {
@@ -3521,7 +3390,7 @@ ${labelRow}`;
                 root: root[0],
                 onExit: () => {
                   // In case the tooltip was currently being shown while the window was being closed
-                  $("#vg-tooltip-element").removeClass("visible");
+                  $('#vg-tooltip-element').removeClass('visible');
                   onExitRetry(() => result, restarter);
                 },
                 draw: (ui) => {
@@ -3561,7 +3430,7 @@ ${labelRow}`;
             }, 'render-interactive-chart');
             return renderInteractiveChart(f(globalOptions, rawData), globalOptions, rawData);
           } else {
-            return RUNTIME.ffi.throwMessageException("Cannot display interactive charts headlessly");
+            return RUNTIME.ffi.throwMessageException('Cannot display interactive charts headlessly');
           }
         } else {
           return RUNTIME.safeCall(() => f(globalOptions, rawData), (chart) => {
