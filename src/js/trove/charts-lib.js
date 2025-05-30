@@ -2120,6 +2120,10 @@
       const trendlineWidth = toFixnum(get(rawData, 'trendlineWidth'));
       const trendlineOpacity = toFixnum(get(rawData, 'trendlineOpacity'));
       const trendlineDegree = toFixnum(get(rawData, 'trendlineDegree'));
+      const xMinValue = getNumOrDefault(get(globalOptions, 'x-min'), undefined);
+      const xMaxValue = getNumOrDefault(get(globalOptions, 'x-max'), undefined);
+      const yMinValue = getNumOrDefault(get(globalOptions, 'y-min'), undefined);
+      const yMaxValue = getNumOrDefault(get(globalOptions, 'y-max'), undefined);
 
       const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
 
@@ -2190,17 +2194,21 @@
         { name: `${prefix}xscale`,
           type: 'linear',
           domain: { signal: `${prefix}extentX` },
+          domainMin: xMinValue,
+          domainMax: xMaxValue,
           range: 'width',
           nice: true },
         { name: `${prefix}yscale`,
           type: 'linear',
           domain: { signal: `${prefix}extentY` },
           range: 'height',
+          domainMin: yMinValue,
+          domainMax: yMaxValue,
           nice: true }
       ];
       const axes = [
-        { orient: 'bottom', scale: `${prefix}xscale`, zindex: 1, title: xAxisLabel },
-        { orient: 'left', scale: `${prefix}yscale`, zindex: 1, title: yAxisLabel },
+        { orient: 'bottom', scale: `xscale`, zindex: 1, title: xAxisLabel },
+        { orient: 'left', scale: `yscale`, zindex: 1, title: yAxisLabel },
       ];
       const marks = [];
       marks.push(
@@ -2209,10 +2217,10 @@
           name: 'vertRule',
           encode: {
             update: {
-              x: { scale: `${prefix}xscale`, signal: `${prefix}crosshair.x` },
-              x2: { scale: `${prefix}xscale`, signal: `${prefix}crosshair.x` },
-              y: { signal: `range('${prefix}yscale')[0]` },
-              y2: { signal: `range('${prefix}yscale')[1]` },
+              x: { scale: `xscale`, signal: `${prefix}crosshair.x` },
+              x2: { scale: `xscale`, signal: `${prefix}crosshair.x` },
+              y: { signal: `range('yscale')[0]` },
+              y2: { signal: `range('yscale')[1]` },
               stroke: { value: color },
               strokeWidth: { value: 1 },
               strokeOpacity: { signal: `${prefix}crosshairOpacity` }
@@ -2224,10 +2232,10 @@
           name: 'horzRule',
           encode: {
             update: {
-              x: { signal: `range('${prefix}xscale')[0]` },
-              x2: { signal: `range('${prefix}xscale')[1]` },
-              y: { scale: `${prefix}yscale`, signal: `${prefix}crosshair.y` },
-              y2: { scale: `${prefix}yscale`, signal: `${prefix}crosshair.y` },
+              x: { signal: `range('xscale')[0]` },
+              x2: { signal: `range('xscale')[1]` },
+              y: { scale: `yscale`, signal: `${prefix}crosshair.y` },
+              y2: { scale: `yscale`, signal: `${prefix}crosshair.y` },
               stroke: { value: color },
               strokeWidth: { value: 1 },
               strokeOpacity: { signal: `${prefix}crosshairOpacity` }
@@ -2291,8 +2299,8 @@
             name: `${prefix}regressionLine`,
             encode: {
               enter: {
-                x: { scale: `${prefix}xscale`, field: 'u' },
-                y: { scale: `${prefix}yscale`, field: 'v' },
+                x: { scale: `xscale`, field: 'u' },
+                y: { scale: `yscale`, field: 'v' },
                 stroke: { value: trendlineColor },
                 strokeWidth: { value: trendlineWidth },
                 opacity: { value: trendlineOpacity },
@@ -2306,8 +2314,8 @@
             name: `${prefix}regressionSymbols`,
             encode: {
               enter: {
-                x: { scale: `${prefix}xscale`, field: 'u' },
-                y: { scale: `${prefix}yscale`, field: 'v' },
+                x: { scale: `xscale`, field: 'u' },
+                y: { scale: `yscale`, field: 'v' },
                 tooltip: { signal: `{ title: "Trend for ${legend}", Trend: ${tooltipTitle}, x: ${formatNum('datum.u'
 )}, y: ${formatNum('datum.v')} }` }
               },
@@ -2335,8 +2343,8 @@
         name: `${prefix}ImageMarks`,
         encode: {
           enter: {
-            x: { scale: `${prefix}xscale`, field: 'x', offset: { signal: `${-pointSize} * datum.imageOffsetX` } },
-            y: { scale: `${prefix}yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
+            x: { scale: `xscale`, field: 'x', offset: { signal: `${-pointSize} * datum.imageOffsetX` } },
+            y: { scale: `yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
             width: { value: pointSize },
             height: { value: pointSize },
             image: { field: 'image' },
@@ -2353,8 +2361,8 @@
             enter: {
               shape: { value: 'circle' },
               size: { value: pointSize * pointSize },
-              x: { scale: `${prefix}xscale`, field: 'x' },
-              y: { scale: `${prefix}yscale`, field: 'y' },
+              x: { scale: `xscale`, field: 'x' },
+              y: { scale: `yscale`, field: 'y' },
               fill: { value: color },
               tooltip: tooltips
             },
@@ -2402,8 +2410,8 @@
             enter: {
               shape: { value: svgPath },
               size: { value: pointSize * pointSize },
-              x: { scale: `${prefix}xscale`, field: 'x' },
-              y: { scale: `${prefix}yscale`, field: 'y' },
+              x: { scale: `xscale`, field: 'x' },
+              y: { scale: `yscale`, field: 'y' },
               strokeWidth: { value: 1 },
               tooltip: tooltips
             },
@@ -2416,6 +2424,7 @@
       }
         
       return {
+        prefix,
         data,
         signals,
         scales,
@@ -2446,20 +2455,25 @@
         name: `${prefix}Line`,
         encode: {
           enter: {
-            x: { scale: `${prefix}xscale`, field: 'x' },
-            y: { scale: `${prefix}yscale`, field: 'y' },
+            x: { scale: `xscale`, field: 'x' },
+            y: { scale: `yscale`, field: 'y' },
             stroke: { value: color },
             strokeWidth: { value: lineWidth },
             tooltip: marks[marks.length - 1].encode.enter.tooltips
           }
         }
       });
+      asScatterPlos.prefix = prefix;
       return asScatterPlot;
     }
 
     function intervalPlot(globalOptions, rawData, config) {
       const xAxisLabel = get(globalOptions, 'x-axis');
       const yAxisLabel = get(globalOptions, 'y-axis');
+      const xMinValue = getNumOrDefault(get(globalOptions, 'x-min'), undefined);
+      const xMaxValue = getNumOrDefault(get(globalOptions, 'x-max'), undefined);
+      const yMinValue = getNumOrDefault(get(globalOptions, 'y-min'), undefined);
+      const yMaxValue = getNumOrDefault(get(globalOptions, 'y-max'), undefined);
       const legend = get(rawData, 'legend') || config.legend;
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
@@ -2530,17 +2544,21 @@
         { name: `${prefix}xscale`,
           type: 'linear',
           domain: { signal: `${prefix}extentX` },
+          domainMin: xMinValue,
+          domainMax: xMaxValue,
           range: 'width',
           nice: false },
         { name: `${prefix}yscale`,
           type: 'linear',
           domain: { signal: `${prefix}extentY` },
+          domainMin: yMinValue,
+          domainMax: yMaxValue,
           range: 'height',
           nice: false }
       ];
       const axes = [
-        { orient: 'bottom', scale: `${prefix}xscale`, zindex: 1, title: xAxisLabel },
-        { orient: 'left', scale: `${prefix}yscale`, zindex: 1, title: yAxisLabel },
+        { orient: 'bottom', scale: `xscale`, zindex: 1, title: xAxisLabel },
+        { orient: 'left', scale: `yscale`, zindex: 1, title: yAxisLabel },
       ];
       const tooltip = {
         signal: `{ title: datum.label, x: datum.x, y: datum.y, ŷ: datum.yprime, 'y - ŷ': datum.delta }`
@@ -2552,8 +2570,8 @@
           name: `${prefix}ImageMarks`,
           encode: {
             enter: {
-              x: { scale: `${prefix}xscale`, field: 'x', offset: { signal: `${-pointSize} * datum.imageOffsetX` } },
-              y: { scale: `${prefix}yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
+              x: { scale: `xscale`, field: 'x', offset: { signal: `${-pointSize} * datum.imageOffsetX` } },
+              y: { scale: `yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
               width: { value: pointSize },
               height: { value: pointSize },
               image: { field: 'image' },
@@ -2569,8 +2587,8 @@
             enter: {
               shape: { value: 'circle' },
               size: { value: pointSize * pointSize },
-              xc: { scale: `${prefix}xscale`, field: 'x' },
-              yc: { scale: `${prefix}yscale`, field: 'y' },
+              xc: { scale: `xscale`, field: 'x' },
+              yc: { scale: `yscale`, field: 'y' },
               fill: { value: pointColor },
               tooltip
             },
@@ -2586,9 +2604,9 @@
           from: { data: `${prefix}rawTable` },
           encode: {
             enter: {
-              x: { scale: `${prefix}xscale`, field: 'x' },
-              y: { scale: `${prefix}yscale`, field: 'y' },
-              y2: { scale: `${prefix}yscale`, field: 'yprime' },
+              x: { scale: `xscale`, field: 'x' },
+              y: { scale: `yscale`, field: 'y' },
+              y2: { scale: `yscale`, field: 'yprime' },
               stroke: { value: color },
               strokeWidth: { value: intervalStickWidth },
             }
@@ -2602,8 +2620,8 @@
             enter: {
               shape: { value: 'circle' },
               size: { value: pointSize * pointSize },
-              xc: { scale: `${prefix}xscale`, field: 'x' },
-              yc: { scale: `${prefix}yscale`, field: 'yprime' },
+              xc: { scale: `xscale`, field: 'x' },
+              yc: { scale: `yscale`, field: 'yprime' },
               fill: { value: color },
               tooltip
             },
@@ -2616,6 +2634,7 @@
       ];
 
       return {
+        prefix,
         data,
         signals,
         scales,
@@ -2670,11 +2689,7 @@
       const fractionNum = jsnums.subtract(xMaxValue, xMinValue, NEb);
       const fractionDen = jsnums.fromFixnum(numSamples - 1, NEb);
       const fraction = jsnums.divide(fractionNum, fractionDen, NEb);
-      const samplePoints = [...Array(numSamples).keys().map((i) => (
-        jsnums.add(xMinValue, jsnums.multiply(fraction, jsnums.fromFixnum(i, NEb), NEb), NEb)
-      ))];
 
-      
       const data = [
         {
           name: `${prefix}table`,
@@ -2686,20 +2701,20 @@
       // NOTE: For the axes, we're going to want to put the bar lines at the zeros
       // of the domains, rather than the edges of the chart
       const axes = [
-        { orient: 'bottom', scale: `${prefix}xscale`, zindex: 1, title: xAxisLabel,
+        { orient: 'bottom', scale: `xscale`, zindex: 1, title: xAxisLabel,
           domain: false, ticks: false, labels: false },
-        { orient: 'bottom', scale: `${prefix}xscale`, zindex: 1, 
+        { orient: 'bottom', scale: `xscale`, zindex: 1, 
           // For the horizontal axis, translate it *down from the top* to the 0 intercept, if it's in range
-          offset: { scale: `${prefix}yscale`,
-                    signal: `clamp(0, domain('${prefix}yscale')[0], domain('${prefix}yscale')[1])`,
+          offset: { scale: `yscale`,
+                    signal: `clamp(0, domain('yscale')[0], domain('yscale')[1])`,
                     offset: { signal: 'height', mult: -1 } }
         },
-        { orient: 'left', scale: `${prefix}yscale`, zindex: 1, title: yAxisLabel,
+        { orient: 'left', scale: `yscale`, zindex: 1, title: yAxisLabel,
           domain: false, ticks: false, labels: false },
-        { orient: 'left', scale: `${prefix}yscale`, zindex: 1, 
+        { orient: 'left', scale: `yscale`, zindex: 1, 
           // For the vertical axis, offset by minus the offset to the 0 intercept, if it's in range
-          offset: { scale: `${prefix}xscale`, mult: -1,
-                    signal: `clamp(0, domain('${prefix}xscale')[0], domain('${prefix}xscale')[1])` }
+          offset: { scale: `xscale`, mult: -1,
+                    signal: `clamp(0, domain('xscale')[0], domain('xscale')[1])` }
         },
       ];
 
@@ -2735,10 +2750,10 @@
           clip: true,
           encode: {
             enter: {
-              x: { signal: `range("${prefix}xscale")[0]` },
-              x2: { signal: `range("${prefix}xscale")[1]` },
-              y: { signal: `range("${prefix}yscale")[0]` },
-              y2: { signal: `range("${prefix}yscale")[1]` }
+              x: { signal: `range("xscale")[0]` },
+              x2: { signal: `range("xscale")[1]` },
+              y: { signal: `range("yscale")[0]` },
+              y2: { signal: `range("yscale")[1]` }
             }
           },
           marks: [
@@ -2750,8 +2765,8 @@
                 enter: {
                   shape: { value: 'circle' },
                   size: { value: pointSize * pointSize },
-                  xc: { scale: `${prefix}xscale`, field: 'x' },
-                  yc: { scale: `${prefix}yscale`, field: 'y' },
+                  xc: { scale: `xscale`, field: 'x' },
+                  yc: { scale: `yscale`, field: 'y' },
                   fill: { value: pointColor },
                   tooltip
                 },
@@ -2761,17 +2776,49 @@
         }
       ];
 
+      const samplePoints = [...Array(numSamples).keys().map((i) => (
+        jsnums.add(xMinValue, jsnums.multiply(fraction, jsnums.fromFixnum(i, NEb), NEb), NEb)
+      ))];
 
       return recomputePoints(func, samplePoints, (dataValues) => {
         data[0].values = dataValues;
         return {
+          prefix,
           data,
           signals,
           scales,
           axes,
-          marks
+          marks,
+          recompute: (view) => {
+            const xscale = view.scale('xscale');
+            if (!xscale) return;
+            const xMinValue = xscale.domain()[0];
+            const xMaxValue = xscale.domain()[1];
+            const fractionNum = jsnums.subtract(xMaxValue, xMinValue, NEb);
+            const fractionDen = jsnums.fromFixnum(numSamples - 1, NEb);
+            const fraction = jsnums.divide(fractionNum, fractionDen, NEb);
+            const samplePoints = [...Array(numSamples).keys().map((i) => (
+              jsnums.add(xMinValue, jsnums.multiply(fraction, jsnums.fromFixnum(i, NEb), NEb), NEb)
+            ))];
+            console.log("Recomputing...");
+            RUNTIME.runThunk(() => {
+              return recomputePoints(func, samplePoints, (dataValues) => {
+                view.data(data[0].name, dataValues);
+                return "Finished!";
+              });
+            }, () => {
+              console.log("Recomputing done!");
+              view.runAsync().then(() => console.log("Rerendering done!"));
+            });
+          }
         };
       });
+    }
+
+    function unionScaleSignal(scales) {
+      const domains0 = scales.map((s) => `domain('${s.name}')[0]`);
+      const domains1 = scales.map((s) => `domain('${s.name}')[1]`);
+      return `[min(${domains0.join(',')}), max(${domains1.join(',')})]`
     }
 
     function composeCharts(globalOptions, charts) {
@@ -2786,6 +2833,19 @@
       const multiple = isTrue(get(globalOptions, 'multiple'));
       const gridlines = getGridlines({}, globalOptions);
       // console.log(gridlines);
+      const scales = charts.flatMap((c) => c.scales || []);
+      const signals = charts.flatMap((c) => c.signals || []);
+      // NOTE: must compute these before updating the scales array...or else the new scales will
+      // become part of the signal definition, which is incorrect!
+      signals.push(
+        { name: 'xscaleSignal', update: unionScaleSignal(scales.filter((s) => s.name.endsWith('xscale'))) },
+        { name: 'yscaleSignal', update: unionScaleSignal(scales.filter((s) => s.name.endsWith('yscale'))) }
+      );
+      scales.push(
+        { name: 'xscale', domain: { signal: 'xscaleSignal' }, range: 'width' },
+        { name: 'yscale', domain: { signal: 'yscaleSignal' }, range: 'height' }
+      );
+      const axes = (charts.find((c) => c.prefix.startsWith('function')) || charts[0]).axes
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
@@ -2795,8 +2855,18 @@
         padding: 0,
         autosize: 'fit',
         background,
-        ...charts[0], // FOR NOW!
+        data: charts.flatMap((c) => c.data || []),
+        signals,
+        scales,
+        axes,
+        legends: charts.flatMap((c) => c.legends || []),
+        marks: charts.flatMap((c) => c.marks || []),
         onExit: defaultImageReturn,
+        recompute: (view) => {
+          charts.forEach((c) => {
+            if (c.recompute) { c.recompute(view); }
+          })
+        }            
       };
     }
 
@@ -3287,27 +3357,32 @@ ${labelRow}`;
     }
 
 
-    function imageDataReturn(imageData, restarter, hook) {
+    function imageDataReturn(imageData, restarter) {
       restarter.resume(
-        hook(
-          RUNTIME.makeOpaque(
-            IMAGE.makeImageDataImage(imageData),
-            IMAGE.imageEquals
-          )
+        RUNTIME.makeOpaque(
+          IMAGE.makeImageDataImage(imageData),
+          IMAGE.imageEquals
         )
       );
+    }
+
+    function renderToCanvas(view, width, height) {
+      const canvas = canvasLib.createCanvas(width, height);
+      // NOTE(Ben): this externalContext *should* be unnecessary, but for some reason,
+      // vega-as-bundled-in-a-jarr doesn't seem to notice NodeCanvas correctly
+      const externalContext = canvas.getContext('2d');
+      view.width(width).height(height).resize()
+      return view.runAsync()
+        .then(() => view.toCanvas(1, { externalContext }))
+        .then(() => externalContext.getImageData(0, 0, width, height));
     }
 
     function defaultImageReturn(restarter, result) {
       const view = result.view;
       const width = view.width();
       const height = view.height();
-      const canvas = canvasLib.createCanvas(width, height);
-      const externalContext = canvas.getContext('2d');
       try {
-        view.runAsync()
-          .then(() => view.toCanvas(1, { externalContext }))
-          .then(() => imageDataReturn(externalContext.getImageData(0, 0, width, height), restarter, x => x));
+        return renderToCanvas(view, width, height).then((data) => imageDataReturn(data, restarter))
       } catch (e) {
         return restarter.error(e);
       }
@@ -3319,17 +3394,8 @@ ${labelRow}`;
           console.log(JSON.stringify(processed, (k, v) => (v && (IMAGE.isImage(v) || (v instanceof canvasLib.Canvas))) ? v.ariaText : v, 2));
           const width = toFixnum(get(globalOptions, 'width'));
           const height = toFixnum(get(globalOptions, 'height'));
-          const canvas = canvasLib.createCanvas(width, height);
           const view = new vega.View(vega.parse(processed));
-          const externalContext = canvas.getContext('2d');
-          view.width(width).height(height).resize();
-          view.runAsync()
-            // NOTE(Ben): this externalContext *should* be unnecessary, but for some reason,
-            // vega-as-bundled-in-a-jarr doesn't seem to notice NodeCanvas correctly
-            .then(() => view.toCanvas(1, { externalContext }))
-            .then(() => {
-              imageDataReturn(externalContext.getImageData(0, 0, canvas.width, canvas.height), restarter, x => x);
-            });
+          return renderToCanvas(view, width, height).then((data) => imageDataReturn(data, restarter));
         } catch(e) {
           return restarter.error(e);
         }
@@ -3363,6 +3429,10 @@ ${labelRow}`;
           renderer: 'svg',
           hover: true,
           tooltip: vegaTooltipHandler.call
+        });
+        view.addSignalListener('xscaleSignal', (name, value) => {
+          console.log(name, value);
+          if (processed.recompute) { processed.recompute(view); }
         });
         view.width(width).height(height).resize();
 
