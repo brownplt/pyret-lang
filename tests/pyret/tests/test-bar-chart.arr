@@ -115,10 +115,12 @@ names = [list:
 
 
 va-hist = VC.from-list.labeled-interval-chart(names, range(0, weights.length()), weights, ages)
-rendered = VC.render-chart(va-hist)
+va-fun = VC.from-list.function-plot(num-tan)
+rendered = VC.render-chart(va-fun)
   .background-color(C.gray)
   .x-axis("This way!")
   .y-axis("That way!")
+  .y-min(-50)
 #  .height(400).width(500)
 
 # labels = range(0, weights.length()).map({(n): "Label " + to-string(n)})

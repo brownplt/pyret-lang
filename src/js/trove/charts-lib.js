@@ -2622,15 +2622,154 @@
       };
     }
 
+
+    // NOTE: Must be run on Pyret stack
+    function recomputePoints(func, samplePoints, then) {
+      return RUNTIME.safeCall(() => {
+        return RUNTIME.raw_array_map(RUNTIME.makeFunction((sample) => {
+          return RUNTIME.execThunk(RUNTIME.makeFunction(() => func.app(sample)));
+        }), samplePoints);
+      }, (funcVals) => {
+        const dataValues = [];
+        funcVals.forEach((result, idx) => {
+          cases(RUNTIME.ffi.isEither, 'Either', result, {
+            left: (value) => dataValues.push({
+              x: toFixnum(samplePoints[idx]),
+              y: toFixnum(value)
+            }),
+            right: () => {}
+          })
+        });
+        return then(dataValues);
+      }, 'function-plot');
+    }
+
+    // NOTE: Must be run on Pyret stack
     function functionPlot(globalOptions, rawData, config) {
+      const xAxisLabel = get(globalOptions, 'x-axis');
+      const yAxisLabel = get(globalOptions, 'y-axis');
+      const legend = get(rawData, 'legend') || config.legend;
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
+      const pointColor = getColorOrDefault(get(rawData, 'color'), defaultColor);
       const numSamples = toFixnum(get(globalOptions, 'num-samples'));
-      const showSamples = isTrue(get(globalOptions, 'is-show-samples'));
+      const func = get(rawData, 'f');
       // NOTE(Ben): We can use view.data(`${prefix}rawTable`, ...newData...)
       // to replace the existing data points in the _current_ view, so that
       // we do not have to reconstruct a new vega.View or restart the rendering process.
       // See https://vega.github.io/vega/docs/api/view/#view_data
+
+      // NOTE: x{Min,Max}Value are *Pyret* numbers, not JS numbers
+      const NEb = RUNTIME.NumberErrbacks;
+      const xMinValue = getOrDefault(get(globalOptions, 'x-min'), jsnums.fromFixnum(-10, NEb));
+      const xMaxValue = getOrDefault(get(globalOptions, 'x-max'), jsnums.fromFixnum(10, NEb));
+      const yMinValue = getNumOrDefault(get(globalOptions, 'y-min'), undefined);
+      const yMaxValue = getNumOrDefault(get(globalOptions, 'y-max'), undefined);
+      const fractionNum = jsnums.subtract(xMaxValue, xMinValue, NEb);
+      const fractionDen = jsnums.fromFixnum(numSamples - 1, NEb);
+      const fraction = jsnums.divide(fractionNum, fractionDen, NEb);
+      const samplePoints = [...Array(numSamples).keys().map((i) => (
+        jsnums.add(xMinValue, jsnums.multiply(fraction, jsnums.fromFixnum(i, NEb), NEb), NEb)
+      ))];
+
+      
+      const data = [
+        {
+          name: `${prefix}table`,
+          transform: []
+        }
+      ];
+
+      
+      // NOTE: For the axes, we're going to want to put the bar lines at the zeros
+      // of the domains, rather than the edges of the chart
+      const axes = [
+        { orient: 'bottom', scale: `${prefix}xscale`, zindex: 1, title: xAxisLabel,
+          domain: false, ticks: false, labels: false },
+        { orient: 'bottom', scale: `${prefix}xscale`, zindex: 1, 
+          // For the horizontal axis, translate it *down from the top* to the 0 intercept, if it's in range
+          offset: { scale: `${prefix}yscale`,
+                    signal: `clamp(0, domain('${prefix}yscale')[0], domain('${prefix}yscale')[1])`,
+                    offset: { signal: 'height', mult: -1 } }
+        },
+        { orient: 'left', scale: `${prefix}yscale`, zindex: 1, title: yAxisLabel,
+          domain: false, ticks: false, labels: false },
+        { orient: 'left', scale: `${prefix}yscale`, zindex: 1, 
+          // For the vertical axis, offset by minus the offset to the 0 intercept, if it's in range
+          offset: { scale: `${prefix}xscale`, mult: -1,
+                    signal: `clamp(0, domain('${prefix}xscale')[0], domain('${prefix}xscale')[1])` }
+        },
+      ];
+
+      const signals = [
+        { name: `${prefix}extentY`, update: `extent(pluck(data("${prefix}table"), "y"))` }
+      ];
+      const scales = [
+        {
+          name: `${prefix}xscale`,
+          type: 'linear',
+          domain: [toFixnum(xMinValue), toFixnum(xMaxValue)],
+          range: 'width',
+          nice: false
+        },
+        {
+          name: `${prefix}yscale`,
+          type: 'linear',
+          domain: { signal: `${prefix}extentY` },
+          domainMin: yMinValue, // if these are defined, they'll
+          domainMax: yMaxValue, // override the extents in the domain
+          range: 'height',
+          nice: true
+        }
+      ];
+      const tooltip = {
+        signal: `{ title: "${legend}", x: datum.x, y : datum.y }`
+      }
+      const pointSize = 6;
+      const marks = [
+        {
+          type: 'group',
+          name: `${prefix}clip`,
+          clip: true,
+          encode: {
+            enter: {
+              x: { signal: `range("${prefix}xscale")[0]` },
+              x2: { signal: `range("${prefix}xscale")[1]` },
+              y: { signal: `range("${prefix}yscale")[0]` },
+              y2: { signal: `range("${prefix}yscale")[1]` }
+            }
+          },
+          marks: [
+            {
+              type: 'symbol',
+              from: { data: `${prefix}table` },
+              name: `${prefix}Dots`,
+              encode: {
+                enter: {
+                  shape: { value: 'circle' },
+                  size: { value: pointSize * pointSize },
+                  xc: { scale: `${prefix}xscale`, field: 'x' },
+                  yc: { scale: `${prefix}yscale`, field: 'y' },
+                  fill: { value: pointColor },
+                  tooltip
+                },
+              }
+            }
+          ]
+        }
+      ];
+
+
+      return recomputePoints(func, samplePoints, (dataValues) => {
+        data[0].values = dataValues;
+        return {
+          data,
+          signals,
+          scales,
+          axes,
+          marks
+        };
+      });
     }
 
     function composeCharts(globalOptions, charts) {
@@ -2669,24 +2808,52 @@
         return default_colors[i++ % default_colors.length];
       }
       function nextPlot() { return `Plot ${i}`; }
-      return composeCharts(globalOptions, [
-        ...scatters.map((s, n) => scatterPlot(
-          globalOptions, s,
-          { prefix: `scatter${n}`, defaultColor: nextColor(), legend: nextPlot() }
-        )),
-        ...lines.map((l, n) => linePlot(
-          globalOptions, l,
-          { prefix: `line${n}`, defaultColor: nextColor(), legend: nextPlot() }
-        )),
-        ...intervals.map((i, n) => intervalPlot(
-          globalOptions, i,
-          { prefix: `interval${n}`, defaultColor: nextColor(), legend: nextPlot() }
-        )),
-        ...functions.map((f, n) => functionPlot(
-          globalOptions, f,
-          { prefix: `function${n}`, defaultColor: nextColor(), legend: nextPlot() }
-        ))
-      ]);
+      function makeScatterPlots() {
+        return RUNTIME.raw_array_mapi(
+          RUNTIME.makeFunction((s, n) => scatterPlot(
+            globalOptions, s,
+            { prefix: `scatter${n}`, defaultColor: nextColor(), legend: nextPlot() }
+          )), scatters);
+      }
+      function makeLinePlots() {
+        return RUNTIME.raw_array_mapi(
+          RUNTIME.makeFunction((l, n) => linePlot(
+            globalOptions, l,
+            { prefix: `line${n}`, defaultColor: nextColor(), legend: nextPlot() }
+          )), lines);
+      }
+      function makeIntervalPlots() {
+        return RUNTIME.raw_array_mapi(
+          RUNTIME.makeFunction((i, n) => intervalPlot(
+            globalOptions, i,
+            { prefix: `interval${n}`, defaultColor: nextColor(), legend: nextPlot() }
+          )), intervals);
+      }
+      function makeFunctionPlots() {
+        return RUNTIME.raw_array_mapi(
+          RUNTIME.makeFunction((f, n) => functionPlot(
+            globalOptions, f,
+            { prefix: `function${n}`, defaultColor: nextColor(), legend: nextPlot() }
+          )), functions);
+      }
+      return RUNTIME.safeCall(
+        makeScatterPlots,
+        (scatterPlots) => RUNTIME.safeCall(
+          makeLinePlots,
+          (linePlots) => RUNTIME.safeCall(
+            makeIntervalPlots,
+            (intervalPlots) => RUNTIME.safeCall(
+              makeFunctionPlots,
+              (functionPlots) => composeCharts(globalOptions, [
+                ...scatterPlots,
+                ...linePlots,
+                ...intervalPlots,
+                ...functionPlots
+              ])
+            )
+          )
+        )
+      );
       
       const minIntervalIndex = scatters.length + lines.length;
       const data = new google.visualization.DataTable();
@@ -3369,7 +3536,7 @@ ${labelRow}`;
                   }
                   // This doubled-up approach of render/resize/re-render seems to produce
                   // better-sized results than a single render does
-                  view.runAsync().then(() => root.view.resize().runAsync())
+                  view.runAsync().then(() => view.resize().runAsync())
                 },
                 windowOptions: {  },
                 isInteractive: true,
@@ -3381,18 +3548,25 @@ ${labelRow}`;
         }
       });
     }
-    
+
+    // NOTE: f is a function that will be run on the Pyret stack
+    // It can choose to return a value directly, or it can use safeCall
     function makeFunction(f) {
       return RUNTIME.makeFunction((globalOptions, rawData) => {
         const isInteractive = isTrue(get(globalOptions, 'interact'));
         if (isInteractive) {
           if (RUNTIME.hasParam('chart-port')) {
+            return RUNTIME.safeCall(() => f(globalOptions, rawData), (chart) => {
+              return renderInteractiveChart(chart, globalOptions, rawData);
+            }, 'render-interactive-chart');
             return renderInteractiveChart(f(globalOptions, rawData), globalOptions, rawData);
           } else {
             return RUNTIME.ffi.throwMessageException("Cannot display interactive charts headlessly");
           }
         } else {
-          return renderStaticImage(f(globalOptions, rawData), globalOptions, rawData);
+          return RUNTIME.safeCall(() => f(globalOptions, rawData), (chart) => {
+            return renderStaticImage(chart, globalOptions, rawData);
+          }, 'render-static-image');
         }
       });
     }
