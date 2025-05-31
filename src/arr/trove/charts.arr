@@ -960,6 +960,10 @@ max-method = method(self, max :: Number):
   self.constr()(self.obj.{max: some(max)})
 end
 
+horizontal-method = method(self, b :: Boolean):
+  self.constr()(self.obj.{horizontal: b})
+end
+
 ################################################################################
 # BOUNDING BOX
 ################################################################################
@@ -1151,6 +1155,7 @@ type LinePlotSeries = {
   pointshapeSides :: NumInteger, 
   pointshapeDent :: Number, 
   pointshapeRotation :: Number,
+  horizontal :: Boolean,
 }
 
 default-line-plot-series = {
@@ -1170,6 +1175,7 @@ default-line-plot-series = {
   pointshapeSides: 5,
   pointshapeDent: 0.5,
   pointshapeRotation: 0,
+  horizontal: false
 }
 
 type ScatterPoint = {
@@ -1193,6 +1199,7 @@ type ScatterPlotSeries = {
   pointshapeSides :: NumInteger, 
   pointshapeDent :: Number, 
   pointshapeRotation :: Number,
+  horizontal :: Boolean,
 }
 
 default-scatter-plot-series = {
@@ -1207,7 +1214,8 @@ default-scatter-plot-series = {
   trendlineColor: none, 
   trendlineWidth: 3, 
   trendlineOpacity: 0.3,
-  trendlineDegree: 3,  
+  trendlineDegree: 3,
+  horizontal: false,
 }
 
 type DotPoint = {
@@ -1260,7 +1268,7 @@ type IntervalChartSeries = {
   pointshapeSides :: NumInteger,
   pointshapeDent :: Number,
   pointshapeRotation :: Number,
-  ps :: List<IntervalPoint>
+  ps :: List<IntervalPoint>,
 }
 
 default-interval-chart-series = {
@@ -1290,11 +1298,13 @@ type FunctionPlotSeries = {
   f :: PlottableFunction,
   color :: Option<I.Color>,
   legend :: String,
+  horizontal :: Boolean,
 }
 
 default-function-plot-series = {
   color: none,
   legend: '',
+  horizontal: false
 }
 
 ###########
@@ -1500,6 +1510,7 @@ data DataSeries:
       end
       self.constr()(self.obj.{point-size: point-size})
     end,
+    horizontal: horizontal-method,
   | scatter-plot-series(obj :: ScatterPlotSeries) with:
     trendline-type: trendline-type-method,
     trendline-color: trendline-color-method,
@@ -1518,6 +1529,7 @@ data DataSeries:
       end
       self.constr()(self.obj.{point-size: point-size})
     end,
+    horizontal: horizontal-method,
   | dot-plot-series(obj :: DotPlotSeries) with:
     is-single: true,
     constr: {(): dot-plot-series},
@@ -1535,6 +1547,7 @@ data DataSeries:
     constr: {(): function-plot-series},
     color: color-method,
     legend: legend-method,
+    horizontal: horizontal-method,
   | pie-chart-series(obj :: PieChartSeries) with:
     is-single: true,
     explode: explode-method,
@@ -1558,10 +1571,8 @@ data DataSeries:
     pointer-color: pointer-color-method,
     format-axis: format-axis-data-method, 
     make-axis: make-axis-data-method, 
-    scale: scale-method, 
-    method horizontal(self, b :: Boolean):
-      self.constr()(self.obj.{horizontal: b})
-    end,
+    scale: scale-method,
+    horizontal: horizontal-method,
     annotations: single-annotations-method,
     intervals: single-intervals-method,
     error-bars: single-error-bars-method,
@@ -1589,9 +1600,7 @@ data DataSeries:
       end
       self.constr()(self.obj.{point-size: point-size})
     end,
-    method horizontal(self, b :: Boolean):
-      self.constr()(self.obj.{horizontal: b})
-    end,
+    horizontal: horizontal-method,
     annotations: single-annotations-method,
     intervals: single-intervals-method,
     error-bars: single-error-bars-method,
@@ -1610,9 +1619,7 @@ data DataSeries:
     make-axis: make-axis-data-method,
     scale: multi-scale-method,
     stacking-type: stacking-type-method, 
-    method horizontal(self, b :: Boolean):
-      self.constr()(self.obj.{horizontal: b})
-    end,
+    horizontal: horizontal-method,
     annotations: annotations-method,
     intervals: intervals-method,
     error-bars: error-bars-method,
@@ -1623,9 +1630,7 @@ data DataSeries:
     color: color-method, 
     is-single: true,
     constr: {(): box-plot-series},
-    method horizontal(self, h):
-      self.constr()(self.obj.{horizontal: h})
-    end,
+    horizontal: horizontal-method,
     method show-outliers(self, show):
       self.constr()(self.obj.{show-outliers: show})
     end,
@@ -2195,7 +2200,7 @@ fun map5<a, b, c, d, e, f>(f :: (a, b, c, d, e -> f), l1 :: List<a>, l2 :: List<
   end
 end
 
-fun get-interval-point(x :: Number, y :: Number, delta :: Number, label :: String, optimg :: Option<IM.Image>):
+fun get-interval-point(x :: Number, y :: Number, delta :: Number, label :: String, optimg :: Option<IM.Image>) -> IntervalPoint:
   { x: x, y: y, delta: delta, label: label, image: optimg }
 end
 
@@ -2684,19 +2689,23 @@ fun get-bound-result(
   end
 end
 
-fun render-charts(lst :: List<DataSeries>) -> ChartWindow:
+fun render-charts(lst :: List<DataSeries>) -> ChartWindow block:
   doc: "Draw 'em all"
-  _ = cases (Option) find(_.is-single, lst):
+  cases (Option) find(_.is-single, lst):
     | some(v) => raise(
         [sprintf: "render-charts: can't draw ", v,
                   " with `render-charts`. Use `render-chart` instead."])
     | else => nothing
   end
-  _ = cases (List<DataSeries>) lst:
+  cases (List<DataSeries>) lst:
     | empty => raise('render-charts: need at least one series to plot')
     | else => nothing
   end
-
+  when lst.any({(ds): ds.obj.horizontal}) and not(lst.all({(ds): ds.obj.horizontal})):
+    raise("render-charts: Cannot render a mix of horizontal and vertical charts.  "
+        + "Make sure all charts have the same direction.")
+  end
+    
   partitioned = partition(is-function-plot-series, lst)
   function-plots = partitioned.is-true.map(_.obj)
   is-show-samples = is-link(function-plots)

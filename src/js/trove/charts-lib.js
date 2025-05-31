@@ -1681,8 +1681,9 @@
           type: 'linear',
           range: axesConfig.secondary.range,
           nice: true, zero: false,
-          domain: [min !== undefined ? min : { signal: 'minValue' },
-                   max !== undefined ? max : { signal: 'maxValue' }]
+          domain: [{ signal: 'minValue' },{ signal: 'maxValue' }],
+          domainMin: min,
+          domainMax: max,
         },
       ];
       // These labels are *specifically directional*, not *logical* -- if a graph is flipped
@@ -2103,6 +2104,22 @@
       };
     } 
 
+    function computeDomain(domainValues) {
+      const domainMin = Math.min(...domainValues);
+      const domainMax = Math.max(...domainValues);
+      return [domainMin, domainMax];
+    }
+
+    function unionIntervals(domains) {
+      if (domains.length === 0) { return []; }
+      const ans = [...domains[0]];
+      for (const d of domains) {
+        ans[0] = Math.min(ans[0], d[0]);
+        ans[1] = Math.max(ans[1], d[1]);
+      }
+      return ans;
+    }
+
     function scatterPlot(globalOptions, rawData, config) {
       const xAxisLabel = get(globalOptions, 'x-axis');
       const yAxisLabel = get(globalOptions, 'y-axis');
@@ -2160,6 +2177,9 @@
           transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
         },
       ];
+
+      const domain = computeDomain(data[0].values.map((v) => v.x));
+      
       const signals = [
         { name: `${prefix}extentX`, update: `extent(pluck(data("${prefix}rawTable"), "x"))` },
         { name: `${prefix}extentY`, update: `extent(pluck(data("${prefix}rawTable"), "y"))` },
@@ -2194,27 +2214,19 @@
         { name: `${prefix}xscale`,
           type: 'linear',
           domain: { signal: `${prefix}extentX` },
-          domainMin: xMinValue,
-          domainMax: xMaxValue,
           range: 'width',
           nice: true },
         { name: `${prefix}yscale`,
           type: 'linear',
           domain: { signal: `${prefix}extentY` },
           range: 'height',
-          domainMin: yMinValue,
-          domainMax: yMaxValue,
           nice: true }
-      ];
-      const axes = [
-        { orient: 'bottom', scale: `xscale`, zindex: 1, title: xAxisLabel },
-        { orient: 'left', scale: `yscale`, zindex: 1, title: yAxisLabel },
       ];
       const marks = [];
       marks.push(
         {
           type: 'rule',
-          name: 'vertRule',
+          name: `${prefix}vertRule`,
           encode: {
             update: {
               x: { scale: `xscale`, signal: `${prefix}crosshair.x` },
@@ -2229,7 +2241,7 @@
         },
         {
           type: 'rule',
-          name: 'horzRule',
+          name: `${prefix}horzRule`,
           encode: {
             update: {
               x: { signal: `range('xscale')[0]` },
@@ -2428,8 +2440,8 @@
         data,
         signals,
         scales,
-        axes,
         marks,
+        domain
       };
     }
 
@@ -2463,17 +2475,13 @@
           }
         }
       });
-      asScatterPlos.prefix = prefix;
+      asScatterPlot.prefix = prefix;
       return asScatterPlot;
     }
 
     function intervalPlot(globalOptions, rawData, config) {
       const xAxisLabel = get(globalOptions, 'x-axis');
       const yAxisLabel = get(globalOptions, 'y-axis');
-      const xMinValue = getNumOrDefault(get(globalOptions, 'x-min'), undefined);
-      const xMaxValue = getNumOrDefault(get(globalOptions, 'x-max'), undefined);
-      const yMinValue = getNumOrDefault(get(globalOptions, 'y-min'), undefined);
-      const yMaxValue = getNumOrDefault(get(globalOptions, 'y-max'), undefined);
       const legend = get(rawData, 'legend') || config.legend;
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
@@ -2533,6 +2541,7 @@
             ]
         }
       ];
+      const domain = computeDomain(data[0].values.map((v) => v.x));
       const signals = [
         { name: `${prefix}extentX`, update: `extent(pluck(data("${prefix}rawTable"), "x"))` },
         { name: `${prefix}extentRawY`, update: `extent(pluck(data("${prefix}rawTable"), "y"))` },
@@ -2544,21 +2553,13 @@
         { name: `${prefix}xscale`,
           type: 'linear',
           domain: { signal: `${prefix}extentX` },
-          domainMin: xMinValue,
-          domainMax: xMaxValue,
           range: 'width',
           nice: false },
         { name: `${prefix}yscale`,
           type: 'linear',
           domain: { signal: `${prefix}extentY` },
-          domainMin: yMinValue,
-          domainMax: yMaxValue,
           range: 'height',
           nice: false }
-      ];
-      const axes = [
-        { orient: 'bottom', scale: `xscale`, zindex: 1, title: xAxisLabel },
-        { orient: 'left', scale: `yscale`, zindex: 1, title: yAxisLabel },
       ];
       const tooltip = {
         signal: `{ title: datum.label, x: datum.x, y: datum.y, ŷ: datum.yprime, 'y - ŷ': datum.delta }`
@@ -2638,8 +2639,8 @@
         data,
         signals,
         scales,
-        axes,
-        marks
+        marks,
+        domain
       };
     }
 
@@ -2667,28 +2668,21 @@
 
     // NOTE: Must be run on Pyret stack
     function functionPlot(globalOptions, rawData, config) {
-      const xAxisLabel = get(globalOptions, 'x-axis');
-      const yAxisLabel = get(globalOptions, 'y-axis');
       const legend = get(rawData, 'legend') || config.legend;
-      const prefix = config.prefix || ''
+      const prefix = config.prefix || '';
       const defaultColor = config.defaultColor || default_colors[0];
       const pointColor = getColorOrDefault(get(rawData, 'color'), defaultColor);
       const numSamples = toFixnum(get(globalOptions, 'num-samples'));
       const func = get(rawData, 'f');
+      const domain = config.domain;
+      const xMinValue = domain[0];
+      const xMaxValue = domain[1];
       // NOTE(Ben): We can use view.data(`${prefix}rawTable`, ...newData...)
       // to replace the existing data points in the _current_ view, so that
       // we do not have to reconstruct a new vega.View or restart the rendering process.
       // See https://vega.github.io/vega/docs/api/view/#view_data
 
-      // NOTE: x{Min,Max}Value are *Pyret* numbers, not JS numbers
-      const NEb = RUNTIME.NumberErrbacks;
-      const xMinValue = getOrDefault(get(globalOptions, 'x-min'), jsnums.fromFixnum(-10, NEb));
-      const xMaxValue = getOrDefault(get(globalOptions, 'x-max'), jsnums.fromFixnum(10, NEb));
-      const yMinValue = getNumOrDefault(get(globalOptions, 'y-min'), undefined);
-      const yMaxValue = getNumOrDefault(get(globalOptions, 'y-max'), undefined);
-      const fractionNum = jsnums.subtract(xMaxValue, xMinValue, NEb);
-      const fractionDen = jsnums.fromFixnum(numSamples - 1, NEb);
-      const fraction = jsnums.divide(fractionNum, fractionDen, NEb);
+      const fraction = (xMaxValue - xMinValue) / (numSamples - 1);
 
       const data = [
         {
@@ -2698,43 +2692,17 @@
       ];
 
       
-      // NOTE: For the axes, we're going to want to put the bar lines at the zeros
-      // of the domains, rather than the edges of the chart
-      const axes = [
-        { orient: 'bottom', scale: `xscale`, zindex: 1, title: xAxisLabel,
-          domain: false, ticks: false, labels: false },
-        { orient: 'bottom', scale: `xscale`, zindex: 1, 
-          // For the horizontal axis, translate it *down from the top* to the 0 intercept, if it's in range
-          offset: { scale: `yscale`,
-                    signal: `clamp(0, domain('yscale')[0], domain('yscale')[1])`,
-                    offset: { signal: 'height', mult: -1 } }
-        },
-        { orient: 'left', scale: `yscale`, zindex: 1, title: yAxisLabel,
-          domain: false, ticks: false, labels: false },
-        { orient: 'left', scale: `yscale`, zindex: 1, 
-          // For the vertical axis, offset by minus the offset to the 0 intercept, if it's in range
-          offset: { scale: `xscale`, mult: -1,
-                    signal: `clamp(0, domain('xscale')[0], domain('xscale')[1])` }
-        },
-      ];
 
       const signals = [
         { name: `${prefix}extentY`, update: `extent(pluck(data("${prefix}table"), "y"))` }
       ];
       const scales = [
-        {
-          name: `${prefix}xscale`,
-          type: 'linear',
-          domain: [toFixnum(xMinValue), toFixnum(xMaxValue)],
-          range: 'width',
-          nice: false
-        },
+        // NOTE: we don't bother defining an xscale, because functions obtain their domain
+        // from the surrounding chart context
         {
           name: `${prefix}yscale`,
           type: 'linear',
           domain: { signal: `${prefix}extentY` },
-          domainMin: yMinValue, // if these are defined, they'll
-          domainMax: yMaxValue, // override the extents in the domain
           range: 'height',
           nice: true
         }
@@ -2745,40 +2713,23 @@
       const pointSize = 6;
       const marks = [
         {
-          type: 'group',
-          name: `${prefix}clip`,
-          clip: true,
+          type: 'symbol',
+          from: { data: `${prefix}table` },
+          name: `${prefix}Dots`,
           encode: {
             enter: {
-              x: { signal: `range("xscale")[0]` },
-              x2: { signal: `range("xscale")[1]` },
-              y: { signal: `range("yscale")[0]` },
-              y2: { signal: `range("yscale")[1]` }
-            }
-          },
-          marks: [
-            {
-              type: 'symbol',
-              from: { data: `${prefix}table` },
-              name: `${prefix}Dots`,
-              encode: {
-                enter: {
-                  shape: { value: 'circle' },
-                  size: { value: pointSize * pointSize },
-                  xc: { scale: `xscale`, field: 'x' },
-                  yc: { scale: `yscale`, field: 'y' },
-                  fill: { value: pointColor },
-                  tooltip
-                },
-              }
-            }
-          ]
+              shape: { value: 'circle' },
+              size: { value: pointSize * pointSize },
+              xc: { scale: `xscale`, field: 'x' },
+              yc: { scale: `yscale`, field: 'y' },
+              fill: { value: pointColor },
+              tooltip
+            },
+          }
         }
       ];
 
-      const samplePoints = [...Array(numSamples).keys().map((i) => (
-        jsnums.add(xMinValue, jsnums.multiply(fraction, jsnums.fromFixnum(i, NEb), NEb), NEb)
-      ))];
+      const samplePoints = [...Array(numSamples).keys().map((i) => (xMinValue + (fraction * i)))];
 
       return recomputePoints(func, samplePoints, (dataValues) => {
         data[0].values = dataValues;
@@ -2787,28 +2738,24 @@
           data,
           signals,
           scales,
-          axes,
           marks,
           recompute: (view) => {
             const xscale = view.scale('xscale');
             if (!xscale) return;
             const xMinValue = xscale.domain()[0];
             const xMaxValue = xscale.domain()[1];
-            const fractionNum = jsnums.subtract(xMaxValue, xMinValue, NEb);
-            const fractionDen = jsnums.fromFixnum(numSamples - 1, NEb);
-            const fraction = jsnums.divide(fractionNum, fractionDen, NEb);
-            const samplePoints = [...Array(numSamples).keys().map((i) => (
-              jsnums.add(xMinValue, jsnums.multiply(fraction, jsnums.fromFixnum(i, NEb), NEb), NEb)
-            ))];
-            console.log("Recomputing...");
+            const fraction = (xMaxValue - xMinValue) / (numSamples - 1);
+            const samplePoints = [...Array(numSamples).keys().map((i) => (xMinValue + (fraction * i)))];
             RUNTIME.runThunk(() => {
               return recomputePoints(func, samplePoints, (dataValues) => {
                 view.data(data[0].name, dataValues);
-                return "Finished!";
               });
-            }, () => {
-              console.log("Recomputing done!");
-              view.runAsync().then(() => console.log("Rerendering done!"));
+            }, (res) => {
+              if (RUNTIME.isSuccessResult(res)) {
+                view.runAsync();
+              } else {
+                console.log(`Failed in ${prefix} to recompute points:`, res);
+              }
             });
           }
         };
@@ -2821,11 +2768,13 @@
       return `[min(${domains0.join(',')}), max(${domains1.join(',')})]`
     }
 
-    function composeCharts(globalOptions, charts) {
+    function composeCharts(globalOptions, domain, charts) {
       const xMinValue = getNumOrDefault(get(globalOptions, 'x-min'), undefined);
       const xMaxValue = getNumOrDefault(get(globalOptions, 'x-max'), undefined);
-      const yMinValue = getNumOrDefault(get(globalOptions, 'x-min'), undefined);
-      const yMaxValue = getNumOrDefault(get(globalOptions, 'x-max'), undefined);
+      const yMinValue = getNumOrDefault(get(globalOptions, 'y-min'), undefined);
+      const yMaxValue = getNumOrDefault(get(globalOptions, 'y-max'), undefined);
+      const xAxisLabel = get(globalOptions, 'x-axis');
+      const yAxisLabel = get(globalOptions, 'y-axis');
       const width = toFixnum(get(globalOptions, 'width'));
       const height = toFixnum(get(globalOptions, 'height'));
       const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
@@ -2838,14 +2787,57 @@
       // NOTE: must compute these before updating the scales array...or else the new scales will
       // become part of the signal definition, which is incorrect!
       signals.push(
+        { name: 'xMinValue', value: xMinValue },
+        { name: 'xMaxValue', value: xMaxValue },
+        { name: 'yMinValue', value: yMinValue },
+        { name: 'yMaxValue', value: yMaxValue },
         { name: 'xscaleSignal', update: unionScaleSignal(scales.filter((s) => s.name.endsWith('xscale'))) },
         { name: 'yscaleSignal', update: unionScaleSignal(scales.filter((s) => s.name.endsWith('yscale'))) }
       );
       scales.push(
-        { name: 'xscale', domain: { signal: 'xscaleSignal' }, range: 'width' },
-        { name: 'yscale', domain: { signal: 'yscaleSignal' }, range: 'height' }
+        { name: 'xscale', domain: { signal: 'xscaleSignal' }, range: 'width',
+          domainMin: { signal: 'xMinValue' }, domainMax: { signal: 'xMaxValue' } },
+        { name: 'yscale', domain: { signal: 'yscaleSignal' }, range: 'height',
+          domainMin: { signal: 'yMinValue' }, domainMax: { signal: 'yMaxValue' } }
       );
-      const axes = (charts.find((c) => c.prefix.startsWith('function')) || charts[0]).axes
+
+      // NOTE: For the axes, we're going to want to put the bar lines at the zeros
+      // of the domains, rather than the edges of the chart
+      const axes = [
+        { orient: 'bottom', scale: `xscale`, zindex: 1, title: xAxisLabel,
+          domain: false, tickOpacity: 0, labelOpacity: 0 },
+        { orient: 'bottom', scale: `xscale`, zindex: 1, 
+          // For the horizontal axis, translate it *down from the top* to the 0 intercept, if it's in range
+          offset: { scale: `yscale`,
+                    signal: `clamp(0, domain('yscale')[0], domain('yscale')[1])`,
+                    offset: { signal: 'height', mult: -1 } }
+        },
+        { orient: 'left', scale: `yscale`, zindex: 1, title: yAxisLabel,
+          domain: false, tickOpacity: 0, labelOpacity: 0 },
+        { orient: 'left', scale: `yscale`, zindex: 1, 
+          // For the vertical axis, offset by minus the offset to the 0 intercept, if it's in range
+          offset: { scale: `xscale`, mult: -1,
+                    signal: `clamp(0, domain('xscale')[0], domain('xscale')[1])` }
+        },
+      ];
+
+      const marks = [
+        {
+          type: 'group',
+          name: `clip`,
+          clip: true,
+          encode: {
+            enter: {
+              x: { signal: `range("xscale")[0]` },
+              x2: { signal: `range("xscale")[1]` },
+              y: { signal: `range("yscale")[0]` },
+              y2: { signal: `range("yscale")[1]` }
+            }
+          },
+          marks: charts.flatMap((c) => c.marks || []),
+        }
+      ]
+          
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
@@ -2859,8 +2851,8 @@
         signals,
         scales,
         axes,
+        marks,
         legends: charts.flatMap((c) => c.legends || []),
-        marks: charts.flatMap((c) => c.marks || []),
         onExit: defaultImageReturn,
         recompute: (view) => {
           charts.forEach((c) => {
@@ -2875,6 +2867,8 @@
       const lines = get(rawData, 'lines');
       const intervals = get(rawData, 'intervals');
       const functions = get(rawData, 'functions');
+      const xMinValue = getNumOrDefault(get(globalOptions, 'x-min'), undefined);
+      const xMaxValue = getNumOrDefault(get(globalOptions, 'x-max'), undefined);
       let i = 0;
       function nextColor() {
         return default_colors[i++ % default_colors.length];
@@ -2901,11 +2895,11 @@
             { prefix: `interval${n}`, defaultColor: nextColor(), legend: nextPlot() }
           )), intervals);
       }
-      function makeFunctionPlots() {
+      function makeFunctionPlots(domain) {
         return RUNTIME.raw_array_mapi(
           RUNTIME.makeFunction((f, n) => functionPlot(
             globalOptions, f,
-            { prefix: `function${n}`, defaultColor: nextColor(), legend: nextPlot() }
+            { prefix: `function${n}`, defaultColor: nextColor(), legend: nextPlot(), domain }
           )), functions);
       }
       return RUNTIME.safeCall(
@@ -2914,15 +2908,20 @@
           makeLinePlots,
           (linePlots) => RUNTIME.safeCall(
             makeIntervalPlots,
-            (intervalPlots) => RUNTIME.safeCall(
-              makeFunctionPlots,
-              (functionPlots) => composeCharts(globalOptions, [
-                ...scatterPlots,
-                ...linePlots,
-                ...intervalPlots,
-                ...functionPlots
-              ])
-            )
+            (intervalPlots) => {
+              const domains = [...scatterPlots, ...linePlots, ...intervalPlots].map((p) => p.domain);
+              const unionDomain = unionIntervals(domains);
+              const clippedDomain = [xMinValue ?? unionDomain[0], xMaxValue ?? unionDomain[1]];
+              return RUNTIME.safeCall(
+                () => makeFunctionPlots(clippedDomain),
+                (functionPlots) => composeCharts(globalOptions, clippedDomain, [
+                  ...scatterPlots,
+                  ...linePlots,
+                  ...intervalPlots,
+                  ...functionPlots
+                ])
+              );
+            }
           )
         )
       );
@@ -3431,7 +3430,6 @@ ${labelRow}`;
           tooltip: vegaTooltipHandler.call
         });
         view.addSignalListener('xscaleSignal', (name, value) => {
-          console.log(name, value);
           if (processed.recompute) { processed.recompute(view); }
         });
         view.width(width).height(height).resize();
