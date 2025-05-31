@@ -2120,6 +2120,63 @@
       return ans;
     }
 
+    function addCrosshairs(prefix, markNames, signals, marks, color) {
+      signals.push(
+        { name: `${prefix}crosshair`,
+          // NOTE: start it in bounds, so as not to affect the drawing scale or area
+          update: `{ x: xMinValue, y: yMinValue }`,
+          on: [
+            {
+              events: markNames.map((name) => ({ markname: `${prefix}${name}`, type: 'click' })),
+              force: true,
+              update: `${prefix}crosshair === datum ? { x: 0, y: 0 } : datum`
+            }
+          ]
+        },
+        { name: `${prefix}crosshairOpacity`, update: `0`,
+          on: [
+            {
+              events: markNames.map((name) => ({ markname: `${prefix}${name}`, type: 'click' })),
+              force: true,
+              update: `${prefix}crosshair === datum ? 1 : 0`
+            },            
+          ]
+        }
+      );
+      marks.push(
+        {
+          type: 'rule',
+          name: `${prefix}vertRule`,
+          encode: {
+            update: {
+              x: { scale: `xscale`, signal: `${prefix}crosshair.x` },
+              x2: { scale: `xscale`, signal: `${prefix}crosshair.x` },
+              y: { signal: `range('yscale')[0]` },
+              y2: { signal: `range('yscale')[1]` },
+              stroke: { value: color },
+              strokeWidth: { value: 1 },
+              strokeOpacity: { signal: `${prefix}crosshairOpacity` }
+            },
+          }
+        },
+        {
+          type: 'rule',
+          name: `${prefix}horzRule`,
+          encode: {
+            update: {
+              x: { signal: `range('xscale')[0]` },
+              x2: { signal: `range('xscale')[1]` },
+              y: { scale: `yscale`, signal: `${prefix}crosshair.y` },
+              y2: { scale: `yscale`, signal: `${prefix}crosshair.y` },
+              stroke: { value: color },
+              strokeWidth: { value: 1 },
+              strokeOpacity: { signal: `${prefix}crosshairOpacity` }
+            },
+          }
+        }
+      );
+    }
+
     function scatterPlot(globalOptions, rawData, config) {
       const xAxisLabel = get(globalOptions, 'x-axis');
       const yAxisLabel = get(globalOptions, 'y-axis');
@@ -2179,36 +2236,10 @@
       ];
 
       const domain = computeDomain(data[0].values.map((v) => v.x));
-      
+
       const signals = [
         { name: `${prefix}extentX`, update: `extent(pluck(data("${prefix}rawTable"), "x"))` },
         { name: `${prefix}extentY`, update: `extent(pluck(data("${prefix}rawTable"), "y"))` },
-        { name: `${prefix}crosshair`,
-          // NOTE: start it in bounds, so as not to affect the drawing scale or area
-          update: `{ x: ${prefix}extentX[0], y: ${prefix}extentY[0] }`,
-          on: [
-            {
-              events: [
-                { markname: `${prefix}ImageMarks`, type: 'click' },
-                { markname: `${prefix}ShapeMarks`, type: 'click' }
-              ],
-              force: true,
-              update: `${prefix}crosshair === datum ? { x: 0, y: 0 } : datum`
-            }
-          ]
-        },
-        { name: `${prefix}crosshairOpacity`, update: `0`,
-          on: [
-            {
-              events: [
-                { markname: `${prefix}ImageMarks`, type: 'click' },
-                { markname: `${prefix}ShapeMarks`, type: 'click' }
-              ],
-              force: true,
-              update: `${prefix}crosshair === datum ? 1 : 0`
-            },            
-          ]
-        }
       ];
       const scales = [
         { name: `${prefix}xscale`,
@@ -2223,38 +2254,9 @@
           nice: true }
       ];
       const marks = [];
-      marks.push(
-        {
-          type: 'rule',
-          name: `${prefix}vertRule`,
-          encode: {
-            update: {
-              x: { scale: `xscale`, signal: `${prefix}crosshair.x` },
-              x2: { scale: `xscale`, signal: `${prefix}crosshair.x` },
-              y: { signal: `range('yscale')[0]` },
-              y2: { signal: `range('yscale')[1]` },
-              stroke: { value: color },
-              strokeWidth: { value: 1 },
-              strokeOpacity: { signal: `${prefix}crosshairOpacity` }
-            },
-          }
-        },
-        {
-          type: 'rule',
-          name: `${prefix}horzRule`,
-          encode: {
-            update: {
-              x: { signal: `range('xscale')[0]` },
-              x2: { signal: `range('xscale')[1]` },
-              y: { scale: `yscale`, signal: `${prefix}crosshair.y` },
-              y2: { scale: `yscale`, signal: `${prefix}crosshair.y` },
-              stroke: { value: color },
-              strokeWidth: { value: 1 },
-              strokeOpacity: { signal: `${prefix}crosshairOpacity` }
-            },
-          }
-        }
-      );
+
+      addCrosshairs(prefix, ['ImageMarks', 'ShapeMarks'], signals, marks, color);
+      
       if (trendlineType) {
         data.push(
           {
@@ -2361,6 +2363,14 @@
             height: { value: pointSize },
             image: { field: 'image' },
             tooltip: tooltips
+          },
+          update: {
+            stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${color}'` },
+            strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 1 : 0)` },
+            zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
+          },
+          hover: {
+            zindex: { value: 1 }
           }
         }
       });
@@ -2380,7 +2390,12 @@
             },
             update: {
               fill: { value: color },
+              stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${color}'` },
+              zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
+            },
+            hover: {
               stroke: { value: color },
+              zindex: { value: 1 }
             }
           }
         });
@@ -2437,6 +2452,8 @@
         
       return {
         prefix,
+        color,
+        legend,
         data,
         signals,
         scales,
@@ -2470,8 +2487,15 @@
             x: { scale: `xscale`, field: 'x' },
             y: { scale: `yscale`, field: 'y' },
             stroke: { value: color },
-            strokeWidth: { value: lineWidth },
             tooltip: marks[marks.length - 1].encode.enter.tooltips
+          },
+          update: {
+            strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 2 : 1) * ${lineWidth}` },
+            zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
+          },
+          hover: {
+            strokeWidth: { value: 2 * lineWidth },
+            zindex: { value: 1 }
           }
         }
       });
@@ -2485,11 +2509,11 @@
       const legend = get(rawData, 'legend') || config.legend;
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
-      const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
+      const dataColor = getColorOrDefault(get(rawData, 'color'), defaultColor);
       const intervalStyle = get(rawData, 'style');
       const intervalStickWidth = toFixnum(get(rawData, 'stick-width'));
       const intervalFillOpacity = ((intervalStyle == 'boxes') ? 0 : 1);
-      const pointColor = getColorOrDefault(get(rawData, 'pointer-color'), 'black')
+      const intervalColor = getColorOrDefault(get(rawData, 'pointer-color'), 'black')
       const pointSize = toFixnum(get(rawData, 'point-size'));
 
       const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
@@ -2577,6 +2601,14 @@
               height: { value: pointSize },
               image: { field: 'image' },
               tooltip
+            },
+            update: {
+              stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${dataColor}'` },
+              strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 1 : 0)` },
+              zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
+            },
+            hover: {
+              zindex: { value: 1 }
             }
           }
         },
@@ -2590,12 +2622,16 @@
               size: { value: pointSize * pointSize },
               xc: { scale: `xscale`, field: 'x' },
               yc: { scale: `yscale`, field: 'y' },
-              fill: { value: pointColor },
+              fill: { value: dataColor },
               tooltip
             },
             update: {
-              fill: { value: pointColor },
-              stroke: { value: pointColor },
+              fill: { value: dataColor },
+              stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${dataColor}'` },
+              zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
+            },
+            hover: {
+              zindex: { value: 1 }
             }
           }
         },
@@ -2608,7 +2644,7 @@
               x: { scale: `xscale`, field: 'x' },
               y: { scale: `yscale`, field: 'y' },
               y2: { scale: `yscale`, field: 'yprime' },
-              stroke: { value: color },
+              stroke: { value: dataColor }, // NOTE: this mimics the existing behavior, but it seems backwards
               strokeWidth: { value: intervalStickWidth },
             }
           }
@@ -2623,19 +2659,26 @@
               size: { value: pointSize * pointSize },
               xc: { scale: `xscale`, field: 'x' },
               yc: { scale: `yscale`, field: 'yprime' },
-              fill: { value: color },
+              fill: { value: intervalColor },
               tooltip
             },
             update: {
-              fill: { value: color },
-              stroke: { value: color },
+              stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${intervalColor}'` },
+              zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
+            },
+            hover: {
+              zindex: { value: 1 }
             }
           }
         },
       ];
 
+      addCrosshairs(prefix, ['ImageMarks', 'DataMarks'], signals, marks, dataColor);
+
       return {
         prefix,
+        color: dataColor,
+        legend,
         data,
         signals,
         scales,
@@ -2725,9 +2768,19 @@
               fill: { value: pointColor },
               tooltip
             },
+            update: {
+              stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${pointColor}'` },
+              strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 1 : 0)` },
+              zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
+            },
+            hover: {
+              zindex: { value: 1 }
+            }
           }
         }
       ];
+
+      addCrosshairs(prefix, ['Dots'], signals, marks, pointColor);
 
       const samplePoints = [...Array(numSamples).keys().map((i) => (xMinValue + (fraction * i)))];
 
@@ -2735,6 +2788,8 @@
         data[0].values = dataValues;
         return {
           prefix,
+          color: pointColor,
+          legend,
           data,
           signals,
           scales,
@@ -2837,6 +2892,74 @@
           marks: charts.flatMap((c) => c.marks || []),
         }
       ]
+
+      const legends = [];
+      if (charts.length > 1) {
+        scales.push(
+          {
+            name: 'legendColor',
+            type: 'ordinal',
+            domain: charts.map((c) => c.prefix),
+            range: charts.map((c) => c.color),
+          },
+          {
+            name: 'legends',
+            type: 'ordinal',
+            domain: charts.map((c) => c.prefix),
+            range: charts.map((c) => c.legend)
+          }
+        );
+        legends.push({
+          direction: 'horizontal',
+          orient: 'bottom',
+          columns: 4,
+          type: 'symbol',
+          fill: 'legendColor',
+          symbolType: 'square',
+          encode: {
+            labels: {
+              name: 'legend-labels',
+              interactive: true,
+              update: {
+                text: { scale: 'legends', field: 'value' },
+                cursor: { value: 'pointer' },
+              },
+              symbols: {
+                name: 'legend-symbols',
+                interactive: true,
+                update: { cursor: { value: 'pointer' } }
+              }
+            }
+          }
+        });
+        signals.push({
+          name: 'hoveredLegend',
+          value: 'null',
+          on: [
+            {
+              events: [
+                { markname: 'legend-labels', type: 'mouseover' },
+                { markname: 'legend-symbols', type: 'mouseover' }
+              ],
+              force: true,
+              update: 'datum.value'
+            },
+            {
+              events: [
+                { markname: 'legend-labels', type: 'mouseout' },
+                { markname: 'legend-symbols', type: 'mouseout' }
+              ],
+              force: true,
+              update: 'null'
+            },
+          ]
+        });
+      } else {
+        signals.push({
+          name: 'hoveredLegend',
+          value: 'null'
+        });
+      }
           
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
@@ -2852,7 +2975,13 @@
         scales,
         axes,
         marks,
-        legends: charts.flatMap((c) => c.legends || []),
+        legends,
+        config: {
+          legend: {
+            orient: 'bottom',
+            layout: { bottom: { anchor: 'middle' } },
+          }
+        },
         onExit: defaultImageReturn,
         recompute: (view) => {
           charts.forEach((c) => {

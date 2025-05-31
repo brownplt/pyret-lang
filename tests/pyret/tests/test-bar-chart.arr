@@ -112,16 +112,21 @@ names = [list:
 
     "Abbey", "Abigail", "Ada", "Adele", "Alex", "Alf", "Amie", "Amy", "Annie", "Archie", "Aries", "Armanti", "Arnie", "Ashes", "Astro", "Audi", "Austin", "Autumn", "Axle", "Babbles", "Bacchus", "Bam-bam", "Banjo", "Baron", "Beamer", "Beanie", "Bear", "Ben", "Bibbles", "Billie", "Billy", "Binky", "Bitsy", "Bo", "Bo", "Bob", "Bobbie", "Bode", "Bongo", "Boo", "Boo-boo", "Booker", "Boomer", "Boone", "Bootie", "Boots", "Bosley", "Boss", "Bozley", "Bradley", "Brando", "Brindle", "Brittany", "Brownie", "Bruno", "Brutus", "Bubba", "Buck", "Buckeye", "Bucko", "Bucky", "Budda", "Buddie", "Buddy", "Bugsey", "Bugsy", "Bullet", "Bully", "Buster", "Butch", "Butterscotch", "Callie", "Calvin", "Camille", "Chad", "Chamberlain", "Champ", "Chanel", "Chaos", "Charles", "Chaz", "Chester", "Chewie", "Chi Chi", "Chico", "Chiquita", "Chrissy", "Chucky", "Cindy", "Clancy", "Coco", "Coconut", "Codi", "Cody", "Connor", "Cooper", "Corky", "Cubby", "Curly", "Cutie", "Daffy", "Daisy", "Dakota", "Darcy", "Dash", "Dave", "Dempsey", "Dexter", "Diamond", "Dickens", "Dino", "Dixie", "Dixon", "Dobie", "Dodger", "Dreamer", "Duchess", "Dude", "Duncan", "Dusty", "Dutchess", "Dylan", "Earl", "Edgar", "Einstein", "Ellie", "Elvis", "Ember", "Erin", "Ernie", "Fancy", "Felix", "Felix", "Ferris", "Figaro", "Flake", "Flash", "Flopsy", "Flower", "Floyd", "Foxy", "Frankie", "Franky", "Freckles", "Fred", "Freddie", "Friday", "Fritz", "Fritz", "Frosty", "Garfield", "George", "Gila", "Gilda", "Gir", "Girl", "Goober", "Gordon", "Gracie", "Greenie", "Grizzly", "Gromit", "Gucci", "Haley", "Happy", "Harpo", "Heathcliff", "Hercules", "Hercules", "Higgins", "Holly", "Hudson", "Huey", "India", "Indy", "Inez", "Jade", "Jake", "Jamie", "Jenny", "Jess", "Jetta", "JJ", "Joe", "Jolly", "Joy", "Jujo", "Julius", "June", "Justice", "Kali", "Kasey", "Kato", "Kayla", "KC", "Kelsey", "Kerry", "Kid", "Klaus", "Koba", "Kona", "Kujo", "Lacey", "Laney", "Lili", "Lilly", "Lincoln", "Linus", "Lizzy", "Logan", "Lola", "Lou", "Lucas", "Luci", "Lucky", "Lucky", "Luke", "Lulu", "Luna", "Lynx", "Macintosh", "Magnolia", "Maple", "Marble", "Max", "Mia", "Miaulis", "Midnight", "Miles", "Minnie", "Misha", "Miso", "Miss Kitty", "Missy", "Mittens", "Mittens", "Mitzy", "Mo", "Molly", "Mona", "Moose", "Motordude", "Mr. Peanutbutter", "Muffin", "Mugsy", "Murphy", "Nakita", "Nana", "Natasha", "Nemo", "Newt", "Newton", "Nibblet", "Nico", "Niki", "Nikita", "Niko", "Nori", "North", "Norton", "Nugget", "Olivia", "Opie", "Oscar", "Otis", "Paddington", "Paddy", "Pandora", "Parker", "Pasha", "Patches", "Patsy", "Pedro", "Penny", "Pepe", "Peter", "Petey", "Phantom", "Phoenix", "Pickles", "Piggy", "Piglet", "Pinto", "Polly", "Pooch", "Pooh", "Porche", "Porky", "Porter", "Princess", "Puppy", "Queenie", "Quinn", "Rebel", "Rex", "Riggs", "Rocco", "Rocko", "Roland", "Roman", "Rosebud", "Rover", "Roxanne", "Roxie", "Ruchus", "Ruffe", "Ruthie", "Sabine", "Sabrina", "Sailor", "Salem", "Salty", "Sam", "Samantha", "Sandy", "Sara", "Sarge", "Sasha", "Sasha", "Sassie", "Sassy", "Savannah", "Scooter", "Scout", "Shadow", "Shasta", "Sheba", "Sheena", "Shiner", "Sienna", "Silky", "Silver", "Simba", "Simone", "Sissy", "Skeeter", "Skipper", "Skittles", "Slinky", "Smudge", "Sneakers", "Snowcone", "Snuffles", "Snuffles", "Snuggles", "Sparkle", "Spencer", "Spookey", "Spot", "Stella", "Stich", "Stormy", "Sugar", "Sunday", "Sunflower", "Susie", "Susie Q", "Sydney", "T-Bone", "Tabby", "Taco", "Tammy", "Tanner", "Tess", "Thor", "Tiggy", "Tiki", "Tinkerbell", "Tinkles", "Titus", "Toby", "Toggle", "Toni", "Toto", "Tracker", "Tramp", "Trigger", "Tripod", "Trouble", "Troy", "Tuck", "Turner", "Twiggy", "Ty", "Valinto", "Vinnie", "Vinny", "Vito", "Volvo", "Waddles", "Wade", "Wallace", "Walter", "Wayne", "Westie", "Whiskers", "Whispy", "Whitie", "Whiz", "Wiggles", "Wolfie", "Wrinkles", "Xena", "Yeller", "Yellow", "Zack", "Ziggy"]
 
+PI = ~3.14159265358979323
 
 
-va-int = VC.from-list.labeled-interval-chart(names, range(0, weights.length()), weights, ages).horizontal(true)
-va-scatter = VC.from-list.scatter-plot(weights, ages).horizontal(true)
-va-fun = VC.from-list.function-plot(num-tan).horizontal(true)
-va-line = VC.from-list.line-plot(weights, ages).horizontal(true)
+va-int = VC.from-list.labeled-interval-chart(names, range(0, weights.length()), weights, 
+  range(0, weights.length()).map({(n): 20 * num-sin((n * 2 * PI) / 360)}))
+  .color(C.blue).pointer-color(C.yellow)
+va-scatter = VC.from-list.scatter-plot(weights, ages)
+va-fun = VC.from-list.function-plot(num-tan)
+va-line = VC.from-list.line-plot(weights.take(30), ages.take(30))
 rendered = VC.render-charts([list: va-int, va-scatter, va-fun, va-line])
   .background-color(C.gray)
   .x-axis("This way!")
   .y-axis("That way!")
+  .x-min(-10).x-max(40)
+  .y-min(-50).y-max(60)
 #  .height(400).width(500)
 
 # labels = range(0, weights.length()).map({(n): "Label " + to-string(n)})
