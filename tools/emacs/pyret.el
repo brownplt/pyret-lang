@@ -1061,6 +1061,8 @@ the number of quote characters in the match."
             (push 'wantcloseparen opens)
             (push 'wantopenparen opens)
             (forward-char 5))
+           ((and (pyret-DATA) (pyret-has-top opens '(provide)))
+            (forward-char 4))
            ((and (pyret-DATA) (not (pyret-has-top opens '(new-provide))) (not (pyret-has-top opens '(import))))
             (incf (pyret-indent-data defered-opened))
             (push 'data opens)
