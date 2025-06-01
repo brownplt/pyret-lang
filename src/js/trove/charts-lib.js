@@ -95,14 +95,6 @@
     
     //////////////////////////////////////////////////////////////////////////////
 
-    function getPrettyNumToStringDigits(d) {
-      // this accepts Pyret num
-      return n =>
-      jsnums.toStringDigits(n, d, RUNTIME.NumberErrbacks).replace(/\.?0*$/, '');
-    }
-
-    const prettyNumToStringDigits5 = getPrettyNumToStringDigits(5);
-
     function convertColor(v) {
       function p(pred, name) {
         return val => {
@@ -135,34 +127,6 @@
 
     function convertPointer(p) {
       return { value: toFixnum(get(p, 'value')) , label: get(p, 'label') }
-    }
-
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    function numSignificantDigits(n) {
-      let ns = n.toString();
-      let fracPart = ns.replace(/^.*\./, '');
-      let fracPartLength = fracPart.length;
-      if (fracPartLength === ns.length) {
-        return 0;
-      }
-      return fracPartLength;
-    }
-
-    function fourSig(n, targetSd = 4) {
-      if (targetSd > 4) { targetSd = 4; }
-      let sd = numSignificantDigits(n);
-      if (sd === 0) { return n; }
-      if (sd > targetSd) { n = n.toFixed(targetSd); }
-      let ns = n.toString();
-      ns = ns.replace(/0*$/, '');
-      return Number(ns);
-    }
-
-    function saneSubtract(m, n) {
-      let sd = Math.max(numSignificantDigits(m), numSignificantDigits(n));
-      return fourSig(m - n, sd);
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -205,49 +169,7 @@
 
     //////////////////////////////////////////////////////////////////////////////
 
-    function selectMultipleMutator(options, globalOptions, _) {
-      const multiple = globalOptions['multiple'];
-      if (multiple) {
-        $.extend(options, {selectionMode: 'multiple'});
-      } else {
-        $.extend(options, {selectionMode: 'single'});
-      }
-    }
-
-    function backgroundMutator(options, globalOptions, _) {
-      const backgroundColor = cases(RUNTIME.ffi.isOption, 'Option', globalOptions['backgroundColor'], {
-        none: function () {
-          return 'transparent';
-        },
-        some: function (color) {
-          return convertColor(color);
-        }
-      });
-      const borderColor = cases(RUNTIME.ffi.isOption, 'Option', globalOptions['borderColor'], {
-        none: function () {
-          return '#666';
-        },
-        some: function (color) {
-          return convertColor(color);
-        }
-      });
-      const borderSize = toFixnum(globalOptions['borderSize'])
-      $.extend(options, {
-        backgroundColor: {
-          fill: backgroundColor,
-          strokeWidth: borderSize,
-          stroke: borderColor,
-        }
-      });
-    }
-    function collectAxisNames(options, globalOptions) {
-      const hAxis = options.hAxis ??= {};
-      const vAxis = options.vAxis ??= {};
-      hAxis.title = globalOptions['x-axis'];
-      vAxis.title = globalOptions['y-axis'];
-      return options;
-    }
-
+    // TODO(Ben): support these options?
     function getGridlines(options, globalOptions) {
       const hAxis = options.hAxis ??= {};
       const vAxis = options.vAxis ??= {};
@@ -279,56 +201,6 @@
         vAxis.minorGridlines = {count: 0};
       }
       return options;
-    }
-
-    function yAxisRangeMutator(options, globalOptions, _) {
-      const vAxis = ('vAxis' in options) ? options.vAxis : {};
-      const viewWindow = ('viewWindow' in vAxis) ? vAxis.viewWindow : {};
-
-      cases(RUNTIME.ffi.isOption, 'Option', globalOptions['y-min'], {
-        none: function () {},
-        some: function (minValue) {
-          const v = toFixnum(minValue);
-          vAxis.minValue = v;
-          viewWindow.min = v;
-        }
-      });
-      cases(RUNTIME.ffi.isOption, 'Option', globalOptions['y-max'], {
-        none: function () {},
-        some: function (maxValue) {
-          const v = toFixnum(maxValue);
-          vAxis.maxValue = v;
-          viewWindow.max = v;
-        }
-      });
-      vAxis.viewWindow = viewWindow;
-      $.extend(options, {vAxis: vAxis});
-    }
-
-    function xAxisRangeMutator(options, globalOptions, _) {
-      const hAxis = ('hAxis' in options) ? options.hAxis : {};
-      const viewWindow = ('viewWindow' in hAxis) ? hAxis.viewWindow : {};
-
-      const minValue = globalOptions['x-min'];
-      const maxValue = globalOptions['x-max'];
-
-      cases(RUNTIME.ffi.isOption, 'Option', minValue, {
-        none: function () {},
-        some: function (realMinValue) {
-          hAxis.minValue = toFixnum(realMinValue);
-          viewWindow.min = toFixnum(realMinValue);
-        }
-      });
-      cases(RUNTIME.ffi.isOption, 'Option', maxValue, {
-        none: function () {},
-        some: function (realMaxValue) {
-          hAxis.maxValue = toFixnum(realMaxValue);
-          viewWindow.max = toFixnum(realMaxValue);
-        }
-      });
-
-      hAxis.viewWindow = viewWindow;
-      $.extend(options, {hAxis: hAxis});
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -1638,7 +1510,7 @@
               name: 'highOutlierMarks',
               encode: {
                 enter: {
-                  shape: { value: 'M -1 -1 L 1 1 M 1 -1 L -1 1' },
+                  shape: { value: 'M -1 -1 L 1 1 M 1 -1 L -1 1' }, // Draws an X shape
                   fill: { value: color },
                   fillOpacity: { value: 0.25 },
                   stroke: { value: color },
@@ -2167,7 +2039,8 @@
       const marks = [];
 
       addCrosshairs(prefix, ['ImageMarks', 'ShapeMarks'], signals, marks, color);
-      
+
+      // TODO: Factor this out so other charts can have trendlines too.
       if (trendlineType) {
         data.push(
           {
@@ -2635,21 +2508,10 @@
       const domain = config.domain;
       const xMinValue = domain[0];
       const xMaxValue = domain[1];
-      // NOTE(Ben): We can use view.data(`${prefix}rawTable`, ...newData...)
-      // to replace the existing data points in the _current_ view, so that
-      // we do not have to reconstruct a new vega.View or restart the rendering process.
-      // See https://vega.github.io/vega/docs/api/view/#view_data
 
       const fraction = (xMaxValue - xMinValue) / (numSamples - 1);
 
-      const data = [
-        {
-          name: `${prefix}table`,
-          transform: []
-        }
-      ];
-
-      
+      const data = [ { name: `${prefix}table` } ];
 
       const signals = [
         { name: `${prefix}extentY`, update: `extent(pluck(data("${prefix}table"), "y"))` }
@@ -2716,8 +2578,11 @@
             const xMaxValue = globalOptions.xMaxValue;
             const fraction = (xMaxValue - xMinValue) / (numSamples - 1);
             const samplePoints = [...Array(numSamples).keys().map((i) => (xMinValue + (fraction * i)))];
-            console.log("Recomputing at", samplePoints);
             RUNTIME.runThunk(() => {
+              // NOTE(Ben): We can use view.data(`${prefix}rawTable`, ...newData...)
+              // to replace the existing data points in the _current_ view, so that
+              // we do not have to reconstruct a new vega.View or restart the rendering process.
+              // See https://vega.github.io/vega/docs/api/view/#view_data
               return recomputePoints(func, samplePoints, (dataValues) => {
                 view.data(data[0].name, dataValues);
               });
@@ -2759,9 +2624,8 @@
       const height = toFixnum(globalOptions['height']);
       const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
       const title = globalOptions['title'];
-      const multiple = isTrue(globalOptions['multiple']);
+      // TODO(Ben): support these options?
       const gridlines = getGridlines({}, globalOptions);
-      // console.log(gridlines);
       const scales = charts.flatMap((c) => c.scales || []);
       const signals = charts.flatMap((c) => c.signals || []);
       // NOTE: must compute these before updating the scales array...or else the new scales will
