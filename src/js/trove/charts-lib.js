@@ -167,16 +167,9 @@
 
     //////////////////////////////////////////////////////////////////////////////
 
-    function getNewWindow(xMinC, xMaxC, yMinC, yMaxC, numSamplesC) {
-      const raw = {
-        'x-min': xMinC,
-        'x-max': xMaxC,
-        'y-min': yMinC,
-        'y-max': yMaxC,
-        'num-samples': numSamplesC
-      }
+    function getNewWindow(raw) {
       const ret = {}
-      for (const rawVal of raw) {
+      for (const rawVal in raw) {
         const num = RUNTIME.string_tonumber(raw[rawVal].val());
         if (RUNTIME.isNothing(num)) {
           raw[rawVal].addClass('error-bg');
@@ -186,40 +179,34 @@
           ret[rawVal] = num;
         }
       }
-      if (jsnums.greaterThanOrEqual(ret['x-min'], ret['x-max'], RUNTIME.NumberErrbacks)) {
-        xMinC.addClass('error-bg');
-        xMaxC.addClass('error-bg');
-        xMinC.removeClass('ok-bg');
-        xMaxC.removeClass('ok-bg');
+      if (jsnums.greaterThanOrEqual(ret.xMinValue, ret.xMaxValue, RUNTIME.NumberErrbacks)) {
+        raw.xMinValue.addClass('error-bg');
+        raw.xMaxValue.addClass('error-bg');
+        raw.xMinValue.removeClass('ok-bg');
+        raw.xMaxValue.removeClass('ok-bg');
         return null;
       }
-      if (jsnums.greaterThanOrEqual(ret['y-min'], ret['y-max'], RUNTIME.NumberErrbacks)) {
-        yMinC.addClass('error-bg');
-        yMaxC.addClass('error-bg');
-        yMinC.removeClass('ok-bg');
-        yMaxC.removeClass('ok-bg');
+      if (jsnums.greaterThanOrEqual(ret.yMinValue, ret.yMaxValue, RUNTIME.NumberErrbacks)) {
+        raw.yMinValue.addClass('error-bg');
+        raw.yMaxValue.addClass('error-bg');
+        raw.yMinValue.removeClass('ok-bg');
+        raw.yMaxValue.removeClass('ok-bg');
         return null;
       }
-      if (!isTrue(RUNTIME.num_is_integer(ret['num-samples'])) ||
-          jsnums.lessThanOrEqual(ret['num-samples'], 1, RUNTIME.NumberErrbacks)) {
-        numSamplesC.addClass('error-bg');
-        numSamplesC.removeClass('ok-bg');
+      if (!isTrue(RUNTIME.num_is_integer(ret.numSamples)) ||
+          jsnums.lessThanOrEqual(ret.numSamples, 1, RUNTIME.NumberErrbacks)) {
+        raw.numSamples.addClass('error-bg');
+        raw.numSamples.removeClass('ok-bg');
         return null;
       }
 
-      return {
-        'x-min': RUNTIME.ffi.makeSome(ret['x-min']),
-        'x-max': RUNTIME.ffi.makeSome(ret['x-max']),
-        'y-min': RUNTIME.ffi.makeSome(ret['y-min']),
-        'y-max': RUNTIME.ffi.makeSome(ret['y-max']),
-        'num-samples': ret['num-samples']
-      };
+      return ret;
     }
 
     //////////////////////////////////////////////////////////////////////////////
 
     function selectMultipleMutator(options, globalOptions, _) {
-      const multiple = get(globalOptions, 'multiple');
+      const multiple = globalOptions['multiple'];
       if (multiple) {
         $.extend(options, {selectionMode: 'multiple'});
       } else {
@@ -228,7 +215,7 @@
     }
 
     function backgroundMutator(options, globalOptions, _) {
-      const backgroundColor = cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'backgroundColor'), {
+      const backgroundColor = cases(RUNTIME.ffi.isOption, 'Option', globalOptions['backgroundColor'], {
         none: function () {
           return 'transparent';
         },
@@ -236,7 +223,7 @@
           return convertColor(color);
         }
       });
-      const borderColor = cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'borderColor'), {
+      const borderColor = cases(RUNTIME.ffi.isOption, 'Option', globalOptions['borderColor'], {
         none: function () {
           return '#666';
         },
@@ -244,7 +231,7 @@
           return convertColor(color);
         }
       });
-      const borderSize = toFixnum(get(globalOptions, 'borderSize'))
+      const borderSize = toFixnum(globalOptions['borderSize'])
       $.extend(options, {
         backgroundColor: {
           fill: backgroundColor,
@@ -256,8 +243,8 @@
     function collectAxisNames(options, globalOptions) {
       const hAxis = options.hAxis ??= {};
       const vAxis = options.vAxis ??= {};
-      hAxis.title = get(globalOptions, 'x-axis');
-      vAxis.title = get(globalOptions, 'y-axis');
+      hAxis.title = globalOptions['x-axis'];
+      vAxis.title = globalOptions['y-axis'];
       return options;
     }
 
@@ -265,16 +252,16 @@
       const hAxis = options.hAxis ??= {};
       const vAxis = options.vAxis ??= {};
 
-      const gridlineColor = getColorOrDefault(get(globalOptions, 'gridlineColor'), "#aaa");
+      const gridlineColor = getColorOrDefault(globalOptions['gridlineColor'], "#aaa");
 
-      const minorGridlineColor = getColorOrDefault(get(globalOptions, 'minorGridlineColor'), "#ddd");
+      const minorGridlineColor = getColorOrDefault(globalOptions['minorGridlineColor'], "#ddd");
 
-      const minorGridlineMinspacing = toFixnum(get(globalOptions, 'minorGridlineMinspacing'))
+      const minorGridlineMinspacing = toFixnum(globalOptions['minorGridlineMinspacing'])
 
       hAxis.gridlines = {color: gridlineColor};
       vAxis.gridlines = {color: gridlineColor};
 
-      cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'gridlineMinspacing'), {
+      cases(RUNTIME.ffi.isOption, 'Option', globalOptions['gridlineMinspacing'], {
         none: function () {
           hAxis.gridlines.count = 5;
         },
@@ -284,7 +271,7 @@
       });
 
 
-      if (get(globalOptions, 'show-minor-grid-lines')) {
+      if (globalOptions['show-minor-grid-lines']) {
         hAxis.minorGridlines = {color: minorGridlineColor, minSpacing: minorGridlineMinspacing};
         vAxis.minorGridlines = {color: minorGridlineColor, minSpacing: minorGridlineMinspacing};
       } else {
@@ -298,7 +285,7 @@
       const vAxis = ('vAxis' in options) ? options.vAxis : {};
       const viewWindow = ('viewWindow' in vAxis) ? vAxis.viewWindow : {};
 
-      cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'y-min'), {
+      cases(RUNTIME.ffi.isOption, 'Option', globalOptions['y-min'], {
         none: function () {},
         some: function (minValue) {
           const v = toFixnum(minValue);
@@ -306,7 +293,7 @@
           viewWindow.min = v;
         }
       });
-      cases(RUNTIME.ffi.isOption, 'Option', get(globalOptions, 'y-max'), {
+      cases(RUNTIME.ffi.isOption, 'Option', globalOptions['y-max'], {
         none: function () {},
         some: function (maxValue) {
           const v = toFixnum(maxValue);
@@ -322,8 +309,8 @@
       const hAxis = ('hAxis' in options) ? options.hAxis : {};
       const viewWindow = ('viewWindow' in hAxis) ? hAxis.viewWindow : {};
 
-      const minValue = get(globalOptions, 'x-min');
-      const maxValue = get(globalOptions, 'x-max');
+      const minValue = globalOptions['x-min'];
+      const maxValue = globalOptions['x-max'];
 
       cases(RUNTIME.ffi.isOption, 'Option', minValue, {
         none: function () {},
@@ -365,10 +352,10 @@
         5. Use the sortedColor scale for the ordering of the legend.
        */
       const table = get(rawData, 'tab');
-      const title = get(globalOptions, 'title');
-      const width = get(globalOptions, 'width');
-      const height = get(globalOptions, 'height');
-      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
+      const title = globalOptions['title'];
+      const width = globalOptions['width'];
+      const height = globalOptions['height'];
+      const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
       const COLLAPSED_ID = -1;
       
       const data = [];
@@ -1040,10 +1027,10 @@
       // Variables and constants 
       const horizontal = isTrue(get(rawData, 'horizontal'));
       const axisloc = horizontal ? 'hAxes' : 'vAxes';
-      const title = get(globalOptions, 'title');
-      const width = get(globalOptions, 'width');
-      const height = get(globalOptions, 'height');
-      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
+      const title = globalOptions['title'];
+      const width = globalOptions['width'];
+      const height = globalOptions['height'];
+      const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
       const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
       const axis = get_axis(rawData);
 
@@ -1106,8 +1093,8 @@
       // These labels are *specifically directional*, not *logical* -- if a graph is flipped
       // from horizontal to vertical, the labels don't also get flipped.
       const axisLabels = {
-        x: get(globalOptions, 'x-axis'),
-        y: get(globalOptions, 'y-axis')
+        x: globalOptions['x-axis'],
+        y: globalOptions['y-axis']
       };
       const axes = [
         { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1, title: axisLabels[axesConfig.primary.dir] },
@@ -1167,10 +1154,10 @@
       // Variables and constants
       const horizontal = isTrue(get(rawData, 'horizontal'));
       const axisloc = horizontal ? 'hAxes' : 'vAxes';
-      const title = get(globalOptions, 'title');
-      const width = get(globalOptions, 'width');
-      const height = get(globalOptions, 'height');
-      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
+      const title = globalOptions['title'];
+      const width = globalOptions['width'];
+      const height = globalOptions['height'];
+      const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
       const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
       const colors_list = get_colors_list(rawData);
       const axis = get_axis(rawData);
@@ -1294,8 +1281,8 @@
       // These labels are *specifically directional*, not *logical* -- if a graph is flipped
       // from horizontal to vertical, the labels don't also get flipped.
       const axisLabels = {
-        x: get(globalOptions, 'x-axis'),
-        y: get(globalOptions, 'y-axis')
+        x: globalOptions['x-axis'],
+        y: globalOptions['y-axis']
       };
       const axes = [
         { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1, title: axisLabels[axesConfig.primary.dir] },
@@ -1455,12 +1442,12 @@
       const axisName = horizontal ? 'hAxis' : 'vAxis';
       const color = getColorOrDefault(get(rawData, 'color'), default_colors[0]);
 
-      const title = get(globalOptions, 'title');
-      const width = get(globalOptions, 'width');
-      const height = get(globalOptions, 'height');
-      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
-      const min = getNumOrDefault(get(globalOptions, 'min'), undefined);
-      const max = getNumOrDefault(get(globalOptions, 'max'), undefined);
+      const title = globalOptions['title'];
+      const width = globalOptions['width'];
+      const height = globalOptions['height'];
+      const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
+      const min = getNumOrDefault(globalOptions['min'], undefined);
+      const max = getNumOrDefault(globalOptions['max'], undefined);
 
       const data = [
         {
@@ -1689,8 +1676,8 @@
       // These labels are *specifically directional*, not *logical* -- if a graph is flipped
       // from horizontal to vertical, the labels don't also get flipped.
       const axisLabels = {
-        x: get(globalOptions, 'x-axis'),
-        y: get(globalOptions, 'y-axis')
+        x: globalOptions['x-axis'],
+        y: globalOptions['y-axis']
       };
       const axes = [
         { orient: axesConfig.primary.axes, scale: 'primary', zindex: 1, title: axisLabels[axesConfig.primary.dir] },
@@ -1717,82 +1704,6 @@
         marks,
         onExit: defaultImageReturn,
       };
-
-      
-
-
-      const intervalOptions = {
-        lowNonOutlier: {
-          style: 'bars',
-          fillOpacity: 1,
-          color: color
-        },
-        highNonOutlier: {
-          style: 'bars',
-          fillOpacity: 1,
-          color: color
-        }
-      };
-
-      data.addColumn('string', 'Label');
-      data.addColumn('number', 'Total');
-      data.addColumn({id: 'firstQuartile', type: 'number', role: 'interval'});
-      data.addColumn({id: 'median', type: 'number', role: 'interval'});
-      data.addColumn({id: 'thirdQuartile', type: 'number', role: 'interval'});
-      data.addColumn({id: 'highNonOutlier', type: 'number', role: 'interval'});
-      data.addColumn({id: 'lowNonOutlier', type: 'number', role: 'interval'});
-      data.addColumn({type: 'string', role: 'tooltip', 'p': {'html': true}});
-
-      // NOTE(joe & emmanuel, Aug 2019): With the current chart library, it seems
-      // like we can only get outliers to work as a variable-length row if we
-      // have a single row of data. It's an explicit error to mix row lengths.
-      // Since the main use case where outliers matter is for single-column
-      // box-plots, this maintains existing behavior (if anyone was relying on
-      // multiple series), while adding the ability to render outliers for BS:DS.
-      if(table.length === 1 && showOutliers) {
-        var extraCols = table[0][8].length + table[0][9].length;
-        for(var i = 0; i < extraCols; i += 1) {
-          data.addColumn({id: 'outlier', type: 'number', role: 'interval'});
-        }
-        intervalOptions['outlier'] = { 'style':'points', 'color':'grey', 'pointSize': 10, 'lineWidth': 0, 'fillOpacity': 0.3 };
-      }
-      else {
-        // NOTE(joe & emmanuel, Aug 2019 cont.): This forces the low and high
-        // whiskers to be equal to the min/max when there are multiple rows since we
-        // won't be able to render the outliers, and the whiskers need to cover
-        //  the whole span of data.
-        table = table.map(function(row) {
-          row = row.slice(0, row.length);
-          // force whisker to be max/min
-          row[7] = row[2];
-          row[6] = row[1];
-          // empty outliers
-          row[9] = [];
-          row[8] = [];
-          return row;
-        });
-      }
-
-      const rowsToAdd = table.map(row => {
-        const summaryValues = row.slice(3, 8).map(n => toFixnum(n));
-        let tooltip = `<p><b>${row[0]}</b></p>
-            <p>minimum: <b>${row[2]}</b></p>
-            <p>maximum: <b>${row[1]}</b></p>
-            <p>first quartile: <b>${summaryValues[0]}</b></p>
-            <p>median: <b>${summaryValues[1]}</b></p>
-            <p>third quartile: <b>${summaryValues[2]}</b></p>`;
-        // ONLY if we're showing outliers, add whiskers to the tooltip
-        // (otherwise, the min/max ARE the bottom/top whiskers)
-        if(table.length == 1 && showOutliers) {
-          tooltip += 
-            ` <p>bottom whisker: <b>${summaryValues[4]}</b></p>
-            <p>top whisker: <b>${summaryValues[3]}</b></p>`;
-        }
-        return [row[0], toFixnum(dimension)]
-          .concat(summaryValues)
-          .concat([tooltip])
-          .concat(row[9]).concat(row[8]);
-      });
     }
 
     function histogram(globalOptions, rawData) {
@@ -1801,10 +1712,10 @@
 
       const maxNumBins = getNumOrDefault(get(rawData, 'max-num-bins'), undefined);
 
-      const title = get(globalOptions, 'title');
-      const width = get(globalOptions, 'width');
-      const height = get(globalOptions, 'height');
-      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
+      const title = globalOptions['title'];
+      const width = globalOptions['width'];
+      const height = globalOptions['height'];
+      const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
 
       const data = [
         {
@@ -1944,8 +1855,8 @@
         }
       ];
 
-      const xAxisLabel = get(globalOptions, 'x-axis');
-      const yAxisLabel = get(globalOptions, 'y-axis');
+      const xAxisLabel = globalOptions['x-axis'];
+      const yAxisLabel = globalOptions['y-axis'];
       const axes = [
         { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel,
           format: '5~r',
@@ -1982,12 +1893,12 @@
 
       const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
 
-      const title = get(globalOptions, 'title');
-      const width = get(globalOptions, 'width');
-      const height = get(globalOptions, 'height');
-      const xAxisLabel = get(globalOptions, 'x-axis');
-      const yAxisLabel = get(globalOptions, 'y-axis');
-      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
+      const title = globalOptions['title'];
+      const width = globalOptions['width'];
+      const height = globalOptions['height'];
+      const xAxisLabel = globalOptions['x-axis'];
+      const yAxisLabel = globalOptions['y-axis'];
+      const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
 
       const data = [
         {
@@ -2178,8 +2089,8 @@
     }
 
     function scatterPlot(globalOptions, rawData, config) {
-      const xAxisLabel = get(globalOptions, 'x-axis');
-      const yAxisLabel = get(globalOptions, 'y-axis');
+      const xAxisLabel = globalOptions['x-axis'];
+      const yAxisLabel = globalOptions['y-axis'];
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
       const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
@@ -2194,10 +2105,10 @@
       const trendlineWidth = toFixnum(get(rawData, 'trendlineWidth'));
       const trendlineOpacity = toFixnum(get(rawData, 'trendlineOpacity'));
       const trendlineDegree = toFixnum(get(rawData, 'trendlineDegree'));
-      const xMinValue = getNumOrDefault(get(globalOptions, 'x-min'), undefined);
-      const xMaxValue = getNumOrDefault(get(globalOptions, 'x-max'), undefined);
-      const yMinValue = getNumOrDefault(get(globalOptions, 'y-min'), undefined);
-      const yMaxValue = getNumOrDefault(get(globalOptions, 'y-max'), undefined);
+      const xMinValue = getNumOrDefault(globalOptions['x-min'], undefined);
+      const xMaxValue = getNumOrDefault(globalOptions['x-max'], undefined);
+      const yMinValue = getNumOrDefault(globalOptions['y-min'], undefined);
+      const yMaxValue = getNumOrDefault(globalOptions['y-max'], undefined);
 
       const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
 
@@ -2313,13 +2224,15 @@
             name: `${prefix}regressionLine`,
             encode: {
               enter: {
-                x: { scale: `xscale`, field: 'u' },
-                y: { scale: `yscale`, field: 'v' },
                 stroke: { value: trendlineColor },
                 strokeWidth: { value: trendlineWidth },
                 opacity: { value: trendlineOpacity },
                 tooltip: { signal: `{ title: "Trend for ${legend}", Trend: ${tooltipTitle}, x: ${formatNum('datum.u')}, y: ${formatNum('datum.v')} }` }
               },
+              update: {
+                x: { scale: `xscale`, field: 'u' },
+                y: { scale: `yscale`, field: 'v' },
+              }
             }
           },
           {
@@ -2328,12 +2241,12 @@
             name: `${prefix}regressionSymbols`,
             encode: {
               enter: {
-                x: { scale: `xscale`, field: 'u' },
-                y: { scale: `yscale`, field: 'v' },
                 tooltip: { signal: `{ title: "Trend for ${legend}", Trend: ${tooltipTitle}, x: ${formatNum('datum.u'
 )}, y: ${formatNum('datum.v')} }` }
               },
               update: {
+                x: { scale: `xscale`, field: 'u' },
+                y: { scale: `yscale`, field: 'v' },
                 stroke: { value: trendlineColor },
                 strokeWidth: { value: trendlineWidth },
                 size: { value: Math.max(40, trendlineWidth * trendlineWidth) },
@@ -2357,14 +2270,14 @@
         name: `${prefix}ImageMarks`,
         encode: {
           enter: {
-            x: { scale: `xscale`, field: 'x', offset: { signal: `${-pointSize} * datum.imageOffsetX` } },
-            y: { scale: `yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
             width: { value: pointSize },
             height: { value: pointSize },
             image: { field: 'image' },
             tooltip: tooltips
           },
           update: {
+            x: { scale: `xscale`, field: 'x', offset: { signal: `${-pointSize} * datum.imageOffsetX` } },
+            y: { scale: `yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
             stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${color}'` },
             strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 1 : 0)` },
             zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
@@ -2383,12 +2296,12 @@
             enter: {
               shape: { value: 'circle' },
               size: { value: pointSize * pointSize },
-              x: { scale: `xscale`, field: 'x' },
-              y: { scale: `yscale`, field: 'y' },
               fill: { value: color },
               tooltip: tooltips
             },
             update: {
+              x: { scale: `xscale`, field: 'x' },
+              y: { scale: `yscale`, field: 'y' },
               fill: { value: color },
               stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${color}'` },
               zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
@@ -2437,12 +2350,12 @@
             enter: {
               shape: { value: svgPath },
               size: { value: pointSize * pointSize },
-              x: { scale: `xscale`, field: 'x' },
-              y: { scale: `yscale`, field: 'y' },
               strokeWidth: { value: 1 },
               tooltip: tooltips
             },
             update: {
+              x: { scale: `xscale`, field: 'x' },
+              y: { scale: `yscale`, field: 'y' },
               fill: { value: color },
               stroke: { value: color },
             }
@@ -2484,12 +2397,12 @@
         name: `${prefix}Line`,
         encode: {
           enter: {
-            x: { scale: `xscale`, field: 'x' },
-            y: { scale: `yscale`, field: 'y' },
             stroke: { value: color },
             tooltip: marks[marks.length - 1].encode.enter.tooltips
           },
           update: {
+            x: { scale: `xscale`, field: 'x' },
+            y: { scale: `yscale`, field: 'y' },
             strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 2 : 1) * ${lineWidth}` },
             zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
           },
@@ -2504,8 +2417,8 @@
     }
 
     function intervalPlot(globalOptions, rawData, config) {
-      const xAxisLabel = get(globalOptions, 'x-axis');
-      const yAxisLabel = get(globalOptions, 'y-axis');
+      const xAxisLabel = globalOptions['x-axis'];
+      const yAxisLabel = globalOptions['y-axis'];
       const legend = get(rawData, 'legend') || config.legend;
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
@@ -2595,14 +2508,14 @@
           name: `${prefix}ImageMarks`,
           encode: {
             enter: {
-              x: { scale: `xscale`, field: 'x', offset: { signal: `${-pointSize} * datum.imageOffsetX` } },
-              y: { scale: `yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
               width: { value: pointSize },
               height: { value: pointSize },
               image: { field: 'image' },
               tooltip
             },
             update: {
+              x: { scale: `xscale`, field: 'x', offset: { signal: `${-pointSize} * datum.imageOffsetX` } },
+              y: { scale: `yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
               stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${dataColor}'` },
               strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 1 : 0)` },
               zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
@@ -2620,12 +2533,12 @@
             enter: {
               shape: { value: 'circle' },
               size: { value: pointSize * pointSize },
-              xc: { scale: `xscale`, field: 'x' },
-              yc: { scale: `yscale`, field: 'y' },
               fill: { value: dataColor },
               tooltip
             },
             update: {
+              xc: { scale: `xscale`, field: 'x' },
+              yc: { scale: `yscale`, field: 'y' },
               fill: { value: dataColor },
               stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${dataColor}'` },
               zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
@@ -2641,11 +2554,13 @@
           from: { data: `${prefix}rawTable` },
           encode: {
             enter: {
+              stroke: { value: dataColor }, // NOTE: this mimics the existing behavior, but it seems backwards
+              strokeWidth: { value: intervalStickWidth },
+            },
+            update: {
               x: { scale: `xscale`, field: 'x' },
               y: { scale: `yscale`, field: 'y' },
               y2: { scale: `yscale`, field: 'yprime' },
-              stroke: { value: dataColor }, // NOTE: this mimics the existing behavior, but it seems backwards
-              strokeWidth: { value: intervalStickWidth },
             }
           }
         },
@@ -2657,12 +2572,12 @@
             enter: {
               shape: { value: 'circle' },
               size: { value: pointSize * pointSize },
-              xc: { scale: `xscale`, field: 'x' },
-              yc: { scale: `yscale`, field: 'yprime' },
               fill: { value: intervalColor },
               tooltip
             },
             update: {
+              xc: { scale: `xscale`, field: 'x' },
+              yc: { scale: `yscale`, field: 'yprime' },
               stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${intervalColor}'` },
               zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
             },
@@ -2715,7 +2630,7 @@
       const prefix = config.prefix || '';
       const defaultColor = config.defaultColor || default_colors[0];
       const pointColor = getColorOrDefault(get(rawData, 'color'), defaultColor);
-      const numSamples = toFixnum(get(globalOptions, 'num-samples'));
+      const numSamples = toFixnum(globalOptions['num-samples']);
       const func = get(rawData, 'f');
       const domain = config.domain;
       const xMinValue = domain[0];
@@ -2763,12 +2678,12 @@
             enter: {
               shape: { value: 'circle' },
               size: { value: pointSize * pointSize },
-              xc: { scale: `xscale`, field: 'x' },
-              yc: { scale: `yscale`, field: 'y' },
               fill: { value: pointColor },
               tooltip
             },
             update: {
+              xc: { scale: `xscale`, field: 'x' },
+              yc: { scale: `yscale`, field: 'y' },
               stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${pointColor}'` },
               strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 1 : 0)` },
               zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
@@ -2795,23 +2710,26 @@
           scales,
           marks,
           recompute: (view) => {
-            const xscale = view.scale('xscale');
-            if (!xscale) return;
-            const xMinValue = xscale.domain()[0];
-            const xMaxValue = xscale.domain()[1];
+            const { promise, resolve, reject } = Promise.withResolvers();
+            const numSamples = globalOptions.numSamples;
+            const xMinValue = globalOptions.xMinValue;
+            const xMaxValue = globalOptions.xMaxValue;
             const fraction = (xMaxValue - xMinValue) / (numSamples - 1);
             const samplePoints = [...Array(numSamples).keys().map((i) => (xMinValue + (fraction * i)))];
+            console.log("Recomputing at", samplePoints);
             RUNTIME.runThunk(() => {
               return recomputePoints(func, samplePoints, (dataValues) => {
                 view.data(data[0].name, dataValues);
               });
             }, (res) => {
               if (RUNTIME.isSuccessResult(res)) {
-                view.runAsync();
+                view.runAsync().then(resolve);
               } else {
                 console.log(`Failed in ${prefix} to recompute points:`, res);
+                reject(res);
               }
             });
+            return promise;
           }
         };
       });
@@ -2823,18 +2741,25 @@
       return `[min(${domains0.join(',')}), max(${domains1.join(',')})]`
     }
 
-    function composeCharts(globalOptions, domain, charts) {
-      const xMinValue = getNumOrDefault(get(globalOptions, 'x-min'), undefined);
-      const xMaxValue = getNumOrDefault(get(globalOptions, 'x-max'), undefined);
-      const yMinValue = getNumOrDefault(get(globalOptions, 'y-min'), undefined);
-      const yMaxValue = getNumOrDefault(get(globalOptions, 'y-max'), undefined);
-      const xAxisLabel = get(globalOptions, 'x-axis');
-      const yAxisLabel = get(globalOptions, 'y-axis');
-      const width = toFixnum(get(globalOptions, 'width'));
-      const height = toFixnum(get(globalOptions, 'height'));
-      const background = getColorOrDefault(get(globalOptions, 'backgroundColor'), 'transparent');
-      const title = get(globalOptions, 'title');
-      const multiple = isTrue(get(globalOptions, 'multiple'));
+    function composeCharts(globalOptions, domain, allCharts) {
+      const charts = [
+        ...allCharts.scatterPlots,
+        ...allCharts.linePlots,
+        ...allCharts.intervalPlots,
+        ...allCharts.functionPlots
+      ];
+      const xMinValue = getNumOrDefault(globalOptions['x-min'], undefined);
+      const xMaxValue = getNumOrDefault(globalOptions['x-max'], undefined);
+      const yMinValue = getNumOrDefault(globalOptions['y-min'], undefined);
+      const yMaxValue = getNumOrDefault(globalOptions['y-max'], undefined);
+      const numSamples = toFixnum(globalOptions['num-samples']);
+      const xAxisLabel = globalOptions['x-axis'];
+      const yAxisLabel = globalOptions['y-axis'];
+      const width = toFixnum(globalOptions['width']);
+      const height = toFixnum(globalOptions['height']);
+      const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
+      const title = globalOptions['title'];
+      const multiple = isTrue(globalOptions['multiple']);
       const gridlines = getGridlines({}, globalOptions);
       // console.log(gridlines);
       const scales = charts.flatMap((c) => c.scales || []);
@@ -2846,6 +2771,7 @@
         { name: 'xMaxValue', value: xMaxValue },
         { name: 'yMinValue', value: yMinValue },
         { name: 'yMaxValue', value: yMaxValue },
+        { name: 'numSamples', value: numSamples },
         { name: 'xscaleSignal', update: unionScaleSignal(scales.filter((s) => s.name.endsWith('xscale'))) },
         { name: 'yscaleSignal', update: unionScaleSignal(scales.filter((s) => s.name.endsWith('yscale'))) }
       );
@@ -2960,7 +2886,70 @@
           value: 'null'
         });
       }
-          
+
+      function addControls(view, overlay) {
+        overlay.css({
+          width: '30%',
+          position: 'absolute',
+          right: '0px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+        });
+        const inputSize = 16;
+        function makeInputControl(label, value) {
+          const control = $('<input/>', {
+            'class': 'controller',
+            type: 'text',
+            placeholder: label,
+          }).attr('size', inputSize)
+                // Guaranteed that value.toFixed(5) contains a decimal point,
+                // so the trailing zeroes are guaranteed to be decimals only.
+                .val(value.toFixed(5).replace(/\.?0+$/, ''));
+          return [
+            $('<p/>')
+              .append($('<label/>', { 'class': 'controller', text: `${label}: ` }))
+              .append(control),
+            control
+          ];
+        }
+
+        const [xMinG, xMinC] = makeInputControl('x-min', view.signal('xMinValue') ?? view.signal('xscaleSignal')[0]);
+        const [xMaxG, xMaxC] = makeInputControl('x-max', view.signal('xMaxValue') ?? view.signal('xscaleSignal')[1]);
+        const [yMinG, yMinC] = makeInputControl('y-min', view.signal('yMinValue') ?? view.signal('yscaleSignal')[0]);
+        const [yMaxG, yMaxC] = makeInputControl('y-max', view.signal('yMaxValue') ?? view.signal('yscaleSignal')[1]);
+        const [numSamplesG, numSamplesC] = makeInputControl('#samples', numSamples);
+
+        const redrawC = $('<button/>', {
+          'class': 'controller',
+          text: 'Redraw',
+        }).click(async () => {
+          const newWindow = getNewWindow({
+            xMinValue: xMinC,
+            xMaxValue: xMaxC,
+            yMinValue: yMinC,
+            yMaxValue: yMaxC,
+            numSamples: numSamplesC
+          });
+          if (newWindow === null) return;
+          for (const field in newWindow) {
+            globalOptions[field] = toFixnum(newWindow[field]);
+            view.signal(field, toFixnum(newWindow[field]));
+          }
+          for (const c of charts) {
+            if (c.recompute) { await c.recompute(view); }
+          }
+          view.runAsync();
+        });
+        const controller = $('<div/>');
+        overlay.empty();
+        overlay.append(controller);
+        controller.append(xMinG).append(xMaxG).append(yMinG).append(yMaxG);
+        if (allCharts.functionPlots.length > 0) {
+          controller.append(numSamplesG);
+        }
+        controller.append(redrawC);
+      }
+      
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
@@ -2983,12 +2972,8 @@
           }
         },
         onExit: defaultImageReturn,
-        recompute: (view) => {
-          charts.forEach((c) => {
-            if (c.recompute) { c.recompute(view); }
-          })
-        }            
-      };
+        addControls,
+      }
     }
 
     function plot(globalOptions, rawData) {
@@ -2996,8 +2981,8 @@
       const lines = get(rawData, 'lines');
       const intervals = get(rawData, 'intervals');
       const functions = get(rawData, 'functions');
-      const xMinValue = getNumOrDefault(get(globalOptions, 'x-min'), undefined);
-      const xMaxValue = getNumOrDefault(get(globalOptions, 'x-max'), undefined);
+      const xMinValue = getNumOrDefault(globalOptions['x-min'], undefined);
+      const xMaxValue = getNumOrDefault(globalOptions['x-max'], undefined);
       let i = 0;
       function nextColor() {
         return default_colors[i++ % default_colors.length];
@@ -3041,435 +3026,31 @@
               const domains = [...scatterPlots, ...linePlots, ...intervalPlots].map((p) => p.domain);
               const unionDomain = unionIntervals(domains);
               const clippedDomain = [xMinValue ?? unionDomain[0], xMaxValue ?? unionDomain[1]];
+              if (clippedDomain[0] === undefined && clippedDomain[1] === undefined) {
+                clippedDomain[0] = -10;
+                clippedDomain[1] = 10;
+              } else if (clippedDomain[0] === undefined) {
+                clippedDomain[0] = clippedDomain[1] - 10;
+              } else if (clippedDomain[1] === undefined) {
+                clippedDomain[1] = clippedDomain[0] + 10;
+              }
+              // Reflect the updated values back into the globalOptions,
+              // so that they'll be picked up by the initial computation of function plots
+              globalOptions['x-min'] = RUNTIME.ffi.makeSome(clippedDomain[0]);
+              globalOptions['x-max'] = RUNTIME.ffi.makeSome(clippedDomain[1]);
               return RUNTIME.safeCall(
                 () => makeFunctionPlots(clippedDomain),
-                (functionPlots) => composeCharts(globalOptions, clippedDomain, [
-                  ...scatterPlots,
-                  ...linePlots,
-                  ...intervalPlots,
-                  ...functionPlots
-                ])
+                (functionPlots) => composeCharts(globalOptions, clippedDomain, {
+                  scatterPlots,
+                  linePlots,
+                  intervalPlots,
+                  functionPlots
+                })
               );
             }
           )
         )
       );
-      
-      const minIntervalIndex = scatters.length + lines.length;
-      const data = new google.visualization.DataTable();
-      data.addColumn('number', 'X');
-      const combined = scatters.concat(lines).concat(intervals);
-      const legends = [];
-      let cnt = 1;
-      const legendEnabled = combined.length > 1;
-      combined.forEach((p, i) => {
-        let legend = get(p, 'legend');
-        if (legend === '') {
-          legend = `Plot ${cnt}`;
-          cnt++;
-        }
-        legends.push(legend);
-        data.addColumn('number', legend);
-        data.addColumn({type: 'string', role: 'tooltip', 'p': {'html': true}});
-        data.addColumn({id: 'i0', type: 'number', role: 'interval'});
-        data.addColumn({id: 'i1', type: 'number', role: 'interval'});
-      });
-
-      combined.forEach((p, i) => {
-        /* 
-
-           combined.length = number of charts (regardless of kind).
-           total length of a row = 1 + 4 × (combined.length).
-           a row looks like:
-
-           x | aaaa aaaa aaaa | yyyy | bbbb bbbb bbbb
-
-           each chart contributes as many rows as it has x-y mappings.
-           each such row has first column = x and 
-           a 4-tuple y₁y₂y₃y₄ in the appropriately staggered y-slots, where:
-           y₁ = y
-           y₂ = label
-           y₃ = y (again, only for interval charts)
-           y₄ = y-predicted (only for interval charts)
-
-           all other slots in a row are null.
-        */
-
-        const rowTemplate = new Array(combined.length * 4 + 1).fill(null);
-        const intervalP = (i >= minIntervalIndex);
-        const dotChartP = false; //Boolean(get(p, 'dot-chart'));
-
-        if(dotChartP) {
-          data.addRows(get(p, 'ps').map(row => {
-            const currentRow = rowTemplate.slice();
-            if (row.length != 0) {
-              currentRow[0] = toFixnum(row[0]);
-              currentRow[4*i + 1] = toFixnum(row[1]);
-              let labelRow = null;
-              if (row.length >= 3 && row[2] !== '') {
-                labelRow = `<p>label: <b>${row[2]}</b></p>`;
-              } else {
-                labelRow = '';
-              }
-              currentRow[4*i + 2] = `<p>${legends[i]}</p>
-<p>x: <b>${currentRow[0]}</b></p>
-${labelRow}`;
-            }
-            return currentRow;
-          }));
-        } else if(intervalP) {
-          data.addRows(get(p, 'tab').map(row => {
-            const currentRow = rowTemplate.slice();
-            if (row.length != 0) {
-              const r0 = toFixnum(row[0]);
-              const r1 = toFixnum(row[1]);
-              const r2 = toFixnum(row[2]);
-
-              currentRow[0] = r0;
-              currentRow[4*i + 1] = r1;
-              const labelRow = `<p>label: <b>${r2}</b></p>`;
-              currentRow[4*i + 2] = `<p>${legends[i]}</p>
-<p>x: <b>${r0}</b></p>
-<p>y: <b>${fourSig(r1)}</b></p>
-<p>ŷ: <b>${fourSig(r2)}</b></p>
-<p>y - ŷ: <b>${saneSubtract(r1, r2)}</b></p>`;
-              currentRow[4*i + 3] = r1;
-              currentRow[4*i + 4] = r2;
-            }
-            return currentRow;
-          }));
-        } else {
-          data.addRows(get(p, 'ps').map(row => {
-            const currentRow = rowTemplate.slice();
-            if (row.length != 0) {
-              currentRow[0] = toFixnum(row[0]);
-              currentRow[4*i + 1] = toFixnum(row[1]);
-              let labelRow = null;
-              if (row.length >= 3 && row[2] !== '') {
-                labelRow = `<p>label: <b>${row[2]}</b></p>`;
-              } else {
-                labelRow = '';
-              }
-              currentRow[4*i + 2] = `<p>${legends[i]}</p>
-<p>x: <b>${currentRow[0]}</b></p>
-<p>y: <b>${currentRow[4*i + 1]}</b></p>
-${labelRow}`;
-              // leave currentRow[4*i + 3] and [4*i + 4] null
-            }
-            return currentRow;
-          }));
-        }
-      });
-
-      // ASSERT: if we're using custom images, *every* series will have idx 3 defined
-      const hasImage = combined.every(p => get(p, 'ps').filter(p => p[3]).length > 0);
-      const dotChartP = false; //combined.some(p => get(p, 'dot-chart'));
-      const replaceDefaultSVG = (hasImage || dotChartP);
-
-      const options = {
-        tooltip: {isHtml: true},
-        series: combined.map((p, i) => {
-          
-          // scatters and then lines
-          const seriesOptions = {};
-
-          cases(RUNTIME.ffi.isOption, 'Option', get(p, 'color'), {
-            none: function () {},
-            some: function (color) {
-              seriesOptions.color = convertColor(color);
-            }
-          });
-          // If we have our own image, make the point small and transparent
-          if (i < scatters.length) {
-            $.extend(seriesOptions, {
-              pointSize: replaceDefaultSVG ? 0.1 : toFixnum(get(p, 'point-size')),
-              lineWidth: 0,
-              dataOpacity: replaceDefaultSVG ? 0 : 1,
-            });
-          } else if (i - scatters.length < lines.length) {
-            $.extend(seriesOptions, {
-              pointSize: hasImage ? 0.1 : toFixnum(get(p, 'point-size')),
-              dataOpacity: hasImage ? 0 : 1,
-            });
-          } else if (i - scatters.length - lines.length < intervals.length) {
-
-            let intervalStyle = get(p, 'style');
-            let intervalStickColor = get_default_color(p);
-            let intervalStickWidth = toFixnum(get(p, 'stick-width'));
-            let intervalFillOpacity = ((intervalStyle == 'boxes') ? 0 : 1);
-            let intervalPointColor = get_pointer_color(p);
-            let intervalPointSize = toFixnum(get(p, 'point-size'));
-
-            $.extend(seriesOptions, {
-              pointSize: intervalPointSize,
-              dataOpacity: 1,
-
-              curveType: 'function',
-              lineWidth: 0,
-              intervals: { 
-                style: 'sticks',
-                lineWidth: 2,
-              },
-              interval: {
-                'i0': {
-                  'style': intervalStyle,
-                  'color': intervalStickColor,
-                  'lineWidth': intervalStickWidth,
-                  'barWidth': 0,
-                  'pointSize': 0,
-                  'fillOpacity': intervalFillOpacity,
-                },
-                'i1': {
-                  'style': intervalStyle,
-                  'color': intervalPointColor,
-                  'pointSize': intervalPointSize,
-                  'barWidth': 0,
-                  'lineWidth': 4,
-                  'fillOpacity': intervalFillOpacity,
-                },
-              }
-
-            });
-          }
-          return seriesOptions;
-        }),
-        legend: {position: legendEnabled ? 'bottom' : 'none'},
-        crosshair: {trigger: 'selection'}
-      };
-
-      if (lines.length != 0) {
-        const line0 = lines[0];
-        const curveType = get(line0, 'curved');
-        const lineWidth = toFixnum(get(line0, 'lineWidth'));
-
-        
-        const dashedLine = get(line0, 'dashedLine');
-        const dashlineStyle = get(line0, 'dashlineStyle');
-        const pointSize = toFixnum(get(line0, 'point-size'));
-        
-
-        options['curveType'] = curveType;
-        options['lineWidth'] = lineWidth;
-        options['pointSize'] = pointSize;
-        
-        if (dashedLine) {
-          options['lineDashStyle'] = dashlineStyle;
-        }
-      }
-
-      const ser0 = combined[0];
-
-      const trendlineType = cases(RUNTIME.ffi.isOption, 'Option', get(ser0, 'trendlineType'), {
-        none: function () {
-          return null;
-        },
-        some: function (type) {
-          return type;
-        }
-      });
-
-      const trendlineColor = cases(RUNTIME.ffi.isOption, 'Option', get(ser0, 'trendlineColor'), {
-        none: function () {
-          return 'green';
-        },
-        some: function (color) {
-          return convertColor(color);
-        }
-      });
-
-      const trendlineWidth = toFixnum(get(ser0, 'trendlineWidth'));
-      const trendlineOpacity = toFixnum(get(ser0, 'trendlineOpacity'));
-      const trendlineDegree = toFixnum(get(ser0, 'trendlineDegree'));
-
-      if (trendlineType != null) {
-        options['trendlines'] = {
-          0: {
-            type: trendlineType,
-            color: trendlineColor,
-            lineWidth: trendlineWidth,
-            opacity: trendlineOpacity,
-            showR2: true,
-            visibleInLegend: true
-          }
-        }
-      }
-      if (trendlineType == "polynomial") {
-        options['trendlines'][0]['degree'] = trendlineDegree;
-      }
-
-      // by default, dotPlotAxesMutator does nothing
-      let dotPlotAxesMutator = (options, globalOptions, _) => {return false};
-      if (dotChartP) {
-        // for the hAxis, we need to custom-calculate the tick marks
-        // copied from erison.blogspot.com/2011/07/algorithm-for-optimal-scaling-on-chart.html
-        dotPlotAxesMutator = (options, globalOptions, _) => {
-          const xValues = combined.map(p => get(p, 'ps').map(r => toFixnum(r[0]))).flat();
-          const xMin = Math.min(...xValues);
-          const xMax = Math.max(...xValues);
-          const maxTicks = 8;
-
-          function niceNum(range, round) {
-            const exponent = Math.floor(Math.log10(range));
-            const fraction = range / Math.pow(10, exponent);
-            let niceFraction;
-
-            if (round) {
-              if(fraction < 1.5)     niceFraction =  1;
-              else if(fraction < 3)  niceFraction =  2;
-              else if(fraction < 7)  niceFraction =  5;
-              else                   niceFraction = 10;
-            } else {
-              if (fraction <= 1)     niceFraction =  1;
-              else if(fraction <= 2) niceFraction =  2;
-              else if(fraction <= 5) niceFraction =  5;
-              else                   niceFraction = 10;
-            }
-
-            return niceFraction * Math.pow(10, exponent);
-          }
-
-          const range       = niceNum(xMax - xMin, false);
-          const tickSpacing = niceNum(range / (maxTicks - 1), true);
-          let niceMin     = Math.floor(xMin / tickSpacing) * tickSpacing;
-          let niceMax     = Math.ceil(xMax / tickSpacing) * tickSpacing;
-          // add an extra tick if the data falls exactly on the boundaries
-          if(xMin == niceMin) niceMin = niceMin - tickSpacing;
-          if(xMax == niceMax) niceMax = niceMax + tickSpacing;      let hTicks        = [niceMin]; // start at the bottom and add
-          while(hTicks.slice(-1) < niceMax) { hTicks.push(Number(hTicks.slice(-1)) + tickSpacing); }
-
-          //console.log('niceMin', niceMin, 'niceMax', niceMax, 'tickSpacing', tickSpacing, 'ticks', hTicks);
-
-          // ticks [] as we don't want horizontal grid lines;
-          // maxValue must be set to something as otherwise having
-          // all dots at y=0 causes vAxis to be centered at 0;
-          // we don't want any chart real estate below x-axis
-          options['vAxis'] = {
-            ...options['vAxis'],
-            ...{ticks: [], viewWindow: {min: 0, max: 10}}
-          };
-          options['hAxis'] = {
-            ...options['hAxis'],
-            ...{viewWindow: {min: niceMin, max: niceMax}}
-          };
-        }
-      }
-
-
-      if (isTrue(get(globalOptions, 'interact'))) {
-        $.extend(options, {
-          chartArea: {
-            left: '12%',
-            width: dotChartP? '76%' : '56%',
-          }
-        });
-      }
-
-      return {
-        mutators: [// axesNameMutator,
-                   // yAxisRangeMutator,
-                   // xAxisRangeMutator,
-                   // // gridlinesMutator,
-                   // backgroundMutator, 
-                   selectMultipleMutator,
-                   dotPlotAxesMutator],
-        overlay: (overlay, restarter, chart, container) => {
-          if(!dotChartP) {
-            overlay.css({
-              width: '30%',
-              position: 'absolute',
-              right: '0px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-            });
-
-            const controller = $('<div/>');
-
-            overlay.append(controller);
-
-            const inputSize = 16;
-
-            const xMinC = $('<input/>', {
-              'class': 'controller',
-              type: 'text',
-              placeholder: 'x-min',
-            }).attr('size', inputSize);
-            const xMaxC = $('<input/>', {
-              'class': 'controller',
-              type: 'text',
-              placeholder: 'x-max',
-            }).attr('size', inputSize);
-            const yMinC = $('<input/>', {
-              'class': 'controller',
-              type: 'text',
-              placeholder: 'y-min',
-            }).attr('size', inputSize);
-            const yMaxC = $('<input/>', {
-              'class': 'controller',
-              type: 'text',
-              placeholder: 'y-max',
-            }).attr('size', inputSize);
-            const numSamplesC = $('<input/>', {
-              'class': 'controller',
-              type: 'text',
-              placeholder: '#samples',
-            }).attr('size', inputSize).val('2');
-            // dummy value so that a new window can be constructed correctly
-            // when numSamplesC is not used. The value must be at least 2
-
-            const redrawC = $('<button/>', {
-              'class': 'controller',
-              text: 'Redraw',
-            }).click(() => {
-              const newWindow = getNewWindow(xMinC, xMaxC, yMinC, yMaxC, numSamplesC);
-              if (newWindow === null) return;
-              const toRet = RUNTIME.ffi.makeLeft(
-                RUNTIME.extendObj(
-                  RUNTIME.makeSrcloc('dummy location'),
-                  globalOptions,
-                  newWindow
-                )
-              );
-              RUNTIME.getParam('remove-chart-port')();
-              restarter.resume(toRet);
-            });
-
-            function getBoundControl(control, name) {
-              control.val(prettyNumToStringDigits5(
-                get(get(globalOptions, name), 'value')));
-              return $('<p/>')
-                .append($('<label/>', {'class': 'controller', text: name + ': '}))
-                .append(control);
-            }
-
-            const xMinG = getBoundControl(xMinC, 'x-min');
-            const xMaxG = getBoundControl(xMaxC, 'x-max');
-            const yMinG = getBoundControl(yMinC, 'y-min');
-            const yMaxG = getBoundControl(yMaxC, 'y-max');
-            const redrawG = $('<p/>').append(redrawC);
-
-            if (isTrue(get(globalOptions, 'is-show-samples'))) {
-              numSamplesC.val(RUNTIME.num_to_string(get(globalOptions, 'num-samples')));
-              const numSamplesG = $('<p/>')
-                    .append($('<label/>', {'class': 'controller', text: '#samples: '}))
-                    .append(numSamplesC);
-              controller
-                .append(xMinG)
-                .append(xMaxG)
-                .append(yMinG)
-                .append(yMaxG)
-                .append(numSamplesG)
-                .append(redrawG);
-            } else {
-              controller
-                .append(xMinG)
-                .append(xMaxG)
-                .append(yMinG)
-                .append(yMaxG)
-                .append(redrawG);
-            }
-          }
-        }
-      }
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -3507,8 +3088,12 @@ ${labelRow}`;
 
     function defaultImageReturn(restarter, result) {
       const view = result.view;
-      const width = view.width();
-      const height = view.height();
+      const container = view.container();
+      // This indirection is again because of the 4.5px discrepancy noted below
+      const svg = container.firstChild;
+      const bbox = svg.getBoundingClientRect();
+      const width = bbox.width
+      const height = bbox.height;
       try {
         return renderToCanvas(view, width, height).then((data) => imageDataReturn(data, restarter))
       } catch (e) {
@@ -3520,8 +3105,8 @@ ${labelRow}`;
       return RUNTIME.pauseStack(restarter => {
         try {
           console.log(JSON.stringify(processed, (k, v) => (v && (IMAGE.isImage(v) || (v instanceof canvasLib.Canvas))) ? v.ariaText : v, 2));
-          const width = toFixnum(get(globalOptions, 'width'));
-          const height = toFixnum(get(globalOptions, 'height'));
+          const width = toFixnum(globalOptions['width']);
+          const height = toFixnum(globalOptions['height']);
           const view = new vega.View(vega.parse(processed));
           return renderToCanvas(view, width, height).then((data) => imageDataReturn(data, restarter));
         } catch(e) {
@@ -3533,12 +3118,14 @@ ${labelRow}`;
     function renderInteractiveChart(processed, globalOptions, rawData) {
       return RUNTIME.pauseStack(restarter => {
         const root = $('<div/>');
+        const chart = $('<div/>', { style: 'position: relative; display: inline-block;' });
+        root.append(chart);
         const overlay = $('<div/>', {style: 'position: relative'});
         root.append(overlay);
         
         // Unfortunately these need to be mutable, to allow for resizing the chart as the dialog resizes
-        let width = toFixnum(get(globalOptions, 'width'));
-        let height = toFixnum(get(globalOptions, 'height'));
+        let width = toFixnum(globalOptions['width']);
+        let height = toFixnum(globalOptions['height']);
         const vegaTooltipHandler = new vegaTooltip.Handler({
           formatTooltip: (value, valueToHtml, maxDepth, baseURL) => {
             if (typeof value === 'object') {
@@ -3553,13 +3140,10 @@ ${labelRow}`;
           }
         });
         const view = new vega.View(vega.parse(processed), {
-          container: overlay[0],
+          container: chart[0],
           renderer: 'svg',
           hover: true,
           tooltip: vegaTooltipHandler.call
-        });
-        view.addSignalListener('xscaleSignal', (name, value) => {
-          if (processed.recompute) { processed.recompute(view); }
         });
         view.width(width).height(height).resize();
 
@@ -3567,7 +3151,7 @@ ${labelRow}`;
         tmp.view = view;
         const options = {
           backgroundColor: {fill: 'transparent'},
-          title: (get(globalOptions, 'title') || {}).text,
+          title: (globalOptions['title'] || {}).text,
         };
 
         tmp.options = $.extend({}, options, 'options' in tmp ? tmp.options : {});
@@ -3577,11 +3161,12 @@ ${labelRow}`;
 
         // only mutate result when everything is setup
         const result = tmp;
-        // this draw will have a wrong width / height, but do it for now so
-        // that overlay works
         try {
           view.runAsync()
             .then(() => {
+              if (processed.addControls) {
+                processed.addControls(view, overlay);
+              }
               // return true;
               RUNTIME.getParam('chart-port')({
                 root: root[0],
@@ -3614,12 +3199,23 @@ ${labelRow}`;
         }
       });
     }
+        
 
+    function pyretObjToObj(globalOptions) {
+      const ret = {};
+      for (const field of RUNTIME.getFields(globalOptions)) {
+        ret[field] = get(globalOptions, field);
+      }
+      return ret;
+    }
     // NOTE: f is a function that will be run on the Pyret stack
     // It can choose to return a value directly, or it can use safeCall
     function makeFunction(f) {
-      return RUNTIME.makeFunction((globalOptions, rawData) => {
-        const isInteractive = isTrue(get(globalOptions, 'interact'));
+      return RUNTIME.makeFunction((rawGlobalOptions, rawData) => {
+        // Make a local, mutable copy of the Pyret ChartWindow value, so we can
+        // edit the xmin/xmax/ymin/ymax/#samples fields as needed
+        const globalOptions = pyretObjToObj(rawGlobalOptions);
+        const isInteractive = isTrue(globalOptions['interact']);
         if (isInteractive) {
           if (RUNTIME.hasParam('chart-port')) {
             return RUNTIME.safeCall(() => f(globalOptions, rawData), (chart) => {
