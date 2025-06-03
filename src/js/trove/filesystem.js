@@ -24,20 +24,33 @@
         function readFileString(path) {
             runtime.checkArgsInternal1('filesystem', 'read-file-string', path, runtime.String);
             const result = fsInternal.readFile(path)
-                .then((contents) => Buffer.from(contents).toString('utf8'));
+                .then((contents) => Buffer.from(contents).toString('utf8'))
+                .catch((err) => {
+                    throw runtime.throwMessageException(`Error reading file: ${path}: ${String(err)}`);
+                });
             return runtime.await(result);
         }
         function writeFileString(path, data) {
             runtime.checkArgsInternal2('filesystem', 'write-file-string', path, runtime.String, data, runtime.String);
-            const result = fsInternal.writeFile(path, Buffer.alloc(data.length, data, 'utf8')).then(() => runtime.nothing);
+            const result = fsInternal.writeFile(path, Buffer.alloc(data.length, data, 'utf8'))
+                .then(() => runtime.nothing)
+                .catch((err) => {
+                    throw runtime.throwMessageException(`Error writing file: ${path}: ${String(err)}`);
+                });
             return runtime.await(result);
         }
         function resolve(path) {
-            const result = fsInternal.resolve(path);
+            const result = fsInternal.resolve(path)
+                .catch((err) => {
+                    throw runtime.throwMessageException(`Error resolving path: ${path}: ${String(err)}`);
+                });
             return runtime.await(result);
         }
         function join(path1, path2) {
-            const result = fsInternal.join(path1, path2);
+            const result = fsInternal.join(path1, path2)
+                .catch((err) => {
+                    throw runtime.throwMessageException(`Error joining paths: ${path1}, ${path2}: ${String(err)}`);
+                });
             return runtime.await(result);
         }
         function stat(path) {
@@ -49,37 +62,58 @@
                     size: stats.size,
                     native: stats
                 });
+            })
+            .catch((err) => {
+                throw runtime.throwMessageException(`Error getting stats for file: ${path}: ${String(err)}`);
             });
             return runtime.await(result);
         }
         function exists(path) {
             runtime.checkArgsInternal1('filesystem', 'exists', path, runtime.String);
-            const result = fsInternal.exists(path);
+            const result = fsInternal.exists(path)
+            .catch((err) => {
+                throw runtime.throwMessageException(`Error checking existence of file: ${path}: ${String(err)}`);
+            });
             return runtime.await(result);
         }
         function createDir(path) {
             runtime.checkArgsInternal1('filesystem', 'create-dir', path, runtime.String);
-            const result = fsInternal.createDir(path).then(() => runtime.nothing);
+            const result = fsInternal.createDir(path).then(() => runtime.nothing)
+            .catch(err => {
+                throw runtime.throwMessageException(`Error creating directory: ${path}: ${String(err)}`);
+            });
             return runtime.await(result);
         }
         function basename(path) {
             runtime.checkArgsInternal1('filesystem', 'basename', path, runtime.String);
-            const result = fsInternal.basename(path);
+            const result = fsInternal.basename(path)
+            .catch((err) => {
+                throw runtime.throwMessageException(`Error getting basename of path: ${path}: ${String(err)}`);
+            });
             return runtime.await(result);
         }
         function dirname(path) {
             runtime.checkArgsInternal1('filesystem', 'dirname', path, runtime.String);
-            const result = fsInternal.dirname(path);
+            const result = fsInternal.dirname(path)
+            .catch((err) => {
+                throw runtime.throwMessageException(`Error getting dirname of path: ${path}: ${String(err)}`);
+            });
             return runtime.await(result);
         }
         function relative(from, to) {
             runtime.checkArgsInternal2('filesystem', 'relative', from, runtime.String, to, runtime.String);
-            const result = fsInternal.relative(from, to);
+            const result = fsInternal.relative(from, to)
+            .catch((err) => {
+                throw runtime.throwMessageException(`Error getting relative path from ${from} to ${to}: ${String(err)}`);
+            });
             return runtime.await(result);
         }
         function isAbsolute(path) {
             runtime.checkArgsInternal1('filesystem', 'is-absolute', path, runtime.String);
-            const result = fsInternal.isAbsolute(path);
+            const result = fsInternal.isAbsolute(path)
+            .catch((err) => {
+                throw runtime.throwMessageException(`Error checking if path is absolute: ${path}: ${String(err)}`);
+            });
             return runtime.await(result);
         }
         return runtime.makeModuleReturn({

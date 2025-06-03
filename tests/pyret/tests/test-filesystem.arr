@@ -14,6 +14,8 @@ check:
   FS.exists(p) is true
   p2 = "./non-existing-file"
   FS.exists(p2) is false
+
+  FS.read-file-string("nonexistent") raises "ENOENT"
 end
 
 check:
