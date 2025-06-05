@@ -1,15 +1,16 @@
 ({
   requires: [
     { "import-type": "builtin", "name": "image-lib" },
-    { "import-type": "builtin", "name": "ffi" }
+    { "import-type": "builtin", "name": "ffi" },
+    { "import-type": "builtin", "name": "filesystem-internal" }
   ],
   nativeRequires: [
     "pyret-base/js/js-numbers",
     "fs",
-    "canvas"
+    "canvas",
   ],
   provides: {},
-  theModule: function(runtime, namespace, uri, imageLib, ffi, jsnums, fs, canvas) {
+  theModule: function(runtime, namespace, uri, imageLib, ffi, fsInternal, jsnums, fs, canvas) {
     var image = runtime.getField(imageLib, "internal");
     var Image = canvas.Image; // The polyfill for the browser Image API (passes through raw Image on CPO)
     
@@ -162,43 +163,80 @@
         const extension = path.slice(lastDot + 1).toLowerCase();
         const mime = extensiontypes[extension];
         if(!mime) { throw runtime.ffi.makeMessageException(`Path to image-file did not have a valid extension (got ${extension}), must be one of ${allowedExtensions.join(", ")}`); }
-        return runtime.pauseStack(function(restarter) {
-          fs.readFile(path, {}, async (err, result) => {
-            if(err) { restarter.error(runtime.ffi.makeMessageException(String(err))); }
-            else {
-              // create a data url from the result from readFile stored in result:
-              var dataURL = await bufferToBase64(result, mime);
+        return runtime.pauseStack(async function(restarter) {
+          if(fsInternal.init) {
+            try {
+              const contentsBuffer = await fsInternal.readFile(path);
+              const dataURL = await bufferToBase64(contentsBuffer, mime);
               var rawImage = new Image();
               rawImage.onload = function() {
                 restarter.resume(makeImage(image.makeFileImage(dataURL, rawImage)));
               };
               rawImage.onerror = function(e) {
-                restarter.error(runtime.ffi.makeMessageException("Unable to load " + path));
+                restarter.error(runtime.ffi.makeMessageException("Unable to load " + path + " " + String(e)));
               };
               rawImage.src = dataURL;
             }
-          })
+            catch(err) {
+              restarter.error(runtime.ffi.makeMessageException(String(err))); 
+            }
+          }
+          else {
+            fs.readFile(path, {}, async (err, result) => {
+              if(err) { restarter.error(runtime.ffi.makeMessageException(String(err))); }
+              else {
+                // create a data url from the result from readFile stored in result:
+                var dataURL = await bufferToBase64(result, mime);
+                var rawImage = new Image();
+                rawImage.onload = function() {
+                  restarter.resume(makeImage(image.makeFileImage(dataURL, rawImage)));
+                };
+                rawImage.onerror = function(e) {
+                  restarter.error(runtime.ffi.makeMessageException("Unable to load " + path));
+                };
+                rawImage.src = dataURL;
+              }
+            });
+          }
         })
       }
 
+      async function getBuffer(canvas) {
+        if(canvas.toBuffer) { return canvas.toBuffer("image/png"); }
+        else {
+          return new Promise((resolve, reject) => {
+            try {
+              canvas.toBlob(async (blob) => {
+                const buffer = new Uint8Array(await blob.arrayBuffer());
+                resolve(buffer);
+              }, "image/png");
+            }
+            catch(e) {
+              reject(e);
+            }
+          });
+        }
+      }
+
       function saveImage(img, path) {
-        return runtime.pauseStack(function(restarter) {
+        return runtime.pauseStack(async function(restarter) {
           const canvas = image.makeCanvas(img.width, img.height);
           img.render(canvas.getContext("2d"));
-          if(canvas.toBuffer) {
-            fs.writeFile(path, canvas.toBuffer("image/png"), function(err) {
+          const buffer = await getBuffer(canvas);
+          if(fsInternal.init) {
+            try {
+              await fsInternal.writeFile(path, buffer);
+              restarter.resume(runtime.nothing);
+            }
+            catch(err) {
+              restarter.error(runtime.ffi.makeMessageException(String(err)));
+            }
+          }
+          else {
+            fs.writeFile(path, buffer, function(err) {
               if(err) { restarter.error(runtime.ffi.makeMessageException(String(err))); }
               else { restarter.resume(runtime.nothing); }
             });
-          }
-          else {
-            canvas.toBlob(async (blob) => {
-              const buffer = new Uint8Array(await blob.arrayBuffer());
-              fs.writeFile(path, buffer, function(err) {
-                if(err) { restarter.error(runtime.ffi.makeMessageException(String(err))); }
-                else { restarter.resume(runtime.nothing); }
-              });
-            }, "image/png");
           }
         });
       }
