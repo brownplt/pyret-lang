@@ -73,7 +73,7 @@ fun tojson(v :: Any) -> JSON:
     if num-is-fixnum(v) or num-is-roughnum(v):
       j-num(v)
     else:
-      raise("Number " + v + " cannot be converted to a JavaScript number.")
+      raise("Number " + to-repr(v) + " cannot be converted to a JavaScript number.")
     end
   else if is-string(v):
     j-str(v)
