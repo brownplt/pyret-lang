@@ -73,7 +73,7 @@ fun tojson(v :: Any) -> JSON:
     if num-is-fixnum(v) or num-is-roughnum(v):
       j-num(v)
     else:
-      raise("Number " + v + " cannot be converted to a JavaScript number.")
+      raise("Number " + to-repr(v) + " cannot be converted to a JavaScript number.")
     end
   else if is-string(v):
     j-str(v)
@@ -102,4 +102,30 @@ fun tojson(v :: Any) -> JSON:
   else:
     raise("Value " + torepr(v) + " cannot be converted to a JSON expression.")
   end
+where:
+  tojson(1) is j-num(1)
+  tojson(~15.3) is-roughly j-num(~15.3)
+  tojson(1/2) raises "Number 1/2 cannot be converted to a JavaScript number."
+  tojson(true) is j-bool(true)
+  tojson(false) is j-bool(false)
+  tojson(nothing) is j-null
+  tojson([list:]) is j-arr([list:])
+  tojson([list: 1, true, "foo"])
+    is
+  j-arr([list: j-num(1), j-bool(true), j-str("foo")])
+  tojson([array:]) is j-arr([list:])
+  tojson([array: 1, true, "foo"])
+    is
+  j-arr([list: j-num(1), j-bool(true), j-str("foo")])
+  tojson([raw-array:]) is j-arr([list:])
+  tojson([raw-array: 1, true, "foo"])
+    is
+  j-arr([list: j-num(1), j-bool(true), j-str("foo")])
+  tojson([SD.string-dict: "foo", 4, "bar", false])
+    is
+  j-obj([SD.string-dict: "foo", j-num(4), "bar", j-bool(false)])
+  tojson([SD.mutable-string-dict: "foo", 4, "bar", false])
+    is
+  j-obj([SD.string-dict: "foo", j-num(4), "bar", j-bool(false)])
+  tojson(j-null) raises "Value j-null cannot be converted to a JSON expression."
 end
