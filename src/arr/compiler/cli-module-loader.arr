@@ -21,6 +21,7 @@ import file("locators/file.arr") as FL
 import file("locators/url.arr") as UL
 import file("locators/builtin.arr") as BL
 import file("locators/jsfile.arr") as JSF
+import file("locators/npm.arr") as NPM
 import file("js-of-pyret.arr") as JSP
 
 j-fun = J.j-fun
@@ -348,6 +349,10 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
                 CL.located(UL.url-locator(full-url, CS.standard-globals), ctxt)
             end
         end
+      else if protocol == "npm":
+        package-name = args.get(0)
+        path = args.get(1)
+        CL.located(NPM.make-npm-locator(package-name, path), ctxt)
       else if protocol == "builtin-test":
         l = get-builtin-test-locator(ctxt.cache-base-dir, args.first)
         force-check-mode = l.{

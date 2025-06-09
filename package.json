@@ -29,6 +29,7 @@
     "lockfile": "^1.0.4",
     "mkdirp": "^0.5.1",
     "node-uuid": "^1.4.8",
+    "pyret-test-files": "git://github.com/brownplt/pyret-test-files#main",
     "q": "~1.0.1",
     "requirejs": "^2.3.7",
     "s-expression": "~2.2.0",
