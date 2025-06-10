@@ -1415,7 +1415,7 @@
     // Since this relies on offsetTop, which are rounded up to the nearest integer,
     // it's only good to within +-2px.
     var ua = "", baselineFudge = 0;
-    if (window.navigator && window.navigator.userAgent) {
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.userAgent) {
       ua = window.navigator.userAgent;
     }
     if (ua.indexOf("Firefox") !== -1) {
