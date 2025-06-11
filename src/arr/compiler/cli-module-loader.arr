@@ -302,7 +302,7 @@ type CLIContext = {
 
 fun get-real-path(current-load-path :: String, this-path :: String):
   if Filesystem.is-absolute(this-path):
-    Filesystem.relative(current-load-path, this-path)
+    this-path
   else:
     Filesystem.join(current-load-path, this-path)
   end
@@ -352,7 +352,11 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
       else if protocol == "npm":
         package-name = args.get(0)
         path = args.get(1)
-        CL.located(NPM.make-npm-locator(package-name, path), ctxt)
+        locator = NPM.make-npm-locator(package-name, path)
+        clp = ctxt.current-load-path
+        real-path = get-real-path(clp, locator.path)
+        new-context = ctxt.{current-load-path: Filesystem.dirname(real-path)}
+        CL.located(locator, new-context)
       else if protocol == "builtin-test":
         l = get-builtin-test-locator(ctxt.cache-base-dir, args.first)
         force-check-mode = l.{
