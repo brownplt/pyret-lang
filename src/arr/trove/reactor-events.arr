@@ -23,3 +23,7 @@ data RawKeyEventType:
   | key-press
 end
 
+data SendingHandlerResult<S, M>:
+  | update(new-state :: S)
+  | send(new-state :: S, to-send :: M)
+end

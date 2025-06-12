@@ -50,7 +50,8 @@
     aliases: {
       "Event": "ReactorEvent",
       "RawKeyEventType": "RawKeyEventType",
-      "Reactor": ["local", "Reactor"]
+      "Reactor": ["local", "Reactor"],
+      "SendingHandlerResult": "SendingHandlerResult",
     },
     datatypes: {
       "Reactor": ["data", "Reactor", ["a"], [], {
@@ -200,6 +201,26 @@
             thisInteractTrace.shift();
             return makeReactorRaw(newVal, handlers, tracing, trace.concat(thisInteractTrace));
           }, "interact");
+        }),
+        "interact-connect": runtime.makeMethod1(function(self, connector) {
+          // connector:
+          //   register-on-message: Message -> ...
+          //   handle-message-return: Message -> void
+          //   dispose: () -> void
+          //   reconnect: () -> void
+          checkArity(2, arguments, "interact-connect", true);
+          let thisInteractTrace = [];
+          let tracer = null;
+          if (tracing) {
+            tracer = (newVal, oldVal, k) => {
+              thisInteractTrace.push(newVal);
+              k();
+            };
+          }
+          return runtime.safeCall(
+            () => externalInteractionHandler(init, handlers, tracer, connector),
+            (newVal) => makeReactorRaw(newVal, handlers, tracing, trace.concat(thisInteractTrace)),
+            "interact-connect");
         }),
         "start-trace": runtime.makeMethod0(function(self) {
           checkArity(1, arguments, "start-trace", true);
