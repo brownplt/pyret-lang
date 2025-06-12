@@ -6,14 +6,20 @@
         },
         types: {}
     },
-    nativeRequires: [],
-    theModule: function(runtime, _, _) {
-        function resolve(moduleName) {
-            runtime.checkArgsInternal1('require-util', 'resolve', moduleName, runtime.String);
+    nativeRequires: ["resolve"],
+    theModule: function(runtime, _, _, browserifyResolve) {
+        function resolve(moduleName, baseDir) {
+            console.log(moduleName, baseDir);
+            runtime.checkArgsInternal2('require-util', 'resolve', moduleName, runtime.String, baseDir, runtime.String);
             try {
-                return require.resolve(moduleName);
+                return runtime.pauseStack((restarter) => {
+                  browserifyResolve(moduleName, { basedir: baseDir }, (err, resolved) => {
+                      if(err) { restarter.error(runtime.makeMessageException(`Error resolving ${moduleName} from ${baseDir}: ${String(err)}`)); }
+                      restarter.resume(resolved);
+                  });
+                });
             } catch (err) {
-                throw runtime.throwMessageException(`Error resolving ${moduleName}: ${String(err)}`);
+                throw runtime.throwMessageException(`Error resolving ${moduleName} from ${baseDir}: ${String(err)}`);
             }
         }
         function cannotResolve(moduleName) {

@@ -38,3 +38,5 @@ define("http", [], function () {return http;});
 ws = nodeRequire("ws");
 define("ws", [], function () { return ws });
 
+resolve = nodeRequire("resolve");
+define("resolve", [], function () { return resolve });

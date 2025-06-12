@@ -352,7 +352,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
       else if protocol == "npm":
         package-name = args.get(0)
         path = args.get(1)
-        locator = NPM.make-npm-locator(package-name, path)
+        locator = NPM.make-npm-locator(package-name, path, ctxt.current-load-path)
         clp = ctxt.current-load-path
         real-path = get-real-path(clp, locator.path)
         new-context = ctxt.{current-load-path: Filesystem.dirname(real-path)}

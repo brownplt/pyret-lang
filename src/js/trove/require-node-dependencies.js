@@ -44,3 +44,5 @@ define("path", [], function () { return path; });
 http = nodeRequire("http");
 define("http", [], function () {return http;});
 
+resolve = nodeRequire("resolve");
+define("resolve", [], function () {return resolve;});
