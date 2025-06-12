@@ -1,0 +1,30 @@
+name: Makefile CI
+
+on:
+  push:
+    branches: [ "horizon" ]
+  pull_request:
+    branches: [ "horizon" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v3.9.1
+      with:
+        node-version: 18
+
+    - name: udpate and install
+      run: |
+        npm update
+        make install
+
+    - name: build
+      run: make
+
+    - name: run tests
+      run: make all-pyret-test
