@@ -252,12 +252,6 @@
           type: 'ordinal',
           domain: [COLLAPSED_ID, ...Array(table.length).keys()],
           range: ['Other', ...table.map((row) => row[0])]
-        },
-        {
-          name: 'valuePercent',
-          type: 'linear',
-          domain: { data: 'table', field: 'endAngle' },
-          range: [0, 1]
         }
       ];
       
@@ -328,7 +322,7 @@
         source: 'rawTable',
         transform: [
           { type: 'filter', expr: 'datum.value < (collapseThreshold * datum.total)' },
-          { type: 'aggregate', ops: ['sum'], fields: ['value'], as: ['value'] },
+          { type: 'aggregate', ops: ['sum', 'min'], fields: ['value', 'total'], as: ['value', 'total'] },
           { type: 'formula', as: 'label', expr: '"Other"' },
           { type: 'formula', as: 'id', expr: '-1' },
           { type: 'formula', as: 'offset', expr: '0' }
@@ -368,7 +362,7 @@
       data.push(filtered);
 
       const tooltip = {
-        signal: '{ title: datum.label, Value: datum.value + " (" + format(scale("valuePercent", datum.endAngle - datum.startAngle), ".2%") + ")" }'
+        signal: '{ title: datum.label, Value: datum.value + " (" + format(datum.value / datum.total, ".2%") + ")" }'
       };
       marks.push(
         {
@@ -414,7 +408,7 @@
                 },
                 { value: 'black' }
               ],
-              text: { signal: 'format(scale("valuePercent", datum.endAngle - datum.startAngle), ".2%")' },
+              text: { signal: 'format(datum.value / datum.total, ".2%")' },
               xc: { signal: 'centerX + datum.textX' },
               yc: { signal: 'centerY - datum.textY' },
               align: { value: 'center' },
@@ -2753,8 +2747,8 @@
 
       function addControls(view, overlay) {
         overlay.css({
-          width: '30%',
-          position: 'absolute',
+          width: '100px',
+          position: 'relative',
           right: '0px',
           top: '50%',
           transform: 'translateY(-50%)',
@@ -2968,7 +2962,9 @@
     function renderStaticImage(processed, globalOptions, rawData) {
       return RUNTIME.pauseStack(restarter => {
         try {
-          console.log(JSON.stringify(processed, (k, v) => (v && (IMAGE.isImage(v) || (v instanceof canvasLib.Canvas))) ? v.ariaText : v, 2));
+          if (canvasLib && canvasLib.Canvas) {
+            console.log(JSON.stringify(processed, (k, v) => (v && (IMAGE.isImage(v) || (v instanceof canvasLib.Canvas))) ? v.ariaText : v, 2));
+          }
           const width = toFixnum(globalOptions['width']);
           const height = toFixnum(globalOptions['height']);
           const view = new vega.View(vega.parse(processed));
