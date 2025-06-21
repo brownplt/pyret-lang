@@ -2746,12 +2746,15 @@
       }
 
       function addControls(view, overlay) {
+        const overlayWidth = 200;
+        $(view.container()).css('padding-right', `${overlayWidth + 10}px`);
         overlay.css({
-          width: '100px',
-          position: 'relative',
+          width: `${overlayWidth}px`,
+          position: 'absolute',
           right: '0px',
           top: '50%',
           transform: 'translateY(-50%)',
+          background: 'var(--ui-dialog-default)',
         });
         const inputSize = 16;
         function makeInputControl(label, value) {
@@ -2759,6 +2762,7 @@
             'class': 'controller',
             type: 'text',
             placeholder: label,
+            width: '100%',
           }).attr('size', inputSize)
                 // Guaranteed that value.toFixed(5) contains a decimal point,
                 // so the trailing zeroes are guaranteed to be decimals only.
