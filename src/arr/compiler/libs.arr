@@ -52,3 +52,4 @@ import image as _
 import image-typed as _
 import color as _
 import csv as _
+import charts as _
