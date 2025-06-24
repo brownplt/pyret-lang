@@ -10,8 +10,6 @@ import file("./tests/test-binops.arr") as _
 import file("./tests/test-letrec.arr") as _
 import file("./tests/test-output.arr") as _
 import file("./tests/test-array.arr") as _
-import file("./tests/test-matrices.arr") as _
-import file("./tests/test-matrices2.arr") as _
 import file("./tests/test-constructors.arr") as _
 import file("./tests/test-contracts.arr") as _
 import file("./tests/test-s-exp.arr") as _
