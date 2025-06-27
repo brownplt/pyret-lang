@@ -371,6 +371,11 @@
       raise(err("arity-mismatch")(funLoc, arity, args, isMethod));
     }
 
+    function throwHeaderRowMismatch(colnames, origHeaders, providedVals) {
+      runtime.checkArray(providedVals);
+      raise(err("header-row-mismatch")(colnames, origHeaders, providedVals));
+    }
+
     function throwRowLengthMismatch(colnames, providedVals) {
       runtime.checkArray(providedVals);
       raise(err("row-length-mismatch")(colnames, providedVals));
@@ -634,6 +639,7 @@
       throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
       throwArityError: throwArityError,
       throwArityErrorC: throwArityErrorC,
+      throwHeaderRowMismatch: throwHeaderRowMismatch,
       throwRowLengthMismatch: throwRowLengthMismatch,
       throwColLengthMismatch: throwColLengthMismatch,
       throwConstructorArityErrorC: throwConstructorArityErrorC,

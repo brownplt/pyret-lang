@@ -60,7 +60,7 @@ fun to-content<A>(csv :: RawArray<RawArray<String>>)
 end
 
 
-fun csv-table-opt(csv :: RawArray<RawArray<String>>, opts :: CSVOptions):
+fun csv-table-opt(csv :: RawArray<RawArray<String>>, orig-headers :: O.Option<RawArray<String>>, opts :: CSVOptions):
   shadow opts = builtins.record-concat(default-options, opts)
   {
     load: lam(headers, sanis) block:
@@ -76,20 +76,30 @@ fun csv-table-opt(csv :: RawArray<RawArray<String>>, opts :: CSVOptions):
           result
         end
 
-        { headers; contents }
+        { headers; orig-headers; contents }
       end
   }
 end
 
 fun csv-table(csv :: RawArray<RawArray<String>>) -> { load :: Function }:
-  csv-table-opt(csv, default-options)
+  csv-table-opt(csv, O.none, default-options)
 end
 
 fun csv-table-str(csv :: String, opts):
   shadow opts = builtins.record-concat(default-options, opts)
   skip-rows = if opts.header-row: 1 else: 0 end
-  rows = csv-lib.parse-string(csv, { skipRows: skip-rows })
-  csv-table-opt(rows, opts)
+  rows = csv-lib.parse-string(csv, {})
+  contents = if opts.header-row:
+    raw-array-from-list(raw-array-to-list(rows).drop(1))
+  else:
+    rows
+  end
+  headers = if opts.header-row and (raw-array-length(rows) > 0):
+    O.some(raw-array-get(rows, 0))
+  else:
+    O.none
+  end
+  csv-table-opt(contents, headers, opts)
 end
 
 fun csv-table-file(path :: String, opts):
