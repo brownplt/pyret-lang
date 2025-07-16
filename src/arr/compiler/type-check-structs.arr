@@ -1386,6 +1386,20 @@ fun resolve-alias(t :: Type, context :: Context) -> Type:
             end
           end
       end
+    | t-app(onto, args, l, inferred) =>
+      cases(Type) onto:
+        | t-forall(params, body, _, _) =>
+          if params.length() == args.length():
+            reduced = foldr2(lam(curr, param, arg):
+              curr.substitute(arg, param)
+            end, body, params, args)
+            resolve-alias(reduced, context).set-loc(l).set-inferred(inferred)
+          else:
+            t-app(onto, args, l, inferred)
+          end
+        | else =>
+          t-app(onto, args, l, inferred)
+      end
     | else => t
   end
 end
