@@ -1,5 +1,6 @@
 PYRET_COMP0      = build/phase0/pyret.jarr
 NODE             = node -max-old-space-size=8192
+NPM_EXEC         = npm --prefix . exec --no --
 JS               = js
 JSBASE           = $(JS)/base
 JSTROVE          = $(JS)/trove
@@ -12,8 +13,6 @@ PHASEA           = build/phaseA
 PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 BUNDLED_DEPS     = build/bundled-node-deps.js
-# HACK HACK HACK (See https://github.com/npm/npm/issues/3738)
-export PATH      := ./node_modules/.bin:../node_modules/.bin:../../node_modules/.bin:$(PATH)
 SHELL := /usr/bin/env bash
 
 # CUSTOMIZE THESE IF NECESSARY
@@ -116,13 +115,13 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
 show-comp: build/show-compilation.jarr
 
 $(PHASEA)/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
-	npx browserify src/js/trove/require-node-compile-dependencies.js -o $@
+	$(NPM_EXEC) browserify src/js/trove/require-node-compile-dependencies.js -o $@
 $(PHASEA)/bundled-node-deps.js: src/js/trove/require-node-dependencies.js
-	npx browserify src/js/trove/require-node-dependencies.js -o $@
+	$(NPM_EXEC) browserify src/js/trove/require-node-dependencies.js -o $@
 $(PHASEB)/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
-	npx browserify src/js/trove/require-node-compile-dependencies.js -o $@
+	$(NPM_EXEC) browserify src/js/trove/require-node-compile-dependencies.js -o $@
 $(PHASEC)/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
-	npx browserify src/js/trove/require-node-compile-dependencies.js -o $@
+	$(NPM_EXEC) browserify src/js/trove/require-node-compile-dependencies.js -o $@
 
 $(PHASEA)/config.json: src/scripts/node_modules-config.json
 	cp $< $@
@@ -131,12 +130,8 @@ $(PHASEB)/config.json: src/scripts/node_modules-config.json
 $(PHASEC)/config.json: src/scripts/node_modules-config.json
 	cp $< $@
 
-showpath:
-	@echo my new PATH = $(PATH)
-	@echo `which browserify`
-
 $(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
-	npx browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
+	$(NPM_EXEC) browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
@@ -277,7 +272,7 @@ pyret-test: phaseA tests/pyret/main2.jarr
 
 .PHONY : pyret-io-test
 pyret-io-test: phaseA
-	npx jest --detectOpenHandles --forceExit --verbose "tests/io-tests/io.test.js"
+	$(NPM_EXEC) jest --detectOpenHandles --forceExit --verbose "tests/io-tests/io.test.js"
 
 .PHONY : regression-test
 regression-test: tests/pyret/regression.jarr
