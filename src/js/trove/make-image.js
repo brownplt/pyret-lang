@@ -12,7 +12,12 @@
   provides: {},
   theModule: function(runtime, namespace, uri, imageLib, ffi, fsInternal, jsnums, fs, canvas) {
     var image = runtime.getField(imageLib, "internal");
-    var Image = canvas.Image; // The polyfill for the browser Image API (passes through raw Image on CPO)
+    if(canvas.Image) {
+      var Image = canvas.Image; // The polyfill for the browser Image API (passes through raw Image on CPO)
+    }
+    else {
+      var Image = window.Image;
+    }
     
     function makeImageLib(moduleName, annots) {
       const colorDb = image.colorDb;
