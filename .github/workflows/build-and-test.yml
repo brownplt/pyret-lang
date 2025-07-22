@@ -18,9 +18,8 @@ jobs:
       with:
         node-version: 24
 
-    - name: udpate and install
-      run: |
-        npm update
+    - name: install
+      run:
         make install
 
     - name: build
