@@ -24,7 +24,13 @@
                          name: "ValueSkeleton" },
       "Table": { tag: "name",
                  origin: { "import-type": "uri", uri: "builtin://global" },
-                 name: "Table" }
+                 name: "Table" },
+      "SendingHandlerResult": { tag: "name",
+                 origin: { "import-type": "uri", uri: "builtin://reactor-events" },
+                 name: "SendingHandlerResult" },
+      "ConnectedEvent": { tag: "name",
+                 origin: { "import-type": "uri", uri: "builtin://reactor-events" },
+                 name: "ConnectedEvent" },
     },
     values: {
       "keypress": ["arrow", ["String"], ["local", "Event"]],
@@ -34,6 +40,11 @@
       "key-up": ["local", "RawKeyEventType"],
       "key-down": ["local", "RawKeyEventType"],
       "key-press": ["local", "RawKeyEventType"],
+      // TODO: make these forall
+      "update": ["arrow", ["Any"], ["local", "SendingHandlerResult"]],
+      "send": ["arrow", ["Any", "Any"], ["local", "SendingHandlerResult"]],
+      "message": ["arrow", ["Any", "Any"], ["local", "ConnectedEvent"]],
+      "event": ["arrow", ["Any", "Any"], ["local", "ConnectedEvent"]],
 
       "get-value": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
       "get-instance": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
@@ -100,6 +111,8 @@
     };
 
     var annEvent = gtf(reactorEvents, "Event");
+    var annConnectedEvent = gtf(reactorEvents, "ConnectedEvent");
+    var annSendingHandlerResult = gtf(reactorEvents, "SendingHandlerResult");
     var annNatural = runtime.makeFlatPredAnn(runtime.Number, runtime.makeFunction(function(val) {
         return jsnums.isInteger(val) && jsnums.greaterThanOrEqual(val, 0, runtime.NumberErrbacks);
     }, "Natural Number"), "Natural Number");
@@ -113,9 +126,43 @@
     }
 
     var isEvent = gmf(reactorEvents, "is-Event");
+    var isConnectedEvent = gmf(reactorEvents, "is-ConnectedEvent");
+    var isSendingHandlerResult = gmf(reactorEvents, "is-SendingHandlerResult");
     var externalInteractionHandler = null;
     var setInteract = function(newInteract) {
       externalInteractionHandler = newInteract;
+    }
+    function callOrError(handlers, handlerName, args, cb) {
+      if(handlers.hasOwnProperty(handlerName)) {
+        var funObj = handlers[handlerName].app;
+        return runtime.safeCall(function() {
+          return funObj.apply(funObj, args);
+        }, cb, "react:" + handlerName);
+      }
+      else {
+        runtime.ffi.throwMessageException("No " + handlerName + " handler defined");
+      }
+    }
+    function handleBaseEvent(handlers, init, event, cb) {
+      return runtime.ffi.cases(isEvent, "Event", event, {
+        keypress: function(key) {
+          return callOrError(handlers, "on-key", [init, key], cb);
+        },
+        "time-tick": function() {
+          return callOrError(handlers, "on-tick", [init], cb);
+        },
+        mouse: function(x, y, kind) {
+          return callOrError(handlers, "on-mouse", [init, x, y, kind], cb);
+        },
+        "raw-key": function(key, type, caps, shift, alt, command, control) {
+          // NOTE(joe): we intentionally don't use all the fields above, assuming
+          // that users of on-raw-key are OK with consuming an event object
+          // rather than the fields of the event. This is mainly because typing
+          // out 8 parameters is pretty unreasonable, and this fancy version
+          // will mainly be used by folks who have gone through at least Reactive
+          return callOrError(handlers, "on-raw-key", [init, event], cb);
+        }
+      });
     }
     var makeReactor = function(init, fields) {
       runtime.ffi.checkArity(2, arguments, "reactor", false);
@@ -259,24 +306,14 @@
         react: runtime.makeMethod1(function(self, event) {
           checkArity(2, arguments, "react", true);
           c1("react", event, annEvent);
-          function callOrError(handlerName, args) {
-            if(handlers.hasOwnProperty(handlerName)) {
-              var funObj = handlers[handlerName].app;
-              return runtime.safeCall(function() {
-                return funObj.apply(funObj, args);
-              }, function(newVal) {
-                if(tracing) {
-                  var newTrace = trace.concat([newVal]);
-                }
-                else {
-                  var newTrace = trace;
-                }
-                return makeReactorRaw(newVal, handlers, tracing, newTrace);
-              }, "react:" + handlerName);
+          function reactCallback(newVal) {
+            if(tracing) {
+              var newTrace = trace.concat([newVal]);
             }
             else {
-              runtime.ffi.throwMessageException("No " + handlerName + " handler defined");
+              var newTrace = trace;
             }
+            return makeReactorRaw(newVal, handlers, tracing, newTrace);
           }
           return runtime.safeCall(function() {
               if(handlers["stop-when"]) {
@@ -288,29 +325,46 @@
             }, function(stop) {
               if(stop) {
                 return self;
-              }
-              else {
-                return runtime.ffi.cases(isEvent, "Event", event, {
-                  keypress: function(key) {
-                    return callOrError("on-key", [init, key]);
-                  },
-                  "time-tick": function() {
-                    return callOrError("on-tick", [init]);
-                  },
-                  mouse: function(x, y, kind) {
-                    return callOrError("on-mouse", [init, x, y, kind]);
-                  },
-                  "raw-key": function(key, type, caps, shift, alt, command, control) {
-                    // NOTE(joe): we intentionally don't use all the fields above, assuming
-                    // that users of on-raw-key are OK with consuming an event object
-                    // rather than the fields of the event. This is mainly because typing
-                    // out 8 parameters is pretty unreasonable, and this fancy version
-                    // will mainly be used by folks who have gone through at least Reactive
-                    return callOrError("on-raw-key", [init, event]);
-                  }
-                });
+              } else {
+                return handleBaseEvent(handlers, init, event, reactCallback);
               }
             }, "react:stop-when");
+        }),
+        respond: runtime.makeMethod2(function(self, event, connector) {
+          checkArity(3, arguments, "react", true);
+          c1("respond", event, annConnectedEvent);
+          function respondCallback(newVal) {
+            runtime.ffi.cases(isSendingHandlerResult, "SendingHandlerResult", newVal, {
+              update: (val)  => 
+                runtime.makeTuple([
+                  makeReactorRaw(val, handlers, tracing, trace.concat([val])),
+                  runtime.ffi.makeNone(),
+                ]),
+              send: (val, msg) =>
+                runtime.safeCall(
+                  () => gf(connector, "handle-message-return").app(msg),
+                  () => 
+                    runtime.makeTuple([
+                      makeReactorRaw(val, handlers, tracing, trace.concat([val])), 
+                      runtime.ffi.makeSome(msg),
+                    ]),
+                ),
+            });
+          }
+          return runtime.safeCall(
+            () => handlers["stop-when"]?.app(init) ?? false,
+            (stop) => {
+              if (stop) {
+                return self;
+              } else {
+                return runtime.ffi.cases(isConnectedEvent, "ConnectedEvent", event, {
+                  message: (msg) =>
+                    callOrError(handlers, "on-recieve", [init, msg], respondCallback),
+                  event: (e) => handleBaseEvent(handlers, init, e, respondCallback),
+                });
+              }
+            }
+          )
         }),
         "is-stopped": runtime.makeMethod0(function(self) {
           checkArity(1, arguments, "is-stopped", true);
@@ -402,6 +456,8 @@
       "key-down": gmf(reactorEvents, "key-down"),
       "key-press": gmf(reactorEvents, "key-press"),
       "make-reactor": F(makeReactor, "make-reactor"),
+      "update": gmf(reactorEvents, "update"),
+      "send": gmf(reactorEvents, "send"),
 
       "get-value": F(getValue, "get-value"),
       "get-instance": F(getValue, "get-instance"),
