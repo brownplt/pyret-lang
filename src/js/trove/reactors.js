@@ -133,6 +133,12 @@
       externalInteractionHandler = newInteract;
     }
     function callOrError(handlers, handlerName, args, cb) {
+      if(handlers.hasOwnProperty(handlerName + "-send")) {
+        var funObj = handlers[handlerName + "-send"].app;
+        return runtime.safeCall(function() {
+          return funObj.apply(funObj, args);
+        }, cb, "react:" + handlerName);
+      }
       if(handlers.hasOwnProperty(handlerName)) {
         var funObj = handlers[handlerName].app;
         return runtime.safeCall(function() {
@@ -334,7 +340,7 @@
           checkArity(3, arguments, "react", true);
           c1("respond", event, annConnectedEvent);
           function respondCallback(newVal) {
-            runtime.ffi.cases(isSendingHandlerResult, "SendingHandlerResult", newVal, {
+            return runtime.ffi.cases(isSendingHandlerResult, "SendingHandlerResult", newVal, {
               update: (val)  => 
                 runtime.makeTuple([
                   makeReactorRaw(val, handlers, tracing, trace.concat([val])),
@@ -352,14 +358,20 @@
             });
           }
           return runtime.safeCall(
-            () => handlers["stop-when"]?.app(init) ?? false,
+            () => {
+              if (handlers["stop-when"]) {
+                return handlers["stop-when"].app(init);
+              } else {
+                return false;
+              }
+            },
             (stop) => {
               if (stop) {
                 return self;
               } else {
                 return runtime.ffi.cases(isConnectedEvent, "ConnectedEvent", event, {
                   message: (msg) =>
-                    callOrError(handlers, "on-recieve", [init, msg], respondCallback),
+                    callOrError(handlers, "on-receive", [init, msg], respondCallback),
                   event: (e) => handleBaseEvent(handlers, init, e, respondCallback),
                 });
               }
@@ -458,6 +470,8 @@
       "make-reactor": F(makeReactor, "make-reactor"),
       "update": gmf(reactorEvents, "update"),
       "send": gmf(reactorEvents, "send"),
+      "message": gmf(reactorEvents, "message"),
+      "event": gmf(reactorEvents, "event"),
 
       "get-value": F(getValue, "get-value"),
       "get-instance": F(getValue, "get-instance"),
