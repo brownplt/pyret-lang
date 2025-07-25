@@ -40,11 +40,17 @@
       "key-up": ["local", "RawKeyEventType"],
       "key-down": ["local", "RawKeyEventType"],
       "key-press": ["local", "RawKeyEventType"],
-      // TODO: make these forall
-      "update": ["arrow", ["Any"], ["local", "SendingHandlerResult"]],
-      "send": ["arrow", ["Any", "Any"], ["local", "SendingHandlerResult"]],
-      "message": ["arrow", ["Any", "Any"], ["local", "ConnectedEvent"]],
-      "event": ["arrow", ["Any", "Any"], ["local", "ConnectedEvent"]],
+
+      "update": ["forall", ["s", "m"], 
+        ["arrow", ["tid", "s"],
+          ["tyapp", ["local", "SendingHandlerResult"], [["tid", "s"], ["tid", "m"]]]]],
+      "send": ["forall", ["s", "m"],
+        ["arrow", [["tid", "s"], ["tid", "m"]],
+          ["tyapp", ["local", "SendingHandlerResult"], [["tid", "s"], ["tid", "m"]]]]],
+      "message": ["forall", ["m"]
+        ["arrow", [["tid", "m"]], ["tyapp", ["local", "ConnectedEvent"], [["tid", "m"]]]]],
+      "event": ["forall", ["m"]
+        ["arrow", [["local", "Event"]], ["tyapp", ["local", "ConnectedEvent"], [["tid", "m"]]]]],
 
       "get-value": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
       "get-instance": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
