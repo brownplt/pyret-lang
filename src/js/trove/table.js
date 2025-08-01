@@ -171,8 +171,8 @@
                                           + info.vals.length);
       }
       var headers = info.vals[0];
-      var origHeaders = info.vals[1];
-      var contents = info.vals[2];
+      var contents = info.vals[1];
+      var origHeaders = info.vals[2];
       runtime.checkArray(headers);
       // runtime.checkPyretVal(origHeaders); // Can we do better?
       runtime.checkArray(contents);

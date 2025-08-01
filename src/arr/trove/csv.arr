@@ -25,12 +25,14 @@ import string-dict as SD
 
 type CSVOptions = {
   header-row :: Boolean,
-  infer-content :: Boolean
+  infer-content :: Boolean,
+  orig-headers :: O.Option<RawArray<String>>
 }
 
 default-options = {
   header-row: true,
-  infer-content: false
+  infer-content: false,
+  orig-headers: O.none
 }
 
 fun to-str-content(csv :: RawArray<RawArray<String>>):
@@ -60,7 +62,7 @@ fun to-content<A>(csv :: RawArray<RawArray<String>>)
 end
 
 
-fun csv-table-opt(csv :: RawArray<RawArray<String>>, orig-headers :: O.Option<RawArray<String>>, opts :: CSVOptions):
+fun csv-table-opt(csv :: RawArray<RawArray<String>>, opts :: CSVOptions):
   shadow opts = builtins.record-concat(default-options, opts)
   {
     load: lam(headers, sanis) block:
@@ -76,13 +78,13 @@ fun csv-table-opt(csv :: RawArray<RawArray<String>>, orig-headers :: O.Option<Ra
           result
         end
 
-        { headers; orig-headers; contents }
+        { headers; contents; opts.orig-headers }
       end
   }
 end
 
 fun csv-table(csv :: RawArray<RawArray<String>>) -> { load :: Function }:
-  csv-table-opt(csv, O.none, default-options)
+  csv-table-opt(csv, default-options)
 end
 
 fun csv-table-str(csv :: String, opts):
@@ -94,12 +96,12 @@ fun csv-table-str(csv :: String, opts):
   else:
     rows
   end
-  headers = if opts.header-row and (raw-array-length(rows) > 0):
+  headers = if opts.header-row and (raw-array-length(rows) > 0) and O.is-none(opts.orig-headers):
     O.some(raw-array-get(rows, 0))
   else:
     O.none
   end
-  csv-table-opt(contents, headers, opts)
+  csv-table-opt(contents, opts.{ orig-headers: headers })
 end
 
 fun csv-table-file(path :: String, opts):

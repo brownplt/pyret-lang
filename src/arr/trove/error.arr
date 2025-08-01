@@ -1954,10 +1954,18 @@ data RuntimeError:
     method render-reason(self):
       [ED.error:
         [ED.para: ED.text("The row could not be constructed because the number of columns didn't match the number of provided values.")],
-        [ED.para: ED.text("Expected " + num-to-string(raw-array-length(self.colnames)) + " columns:")],
-        ED.embed(self.colnames),
-        [ED.para: ED.text("Provided " + num-to-string(raw-array-length(self.provided-vals)) + " values:")],
-        horz-list-values(raw-array-to-list(self.provided-vals))]
+        [ED.para: ED.text("Expected " + num-to-string(raw-array-length(self.expected-headers)) + " columns:")],
+        horz-list-str-ids(raw-array-to-list(self.expected-headers)),
+        cases(O.Option) self.orig-headers:
+          | some(oh) =>
+            [ED.para: [ED.para: ED.text("Instead, found header with " + num-to-string(raw-array-length(oh)) + " columns:"),
+                                horz-list-str-ids(raw-array-to-list(oh))],
+                      [ED.para: ED.text("And data with " + num-to-string(raw-array-length(self.provided-row)) + " columns:"),
+                                horz-list-values(raw-array-to-list(self.provided-row))]]
+          | none =>
+            [ED.para: ED.text("But found data with " + num-to-string(raw-array-length(self.provided-row)) + " columns:"),
+                                horz-list-values(raw-array-to-list(self.provided-row))]
+        end]
     end
 
 
