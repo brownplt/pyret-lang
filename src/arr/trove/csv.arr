@@ -25,12 +25,14 @@ import string-dict as SD
 
 type CSVOptions = {
   header-row :: Boolean,
-  infer-content :: Boolean
+  infer-content :: Boolean,
+  orig-headers :: O.Option<RawArray<String>>
 }
 
 default-options = {
   header-row: true,
-  infer-content: false
+  infer-content: false,
+  orig-headers: O.none
 }
 
 fun to-str-content(csv :: RawArray<RawArray<String>>):
@@ -76,7 +78,7 @@ fun csv-table-opt(csv :: RawArray<RawArray<String>>, opts :: CSVOptions):
           result
         end
 
-        { headers; contents }
+        { headers; contents; opts.orig-headers }
       end
   }
 end
@@ -88,8 +90,18 @@ end
 fun csv-table-str(csv :: String, opts):
   shadow opts = builtins.record-concat(default-options, opts)
   skip-rows = if opts.header-row: 1 else: 0 end
-  rows = csv-lib.parse-string(csv, { skipRows: skip-rows })
-  csv-table-opt(rows, opts)
+  rows = csv-lib.parse-string(csv, {})
+  contents = if opts.header-row:
+    raw-array-from-list(raw-array-to-list(rows).drop(1))
+  else:
+    rows
+  end
+  headers = if opts.header-row and (raw-array-length(rows) > 0) and O.is-none(opts.orig-headers):
+    O.some(raw-array-get(rows, 0))
+  else:
+    O.none
+  end
+  csv-table-opt(contents, opts.{ orig-headers: headers })
 end
 
 fun csv-table-file(path :: String, opts):

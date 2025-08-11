@@ -18,6 +18,9 @@ end
 fun horz-list-values(vals):
   [ED.para: ED.h-sequence(vals.map(lam(val): ED.embed(val) end), ",") ]
 end
+fun horz-list-str-ids(vals):
+  [ED.para: ED.h-sequence(vals.map(lam(val): ED.text(val) end), ",") ]
+end
 
 fun ed-simple-intro(name, loc):
   ed-simple-intro-a-an(name, loc, "a")
@@ -1924,6 +1927,47 @@ data RuntimeError:
           [ED.para: ED.text(" but got " + this-str), ED.embed(num-args), ED.text(arg-str)],
           vert-list-values(self.fun-app-args)])
     end
+
+    | header-row-mismatch(expected-headers, orig-headers, provided-row) with:
+    method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):
+      cases(O.Option) maybe-stack-loc(0, true):
+        | some(l) =>
+          [ED.error:
+            ed-intro("table construction", l, -1, true),
+            [ED.para: ED.text("The table could not be constructed because the number of expected headers didn't match the number found in the data.")],
+            [ED.para: ED.text("Expected to have " + num-to-string(raw-array-length(self.expected-headers)) + " columns:")],
+            horz-list-str-ids(raw-array-to-list(self.expected-headers)),
+            cases(O.Option) self.orig-headers:
+              | some(oh) =>
+                [ED.para: [ED.para: ED.text("Instead, found header with " + num-to-string(raw-array-length(oh)) + " columns:"),
+                                    horz-list-str-ids(raw-array-to-list(oh))],
+                          [ED.para: ED.text("And data with " + num-to-string(raw-array-length(self.provided-row)) + " columns:"),
+                                    horz-list-values(raw-array-to-list(self.provided-row))]]
+              | none =>
+                [ED.para: ED.text("But found data with " + num-to-string(raw-array-length(self.provided-row)) + " columns:"),
+                                   horz-list-values(raw-array-to-list(self.provided-row))]
+            end,
+            ]
+        | none => self.render-reason()
+      end
+    end,
+    method render-reason(self):
+      [ED.error:
+        [ED.para: ED.text("The row could not be constructed because the number of columns didn't match the number of provided values.")],
+        [ED.para: ED.text("Expected " + num-to-string(raw-array-length(self.expected-headers)) + " columns:")],
+        horz-list-str-ids(raw-array-to-list(self.expected-headers)),
+        cases(O.Option) self.orig-headers:
+          | some(oh) =>
+            [ED.para: [ED.para: ED.text("Instead, found header with " + num-to-string(raw-array-length(oh)) + " columns:"),
+                                horz-list-str-ids(raw-array-to-list(oh))],
+                      [ED.para: ED.text("And data with " + num-to-string(raw-array-length(self.provided-row)) + " columns:"),
+                                horz-list-values(raw-array-to-list(self.provided-row))]]
+          | none =>
+            [ED.para: ED.text("But found data with " + num-to-string(raw-array-length(self.provided-row)) + " columns:"),
+                                horz-list-values(raw-array-to-list(self.provided-row))]
+        end]
+    end
+
 
   | row-length-mismatch(colnames, provided-vals) with:
     method render-fancy-reason(self, maybe-stack-loc, src-available, maybe-ast):

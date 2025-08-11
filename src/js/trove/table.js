@@ -165,14 +165,20 @@
 
     function openTable(info) {
       runtime.checkTuple(info);
-      if (info.vals.length != 2) {
-        runtime.ffi.throwMessageException("Expected to find {header; contents} pair, "
+      const vals = [...info.vals];
+      if (info.vals.length === 2) {
+        vals.push(runtime.ffi.makeNone());
+      }
+      else if (info.vals.length !== 3) {
+        runtime.ffi.throwMessageException("Expected to find {header; contents; orig-headers} or {header; contensts} tuple, "
                                           + "but found a tuple of length "
                                           + info.vals.length);
       }
-      var headers = info.vals[0];
-      var contents = info.vals[1];
+      var headers = vals[0];
+      var contents = vals[1];
+      var origHeaders = vals[2];
       runtime.checkArray(headers);
+      // runtime.checkPyretVal(origHeaders); // Can we do better?
       runtime.checkArray(contents);
       var names = [];
       var sanitizers = [];
@@ -194,7 +200,7 @@
           runtime.checkArray(contents[i]);
           if (contents[i].length !== headers.length) {
             if (i === 0) {
-              throw runtime.ffi.throwRowLengthMismatch(names, contents[i]);
+              throw runtime.ffi.throwHeaderRowMismatch(names, origHeaders, contents[i]);
             } else {
               throw runtime.ffi.throwMessageException("Contents must be rectangular");
             }

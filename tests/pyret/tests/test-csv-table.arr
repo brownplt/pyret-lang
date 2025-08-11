@@ -1,6 +1,7 @@
 import csv as csv
 import csv-lib as csv-lib
 import data-source as DS
+import render-error-display as ED
 
 abc123 = [list: "a,b,c", "1,2,3"].join-str("\n")
 
@@ -129,3 +130,13 @@ end
 
 ## See io-tests (which starts a local web server) for tests of csv-table-url
 
+check:
+  fun mismatch-load():
+    load-table: x, y
+      source: csv.csv-table-str("a,b,c\n1,2,3", {})
+    end
+  end
+  hascols = lam(cols): lam(x): string-contains(ED.display-to-string(x.render-reason(), to-repr, empty), cols) end end
+  mismatch-load() raises-satisfies hascols("a,b,c")
+  mismatch-load() raises-satisfies hascols("x,y")
+end
