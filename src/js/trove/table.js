@@ -165,14 +165,18 @@
 
     function openTable(info) {
       runtime.checkTuple(info);
-      if (info.vals.length != 3) {
-        runtime.ffi.throwMessageException("Expected to find {header; orig-headers; contents} triple, "
+      const vals = [...info.vals];
+      if (info.vals.length === 2) {
+        vals.push(runtime.ffi.makeNone());
+      }
+      else if (info.vals.length !== 3) {
+        runtime.ffi.throwMessageException("Expected to find {header; contents; orig-headers} or {header; contensts} tuple, "
                                           + "but found a tuple of length "
                                           + info.vals.length);
       }
-      var headers = info.vals[0];
-      var contents = info.vals[1];
-      var origHeaders = info.vals[2];
+      var headers = vals[0];
+      var contents = vals[1];
+      var origHeaders = vals[2];
       runtime.checkArray(headers);
       // runtime.checkPyretVal(origHeaders); // Can we do better?
       runtime.checkArray(contents);
