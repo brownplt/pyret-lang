@@ -1756,6 +1756,7 @@
       const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
       const legend = get(rawData, 'legend') || '';
       const pointSize = toFixnum(get(rawData, 'point-size'));
+      const autosizeImage = isTrue(get(rawData, 'useImageSizes'));
 
       const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
 
@@ -1790,7 +1791,7 @@
           ]
         },
         {
-          name: 'binnedTable',
+          name: 'binnedRawTable',
           source: 'rawTable',
           transform: [
             { type: 'formula', as: 'binNum', expr: 'floor((datum.value - dataRange[0]) / binSize)' },
@@ -1798,7 +1799,17 @@
             { type: 'formula', as: 'bin1', expr: 'datum.bin0 + binSize' },
             { type: 'stack', groupby: ['binNum'], offset: 'zero', as: ['y0', 'y1'] }
           ]
-        }
+        },
+        {
+          name: `binnedTable`,
+          source: `binnedRawTable`,
+          transform: [ { type: 'filter', expr: '!isValid(datum.image)' } ]
+        },
+        {
+          name: `binnedImages`,
+          source: `binnedRawTable`,
+          transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
+        },
       ];
       const signals = [
         { name: 'dotSize', value: pointSize },
@@ -1859,6 +1870,25 @@
               xc: { scale: 'binScale', field: 'value' },
               yc: { signal: 'scale("dotScale", 0) - actualDotSize * (0.5 + datum.y0 % wrapMaxY)' }
             }
+          }
+        },
+        {
+          type: 'image',
+          from: { data: `binnedImages` },
+          name: `ImageMarks`,
+          encode: {
+            enter: {
+              width: autosizeImage ? undefined : { value: pointSize },
+              height: autosizeImage ? undefined : { value: pointSize },
+              image: { field: 'image' },
+              tooltip: '{ title: datum.Label, Value: datum.value, BinNum: datum.binNum, Bin0: datum.bin0, Bin1: datum.bin1 }'
+            },
+            update: {
+              xc: { scale: 'binScale', field: 'value' },
+              yc: { signal: 'scale("dotScale", 0) - actualDotSize * (0.5 + datum.y0 % wrapMaxY)' },
+              align: { value: 'center' },
+              baseline: { value: 'middle' }
+            },
           }
         }
       ];

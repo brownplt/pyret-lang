@@ -1233,12 +1233,14 @@ type DotPlotSeries = {
   color :: Option<I.Color>,
   legend :: String,
   point-size :: Number,
+  useImageSizes :: Boolean,
 }
 
 default-dot-plot-series = {
   color: none,
   legend: '',
-  point-size: 8
+  point-size: 8,
+  useImageSizes: true,
 }
 
 type IntervalPoint = {
@@ -1545,12 +1547,16 @@ data DataSeries:
     constr: {(): dot-plot-series},
     color: color-method,
     legend: legend-method,
+    image-labels: image-labels-method,
     labels: labels-method,
     method point-size(self, point-size :: Number) block:
       when point-size < 0: 
         raise("point-size: Point Size must be non-negative")
       end
       self.constr()(self.obj.{point-size: point-size})
+    end,
+    method use-image-sizes(self, use-image-sizes :: Boolean):
+      self.constr()(self.obj.{useImageSizes: use-image-sizes})
     end,
   | function-plot-series(obj :: FunctionPlotSeries) with:
     is-single: false,
@@ -2037,6 +2043,24 @@ fun num-dot-chart-from-list(x-values :: CL.LoN) -> DataSeries block:
   end
   default-dot-plot-series.{
     ps: map3(get-dot-point, x-values, x-values.map({(_): ''}), x-values.map({(_): none})),
+  } ^ dot-plot-series
+end
+
+fun image-num-dot-chart-from-list(images :: CL.LoI, x-values :: CL.LoN) -> DataSeries block:
+  doc: ```
+       Consume unordered, possibly-repeating lists of image-labels and numbers, 
+       and construct a dot chart
+       ```
+  x-values.each(check-num)
+  when x-values.length() == 0:
+    raise("num-dot-chart: can't have empty data")
+  end
+  images.each(check-image)
+  when images.length() <> x-values.length():
+    raise("num-dot-chart: the lists of numbers and images must have the same length")
+  end
+  default-dot-plot-series.{
+    ps: map3(get-dot-point, x-values, x-values.map({(_): ''}), images.map(some)),
   } ^ dot-plot-series
 end
 
@@ -2841,6 +2865,7 @@ from-list = {
   bar-chart: bar-chart-from-list,
   dot-chart: dot-chart-from-list,
   num-dot-chart: num-dot-chart-from-list,
+  image-num-dot-chart: image-num-dot-chart-from-list,
   labeled-num-dot-chart: labeled-num-dot-chart-from-list,
   image-bar-chart: image-bar-chart-from-list,
   grouped-bar-chart: grouped-bar-chart-from-list,
