@@ -1150,7 +1150,8 @@ type LinePlotSeries = {
   trendlineDegree :: NumInteger, 
   dashedLine :: Boolean, 
   dashlineStyle :: RawArray<NumInteger>, 
-  point-size :: Number, 
+  point-size :: Number,
+  useImageSizes :: Boolean,
   pointshapeType :: String, 
   pointshapeSides :: NumInteger, 
   pointshapeDent :: Number, 
@@ -1170,7 +1171,8 @@ default-line-plot-series = {
   trendlineDegree: 3,  
   dashedLine: false,
   dashlineStyle: [raw-array: 2, 2],
-  point-size: 0, 
+  point-size: 0,
+  useImageSizes: true,
   pointshapeType: 'circle', 
   pointshapeSides: 5,
   pointshapeDent: 0.5,
@@ -1190,6 +1192,7 @@ type ScatterPlotSeries = {
   color :: Option<I.Color>,
   legend :: String,
   point-size :: Number,
+  useImageSizes :: Boolean,
   trendlineType :: Option<String>,
   trendlineColor :: Option<I.Color>,
   trendlineWidth :: Number, 
@@ -1206,6 +1209,7 @@ default-scatter-plot-series = {
   color: none,
   legend: '',
   point-size: 7,
+  useImageSizes: true,
   pointshapeType: 'circle', 
   pointshapeSides: 5,
   pointshapeDent: 0.5,
@@ -1510,6 +1514,9 @@ data DataSeries:
       end
       self.constr()(self.obj.{point-size: point-size})
     end,
+    method use-image-sizes(self, use-image-sizes :: Boolean):
+      self.constr()(self.obj.{useImageSizes: use-image-sizes})
+    end,
     horizontal: horizontal-method,
   | scatter-plot-series(obj :: ScatterPlotSeries) with:
     trendline-type: trendline-type-method,
@@ -1524,10 +1531,13 @@ data DataSeries:
     image-labels: image-labels-method,
     point-shape: pointshape-method, 
     method point-size(self, point-size :: Number) block:
-      when point-size < 0: 
-        raise("point-size: Point Size must be non-negative")
+      when point-size <= 0: 
+        raise("point-size: Point Size must be positive")
       end
       self.constr()(self.obj.{point-size: point-size})
+    end,
+    method use-image-sizes(self, use-image-sizes :: Boolean):
+      self.constr()(self.obj.{useImageSizes: use-image-sizes})
     end,
     horizontal: horizontal-method,
   | dot-plot-series(obj :: DotPlotSeries) with:

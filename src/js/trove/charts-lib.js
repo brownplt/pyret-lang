@@ -1962,6 +1962,7 @@
       const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
       const legend = get(rawData, 'legend') || config.legend;
       const pointSize = toFixnum(get(rawData, 'point-size'));
+      const autosizeImage = isTrue(get(rawData, 'useImageSizes'));
       const pointshapeType = get(rawData, 'pointshapeType');
       const pointshapeSides = toFixnum(get(rawData, 'pointshapeSides'));
       const pointshapeDent = toFixnum(get(rawData, 'pointshapeDent'));
@@ -2137,8 +2138,8 @@
         name: `${prefix}ImageMarks`,
         encode: {
           enter: {
-            width: { value: pointSize },
-            height: { value: pointSize },
+            width: autosizeImage ? undefined : { value: pointSize },
+            height: autosizeImage ? undefined : { value: pointSize },
             image: { field: 'image' },
             tooltip: tooltips
           },
