@@ -818,7 +818,7 @@
         var color = unwrapColor(maybeC);
         var img   = unwrapImage(maybeImg);
         var line  = image.makeLineImage(x2 - x1, y2 - y1, color);
-        return makeImage(image.makeOverlayImage(line, "left", "top", 0, 0, img, "left", "top"));
+        return makeImage(image.makeOverlayImage(line, "left", "top", -x1, -y1, img, "left", "top"));
       });
 
       f("scene-line", function(maybeImg, maybeX1, maybeY1, maybeX2, maybeY2, maybeC) {
