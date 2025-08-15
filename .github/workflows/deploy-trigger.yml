@@ -19,4 +19,4 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/brownplt/pyret-drydock/dispatches \
-             -f 'event_type=trigger-workflow' -F "client_payload[unit]=false" -F "client_payload[integration]=true"
+             -f 'event_type=nonsense' -F "client_payload[unit]=false" -F "client_payload[integration]=true"
