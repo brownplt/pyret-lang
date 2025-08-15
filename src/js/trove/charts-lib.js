@@ -2020,6 +2020,14 @@
               none: () => undefined,
               some: (opaqueImg) => imageToCanvas(opaqueImg.val)
             }),
+            imageWidth: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+              none: () => undefined,
+              some: (opaqueImg) => opaqueImg.val.getWidth()
+            }),
+            imageHeight: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+              none: () => undefined,
+              some: (opaqueImg) => opaqueImg.val.getHeight()
+            }),
             imageOffsetX: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
               none: () => undefined,
               some: (opaqueImg) => opaqueImg.val.getPinholeX() / opaqueImg.val.getWidth()
@@ -2162,6 +2170,8 @@
           signal: `{ title: "${legend}", Label: datum.label, x: datum.x, y: datum.y }` },
         { signal: `{ title: "${legend}", x: datum.x, y: datum.y }` },
       ];
+      const imageScaleFactorX = autosizeImage ? '-datum.imageWidth' : -pointSize;
+      const imageScaleFactorY = autosizeImage ? '-datum.imageHeight' : -pointSize;
       marks.push({
         type: 'image',
         from: { data: `${prefix}images` },
@@ -2174,8 +2184,8 @@
             tooltip: tooltips
           },
           update: {
-            x: { scale: `xscale`, field: 'x', offset: { signal: `${-pointSize} * datum.imageOffsetX` } },
-            y: { scale: `yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
+            x: { scale: `xscale`, field: 'x', offset: { signal: `${imageScaleFactorX} * datum.imageOffsetX` } },
+            y: { scale: `yscale`, field: 'y', offset: { signal: `${imageScaleFactorY} * datum.imageOffsetY` } },
             stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${color}'` },
             strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 1 : 0)` },
             zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
