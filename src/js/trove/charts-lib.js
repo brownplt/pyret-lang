@@ -174,14 +174,15 @@
       const hAxis = options.hAxis ??= {};
       const vAxis = options.vAxis ??= {};
 
-      const gridlineColor = getColorOrDefault(globalOptions['gridlineColor'], "#aaa");
+      const showGridlines = isTrue(globalOptions['show-grid-lines']);
+      const gridlineColor = getColorOrDefault(globalOptions['gridlineColor'], undefined);
 
-      const minorGridlineColor = getColorOrDefault(globalOptions['minorGridlineColor'], "#ddd");
+      const minorGridlineColor = getColorOrDefault(globalOptions['minorGridlineColor'], undefined);
 
       const minorGridlineMinspacing = toFixnum(globalOptions['minorGridlineMinspacing'])
 
-      hAxis.gridlines = {color: gridlineColor};
-      vAxis.gridlines = {color: gridlineColor};
+      hAxis.gridlines = {show: showGridlines, color: gridlineColor};
+      vAxis.gridlines = {show: showGridlines, color: gridlineColor};
 
       cases(RUNTIME.ffi.isOption, 'Option', globalOptions['gridlineMinspacing'], {
         none: function () {
@@ -2684,6 +2685,9 @@
       // NOTE: For the axes, we're going to want to put the bar lines at the zeros
       // of the domains, rather than the edges of the chart
       const axes = [
+        { orient: 'bottom', scale: `xscale`, zindex: 0,
+          grid: gridlines.hAxis.gridlines.show, gridColor: gridlines.hAxis.gridlines.color,
+          domain: false, tickOpacity: 0, labelOpacity: 0 },
         { orient: 'bottom', scale: `xscale`, zindex: 1, title: xAxisLabel,
           domain: false, tickOpacity: 0, labelOpacity: 0 },
         { orient: 'bottom', scale: `xscale`, zindex: 1, 
@@ -2692,6 +2696,9 @@
                     signal: `clamp(0, domain('yscale')[0], domain('yscale')[1])`,
                     offset: { signal: 'height', mult: -1 } }
         },
+        { orient: 'left', scale: `yscale`, zindex: 0,
+          grid: gridlines.vAxis.gridlines.show, gridColor: gridlines.vAxis.gridlines.color,
+          domain: false, tickOpacity: 0, labelOpacity: 0 },
         { orient: 'left', scale: `yscale`, zindex: 1, title: yAxisLabel,
           domain: false, tickOpacity: 0, labelOpacity: 0 },
         { orient: 'left', scale: `yscale`, zindex: 1, 

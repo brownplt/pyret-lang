@@ -511,8 +511,12 @@ show-minor-grid-lines-method = method(self, is-showing :: Boolean):
   self.constr()(self.obj.{show-minor-grid-lines: is-showing})
 end
 
+show-grid-lines-method = method(self, is-showing :: Boolean):
+  self.constr()(self.obj.{show-grid-lines: is-showing})
+end
+
 gridlines-color-method = method(self, color ::  I.Color):
-  self.constr()(self.obj.{gridlineColor: some(color)})
+  self.constr()(self.obj.{show-grid-lines: true, gridlineColor: some(color)})
 end
 
 minor-gridlines-color-method = method(self, color ::  I.Color):
@@ -1459,6 +1463,8 @@ type PlotChartWindowObject = {
   borderSize :: Number, 
   borderColor :: Option<I.Color>, 
   render :: ( -> IM.Image),
+  show-grid-lines :: Boolean,
+  show-minor-grid-lines :: Boolean,
   gridlineColor :: Option<I.Color>, 
   gridlineMinspacing :: Option<Number>, 
   minorGridlineColor :: Option<I.Color>, 
@@ -1476,6 +1482,7 @@ type PlotChartWindowObject = {
 default-plot-chart-window-object :: PlotChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
+  show-grid-lines: true,
   show-minor-grid-lines: false,
   x-min: none,
   x-max: none,
@@ -1722,11 +1729,12 @@ data ChartWindow:
     y-max: y-max-method,
   | plot-chart-window(obj :: PlotChartWindowObject) with:
     constr: {(): plot-chart-window},
-    show-minor-gridlines: show-minor-grid-lines-method,
+    show-gridlines: show-grid-lines-method,
     gridlines-color: gridlines-color-method, 
-    gridlines-minspacing: gridlines-min-spacing-method, 
-    minor-gridlines-color: minor-gridlines-color-method, 
-    minor-gridlines-minspacing: minor-gridlines-min-spacing-method, 
+    # gridlines-minspacing: gridlines-min-spacing-method, 
+    # show-minor-gridlines: show-minor-grid-lines-method,
+    # minor-gridlines-color: minor-gridlines-color-method, 
+    # minor-gridlines-minspacing: minor-gridlines-min-spacing-method, 
     x-axis: x-axis-method,
     y-axis: y-axis-method,
     x-min: x-min-method,
