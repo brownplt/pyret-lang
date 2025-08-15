@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Trigger Workflow in Another Repository
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.DRYDOCK_PAT }}
         run: |
           # GitHub CLI api
           # https://cli.github.com/manual/gh_api
