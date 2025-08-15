@@ -90,7 +90,7 @@ check "Basic Table Loading":
       {raw-array-get(titles, 1); sanitizer.sanitizer}]
     contents = [raw-array: [raw-array: DS.c-str(name), DS.c-str("12")],
       [raw-array: DS.c-str("Alice"), DS.c-num(15)]]
-    {headers; contents}
+    {headers; contents; none}
   end
   make-loader = {(x): {load: lam(titles, sanitizer): with-tl(x, titles, sanitizer) end}}
   (load-table: name, age
@@ -723,6 +723,7 @@ check "table-from-column":
   cs.get(2) is col3
   cs.length() is 3
 end
+
 
 
 check:

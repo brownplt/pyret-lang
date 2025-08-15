@@ -8,11 +8,20 @@ define("s-expression", [], function() {return sexpr;});
 q = require("q");
 define("q", [], function() {return q;});
 
+jsmd5 = require("js-md5");
+define("js-md5", [], function() {return jsmd5;});
+
+crossFetch = require("cross-fetch");
+define("cross-fetch", [], function() {return crossFetch;});
+
 seedrandom = require("seedrandom");
 define("seedrandom", [], function() {return seedrandom;});
 
 sourcemap = require("source-map");
 define("source-map", [], function () { return sourcemap; });
+
+buffer = require("buffer");
+define("buffer", [], function () { return buffer; });
 
 jssha256 = require("js-sha256");
 define("js-sha256", [], function () { return jssha256; });
@@ -29,3 +38,5 @@ define("http", [], function () {return http;});
 ws = nodeRequire("ws");
 define("ws", [], function () { return ws });
 
+resolve = nodeRequire("resolve");
+define("resolve", [], function () { return resolve });

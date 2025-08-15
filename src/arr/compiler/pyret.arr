@@ -88,7 +88,9 @@ fun main(args :: List<String>) -> Number block:
     "no-user-annotations",
     C.flag(C.once, "Ignore all annotations in .arr files, treating them as if they were blank."),
     "no-runtime-annotations",
-    C.flag(C.once, "Ignore all annotations in the runtime, treating them as if they were blank.")
+    C.flag(C.once, "Ignore all annotations in the runtime, treating them as if they were blank."),
+    "url-file-mode",
+    C.next-val-default(C.Str, "all-remote", none, C.once, "How to handle url-file imports (all-remote, all-local, or local-if-present)"),
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -134,6 +136,13 @@ fun main(args :: List<String>) -> Number block:
       when r.has-key("allow-builtin-overrides"):
         B.set-allow-builtin-overrides(r.get-value("allow-builtin-overrides"))
       end
+      url-file-mode-str = r.get-value("url-file-mode")
+      url-file-mode = ask:
+        | url-file-mode-str == "all-remote" then: CS.all-remote
+        | url-file-mode-str == "all-local" then: CS.all-local
+        | url-file-mode-str == "local-if-present" then: CS.local-if-present
+        | otherwise: raise("Unknown url-file-mode: " + url-file-mode-str)
+      end
       if r.has-key("checks") and r.has-key("no-check-mode") and not(r.get-value("checks") == "none") block:
         print-error("Can't use --checks " + r.get-value("checks") + " with -no-check-mode\n")
         failure-code
@@ -176,7 +185,8 @@ fun main(args :: List<String>) -> Number block:
                   html-file: html-file,
                   module-eval: module-eval,
                   user-annotations: user-annotations,
-                  runtime-annotations: runtime-annotations
+                  runtime-annotations: runtime-annotations,
+                  url-file-mode: url-file-mode
                 })
               success-code
             else if r.has-key("serve"):

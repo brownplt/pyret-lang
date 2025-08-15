@@ -8,6 +8,9 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
 
 */
 // TODO: Change to myrequire
+if(typeof window === 'undefined') {
+  var window = this;
+}
 requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, loadHooksLib, stackLib, program) {
 
   var staticModules = program.staticModules;

@@ -1,9 +1,11 @@
 ({
-  requires: [],
+  requires: [
+    { "import-type": "builtin", "name": "filesystem-internal" },
+  ],
   nativeRequires: [
-    "fs",
     "pyret-base/js/secure-loader",
-    "pyret-base/js/type-util"
+    "pyret-base/js/type-util",
+    "buffer"
   ],
   provides: {
     values: {
@@ -11,7 +13,8 @@
       "builtin-raw-locator-from-str": "tany"
     }
   },
-  theModule: function(RUNTIME, ns, uri, fs, loader, t) {
+  theModule: function(RUNTIME, ns, uri, fsInternal, loader, t, buffer) {
+    const Buffer = buffer.Buffer;
     var F = RUNTIME.makeFunction;
 
     function builtinLocatorFromString(content) {
@@ -163,8 +166,20 @@
         console.error("Got undefined name in builtin locator");
         console.trace();
       }
-      var content = String(fs.readFileSync(fs.realpathSync(path + ".js")));
-      return builtinLocatorFromString(content);
+      return RUNTIME.pauseStack(async (restarter) => {
+        try {
+          const fullPath = await fsInternal.resolve(path + ".js");
+          const fileContents = await fsInternal.readFile(fullPath);
+          const content = Buffer.from(fileContents).toString('utf8');
+          return restarter.resume(builtinLocatorFromString(content));
+        }
+        catch(e) {
+          console.error("Error in builtin locator: ", e);
+          console.error("Path was: ", path);
+          console.trace();
+          return restarter.error(RUNTIME.ffi.makeMessageException(String(e)));
+        }
+      });
     }
     var O = RUNTIME.makeObject;
     return O({

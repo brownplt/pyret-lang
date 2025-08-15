@@ -319,3 +319,10 @@ check "more utility functions":
   lists.push(empty, 1) is link(1, empty)
 end
 
+check "build":
+  lists.build-list(lam(x): x * 2 end, 6) is [list: 0, 2, 4, 6, 8, 10]
+  lists.build-list(lam(x): to-repr(x) end, 2) is [list: "0", "1"]
+  lists.build-list(lam(x): to-repr(x) end, 0) is empty
+  lists.build-list(lam(x): x * 2 end, -1) raises "NumNonNegative"
+  lists.build-list("not-a-function", -1) raises "Function"
+end

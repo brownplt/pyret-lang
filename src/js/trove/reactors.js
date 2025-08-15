@@ -13,6 +13,9 @@
       "ReactorEvent": { tag: "name",
                  origin: { "import-type": "uri", uri: "builtin://reactor-events" },
                  name: "Event" },
+      "RawKeyEventType": { tag: "name",
+                 origin: { "import-type": "uri", uri: "builtin://reactor-events" },
+                 name: "RawKeyEventType" },
       "Image": { tag: "name",
                  origin: { "import-type": "uri", uri: "builtin://image-lib" },
                  name: "Image" },
@@ -27,6 +30,10 @@
       "keypress": ["arrow", ["String"], ["local", "Event"]],
       "mouse": ["arrow", ["Number", "Number", "String"], ["local", "Event"]],
       "time-tick": ["local", "Event"],
+      "raw-key": ["local", "Event"],
+      "key-up": ["local", "RawKeyEventType"],
+      "key-down": ["local", "RawKeyEventType"],
+      "key-press": ["local", "RawKeyEventType"],
 
       "get-value": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
       "get-instance": ["forall", ["a"], ["arrow", ["RofA"], ["tid", "a"]]],
@@ -42,6 +49,7 @@
     },
     aliases: {
       "Event": "ReactorEvent",
+      "RawKeyEventType": "RawKeyEventType",
       "Reactor": ["local", "Reactor"]
     },
     datatypes: {
@@ -270,6 +278,14 @@
                   },
                   mouse: function(x, y, kind) {
                     return callOrError("on-mouse", [init, x, y, kind]);
+                  },
+                  "raw-key": function(key, type, caps, shift, alt, command, control) {
+                    // NOTE(joe): we intentionally don't use all the fields above, assuming
+                    // that users of on-raw-key are OK with consuming an event object
+                    // rather than the fields of the event. This is mainly because typing
+                    // out 8 parameters is pretty unreasonable, and this fancy version
+                    // will mainly be used by folks who have gone through at least Reactive
+                    return callOrError("on-raw-key", [init, event]);
                   }
                 });
               }
@@ -360,6 +376,10 @@
       mouse: gmf(reactorEvents, "mouse"),
       keypress: gmf(reactorEvents, "keypress"),
       "time-tick": gmf(reactorEvents, "time-tick"),
+      "raw-key": gmf(reactorEvents, "raw-key"),
+      "key-up": gmf(reactorEvents, "key-up"),
+      "key-down": gmf(reactorEvents, "key-down"),
+      "key-press": gmf(reactorEvents, "key-press"),
       "make-reactor": F(makeReactor, "make-reactor"),
 
       "get-value": F(getValue, "get-value"),

@@ -12,6 +12,7 @@ data ValueSkeleton:
   | vs-constr(name :: String, args)
   | vs-constr-render(name :: String, args, renderers)
   | vs-table(headers :: RawArray, rows #| :: RawArray<RawArray>|#)
+  | vs-table-truncated(headers :: RawArray, rows #| :: RawArray<RawArray>|#, total-rows :: Number)
   | vs-row(headers :: RawArray, values :: RawArray)
   | vs-seq(items)
   | vs-matrix(rows :: Number, cols :: Number, items :: RawArray)

@@ -1,5 +1,7 @@
 import csv as csv
 import csv-lib as csv-lib
+import data-source as DS
+import render-error-display as ED
 
 abc123 = [list: "a,b,c", "1,2,3"].join-str("\n")
 
@@ -32,7 +34,7 @@ check:
 
   t is table: x, y, z
     row: "a", "b", "c"
-    row: 1, 2, 3
+    row: "1", "2", "3"
   end
   t is t2
   t2 is t3
@@ -40,7 +42,7 @@ end
 
 check:
   t = load-table: a, b, c
-    source: csv.csv-table-str(abc123, { header-row: true })
+    source: csv.csv-table-str(abc123, { header-row: true, infer-content: true })
   end
 
   t is table: a, b, c
@@ -48,13 +50,41 @@ check:
   end
 end
 
+# Population data from niche.com fetched May 2, 2025
+zipcodes = ```zip,city,pop
+92117,San Diego,52645
+90210,Beverly Hills,19652
+01609,Worcester,23184
+01520,Holden,16864
+```
+
 check:
-  # load the 'animals' sheet as a table
-  animals-table = 
-    load-table: name, species, sex, age, fixed, legs, pounds, weeks
-      source: csv.csv-table-file("tests/pyret/tests/csvs/animals-ds-2024.csv", { header-row: true })
+  zip-table = 
+    load-table: zip, city, pop
+      source: csv.csv-table-str(zipcodes, { infer-content: false })
+      sanitize pop using DS.strict-num-sanitizer
     end
-  animals-table is table: name, species, sex, age, fixed, legs, pounds, weeks
+  zip-table is table: zip, city, pop
+    row: "92117","San Diego",52645
+    row: "90210","Beverly Hills",19652
+    row: "01609","Worcester",23184
+    row: "01520","Holden",16864
+  end
+
+  excel-zip-table =
+    load-table: zip, city, pop
+      source: csv.csv-table-str(zipcodes, { infer-content: true })
+    end
+  excel-zip-table is table: zip, city, pop
+    row: 92117,"San Diego",52645
+    row: 90210,"Beverly Hills",19652
+    row: 1609,"Worcester",23184
+    row: 1520,"Holden",16864
+  end
+
+end
+
+animals-table-check = table: name, species, sex, age, fixed, legs, pounds, weeks
     row: "Sasha","cat","female",1,false,4,6.5,3
     row: "Snuffles","rabbit","female",3,true,4,3.5,8
     row: "Mittens","cat","female",2,true,4,7.4,1
@@ -88,4 +118,25 @@ check:
     row: "Tinkles","cat","female",1,true,4,1.7,3
     row: "Maple","dog","female",3,true,4,51.6,4
   end
+
+check:
+  # load the 'animals' sheet as a table
+  animals-table = 
+    load-table: name, species, sex, age, fixed, legs, pounds, weeks
+      source: csv.csv-table-file("tests/pyret/tests/csvs/animals-ds-2024.csv", { header-row: true, infer-content: true })
+    end
+  animals-table is animals-table-check
+end
+
+## See io-tests (which starts a local web server) for tests of csv-table-url
+
+check:
+  fun mismatch-load():
+    load-table: x, y
+      source: csv.csv-table-str("a,b,c\n1,2,3", {})
+    end
+  end
+  hascols = lam(cols): lam(x): string-contains(ED.display-to-string(x.render-reason(), to-repr, empty), cols) end end
+  mismatch-load() raises-satisfies hascols("a,b,c")
+  mismatch-load() raises-satisfies hascols("x,y")
 end

@@ -10,8 +10,6 @@ import file("./tests/test-binops.arr") as _
 import file("./tests/test-letrec.arr") as _
 import file("./tests/test-output.arr") as _
 import file("./tests/test-array.arr") as _
-import file("./tests/test-matrices.arr") as _
-import file("./tests/test-matrices2.arr") as _
 import file("./tests/test-constructors.arr") as _
 import file("./tests/test-contracts.arr") as _
 import file("./tests/test-s-exp.arr") as _
@@ -24,9 +22,11 @@ import file("./tests/test-lists.arr") as _
 import file("./tests/test-math.arr") as _
 import file("./tests/test-statistics.arr") as _
 import file("./tests/test-cases.arr") as _
+import file("./tests/test-record-concat.arr") as _
 import file("./tests/test-rec.arr") as _
 import file("./tests/test-compile-errors.arr") as _
 import file("./tests/test-well-formed.arr") as _
+import file("./tests/test-filesystem.arr") as _
 import file("./tests/test-file.arr") as _
 import file("./tests/test-path.arr") as _
 import file("./tests/test-repl.arr") as _
@@ -66,3 +66,5 @@ import file("./tests/modules/test-provide-type-as-simple.arr") as _
 
 import file("./tests/use/test-simple-use.arr") as _
 import file("./tests/use/test-essentials.arr") as _
+
+import file("./tests/test-images.arr") as _

@@ -7,6 +7,7 @@ import checker as _
 import cmdline as _
 import constants as _
 import contracts as _
+import csv as _
 import data-source as _
 import either as _
 import equality as _
@@ -47,4 +48,8 @@ import sha as _
 import str-dict as _
 import string-dict as _
 import table as _
-
+import image as _
+import image-typed as _
+import color as _
+import csv as _
+import charts as _

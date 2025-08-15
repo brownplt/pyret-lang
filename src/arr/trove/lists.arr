@@ -959,6 +959,10 @@ where:
   join-str-last([list: 1, 2, 3, 4], "+", "-") is "1+2+3-4"
 end
 
+fun build-list<A>(f :: (Number -> A), size :: Number) -> List<A>:
+  raw-array-to-list(raw-array-build(f, size))
+end
+
 member-always3 = member3
 member-always = member
 foldl = fold

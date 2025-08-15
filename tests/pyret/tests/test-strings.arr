@@ -5,8 +5,11 @@ import error as E
 import global as G
 include from G:
   string-find-index,
-  string-get-index
+  string-get-index,
+  string-find,
+  string-find-opt
 end
+
 
 check:
   string-char-at("", 0) raises "index"
@@ -39,6 +42,12 @@ check "string index functions":
 
   string-find-index("headache", "adac") is some(2)
   string-find-index("headache", "add") is none
+
+  string-find-opt("headache", "adac") is some(2)
+  string-find-opt("headache", "add") is none
+
+  string-find("headache", "adac") is 2
+  string-find("headache", "add") raises "headache"
 
   string-get-index("headache", "adac") is 2
   string-get-index("headache", "add") raises ""
