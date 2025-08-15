@@ -8,6 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Workflow in Another Repository
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # GitHub CLI api
           # https://cli.github.com/manual/gh_api
