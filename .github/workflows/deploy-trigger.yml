@@ -1,0 +1,17 @@
+name: Trigger deploys in drydock
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Workflow in Another Repository
+        run: |
+          curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/brownplt/pyret-drydock/dispatches \
+            -d "{\"event_type\": \"trigger-workflow\", \"client_payload\": {\"message\": \"ahoy\"}}"
