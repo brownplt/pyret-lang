@@ -682,6 +682,7 @@
             [axesConfig.secondary.dir + '2']: { scale: 'secondary', field: 'value1' },
             fill: [
               { test: 'isValid(datum.image)', value: 'transparent' },
+              { test: 'isValid(datum.color)', field: 'color' },
               { scale: 'color', field: 'series' }
             ],
             tooltip,
