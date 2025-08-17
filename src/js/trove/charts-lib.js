@@ -11,6 +11,7 @@
     values: {
       'pie-chart': "tany",
       'dot-chart': "tany",
+      'categorical-dot-chart': "tany",
       'bar-chart': "tany",
       'multi-bar-chart': "tany",
       'histogram': "tany",
@@ -1865,7 +1866,7 @@
               fill: { value: color },
               stroke: { value: 'white' },
               strokeWidth: { value: 0.25 },
-              tooltip: '{ title: datum.Label, Value: datum.value, BinNum: datum.binNum, Bin0: datum.bin0, Bin1: datum.bin1 }'
+              tooltip: { signal: '{ title: datum.label, Value: datum.value }' }
             },
             update: {
               xc: { scale: 'binScale', field: 'value' },
@@ -1882,7 +1883,7 @@
               width: autosizeImage ? undefined : { value: pointSize },
               height: autosizeImage ? undefined : { value: pointSize },
               image: { field: 'image' },
-              tooltip: '{ title: datum.Label, Value: datum.value, BinNum: datum.binNum, Bin0: datum.bin0, Bin1: datum.bin1 }'
+              tooltip: { signal: '{ title: datum.label, Value: datum.value }' }
             },
             update: {
               xc: { scale: 'binScale', field: 'value' },
@@ -1910,7 +1911,128 @@
         marks,
         onExit: defaultImageReturn,
       };
-    } 
+    }
+
+    function categoricalDotChart(globalOptions, rawData) {
+      const defaultColor = default_colors[0];
+      const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
+      const legend = get(rawData, 'legend') || '';
+
+      const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
+
+      const title = globalOptions['title'];
+      const width = globalOptions['width'];
+      const height = globalOptions['height'];
+      const xAxisLabel = globalOptions['x-axis'];
+      const yAxisLabel = globalOptions['y-axis'];
+      const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
+
+
+
+      console.log(points);
+      const fixedPoints = points.map((p) => ({
+        label: get(p, 'label'),
+        count: toFixnum(get(p, 'count'))
+      }));
+      const data = [
+        {
+          name: 'bars',
+          values: fixedPoints
+        },
+        {
+          name: 'dotsData',
+          values: fixedPoints.flatMap((p) =>
+            Array.from({length: p.count}).map((_, i) => ({ label: p.label, value: i }))
+          )
+        },
+      ];
+      console.log(data)
+      const signals = [
+        { name: 'dotSize', update: "scale('secondary', 1) - scale('secondary', 0)" },
+      ];
+      const scales = [
+        {
+          name: 'primary',
+          type: 'band',
+          range: 'width',
+          domain: { data: 'bars', field: 'label' }
+        },
+        {
+          name: 'secondary',
+          type: 'linear',
+          range: 'height',
+          nice: true, zero: true,
+          domain: { data: 'bars', field: 'count' }
+        }
+      ];
+      const axes = [
+        { orient: 'bottom', scale: 'primary', zindex: 1, title: xAxisLabel },
+        { orient: 'bottom', scale: 'primary', zindex: 0, grid: true, ticks: false, labels: false },
+        { orient: 'left', scale: 'secondary', grid: true, ticks: true, labels: true, title: yAxisLabel, zindex: 1 }
+      ];
+      const marks = [
+        {
+          type: 'symbol',
+          name: 'dots',
+          from: { data: 'dotsData' },
+          encode: {
+            enter: {
+              shape: { value: 'circle' },
+              fillOpacity: { value: 0.5 },
+              fill: { value: color },
+              stroke: { value: 'white' },
+              strokeWidth: { value: 0.25 },
+              tooltip: { signal: '{ title: datum.label, Value: datum.value }' },
+              xc: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
+              yc: { scale: 'secondary', field: 'value', offset: { signal: '0.5 * dotSize' } },
+              size: { signal: '0.8 * 0.8 * dotSize * dotSize' },
+            }
+          }
+        },
+        {
+          type: 'rect',
+          name: 'blocks',
+          from: { data: 'bars' },
+          encode: {
+            enter: {
+              x: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.25 } },
+              x2: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.75 } },
+              y: { scale: 'secondary', value: 0 },
+              y2: { scale: 'secondary', field: 'count' },
+              tooltip: { signal: `{ title: datum.label, Count: datum.count }`},
+              stroke: { value: 'gray' },
+              strokeWidth: { value: 2 },
+              fill: { value: 'transparent' },
+            },
+            update: {
+              opacity: { value: 0 },
+            },
+            hover: {
+              opacity: { value: 1 }
+            }
+          }
+        },
+      ];
+
+      const ans = {
+        "$schema": "https://vega.github.io/schema/vega/v6.json",
+        description: title,
+        title: title ? { text: title } : '',
+        width,
+        height,
+        padding: 0,
+        autosize: 'fit',
+        background,
+        data,
+        signals,
+        scales,
+        axes,
+        marks,
+        onExit: defaultImageReturn,
+      };
+      console.log(ans);
+      return ans;
+    }
 
     function computeDomain(domainValues) {
       const domainMin = Math.min(...domainValues);
@@ -3153,6 +3275,7 @@
         'histogram': makeFunction(histogram),
         'box-plot': makeFunction(boxPlot),
         'dot-chart': makeFunction(dotChart),
+        'categorical-dot-chart': makeFunction(categoricalDotChart),
         'plot': makeFunction(plot),
       }, 
       {

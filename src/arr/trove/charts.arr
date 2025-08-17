@@ -1247,6 +1247,22 @@ default-dot-plot-series = {
   useImageSizes: true,
 }
 
+type CategoricalDotPoint ={
+  label :: String,
+  count :: Number
+}
+
+type CategoricalDotPlotSeries = {
+  ps :: List<CategoricalDotPoint>,
+  color :: Option<I.Color>,
+  legend :: String
+}
+
+default-categorical-dot-plot-series = {
+  color: none,
+  legend: '',
+}
+
 type IntervalPoint = {
   label :: String,
   x :: Number,
@@ -1565,6 +1581,11 @@ data DataSeries:
     method use-image-sizes(self, use-image-sizes :: Boolean):
       self.constr()(self.obj.{useImageSizes: use-image-sizes})
     end,
+  | categorical-dot-plot-series(obj :: CategoricalDotPlotSeries) with:
+    is-single: true,
+    constr: {(): categorical-dot-plot-series},
+    color: color-method,
+    legend: legend-method,
   | function-plot-series(obj :: FunctionPlotSeries) with:
     is-single: false,
     constr: {(): function-plot-series},
@@ -2104,36 +2125,15 @@ fun dot-chart-from-list(input-labels :: CL.LoS) -> DataSeries block:
   input-labels.each(check-string)
 
   # Walk through the (sorted) values, creating lists of labels and counts
-  unique-counts = foldl(
-    lam(acc, elt):
-      labels = acc.{0}
-      counts = acc.{1}
-      if labels.member(elt):
-        {labels; counts.set(0, counts.get(0) + 1)}
-      else:
-        {link(elt, labels); link(1, counts)}
-      end
-    end,
-    {[list: ]; [list: ]},
-    input-labels.sort())
+  unique-counts = for fold(acc from [SD.mutable-string-dict: ], label from input-labels) block:
+    acc.set-now(label, acc.get-now(label).or-else(0) + 1)
+    acc
+  end
 
-  labels = unique-counts.{0}
-  values = unique-counts.{1}
-  rational-values = map(num-to-rational, values)
-
-  # set the vAxis values, and create the data series
-  {max-positive-height; max-negative-height} = prep-axis(rational-values)
-
-  data-series = default-bar-chart-series.{
-    tab: to-table2-n(labels, rational-values),
-    dot-chart: true,
-    axis-top: max-positive-height,
-    axis-bottom: max-negative-height,
-    annotations: values.map({(_): [list: none]}) ^ list-to-table2,
-    intervals: values.map({(_): [list: [raw-array: ]]}) ^ list-to-table2,
-  } ^ bar-chart-series
-
-  data-series.make-axis(max-positive-height, max-negative-height)
+  labels = unique-counts.keys-list-now().sort()
+  default-categorical-dot-plot-series.{
+    ps: labels.map({(l): { label: l, count: unique-counts.get-value-now(l) }})
+  } ^ categorical-dot-plot-series
 end
 
 fun grouped-bar-chart-from-list(
@@ -2433,6 +2433,12 @@ fun render-chart(s :: DataSeries) -> ChartWindow:
       default-dot-chart-window-object.{
         method render(self) block:
           CL.dot-chart(self, obj) 
+        end
+      } ^ dot-chart-window
+    | categorical-dot-plot-series(obj) =>
+      default-dot-chart-window-object.{
+        method render(self) block:
+          CL.categorical-dot-chart(self, obj) 
         end
       } ^ dot-chart-window
     | pie-chart-series(obj) =>
