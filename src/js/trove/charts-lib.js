@@ -1929,7 +1929,6 @@
 
 
 
-      console.log(points);
       const fixedPoints = points.map((p) => ({
         label: get(p, 'label'),
         count: toFixnum(get(p, 'count'))
@@ -1946,7 +1945,6 @@
           )
         },
       ];
-      console.log(data)
       const signals = [
         { name: 'dotSize', update: "scale('secondary', 1) - scale('secondary', 0)" },
       ];
@@ -2014,7 +2012,7 @@
         },
       ];
 
-      const ans = {
+      return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
         title: title ? { text: title } : '',
@@ -2030,8 +2028,6 @@
         marks,
         onExit: defaultImageReturn,
       };
-      console.log(ans);
-      return ans;
     }
 
     function computeDomain(domainValues) {
