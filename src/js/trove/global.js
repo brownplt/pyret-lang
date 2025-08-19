@@ -54,19 +54,31 @@
         "current-checker": ["arrow", [], ["record", {
           "run-checks": "tbot",
           "check-is": "tbot",
-          "check-is-not": "tbot",
+          "check-is-cause": "tbot",
           "check-is-roughly": "tbot",
+          "check-is-roughly-cause": "tbot",
+          "check-is-not": "tbot",
+          "check-is-not-cause": "tbot",
           "check-is-refinement": "tbot",
+          "check-is-refinement-cause": "tbot",
           "check-is-not-refinement": "tbot",
-          "check-satisfies": "tbot",
+          "check-is-not-refinement-cause": "tbot",
+          "check-satisfies": "tbot", // doesn't have -cause
+          "check-satisfies-not": "tbot", // doesn't have -cause
           "check-satisfies-delayed": "tbot",
-          "check-satisfies-not": "tbot",
+          "check-satisfies-delayed-cause": "tbot",
           "check-satisfies-not-delayed": "tbot",
+          "check-satisfies-not-delayed-cause": "tbot",
           "check-raises-str": "tbot",
-          "check-raises-not": "tbot",
+          "check-raises-str-cause": "tbot",
           "check-raises-other-str": "tbot",
+          "check-raises-other-str-cause": "tbot",
+          "check-raises-not": "tbot",
+          "check-raises-not-cause": "tbot",
           "check-raises-satisfies": "tbot",
-          "check-raises-violates":  "tbot"
+          "check-raises-satisfies-cause": "tbot",
+          "check-raises-violates":  "tbot",
+          "check-raises-violates-cause":  "tbot"
         }]]
       }],
 
