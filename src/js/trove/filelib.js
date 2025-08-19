@@ -1,5 +1,7 @@
 ({
-  requires: [],
+  requires: [
+    { "import-type": "builtin", name: "string-dict" },
+  ],
   provides: {
     values: {
       "open-input-file": "tany",
@@ -16,11 +18,12 @@
       "close-output-file": "tany",
       "close-input-file": "tany",
       "create-dir": "tany",
+      "create-dir-tree": "tany",
       "list-files": "tany"
     }
   },
   nativeRequires: ["fs"],
-  theModule: function(RUNTIME, NAMESPACE, uri, fs) {
+  theModule: function(RUNTIME, NAMESPACE, uri, SD, fs) {
     function InputFile(name) {
       this.name = name;
       this.fd = fs.openSync(name, "r");
@@ -29,6 +32,17 @@
     function OutputFile(name, append) {
       this.name = name;
       this.fd = fs.openSync(name, (append ? "a" : "w"));
+    }
+    var checkISD = RUNTIME.getField(SD, "internal").checkISD;
+    var isISD = RUNTIME.getField(SD, "internal").isISD;
+    function makeDirs(baseDir, tree) {
+      if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir);
+      if (isISD(tree)) {
+        RUNTIME.ffi.toArray(RUNTIME.getField(tree, "keys-list").app()).forEach(function(sub) {
+          var kid = RUNTIME.getColonField(tree, "get-value").full_meth(tree, sub);
+          makeDirs(baseDir + "/" + sub, kid);
+        });
+      }
     }
 
     var vals = {
@@ -206,6 +220,13 @@
         fs.mkdirSync(directory);
         return true;
       }, "create-dir"),
+      "create-dir-tree": RUNTIME.makeFunction(function(baseDir, subtree) {
+        RUNTIME.ffi.checkArity(2, arguments, "create-dir-tree", false);
+        RUNTIME.checkString(baseDir);
+        checkISD(subtree);
+        makeDirs(baseDir, subtree);
+        return true;
+      }, "create-dir-tree"),
       "list-files": RUNTIME.makeFunction(function(directory) {
           RUNTIME.ffi.checkArity(1, arguments, "list-files", false);
           RUNTIME.checkString(directory);
