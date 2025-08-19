@@ -2356,7 +2356,9 @@ fun to-type(in-ann :: A.Ann, context :: Context) -> FoldResult<Option<Type>>:
                 end
               end, maybe-arg-types, context)
               fold-arg-typs.bind(lam(arg-typs, shadow context):
-                fold-result(some(t-app(typ, arg-typs, l, false)), context)
+                app-type = t-app(typ, arg-typs, l, false)
+                resolved-type = resolve-alias(app-type, context)
+                fold-result(some(resolved-type), context)
               end)
             end)
         end
