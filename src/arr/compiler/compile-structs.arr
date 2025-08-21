@@ -1956,9 +1956,9 @@ data CompileError:
           ED.text("Type checking failed because of a type inconsistency.")],
         [ED.para:
           ED.text("The type constraint "),
-          ED.highlight(ED.text(tostring(type-1)), [list: type-1.l], 0),
+          ED.highlight(ED.text(type-1.to-string()), [list: type-1.l], 0),
           ED.text(" was incompatible with the type constraint "),
-          ED.highlight(ED.text(tostring(type-2)), [list: type-2.l], 1)]]
+          ED.highlight(ED.text(type-2.to-string()), [list: type-2.l], 1)]]
     end,
     method render-reason(self):
       {type-1; type-2} = if self.type-1.l.before(self.type-2.l): {self.type-1; self.type-2} else: {self.type-2; self.type-1} end
@@ -1967,10 +1967,10 @@ data CompileError:
           ED.text("Type checking failed because of a type inconsistency.")],
         [ED.para:
           ED.text("The type constraint "),
-          ED.code(ED.text(tostring(type-1))),
+          ED.code(ED.text(type-1.to-string())),
           ED.text(" at "), draw-and-highlight(type-1.l),
           ED.text(" was incompatible with the type constraint "),
-          ED.code(ED.text(tostring(type-2))),
+          ED.code(ED.text((type-2.to-string()))),
           ED.text(" at "), draw-and-highlight(type-2.l)]]
     end
   | incorrect-type(bad-name :: String, bad-loc :: A.Loc, expected-name :: String, expected-loc :: A.Loc) with:
@@ -2020,7 +2020,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the type application "),
-          ED.highlight(ED.embed(self.app-type), [list: self.app-type.l], 0),
+          ED.highlight(ED.code(ED.text(self.app-type.to-string())), [list: self.app-type.l], 0),
           ED.text(" expected " + tostring(self.expected-length) + " type arguments, "),
           ED.text("but it received " + tostring(self.app-type.args.length()))]]
     end,
@@ -2028,7 +2028,7 @@ data CompileError:
       [ED.error:
         [ED.para:
           ED.text("The type checker rejected your program because the type application "),
-          ED.highlight(ED.embed(self.app-type), [list: self.app-type.l], 0),
+          ED.highlight(ED.code(ED.text(self.app-type.to-string())), [list: self.app-type.l], 0),
           ED.text(" expected " + tostring(self.expected-length) + " type arguments, "),
           ED.text("but it received " + tostring(self.app-type.args.length()))]]
     end
@@ -2049,7 +2049,7 @@ data CompileError:
                 + "given, but the type signature of the "),
           ed-applicant],
         [ED.para:
-          ED.embed(self.fun-typ)],
+          ED.code(ED.text(self.fun-typ.to-string()))],
         [ED.para:
           ED.text("indicates that it evaluates to a function accepting exactly "),
           ED.ed-args(self.fun-typ.args.length()),
@@ -2070,7 +2070,7 @@ data CompileError:
           ED.ed-args(self.app-expr.args.length()),
           ED.text(" and the type signature of the applicant")],
         [ED.para:
-          ED.embed(self.fun-typ)],
+          ED.code(ED.text(self.fun-typ.to-string()))],
         [ED.para:
           ED.text("indicates that it evaluates to a function accepting exactly "),
           ED.ed-args(self.fun-typ.args.length()),
