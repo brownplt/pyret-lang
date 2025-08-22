@@ -105,14 +105,28 @@ fun csv-table-str(csv :: String, opts):
 end
 
 fun csv-table-file(path :: String, opts):
-  contents = F.file-to-string(path)
-  csv-table-str(contents, opts)
+  if F.file-exists(path):
+    contents = F.file-to-string(path)
+    csv-table-str(contents, opts)
+  else:
+    if string-contains(path, "://"):
+      raise("csv-table-file should be given the path to a file, not a url. Did you mean to use csv-table-url instead?")
+    else:
+      raise("csv-table-file given path to a file that doesn't exist: " + path)
+    end
+  end
+  
 end
 
 fun csv-table-url(url :: String, opts):
   contents = Fetch.fetch(url)
   cases(E.Either) contents:
     | left(str) => csv-table-str(str, opts)
-    | right(err) => raise(err)
+    | right(err) => 
+      if not(string-contains(url, "://")):
+        raise("csv-table-url should be given a url, including the part at the beginning with ://. Did you mean to use csv-table-file instead? The following error occurred: " + err)
+      else:
+        raise(err)
+      end
   end
 end
