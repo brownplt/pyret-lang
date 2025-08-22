@@ -837,7 +837,7 @@ define("pyret-base/js/js-numbers", function() {
       firstFewLen = 11;
     }
     var nFirstFew = parseInt(nStr.substring(0, firstFewLen));
-    var nLog = Math.log(nFirstFew) + (nLen - 10) * ln10;
+    var nLog = Math.log(nFirstFew) + (nLen - firstFewLen) * ln10;
     return Roughnum.makeInstance(nLog, errbacks);
   };
 
