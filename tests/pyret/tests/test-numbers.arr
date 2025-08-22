@@ -162,6 +162,7 @@ check:
   num-log(0) raises "NumPositive"
   num-log(1) is 0
   num-log(num-exp(1)) satisfies around(1, 0.0001)
+  num-log(num-expt(10, 36789)) raises "roughnum overflow error"
 
   2 is num-exact(2)
   1 / 3 is num-exact(1 / 3)
@@ -187,6 +188,7 @@ check:
   num-expt(3, 2) is 9
   num-expt("nan", 2) raises "Number"
   num-expt(2, "nan") raises "Number"
+  num-expt(7, num-expt(10, 36789)) raises "too large"
 
   num-ceiling(2.5) is 3
   num-ceiling("nan") raises "Number"
