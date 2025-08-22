@@ -2890,11 +2890,12 @@ define("pyret-base/js/js-numbers", function() {
 
   // (protected) this^e, e < 2^32, doing sqr and mul with "r" (HAC 14.79)
   function bnpExp(e, z, errbacks) {
-    if (e > 0xffffffff) {
+    if (greaterThan(e, 0xffffffff, errbacks)) {
       errbacks.throwDomainError('expt: exponent ' + e + ' too large');
     }
-    if (e < 1) return BigInteger.ONE;
-    if(e > 0xffffffff || e < 1) return BigInteger.ONE;
+    if (lessThan(e, 1, errbacks)) {
+      return BigInteger.ONE;
+    }
     var r = nbi(), r2 = nbi(), g = z.convert(this), i = nbits(e)-1;
     g.copyTo(r);
     while(--i >= 0) {
