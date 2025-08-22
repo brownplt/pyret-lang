@@ -813,6 +813,8 @@ define("pyret-base/js/js-numbers", function() {
   // NB: all of these trig-gy generic functions should now return roughnum rather than float
   // (except for an arg of 0, etc)
 
+  var ln10 = Math.log(10)
+
   // log: pyretnum -> pyretnum
   var log = function(n, errbacks) {
     if ( eqv(n, 1, errbacks) ) {
@@ -824,7 +826,19 @@ define("pyret-base/js/js-numbers", function() {
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.log(n), errbacks);
     }
-    return n.log(errbacks);
+    var nFix = n.toFixnum();
+    if (typeof(nFix) === 'number' && nFix !== Infinity) {
+      return Roughnum.makeInstance(Math.log(nFix), errbacks);
+    }
+    var nStr = n.round(errbacks).toString();
+    var nLen = nStr.length;
+    var firstFewLen = 10
+    if ((nLen % 2) !== 0) {
+      firstFewLen = 11;
+    }
+    var nFirstFew = parseInt(nStr.substring(0, firstFewLen));
+    var nLog = Math.log(nFirstFew) + (nLen - 10) * ln10;
+    return Roughnum.makeInstance(nLog, errbacks);
   };
 
   // tan: pyretnum -> pyretnum
