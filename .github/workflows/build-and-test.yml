@@ -29,5 +29,6 @@ jobs:
       run: make all-pyret-test
       
   deploy-trigger:
+    needs: build
     uses: ./.github/workflows/deploy-trigger.yml
     secrets: inherit
