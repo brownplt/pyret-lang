@@ -2,6 +2,10 @@ name: Trigger deploys in drydock
 
 on:
   workflow_dispatch:
+  workflow_call:
+    secrets:
+      DRYDOCK_PAT:
+        required: true
 
 jobs:
   build:
