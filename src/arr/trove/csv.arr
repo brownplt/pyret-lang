@@ -1,4 +1,5 @@
 import file as F
+import filesystem as FS
 import csv-lib as csv-lib
 import option as O
 import fetch as Fetch
@@ -105,7 +106,7 @@ fun csv-table-str(csv :: String, opts):
 end
 
 fun csv-table-file(path :: String, opts):
-  if F.file-exists(path):
+  if FS.exists(path):
     contents = F.file-to-string(path)
     csv-table-str(contents, opts)
   else:
