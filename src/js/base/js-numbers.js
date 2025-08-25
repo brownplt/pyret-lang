@@ -173,17 +173,36 @@ define("pyret-base/js/js-numbers", function() {
     } else {
       //  used to return float, now rational
       var stringRep = x.toString();
-      var match = stringRep.match(/^(.*)\.(.*)$/);
+      var match = stringRep.match(genScientificPattern);
+      var factor1 = 1;
+      if (match) {
+        var divideP = false;
+        stringRep = match[1];
+        var exponentPart = match[2];
+        if (exponentPart.match('^-')) {
+          divideP = true;
+          exponentPart = exponentPart.substring(1);
+        }
+        var exponentValue = makeBignum("1" + zfill(Number(exponentPart)));
+        if (divideP) {
+          factor1 = divide(1, exponentValue);
+        }
+        else {
+          factor1 = exponentValue;
+        }
+      }
+      match = stringRep.match(/^(.*)\.(.*)$/);
+      var factor2;
       if (match) {
         var afterDecimal = parseInt(match[2]);
         var factorToInt = Math.pow(10, match[2].length);
         var extraFactor = _integerGcd(factorToInt, afterDecimal);
         var multFactor = factorToInt / extraFactor;
-        return Rational.makeInstance(Math.round(x*multFactor), Math.round(factorToInt/extraFactor), errbacks);
+        factor2 = Rational.makeInstance(Math.round(x*multFactor), Math.round(factorToInt/extraFactor), errbacks);
       } else {
-        return Rational.makeInstance(x, 1, errbacks);
+        factor2 = Rational.makeInstance(Number(stringRep), 1, errbacks);
       }
-
+      return multiply(factor1, factor2);
     }
   };
 
@@ -2035,6 +2054,8 @@ define("pyret-base/js/js-numbers", function() {
 
 
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
+
+  var genScientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+-]?\\d+)$");
 
   // fromString: string -> (pyretnum | false)
   var fromString = function(x, errbacks) {
