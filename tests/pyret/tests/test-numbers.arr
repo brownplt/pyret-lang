@@ -71,19 +71,24 @@ check:
   num-abs(0) is 0
   num-abs(1) is 1
 
+  very-bignum = num-expt(10, 23456)
+
   # These are just sanity end the js-nums library has more rigorous tests
   # for the accuracy of the trig functions.  Here we just make sure the
   # Pyret functions are bound to plausible underlying operations
   num-sin(0) is 0
   num-sin(3.14 / 2) satisfies around(1, 0.1)
   num-sin(3.14) satisfies around(0, 0.1)
+  num-sin(very-bignum) raises "roughnum overflow"
 
   num-cos(0) is 1
   num-cos(3.14 / 2) satisfies around(0, 0.1)
   num-cos(3.14) satisfies around(-1, 0.1)
+  num-cos(very-bignum) raises "roughnum overflow"
 
   num-tan(0) is 0
   num-tan(3.14 / 4) satisfies around(1, 0.01)
+  num-tan(very-bignum) raises "roughnum overflow"
 
   num-asin(0) is 0
   num-asin(1) satisfies around(1.57, 0.01)
