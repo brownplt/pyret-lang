@@ -371,8 +371,12 @@
       raise(err("arity-mismatch")(funLoc, arity, args, isMethod));
     }
 
+    function throwHeaderRowMismatch(colnames, origHeaders, providedVals) {
+      runtime.checkArray(providedVals);
+      raise(err("header-row-mismatch")(colnames, origHeaders, providedVals));
+    }
+
     function throwRowLengthMismatch(colnames, providedVals) {
-      runtime.checkTable(colnames);
       runtime.checkArray(providedVals);
       raise(err("row-length-mismatch")(colnames, providedVals));
     }
@@ -635,6 +639,7 @@
       throwUninitializedIdMkLoc: throwUninitializedIdMkLoc,
       throwArityError: throwArityError,
       throwArityErrorC: throwArityErrorC,
+      throwHeaderRowMismatch: throwHeaderRowMismatch,
       throwRowLengthMismatch: throwRowLengthMismatch,
       throwColLengthMismatch: throwColLengthMismatch,
       throwConstructorArityErrorC: throwConstructorArityErrorC,
@@ -741,6 +746,7 @@
       isValueSkeleton: function(v) { return runtime.unwrap(runtime.getField(VS, "is-ValueSkeleton").app(v)); },
       isVSValue: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-value").app(v)); },
       isVSTable: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-table").app(v)); },
+      isVSTableTruncated: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-table-truncated").app(v)); },
       isVSRow: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-row").app(v)); },
       isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },
       isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
@@ -764,6 +770,7 @@
         var isValueSkeleton = runtime.getField(VS, "is-ValueSkeleton");
         var isValue = runtime.getField(VS, "is-vs-value");
         var isTable = runtime.getField(VS, "is-vs-table");
+        var isTableTruncated = runtime.getField(VS, "is-vs-table-truncated");
         var isRow = runtime.getField(VS, "is-vs-row");
         var isCollection = runtime.getField(VS, "is-vs-collection");
         var isConstr = runtime.getField(VS, "is-vs-constr");
@@ -785,7 +792,7 @@
             } else if (runtime.unwrap(isRow.app(cur)) === true) {
               Array.prototype.push.apply(worklist, runtime.getField(cur, "headers"));
               Array.prototype.push.apply(worklist, runtime.getField(cur, "values"));
-            } else if (runtime.unwrap(isTable.app(cur)) === true) {
+            } else if (runtime.unwrap(isTable.app(cur)) === true || runtime.unwrap(isTableTruncated.app(cur)) === true) {
               Array.prototype.push.apply(worklist, runtime.getField(cur, "headers"));
               runtime.getField(cur, "rows").forEach(function(row){
                 Array.prototype.push.apply(worklist, row); });

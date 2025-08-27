@@ -13,8 +13,12 @@ provide:
   variance-sample,
   stdev-sample,
   linear-regression,
+  js-based-multiple-regression,
   matrix-based-multiple-regression,
   multiple-regression,
+  multiple-regression-coeffs,
+  multiple-regression-table,
+  multiple-regression-fun,
   r-squared,
   z-test,
   t-test,
@@ -28,6 +32,7 @@ end
 
 import global as _
 include lists
+include tables
 import error as E
 import math as math
 import string-dict as SD
@@ -244,9 +249,52 @@ fun matrix-based-multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Nu
   B_pred_fn
 end
 
-fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (List<Number> -> Number):
+fun js-based-multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (List<Number> -> Number):
   doc: "returns a predictor function given a list of list of independent inputs and the correspoinding list of outputs"
   MR.multiple-regression(x_s_s, y_s)
+end
+
+fun multiple-regression(x_s_s :: List<List<Number>>, y_s :: List<Number>) -> (List<Number> -> Number):
+  matrix-based-multiple-regression(x_s_s, y_s)
+end
+
+fun multiple-regression-coeffs(t :: Table, input-cols :: List<String>, output-col :: String) -> List<Number>:
+  doc: ```Input: a table t, a list of N input column names input-cols, and an output column name output-col;
+          Output: a list of regression coefficients```
+  # spy: t, input-cols, output-col end
+  x_s_s = MX.table-to-matrix(t.select-columns(input-cols))
+  # spy: x_s_s end
+  mx_Y = MX.table-to-matrix(t.select-columns([list: output-col]))
+  # spy: y_s end
+  intercepts = MX.col-matrix.make(raw-array-of(1, mx_Y.rows))
+  # spy: intercepts end
+  mx_X = intercepts.augment(x_s_s)
+  # spy: mx_X end
+  MX.mtx-to-list(MX.mtx-least-squares-solve(mx_X, mx_Y))
+end
+
+fun multiple-regression-table(t :: Table, input-cols :: List<String>, output-col :: String) -> Table:
+  doc: ```Input: a table t, a list of N input column names input-cols, and an output column name output-col;
+          Output: a 2-column table of coefficients with column headers "coefficient-name" and "coefficient-value"```
+  B = multiple-regression-coeffs(t, input-cols, output-col)
+  coeff-names = input-cols.push("constant")
+  [table-from-columns: {"coefficient-name"; coeff-names}, {"coefficient-value"; B}]
+end
+
+fun multiple-regression-fun(t :: Table, input-cols :: List<String>, output-col :: String) -> (List<Number> -> Number):
+  doc: ```Input: a table t, a list of N input column names input-cols, and an output column name output-col;
+          Output: a predictor function that takes a list of N input values and returns the predicted output value```
+  B = multiple-regression-coeffs(t, input-cols, output-col)
+  B_n = B.length() - 1
+  fun B_pred_fn(x_s :: List<Number>) -> Number:
+    x_s_n = x_s.length()
+    if B_n <> x_s_n:
+      raise(E.message-exception("multiple-regression: the regression expected " + tostring(B_n) + " inputs, but received " + tostring(x_s_n) + " instead"))
+    else:
+      fold2(lam(b :: Number, e1 :: Number, e2 :: Number) -> Number: b + (e1 * e2) end, 0, B, x_s.push(1))
+    end
+  end
+  B_pred_fn
 end
 
 fun linear-regression(x-s :: List<Number>, y-s :: List<Number>) -> (Number -> Number):

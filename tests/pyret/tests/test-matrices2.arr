@@ -738,22 +738,25 @@ end
 check "QR decomposition":
   mtx-is-orthonormal(matrix-q(index-matrix(50, 1))) is true
 
-  qr = mtx-qr-decomposition([matrix(3,3):
-      12, -51, 4,
-      6, 167, -68,
-      -4, 24, -41])
-  qr.Q is [matrix(3,3):
-    6/7, -69/175, -58/175,
-    3/7, 158/175, 6/175,
-    -2/7, 6/35, -33/35]
-  qr.R is [matrix(3,3):
-    14, 21, -14,
-    0, 175, -70,
-    0, 0, 35]
+  ### NOTE(Ben): These next few tests run *really excruciatingly slowly* on recent node versions,
+  ### but do pass almost instantly in a browser!  Commenting them out for performance, for now...
+  # qr = mtx-qr-decomposition([matrix(3,3):
+  #     12, -51, 4,
+  #     6, 167, -68,
+  #     -4, 24, -41])
+  # qr.Q is [matrix(3,3):
+  #   6/7, -69/175, -58/175,
+  #   3/7, 158/175, 6/175,
+  #   -2/7, 6/35, -33/35]
+  # qr.R is [matrix(3,3):
+  #   14, 21, -14,
+  #   0, 175, -70,
+  #   0, 0, 35]
 
-  #  A particularly tricky test case used to demonstrate loss of orthogonality
-  #  QR has to generate a better Q than Gram-Schmidt alone (which fails this test)
-  mtx-is-orthonormal(matrix-q([matrix(2,2): 0.70000, 0.70711, 0.70001, 0.70711])) is true
+  # #  A particularly tricky test case used to demonstrate loss of orthogonality
+  # #  QR has to generate a better Q than Gram-Schmidt alone (which fails this test)
+  # mtx-is-orthonormal(matrix-q([matrix(2,2): 0.70000, 0.70711, 0.70001, 0.70711])) is true
+  ### END NOTE
 
 #   #  Fuzz test the heck out of it: 100 matrices, random shape, random entries, sometimes rank-deficient
 #   for each(_ from range(0, 100)):

@@ -1,23 +1,29 @@
 ({
-  requires: [],
+  requires: [
+    { "import-type": "builtin", name: "string-dict" },
+  ],
   provides: {
     values: {
       "open-input-file": "tany",
       "open-output-file": "tany",
       "read-file": "tany",
+      "file-to-string": "tany",
       "display": "tany",
       "flush-output-file": "tany",
       "file-times": "tany",
       "real-path": "tany",
       "exists": "tany",
+      "is-file": "tany",
+      "is-dir": "tany",
       "close-output-file": "tany",
       "close-input-file": "tany",
       "create-dir": "tany",
+      "create-dir-tree": "tany",
       "list-files": "tany"
     }
   },
   nativeRequires: ["fs"],
-  theModule: function(RUNTIME, NAMESPACE, uri, fs) {
+  theModule: function(RUNTIME, NAMESPACE, uri, SD, fs) {
     function InputFile(name) {
       this.name = name;
       this.fd = fs.openSync(name, "r");
@@ -26,6 +32,17 @@
     function OutputFile(name, append) {
       this.name = name;
       this.fd = fs.openSync(name, (append ? "a" : "w"));
+    }
+    var checkISD = RUNTIME.getField(SD, "internal").checkISD;
+    var isISD = RUNTIME.getField(SD, "internal").isISD;
+    function makeDirs(baseDir, tree) {
+      if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir);
+      if (isISD(tree)) {
+        RUNTIME.ffi.toArray(RUNTIME.getField(tree, "keys-list").app()).forEach(function(sub) {
+          var kid = RUNTIME.getColonField(tree, "get-value").full_meth(tree, sub);
+          makeDirs(baseDir + "/" + sub, kid);
+        });
+      }
     }
 
     var vals = {
@@ -58,6 +75,20 @@
             throw Error("Expected file in read-file, but got something else");
           }
         }, "read-file"),
+      "file-to-string": RUNTIME.makeFunction(function(path) {
+          RUNTIME.ffi.checkArity(1, arguments, "file-to-string", false);
+          RUNTIME.checkString(path);
+          return RUNTIME.pauseStack(async restarter => {
+            fs.readFile(path, 'utf8', (err, data) => {
+              if (err) {
+                restarter.error(RUNTIME.ffi.makeMessageException(String(err)));
+              } else {
+                restarter.resume(data);
+              }
+            });
+          })
+        }, "file-to-string"),
+
       "display": RUNTIME.makeFunction(function(file, val) {
           RUNTIME.ffi.checkArity(2, arguments, "display", false);
           RUNTIME.checkOpaque(file);
@@ -129,6 +160,26 @@
           var e = fs.existsSync(s);
           return RUNTIME.makeBoolean(e);
         }, "exists"),
+      "is-file": RUNTIME.makeFunction(function(path) {
+          RUNTIME.ffi.checkArity(1, arguments, "is-file", false);
+          RUNTIME.checkString(path);
+          var s = RUNTIME.unwrap(path);
+          if (!fs.existsSync(s)) {
+            return RUNTIME.makeBoolean(false);
+          }
+          var stats = fs.lstatSync(s);
+          return RUNTIME.makeBoolean(stats.isFile());
+        }, "is-file"),
+      "is-dir": RUNTIME.makeFunction(function(path) {
+          RUNTIME.ffi.checkArity(1, arguments, "is-file", false);
+          RUNTIME.checkString(path);
+          var s = RUNTIME.unwrap(path);
+          if (!fs.existsSync(s)) {
+            return RUNTIME.makeBoolean(false);
+          }
+          var stats = fs.lstatSync(s);
+          return RUNTIME.makeBoolean(stats.isDirectory());
+        }, "is-dir"),
       "close-output-file": RUNTIME.makeFunction(function(file) { 
           RUNTIME.ffi.checkArity(1, arguments, "close-output-file", false);
           RUNTIME.checkOpaque(file);
@@ -169,6 +220,13 @@
         fs.mkdirSync(directory);
         return true;
       }, "create-dir"),
+      "create-dir-tree": RUNTIME.makeFunction(function(baseDir, subtree) {
+        RUNTIME.ffi.checkArity(2, arguments, "create-dir-tree", false);
+        RUNTIME.checkString(baseDir);
+        checkISD(subtree);
+        makeDirs(baseDir, subtree);
+        return true;
+      }, "create-dir-tree"),
       "list-files": RUNTIME.makeFunction(function(directory) {
           RUNTIME.ffi.checkArity(1, arguments, "list-files", false);
           RUNTIME.checkString(directory);

@@ -363,7 +363,7 @@ fun desugar-expr(expr :: A.Expr):
       A.s-block(l, stmts.map(desugar-expr))
     | s-user-block(l, body) =>
       desugar-expr(body)
-    | s-template(l) => template-exn(l)
+    | s-template(l) => expr # template-exn(l)
     | s-app(l, f, args) =>
       ds-curry(l, f, args.map(desugar-expr))
     | s-prim-app(l, f, args, app-info) =>
@@ -629,7 +629,7 @@ fun desugar-expr(expr :: A.Expr):
             {src; link(as-option, sanitizers)}
           | s-table-src(_, source) =>
             # Well-formedness ensures that this matches exactly once
-            {some(source); sanitizers}
+            {some(desugar-expr(source)); sanitizers}
         end
       end
 

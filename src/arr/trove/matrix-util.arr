@@ -12,6 +12,7 @@ provide:
   minus,
   times,
   data Pivoting,
+  data QRDecomp
 end
 import global as G
 include from G:
@@ -344,7 +345,7 @@ end
 
 fun sub-projection-now(dest :: RawVector, src :: RawVector, unit :: Boolean) block:
   t = if unit: 1 else: VU.magnitude-squared(src) end
-  when not(num-is-roughnum(t)) and (t <> 0):
+  when num-is-roughnum(t) or (t <> 0):
     s = VU.dot(dest, src) / t
     VU.add-scaled-now(dest, src, 0 - s, 0)
   end
@@ -464,15 +465,16 @@ fun lower-triangle(elts :: RawMatrix) -> RawMatrix:
     end, num-rows)
 end
 
+data QRDecomp: full | reduced end
 fun qr-decomposition(
     elts :: RawMatrix,
-    full :: Boolean)
+    mode :: QRDecomp)
   -> { Q :: RawMatrix, R :: RawMatrix }:
-  x00 = get-2d(elts, 0, 0)
   B = gram-schmidt(elts, false)
-  next-Q-arg = if is-square(B) or not(full): B
-    else if raw-array-length(B) > 0: augment(B, basis-extension(B))
-    else if full: identity(raw-array-length(elts))
+  B-is-nonempty = raw-array-length(B) > 0
+  next-Q-arg = if is-square(B) or (is-reduced(mode) and B-is-nonempty): B
+    else if B-is-nonempty: augment(B, basis-extension(B))
+    else if is-full(mode): identity(raw-array-length(elts))
     else: one-diagonal(raw-array-length(elts), 1)
     end
   Q = gram-schmidt(next-Q-arg, true)

@@ -10,8 +10,6 @@ import file("./tests/test-binops.arr") as _
 import file("./tests/test-letrec.arr") as _
 import file("./tests/test-output.arr") as _
 import file("./tests/test-array.arr") as _
-import file("./tests/test-matrices.arr") as _
-import file("./tests/test-matrices2.arr") as _
 import file("./tests/test-constructors.arr") as _
 import file("./tests/test-contracts.arr") as _
 import file("./tests/test-s-exp.arr") as _
@@ -24,9 +22,11 @@ import file("./tests/test-lists.arr") as _
 import file("./tests/test-math.arr") as _
 import file("./tests/test-statistics.arr") as _
 import file("./tests/test-cases.arr") as _
+import file("./tests/test-record-concat.arr") as _
 import file("./tests/test-rec.arr") as _
 import file("./tests/test-compile-errors.arr") as _
 import file("./tests/test-well-formed.arr") as _
+import file("./tests/test-filesystem.arr") as _
 import file("./tests/test-file.arr") as _
 import file("./tests/test-path.arr") as _
 import file("./tests/test-repl.arr") as _
@@ -42,6 +42,7 @@ import file("./tests/test-tuple.arr") as _
 import file("./tests/test-reactor.arr") as _
 import file("./tests/test-tail-call.arr") as _
 import file("./tests/test-parse.arr") as _
+import file("./tests/test-pprint.arr") as _
 import file("./tests/test-parse-errors.arr") as _
 import file("./tests/test-flatness.arr") as _
 import file("./tests/test-module-syntax.arr") as _
@@ -50,6 +51,7 @@ import file("./tests/test-constants.arr") as _
 import file("./tests/test-constants-scope.arr") as _
 import file("./tests/test-modules.arr") as _
 import file("./tests/test-timing.arr") as _
+import file("./tests/test-csv-table.arr") as _
 import file("./tests/modules/include-shadow-same.arr") as _
 import file("./tests/modules/import-re-provided.arr") as _
 import file("./tests/modules/test-import-re-provided-data.arr") as _
@@ -64,3 +66,5 @@ import file("./tests/modules/test-provide-type-as-simple.arr") as _
 
 import file("./tests/use/test-simple-use.arr") as _
 import file("./tests/use/test-essentials.arr") as _
+
+import file("./tests/test-images.arr") as _

@@ -165,7 +165,7 @@ end
 
 check "parse and print tuple-binding":
   x = P.surface-parse("for each({k;v;} from elts): k end", "test")
-  x.tosource().pretty(80) is [list: "for each({ k; v } from elts) -> Any: k end"]
+  x.tosource().pretty(80) is [list: "for each({ k; v } from elts): k end"]
 end
 
 check "tuple deconstruction":

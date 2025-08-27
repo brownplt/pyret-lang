@@ -66,7 +66,7 @@ fun make-file-ops(): {
     method real-path(self, path): "/mock" + path end
 } end
 
-NUM-BUILTIN-MODULES = 26
+NUM-BUILTIN-MODULES = 27
 
 check "File locators":
   fops = make-file-ops()
@@ -104,9 +104,9 @@ check "File locators":
   floc = file-loc("foo", CM.standard-globals)
   CL.get-dependencies(floc.get-module(), floc.uri()) is [list: CM.dependency("file", [list: "bar"])]
   wlist = CL.compile-worklist(dfind, floc, {})
-  wlist.length() is NUM-BUILTIN-MODULES + 2
-  wlist.get(NUM-BUILTIN-MODULES + 1).locator is floc
-  wlist.get(NUM-BUILTIN-MODULES).locator is file-loc("bar", CM.standard-globals)
+  wlist.length() is NUM-BUILTIN-MODULES + 4
+  wlist.get(NUM-BUILTIN-MODULES + 3).locator is floc
+  wlist.get(NUM-BUILTIN-MODULES + 2).locator is file-loc("bar", CM.standard-globals)
 
   # TODO(joe): This needs eval() to work
   #ans = CL.compile-and-run-worklist(wlist, R.make-runtime(), CM.default-compile-options)

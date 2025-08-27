@@ -1,7 +1,6 @@
 PYRET_COMP0      = build/phase0/pyret.jarr
-CLOSURE          = java -jar deps/closure-compiler/compiler.jar
 NODE             = node -max-old-space-size=8192
-SWEETJS          = node_modules/sweet.js/bin/sjs --readable-names --module ./src/js/macros.js
+NPM_EXEC         = npm --prefix . exec --no --
 JS               = js
 JSBASE           = $(JS)/base
 JSTROVE          = $(JS)/trove
@@ -13,50 +12,24 @@ PHASE0           = build/phase0
 PHASEA           = build/phaseA
 PHASEB           = build/phaseB
 PHASEC           = build/phaseC
-RELEASE_DIR      = build/release
 BUNDLED_DEPS     = build/bundled-node-deps.js
-# HACK HACK HACK (See https://github.com/npm/npm/issues/3738)
-export PATH      := ./node_modules/.bin:../node_modules/.bin:../../node_modules/.bin:$(PATH)
-SHELL := /bin/bash
+SHELL := /usr/bin/env bash
 
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
 COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBASE)/*.js)) \
 	src/js/js-numbers.js
-COMPILER_FILES = $(wildcard src/arr/compiler/*.arr) $(wildcard src/arr/compiler/locators/*.arr) $(wildcard src/js/trove/*.js) $(wildcard src/arr/trove/*.arr)
+COPY_LIB         = $(wildcard lib/jglr/*.js)
+COMPILER_FILES = $(wildcard src/arr/compiler/*.js) $(wildcard src/arr/compiler/*.arr) $(wildcard src/arr/compiler/locators/*.arr) $(wildcard src/js/trove/*.js) $(wildcard src/arr/trove/*.arr)
 TROVE_ARR_FILES = $(wildcard src/arr/trove/*.arr)
 
-# You can download the script to work with s3 here:
-#
-#     http://aws.amazon.com/code/Amazon-S3/1710
-#
-# On Debian, you need the following packages:
-#
-#  - libterm-shellui-perl
-#  - liblog-log4perl-perl
-#  - libnet-amazon-s3-perl
-#  - libnet-amazon-perl
-#  - libnet-amazon-s3-tools-perl
-#  - parallel
-#
-# You will then need to place your AWS id and secret in ~/.aws, in the
-# following format:
-#
-#     id     = <your aws id>
-#     secret = <your aws secret>
-#
-# Make sure that the s3 script is in your PATH, or modify the value
-# below.
-S3               = s3
-
-PHASEA_ALL_DEPS := $(patsubst src/%,$(PHASEA)/%,$(COPY_JS))
-PHASEB_ALL_DEPS := $(patsubst src/%,$(PHASEB)/%,$(COPY_JS))
-PHASEC_ALL_DEPS := $(patsubst src/%,$(PHASEC)/%,$(COPY_JS))
+PHASEA_ALL_DEPS := $(patsubst src/%,$(PHASEA)/%,$(COPY_JS)) $(patsubst lib/jglr/%.js,$(PHASEA)/js/%.js,$(COPY_LIB)) $(PHASEA)/bundled-node-compile-deps.js $(PHASEA)/bundled-node-deps.js $(PHASEA)/config.json
+PHASEB_ALL_DEPS := $(patsubst src/%,$(PHASEB)/%,$(COPY_JS)) $(patsubst lib/jglr/%.js,$(PHASEB)/js/%.js,$(COPY_LIB)) $(PHASEB)/bundled-node-compile-deps.js $(PHASEB)/bundled-node-deps.js $(PHASEB)/config.json
+PHASEC_ALL_DEPS := $(patsubst src/%,$(PHASEC)/%,$(COPY_JS)) $(patsubst lib/jglr/%.js,$(PHASEC)/js/%.js,$(COPY_LIB)) $(PHASEC)/bundled-node-compile-deps.js $(PHASEC)/bundled-node-deps.js $(PHASEC)/config.json
 
 PHASEA_DIRS     := $(sort $(dir $(PHASEA_ALL_DEPS)))
 PHASEB_DIRS     := $(sort $(dir $(PHASEB_ALL_DEPS)))
 PHASEC_DIRS     := $(sort $(dir $(PHASEC_ALL_DEPS)))
-
 
 # NOTE: Needs TWO blank lines here, dunno why
 define \n
@@ -88,14 +61,28 @@ phaseA: $(PHASEA)/pyret.jarr
 phaseA-deps: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 
 
-$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS)) $(BUNDLED_DEPS)
+$(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(patsubst src/%,$(PHASEA)/%,$(PARSERS))
 	$(NODE) $(PYRET_COMP0) --outfile build/phaseA/pyret.jarr \
                       --build-runnable src/arr/compiler/pyret.arr \
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseA/compiled/ \
+                      --deps-file build/phaseA/bundled-node-compile-deps.js \
                       -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configA.json
+
+$(PHASEA)/libs.jarr: $(PHASEA)/pyret.jarr
+	$(NODE) $(PHASEA)/pyret.jarr --outfile build/phaseA/base.jarr \
+                      --build-runnable src/arr/compiler/libs.arr \
+                      --builtin-js-dir src/js/trove/ \
+                      --builtin-arr-dir src/arr/trove/ \
+                      --compiled-dir build/phaseA/lib-compiled/ \
+                      --deps-file build/phaseA/bundled-node-compile-deps.js \
+                      -no-check-mode $(EF) \
+                      --require-config src/scripts/standalone-configA.json
+
+.PHONY : libA
+libA : $(PHASEA)/libs.jarr
 
 .PHONY : phaseB
 phaseB: $(PHASEB)/pyret.jarr
@@ -106,8 +93,9 @@ $(PHASEB)/pyret.jarr: $(PHASEA)/pyret.jarr $(PHASEB_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseB/compiled/ \
+                      --deps-file build/phaseB/bundled-node-compile-deps.js \
                       -no-check-mode $(EF) \
-                      --require-config src/scripts/standalone-configB.json
+                      --require-config build/phaseB/config.json
 
 
 .PHONY : phaseC
@@ -119,18 +107,31 @@ $(PHASEC)/pyret.jarr: $(PHASEB)/pyret.jarr $(PHASEC_ALL_DEPS) $(patsubst src/%,$
                       --builtin-js-dir src/js/trove/ \
                       --builtin-arr-dir src/arr/trove/ \
                       --compiled-dir build/phaseC/compiled/ \
+                      --deps-file build/phaseB/bundled-node-compile-deps.js \
                       -no-check-mode $(EF) \
-                      --require-config src/scripts/standalone-configC.json
+                      --require-config build/phaseB/config.json
 
 .PHONY : show-comp
 show-comp: build/show-compilation.jarr
 
-showpath:
-	@echo my new PATH = $(PATH)
-	@echo `which browserify`
+$(PHASEA)/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
+	$(NPM_EXEC) browserify src/js/trove/require-node-compile-dependencies.js -o $@
+$(PHASEA)/bundled-node-deps.js: src/js/trove/require-node-dependencies.js
+	$(NPM_EXEC) browserify src/js/trove/require-node-dependencies.js -o $@
+$(PHASEB)/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
+	$(NPM_EXEC) browserify src/js/trove/require-node-compile-dependencies.js -o $@
+$(PHASEC)/bundled-node-compile-deps.js: src/js/trove/require-node-compile-dependencies.js
+	$(NPM_EXEC) browserify src/js/trove/require-node-compile-dependencies.js -o $@
+
+$(PHASEA)/config.json: src/scripts/node_modules-config.json
+	cp $< $@
+$(PHASEB)/config.json: src/scripts/node_modules-config.json
+	cp $< $@
+$(PHASEC)/config.json: src/scripts/node_modules-config.json
+	cp $< $@
 
 $(BUNDLED_DEPS): src/js/trove/require-node-dependencies.js
-	npx browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
+	$(NPM_EXEC) browserify src/js/trove/require-node-dependencies.js -o $(BUNDLED_DEPS)
 
 build/show-compilation.jarr: $(PHASEA)/pyret.jarr src/scripts/show-compilation.arr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/show-compilation.jarr \
@@ -194,9 +195,15 @@ $(PHASEC)/$(JS)/%-parser.js: src/$(JSBASE)/%-grammar.bnf src/$(JSBASE)/%-tokeniz
 
 $(PHASEA)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
+$(PHASEA)/$(JS)/%.js : lib/jglr/%.js
+	cp $< $@
 $(PHASEB)/$(JS)/%.js : src/$(JSBASE)/%.js
 	cp $< $@
+$(PHASEB)/$(JS)/%.js : lib/jglr/%.js
+	cp $< $@
 $(PHASEC)/$(JS)/%.js : src/$(JSBASE)/%.js
+	cp $< $@
+$(PHASEC)/$(JS)/%.js : lib/jglr/%.js
 	cp $< $@
 
 .PHONY : install
@@ -265,7 +272,7 @@ pyret-test: phaseA tests/pyret/main2.jarr
 
 .PHONY : pyret-io-test
 pyret-io-test: phaseA
-	npx jest --verbose "tests/io-tests/io.test.js"
+	$(NPM_EXEC) jest --detectOpenHandles --forceExit --verbose "tests/io-tests/io.test.js"
 
 .PHONY : regression-test
 regression-test: tests/pyret/regression.jarr
@@ -303,35 +310,3 @@ new-bootstrap: no-diff-standalone $(PHASE0BUILD)
 	cp -r $(PHASEC)/js $(PHASE0)/
 no-diff-standalone: phaseB phaseC
 	diff $(PHASEB)/pyret.jarr $(PHASEC)/pyret.jarr
-
-$(RELEASE_DIR)/phase1:
-	$(call MKDIR,$(RELEASE_DIR)/phase1)
-
-ifdef VERSION
-release-gzip: $(PYRET_COMP) phase1 standalone1 $(RELEASE_DIR)/phase1
-	gzip -c $(PHASE1)/pyret.js > $(RELEASE_DIR)/pyret.js
-	(cd $(PHASE1) && find * -type d -print0) | parallel --gnu -0 mkdir -p '$(RELEASE_DIR)/phase1/{}'
-	(cd $(PHASE1) && find * -type f -print0) | parallel --gnu -0 "gzip -c '$(PHASE1)/{}' > '$(RELEASE_DIR)/phase1/{}'"
-horizon-gzip: standalone1 $(RELEASE_DIR)/phase1
-	sed "s/define('pyret-start/define('pyret/" $(PHASE1)/pyret.js > $(RELEASE_DIR)/pyret-full.js
-	gzip -c $(RELEASE_DIR)/pyret-full.js > $(RELEASE_DIR)/pyret.js
-	(cd $(PHASE1) && find * -type d -print0) | parallel --gnu -0 mkdir -p '$(RELEASE_DIR)/phase1/{}'
-	(cd $(PHASE1) && find * -type f -print0) | parallel --gnu -0 "gzip -c '$(PHASE1)/{}' > '$(RELEASE_DIR)/phase1/{}'"
-# If you need information on using the s3 script, run `s3 --man'
-horizon-release: horizon-gzip
-	cd $(RELEASE_DIR) && \
-	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-horizon/current/{}' '{}'
-release: release-gzip
-	cd $(RELEASE_DIR) && \
-	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)/{}' '{}'
-test-release: release-gzip
-	cd $(RELEASE_DIR) && \
-	find * -type f -print0 | parallel --gnu -0 $(S3) add --header 'Content-Type:text/javascript' --header 'Content-Encoding:gzip' --acl 'public-read' ':pyret-releases/$(VERSION)-test/{}' '{}'
-else
-release-gzip:
-	$(error Cannot release from this platform)
-release:
-	$(error Cannot release from this platform)
-test-release: release-gzip
-	$(error Cannot release from this platform)
-endif

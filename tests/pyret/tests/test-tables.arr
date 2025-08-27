@@ -90,7 +90,7 @@ check "Basic Table Loading":
       {raw-array-get(titles, 1); sanitizer.sanitizer}]
     contents = [raw-array: [raw-array: DS.c-str(name), DS.c-str("12")],
       [raw-array: DS.c-str("Alice"), DS.c-num(15)]]
-    {headers; contents}
+    {headers; contents; none}
   end
   make-loader = {(x): {load: lam(titles, sanitizer): with-tl(x, titles, sanitizer) end}}
   (load-table: name, age
@@ -687,8 +687,24 @@ check "table-from-rows":
   t4 = table-from-rows.make(raw-array-from-list(new-row-list))
 
   nothing does-not-raise # Dummy test to avoid well-formedness errors in the previous row
-end
 
+  [table-from-rows:
+    [list:
+      [raw-row: {"A"; 5}, {"B"; 7}, {"C"; 8}],
+      [raw-row: {"A"; 1}, {"B"; 2}, {"C"; 3}]]]
+    raises "RawArrayOfRows"
+
+  [table-from-rows:
+    1, [raw-row: {"A"; 1}, {"B"; 2}],
+    false, [raw-row: {"A"; 3}, {"B"; 4}],
+    "non-row string", [raw-row: {"A"; 5}, {"B"; 6}]]
+    raises "RawArrayOfRows"
+
+  [table-from-rows:
+    [raw-row: 5, {"B"; 7}, {"C"; 8}],
+    [raw-row: {"A"; 1}, {"B"; 2}, {"C"; 3}]]
+    raises "KeyValPair"
+end
 
 table-from-column = TS.table-from-column
 table-from-columns = TS.table-from-columns
@@ -707,6 +723,7 @@ check "table-from-column":
   cs.get(2) is col3
   cs.length() is 3
 end
+
 
 
 check:

@@ -1,15 +1,11 @@
 provide *
 import builtin-modules as B
-import string-dict as SD
-import file as F
+import filesystem as FS
 import pathlib as P
 import file("./builtin.arr") as BL
 import file("../compile-lib.arr") as CL
 import file("../compile-structs.arr") as CM
-import file("../type-structs.arr") as T
 import file("../js-of-pyret.arr") as JSP
-
-mtd = [SD.string-dict:]
 
 make-dep = BL.make-dep
 convert-provides = BL.convert-provides
@@ -21,7 +17,7 @@ fun make-jsfile-locator(path):
     method get-uncached(_): none end,
     method needs-compile(_, _): false end,
     method get-modified-time(self):
-      F.file-times(path + ".js").mtime
+      FS.stat(path + ".js").mtime
     end,
     method get-options(self, options):
       options.{ check-mode: false }
@@ -44,7 +40,7 @@ fun make-jsfile-locator(path):
       CM.standard-globals
     end,
 
-    method uri(_): "jsfile://" + string-replace(F.real-path(path + ".js"), P.path-sep, "/") end,
+    method uri(_): "jsfile://" + string-replace(FS.resolve(path + ".js"), P.path-sep, "/") end,
     method name(_): P.basename(path, "") end,
 
     method set-compiled(_, _, _): nothing end,
@@ -56,7 +52,7 @@ fun make-jsfile-locator(path):
         aliases: raw-array-to-list(raw.get-raw-alias-provides()),
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
-      some(CL.module-as-string(provs, CM.no-builtins, CM.computed-none, CM.ok(JSP.ccp-file(F.real-path(path + ".js")))))
+      some(CL.module-as-string(provs, CM.no-builtins, CM.computed-none, CM.ok(JSP.ccp-file(FS.resolve(path + ".js")))))
     end,
 
     method _equals(self, other, req-eq):

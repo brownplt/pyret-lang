@@ -222,9 +222,9 @@ end
 fun obj-of-loc(l):
   cases(Loc) l:
     | builtin(name) => j-list(false, [clist: j-str(name)])
-    | srcloc(_, start-line, start-col, start-char, end-line, end-col, end-char) =>
+    | srcloc(source, start-line, start-col, start-char, end-line, end-col, end-char) =>
       j-list(false, [clist:
-          j-id(const-id("M")),
+          j-str(source),
           j-num(start-line),
           j-num(start-col),
           j-num(start-char),

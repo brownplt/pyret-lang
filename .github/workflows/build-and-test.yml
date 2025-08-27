@@ -1,0 +1,34 @@
+name: Makefile CI
+
+on:
+  push:
+    branches: [ "horizon" ]
+  pull_request:
+    branches: [ "horizon" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v3.9.1
+      with:
+        node-version: 24
+
+    - name: install
+      run:
+        make install
+
+    - name: build
+      run: make
+
+    - name: run tests
+      run: make all-pyret-test
+      
+  deploy-trigger:
+    needs: build
+    uses: ./.github/workflows/deploy-trigger.yml
+    secrets: inherit

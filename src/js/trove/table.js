@@ -7,7 +7,11 @@
   nativeRequires: [
     "pyret-base/js/type-util"
   ],
-  provides: {},
+  provides: {
+    types: {
+      'RawArrayOfRows': 'tany'
+    }
+  },
   theModule: function(runtime, namespace, uri, VSlib, EQlib, ffi, t) {
     var get = runtime.getField;
 
@@ -22,6 +26,20 @@
 
     var brandRow = runtime.namedBrander("row", ["table: row brander"]);
     var annRow   = runtime.makeBranderAnn(brandRow, "Row");
+
+    var ann = function(name, pred) {
+      return runtime.makePrimitiveAnn(name, pred);
+    };
+
+    function isRawArrayOfRows(raor) {
+      if (!Array.isArray(raor)) return false;
+      for (let i = 0; i < raor.length; i++) {
+        if (!runtime.hasBrand(raor[i], brandRow._brand)) return false;
+      }
+      return true;
+    }
+
+    var annRawArrayOfRows = ann("RawArrayOfRows", isRawArrayOfRows);
 
     var rowGetValue = runtime.makeMethod1(function(self, arg) {
         ffi.checkArity(2, arguments, "get-value", true);
@@ -147,14 +165,20 @@
 
     function openTable(info) {
       runtime.checkTuple(info);
-      if (info.vals.length != 2) {
-        runtime.ffi.throwMessageException("Expected to find {header; contents} pair, "
+      const vals = [...info.vals];
+      if (info.vals.length === 2) {
+        vals.push(runtime.ffi.makeNone());
+      }
+      else if (info.vals.length !== 3) {
+        runtime.ffi.throwMessageException("Expected to find {header; contents; orig-headers} or {header; contensts} tuple, "
                                           + "but found a tuple of length "
                                           + info.vals.length);
       }
-      var headers = info.vals[0];
-      var contents = info.vals[1];
+      var headers = vals[0];
+      var contents = vals[1];
+      var origHeaders = vals[2];
       runtime.checkArray(headers);
+      // runtime.checkPyretVal(origHeaders); // Can we do better?
       runtime.checkArray(contents);
       var names = [];
       var sanitizers = [];
@@ -176,9 +200,9 @@
           runtime.checkArray(contents[i]);
           if (contents[i].length !== headers.length) {
             if (i === 0) {
-              runtime.ffi.throwMessageException("Contents must match header size");
+              throw runtime.ffi.throwHeaderRowMismatch(names, origHeaders, contents[i]);
             } else {
-              runtime.ffi.throwMessageException("Contents must be rectangular");
+              throw runtime.ffi.throwMessageException("Contents must be rectangular");
             }
           }
           // This loop is stack safe, since it's just a brand-checker
@@ -334,7 +358,7 @@
 
       function makeRowFromValues(vals) {
         if(headers.length !== vals.length) {
-          throw runtime.ffi.throwRowLengthMismatch(makeTable(headers, []), vals);
+          throw runtime.ffi.throwRowLengthMismatch(headers, vals);
         }
         return makeRow({ headerIndex: headerIndex }, vals);
       }
@@ -562,9 +586,10 @@
               else {
                 var reduce = runtime.getField(reducer, "reduce");
                 var reducerWrapped = runtime.makeFunction(function(acc, val, ix) {
+                  if(ix === 0) { return acc; }
                   return reduce.app(runtime.getTuple(acc, 0, ["tables"]), val);
                 });
-                return runtime.raw_array_fold(reducerWrapped, one, column, 1);
+                return runtime.raw_array_fold(reducerWrapped, one, column, 0);
               }
             }, "reduce-one");
           }, function(answerTuple) {
@@ -794,10 +819,19 @@
           ffi.checkArity(1, arguments, "_output", true);
           var vsValue = get(VS, "vs-value").app;
           var vsString = get(VS, "vs-str").app;
-          return get(VS, "vs-table").app(
-            headers.map(function(hdr){return vsString(hdr);}),
-            rows.map(function(row){return row.map(
-              function(elm){return vsValue(elm);});}));
+          if(rows.length > 1000) {
+            return get(VS, "vs-table-truncated").app(
+              headers.map(function(hdr){return vsString(hdr);}),
+              rows.slice(0, 1000).map(function(row){return row.map(
+                function(elm){return vsValue(elm);});}),
+              rows.length);
+          }
+          else {
+            return get(VS, "vs-table").app(
+              headers.map(function(hdr){return vsString(hdr);}),
+              rows.map(function(row){return row.map(
+                function(elm){return vsValue(elm);});}));
+          }
         }),
 
         'row': runtime.makeMethodN(function(self, ...args) {
@@ -820,16 +854,20 @@
       }));
     }
     
-    return runtime.makeJSModuleReturn({
-        TableAnn : annTable,
-        RowAnn : annRow,
+    var internal = {
         makeTable: makeTable,
         makeRow: makeRow,
         makeRowFromArray: makeRowFromArray,
         openTable: openTable,
         isTable: isTable,
         isRow: isRow
-      },
-      {});
+      };
+    var types = {
+      Table: annTable, 
+      Row: annRow, 
+      RawArrayOfRows: annRawArrayOfRows
+    };
+    var values = {};
+    return runtime.makeModuleReturn(values, types, internal);
   }
 })

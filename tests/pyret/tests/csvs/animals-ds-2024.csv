@@ -1,0 +1,33 @@
+Name,Species,Sex,Age (years),Fixed,Legs,Weight (lbs),Time to Adoption (weeks)
+Sasha,cat,female,1,FALSE,4,6.5,3
+Snuffles,rabbit,female,3,TRUE,4,3.5,8
+Mittens,cat,female,2,TRUE,4,7.4,1
+Sunflower,cat,female,5,TRUE,4,8.1,6
+Felix,cat,male,16,TRUE,4,9.2,5
+Sheba,cat,female,7,TRUE,4,8.4,6
+Billie,snail,hermaphrodite,0.5,FALSE,0,0.1,3
+Snowcone,cat,female,2,TRUE,4,6.5,5
+Wade,cat,male,1,FALSE,4,3.2,1
+Hercules,cat,male,3,FALSE,4,13.4,2
+Toggle,dog,female,3,TRUE,4,48,1
+Boo-boo,dog,male,11,TRUE,4,123,24
+Fritz,dog,male,4,TRUE,4,92,3
+Midnight,dog,female,5,FALSE,4,112,4
+Rex,dog,male,1,FALSE,4,28.9,9
+Gir,dog,male,8,FALSE,4,88,5
+Max,dog,male,3,FALSE,4,52.8,8
+Nori,dog,female,3,TRUE,4,35.3,1
+Mr. Peanutbutter,dog,male,10,FALSE,4,161,6
+Lucky,dog,male,3,TRUE,3,45.4,9
+Kujo,dog,male,8,FALSE,4,172,30
+Buddy,lizard,male,2,FALSE,4,0.3,3
+Gila,lizard,female,3,TRUE,4,1.2,4
+Bo,dog,male,8,TRUE,4,76.1,10
+Nibblet,rabbit,male,6,FALSE,4,4.3,2
+Snuggles,tarantula,female,2,FALSE,8,0.1,1
+Daisy,dog,female,5,TRUE,4,68,8
+Ada,dog,female,2,TRUE,4,32,3
+Miaulis,cat,male,7,FALSE,4,8.8,4
+Heathcliff,cat,male,1,TRUE,4,2.1,2
+Tinkles,cat,female,1,TRUE,4,1.7,3
+Maple,dog,female,3,TRUE,4,51.6,4

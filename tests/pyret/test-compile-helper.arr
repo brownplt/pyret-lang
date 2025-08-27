@@ -63,7 +63,10 @@ fun run-to-result-typed(loc, base-path):
 end
 
 fun make-base-path-context(base-path):
-  {current-load-path: P.resolve(base-path), cache-base-dir: P.resolve("./tests/compiled")}
+  {current-load-path: P.resolve(base-path),
+   cache-base-dir: P.resolve("./tests/compiled"),
+   compiled-read-only-dirs: empty,
+   url-file-mode: CS.all-remote}
 end
 
 fun compile-str(program):

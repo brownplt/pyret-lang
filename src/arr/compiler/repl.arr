@@ -59,7 +59,7 @@ fun make-repl<a>(
     make-finder :: (-> (a, CS.Dependency -> CL.Located<a>))):
 
   var globals = CS.standard-globals
-  var current-compile-options = CS.default-compile-options
+  var current-compile-options = CS.default-compile-options.{ checks: "main" }
   var current-modules = modules
   var current-realm = realm
   var locator-cache = SD.make-mutable-string-dict()

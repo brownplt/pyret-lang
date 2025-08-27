@@ -419,3 +419,8 @@ check "TC error regression https://github.com/brownplt/pyret-lang/issues/1619":
   result = restart(```o = { m: {(): raise("something") } }\n"success"```, true)
   val(result) is some("success")
 end
+
+check "Loading images at the CLI REPL":
+  result = restart("include image\na = circle(50, 'solid', 'red')\nimage-width(a)", false)
+  val(result) is some(100)
+end

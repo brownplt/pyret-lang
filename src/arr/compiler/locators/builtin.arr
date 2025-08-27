@@ -1,7 +1,7 @@
 provide *
 import builtin-modules as B
 import string-dict as SD
-import file as F
+import filesystem as FS
 import pathlib as P
 import parse-pyret as PP
 import file("../compile-lib.arr") as CL
@@ -51,12 +51,12 @@ fun set-typable-builtins(uris :: List<String>):
 end
 
 fun make-builtin-js-locator(basedir, builtin-name):
-  raw = B.builtin-raw-locator(P.join(basedir, builtin-name))
+  raw = B.builtin-raw-locator(FS.join(basedir, builtin-name))
   {
     method needs-compile(_, _): false end,
     method get-uncached(_): none end,
     method get-modified-time(self):
-      F.file-times(P.join(basedir, builtin-name + ".js")).mtime
+      FS.stat(FS.join(basedir, builtin-name + ".js")).mtime
     end,
     method get-options(self, options):
       options.{ check-mode: false, type-check: false }
@@ -92,7 +92,7 @@ fun make-builtin-js-locator(basedir, builtin-name):
         datatypes: raw-array-to-list(raw.get-raw-datatype-provides())
       })
       some(CL.module-as-string(provs, CM.no-builtins, CM.computed-none,
-          CM.ok(JSP.ccp-file(P.join(basedir, builtin-name + ".js")))))
+          CM.ok(JSP.ccp-file(FS.join(basedir, builtin-name + ".js")))))
     end,
 
     method _equals(self, other, req-eq):
@@ -102,11 +102,11 @@ fun make-builtin-js-locator(basedir, builtin-name):
 end
 
 fun make-builtin-arr-locator(basedir, builtin-name):
-  path = P.join(basedir, builtin-name + ".arr")
+  path = FS.join(basedir, builtin-name + ".arr")
   var ast = nothing
   {
     method get-modified-time(self):
-      F.file-times(path).mtime
+      FS.stat(path).mtime
     end,
     method get-uncached(_): none end,
     method get-options(self, options):
@@ -115,10 +115,10 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     end,
     method get-module(self) block:
       when ast == nothing block:
-        when not(F.file-exists(path)):
+        when not(FS.exists(path)):
           raise("File " + path + " does not exist")
         end
-        ast := CL.pyret-ast(PP.surface-parse(F.file-to-string(path), self.uri()))
+        ast := CL.pyret-ast(PP.surface-parse(FS.read-file-string(path), self.uri()))
       end
       ast
     end,
@@ -142,9 +142,9 @@ fun make-builtin-arr-locator(basedir, builtin-name):
       # does not handle provides from dependencies currently
       # NOTE(joe): Until we serialize provides correctly, just return false here
       cpath = path + ".js"
-      if F.file-exists(path) and F.file-exists(cpath):
-        stimes = F.file-times(path)
-        ctimes = F.file-times(cpath)
+      if FS.exists(path) and FS.exists(cpath):
+        stimes = FS.stat(path)
+        ctimes = FS.stat(cpath)
         ctimes.mtime <= stimes.mtime
       else:
         true
@@ -152,15 +152,15 @@ fun make-builtin-arr-locator(basedir, builtin-name):
     end,
     method get-compiled(self):
       cpath = path + ".js"
-      if F.file-exists(path) and F.file-exists(cpath):
+      if FS.exists(path) and FS.exists(cpath):
         # NOTE(joe):
         # Since we're not explicitly acquiring locks on files, there is a race
         # condition in the next few lines – a user could potentially delete or
         # overwrite the original file for the source while this method is
         # running.  We can explicitly open and lock files with appropriate
         # APIs to mitigate this in the happy, sunny future.
-        stimes = F.file-times(path)
-        ctimes = F.file-times(cpath)
+        stimes = FS.stat(path)
+        ctimes = FS.stat(cpath)
         if ctimes.mtime > stimes.mtime:
           raw = B.builtin-raw-locator(path)
           provs = convert-provides(self.uri(), {
@@ -183,18 +183,18 @@ fun make-builtin-arr-locator(basedir, builtin-name):
   }
 end
 
-fun make-builtin-locator(builtin-name :: String) -> CL.Locator block:
+fun maybe-make-builtin-locator(builtin-name :: String) -> Option<CL.Locator> block:
   matching-arr-files = for map(p from builtin-arr-dirs):
-    full-path = P.join(p, builtin-name + ".arr")
-    if F.file-exists(full-path):
+    full-path = FS.join(p, builtin-name + ".arr")
+    if FS.exists(full-path):
       some(full-path)
     else:
       none
     end
   end.filter(is-some).map(_.value)
   matching-js-files = for map(p from builtin-js-dirs):
-    full-path = P.join(p, builtin-name + ".js")
-    if F.file-exists(full-path):
+    full-path = FS.join(p, builtin-name + ".js")
+    if FS.exists(full-path):
       some(full-path)
     else:
       none
@@ -216,10 +216,18 @@ fun make-builtin-locator(builtin-name :: String) -> CL.Locator block:
   end
   ask:
     | is-link(matching-arr-files) then:
-      make-builtin-arr-locator(P.dirname(matching-arr-files.first), builtin-name)
+      some(make-builtin-arr-locator(P.dirname(matching-arr-files.first), builtin-name))
     | is-link(matching-js-files) then:
-      make-builtin-js-locator(P.dirname(matching-js-files.first), builtin-name)
+      some(make-builtin-js-locator(P.dirname(matching-js-files.first), builtin-name))
     | otherwise:
+      none
+  end
+end
+
+fun make-builtin-locator(builtin-name):
+  cases(Option) maybe-make-builtin-locator(builtin-name):
+    | none =>
       raise("Could not find module " + builtin-name + " in any of " + (builtin-arr-dirs + builtin-js-dirs).join-str(", "))
+    | some(v) => v
   end
 end

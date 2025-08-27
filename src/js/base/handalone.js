@@ -8,6 +8,9 @@ require(["pyret-base/js/runtime", "pyret-base/js/exn-stack-parser", "program"], 
 
 */
 // TODO: Change to myrequire
+if(typeof window === 'undefined') {
+  var window = this;
+}
 requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base/js/exn-stack-parser", "program"], function(runtimeLib, loadHooksLib, stackLib, program) {
 
   var staticModules = program.staticModules;
@@ -36,12 +39,21 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
 
   runtime.setParam("command-line-arguments", process.argv.slice(1));
 
-  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: true});
+  function checkFlag(name) {
+    return program.runtimeOptions && program.runtimeOptions[name];
+  }
+
+  if(checkFlag("disableAnnotationChecks")) {
+    runtime.checkArgsInternal1 = function() {};
+    runtime.checkArgsInternal2 = function() {};
+    runtime.checkArgsInternal3 = function() {};
+    runtime._checkAnn = function() {};
+  }
+
+  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checks: checkFlag("checks"), checksFormat: checkFlag("checksFormat")});
   postLoadHooks[main] = function(answer) {
-    var profile = runtime.getProfile();
-    if (profile.length > 0) {
-      profile.forEach(function(entry) { process.stderr.write(JSON.stringify(entry) + "\n"); });
-    }
+    var checks = checkFlag("checks");
+    if(checks && checks === "none") { process.exit(EXIT_SUCCESS); }
     var checkerLib = runtime.modules["builtin://checker"];
     var checker = runtime.getField(runtime.getField(checkerLib, "provide-plus-types"), "values");
     var getStack = function(err) {
@@ -56,7 +68,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
     var toCall = runtime.getField(checker, "render-check-results-stack");
     var checks = runtime.getField(answer, "checks");
     return runtime.safeCall(function() {
-      return toCall.app(checks, getStackP);
+      return toCall.app(checks, getStackP, checkFlag("checksFormat") || "text");
     }, function(summary) {
       // We're technically on the Pyret stack right now, but don't need to be.
       // So, pause the stack and switch off Pyret stack management so that the

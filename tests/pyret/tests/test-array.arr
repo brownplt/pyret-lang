@@ -153,7 +153,7 @@ check:
       none
     end
   end
-  
+
   arr is=~ [raw-array: 0, 25, 100, 225, 400, 625, 900, 1225, 1600, 2025, 2500, 3025, 3600, 4225, 4900, 5625, 6400, 7225, 8100, 9025]
 
   fun slowly(n):
@@ -161,7 +161,7 @@ check:
     else: slowly(n - 1)
     end
   end
-  
+
   fun slow(i) block:
     slowly(3000)
     if num-modulo(i, 2) == 0:
@@ -186,10 +186,95 @@ check:
     when not(is-array(v)): raise("not an Array") end
     v
   end
-  f([list: ]) raises "Array"
+  f([list:]) raises "Array"
   f([array: ]).to-list-now() is [list: ]
   f([array: ]) satisfies is-array
 end
+
+check "array filter method":
+  a = [array: "apple", "banana", "plum"]
+  p-words = a.filter(lam(s):
+      string-contains(s, "p")
+    end)
+  p-words is=~ [array: "apple", "plum"]
+end
+
+check "array map method":
+  a = [array: "apple", "banana", "plum"]
+  lengths = a.map(string-length)
+  lengths is=~ [array: 5, 6, 4]
+end
+
+check "array fold method":
+  a = [array: "a", "b", "c"]
+  str = a.fold(lam(str, elt, i):
+    if i < (a.length() - 1):
+      str + elt + ": " + tostring(i) + ", "
+    else:
+      str + elt + ": " + tostring(i)
+    end
+  end, "", 0)
+  str is "a: 0, b: 1, c: 2"
+end
+
+check:
+  a1 = [array: 5, 6, 7]
+  a2 = [array: 0, 3, 99, -1, 7]
+
+  c = a1.concat(a2)
+  c is=~ [array: 5, 6, 7, 0, 3, 99, -1, 7]
+  
+  a1 is=~ [array: 5, 6, 7]
+  a2 is=~ [array: 0, 3, 99, -1, 7]
+end
+
+check:
+  a = [array: 1, 2, 3]
+  b = a.duplicate()
+  a is=~ b
+  b is=~ a
+
+  a is<=> a
+  a is-not<=> b
+  b is-not<=> a
+  b is<=> b
+
+  a.set-now(1, 1)
+
+  a.get-now(1) is 1
+  b.get-now(1) is 2
+
+  c = [array: {1; 2}, {3; 4}]
+  d = c.duplicate()
+
+  c is-not<=> d
+  c.get-now(0) is<=> d.get-now(0)
+  c.get-now(0) is<=> d.get-now(0)
+end
+
+    
+check:
+  a = [array: 9, 2, 3, 1]
+  asc = a.sort-nums(true)
+  a is=~ [array: 1, 2, 3, 9]
+  asc is<=> a
+  
+  desc = a.sort-nums(false)
+  a is=~ [array: 9, 3, 2, 1]
+  desc is<=> a
+end
+    
+
+check:
+  a = [array: "banana", "plum", "apple"]
+  asc = a.sort-by(string-length, true)
+  
+  asc is=~ [array: "plum", "apple", "banana"]
+  asc is-not<=> a
+end
+
+ 
+    
 
 check:
   a1 = raw-array-of(3, 3)
@@ -218,11 +303,11 @@ check:
 end
 
 check:
-#  myarr = [array: 1, 2, 3, 4, 5]
-#  answer = for arrays.array-fold(acc from 0, elt from myarr, ix from 0):
-#    acc + elt
-#  end
-#  answer is 15
+  #  myarr = [array: 1, 2, 3, 4, 5]
+  #  answer = for arrays.array-fold(acc from 0, elt from myarr, ix from 0):
+  #    acc + elt
+  #  end
+  #  answer is 15
 
   bigarr = raw-array-of(2, 1000)
   answer2 = for raw-array-fold(acc from 0, elt from bigarr, ix from 0):
@@ -240,11 +325,24 @@ check:
   bigarr2 = raw-array-of(3, 1000)
   answer4 = for raw-array-fold(acc from 0, elt from bigarr, ix from 0):
     acc + (elt * for raw-array-fold(acc2 from 0, elt2 from bigarr2, ix2 from 0):
-      acc2 + elt2
-    end)
+        acc2 + elt2
+      end)
   end
   answer4 is  3 * 1000 * 2 * 1000
+end
 
+check "raw-array-fold nonzero start indices":
+  a = [raw-array: 100, 1000, 10000]
+  ans = for raw-array-fold(acc from 0, elt from a, ix from 7):
+    acc + (elt * ix)
+  end
+  ans is 98700
+
+  a2 = [raw-array: 100, 1000, 10000]
+  ans2 = for raw-array-fold(acc from 0, elt from a, ix from -3):
+    acc + (elt * ix)
+  end
+  ans2 is -12300
 end
 
 check:
@@ -289,9 +387,9 @@ check:
   big-array = raw-array-build(lam(x): x end, 5000)
 
   filtered = raw-array-filter(lam(x) block:
-    loop(1000)
-    num-modulo(x, 2) == 0
-  end, big-array)
+      loop(1000)
+      num-modulo(x, 2) == 0
+    end, big-array)
 
   filtered is=~ raw-array-build(lam(x): x * 2 end, 2500)
 end

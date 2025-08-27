@@ -254,7 +254,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
           return "[row: " + row.join(", ") + "]";
         }
-      } else if (thisRuntime.ffi.isVSTable(val)) {
+      } else if (thisRuntime.ffi.isVSTable(val) || thisRuntime.ffi.isVSTableTruncated(val)) {
         // Do this for now until we decide on a string
         // representation
         if (util.isBrowser()) {
@@ -279,10 +279,16 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
           }
           rows.push(curRow);
         }
-        return new AsciiTable().fromJSON({
+        const tableStr = new AsciiTable().fromJSON({
           heading: headers,
           rows: rows
         }).toString();
+        if(thisRuntime.ffi.isVSTableTruncated(val)) {
+          return tableStr + `\n[rendered ${rows.length} of ${thisRuntime.getField(val, "total-rows")} rows]`;
+        }
+        else {
+          return tableStr;
+        }
       } else if (thisRuntime.ffi.isVSMatrix(val)) {
         var ret = [];
         var rows = thisRuntime.getField(val, "rows");
@@ -529,6 +535,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     function extendObj(loc, val, extension) {
       if (!isObject(val)) { thisRuntime.ffi.throwExtendNonObject(makeSrcloc(loc), val); }
       return val.extendWith(extension);
+    }
+
+    function recordConcat(left, right) {
+      if(!isObject(left) || !isObject(right)) {
+        thisRuntime.ffi.throwMessageException("(Internal merge) Tried to extend a non-object");
+      }
+      return left.extendWith(right.dict);
     }
 
     /**
@@ -3859,6 +3872,20 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return makePause(pause, resumer);
     }
 
+    function pauseAwait(p) {
+      if(!('then' in p)) { return p; }
+
+      return pauseStack(async (restarter) => {
+        try {
+          const result = await p;
+          return restarter.resume(result);
+        }
+        catch(e) {
+          return restarter.error(e);
+        }
+      });
+    }
+
     function PausePackage() {
       this.resumeVal = null;
       this.errorVal = null;
@@ -4392,7 +4419,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 4) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-fold"], 4, $a, false); }
       thisRuntime.checkArgsInternalInline("RawArrays", "raw-array-fold",
         f, thisRuntime.Function, init, thisRuntime.Any, arr, thisRuntime.RawArray, start, thisRuntime.Number);
-      var currentIndex = start - 1;
+      var currentIndex = -1;
       var currentAcc = init;
       var length = arr.length;
       function foldHelp() {
@@ -4402,7 +4429,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
             return thisRuntime.makeCont();
           }
           currentIndex += 1;
-          var res = f.app(currentAcc, arr[currentIndex], currentIndex);
+          var res = f.app(currentAcc, arr[currentIndex], currentIndex + start);
           if(isContinuation(res)) { return res; }
           currentAcc = res;
         }
@@ -4973,9 +5000,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         s, thisRuntime.String, find, thisRuntime.String);
       return thisRuntime.makeNumberBig(s.indexOf(find));
     }
-    var string_findIndex = function(s, find) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-find-index"], 2, $a, false); }
-      thisRuntime.checkArgsInternal2("Strings", "string-find-index",
+    var string_findIndexOpt = function(s, find) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-find-opt"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Strings", "string-find-opt",
         s, thisRuntime.String, find, thisRuntime.String);
       var idx = s.indexOf(find);
       if (jsnums.lessThan(idx, 0)) return thisRuntime.ffi.makeNone();
@@ -4983,11 +5010,11 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     }
     var string_getIndex = function(s, find) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-get-index"], 2, $a, false); }
-      thisRuntime.checkArgsInternal2("Strings", "string-get-index",
+      thisRuntime.checkArgsInternal2("Strings", "string-find",
         s, thisRuntime.String, find, thisRuntime.String);
       var idx = s.indexOf(find);
       if (jsnums.lessThan(idx, 0))
-        thisRuntime.ffi.throwMessageException("Could not find target string inside source string");
+        thisRuntime.ffi.throwMessageException(`string-find: Target string \"${find}\" was not found inside source string \"${s}\"`);
       return thisRuntime.makeNumberBig(idx);
     }
     var string_to_code_point = function(s) {
@@ -5777,6 +5804,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
 
       'within-rel3' : makeFunction(equalWithinRel3, "within-rel3"),
       'within3' : makeFunction(equalWithin3, "within3"),
+
+      'record-concat': makeFunction(recordConcat, "record-concat")
     });
 
 
@@ -5971,7 +6000,9 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'string-to-lower': makeFunction(string_tolower, "string-to-lower"),
       'string-explode': makeFunction(string_explode, "string-explode"),
       'string-index-of': makeFunction(string_indexOf, "string-index-of"),
-      'string-find-index': makeFunction(string_findIndex, "string-find-index"),
+      'string-find-opt': makeFunction(string_findIndexOpt, "string-find-opt"),
+      'string-find-index': makeFunction(string_findIndexOpt, "string-find-opt"),
+      'string-find': makeFunction(string_getIndex, "string-find"),
       'string-get-index': makeFunction(string_getIndex, "string-get-index"),
       'string-to-code-point': makeFunction(string_to_code_point, "string-to-code-point"),
       'string-from-code-point': makeFunction(string_from_code_point, "string-from-code-point"),
@@ -6101,6 +6132,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'isPause'     : isPause,
 
       'pauseStack'  : pauseStack,
+      'await'       : pauseAwait,
       'schedulePause'  : schedulePause,
       'breakAll' : breakAll,
 
