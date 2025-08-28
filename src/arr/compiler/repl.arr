@@ -187,6 +187,7 @@ fun make-repl<a>(
     make-interaction-locator: make-interaction-locator,
     make-definitions-locator: make-definitions-locator,
     run-interaction: run-interaction,
-    runtime: runtime
+    runtime: runtime,
+    current-modules: current-modules
   }
 end

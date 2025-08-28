@@ -202,9 +202,24 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     */
     function isBase(obj) { return obj instanceof PBase; }
 
+    const thisContext = "cli";
+    function isInRendererContext(val) {
+      var renderers = thisRuntime.getField(val, "renderers");
+      return thisRuntime.hasField(renderers, thisContext);
+    }
+
     function renderValueSkeleton(val, values) {
       if (thisRuntime.ffi.isVSValue(val)) { return values.pop(); } // double-check order!
       else if (thisRuntime.ffi.isVSStr(val)) { return thisRuntime.unwrap(thisRuntime.getField(val, "s")); }
+      else if (thisRuntime.ffi.isVSConstrRender(val) && isInRendererContext(val)) {
+        var items = thisRuntime.ffi.toArray(thisRuntime.getField(val, "args"));
+        var strs = [];
+        for (var i = 0; i < items.length; i++) {
+          strs.push(renderValueSkeleton(items[i], values));
+        }
+        const renderers = thisRuntime.getField(val, "renderers");
+        return thisRuntime.getField(renderers, thisContext).app(strs);
+      }
       else if (thisRuntime.ffi.isVSCollection(val)) {
         var name = thisRuntime.unwrap(thisRuntime.getField(val, "name"));
         var items = thisRuntime.ffi.toArray(thisRuntime.getField(val, "items"));
