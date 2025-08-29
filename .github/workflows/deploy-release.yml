@@ -6,6 +6,7 @@ on:
 
 jobs:
   deploy:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Trigger pyret-release-update in drydock
