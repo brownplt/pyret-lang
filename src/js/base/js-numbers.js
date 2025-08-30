@@ -830,12 +830,27 @@ define("pyret-base/js/js-numbers", function() {
     if (typeof(nFix) === 'number' && nFix !== Infinity) {
       return Roughnum.makeInstance(Math.log(nFix), errbacks);
     }
+    // at this point, n must be a very large positive number;
+    // we can safely ignore its fractional part;
+    // we furthermore need only the integer part's first few digits
+    // although we must remember the number of digits ignored
     var nStr = n.round(errbacks).toString();
+    // say integer      N = yyy...yyyxxx...xxx
+    // where the number of x's is nx;
+    // So              N ~= yyy...yyy * 10^nx
+    // We'll first find the common (base 10) log of N
+    //          log10(N) ~= log10(yyy...yyy * 10^nx)
+    //                    = log10(yyy...yyy) + nx
+    // Now to convert this to the natural log
+    //              ln(N) = log10(N) / log10(e)
+    //                    = log10(N) * ln(10)
+    //                   ~= [log10(yyy...yyy) + nx] * ln(10)
+    //                    = log10(yyy...yyy) * ln(10) + nx * ln(10)
+    //                    = ln(yyy...yyy)             + nx * ln(10)
+    // JS gives us ln(yyy...yyy) and ln(10) so we have a good
+    // approximation for ln(N)
     var nLen = nStr.length;
-    var firstFewLen = 10
-    if ((nLen % 2) !== 0) {
-      firstFewLen = 11;
-    }
+    var firstFewLen = 10;
     var nFirstFew = parseInt(nStr.substring(0, firstFewLen));
     var nLog = Math.log(nFirstFew) + (nLen - firstFewLen) * ln10;
     return Roughnum.makeInstance(nLog, errbacks);
