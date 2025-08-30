@@ -19,6 +19,9 @@ check "conversion":
   p('[5, null, {"hello": "world"}]') is
     J.j-arr([list: J.j-num(5), J.j-null,
       J.j-obj([SD.string-dict: "hello", J.j-str("world")])])
+
+  p('1E-7').native() is 1e-7
+  p('5E-19').native() is 5e-19
 end
 
 check "native":

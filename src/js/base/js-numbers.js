@@ -173,17 +173,48 @@ define("pyret-base/js/js-numbers", function() {
     } else {
       //  used to return float, now rational
       var stringRep = x.toString();
-      var match = stringRep.match(/^(.*)\.(.*)$/);
-      if (match) {
-        var afterDecimal = parseInt(match[2]);
-        var factorToInt = Math.pow(10, match[2].length);
-        var extraFactor = _integerGcd(factorToInt, afterDecimal);
-        var multFactor = factorToInt / extraFactor;
-        return Rational.makeInstance(Math.round(x*multFactor), Math.round(factorToInt/extraFactor), errbacks);
-      } else {
-        return Rational.makeInstance(x, 1, errbacks);
+      var exponentMatch = stringRep.match(genScientificPattern);
+      var exponentFactor = 1;
+      if (exponentMatch) {
+        // x is in scientific notation -- i.e. it has an E;
+        // find the exponent part, and change x to just the base part;
+        // calculate exponentFactor, which is the integer 10^exponent
+        var divideP = false; // divideP==true iff exponent is negative
+        stringRep = exponentMatch[1];
+        x = Number(stringRep);
+        var exponentPart = exponentMatch[2];
+        if (exponentPart.match('^-')) {
+          divideP = true;
+          exponentPart = exponentPart.substring(1);
+        }
+        exponentFactor = makeBignum("1" + zfill(Number(exponentPart)));
+        if (divideP) exponentFactor = divide(1, exponentFactor);
       }
-
+      var decimalMatch = stringRep.match(/^.*\.(.*)$/);
+      var baseFactor;
+      if (decimalMatch) {
+        // we convert the after-decimal part to
+        // afterDecimalNumerator / afterDecimalDenominator
+        // where these are guaranteed integers
+        var afterDecimalNumerator = parseInt(decimalMatch[1]);
+        var afterDecimalDenominator = Math.pow(10, decimalMatch[1].length);
+        // x can now be the vulgar fraction
+        // (x * afterDecimalDenominator) / afterDecimalDenominator
+        // since x * afterDecimalDenominator is guaranteed to be an integer;
+        // however, we can simplify this multiplier;
+        // first find gcd(afterDecimalNumerator, afterDecimalDenominator)
+        var afterDecimalGCD = _integerGcd(afterDecimalNumerator, afterDecimalDenominator);
+        // the mulitplier is afterDecimalDenominator / afterDecimalGCD
+        var simplifiedMultipler = afterDecimalDenominator / afterDecimalGCD;
+        // multiply x by simplifiedMultipler to get an (integer) numerator;
+        // simplifiedMultipler itself is the denominator
+        baseFactor = Rational.makeInstance(Math.round(x * simplifiedMultipler),
+          Math.round(simplifiedMultipler), errbacks);
+      } else {
+        // x is already integer
+        baseFactor = Rational.makeInstance(x, 1, errbacks);
+      }
+      return multiply(exponentFactor, baseFactor);
     }
   };
 
@@ -2035,6 +2066,8 @@ define("pyret-base/js/js-numbers", function() {
 
 
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
+
+  var genScientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+-]?\\d+)$");
 
   // fromString: string -> (pyretnum | false)
   var fromString = function(x, errbacks) {
