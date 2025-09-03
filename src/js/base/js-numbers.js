@@ -831,10 +831,13 @@ define("pyret-base/js/js-numbers", function() {
       return Roughnum.makeInstance(Math.log(nFix), errbacks);
     }
     // at this point, n must be a very large positive number;
+    // n > 1e308, i.e, has at least 308 digits;
     // we can safely ignore its fractional part;
-    // we furthermore need only the integer part's first few digits
-    // although we must remember the number of digits ignored
     var nStr = n.round(errbacks).toString();
+    var nLen = nStr.length;
+    // we furthermore need only the integer part's first few digits
+    // although we must remember the number of digits ignored;
+    var firstFewLen = 20; // has to be < 308
     // say integer      N = yyy...yyyxxx...xxx
     // where the number of x's is nx;
     // So              N ~= yyy...yyy * 10^nx
@@ -849,8 +852,6 @@ define("pyret-base/js/js-numbers", function() {
     //                    = ln(yyy...yyy)             + nx * ln(10)
     // JS gives us ln(yyy...yyy) and ln(10) so we have a good
     // approximation for ln(N)
-    var nLen = nStr.length;
-    var firstFewLen = 10;
     var nFirstFew = parseInt(nStr.substring(0, firstFewLen));
     var nLog = Math.log(nFirstFew) + (nLen - firstFewLen) * ln10;
     return Roughnum.makeInstance(nLog, errbacks);
