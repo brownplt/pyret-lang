@@ -167,7 +167,7 @@ check:
   num-log(0) raises "NumPositive"
   num-log(1) is 0
   num-log(num-exp(1)) satisfies around(1, 0.0001)
-  num-log(num-expt(10, 36789)) is-roughly ~84709.80298615794 // value from Racket
+  num-log(num-expt(10, 36789)) is-roughly ~84709.80298615794 # value from Racket
 
   2 is num-exact(2)
   1 / 3 is num-exact(1 / 3)
