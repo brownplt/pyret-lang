@@ -167,7 +167,27 @@ check:
   num-log(0) raises "NumPositive"
   num-log(1) is 0
   num-log(num-exp(1)) satisfies around(1, 0.0001)
-  num-log(num-expt(10, 36789)) is-roughly ~84709.80298615794 # value from Racket
+
+  # in following logs, wolframalpha.com gives a lot more digits; rounding to our precision
+
+  # Racket, Wolfram match Pyret
+  num-log(9e15) is-roughly ~36.736000972246906
+
+  # Wolfram gives ~36.841361487904731, Racket matches
+  num-log(1e16) is-roughly ~36.841361487904734
+
+  # Racket, Wolfram match
+  num-log(1e308) is-roughly ~709.1962086421661
+
+  # Racket gives ~711.49879373516, Wolfram matches
+  num-log(1e309) is-roughly ~711.4987937351601
+
+  # Racket gives ~84709.80298615794, Wolfram ~84709.80298615795
+  num-log(1e36789) is-roughly ~84709.80298615796
+
+  # Racket, Wolfram match
+  # commenting because arg calculation takes much time
+  # num-log(num-expt(10, 1e5)) is-roughly ~230258.50929940457
 
   2 is num-exact(2)
   1 / 3 is num-exact(1 / 3)
