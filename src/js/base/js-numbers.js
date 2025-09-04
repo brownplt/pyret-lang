@@ -837,7 +837,7 @@ define("pyret-base/js/js-numbers", function() {
     var nLen = nStr.length;
     // we furthermore need only the integer part's first few digits
     // although we must remember the number of digits ignored;
-    var firstFewLen = 20; // has to be < 308
+    var firstFewLen = 308; // has to be <= 308
     // say integer      N = yyy...yyyxxx...xxx
     // where the number of x's is nx;
     // So              N ~= yyy...yyy * 10^nx
