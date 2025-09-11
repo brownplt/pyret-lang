@@ -750,6 +750,7 @@
       isVSRow: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-row").app(v)); },
       isVSCollection: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-collection").app(v)); },
       isVSConstr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr").app(v)); },
+      isVSConstrRender: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-constr-render").app(v)); },
       isVSStr: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-str").app(v)); },
       isVSSeq: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-seq").app(v)); },
       isVSMatrix: function(v) { return runtime.unwrap(runtime.getField(VS, "is-vs-matrix").app(v)); },
@@ -777,6 +778,7 @@
         var isStr = runtime.getField(VS, "is-vs-str");
         var isSeq = runtime.getField(VS, "is-vs-seq");
         var isMatrix = runtime.getField(VS, "is-vs-matrix");
+        var isConstRenderer = runtime.getField(VS, "is-vs-constr-render");
         if(!(runtime.unwrap(isValueSkeleton.app(skel)) === true)) {
           throwTypeMismatch(skel, "ValueSkeleton");
         }
@@ -797,6 +799,8 @@
               runtime.getField(cur, "rows").forEach(function(row){
                 Array.prototype.push.apply(worklist, row); });
             } else if (runtime.unwrap(isConstr.app(cur)) === true) {
+              Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "args")));
+            } else if (runtime.unwrap(isConstRenderer.app(cur)) === true)  {
               Array.prototype.push.apply(worklist, toArray(runtime.getField(cur, "args")));
             } else if (runtime.unwrap(isStr.app(cur)) === true) {
               // nothing
