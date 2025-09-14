@@ -160,62 +160,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // fromFixnum: fixnum -> pyretnum
   var fromFixnum = function(x, errbacks) {
-    if (!isFinite(x)) {
-      return Roughnum.makeInstance(x, errbacks);
-    }
-    var nf = Math.floor(x);
-    if (nf === x) {
-      if (isOverflow(nf)) {
-        return makeBignum(expandExponent(x+''));
-      } else {
-        return nf;
-      }
-    } else {
-      //  used to return float, now rational
-      var stringRep = x.toString();
-      var exponentMatch = stringRep.match(genScientificPattern);
-      var exponentFactor = 1;
-      if (exponentMatch) {
-        // x is in scientific notation -- i.e. it has an E;
-        // find the exponent part, and change x to just the base part;
-        // calculate exponentFactor, which is the integer 10^exponent
-        var divideP = false; // divideP==true iff exponent is negative
-        stringRep = exponentMatch[1];
-        x = Number(stringRep);
-        var exponentPart = exponentMatch[2];
-        if (exponentPart.match('^-')) {
-          divideP = true;
-          exponentPart = exponentPart.substring(1);
-        }
-        exponentFactor = makeBignum("1" + zfill(Number(exponentPart)));
-        if (divideP) exponentFactor = divide(1, exponentFactor);
-      }
-      var decimalMatch = stringRep.match(/^.*\.(.*)$/);
-      var baseFactor;
-      if (decimalMatch) {
-        // we convert the after-decimal part to
-        // afterDecimalNumerator / afterDecimalDenominator
-        // where these are guaranteed integers
-        var afterDecimalNumerator = parseInt(decimalMatch[1]);
-        var afterDecimalDenominator = Math.pow(10, decimalMatch[1].length);
-        // x can now be the vulgar fraction
-        // (x * afterDecimalDenominator) / afterDecimalDenominator
-        // since x * afterDecimalDenominator is guaranteed to be an integer;
-        // however, we can simplify this multiplier;
-        // first find gcd(afterDecimalNumerator, afterDecimalDenominator)
-        var afterDecimalGCD = _integerGcd(afterDecimalNumerator, afterDecimalDenominator);
-        // the mulitplier is afterDecimalDenominator / afterDecimalGCD
-        var simplifiedMultipler = afterDecimalDenominator / afterDecimalGCD;
-        // multiply x by simplifiedMultipler to get an (integer) numerator;
-        // simplifiedMultipler itself is the denominator
-        baseFactor = Rational.makeInstance(Math.round(x * simplifiedMultipler),
-          Math.round(simplifiedMultipler), errbacks);
-      } else {
-        // x is already integer
-        baseFactor = Rational.makeInstance(x, 1, errbacks);
-      }
-      return multiply(exponentFactor, baseFactor);
-    }
+    return fromString(String(x), errbacks);
   };
 
   var expandExponent = function(s) {
@@ -2093,7 +2038,7 @@ define("pyret-base/js/js-numbers", function() {
       var beforeDecimalString = aMatch[2];
       var beforeDecimal = 0;
       if (beforeDecimalString !== '') {
-        beforeDecimal = makeBignum(beforeDecimalString);
+        beforeDecimal = fromString(beforeDecimalString);
       }
       //
       var afterDecimalString = aMatch[3];
@@ -2101,9 +2046,9 @@ define("pyret-base/js/js-numbers", function() {
       var afterDecimal = 0;
       if (afterDecimalString !== '') {
         afterDecimalString = afterDecimalString.substring(1);
-        denominatorTen = makeBignum('1' + new Array(afterDecimalString.length + 1).join('0'));
+        denominatorTen = fromString('1' + new Array(afterDecimalString.length + 1).join('0'));
         if (afterDecimalString !== '') {
-          afterDecimal = makeBignum(afterDecimalString);
+          afterDecimal = fromString(afterDecimalString);
         }
       }
       //
@@ -2117,7 +2062,7 @@ define("pyret-base/js/js-numbers", function() {
         if (exponentSign === '-' || exponentSign === '+') {
           exponentString = exponentString.substring(1);
         }
-        exponent = makeBignum('1' + new Array(Number(exponentString) + 1).join('0'));
+        exponent = fromString('1' + new Array(Number(exponentString) + 1).join('0'));
       }
 
       var finalDen = denominatorTen;
