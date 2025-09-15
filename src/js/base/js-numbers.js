@@ -160,31 +160,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // fromFixnum: fixnum -> pyretnum
   var fromFixnum = function(x, errbacks) {
-    if (!isFinite(x)) {
-      return Roughnum.makeInstance(x, errbacks);
-    }
-    var nf = Math.floor(x);
-    if (nf === x) {
-      if (isOverflow(nf)) {
-        return makeBignum(expandExponent(x+''));
-      } else {
-        return nf;
-      }
-    } else {
-      //  used to return float, now rational
-      var stringRep = x.toString();
-      var match = stringRep.match(/^(.*)\.(.*)$/);
-      if (match) {
-        var afterDecimal = parseInt(match[2]);
-        var factorToInt = Math.pow(10, match[2].length);
-        var extraFactor = _integerGcd(factorToInt, afterDecimal);
-        var multFactor = factorToInt / extraFactor;
-        return Rational.makeInstance(Math.round(x*multFactor), Math.round(factorToInt/extraFactor), errbacks);
-      } else {
-        return Rational.makeInstance(x, 1, errbacks);
-      }
-
-    }
+    return fromString(String(x), errbacks);
   };
 
   var expandExponent = function(s) {
@@ -2066,6 +2042,8 @@ define("pyret-base/js/js-numbers", function() {
 
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
 
+  var genScientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+-]?\\d+)$");
+
   // fromString: string -> (pyretnum | false)
   var fromString = function(x, errbacks) {
     if (x.match(digitRegexp)) {
@@ -2090,7 +2068,7 @@ define("pyret-base/js/js-numbers", function() {
       var beforeDecimalString = aMatch[2];
       var beforeDecimal = 0;
       if (beforeDecimalString !== '') {
-        beforeDecimal = makeBignum(beforeDecimalString);
+        beforeDecimal = fromString(beforeDecimalString);
       }
       //
       var afterDecimalString = aMatch[3];
@@ -2098,9 +2076,9 @@ define("pyret-base/js/js-numbers", function() {
       var afterDecimal = 0;
       if (afterDecimalString !== '') {
         afterDecimalString = afterDecimalString.substring(1);
-        denominatorTen = makeBignum('1' + new Array(afterDecimalString.length + 1).join('0'));
+        denominatorTen = fromString('1' + new Array(afterDecimalString.length + 1).join('0'));
         if (afterDecimalString !== '') {
-          afterDecimal = makeBignum(afterDecimalString);
+          afterDecimal = fromString(afterDecimalString);
         }
       }
       //
@@ -2114,7 +2092,7 @@ define("pyret-base/js/js-numbers", function() {
         if (exponentSign === '-' || exponentSign === '+') {
           exponentString = exponentString.substring(1);
         }
-        exponent = makeBignum('1' + new Array(Number(exponentString) + 1).join('0'));
+        exponent = fromString('1' + new Array(Number(exponentString) + 1).join('0'));
       }
 
       var finalDen = denominatorTen;
