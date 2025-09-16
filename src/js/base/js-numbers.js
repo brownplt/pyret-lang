@@ -2124,13 +2124,7 @@ define("pyret-base/js/js-numbers", function() {
       // console.log('finalNum3 =', finalNum);
       // console.log('finalNum.40 =', finalNum['40']);
       // console.log('finalDen =', finalDen);
-      var result;
-      if (finalDen === 1) {
-        result = finalNum;
-      } else {
-        result = Rational.makeInstance(finalNum, finalDen, errbacks);
-      }
-      return result;
+      return result = Rational.makeInstance(finalNum, finalDen, errbacks);
     }
 
     aMatch = x.match(roughnumRatRegexp);
