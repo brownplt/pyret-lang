@@ -1201,9 +1201,11 @@ define("pyret-base/js/js-numbers", function() {
   // _integerMultiply: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerMultiply = makeIntegerBinop(
     function(m, n) {
+      // console.log('doing _integerMultiplyI', m, n);
       return m * n;
     },
     function(m, n) {
+      // console.log('doing _integerMultiplyII[_,40]', m, n['40']);
       return bnMultiply.call(m, n);
     });
 
@@ -1453,6 +1455,7 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Rational.makeInstance = function(n, d, errbacks) {
+    // console.log('doing rat.makeinst of', n, d);
     if (n === undefined)
       errbacks.throwUndefinedValue("n undefined", n, d);
 
@@ -2046,6 +2049,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // fromString: string -> (pyretnum | false)
   var fromString = function(x, errbacks) {
+    // console.log('doing fromString', x);
     if (x.match(digitRegexp)) {
       var n = Number(x);
       if (isOverflow(n)) {
@@ -2070,6 +2074,7 @@ define("pyret-base/js/js-numbers", function() {
       if (beforeDecimalString !== '') {
         beforeDecimal = fromString(beforeDecimalString);
       }
+      // console.log('beforeDecimal =', beforeDecimal);
       //
       var afterDecimalString = aMatch[3];
       var denominatorTen = 1;
@@ -2081,6 +2086,8 @@ define("pyret-base/js/js-numbers", function() {
           afterDecimal = fromString(afterDecimalString);
         }
       }
+      // console.log('afterDecimal =', afterDecimal);
+      // console.log('denominatorTen =', denominatorTen);
       //
       var exponentString = aMatch[4];
       var exponentNegativeP = false;
@@ -2094,21 +2101,36 @@ define("pyret-base/js/js-numbers", function() {
         }
         exponent = fromString('1' + new Array(Number(exponentString) + 1).join('0'));
       }
+      // console.log('exponent[40] =', exponent['40']);
 
       var finalDen = denominatorTen;
+      // console.log('calling _integerMultiply');
       var finalNum = _integerAdd(_integerMultiply(beforeDecimal, denominatorTen), afterDecimal);
+      // console.log('finalNum1 =', finalNum);
       if (negativeP) {
         finalNum = negate(finalNum, errbacks);
       }
+      // console.log('finalNum2 =', finalNum);
       //
       if (!equals(exponent, 1)) {
         if (exponentNegativeP) {
           finalDen = _integerMultiply(finalDen, exponent);
+          // finalDen = canonicalizeBignum(finalDen);
         } else {
           finalNum = _integerMultiply(finalNum, exponent);
+          // finalNum = canonicalizeBignum(finalNum);
         }
       }
-      return Rational.makeInstance(finalNum, finalDen, errbacks);
+      // console.log('finalNum3 =', finalNum);
+      // console.log('finalNum.40 =', finalNum['40']);
+      // console.log('finalDen =', finalDen);
+      var result;
+      if (finalDen === 1) {
+        result = finalNum;
+      } else {
+        result = Rational.makeInstance(finalNum, finalDen, errbacks);
+      }
+      return result;
     }
 
     aMatch = x.match(roughnumRatRegexp);
@@ -2396,6 +2418,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // (public) Constructor
   function BigInteger(a,b,c) {
+    // console.log('doing BigInteger of', a, '(', a? a.length : 'x', ')', b,c);
     if(a != null)
       if("number" == typeof a) this.fromNumber(a,b,c);
     else if(b == null && "string" != typeof a) this.fromString(a,256);
@@ -3034,6 +3057,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // (protected) alternate constructor
   function bnpFromNumber(a,b,c) {
+    // console.log('doing bnpFromNumber', a,b,c);
     if("number" == typeof b) {
       // new BigInteger(int,int,RNG)
       if(a < 2) this.fromInt(1);
@@ -3622,8 +3646,10 @@ define("pyret-base/js/js-numbers", function() {
 
   // makeBignum: string -> BigInteger
   var makeBignum = function(s) {
+    // console.log('doing makeBignum', s);
     if (typeof(s) === 'number') { s = s + ''; }
     s = expandExponent(s);
+    // console.log('s became', s, 'of length', s.length);
     return new BigInteger(s, 10);
   };
 

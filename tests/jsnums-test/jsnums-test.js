@@ -44,22 +44,84 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       return false;
     }
   }
-  describe("check exceptions in js-numbers methods that can't be tested in Pyret", function() {
+  describe("check functions that don't allow testing via Pyret programs", function() {
+
+    it("fromString", function() {
+      expect(JN.fromString("5", sampleErrorBacks)).toEqual(5);
+
+      var bigIntStr = "1" + new Array(309 + 1).join("0"); // 1 followed by 309 0s
+      expect(JN.fromString(bigIntStr, sampleErrorBacks)).toEqual(JN.makeBignum(bigIntStr));
+
+      // console.log(JN.fromString("1e1", sampleErrorBacks));
+      // console.log(JN.fromString("10", sampleErrorBacks));
+      // console.log(JN.makeBignum("1e1", sampleErrorBacks));
+      // console.log(JN.makeBignum("10", sampleErrorBacks).toFixnum());
+
+      expect(JN.fromString("1e1", sampleErrorBacks)).toBe(10);
+      expect(JN.fromString("1e30", sampleErrorBacks)).toEqual(JN.makeBignum("1e30"));
+      expect(JN.fromString("1e140", sampleErrorBacks)).toEqual(JN.makeBignum("1e140"));
+
+      // for large bignums (> 1e140 ?), fromString() and makeBignum() can give structurally
+      // unequal results. so the following fail:
+      // expect(JN.fromString("1e141", sampleErrorBacks)).toEqual(JN.makeBignum("1e141"));
+      // expect(JN.fromString("1e307", sampleErrorBacks)).toEqual(JN.makeBignum("1e307"));
+      // expect(JN.fromString("1e309", sampleErrorBacks)).toEqual(JN.makeBignum("1e309"));
+
+      // but they're operationally equivalent!
+      expect(JN.equals(JN.fromString("1e141", sampleErrorBacks),
+        JN.makeBignum("1e141"),
+        sampleErrorBacks)).toBe(true);
+
+      // fromString() and makeBignum() give different but operationally same bignums
+      // console.log('*************************');
+      // console.log(JN.fromString("1e307", sampleErrorBacks));
+      // console.log('-------------------------');
+      // console.log(JN.makeBignum("1e307"));
+      // console.log('-------------------------');
+      // console.log(JN.multiply(1, JN.makeBignum("1e307"), sampleErrorBacks)['40']);
+      // console.log('*************************');
+
+      expect(JN.fromString("1e311", sampleErrorBacks)).toEqual(JN.makeBignum("1e311"));
+      expect(JN.fromString("1/2", sampleErrorBacks)).toEqual(JN.makeRational(1, 2));
+      expect(JN.fromString("355/113", sampleErrorBacks)).toEqual(JN.makeRational(355, 113));
+      expect(JN.fromString("1.5e3", sampleErrorBacks)).toEqual(1500);
+      expect(JN.fromString("~2.718281828", sampleErrorBacks)).toEqual(JN.makeRoughnum(2.718281828));
+      expect(JN.fromString("not-a-string", sampleErrorBacks)).toBe(false);
+
+    });
+
+    it("fromFixnum", function() {
+
+      expect(JN.fromFixnum(5, sampleErrorBacks)).toEqual(5);
+      expect(JN.fromFixnum(1/2, sampleErrorBacks)).toEqual(JN.makeRational(1, 2));
+      expect(JN.fromFixnum(1.5e3, sampleErrorBacks)).toEqual(1500);
+      expect(JN.fromFixnum(1e311, sampleErrorBacks)).toBe(false);
+
+    });
+
     it("bnpExp", function() {
       // BigInteger.*.expt calls bnPow, wch calls bnpExp
-      // shd raise exc for too-large 
+      // shd raise exc for too-large
       expect(function() { JN.makeBignum(2).expt(JN.makeBignum(0xffffffff + 1), sampleErrorBacks); }).toThrow('domainError');
 
-      // BigInteger.*.log 
+      // BigInteger.*.log
       // shd raise exc for arg <= 0
       expect(function() { JN.makeBignum(-1).log(sampleErrorBacks); }).toThrow('logNonPositive');
+    });
 
-      // BigInteger.*asin 
-      // shd raise exc for arg < -1 or > 1
+    it("arithmetic", function() {
+
+    });
+
+    it("trig functions", function() {
+      // BigInteger.*asin
+      // shd raise exception for arg outside [-1, +1]
+      // but this is not testable via Pyret, because args are always sane
+      // by the time this method is called
       expect(function() { JN.makeBignum(-1.5).asin(sampleErrorBacks); }).toThrow('domainError');
       expect(function() { JN.makeBignum(+1.5).asin(sampleErrorBacks); }).toThrow('domainError');
 
-      // BigInteger.*acos 
+      // BigInteger.*acos
       // shd raise exc for arg < -1 or > 1
       expect(function() { JN.makeBignum(-1.5).acos(sampleErrorBacks); }).toThrow('domainError');
       expect(function() { JN.makeBignum(+1.5).acos(sampleErrorBacks); }).toThrow('domainError');
@@ -67,6 +129,11 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // BigInteger.*.atan
       // should work
       expect(JN.makeBignum(0).atan(sampleErrorBacks)).toEqual(0);
+
+      // atan2 (perhaps Pyret test is enough)
+      expect(function () {
+        JN.atan2(JN.makeBignum(0), JN.makeBignum(0), sampleErrorBacks);
+      }).toThrow('domainError');
 
       // BigInteger.*.sin
       // should work
