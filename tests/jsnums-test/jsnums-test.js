@@ -16,9 +16,9 @@ R.config({
   }
 });
 R(["pyret-base/js/js-numbers"], function(JN) {
-  var sampleErrorBacks = {
-    throwDomainError: function() { throw 'domainError'; },
-    throwLogNonPositive: function() { throw 'logNonPositive'; },
+  var sampleErrbacks = {
+    throwDomainError: function(x) { throw new Error('domainError ' + x); },
+    throwLogNonPositive: function(x) { throw new Error('logNonPositive ' + x); },
   };
   function test(actual, expected, testname, toks) {
     if (actual === expected) {
@@ -46,67 +46,98 @@ R(["pyret-base/js/js-numbers"], function(JN) {
   }
   describe("check functions that don't allow testing via Pyret programs", function() {
 
+    it("makeNumericBinop", function() {
+      var bogusNumFun = JN._innards.makeNumericBinop(
+        function(x, y, errbacks) {
+          if (x <= 2 && y <= 2) return 1;
+          if (x <= 2) return 2;
+          if (y <= 2) return 3;
+          errbacks.throwDomainError('makeNumericBinop first fail');
+        },
+        function(x, y, errbacks) {
+          if (JN.lessThanOrEqual(x, 2, errbacks) && JN.lessThanOrEqual(y, 2, errbacks)) return 4;
+          if (JN.lessThanOrEqual(x, 2, errbacks)) return 5;
+          if (JN.lessThanOrEqual(y, 2, errbacks)) return 6;
+          errbacks.throwDomainError('makeNumericBinop second fail');
+        },
+        {
+          isXSpecialCase: function(x, errbacks) {
+            return JN.lessThanOrEqual(x, 0, errbacks);
+          },
+          onXSpecialCase: function(x, y, errbacks) {
+            return 7;
+          },
+          isYSpecialCase: function(y, errbacks) {
+            return JN.lessThanOrEqual(y, 0, errbacks);
+          },
+          onYSpecialCase: function(x, y, errbacks) {
+            return 8;
+          }
+        }
+      );
+
+      expect(bogusNumFun(1, 1, sampleErrbacks)).toEqual(1);
+      expect(bogusNumFun(1, 3, sampleErrbacks)).toEqual(2);
+      expect(bogusNumFun(3, 1, sampleErrbacks)).toEqual(3);
+      expect(function() { bogusNumFun(3, 3, sampleErrbacks); }).toThrowError(/first fail/);
+
+      expect(bogusNumFun(JN.makeRational(3, 2, sampleErrbacks), JN.makeRational(3, 2, sampleErrbacks), sampleErrbacks)).toEqual(4);
+      expect(bogusNumFun(JN.makeRational(3, 2, sampleErrbacks), JN.makeRational(5, 2, sampleErrbacks), sampleErrbacks)).toEqual(5);
+      expect(bogusNumFun(JN.makeRational(5, 2, sampleErrbacks), JN.makeRational(3, 2, sampleErrbacks), sampleErrbacks)).toEqual(6);
+      expect(function() { bogusNumFun(JN.makeRational(5, 2, sampleErrbacks), JN.makeRational(5, 2, sampleErrbacks), sampleErrbacks); }).toThrowError(/second fail/);
+
+      expect(bogusNumFun(-1, +1, sampleErrbacks)).toEqual(7);
+      expect(bogusNumFun(+1, -1, sampleErrbacks)).toEqual(8);
+
+    });
+
     it("fromString", function() {
-      expect(JN.fromString("5", sampleErrorBacks)).toEqual(5);
+      expect(JN.fromString("5", sampleErrbacks)).toEqual(5);
 
       var bigIntStr = "1" + new Array(309 + 1).join("0"); // 1 followed by 309 0s
-      expect(JN.fromString(bigIntStr, sampleErrorBacks)).toEqual(JN.makeBignum(bigIntStr));
+      expect(JN.fromString(bigIntStr, sampleErrbacks)).toEqual(JN.makeBignum(bigIntStr));
 
-      // console.log(JN.fromString("1e1", sampleErrorBacks));
-      // console.log(JN.fromString("10", sampleErrorBacks));
-      // console.log(JN.makeBignum("1e1", sampleErrorBacks));
-      // console.log(JN.makeBignum("10", sampleErrorBacks).toFixnum());
+      expect(JN.fromString("1e1", sampleErrbacks)).toBe(10);
 
-      expect(JN.fromString("1e1", sampleErrorBacks)).toBe(10);
-      expect(JN.fromString("1e30", sampleErrorBacks)).toEqual(JN.makeBignum("1e30"));
-      expect(JN.fromString("1e140", sampleErrorBacks)).toEqual(JN.makeBignum("1e140"));
+      // for sci-not, fromString() and makeBignum() can give structurally
+      // unequal but operationally equivalent results, so the following fails:
+      // expect(JN.fromString("1e141", sampleErrbacks)).toEqual(JN.makeBignum("1e141"));
+      // however you can refashion the test using JN.equals
 
-      // for large bignums (> 1e140 ?), fromString() and makeBignum() can give structurally
-      // unequal results. so the following fail:
-      // expect(JN.fromString("1e141", sampleErrorBacks)).toEqual(JN.makeBignum("1e141"));
-      // expect(JN.fromString("1e307", sampleErrorBacks)).toEqual(JN.makeBignum("1e307"));
-      // expect(JN.fromString("1e309", sampleErrorBacks)).toEqual(JN.makeBignum("1e309"));
+      expect(JN.equals(JN.fromString("1e5", sampleErrbacks), JN.makeBignum("1e5"), sampleErrbacks)).toBe(true);
+      expect(JN.equals(JN.fromString("1e30", sampleErrbacks), JN.makeBignum("1e30"), sampleErrbacks)).toBe(true);
+      expect(JN.equals(JN.fromString("1e140", sampleErrbacks), JN.makeBignum("1e140"), sampleErrbacks)).toBe(true);
+      expect(JN.equals(JN.fromString("1e141", sampleErrbacks), JN.makeBignum("1e141"), sampleErrbacks)).toBe(true);
+      expect(JN.equals(JN.fromString("1e307", sampleErrbacks), JN.makeBignum("1e307"), sampleErrbacks)).toBe(true);
+      expect(JN.equals(JN.fromString("1e309", sampleErrbacks), JN.makeBignum("1e309"), sampleErrbacks)).toBe(true);
 
-      // but they're operationally equivalent!
-      expect(JN.equals(JN.fromString("1e141", sampleErrorBacks),
-        JN.makeBignum("1e141"),
-        sampleErrorBacks)).toBe(true);
 
-      // fromString() and makeBignum() give different but operationally same bignums
-      // console.log('*************************');
-      // console.log(JN.fromString("1e307", sampleErrorBacks));
-      // console.log('-------------------------');
-      // console.log(JN.makeBignum("1e307"));
-      // console.log('-------------------------');
-      // console.log(JN.multiply(1, JN.makeBignum("1e307"), sampleErrorBacks)['40']);
-      // console.log('*************************');
-
-      expect(JN.fromString("1e311", sampleErrorBacks)).toEqual(JN.makeBignum("1e311"));
-      expect(JN.fromString("1/2", sampleErrorBacks)).toEqual(JN.makeRational(1, 2));
-      expect(JN.fromString("355/113", sampleErrorBacks)).toEqual(JN.makeRational(355, 113));
-      expect(JN.fromString("1.5e3", sampleErrorBacks)).toEqual(1500);
-      expect(JN.fromString("~2.718281828", sampleErrorBacks)).toEqual(JN.makeRoughnum(2.718281828));
-      expect(JN.fromString("not-a-string", sampleErrorBacks)).toBe(false);
+      expect(JN.equals(JN.fromString("1e311", sampleErrbacks), JN.makeBignum("1e311"), sampleErrbacks)).toBe(true);
+      expect(JN.equals(JN.fromString("1/2", sampleErrbacks), JN.makeRational(1, 2, sampleErrbacks), sampleErrbacks)).toBe(true);
+      expect(JN.equals(JN.fromString("355/113", sampleErrbacks), JN.makeRational(355, 113, sampleErrbacks), sampleErrbacks)).toBe(true);
+      expect(JN.equals(JN.fromString("1.5e3", sampleErrbacks), 1500)).toBe(true);
+      expect(JN.roughlyEquals(JN.fromString("~2.71828", sampleErrbacks), JN.makeRoughnum(2.71828, sampleErrbacks), 0.001, sampleErrbacks)).toBe(true);
+      expect(JN.fromString("not-a-string", sampleErrbacks)).toBe(false);
 
     });
 
     it("fromFixnum", function() {
 
-      expect(JN.fromFixnum(5, sampleErrorBacks)).toEqual(5);
-      expect(JN.fromFixnum(1/2, sampleErrorBacks)).toEqual(JN.makeRational(1, 2));
-      expect(JN.fromFixnum(1.5e3, sampleErrorBacks)).toEqual(1500);
-      expect(JN.fromFixnum(1e311, sampleErrorBacks)).toBe(false);
+      expect(JN.fromFixnum(5, sampleErrbacks)).toEqual(5);
+      expect(JN.fromFixnum(1/2, sampleErrbacks)).toEqual(JN.makeRational(1, 2));
+      expect(JN.fromFixnum(1.5e3, sampleErrbacks)).toEqual(1500);
+      expect(JN.fromFixnum(1e311, sampleErrbacks)).toBe(false);
 
     });
 
     it("bnpExp", function() {
       // BigInteger.*.expt calls bnPow, wch calls bnpExp
       // shd raise exc for too-large
-      expect(function() { JN.makeBignum(2).expt(JN.makeBignum(0xffffffff + 1), sampleErrorBacks); }).toThrow('domainError');
+      expect(function() { JN.makeBignum(2).expt(JN.makeBignum(0xffffffff + 1), sampleErrbacks); }).toThrowError(/domainError/);
 
       // BigInteger.*.log
       // shd raise exc for arg <= 0
-      expect(function() { JN.makeBignum(-1).log(sampleErrorBacks); }).toThrow('logNonPositive');
+      expect(function() { JN.makeBignum(-1).log(sampleErrbacks); }).toThrowError(/logNonPositive/);
     });
 
     it("arithmetic", function() {
@@ -118,34 +149,34 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // shd raise exception for arg outside [-1, +1]
       // but this is not testable via Pyret, because args are always sane
       // by the time this method is called
-      expect(function() { JN.makeBignum(-1.5).asin(sampleErrorBacks); }).toThrow('domainError');
-      expect(function() { JN.makeBignum(+1.5).asin(sampleErrorBacks); }).toThrow('domainError');
+      expect(function() { JN.makeBignum(-1.5).asin(sampleErrbacks); }).toThrowError(/domainError/);
+      expect(function() { JN.makeBignum(+1.5).asin(sampleErrbacks); }).toThrowError(/domainError/);
 
       // BigInteger.*acos
       // shd raise exc for arg < -1 or > 1
-      expect(function() { JN.makeBignum(-1.5).acos(sampleErrorBacks); }).toThrow('domainError');
-      expect(function() { JN.makeBignum(+1.5).acos(sampleErrorBacks); }).toThrow('domainError');
+      expect(function() { JN.makeBignum(-1.5).acos(sampleErrbacks); }).toThrowError(/domainError/);
+      expect(function() { JN.makeBignum(+1.5).acos(sampleErrbacks); }).toThrowError(/domainError/);
 
       // BigInteger.*.atan
       // should work
-      expect(JN.makeBignum(0).atan(sampleErrorBacks)).toEqual(0);
+      expect(JN.makeBignum(0).atan(sampleErrbacks)).toEqual(0);
 
       // atan2 (perhaps Pyret test is enough)
       expect(function () {
-        JN.atan2(JN.makeBignum(0), JN.makeBignum(0), sampleErrorBacks);
-      }).toThrow('domainError');
+        JN.atan2(JN.makeBignum(0), JN.makeBignum(0), sampleErrbacks);
+      }).toThrowError(/domainError/);
 
       // BigInteger.*.sin
       // should work
-      expect(JN.makeBignum(0).sin(sampleErrorBacks)).toEqual(0);
+      expect(JN.makeBignum(0).sin(sampleErrbacks)).toEqual(0);
 
       // BigInteger.*.cos
       // should work
-      expect(JN.makeBignum(0).cos(sampleErrorBacks)).toEqual(1);
+      expect(JN.makeBignum(0).cos(sampleErrbacks)).toEqual(1);
 
       // BigInteger.*.tan
       // should work
-      expect(JN.makeBignum(0).tan(sampleErrorBacks)).toEqual(0);
+      expect(JN.makeBignum(0).tan(sampleErrbacks)).toEqual(0);
 
 
     });

@@ -2124,7 +2124,7 @@ define("pyret-base/js/js-numbers", function() {
       // console.log('finalNum3 =', finalNum);
       // console.log('finalNum.40 =', finalNum['40']);
       // console.log('finalDen =', finalDen);
-      return result = Rational.makeInstance(finalNum, finalDen, errbacks);
+      return Rational.makeInstance(finalNum, finalDen, errbacks);
     }
 
     aMatch = x.match(roughnumRatRegexp);
@@ -4086,6 +4086,11 @@ define("pyret-base/js/js-numbers", function() {
 
   Numbers['MIN_FIXNUM'] = MIN_FIXNUM;
   Numbers['MAX_FIXNUM'] = MAX_FIXNUM;
+
+  // the following exposes innards for testing
+  Numbers['_innards'] = {
+    makeNumericBinop: makeNumericBinop,
+  };
 
   return Numbers;
 });
