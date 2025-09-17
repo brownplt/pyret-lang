@@ -19,6 +19,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
   var sampleErrbacks = {
     throwDomainError: function(x) { throw new Error('domainError ' + x); },
     throwLogNonPositive: function(x) { throw new Error('logNonPositive ' + x); },
+    throwUndefinedValue: function(x) { throw new Error('undefinedValue ' + x); },
   };
   function test(actual, expected, testname, toks) {
     if (actual === expected) {
@@ -111,7 +112,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN.equals(JN.fromString("1e307", sampleErrbacks), JN.makeBignum("1e307"), sampleErrbacks)).toBe(true);
       expect(JN.equals(JN.fromString("1e309", sampleErrbacks), JN.makeBignum("1e309"), sampleErrbacks)).toBe(true);
 
-
       expect(JN.equals(JN.fromString("1e311", sampleErrbacks), JN.makeBignum("1e311"), sampleErrbacks)).toBe(true);
       expect(JN.equals(JN.fromString("1/2", sampleErrbacks), JN.makeRational(1, 2, sampleErrbacks), sampleErrbacks)).toBe(true);
       expect(JN.equals(JN.fromString("355/113", sampleErrbacks), JN.makeRational(355, 113, sampleErrbacks), sampleErrbacks)).toBe(true);
@@ -177,6 +177,121 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // BigInteger.*.tan
       // should work
       expect(JN.makeBignum(0).tan(sampleErrbacks)).toEqual(0);
+
+
+    });
+
+    it("Rational methods", function() {
+      expect(function () { JN.Rational.makeInstance(undefined, undefined, sampleErrbacks); })
+        .toThrowError(/undefined/);
+      expect(JN.equals(JN.Rational.makeInstance(1, undefined, sampleErrbacks), 1)).toBe(true);
+      expect(JN.equals(JN.Rational.makeInstance(1, -1, sampleErrbacks), -1)).toBe(true);
+      expect(JN.equals(JN.Rational.makeInstance(2, 1, sampleErrbacks), 2)).toBe(true);
+      expect(JN.equals(JN.Rational.makeInstance(0, 1, sampleErrbacks), 0)).toBe(true);
+      expect(JN.equals(JN.Rational.makeInstance(2, 3, sampleErrbacks), JN.fromString("2/3")))
+        .toBe(true);
+
+      expect(JN.Rational.makeInstance(1, 3, sampleErrbacks).equals(
+        JN.Rational.makeInstance(1, 3, sampleErrbacks), sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.Rational.makeInstance(2, 3, sampleErrbacks).toString()).toBe("2/3");
+      expect(JN.Rational.makeInstance(2, 1, sampleErrbacks).toString()).toBe("2");
+
+
+      expect(JN.equals(JN.Rational.makeInstance(1, 3, sampleErrbacks).add(
+        JN.Rational.makeInstance(2, 3, sampleErrbacks), sampleErrbacks),
+        1, sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.equals(JN.Rational.makeInstance(4, 3, sampleErrbacks).subtract(
+        JN.Rational.makeInstance(1, 3, sampleErrbacks), sampleErrbacks),
+        1, sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.equals(JN.Rational.makeInstance(-4, 3, sampleErrbacks).negate(sampleErrbacks),
+        JN.fromString("4/3"), sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.equals(JN.Rational.makeInstance(2, 3, sampleErrbacks).multiply(
+        JN.Rational.makeInstance(3, 2, sampleErrbacks), sampleErrbacks),
+        1, sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.equals(JN.Rational.makeInstance(2, 3, sampleErrbacks).divide(
+        JN.Rational.makeInstance(4, 6, sampleErrbacks), sampleErrbacks),
+        1, sampleErrbacks))
+        .toBe(true);
+
+      // toRational?
+      expect(JN.Rational.makeInstance(2, 3, sampleErrbacks).isRational()).toBe(true);
+
+      expect(JN.Rational.makeInstance(2, 4, sampleErrbacks).toFixnum()).toEqual(0.5);
+
+
+      expect(JN.Rational.makeInstance(4, 6, sampleErrbacks).numerator()).toEqual(2);
+      expect(JN.Rational.makeInstance(4, 6, sampleErrbacks).denominator()).toEqual(3);
+
+      expect(JN.Rational.makeInstance(2, 3, sampleErrbacks).greaterThan(
+        JN.Rational.makeInstance(1, 3, sampleErrbacks), sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.Rational.makeInstance(2, 3, sampleErrbacks).greaterThan(
+        JN.Rational.makeInstance(1, 3, sampleErrbacks), sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.Rational.makeInstance(1, 3, sampleErrbacks).greaterThanOrEqual(
+        JN.Rational.makeInstance(1, 3, sampleErrbacks), sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.Rational.makeInstance(1, 3, sampleErrbacks).lessThan(
+        JN.Rational.makeInstance(2, 3, sampleErrbacks), sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.Rational.makeInstance(1, 3, sampleErrbacks).lessThanOrEqual(
+        JN.Rational.makeInstance(1, 3, sampleErrbacks), sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.equals(
+        JN.Rational.makeInstance(101, 4, sampleErrbacks).integerSqrt(sampleErrbacks),
+        5, sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.equals(
+        JN.Rational.makeInstance(100, 9, sampleErrbacks).sqrt(sampleErrbacks),
+        JN.Rational.makeInstance(10, 3, sampleErrbacks),
+        sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.equals(
+        JN.Rational.makeInstance(-4, 3, sampleErrbacks).abs(sampleErrbacks),
+        JN.Rational.makeInstance(4, 3, sampleErrbacks),
+        sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.equals(
+        JN.Rational.makeInstance(4, 3, sampleErrbacks).floor(sampleErrbacks),
+        1,
+        sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.equals(
+        JN.Rational.makeInstance(4, 3, sampleErrbacks).ceiling(sampleErrbacks),
+        2,
+        sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.equals(
+        JN.Rational.makeInstance(4, 3, sampleErrbacks).round(sampleErrbacks),
+        1,
+        sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.equals(
+        JN.Rational.makeInstance(7, 2, sampleErrbacks).roundEven(sampleErrbacks),
+        4,
+        sampleErrbacks))
+      .toBe(true);
 
 
     });
