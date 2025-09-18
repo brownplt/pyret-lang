@@ -827,8 +827,8 @@ define("pyret-base/js/js-numbers", function() {
       return Roughnum.makeInstance(Math.log(n), errbacks);
     }
     if (isRational(n) && !isInteger(n)) {
-      return subtract(log(numerator(n, errbacks)),
-        log(denominator(n, errbacks)),
+      return subtract(log(numerator(n, errbacks), errbacks),
+        log(denominator(n, errbacks), errbacks),
         errbacks);
     }
     var nFix = n.toFixnum();
