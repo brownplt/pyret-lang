@@ -12,12 +12,26 @@ R.config({
   }
 });
 R(["pyret-base/js/js-numbers"], function(JN) {
+
   var sampleErrbacks = {
     throwDomainError: function(x) { throw new Error('domainError ' + x); },
     throwLogNonPositive: function(x) { throw new Error('logNonPositive ' + x); },
     throwUndefinedValue: function(x) { throw new Error('undefinedValue ' + x); },
     throwGeneralError: function(x) { throw new Error('generalError ' + x); },
   };
+
+  function arrayEquals(A, B) {
+    if (A === B) return true;
+    if (!Array.isArray(A) || !Array.isArray(B)) return false;
+    // both are arrays
+    var n = A.length;
+    if (B.length !== n) return false;
+    for (var i = 0; i < n; i++) {
+      if (!arrayEquals(A[i], B[i])) return false;
+    }
+    return true;
+  }
+
   describe("check functions that don't allow testing via Pyret programs", function() {
 
     it("makeNumericBinop", function() {
@@ -137,7 +151,10 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(function() { JN.makeBignum(-1).log(sampleErrbacks); }).toThrowError(/logNonPositive/);
     });
 
-    it("arithmetic", function() {
+    it("repeating decimal", function() {
+
+      expect(arrayEquals(JN.toRepeatingDecimal(883, 700), ['1', '26', '142857']))
+        .toBe(true);
 
     });
 
