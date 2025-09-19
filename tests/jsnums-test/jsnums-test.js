@@ -153,8 +153,22 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
     it("repeating decimal", function() {
 
-      expect(arrayEquals(JN.toRepeatingDecimal(883, 700), ['1', '26', '142857']))
+      expect(arrayEquals(JN.toRepeatingDecimal(883, 700), ['1', '26', '142857'],
+        undefined, sampleErrbacks))
         .toBe(true);
+
+    });
+
+    it("toStringDigits", function() {
+
+      expect(JN.toStringDigits(123456789, 5, sampleErrbacks))
+        .toBe("123456789.00000");
+      expect(JN.toStringDigits(123456789, -5, sampleErrbacks))
+        .toBe("123500000");
+      expect(JN.toStringDigits(JN.makeRational(355, 113, sampleErrbacks), 5, sampleErrbacks))
+        .toBe("3.14159");
+      expect(JN.toStringDigits(JN.makeRational(355 * 1e9, 113, sampleErrbacks), -5, sampleErrbacks))
+        .toBe("3141600000");
 
     });
 
@@ -240,8 +254,12 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
       expect(JN.Rational.makeInstance(2, 4, sampleErrbacks).toFixnum()).toEqual(0.5);
 
-      expect(JN.Rational.makeInstance(4, 6, sampleErrbacks).numerator()).toEqual(2);
-      expect(JN.Rational.makeInstance(4, 6, sampleErrbacks).denominator()).toEqual(3);
+      expect(JN.Rational.makeInstance(4, 6, sampleErrbacks)
+        .numerator(sampleErrbacks))
+        .toEqual(2);
+      expect(JN.Rational.makeInstance(4, 6, sampleErrbacks)
+        .denominator(sampleErrbacks))
+        .toEqual(3);
 
       expect(JN.Rational.makeInstance(2, 3, sampleErrbacks).greaterThan(
         JN.Rational.makeInstance(1, 3, sampleErrbacks), sampleErrbacks))
@@ -376,8 +394,12 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
       // shouldn't roughnum's numerator method take errbacks?
 
-      expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks).numerator().toFixnum()).toEqual(157);
-      expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks).denominator().toFixnum()).toEqual(50);
+      expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks)
+        .numerator(sampleErrbacks).toFixnum())
+        .toEqual(157);
+      expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks)
+        .denominator(sampleErrbacks).toFixnum())
+        .toEqual(50);
 
       expect(JN.Roughnum.makeInstance(2.3, sampleErrbacks).greaterThan(
         JN.Roughnum.makeInstance(1.3, sampleErrbacks), sampleErrbacks))

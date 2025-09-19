@@ -716,14 +716,14 @@ define("pyret-base/js/js-numbers", function() {
   var numerator = function(n, errbacks) {
     if (typeof(n) === 'number')
       return n;
-    return n.numerator();
+    return n.numerator(errbacks);
   };
 
   // denominator: pyretnum -> pyretnum
   var denominator = function(n, errbacks) {
     if (typeof(n) === 'number')
       return 1;
-    return n.denominator();
+    return n.denominator(errbacks);
   };
 
   // sqrt: pyretnum -> pyretnum
@@ -1001,8 +1001,8 @@ define("pyret-base/js/js-numbers", function() {
     if (isInteger(x) && isInteger(y)) {
       return _integerRemainder(x, y);
     } else if (isRational(x) && isRational(y)) {
-      var xn = numerator(x); var xd = denominator(x);
-      var yn = numerator(y); var yd = denominator(y);
+      var xn = numerator(x, errbacks); var xd = denominator(x, errbacks);
+      var yn = numerator(y, errbacks); var yd = denominator(y, errbacks);
       var new_d = lcm(xd, [yd], errbacks);
       var new_xn = multiply(xn, divide(new_d, xd, errbacks), errbacks);
       var new_yn = multiply(yn, divide(new_d, yd, errbacks), errbacks);
@@ -1576,11 +1576,11 @@ define("pyret-base/js/js-numbers", function() {
     return Roughnum.makeInstance(this.toFixnum(), errbacks);
   };
 
-  Rational.prototype.numerator = function() {
+  Rational.prototype.numerator = function(errbacks) {
     return this.n;
   };
 
-  Rational.prototype.denominator = function() {
+  Rational.prototype.denominator = function(errbacks) {
     return this.d;
   };
 
@@ -1897,7 +1897,7 @@ define("pyret-base/js/js-numbers", function() {
     return this;
   };
 
-  Roughnum.prototype.numerator = function() {
+  Roughnum.prototype.numerator = function(errbacks) {
     var stringRep = this.n.toString();
     var match = stringRep.match(/^(.*)\.(.*)$/);
     if (match) {
@@ -1911,7 +1911,7 @@ define("pyret-base/js/js-numbers", function() {
     }
   };
 
-  Roughnum.prototype.denominator = function() {
+  Roughnum.prototype.denominator = function(errbacks) {
     var stringRep = this.n.toString();
     var match = stringRep.match(/^(.*)\.(.*)$/);
     if (match) {
@@ -3741,11 +3741,11 @@ define("pyret-base/js/js-numbers", function() {
     }
   };
 
-  BigInteger.prototype.numerator = function() {
+  BigInteger.prototype.numerator = function(errbacks) {
     return this;
   };
 
-  BigInteger.prototype.denominator = function() {
+  BigInteger.prototype.denominator = function(errbacks) {
     return 1;
   };
 
@@ -3999,7 +3999,7 @@ define("pyret-base/js/js-numbers", function() {
       return ans;
     }
     // n is not an integer implies that d >= 1
-    var decimal = toRepeatingDecimal(n.numerator(), n.denominator(), undefined, errbacks);
+    var decimal = toRepeatingDecimal(n.numerator(errbacks), n.denominator(errbacks), undefined, errbacks);
     var ans = decimal[1].toString();
     while (ans.length < d) {
       ans += decimal[2];
