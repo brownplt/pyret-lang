@@ -8,10 +8,6 @@ var build = process.env["PHASE"] || "build/phaseA";
 R.config({
   waitSeconds: 15000,
   paths: {
-    "trove": "../../" + build + "/trove",
-    "js": "../../" + build + "/js",
-    "compiler": "../../" + build + "/arr/compiler",
-    "jglr": "../../lib/jglr",
     "pyret-base": "../../" + build
   }
 });
@@ -21,30 +17,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
     throwLogNonPositive: function(x) { throw new Error('logNonPositive ' + x); },
     throwUndefinedValue: function(x) { throw new Error('undefinedValue ' + x); },
   };
-  function test(actual, expected, testname, toks) {
-    if (actual === expected) {
-      return true;
-    } else {
-      var allToks = "Str was " + JSON.stringify(testname) + "\n";
-      for (var t = 0; t < toks.length; t++) {
-        if (t > 0) allToks += "\n";
-        allToks += "Tok[" + t + "] = " + toks[t].toString(true)
-          + " at pos " + toks[t].pos.toString(true);
-      }
-      allToks += "Expected " + JSON.stringify(expected) + ", but got " + JSON.stringify(actual)
-        + " in " + JSON.stringify(testname);
-      expect(allToks).toBe("");
-      return false;
-    }
-  }
-  function testPos(tok, expected, str, toks) {
-    if (tok.pos.endChar - tok.pos.startChar == expected.length) {
-      return true;
-    } else {
-      test(str.slice(tok.pos.startChar, tok.pos.endChar), expected, str, toks);
-      return false;
-    }
-  }
   describe("check functions that don't allow testing via Pyret programs", function() {
 
     it("makeNumericBinop", function() {
