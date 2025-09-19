@@ -206,7 +206,7 @@ define("pyret-base/js/js-numbers", function() {
     else if (other instanceof BigInteger)
       return makeBignum(x);
     else
-      return new Rational(x, 1, errbacks);
+      return fromFixnum(x, errbacks);
   };
 
 
@@ -496,7 +496,7 @@ define("pyret-base/js/js-numbers", function() {
     return (((ex && ey) || (!ex && !ey)) && equals(x, y, errbacks));
   };
 
-  // approxEqual: pyretnum pyretnum pyretnum -> boolean
+  // approxEquals: pyretnum pyretnum pyretnum -> boolean
   var approxEquals = function(x, y, delta, errbacks) {
     return lessThanOrEqual(abs(subtract(x, y, errbacks), errbacks),
                            delta, errbacks);

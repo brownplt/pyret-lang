@@ -82,10 +82,14 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(bogusNumFun(3, 1, sampleErrbacks)).toEqual(3);
       expect(function() { bogusNumFun(3, 3, sampleErrbacks); }).toThrowError(/first fail/);
 
-      expect(bogusNumFun(JN.makeRational(3, 2, sampleErrbacks), JN.makeRational(3, 2, sampleErrbacks), sampleErrbacks)).toEqual(4);
-      expect(bogusNumFun(JN.makeRational(3, 2, sampleErrbacks), JN.makeRational(5, 2, sampleErrbacks), sampleErrbacks)).toEqual(5);
-      expect(bogusNumFun(JN.makeRational(5, 2, sampleErrbacks), JN.makeRational(3, 2, sampleErrbacks), sampleErrbacks)).toEqual(6);
-      expect(function() { bogusNumFun(JN.makeRational(5, 2, sampleErrbacks), JN.makeRational(5, 2, sampleErrbacks), sampleErrbacks); }).toThrowError(/second fail/);
+      expect(bogusNumFun(JN.makeRational(3, 2, sampleErrbacks), JN.makeRational(3, 2, sampleErrbacks), sampleErrbacks))
+        .toEqual(4);
+      expect(bogusNumFun(JN.makeRational(3, 2, sampleErrbacks), JN.makeRational(5, 2, sampleErrbacks), sampleErrbacks))
+        .toEqual(5);
+      expect(bogusNumFun(JN.makeRational(5, 2, sampleErrbacks), JN.makeRational(3, 2, sampleErrbacks), sampleErrbacks))
+        .toEqual(6);
+      expect(function() { bogusNumFun(JN.makeRational(5, 2, sampleErrbacks), JN.makeRational(5, 2, sampleErrbacks), sampleErrbacks); })
+        .toThrowError(/second fail/);
 
       expect(bogusNumFun(-1, +1, sampleErrbacks)).toEqual(7);
       expect(bogusNumFun(+1, -1, sampleErrbacks)).toEqual(8);
@@ -105,18 +109,36 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // expect(JN.fromString("1e141", sampleErrbacks)).toEqual(JN.makeBignum("1e141"));
       // however you can refashion the test using JN.equals
 
-      expect(JN.equals(JN.fromString("1e5", sampleErrbacks), JN.makeBignum("1e5"), sampleErrbacks)).toBe(true);
-      expect(JN.equals(JN.fromString("1e30", sampleErrbacks), JN.makeBignum("1e30"), sampleErrbacks)).toBe(true);
-      expect(JN.equals(JN.fromString("1e140", sampleErrbacks), JN.makeBignum("1e140"), sampleErrbacks)).toBe(true);
-      expect(JN.equals(JN.fromString("1e141", sampleErrbacks), JN.makeBignum("1e141"), sampleErrbacks)).toBe(true);
-      expect(JN.equals(JN.fromString("1e307", sampleErrbacks), JN.makeBignum("1e307"), sampleErrbacks)).toBe(true);
-      expect(JN.equals(JN.fromString("1e309", sampleErrbacks), JN.makeBignum("1e309"), sampleErrbacks)).toBe(true);
+      expect(JN.equals(JN.fromString("1e5", sampleErrbacks), JN.makeBignum("1e5"), sampleErrbacks))
+        .toBe(true);
+      expect(JN.equals(JN.fromString("1e30", sampleErrbacks), JN.makeBignum("1e30"), sampleErrbacks))
+        .toBe(true);
+      expect(JN.equals(JN.fromString("1e140", sampleErrbacks), JN.makeBignum("1e140"), sampleErrbacks))
+        .toBe(true);
+      expect(JN.equals(JN.fromString("1e141", sampleErrbacks), JN.makeBignum("1e141"), sampleErrbacks))
+        .toBe(true);
+      expect(JN.equals(JN.fromString("1e307", sampleErrbacks), JN.makeBignum("1e307"), sampleErrbacks))
+        .toBe(true);
+      expect(JN.equals(JN.fromString("1e309", sampleErrbacks), JN.makeBignum("1e309"), sampleErrbacks))
+        .toBe(true);
 
-      expect(JN.equals(JN.fromString("1e311", sampleErrbacks), JN.makeBignum("1e311"), sampleErrbacks)).toBe(true);
-      expect(JN.equals(JN.fromString("1/2", sampleErrbacks), JN.makeRational(1, 2, sampleErrbacks), sampleErrbacks)).toBe(true);
-      expect(JN.equals(JN.fromString("355/113", sampleErrbacks), JN.makeRational(355, 113, sampleErrbacks), sampleErrbacks)).toBe(true);
+      expect(JN.equals(JN.fromString("1e311", sampleErrbacks),
+        JN.makeBignum("1e311"),
+        sampleErrbacks))
+        .toBe(true);
+      expect(JN.equals(JN.fromString("1/2", sampleErrbacks),
+        JN.makeRational(1, 2, sampleErrbacks),
+        sampleErrbacks))
+        .toBe(true);
+      expect(JN.equals(JN.fromString("355/113", sampleErrbacks),
+        JN.makeRational(355, 113, sampleErrbacks),
+        sampleErrbacks))
+        .toBe(true);
       expect(JN.equals(JN.fromString("1.5e3", sampleErrbacks), 1500)).toBe(true);
-      expect(JN.roughlyEquals(JN.fromString("~2.71828", sampleErrbacks), JN.makeRoughnum(2.71828, sampleErrbacks), 0.001, sampleErrbacks)).toBe(true);
+      expect(JN.roughlyEquals(JN.fromString("~2.71828", sampleErrbacks),
+        JN.fromFixnum(2.71828, sampleErrbacks),
+        0.001, sampleErrbacks))
+        .toBe(true);
       expect(JN.fromString("not-a-string", sampleErrbacks)).toBe(false);
 
     });
@@ -133,7 +155,9 @@ R(["pyret-base/js/js-numbers"], function(JN) {
     it("bnpExp", function() {
       // BigInteger.*.expt calls bnPow, wch calls bnpExp
       // shd raise exc for too-large
-      expect(function() { JN.makeBignum(2).expt(JN.makeBignum(0xffffffff + 1), sampleErrbacks); }).toThrowError(/domainError/);
+      expect(function() {
+        JN.makeBignum(2).expt(JN.makeBignum(0xffffffff + 1), sampleErrbacks);
+      }).toThrowError(/domainError/);
 
       // BigInteger.*.log
       // shd raise exc for arg <= 0
@@ -178,7 +202,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // should work
       expect(JN.makeBignum(0).tan(sampleErrbacks)).toEqual(0);
 
-
     });
 
     it("Rational methods", function() {
@@ -197,7 +220,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
       expect(JN.Rational.makeInstance(2, 3, sampleErrbacks).toString()).toBe("2/3");
       expect(JN.Rational.makeInstance(2, 1, sampleErrbacks).toString()).toBe("2");
-
 
       expect(JN.equals(JN.Rational.makeInstance(1, 3, sampleErrbacks).add(
         JN.Rational.makeInstance(2, 3, sampleErrbacks), sampleErrbacks),
@@ -227,7 +249,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN.Rational.makeInstance(2, 3, sampleErrbacks).isRational()).toBe(true);
 
       expect(JN.Rational.makeInstance(2, 4, sampleErrbacks).toFixnum()).toEqual(0.5);
-
 
       expect(JN.Rational.makeInstance(4, 6, sampleErrbacks).numerator()).toEqual(2);
       expect(JN.Rational.makeInstance(4, 6, sampleErrbacks).denominator()).toEqual(3);
@@ -267,7 +288,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         JN.Rational.makeInstance(-4, 3, sampleErrbacks).abs(sampleErrbacks),
         JN.Rational.makeInstance(4, 3, sampleErrbacks),
         sampleErrbacks))
-      .toBe(true);
+        .toBe(true);
 
       expect(JN.equals(
         JN.Rational.makeInstance(4, 3, sampleErrbacks).floor(sampleErrbacks),
@@ -293,6 +314,56 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         sampleErrbacks))
       .toBe(true);
 
+      expect(JN.roughlyEquals(
+        JN.Rational.makeInstance(5, 2, sampleErrbacks).log(sampleErrbacks),
+        JN.fromFixnum(0.91629),
+        0.001, sampleErrbacks))
+      .toBe(true);
+
+      // tan(pi/4) == 1
+      expect(JN.roughlyEquals(
+        JN.Rational.makeInstance(355, 4 * 113, sampleErrbacks).tan(sampleErrbacks),
+        1, 0.001, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.roughlyEquals(
+        JN.Rational.makeInstance(1000, 1732, sampleErrbacks).atan(sampleErrbacks),
+        JN.makeRoughnum(355 / (6 * 113)),
+        0.001, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.roughlyEquals(
+        JN.Rational.makeInstance(1732, 1000, sampleErrbacks).atan(sampleErrbacks),
+        JN.fromFixnum(355 / (3 * 113)),
+        0.001, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.roughlyEquals(
+        JN.Rational.makeInstance(355, 2 * 113, sampleErrbacks).cos(sampleErrbacks),
+        0, 0.001, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.roughlyEquals(
+        JN.Rational.makeInstance(355, 2 * 113, sampleErrbacks).sin(sampleErrbacks),
+        1, 0.001, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.roughlyEquals(
+        JN.Rational.makeInstance(9, 4, sampleErrbacks).expt(
+          JN.Rational.makeInstance(3, 2, sampleErrbacks), sampleErrbacks),
+        27 / 8, 0.001, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.roughlyEquals(
+        JN.Rational.makeInstance(3, 2, sampleErrbacks).exp(sampleErrbacks),
+        JN.fromFixnum(Math.exp(1.5)), 0.001, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.roughlyEquals(
+        JN.Rational.makeInstance(1, 2, sampleErrbacks).acos(sampleErrbacks),
+        JN.Rational.makeInstance(355, 3 * 113),
+        0.001, sampleErrbacks))
+      .toBe(true);
 
     });
   });
