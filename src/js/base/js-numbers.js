@@ -160,31 +160,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // fromFixnum: fixnum -> pyretnum
   var fromFixnum = function(x, errbacks) {
-    if (!isFinite(x)) {
-      return Roughnum.makeInstance(x, errbacks);
-    }
-    var nf = Math.floor(x);
-    if (nf === x) {
-      if (isOverflow(nf)) {
-        return makeBignum(expandExponent(x+''));
-      } else {
-        return nf;
-      }
-    } else {
-      //  used to return float, now rational
-      var stringRep = x.toString();
-      var match = stringRep.match(/^(.*)\.(.*)$/);
-      if (match) {
-        var afterDecimal = parseInt(match[2]);
-        var factorToInt = Math.pow(10, match[2].length);
-        var extraFactor = _integerGcd(factorToInt, afterDecimal);
-        var multFactor = factorToInt / extraFactor;
-        return Rational.makeInstance(Math.round(x*multFactor), Math.round(factorToInt/extraFactor), errbacks);
-      } else {
-        return Rational.makeInstance(x, 1, errbacks);
-      }
-
-    }
+    return fromString(String(x), errbacks);
   };
 
   var expandExponent = function(s) {
@@ -2062,7 +2038,6 @@ define("pyret-base/js/js-numbers", function() {
   var roughnumDecRegexp = new RegExp("^~([-+]?\\d+(?:\\.\\d+)?(?:[Ee][-+]?\\d+)?)$");
 
   var roughnumRatRegexp = new RegExp("^~([+-]?\\d+)/(\\d+)$");
-
 
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
 
