@@ -2065,7 +2065,7 @@ define("pyret-base/js/js-numbers", function() {
       var beforeDecimalString = aMatch[2];
       var beforeDecimal = 0;
       if (beforeDecimalString !== '') {
-        beforeDecimal = fromString(beforeDecimalString);
+        beforeDecimal = makeBignum(beforeDecimalString);
       }
       //
       var afterDecimalString = aMatch[3];
@@ -2073,9 +2073,9 @@ define("pyret-base/js/js-numbers", function() {
       var afterDecimal = 0;
       if (afterDecimalString !== '') {
         afterDecimalString = afterDecimalString.substring(1);
-        denominatorTen = fromString('1' + new Array(afterDecimalString.length + 1).join('0'));
+        denominatorTen = makeBignum('1' + new Array(afterDecimalString.length + 1).join('0'));
         if (afterDecimalString !== '') {
-          afterDecimal = fromString(afterDecimalString);
+          afterDecimal = makeBignum(afterDecimalString);
         }
       }
       //
@@ -2089,7 +2089,7 @@ define("pyret-base/js/js-numbers", function() {
         if (exponentSign === '-' || exponentSign === '+') {
           exponentString = exponentString.substring(1);
         }
-        exponent = fromString('1' + new Array(Number(exponentString) + 1).join('0'));
+        exponent = makeBignum('1' + new Array(Number(exponentString) + 1).join('0'));
       }
 
       var finalDen = denominatorTen;
