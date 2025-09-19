@@ -2039,10 +2039,7 @@ define("pyret-base/js/js-numbers", function() {
 
   var roughnumRatRegexp = new RegExp("^~([+-]?\\d+)/(\\d+)$");
 
-
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
-
-  var genScientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+-]?\\d+)$");
 
   // fromString: string -> (pyretnum | false)
   var fromString = function(x, errbacks) {
