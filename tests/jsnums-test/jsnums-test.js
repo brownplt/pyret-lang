@@ -16,6 +16,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
     throwDomainError: function(x) { throw new Error('domainError ' + x); },
     throwLogNonPositive: function(x) { throw new Error('logNonPositive ' + x); },
     throwUndefinedValue: function(x) { throw new Error('undefinedValue ' + x); },
+    throwGeneralError: function(x) { throw new Error('generalError ' + x); },
   };
   describe("check functions that don't allow testing via Pyret programs", function() {
 
@@ -229,10 +230,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         JN.Rational.makeInstance(1, 3, sampleErrbacks), sampleErrbacks))
         .toBe(true);
 
-      expect(JN.Rational.makeInstance(2, 3, sampleErrbacks).greaterThan(
-        JN.Rational.makeInstance(1, 3, sampleErrbacks), sampleErrbacks))
-        .toBe(true);
-
       expect(JN.Rational.makeInstance(1, 3, sampleErrbacks).greaterThanOrEqual(
         JN.Rational.makeInstance(1, 3, sampleErrbacks), sampleErrbacks))
         .toBe(true);
@@ -337,7 +334,155 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         0.001, sampleErrbacks))
       .toBe(true);
 
+      expect(JN.roughlyEquals(
+        JN.Rational.makeInstance(1, 2, sampleErrbacks).asin(sampleErrbacks),
+        JN.Rational.makeInstance(355, 6 * 113),
+        0.001, sampleErrbacks))
+      .toBe(true);
+
     });
+
+    it("Roughnum methods", function() {
+
+      expect(function () { JN.Roughnum.makeInstance(undefined, sampleErrbacks); })
+        .toThrowError(/unsuitable/);
+
+      expect(JN.equals(JN.Roughnum.makeInstance(3.14, sampleErrbacks).toFixnum(), 3.14)).toBe(true);
+
+      expect(JN.roughlyEquals(JN.Roughnum.makeInstance(3.14, sampleErrbacks), 3.14,
+        0.0001, sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks).isRoughnum()).toBe(true);
+
+      expect(JN.equals(JN.Roughnum.makeInstance(3.14, sampleErrbacks).toFixnum(), 3.14)).toBe(true);
+
+      // shouldn't roughnum's numerator method take errbacks?
+
+      expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks).numerator().toFixnum()).toEqual(157);
+      expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks).denominator().toFixnum()).toEqual(50);
+
+      expect(JN.Roughnum.makeInstance(2.3, sampleErrbacks).greaterThan(
+        JN.Roughnum.makeInstance(1.3, sampleErrbacks), sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.Roughnum.makeInstance(1.3, sampleErrbacks).greaterThanOrEqual(
+        JN.Roughnum.makeInstance(1.3, sampleErrbacks), sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.Roughnum.makeInstance(1.3, sampleErrbacks).lessThan(
+        JN.Roughnum.makeInstance(2.3, sampleErrbacks), sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.Roughnum.makeInstance(1.3, sampleErrbacks).lessThanOrEqual(
+        JN.Roughnum.makeInstance(1.3, sampleErrbacks), sampleErrbacks))
+        .toBe(true);
+
+      // why is roughnum integersqrt so different
+
+      expect(function() {
+        JN.Roughnum.makeInstance(101, sampleErrbacks).integerSqrt(sampleErrbacks);
+      }).toThrowError(/can only be applied to an integer/);
+
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance(100, sampleErrbacks).sqrt(sampleErrbacks),
+        JN.Roughnum.makeInstance(10, sampleErrbacks),
+        0.0001, sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance(-3.14, sampleErrbacks).abs(sampleErrbacks),
+        JN.Roughnum.makeInstance(3.14, sampleErrbacks),
+        0.0001, sampleErrbacks))
+        .toBe(true);
+
+      expect(JN.equals(
+        JN.Roughnum.makeInstance(3.14, sampleErrbacks).floor(sampleErrbacks),
+        3, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.equals(
+        JN.Roughnum.makeInstance(3.14, sampleErrbacks).ceiling(sampleErrbacks),
+        4, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.equals(
+        JN.Roughnum.makeInstance(3.14, sampleErrbacks).round(sampleErrbacks),
+        3, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.equals(
+        JN.Roughnum.makeInstance(3.5, sampleErrbacks).roundEven(sampleErrbacks),
+        4, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance(2.5, sampleErrbacks).log(sampleErrbacks),
+        JN.fromFixnum(0.91629),
+        0.001, sampleErrbacks))
+      .toBe(true);
+
+      // tan(pi/4) == 1
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance((355 / (4 * 113)), sampleErrbacks).tan(sampleErrbacks),
+        1, 0.001, sampleErrbacks))
+      .toBe(true);
+
+      // tan(pi/6) = 1/sqrt(3)
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance(1/1.732, sampleErrbacks).atan(sampleErrbacks),
+        JN.fromFixnum(355 / (6 * 113), sampleErrbacks),
+        0.001, sampleErrbacks))
+      .toBe(true);
+
+      // tan(pi/3) = sqrt(3)
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance(1.732, sampleErrbacks).atan(sampleErrbacks),
+        JN.fromFixnum(355 / (3 * 113), sampleErrbacks),
+        0.001, sampleErrbacks))
+      .toBe(true);
+
+      // cos(pi/2) = 0
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance(355 / (2 * 113), sampleErrbacks).cos(sampleErrbacks),
+        0, 0.001, sampleErrbacks))
+      .toBe(true);
+
+      // sin(pi/2) = 1
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance(355 / (2 * 113), sampleErrbacks).sin(sampleErrbacks),
+        1, 0.001, sampleErrbacks))
+      .toBe(true);
+
+      // (9/4)^(3/2) = 27/8
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance(9/4, sampleErrbacks).expt(
+          JN.Roughnum.makeInstance(3/2, sampleErrbacks), sampleErrbacks),
+        27 / 8, 0.001, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance(3/2, sampleErrbacks).exp(sampleErrbacks),
+        JN.fromFixnum(Math.exp(1.5)), 0.001, sampleErrbacks))
+      .toBe(true);
+
+      // cos(pi/3) = 1/2
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance(1/2, sampleErrbacks).acos(sampleErrbacks),
+        JN.Roughnum.makeInstance(355/(3 * 113), sampleErrbacks),
+        0.001, sampleErrbacks))
+      .toBe(true);
+
+      // sin(pi/6) = 1/2
+      expect(JN.roughlyEquals(
+        JN.Roughnum.makeInstance(1/2, sampleErrbacks).asin(sampleErrbacks),
+        JN.Roughnum.makeInstance(355/(6 * 113), sampleErrbacks),
+        0.001, sampleErrbacks))
+      .toBe(true);
+
+    })
+
+
   });
 
   jazz.execute();
