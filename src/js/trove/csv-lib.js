@@ -13,10 +13,17 @@
             runtime.checkArgsInternal2("csv-lib", "parse-string", str, runtime.String, opts, runtime.Object);
             return runtime.pauseStack((restarter) => {
                 const results = [];
-                const asStream = csv.parseString(str, opts.dict);
-                asStream
-                    .on('data', (data) => { results.push(data); })
-                    .on('end', () => { restarter.resume(results); })
+                try {
+                    const asStream = csv.parseString(str, opts.dict);
+                    let errored = false;
+                    asStream
+                        .on('error', (error) => { restarter.error(runtime.ffi.makeMessageException("Error reading CSV: " + String(error))); })
+                        .on('data', (data) => { results.push(data); })
+                        .on('end', () => { restarter.resume(results); })
+                }
+                catch(e) {
+                    restarter.error(runtime.ffi.makeMessageException("Error reading CSV: " + String(error))); 
+                }
             })
         }
         return runtime.makeModuleReturn({

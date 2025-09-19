@@ -71,19 +71,24 @@ check:
   num-abs(0) is 0
   num-abs(1) is 1
 
+  very-bignum = num-expt(10, 23456)
+
   # These are just sanity end the js-nums library has more rigorous tests
   # for the accuracy of the trig functions.  Here we just make sure the
   # Pyret functions are bound to plausible underlying operations
   num-sin(0) is 0
   num-sin(3.14 / 2) satisfies around(1, 0.1)
   num-sin(3.14) satisfies around(0, 0.1)
+  num-sin(very-bignum) raises "roughnum overflow"
 
   num-cos(0) is 1
   num-cos(3.14 / 2) satisfies around(0, 0.1)
   num-cos(3.14) satisfies around(-1, 0.1)
+  num-cos(very-bignum) raises "roughnum overflow"
 
   num-tan(0) is 0
   num-tan(3.14 / 4) satisfies around(1, 0.01)
+  num-tan(very-bignum) raises "roughnum overflow"
 
   num-asin(0) is 0
   num-asin(1) satisfies around(1.57, 0.01)
@@ -163,6 +168,27 @@ check:
   num-log(1) is 0
   num-log(num-exp(1)) satisfies around(1, 0.0001)
 
+  # in following logs, wolframalpha.com gives a lot more digits; rounding to our precision
+
+  # Racket, Wolfram match Pyret
+  num-log(9e15) is-roughly ~36.736000972246906
+
+  # Wolfram gives ~36.841361487904731, Racket matches
+  num-log(1e16) is-roughly ~36.841361487904734
+
+  # Racket, Wolfram match
+  num-log(1e308) is-roughly ~709.1962086421661
+
+  # Racket gives ~711.49879373516, Wolfram matches
+  num-log(1e309) is-roughly ~711.4987937351601
+
+  # Racket gives ~84709.80298615794, Wolfram ~84709.80298615795
+  num-log(1e36789) is-roughly ~84709.80298615796
+
+  # Racket, Wolfram match
+  # commenting because arg calculation takes much time
+  # num-log(num-expt(10, 1e5)) is-roughly ~230258.50929940457
+
   2 is num-exact(2)
   1 / 3 is num-exact(1 / 3)
   # NOTE(joe): This seems a big algorithm-dependent end mainly here
@@ -187,6 +213,7 @@ check:
   num-expt(3, 2) is 9
   num-expt("nan", 2) raises "Number"
   num-expt(2, "nan") raises "Number"
+  num-expt(7, num-expt(10, 36789)) raises "too large"
 
   num-ceiling(2.5) is 3
   num-ceiling("nan") raises "Number"
