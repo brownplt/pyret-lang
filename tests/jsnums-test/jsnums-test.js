@@ -134,7 +134,10 @@ R(["pyret-base/js/js-numbers"], function(JN) {
     it("fromFixnum", function() {
 
       expect(JN.fromFixnum(5, sampleErrbacks)).toEqual(5);
-      expect(JN.equals(JN.fromFixnum(1/2, sampleErrbacks), JN.makeRational(1, 2))).toBe(true);
+      expect(JN.equals(JN.fromFixnum(1/2, sampleErrbacks),
+        JN.makeRational(1, 2, sampleErrbacks),
+        sampleErrbacks))
+        .toBe(true);
       expect(JN.fromFixnum(1.5e3, sampleErrbacks)).toEqual(1500);
       expect(JN.fromFixnum(1e311, sampleErrbacks)).toBe(false);
 
@@ -173,7 +176,13 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
     });
 
-    it("trig functions", function() {
+    it("BigInteger methods", function() {
+
+      expect(JN.equals(
+        JN.gcd(JN.makeBignum(24), [JN.makeBignum(30)], sampleErrbacks),
+        6, sampleErrbacks))
+      .toBe(true);
+
       // BigInteger.*asin
       // shd raise exception for arg outside [-1, +1]
       // but this is not testable via Pyret, because args are always sane
@@ -206,6 +215,16 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // BigInteger.*.tan
       // should work
       expect(JN.makeBignum(0).tan(sampleErrbacks)).toEqual(0);
+
+      expect(JN.equals(
+        JN.gcd(JN.makeBignum(24), [JN.makeBignum(30)], sampleErrbacks),
+        6, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.equals(
+        JN.lcm(JN.makeBignum(24), [JN.makeBignum(30)], sampleErrbacks),
+        120, sampleErrbacks))
+      .toBe(true);
 
     });
 
