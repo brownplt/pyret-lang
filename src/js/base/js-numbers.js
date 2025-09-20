@@ -2042,10 +2042,7 @@ define("pyret-base/js/js-numbers", function() {
 
   var roughnumRatRegexp = new RegExp("^~([+-]?\\d+)/(\\d+)$");
 
-
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
-
-  var genScientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+-]?\\d+)$");
 
   // fromString: string -> (pyretnum | false)
   var fromString = function(x, errbacks) {
@@ -2072,7 +2069,7 @@ define("pyret-base/js/js-numbers", function() {
       var beforeDecimalString = aMatch[2];
       var beforeDecimal = 0;
       if (beforeDecimalString !== '') {
-        beforeDecimal = fromString(beforeDecimalString);
+        beforeDecimal = makeBignum(beforeDecimalString);
       }
       // console.log('beforeDecimal =', beforeDecimal);
       //
@@ -2081,9 +2078,9 @@ define("pyret-base/js/js-numbers", function() {
       var afterDecimal = 0;
       if (afterDecimalString !== '') {
         afterDecimalString = afterDecimalString.substring(1);
-        denominatorTen = fromString('1' + new Array(afterDecimalString.length + 1).join('0'));
+        denominatorTen = makeBignum('1' + new Array(afterDecimalString.length + 1).join('0'));
         if (afterDecimalString !== '') {
-          afterDecimal = fromString(afterDecimalString);
+          afterDecimal = makeBignum(afterDecimalString);
         }
       }
       // console.log('afterDecimal =', afterDecimal);
@@ -2099,7 +2096,7 @@ define("pyret-base/js/js-numbers", function() {
         if (exponentSign === '-' || exponentSign === '+') {
           exponentString = exponentString.substring(1);
         }
-        exponent = fromString('1' + new Array(Number(exponentString) + 1).join('0'));
+        exponent = makeBignum('1' + new Array(Number(exponentString) + 1).join('0'));
       }
       // console.log('exponent[40] =', exponent['40']);
 

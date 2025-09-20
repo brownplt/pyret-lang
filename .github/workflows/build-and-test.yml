@@ -27,3 +27,9 @@ jobs:
 
     - name: run tests
       run: make all-pyret-test
+      
+  deploy-trigger:
+    needs: build
+    uses: ./.github/workflows/deploy-trigger.yml
+    secrets: inherit
+    if: github.event_name != 'pull_request'

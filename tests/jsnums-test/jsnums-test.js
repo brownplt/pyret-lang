@@ -89,12 +89,13 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       var bigIntStr = "1" + new Array(309 + 1).join("0"); // 1 followed by 309 0s
       expect(JN.fromString(bigIntStr, sampleErrbacks)).toEqual(JN.makeBignum(bigIntStr));
 
-      expect(JN.fromString("1e1", sampleErrbacks)).toBe(10);
 
-      // for sci-not, fromString() and makeBignum() can give structurally
-      // unequal but operationally equivalent results, so the following fails:
+      // for sci-not and 'p/q', fromString() and makeBignum()/makeRational() can give
+      // structurally unequal but operationally equivalent results, so the following fails:
       // expect(JN.fromString("1e141", sampleErrbacks)).toEqual(JN.makeBignum("1e141"));
       // however you can refashion the test using JN.equals
+
+      expect(JN.equals(JN.fromString("1e1", sampleErrbacks), 10)).toBe(true);
 
       expect(JN.equals(JN.fromString("1e5", sampleErrbacks), JN.makeBignum("1e5"), sampleErrbacks))
         .toBe(true);
@@ -133,7 +134,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
     it("fromFixnum", function() {
 
       expect(JN.fromFixnum(5, sampleErrbacks)).toEqual(5);
-      expect(JN.fromFixnum(1/2, sampleErrbacks)).toEqual(JN.makeRational(1, 2));
+      expect(JN.equals(JN.fromFixnum(1/2, sampleErrbacks), JN.makeRational(1, 2))).toBe(true);
       expect(JN.fromFixnum(1.5e3, sampleErrbacks)).toEqual(1500);
       expect(JN.fromFixnum(1e311, sampleErrbacks)).toBe(false);
 

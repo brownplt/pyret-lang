@@ -81,7 +81,7 @@
           return RUNTIME.pauseStack(async restarter => {
             fs.readFile(path, 'utf8', (err, data) => {
               if (err) {
-                restarter.error(RUNTIME.ffi.throwMessageException(String(err)));
+                restarter.error(RUNTIME.ffi.makeMessageException(String(err)));
               } else {
                 restarter.resume(data);
               }
