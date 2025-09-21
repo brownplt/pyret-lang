@@ -235,8 +235,9 @@ define("pyret-base/js/js-numbers", function() {
 
   // isInteger: pyretnum -> boolean
   var isInteger = function(n) {
-    return (typeof(n) === 'number' ||
-            (isPyretNumber(n) && n.isInteger()));
+    if (typeof(n) === 'number') return Number.isInteger(n);
+    if (isPyretNumber(n)) return n.isInteger();
+    return false;
   };
 
   var isRoughnum = function(n) {
@@ -4086,7 +4087,10 @@ define("pyret-base/js/js-numbers", function() {
 
   // the following exposes innards for testing
   Numbers['_innards'] = {
+    liftFixnumInteger: liftFixnumInteger,
     makeNumericBinop: makeNumericBinop,
+    sign: sign,
+    zfill: zfill,
   };
 
   return Numbers;

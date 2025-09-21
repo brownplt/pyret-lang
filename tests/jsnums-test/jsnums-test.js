@@ -131,40 +131,107 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
     });
 
-    it("fromFixnum", function() {
+    it('number predicates', function() {
+      // isPyretNumber
+      expect(JN.isPyretNumber(5)).toBe(true);
+      expect(JN.isPyretNumber(-5)).toBe(true);
+      expect(JN.isPyretNumber(0)).toBe(true);
+      expect(JN.isPyretNumber(3.14)).toBe(true);
+      expect(JN.isPyretNumber(JN.Rational.makeInstance(355,113,sampleErrbacks))).toBe(true);
+      expect(JN.isPyretNumber(JN.makeBignum(1e400))).toBe(true);
+      expect(JN.isPyretNumber(JN.Roughnum.makeInstance(2.718,sampleErrbacks))).toBe(true);
 
-      expect(JN.fromFixnum(5, sampleErrbacks)).toEqual(5);
-      expect(JN.equals(JN.fromFixnum(1/2, sampleErrbacks),
-        JN.makeRational(1, 2, sampleErrbacks),
-        sampleErrbacks))
-        .toBe(true);
-      expect(JN.fromFixnum(1.5e3, sampleErrbacks)).toEqual(1500);
-      expect(JN.fromFixnum(1e311, sampleErrbacks)).toBe(false);
+      // isRational
+      expect(JN.isRational(5)).toBe(true);
+      expect(JN.isRational(-5)).toBe(true);
+      expect(JN.isRational(0)).toBe(true);
+      expect(JN.isRational(3.14)).toBe(true);
+      expect(JN.isRational(JN.Rational.makeInstance(355,113,sampleErrbacks))).toBe(true);
+      expect(JN.isRational(JN.makeBignum(1e400))).toBe(true);
+      expect(JN.isRational(JN.Roughnum.makeInstance(2.718,sampleErrbacks))).toBe(false);
+
+      // isExact
+      expect(JN.isExact(5)).toBe(true);
+      expect(JN.isExact(-5)).toBe(true);
+      expect(JN.isExact(0)).toBe(true);
+      expect(JN.isExact(3.14)).toBe(true);
+      expect(JN.isExact(JN.Rational.makeInstance(355,113,sampleErrbacks))).toBe(true);
+      expect(JN.isExact(JN.makeBignum(1e400))).toBe(true);
+      expect(JN.isExact(JN.Roughnum.makeInstance(2.718,sampleErrbacks))).toBe(false);
+
+      // isReal
+      expect(JN.isReal(5)).toBe(true);
+      expect(JN.isReal(-5)).toBe(true);
+      expect(JN.isReal(0)).toBe(true);
+      expect(JN.isReal(3.14)).toBe(true);
+      expect(JN.isReal(JN.Rational.makeInstance(355,113,sampleErrbacks))).toBe(true);
+      expect(JN.isReal(JN.makeBignum(1e400))).toBe(true);
+      expect(JN.isReal(JN.Roughnum.makeInstance(2.718,sampleErrbacks))).toBe(true);
+
+      // isInteger
+      expect(JN.isInteger(5)).toBe(true);
+      expect(JN.isInteger(-5)).toBe(true);
+      expect(JN.isInteger(0)).toBe(true);
+      expect(JN.isInteger(3.14)).toBe(false);
+      expect(JN.isInteger(JN.Rational.makeInstance(355,113,sampleErrbacks))).toBe(false);
+      expect(JN.isInteger(JN.makeBignum(1e400))).toBe(true);
+      expect(JN.isInteger(JN.Roughnum.makeInstance(2.718,sampleErrbacks))).toBe(false);
+
+      // isRoughnum
+      expect(JN.isRoughnum(5)).toBe(false);
+      expect(JN.isRoughnum(-5)).toBe(false);
+      expect(JN.isRoughnum(0)).toBe(false);
+      expect(JN.isRoughnum(3.14)).toBe(false);
+      expect(JN.isRoughnum(JN.Rational.makeInstance(355,113,sampleErrbacks))).toBe(false);
+      expect(JN.isRoughnum(JN.makeBignum(1e400))).toBe(false);
+      expect(JN.isRoughnum(JN.Roughnum.makeInstance(2.718,sampleErrbacks))).toBe(true);
+
+      // isPositive
+      expect(JN.isPositive(5)).toBe(true);
+      expect(JN.isPositive(-5)).toBe(false);
+      expect(JN.isPositive(0)).toBe(false);
+      expect(JN.isPositive(3.14)).toBe(true);
+      expect(JN.isPositive(JN.Rational.makeInstance(355,113,sampleErrbacks))).toBe(true);
+      expect(JN.isPositive(JN.makeBignum(1e400))).toBe(true);
+      expect(JN.isPositive(JN.Roughnum.makeInstance(2.718,sampleErrbacks))).toBe(true);
+
+      // isNonPositive
+      expect(JN.isNonPositive(5)).toBe(false);
+      expect(JN.isNonPositive(-5)).toBe(true);
+      expect(JN.isNonPositive(0)).toBe(true);
+      expect(JN.isNonPositive(3.14)).toBe(false);
+      expect(JN.isNonPositive(JN.Rational.makeInstance(355,113,sampleErrbacks))).toBe(false);
+      expect(JN.isNonPositive(JN.makeBignum(1e400))).toBe(false);
+      expect(JN.isNonPositive(JN.Roughnum.makeInstance(2.718,sampleErrbacks))).toBe(false);
+
+      // isNegative
+      expect(JN.isNegative(5)).toBe(false);
+      expect(JN.isNegative(-5)).toBe(true);
+      expect(JN.isNegative(0)).toBe(false);
+      expect(JN.isNegative(3.14)).toBe(false);
+      expect(JN.isNegative(JN.Rational.makeInstance(355,113,sampleErrbacks))).toBe(false);
+      expect(JN.isNegative(JN.makeBignum(1e400))).toBe(false);
+      expect(JN.isNegative(JN.Roughnum.makeInstance(2.718,sampleErrbacks))).toBe(false);
+
+      // isNonNegative
+      expect(JN.isNonNegative(5)).toBe(true);
+      expect(JN.isNonNegative(-5)).toBe(false);
+      expect(JN.isNonNegative(0)).toBe(true);
+      expect(JN.isNonNegative(3.14)).toBe(true);
+      expect(JN.isNonNegative(JN.Rational.makeInstance(355,113,sampleErrbacks))).toBe(true);
+      expect(JN.isNonNegative(JN.makeBignum(1e400))).toBe(true);
+      expect(JN.isNonNegative(JN.Roughnum.makeInstance(2.718,sampleErrbacks))).toBe(true);
 
     });
 
-    it("bnpExp", function() {
-      // BigInteger.*.expt calls bnPow, wch calls bnpExp
-      // shd raise exc for too-large
-      expect(function() {
-        JN.makeBignum(2).expt(JN.makeBignum(0xffffffff + 1), sampleErrbacks);
-      }).toThrowError(/domainError/);
+    it('other subrs', function() {
 
-      // BigInteger.*.log
-      // shd raise exc for arg <= 0
-      expect(function() { JN.makeBignum(-1).log(sampleErrbacks); }).toThrowError(/logNonPositive/);
-    });
-
-    it("repeating decimal", function() {
-
+      // toRepeatingDecimal
       expect(arrayEquals(JN.toRepeatingDecimal(883, 700), ['1', '26', '142857'],
         undefined, sampleErrbacks))
         .toBe(true);
 
-    });
-
-    it("toStringDigits", function() {
-
+      // toStringDigits
       expect(JN.toStringDigits(123456789, 5, sampleErrbacks))
         .toBe("123456789.00000");
       expect(JN.toStringDigits(123456789, -5, sampleErrbacks))
@@ -174,7 +241,39 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN.toStringDigits(JN.makeRational(355 * 1e9, 113, sampleErrbacks), -5, sampleErrbacks))
         .toBe("3141600000");
 
+      // fromFixnum
+      expect(JN.fromFixnum(5, sampleErrbacks)).toEqual(5);
+      expect(JN.equals(JN.fromFixnum(1/2, sampleErrbacks),
+        JN.makeRational(1, 2, sampleErrbacks),
+        sampleErrbacks))
+        .toBe(true);
+      expect(JN.fromFixnum(1.5e3, sampleErrbacks)).toEqual(1500);
+      expect(JN.fromFixnum(1e311, sampleErrbacks)).toBe(false);
+
+      // sign
+      expect(JN._innards.sign(JN.fromString('-3.14', sampleErrbacks))).toBe(-1);
+      expect(JN._innards.sign(JN.fromString('3.14', sampleErrbacks))).toBe(1);
+      expect(JN._innards.sign(JN.fromString('0.0', sampleErrbacks))).toBe(0);
+
+      // zfill
+      expect(JN._innards.zfill(5)).toBe('00000');
+
+      // liftFixnumInteger
+      expect(JN.equals(
+        JN._innards.liftFixnumInteger(3.14, JN.Rational.makeInstance(1,2,sampleErrbacks),
+          sampleErrbacks),
+        JN.Rational.makeInstance(314, 100, sampleErrbacks), sampleErrbacks))
+      .toBe(true);
+      expect(JN.roughlyEquals(
+        JN._innards.liftFixnumInteger(3.14, JN.Roughnum.makeInstance(2,sampleErrbacks),
+          sampleErrbacks),
+        JN.Roughnum.makeInstance(3.14, sampleErrbacks),
+        0.000001,
+        sampleErrbacks))
+      .toBe(true);
+
     });
+
 
     it("BigInteger methods", function() {
 
@@ -215,6 +314,17 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // BigInteger.*.tan
       // should work
       expect(JN.makeBignum(0).tan(sampleErrbacks)).toEqual(0);
+
+
+      // BigInteger.*.expt calls bnPow, which calls bnpExp
+      // should raise exception for too-large
+      expect(function() {
+        JN.makeBignum(2).expt(JN.makeBignum(0xffffffff + 1), sampleErrbacks);
+      }).toThrowError(/domainError/);
+
+      // BigInteger.*.log
+      // should raise exception for arg <= 0
+      expect(function() { JN.makeBignum(-1).log(sampleErrbacks); }).toThrowError(/logNonPositive/);
 
       expect(JN.equals(
         JN.gcd(JN.makeBignum(24), [JN.makeBignum(30)], sampleErrbacks),
@@ -539,7 +649,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         0.001, sampleErrbacks))
       .toBe(true);
 
-    })
+    });
 
 
   });
