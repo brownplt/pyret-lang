@@ -1710,8 +1710,12 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   var integerNthRoot = function(n, m, errbacks) {
+    if (sign(n) < 0)
+      errbacks.throwDomainError('integerNthRoot: root ' + n + ' is negative.');
+    if (sign(m) < 0)
+      errbacks.throwDomainError('integerNthRoot: radicand ' + m + ' is negative.');
     var guessPrev, guessToTheN;
-    var guess = m;
+    var guess = floor(m);
 
     // find closest integral zero of x^n - m = 0 using Newton-Raphson.
     // if k'th guess is x_k, then
@@ -1733,6 +1737,8 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   var nthRoot = function(n, m, errbacks) {
+    if (sign(n) < 0)
+      errbacks.throwDomainError('nthRoot: root ' + n + ' is negative.');
     var mNeg = (sign(m) < 0);
     var mAbs = (mNeg ? abs(m, errbacks) : m);
     var approx;
@@ -4087,8 +4093,10 @@ define("pyret-base/js/js-numbers", function() {
 
   // the following exposes innards for testing
   Numbers['_innards'] = {
+    integerNthRoot: integerNthRoot,
     liftFixnumInteger: liftFixnumInteger,
     makeNumericBinop: makeNumericBinop,
+    nthRoot: nthRoot,
     sign: sign,
     zfill: zfill,
   };

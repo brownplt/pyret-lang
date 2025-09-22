@@ -89,7 +89,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       var bigIntStr = "1" + new Array(309 + 1).join("0"); // 1 followed by 309 0s
       expect(JN.fromString(bigIntStr, sampleErrbacks)).toEqual(JN.makeBignum(bigIntStr));
 
-
       // for sci-not and 'p/q', fromString() and makeBignum()/makeRational() can give
       // structurally unequal but operationally equivalent results, so the following fails:
       // expect(JN.fromString("1e141", sampleErrbacks)).toEqual(JN.makeBignum("1e141"));
@@ -290,7 +289,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
           JN.toFixnum(Infinity),
           0.00001, sampleErrbacks);
       })
-        .toThrowError(/domainError/);
+        .toThrowError(/overflow/);
 
     });
 
@@ -344,6 +343,64 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
     });
 
+    it("nthRoot integerNthRoot", function() {
+      expect(JN.equals(
+        JN._innards.nthRoot(3, 8, sampleErrbacks),
+        Math.pow(8, 1/3),
+        sampleErrbacks))
+      .toBe(true);
+      expect(JN.roughlyEquals(
+        JN._innards.nthRoot(3, 7.5, sampleErrbacks),
+        Math.pow(7.5, 1/3),
+        0.00001, sampleErrbacks))
+      .toBe(true);
+      expect(JN.roughlyEquals(
+        JN._innards.nthRoot(3, 8.5, sampleErrbacks),
+        Math.pow(8.5, 1/3),
+        0.00001, sampleErrbacks))
+      .toBe(true);
+      expect(JN.equals(
+        JN._innards.nthRoot(3, -8, sampleErrbacks),
+        - Math.pow(8, 1/3),
+        sampleErrbacks))
+      .toBe(true);
+      expect(JN.roughlyEquals(
+        JN._innards.nthRoot(3, -7.5, sampleErrbacks),
+        - Math.pow(7.5, 1/3),
+        0.00001, sampleErrbacks))
+      .toBe(true);
+      expect(JN.roughlyEquals(
+        JN._innards.nthRoot(3, -8.5, sampleErrbacks),
+        - Math.pow(8.5, 1/3),
+        0.00001, sampleErrbacks))
+      .toBe(true);
+      expect(function () {
+        JN._innards.nthRoot(-3, 8, sampleErrbacks);
+      })
+        .toThrowError(/root .* negative/);
+
+      expect(JN.equals(
+        JN._innards.integerNthRoot(3, 8, sampleErrbacks),
+        2, sampleErrbacks))
+      .toBe(true);
+      expect(JN.equals(
+        JN._innards.integerNthRoot(3, 7.5, sampleErrbacks),
+        1, sampleErrbacks))
+      .toBe(true);
+      expect(JN.equals(
+        JN._innards.integerNthRoot(3, 8.5, sampleErrbacks),
+        2, sampleErrbacks))
+      .toBe(true);
+      expect(function () {
+        JN._innards.integerNthRoot(3, -8, sampleErrbacks);
+      })
+        .toThrowError(/radicand .* negative/);
+      expect(function () {
+        JN._innards.integerNthRoot(-3, 8, sampleErrbacks);
+      })
+        .toThrowError(/root .* negative/);
+
+    });
 
     it("BigInteger methods", function() {
 
@@ -356,13 +413,13 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // shd raise exception for arg outside [-1, +1]
       // but this is not testable via Pyret, because args are always sane
       // by the time this method is called
-      expect(function() { JN.makeBignum(-1.5).asin(sampleErrbacks); }).toThrowError(/domainError/);
-      expect(function() { JN.makeBignum(+1.5).asin(sampleErrbacks); }).toThrowError(/domainError/);
+      expect(function() { JN.makeBignum(-1.5).asin(sampleErrbacks); }).toThrowError(/out of domain/);
+      expect(function() { JN.makeBignum(+1.5).asin(sampleErrbacks); }).toThrowError(/out of domain/);
 
       // BigInteger.*acos
       // shd raise exc for arg < -1 or > 1
-      expect(function() { JN.makeBignum(-1.5).acos(sampleErrbacks); }).toThrowError(/domainError/);
-      expect(function() { JN.makeBignum(+1.5).acos(sampleErrbacks); }).toThrowError(/domainError/);
+      expect(function() { JN.makeBignum(-1.5).acos(sampleErrbacks); }).toThrowError(/out of domain/);
+      expect(function() { JN.makeBignum(+1.5).acos(sampleErrbacks); }).toThrowError(/out of domain/);
 
       // BigInteger.*.atan
       // should work
@@ -371,7 +428,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // atan2 (perhaps Pyret test is enough)
       expect(function () {
         JN.atan2(JN.makeBignum(0), JN.makeBignum(0), sampleErrbacks);
-      }).toThrowError(/domainError/);
+      }).toThrowError(/out of domain/);
 
       // BigInteger.*.sin
       // should work
@@ -385,12 +442,11 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // should work
       expect(JN.makeBignum(0).tan(sampleErrbacks)).toEqual(0);
 
-
       // BigInteger.*.expt calls bnPow, which calls bnpExp
       // should raise exception for too-large
       expect(function() {
         JN.makeBignum(2).expt(JN.makeBignum(0xffffffff + 1), sampleErrbacks);
-      }).toThrowError(/domainError/);
+      }).toThrowError(/exponent .* too large/);
 
       // BigInteger.*.log
       // should raise exception for arg <= 0
@@ -720,7 +776,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       .toBe(true);
 
     });
-
 
   });
 
