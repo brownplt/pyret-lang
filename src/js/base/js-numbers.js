@@ -1202,20 +1202,20 @@ define("pyret-base/js/js-numbers", function() {
   // _integerMultiply: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerMultiply = makeIntegerBinop(
     function(m, n) {
-      // console.log('doing _integerMultiplyI', m, n);
       return m * n;
     },
     function(m, n) {
-      // console.log('doing _integerMultiplyII[_,40]', m, n['40']);
       return bnMultiply.call(m, n);
     });
 
   //_integerQuotient: integer-pyretnum integer-pyretnum -> integer-pyretnum
   var _integerQuotient = makeIntegerBinop(
     function(m, n) {
+      // console.log('_integerQuotientI', m, n);
       return ((m - (m % n))/ n);
     },
     function(m, n) {
+      // console.log('_integerQuotientII', m, n);
       return bnDivide.call(m, n);
     });
 
@@ -1467,13 +1467,21 @@ define("pyret-base/js/js-numbers", function() {
       d = negate(d, errbacks);
     }
 
+    // console.log('initly n =', n, 'd =', d);
+
     var divisor = _integerGcd(abs(n, errbacks), abs(d, errbacks));
+    // console.log('divisor =', divisor);
+    // console.log('> find iq n');
     n = _integerQuotient(n, divisor);
+    // console.log('iq n =', n);
+    // console.log('> find iq d');
     d = _integerQuotient(d, divisor);
+    // console.log('iq d =', d);
 
     // Optimization: if we can get around construction the rational
     // in favor of just returning n, do it:
     if (_integerIsOne(d) || _integerIsZero(n)) {
+      // console.log('returning int', n, 'instead of rat');
       return n;
     }
 
@@ -2105,7 +2113,7 @@ define("pyret-base/js/js-numbers", function() {
         }
         exponent = makeBignum('1' + new Array(Number(exponentString) + 1).join('0'));
       }
-      // console.log('exponent[40] =', exponent['40']);
+      // console.log('exponent =', exponent);
 
       var finalDen = denominatorTen;
       // console.log('calling _integerMultiply');
@@ -2115,6 +2123,7 @@ define("pyret-base/js/js-numbers", function() {
         finalNum = negate(finalNum, errbacks);
       }
       // console.log('finalNum2 =', finalNum);
+      // console.log('finalDen2 =', finalDen);
       //
       if (!equals(exponent, 1)) {
         if (exponentNegativeP) {
@@ -2126,8 +2135,7 @@ define("pyret-base/js/js-numbers", function() {
         }
       }
       // console.log('finalNum3 =', finalNum);
-      // console.log('finalNum.40 =', finalNum['40']);
-      // console.log('finalDen =', finalDen);
+      // console.log('finalDen3 =', finalDen);
       return Rational.makeInstance(finalNum, finalDen, errbacks);
     }
 
@@ -2570,8 +2578,23 @@ define("pyret-base/js/js-numbers", function() {
 
   // (protected) clamp off excess high words
   function bnpClamp() {
+    // console.log('bnpClamp', this);
     var c = this.s&this.DM;
-    while(this.t > 0 && this[this.t-1] == c) --this.t;
+    // console.log('   c =', c);
+    if (this.t > 0) {
+      var i = this.t;
+      while (this[i]) {
+        delete this[i];
+        i++;
+      }
+    }
+    // if (this.t > 1 && this[this.t]) delete this[this.t];
+    // this.t > 1?
+    while(this.t > 0 && this[this.t-1] == c) {
+      --this.t;
+      delete this[this.t];
+    }
+    // console.log('   clamped return', this);
   }
 
   // (public) return string representation in given radix
@@ -2760,22 +2783,27 @@ define("pyret-base/js/js-numbers", function() {
   // (protected) divide this by m, quotient and remainder to q, r (HAC 14.20)
   // r != q, this != m.  q or r may be null.
   function bnpDivRemTo(m,q,r) {
+    // console.log('** bnpDivRemTo', this, m,q,r);
     var pm = m.abs();
     if(pm.t <= 0) return;
+    // console.log('bdrt I');
     var pt = this.abs();
     if(pt.t < pm.t) {
       if(q != null) q.fromInt(0);
       if(r != null) this.copyTo(r);
       return;
     }
+    // console.log('bdrt II');
     if(r == null) r = nbi();
     var y = nbi(), ts = this.s, ms = m.s;
     var nsh = this.DB-nbits(pm[pm.t-1]);    // normalize modulus
     if(nsh > 0) { pm.lShiftTo(nsh,y); pt.lShiftTo(nsh,r); }
     else { pm.copyTo(y); pt.copyTo(r); }
     var ys = y.t;
+    // console.log('ys=', ys);
     var y0 = y[ys-1];
     if(y0 == 0) return;
+    // console.log('bdrt III');
     var yt = y0*(1<<this.F1)+((ys>1)?y[ys-2]>>this.F2:0);
     var d1 = this.FV/yt, d2 = (1<<this.F1)/yt, e = 1<<this.F2;
     var i = r.t, j = i-ys, t = (q==null)?nbi():q;
@@ -2787,6 +2815,7 @@ define("pyret-base/js/js-numbers", function() {
     BigInteger.ONE.dlShiftTo(ys,t);
     t.subTo(y,y);   // "negative" y so we can replace sub with am later
     while(y.t < ys) y[y.t++] = 0;
+    // console.log('27x8 r =', r);
     while(--j >= 0) {
       // Estimate quotient digit
       var qd = (r[--i]==y0)?this.DM:Math.floor(r[i]*d1+(r[i-1]+e)*d2);
@@ -2796,14 +2825,22 @@ define("pyret-base/js/js-numbers", function() {
         while(r[i] < --qd) r.subTo(t,r);
       }
     }
+    // console.log('ys=', ys);
+    // console.log('27x9 r=', r);
     if(q != null) {
+      // console.log('nonnull q=', q);
       r.drShiftTo(ys,q);
+      // console.log('27xx9 r=', r);
       if(ts != ms) BigInteger.ZERO.subTo(q,q);
     }
     r.t = ys;
+    // console.log('28x0 r =', r);
     r.clamp();
+    // console.log('28xx r =', r);
     if(nsh > 0) r.rShiftTo(nsh,r);  // Denormalize remainder
+    // console.log('28x1 r =', r);
     if(ts < 0) BigInteger.ZERO.subTo(r,r);
+    // console.log('28x2 r =', r);
   }
 
   // (public) this mod a
@@ -3266,7 +3303,12 @@ define("pyret-base/js/js-numbers", function() {
   function bnMultiply(a) { var r = nbi(); this.multiplyTo(a,r); return r; }
 
   // (public) this / a
-  function bnDivide(a) { var r = nbi(); this.divRemTo(a,r,null); return r; }
+  function bnDivide(a) {
+    // console.log('bnDivide', this, a);
+    var r = nbi(); this.divRemTo(a,r,null);
+    // console.log('bnDivide return', r);
+    r.clamp();
+    return r; }
 
   // (public) this % a
   function bnRemainder(a) { var r = nbi(); this.divRemTo(a,null,r); return r; }

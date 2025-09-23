@@ -95,7 +95,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // however you can refashion the test using JN.equals
 
       expect(JN.equals(JN.fromString("1e1", sampleErrbacks), 10)).toBe(true);
-
       expect(JN.equals(JN.fromString("1e5", sampleErrbacks), JN.makeBignum("1e5"), sampleErrbacks))
         .toBe(true);
       expect(JN.equals(JN.fromString("1e30", sampleErrbacks), JN.makeBignum("1e30"), sampleErrbacks))
@@ -108,11 +107,9 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         .toBe(true);
       expect(JN.equals(JN.fromString("1e309", sampleErrbacks), JN.makeBignum("1e309"), sampleErrbacks))
         .toBe(true);
-
-      expect(JN.equals(JN.fromString("1e311", sampleErrbacks),
-        JN.makeBignum("1e311"),
-        sampleErrbacks))
+      expect(JN.equals(JN.fromString("1e311", sampleErrbacks), JN.makeBignum("1e311"), sampleErrbacks))
         .toBe(true);
+
       expect(JN.equals(JN.fromString("1/2", sampleErrbacks),
         JN.makeRational(1, 2, sampleErrbacks),
         sampleErrbacks))
