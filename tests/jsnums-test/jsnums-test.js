@@ -110,6 +110,24 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN.equals(JN.fromString("1e311", sampleErrbacks), JN.makeBignum("1e311"), sampleErrbacks))
         .toBe(true);
 
+      // toEqual works too, because bigints have a unique respresentation, thanks to bnpClamp()
+      expect(JN.fromString("1e1", sampleErrbacks))
+        .toEqual(JN.makeBignum('10'));
+      expect(JN.fromString("1e5", sampleErrbacks))
+        .toEqual(JN.makeBignum('1e5'));
+      expect(JN.fromString("1e30", sampleErrbacks))
+        .toEqual(JN.makeBignum('1e30'));
+      expect(JN.fromString("1e140", sampleErrbacks))
+        .toEqual(JN.makeBignum('1e140'));
+      expect(JN.fromString("1e141", sampleErrbacks))
+        .toEqual(JN.makeBignum('1e141'));
+      expect(JN.fromString("1e307", sampleErrbacks))
+        .toEqual(JN.makeBignum('1e307'));
+      expect(JN.fromString("1e309", sampleErrbacks))
+        .toEqual(JN.makeBignum('1e309'));
+      expect(JN.fromString("1e311", sampleErrbacks))
+        .toEqual(JN.makeBignum('1e311'));
+
       expect(JN.equals(JN.fromString("1/2", sampleErrbacks),
         JN.makeRational(1, 2, sampleErrbacks),
         sampleErrbacks))
@@ -340,6 +358,36 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
     });
 
+    it('bnToString', function() {
+      expect(JN._innards.bnToString.call(JN.makeBignum('1e8', sampleErrbacks), 10))
+      .toEqual('100000000');
+      expect(JN._innards.bnToString.call(JN.makeBignum('11259375', sampleErrbacks), 16))
+      .toEqual('abcdef');
+      expect(JN.makeBignum('1e8', sampleErrbacks).toString())
+      .toEqual('100000000');
+
+    });
+
+
+    it('_integer* functions', function() {
+
+      expect(JN._innards._integerIsZero(0)).toBe(true);
+      expect(JN._innards._integerIsZero(1)).toBe(false);
+      expect(JN._innards._integerIsZero(JN.makeBignum(0, sampleErrbacks))).toBe(true);
+      expect(JN._innards._integerIsZero(JN.makeBignum(1, sampleErrbacks))).toBe(false);
+
+      expect(JN._innards._integerIsOne(1)).toBe(true);
+      expect(JN._innards._integerIsOne(2)).toBe(false);
+      expect(JN._innards._integerIsOne(JN.makeBignum(1, sampleErrbacks))).toBe(true);
+      expect(JN._innards._integerIsOne(JN.makeBignum(2, sampleErrbacks))).toBe(false);
+
+      expect(JN._innards._integerGcd(12, 18, sampleErrbacks)).toEqual(6);
+      expect(JN._innards._integerGcd(JN.makeBignum('12', sampleErrbacks),
+        JN.makeBignum('18', sampleErrbacks), sampleErrbacks))
+      .toEqual(JN.makeBignum('6', sampleErrbacks))
+
+    });
+
     it("nthRoot integerNthRoot", function() {
       expect(JN.equals(
         JN._innards.nthRoot(3, 8, sampleErrbacks),
@@ -398,6 +446,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         .toThrowError(/root .* negative/);
 
     });
+
 
     it("BigInteger methods", function() {
 

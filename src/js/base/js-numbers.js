@@ -4135,6 +4135,10 @@ define("pyret-base/js/js-numbers", function() {
 
   // the following exposes innards for testing
   Numbers['_innards'] = {
+    _integerGcd: _integerGcd,
+    _integerIsOne: _integerIsOne,
+    _integerIsZero: _integerIsZero,
+    bnToString: bnToString,
     integerNthRoot: integerNthRoot,
     liftFixnumInteger: liftFixnumInteger,
     makeNumericBinop: makeNumericBinop,
