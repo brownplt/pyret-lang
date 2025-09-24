@@ -381,10 +381,88 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN._innards._integerIsOne(JN.makeBignum(1, sampleErrbacks))).toBe(true);
       expect(JN._innards._integerIsOne(JN.makeBignum(2, sampleErrbacks))).toBe(false);
 
+      expect(JN._innards._integerIsNegativeOne(-1)).toBe(true);
+      expect(JN._innards._integerIsNegativeOne(1)).toBe(false);
+      expect(JN._innards._integerIsNegativeOne(JN.makeBignum(-1, sampleErrbacks))).toBe(true);
+      expect(JN._innards._integerIsNegativeOne(JN.makeBignum(1, sampleErrbacks))).toBe(false);
+
       expect(JN._innards._integerGcd(12, 18, sampleErrbacks)).toEqual(6);
       expect(JN._innards._integerGcd(JN.makeBignum('12', sampleErrbacks),
         JN.makeBignum('18', sampleErrbacks), sampleErrbacks))
       .toEqual(JN.makeBignum('6', sampleErrbacks))
+
+      expect(JN._innards._integerModulo(12, 10, sampleErrbacks)).toEqual(2);
+      expect(JN._innards._integerModulo(JN.makeBignum('12', sampleErrbacks),
+        JN.makeBignum('10', sampleErrbacks), sampleErrbacks))
+      .toEqual(JN.makeBignum('2', sampleErrbacks))
+
+      expect(JN._innards.splitIntIntoMantissaExpt('256'))
+        .toEqual([2.56, 2]);
+      expect(JN._innards.splitIntIntoMantissaExpt('111222333444555666777888999'))
+        .toEqual([1.1122233344455567, 26]);
+
+      expect(JN._innards._integerDivideToFixnum(2, 3))
+      .toEqual(2/3);
+      expect(JN._innards._integerDivideToFixnum(JN.makeBignum('2e311'),
+        JN.makeBignum('3e311')))
+      .toEqual(2/3);
+
+      expect(JN._innards._integerEquals(2,2))
+      .toEqual(true);
+      expect(JN._innards._integerEquals(JN.makeBignum('2e311'),
+        JN.makeBignum('2e311')))
+      .toEqual(true);
+      expect(JN._innards._integerEquals(2,3))
+      .toEqual(false);
+      expect(JN._innards._integerEquals(JN.makeBignum('2e311'),
+        JN.makeBignum('3e311')))
+      .toEqual(false);
+
+      expect(JN._innards._integerGreaterThan(2,2))
+      .toEqual(false);
+      expect(JN._innards._integerGreaterThan(JN.makeBignum('2e311'),
+        JN.makeBignum('2e311')))
+      .toEqual(false);
+      expect(JN._innards._integerGreaterThan(2,3))
+      .toEqual(false);
+      expect(JN._innards._integerGreaterThan(JN.makeBignum('2e311'),
+        JN.makeBignum('3e311')))
+      .toEqual(false);
+
+      expect(JN._innards._integerLessThan(2,2))
+      .toEqual(false);
+      expect(JN._innards._integerLessThan(JN.makeBignum('2e311'),
+        JN.makeBignum('2e311')))
+      .toEqual(false);
+      expect(JN._innards._integerLessThan(2,3))
+      .toEqual(true);
+      expect(JN._innards._integerLessThan(JN.makeBignum('2e311'),
+        JN.makeBignum('3e311')))
+      .toEqual(true);
+
+      expect(JN._innards._integerGreaterThanOrEqual(2,2))
+      .toEqual(true);
+      expect(JN._innards._integerGreaterThanOrEqual(JN.makeBignum('2e311'),
+        JN.makeBignum('2e311')))
+      .toEqual(true);
+      expect(JN._innards._integerGreaterThanOrEqual(2,3))
+      .toEqual(false);
+      expect(JN._innards._integerGreaterThanOrEqual(JN.makeBignum('2e311'),
+        JN.makeBignum('3e311')))
+      .toEqual(false);
+
+      expect(JN._innards._integerLessThanOrEqual(2,2))
+      .toEqual(true);
+      expect(JN._innards._integerLessThanOrEqual(JN.makeBignum('2e311'),
+        JN.makeBignum('2e311')))
+      .toEqual(true);
+      expect(JN._innards._integerLessThanOrEqual(2,3))
+      .toEqual(true);
+      expect(JN._innards._integerLessThanOrEqual(JN.makeBignum('2e311'),
+        JN.makeBignum('3e311')))
+      .toEqual(true);
+
+
 
     });
 

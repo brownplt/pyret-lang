@@ -1236,7 +1236,7 @@ define("pyret-base/js/js-numbers", function() {
   //   to the left of the decimal point.
   // Because mantissa is a JS-double, there is in general a loss of precision.
   // splitIntIntoMantissaExpt is used to create a best-possible JS-double version
-  //   of its argument arbitrarily precise integer.
+  //   of an arbitrarily precise integer.
   // E.g., splitIntIntoMantissaExpt(256) returns
   //   [2.56, 2]
   // splitIntIntoMantissaExpt(111222333444555666777888999) returns
@@ -4135,9 +4135,18 @@ define("pyret-base/js/js-numbers", function() {
 
   // the following exposes innards for testing
   Numbers['_innards'] = {
-    _integerGcd: _integerGcd,
-    _integerIsOne: _integerIsOne,
     _integerIsZero: _integerIsZero,
+    _integerIsOne: _integerIsOne,
+    _integerIsNegativeOne: _integerIsNegativeOne,
+    _integerModulo: _integerModulo,
+    _integerGcd: _integerGcd,
+    _integerDivideToFixnum: _integerDivideToFixnum,
+    _integerEquals: _integerEquals,
+    _integerGreaterThan: _integerGreaterThan,
+    _integerLessThan: _integerLessThan,
+    _integerGreaterThanOrEqual: _integerGreaterThanOrEqual,
+    _integerLessThanOrEqual: _integerLessThanOrEqual,
+    splitIntIntoMantissaExpt: splitIntIntoMantissaExpt,
     bnToString: bnToString,
     integerNthRoot: integerNthRoot,
     liftFixnumInteger: liftFixnumInteger,
