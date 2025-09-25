@@ -2958,6 +2958,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // (protected) this^e, e < 2^32, doing sqr and mul with "r" (HAC 14.79)
   function bnpExp(e, z, errbacks) {
+    // console.log('bnpExp', this, e,z);
     if (greaterThan(e, 0xffffffff, errbacks)) {
       errbacks.throwDomainError('expt: exponent ' + e + ' too large');
     }
@@ -4137,6 +4138,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // the following exposes innards for testing
   Numbers['_innards'] = {
+    NullExp: NullExp,
     _integerIsZero: _integerIsZero,
     _integerIsOne: _integerIsOne,
     _integerIsNegativeOne: _integerIsNegativeOne,

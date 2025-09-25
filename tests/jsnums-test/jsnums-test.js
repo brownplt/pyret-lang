@@ -368,47 +368,83 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
     });
 
-    it('bnp* functions', function() {
-      var b1, b2, r, expectedR;
+    it('BigInteger bnp* methods', function() {
+      var  n2r5, q, r, expectedR;
 
-      b1 = JN.makeBignum('9e311');
-      r = JN._innards.nbi();
-      b1.copyTo(r);
-      expect(r).toEqual(b1);
+      // bnpCopyTo
+      var n9e311 = JN.makeBignum('9e311');
+      var r = JN._innards.nbi();
+      n9e311.copyTo(r);
+      expect(r).toEqual(n9e311);
 
-      b2 = JN.makeBignum('8e311');
+      // bnpSubTo
+      var n8e311 = JN.makeBignum('8e311');
       r = JN._innards.nbi();
-      b1.subTo(b2, r);
+      n9e311.subTo(n8e311, r);
       expectedR = JN.makeBignum('1e311');
       expect(r).toEqual(expectedR);
 
+      // bnpMultiplyTo
       r = JN._innards.nbi();
-      b1.multiplyTo(b2, r);
+      n9e311.multiplyTo(n8e311, r);
       expectedR = JN.makeBignum('72e622');
       expect(r).toEqual(expectedR);
 
-      b1 = JN.makeBignum(JN.expt(2,5));
+      // bnpSquareTo
       r = JN._innards.nbi();
-      b1.dlShiftTo(1, r);
+      n9e311.squareTo(r);
+      expectedR = JN.makeBignum('81e622');
+      expect(r).toEqual(expectedR);
+
+      // bnpDivRemTo
+      n2r5 = JN.makeBignum(JN.expt(2,5));
+      var q = JN._innards.nbi();
+      r = JN._innards.nbi();
+      n2r5.divRemTo(JN.makeBignum(17), q,r);
+      var expectedQ = JN.makeBignum(1);
+      expectedR = JN.makeBignum(15);
+      expect(r).toEqual(expectedR);
+      expect(q).toEqual(expectedQ);
+
+      // bnpModInt
+      expect(n2r5.modInt(17)).toEqual(15);
+
+      // bnpIsEven
+      expect(n2r5.isEven()).toBe(true);
+
+      // bnpDLShiftTo
+      r = JN._innards.nbi();
+      n2r5.dlShiftTo(1, r);
       expectedR =  JN.makeBignum(JN.expt(2,26 + 5));
       expect(r).toEqual(expectedR);
 
-      b1 = JN.makeBignum(JN.expt(2,26 + 5));
+      // bnpDRShiftTo
+      var n2r31 = JN.makeBignum(JN.expt(2,26 + 5));
       r = JN._innards.nbi();
-      b1.drShiftTo(1, r);
+      n2r31.drShiftTo(1, r);
       expectedR = JN.makeBignum(JN.expt(2,5));
       expect(r).toEqual(expectedR);
 
-      b1 = JN.makeBignum(JN.expt(2,5));
+      // bnpLShiftTo
       r = JN._innards.nbi();
-      b1.lShiftTo(1, r);
+      n2r5.lShiftTo(1, r);
       expectedR =  JN.makeBignum(JN.expt(2,6));
       expect(r).toEqual(expectedR);
 
+      // bnpRShiftTo
       r = JN._innards.nbi();
-      b1.rShiftTo(1, r);
+      n2r5.rShiftTo(1, r);
       expectedR = JN.makeBignum(JN.expt(2,4));
       expect(r).toEqual(expectedR);
+
+      // bnpExp
+      expect(n9e311.bnpExp(JN.makeBignum(2), new JN._innards.NullExp()))
+      .toEqual(JN.makeBignum('81e622'));
+
+      expect(function() {
+        n9e311.bnpExp(JN.makeBignum(0xffffffff + 1), new JN._innards.NullExp(), sampleErrbacks);
+      }).toThrowError(/exponent .* too large/);
+
 
     });
 
