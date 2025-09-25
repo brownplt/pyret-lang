@@ -368,6 +368,49 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
     });
 
+    it('bnp* functions', function() {
+      var b1, b2, r, expectedR;
+
+      b1 = JN.makeBignum('9e311');
+      r = JN._innards.nbi();
+      b1.copyTo(r);
+      expect(r).toEqual(b1);
+
+      b2 = JN.makeBignum('8e311');
+      r = JN._innards.nbi();
+      b1.subTo(b2, r);
+      expectedR = JN.makeBignum('1e311');
+      expect(r).toEqual(expectedR);
+
+      r = JN._innards.nbi();
+      b1.multiplyTo(b2, r);
+      expectedR = JN.makeBignum('72e622');
+      expect(r).toEqual(expectedR);
+
+      b1 = JN.makeBignum(JN.expt(2,5));
+      r = JN._innards.nbi();
+      b1.dlShiftTo(1, r);
+      expectedR =  JN.makeBignum(JN.expt(2,26 + 5));
+      expect(r).toEqual(expectedR);
+
+      b1 = JN.makeBignum(JN.expt(2,26 + 5));
+      r = JN._innards.nbi();
+      b1.drShiftTo(1, r);
+      expectedR = JN.makeBignum(JN.expt(2,5));
+      expect(r).toEqual(expectedR);
+
+      b1 = JN.makeBignum(JN.expt(2,5));
+      r = JN._innards.nbi();
+      b1.lShiftTo(1, r);
+      expectedR =  JN.makeBignum(JN.expt(2,6));
+      expect(r).toEqual(expectedR);
+
+      r = JN._innards.nbi();
+      b1.rShiftTo(1, r);
+      expectedR = JN.makeBignum(JN.expt(2,4));
+      expect(r).toEqual(expectedR);
+
+    });
 
     it('_integer* functions', function() {
 
@@ -462,8 +505,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         JN.makeBignum('3e311')))
       .toEqual(true);
 
-
-
     });
 
     it("nthRoot integerNthRoot", function() {
@@ -524,7 +565,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         .toThrowError(/root .* negative/);
 
     });
-
 
     it("BigInteger methods", function() {
 
@@ -781,6 +821,26 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         .denominator(sampleErrbacks).toFixnum())
         .toEqual(50);
 
+      expect(JN.equals(
+        JN.Roughnum.makeInstance(3.14, sampleErrbacks).floor(sampleErrbacks),
+        3, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.equals(
+        JN.Roughnum.makeInstance(3.14, sampleErrbacks).ceiling(sampleErrbacks),
+        4, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.equals(
+        JN.Roughnum.makeInstance(3.14, sampleErrbacks).round(sampleErrbacks),
+        3, sampleErrbacks))
+      .toBe(true);
+
+      expect(JN.equals(
+        JN.Roughnum.makeInstance(3.5, sampleErrbacks).roundEven(sampleErrbacks),
+        4, sampleErrbacks))
+      .toBe(true);
+
       expect(JN.Roughnum.makeInstance(2.3, sampleErrbacks).greaterThan(
         JN.Roughnum.makeInstance(1.3, sampleErrbacks), sampleErrbacks))
         .toBe(true);
@@ -814,26 +874,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         JN.Roughnum.makeInstance(3.14, sampleErrbacks),
         0.0001, sampleErrbacks))
         .toBe(true);
-
-      expect(JN.equals(
-        JN.Roughnum.makeInstance(3.14, sampleErrbacks).floor(sampleErrbacks),
-        3, sampleErrbacks))
-      .toBe(true);
-
-      expect(JN.equals(
-        JN.Roughnum.makeInstance(3.14, sampleErrbacks).ceiling(sampleErrbacks),
-        4, sampleErrbacks))
-      .toBe(true);
-
-      expect(JN.equals(
-        JN.Roughnum.makeInstance(3.14, sampleErrbacks).round(sampleErrbacks),
-        3, sampleErrbacks))
-      .toBe(true);
-
-      expect(JN.equals(
-        JN.Roughnum.makeInstance(3.5, sampleErrbacks).roundEven(sampleErrbacks),
-        4, sampleErrbacks))
-      .toBe(true);
 
       expect(JN.roughlyEquals(
         JN.Roughnum.makeInstance(2.5, sampleErrbacks).log(sampleErrbacks),
