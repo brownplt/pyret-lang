@@ -34,8 +34,61 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
   describe("check functions that don't allow testing via Pyret programs", function() {
 
-    it("makeNumericBinop", function() {
-      var bogusNumFun = JN._innards.makeNumericBinop(
+    it("make*opFun", function() {
+
+     var bogusIntegerUnOpFun = JN._innards.makeIntegerUnOp(
+        function(x, errbacks) {
+          if (x <= 2) return 1;
+          errbacks.throwDomainError('makeIntegerUnOp first fail');
+        },
+        function(x, errbacks) {
+          if (JN.lessThanOrEqual(x, 2, errbacks)) return 4;
+          errbacks.throwDomainError('makeIntegerUnOp second fail');
+        },
+        {
+          ignoreOverflow: true,
+        }
+      );
+
+      expect(bogusIntegerUnOpFun(1, sampleErrbacks)).toEqual(1);
+      expect(function() { bogusIntegerUnOpFun(3, sampleErrbacks); })
+        .toThrowError(/first fail/);
+      expect(bogusIntegerUnOpFun(JN.makeBignum(1), sampleErrbacks)).toEqual(4);
+
+      var bogusIntegerBinopFun = JN._innards.makeIntegerBinop(
+        function(x, y, errbacks) {
+          if (x <= 2 && y <= 2) return 1;
+          if (x <= 2) return 2;
+          if (y <= 2) return 3;
+          errbacks.throwDomainError('makeIntegerBinop first fail');
+        },
+        function(x, y, errbacks) {
+          if (JN.lessThanOrEqual(x, 2, errbacks) && JN.lessThanOrEqual(y, 2, errbacks)) return 4;
+          if (JN.lessThanOrEqual(x, 2, errbacks)) return 5;
+          if (JN.lessThanOrEqual(y, 2, errbacks)) return 6;
+          errbacks.throwDomainError('makeIntegerBinop second fail');
+        },
+        {
+          isOverflow: true,
+        }
+      );
+
+      expect(bogusIntegerBinopFun(1, 1, sampleErrbacks)).toEqual(1);
+      expect(bogusIntegerBinopFun(1, 3, sampleErrbacks)).toEqual(2);
+      expect(bogusIntegerBinopFun(3, 1, sampleErrbacks)).toEqual(3);
+      expect(function() { bogusIntegerBinopFun(3, 3, sampleErrbacks); }).toThrowError(/first fail/);
+
+      expect(bogusIntegerBinopFun(JN.makeBignum(1), JN.makeBignum(1), sampleErrbacks)).
+        toEqual(4);
+      expect(bogusIntegerBinopFun(JN.makeBignum(1), JN.makeBignum(3), sampleErrbacks)).
+        toEqual(5);
+      expect(bogusIntegerBinopFun(JN.makeBignum(3), JN.makeBignum(1), sampleErrbacks)).
+        toEqual(6);
+      expect(function() {
+        bogusIntegerBinopFun(JN.makeBignum(3), JN.makeBignum(3), sampleErrbacks);
+      }).toThrowError(/second fail/);
+
+      var bogusNumericBinopFun = JN._innards.makeNumericBinop(
         function(x, y, errbacks) {
           if (x <= 2 && y <= 2) return 1;
           if (x <= 2) return 2;
@@ -64,22 +117,22 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         }
       );
 
-      expect(bogusNumFun(1, 1, sampleErrbacks)).toEqual(1);
-      expect(bogusNumFun(1, 3, sampleErrbacks)).toEqual(2);
-      expect(bogusNumFun(3, 1, sampleErrbacks)).toEqual(3);
-      expect(function() { bogusNumFun(3, 3, sampleErrbacks); }).toThrowError(/first fail/);
+      expect(bogusNumericBinopFun(1, 1, sampleErrbacks)).toEqual(1);
+      expect(bogusNumericBinopFun(1, 3, sampleErrbacks)).toEqual(2);
+      expect(bogusNumericBinopFun(3, 1, sampleErrbacks)).toEqual(3);
+      expect(function() { bogusNumericBinopFun(3, 3, sampleErrbacks); }).toThrowError(/first fail/);
 
-      expect(bogusNumFun(JN.makeRational(3, 2, sampleErrbacks), JN.makeRational(3, 2, sampleErrbacks), sampleErrbacks))
+      expect(bogusNumericBinopFun(JN.makeRational(3, 2, sampleErrbacks), JN.makeRational(3, 2, sampleErrbacks), sampleErrbacks))
         .toEqual(4);
-      expect(bogusNumFun(JN.makeRational(3, 2, sampleErrbacks), JN.makeRational(5, 2, sampleErrbacks), sampleErrbacks))
+      expect(bogusNumericBinopFun(JN.makeRational(3, 2, sampleErrbacks), JN.makeRational(5, 2, sampleErrbacks), sampleErrbacks))
         .toEqual(5);
-      expect(bogusNumFun(JN.makeRational(5, 2, sampleErrbacks), JN.makeRational(3, 2, sampleErrbacks), sampleErrbacks))
+      expect(bogusNumericBinopFun(JN.makeRational(5, 2, sampleErrbacks), JN.makeRational(3, 2, sampleErrbacks), sampleErrbacks))
         .toEqual(6);
-      expect(function() { bogusNumFun(JN.makeRational(5, 2, sampleErrbacks), JN.makeRational(5, 2, sampleErrbacks), sampleErrbacks); })
+      expect(function() { bogusNumericBinopFun(JN.makeRational(5, 2, sampleErrbacks), JN.makeRational(5, 2, sampleErrbacks), sampleErrbacks); })
         .toThrowError(/second fail/);
 
-      expect(bogusNumFun(-1, +1, sampleErrbacks)).toEqual(7);
-      expect(bogusNumFun(+1, -1, sampleErrbacks)).toEqual(8);
+      expect(bogusNumericBinopFun(-1, +1, sampleErrbacks)).toEqual(7);
+      expect(bogusNumericBinopFun(+1, -1, sampleErrbacks)).toEqual(8);
 
     });
 
@@ -88,11 +141,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
       var bigIntStr = "1" + new Array(309 + 1).join("0"); // 1 followed by 309 0s
       expect(JN.fromString(bigIntStr, sampleErrbacks)).toEqual(JN.makeBignum(bigIntStr));
-
-      // for sci-not and 'p/q', fromString() and makeBignum()/makeRational() can give
-      // structurally unequal but operationally equivalent results, so the following fails:
-      // expect(JN.fromString("1e141", sampleErrbacks)).toEqual(JN.makeBignum("1e141"));
-      // however you can refashion the test using JN.equals
 
       expect(JN.equals(JN.fromString("1e1", sampleErrbacks), 10)).toBe(true);
       expect(JN.equals(JN.fromString("1e5", sampleErrbacks), JN.makeBignum("1e5"), sampleErrbacks))
@@ -267,29 +315,29 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         .toBe(true);
       expect(JN.equals(
         JN.toRational(JN.Roughnum.makeInstance(2.718, sampleErrbacks)),
-        JN.fromString('2.718'),
+        JN.fromString('2.718', sampleErrbacks),
         sampleErrbacks))
         .toBe(true);
 
       // toRoughnum
       expect(JN.roughlyEquals(
         JN.toRoughnum(5, sampleErrbacks),
-        JN.fromString('~5'),
+        JN.fromString('~5', sampleErrbacks),
         0.00001, sampleErrbacks))
         .toBe(true);
       expect(JN.roughlyEquals(
         JN.toRoughnum(-5, sampleErrbacks),
-        JN.fromString('~-5'),
+        JN.fromString('~-5', sampleErrbacks),
         0.00001, sampleErrbacks))
         .toBe(true);
       expect(JN.roughlyEquals(
         JN.toRoughnum(0, sampleErrbacks),
-        JN.fromString('~0'),
+        JN.fromString('~0', sampleErrbacks),
         0.00001, sampleErrbacks))
         .toBe(true);
       expect(JN.roughlyEquals(
         JN.toRoughnum(3.14, sampleErrbacks),
-        JN.fromString('~3.14'),
+        JN.fromString('~3.14', sampleErrbacks),
         0.00001, sampleErrbacks))
         .toBe(true);
       expect(JN.roughlyEquals(
@@ -358,24 +406,20 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
     });
 
-    it('bnToString', function() {
-      expect(JN._innards.bnToString.call(JN.makeBignum('1e8', sampleErrbacks), 10))
-      .toEqual('100000000');
-      expect(JN._innards.bnToString.call(JN.makeBignum('11259375', sampleErrbacks), 16))
-      .toEqual('abcdef');
-      expect(JN.makeBignum('1e8', sampleErrbacks).toString())
-      .toEqual('100000000');
-
-    });
-
     it('BigInteger bnp* methods', function() {
-      var  n2r5, q, r, expectedR;
 
       // bnpCopyTo
       var n9e311 = JN.makeBignum('9e311');
       var r = JN._innards.nbi();
       n9e311.copyTo(r);
       expect(r).toEqual(n9e311);
+
+      // bnpAddTo
+      var n1e311 = JN.makeBignum('1e311');
+      r = JN._innards.nbi();
+      n9e311.addTo(n1e311, r);
+      var expectedR = JN.makeBignum('1e312');
+      expect(r).toEqual(expectedR);
 
       // bnpSubTo
       var n8e311 = JN.makeBignum('8e311');
@@ -397,7 +441,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(r).toEqual(expectedR);
 
       // bnpDivRemTo
-      n2r5 = JN.makeBignum(JN.expt(2,5));
+      var n2r5 = JN.makeBignum(JN.expt(2,5));
       var q = JN._innards.nbi();
       r = JN._innards.nbi();
       n2r5.divRemTo(JN.makeBignum(17), q,r);
@@ -406,8 +450,19 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(r).toEqual(expectedR);
       expect(q).toEqual(expectedQ);
 
+      // bnpDMultiply;
+      var n2 = JN.makeBignum(2);
+      n2.dMultiply(JN.makeBignum(3));
+      expect(n2).toEqual(JN.makeBignum(6));
+
       // bnpModInt
       expect(n2r5.modInt(17)).toEqual(15);
+
+      // bnpMillerRabin
+      expect(JN.makeBignum(31).millerRabin()).toBe(true);
+      expect(JN.makeBignum(32).millerRabin()).toBe(false);
+      expect(JN.makeBignum(100043).millerRabin()).toBe(true);
+      expect(JN.makeBignum(100051).millerRabin()).toBe(true); [sic]
 
       // bnpIsEven
       expect(n2r5.isEven()).toBe(true);
@@ -448,32 +503,67 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
     });
 
+    it('BigInteger bn* functions', function() {
+
+      var n2r5 = JN.makeBignum(Math.pow(2,5));
+
+      // bnSigNum
+      expect(n2r5.signum()).toEqual(1);
+
+      // bnToString
+      expect(JN.makeBignum('1e8').toString(10))
+      .toEqual('100000000');
+      expect(JN.makeBignum('11259375').toString(16))
+      .toEqual('abcdef');
+      expect(JN.makeBignum('1e8').toString())
+      .toEqual('100000000');
+
+      // bnRemainder
+      expect(JN.makeBignum(32).remainder(JN.makeBignum(17)))
+      .toEqual(JN.makeBignum(15));
+
+      // bnDivideAndRemainder
+      expect(JN.makeBignum(32).divideAndRemainder(JN.makeBignum(17)))
+      .toEqual([JN.makeBignum(1), JN.makeBignum(15)]);
+
+      // bnModPow
+      expect(JN.makeBignum(2).modPow(JN.makeBignum(5), JN.makeBignum(15)))
+      .toEqual(JN.makeBignum(2));
+
+      // bnIsProbablePrime
+      expect(JN.makeBignum(31).isProbablePrime()).toBe(true);
+      expect(JN.makeBignum(32).isProbablePrime()).toBe(false);
+      expect(JN.makeBignum(100043).isProbablePrime()).toBe(true);
+      expect(JN.makeBignum(100051).isProbablePrime()).toBe(false);
+
+    });
+
     it('_integer* functions', function() {
 
       expect(JN._innards._integerIsZero(0)).toBe(true);
       expect(JN._innards._integerIsZero(1)).toBe(false);
-      expect(JN._innards._integerIsZero(JN.makeBignum(0, sampleErrbacks))).toBe(true);
-      expect(JN._innards._integerIsZero(JN.makeBignum(1, sampleErrbacks))).toBe(false);
+      expect(JN._innards._integerIsZero(JN.makeBignum(0))).toBe(true);
+      expect(JN._innards._integerIsZero(JN.makeBignum(1))).toBe(false);
 
       expect(JN._innards._integerIsOne(1)).toBe(true);
       expect(JN._innards._integerIsOne(2)).toBe(false);
-      expect(JN._innards._integerIsOne(JN.makeBignum(1, sampleErrbacks))).toBe(true);
-      expect(JN._innards._integerIsOne(JN.makeBignum(2, sampleErrbacks))).toBe(false);
+      expect(JN._innards._integerIsOne(JN.makeBignum(1))).toBe(true);
+      expect(JN._innards._integerIsOne(JN.makeBignum(2))).toBe(false);
 
       expect(JN._innards._integerIsNegativeOne(-1)).toBe(true);
       expect(JN._innards._integerIsNegativeOne(1)).toBe(false);
-      expect(JN._innards._integerIsNegativeOne(JN.makeBignum(-1, sampleErrbacks))).toBe(true);
-      expect(JN._innards._integerIsNegativeOne(JN.makeBignum(1, sampleErrbacks))).toBe(false);
+      expect(JN._innards._integerIsNegativeOne(JN.makeBignum(-1))).toBe(true);
+      expect(JN._innards._integerIsNegativeOne(JN.makeBignum(1))).toBe(false);
 
       expect(JN._innards._integerGcd(12, 18, sampleErrbacks)).toEqual(6);
-      expect(JN._innards._integerGcd(JN.makeBignum('12', sampleErrbacks),
-        JN.makeBignum('18', sampleErrbacks), sampleErrbacks))
-      .toEqual(JN.makeBignum('6', sampleErrbacks))
+      expect(JN._innards._integerGcd(JN.makeBignum(12),
+        JN.makeBignum(18), sampleErrbacks))
+      .toEqual(JN.makeBignum(6))
 
       expect(JN._innards._integerModulo(12, 10, sampleErrbacks)).toEqual(2);
-      expect(JN._innards._integerModulo(JN.makeBignum('12', sampleErrbacks),
-        JN.makeBignum('10', sampleErrbacks), sampleErrbacks))
-      .toEqual(JN.makeBignum('2', sampleErrbacks))
+      expect(JN._innards._integerModulo(JN.makeBignum(12),
+        JN.makeBignum(10), sampleErrbacks))
+      .toEqual(JN.makeBignum(2))
 
       expect(JN._innards.splitIntIntoMantissaExpt('256'))
         .toEqual([2.56, 2]);
@@ -671,7 +761,8 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN.equals(JN.Rational.makeInstance(1, -1, sampleErrbacks), -1)).toBe(true);
       expect(JN.equals(JN.Rational.makeInstance(2, 1, sampleErrbacks), 2)).toBe(true);
       expect(JN.equals(JN.Rational.makeInstance(0, 1, sampleErrbacks), 0)).toBe(true);
-      expect(JN.equals(JN.Rational.makeInstance(2, 3, sampleErrbacks), JN.fromString("2/3")))
+      expect(JN.equals(JN.Rational.makeInstance(2, 3, sampleErrbacks),
+        JN.fromString("2/3", sampleErrbacks)))
         .toBe(true);
 
       expect(JN.Rational.makeInstance(1, 3, sampleErrbacks).equals(
@@ -692,7 +783,8 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         .toBe(true);
 
       expect(JN.equals(JN.Rational.makeInstance(-4, 3, sampleErrbacks).negate(sampleErrbacks),
-        JN.fromString("4/3"), sampleErrbacks))
+        JN.fromString("4/3", sampleErrbacks),
+        sampleErrbacks))
         .toBe(true);
 
       expect(JN.equals(JN.Rational.makeInstance(2, 3, sampleErrbacks).multiply(

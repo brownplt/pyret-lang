@@ -1074,7 +1074,7 @@ define("pyret-base/js/js-numbers", function() {
   // common type before doing an operation.
   var makeIntegerBinop = function(onFixnums, onBignums, options) {
     options = options || {};
-    return (function(m, n) {
+    return (function(m, n, errbacks) {
       if (m instanceof Rational) {
         m = numerator(m);
       }
@@ -1084,7 +1084,7 @@ define("pyret-base/js/js-numbers", function() {
       }
 
       if (typeof(m) === 'number' && typeof(n) === 'number') {
-        var result = onFixnums(m, n);
+        var result = onFixnums(m, n, errbacks);
         if (! isOverflow(result) ||
             (options.ignoreOverflow)) {
           return result;
@@ -1092,7 +1092,7 @@ define("pyret-base/js/js-numbers", function() {
       }
       if (m instanceof Roughnum || n instanceof Roughnum) {
         return Roughnum.makeInstance(
-          onFixnums(toFixnum(m), toFixnum(n)), errbacks);
+          onFixnums(toFixnum(m), toFixnum(n), errbacks), errbacks);
       }
       if (typeof(m) === 'number') {
         m = makeBignum(m);
@@ -1100,31 +1100,31 @@ define("pyret-base/js/js-numbers", function() {
       if (typeof(n) === 'number') {
         n = makeBignum(n);
       }
-      return onBignums(m, n);
+      return onBignums(m, n, errbacks);
     });
   };
 
-  var makeIntegerUnOp = function(onFixnums, onBignums, options, errbacks) {
+  var makeIntegerUnOp = function(onFixnums, onBignums, options) {
     options = options || {};
-    return (function(m) {
+    return (function(m, errbacks) {
       if (m instanceof Rational) {
         m = numerator(m);
       }
 
       if (typeof(m) === 'number') {
-        var result = onFixnums(m);
+        var result = onFixnums(m, errbacks);
         if (! isOverflow(result) ||
             (options.ignoreOverflow)) {
           return result;
         }
       }
       if (m instanceof Roughnum) {
-        return Roughnum.makeInstance(onFixnums(toFixnum(m)), errbacks);
+        return Roughnum.makeInstance(onFixnums(toFixnum(m), errbacks), errbacks);
       }
       if (typeof(m) === 'number') {
         m = makeBignum(m);
       }
-      return onBignums(m);
+      return onBignums(m, errbacks);
     });
   };
 
@@ -4152,9 +4152,10 @@ define("pyret-base/js/js-numbers", function() {
     _integerLessThanOrEqual: _integerLessThanOrEqual,
     splitIntIntoMantissaExpt: splitIntIntoMantissaExpt,
     nbi: nbi,
-    bnToString: bnToString,
     integerNthRoot: integerNthRoot,
     liftFixnumInteger: liftFixnumInteger,
+    makeIntegerUnOp: makeIntegerUnOp,
+    makeIntegerBinop: makeIntegerBinop,
     makeNumericBinop: makeNumericBinop,
     nthRoot: nthRoot,
     sign: sign,
