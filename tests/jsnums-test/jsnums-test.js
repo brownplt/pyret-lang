@@ -359,9 +359,21 @@ R(["pyret-base/js/js-numbers"], function(JN) {
     it('other subrs', function() {
 
       // toRepeatingDecimal
-      expect(arrayEquals(JN.toRepeatingDecimal(883, 700), ['1', '26', '142857'],
+      expect(arrayEquals(JN.toRepeatingDecimal(883, 700, undefined, sampleErrbacks), ['1', '26', '142857'],
         undefined, sampleErrbacks))
         .toBe(true);
+      expect(function() {
+        JN.toRepeatingDecimal(355/113, 10, undefined, sampleErrbacks);
+      }).toThrowError(/not an integer/);
+      expect(function() {
+        JN.toRepeatingDecimal(10, 113/355, undefined, sampleErrbacks);
+      }).toThrowError(/not an integer/);
+      expect(function() {
+        JN.toRepeatingDecimal(JN.makeRational(355, 113), 10, undefined, sampleErrbacks);
+      }).toThrowError(/not an integer/);
+      expect(function() {
+        JN.toRepeatingDecimal(10, JN.makeRational(113, 355), undefined, sampleErrbacks);
+      }).toThrowError(/not an integer/);
 
       // toStringDigits
       expect(JN.toStringDigits(123456789, 5, sampleErrbacks))
