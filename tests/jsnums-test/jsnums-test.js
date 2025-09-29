@@ -462,7 +462,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN.makeBignum(31).millerRabin()).toBe(true);
       expect(JN.makeBignum(32).millerRabin()).toBe(false);
       expect(JN.makeBignum(100043).millerRabin()).toBe(true);
-      expect(JN.makeBignum(100051).millerRabin()).toBe(true); [sic]
+      expect(JN.makeBignum(100051).millerRabin()).toBe(true); // [sic]
 
       // bnpIsEven
       expect(n2r5.isEven()).toBe(true);
@@ -501,6 +501,17 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       }).toThrowError(/exponent .* too large/);
 
 
+      // bnpToRadix
+      expect(JN.makeBignum('1e8').toRadix())
+      .toEqual('100000000');
+      expect(JN.makeBignum('1e8').toRadix(10))
+      .toEqual('100000000');
+      expect(JN.makeBignum('11259375').toRadix(16))
+      .toEqual('abcdef');
+      expect(JN.makeBignum('1e8').toRadix())
+      .toEqual('100000000');
+
+
     });
 
     it('BigInteger bn* functions', function() {
@@ -511,6 +522,8 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(n2r5.signum()).toEqual(1);
 
       // bnToString
+      expect(JN.makeBignum('1e8').toString())
+      .toEqual('100000000');
       expect(JN.makeBignum('1e8').toString(10))
       .toEqual('100000000');
       expect(JN.makeBignum('11259375').toString(16))
