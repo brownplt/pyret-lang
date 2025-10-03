@@ -266,6 +266,8 @@
       "num-sin":{'bind': 'fun', 'flatness': 0, 'name': 'num-sin', 'typ': 'NumUnop'},
       "num-tan":{'bind': 'fun', 'flatness': 0, 'name': 'num-tan', 'typ': 'NumUnop'},
 
+      "num-gcd":{'bind': 'fun', 'flatness': 0, 'name': 'num-gcd', 'typ': 'NumBinop'},
+      "num-lcm":{'bind': 'fun', 'flatness': 0, 'name': 'num-lcm', 'typ': 'NumBinop'},
       "num-modulo":{'bind': 'fun', 'flatness': 0, 'name': 'num-modulo', 'typ': 'NumBinop'},
       "num-remainder":{'bind': 'fun', 'flatness': 0, 'name': 'num-remainder', 'typ': 'NumBinop'},
 

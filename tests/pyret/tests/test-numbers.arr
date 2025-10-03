@@ -156,6 +156,14 @@ check:
   num-sqrt(10) satisfies around(3.1, 0.1)
   num-sqrt(8768762532 * 8768762532) is 8768762532
 
+  num-gcd(25, 35) is 5
+  num-gcd(120, 462) is 6
+  num-gcd(25, 3.5) raises 'not an integer'
+
+  num-lcm(25, 35) is 175
+  num-lcm(120, 462) is 9240
+  num-lcm(25, 3.5) raises 'not an integer'
+
   num-ceiling(5.5) is 6
   num-ceiling(5.1) is 6
   num-ceiling(-5.5) is -5

@@ -720,7 +720,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
     it("BigInteger methods", function() {
 
       expect(JN.equals(
-        JN.gcd(JN.makeBignum(24), [JN.makeBignum(30)], sampleErrbacks),
+        JN.gcd(JN.makeBignum(24), JN.makeBignum(30), sampleErrbacks),
         6, sampleErrbacks))
       .toBe(true);
 
@@ -768,12 +768,12 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(function() { JN.makeBignum(-1).log(sampleErrbacks); }).toThrowError(/logNonPositive/);
 
       expect(JN.equals(
-        JN.gcd(JN.makeBignum(24), [JN.makeBignum(30)], sampleErrbacks),
+        JN.gcd(JN.makeBignum(24), JN.makeBignum(30), sampleErrbacks),
         6, sampleErrbacks))
       .toBe(true);
 
       expect(JN.equals(
-        JN.lcm(JN.makeBignum(24), [JN.makeBignum(30)], sampleErrbacks),
+        JN.lcm(JN.makeBignum(24), JN.makeBignum(30), sampleErrbacks),
         120, sampleErrbacks))
       .toBe(true);
 

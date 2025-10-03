@@ -1332,7 +1332,7 @@
 
       // rotate around outer circle, storing x and y coordinates
       var radians = 0, vertices = [];
-      var numComponents = jsnums.gcd(count, [step], RUNTIME.NumberErrbacks);
+      var numComponents = jsnums.gcd(count, step, RUNTIME.NumberErrbacks);
       var pointsPerComponent = count / numComponents;
       var angle = (2*Math.PI/count);
       for (var curComp = 0; curComp < numComponents; curComp++) {

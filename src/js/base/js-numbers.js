@@ -942,47 +942,43 @@ define("pyret-base/js/js-numbers", function() {
     return x.integerSqrt(errbacks);
   };
 
-  // gcd: pyretnum [pyretnum ...] -> pyretnum
-  var gcd = function(first, rest, errbacks) {
+  // gcd: pyretnum pyretnum -> pyretnum
+  var gcd = function(first, second, errbacks) {
     if (! isInteger(first)) {
       errbacks.throwDomainError('gcd: the argument ' + first.toString() +
                                 " is not an integer.", first);
     }
-    var a = abs(first, errbacks), t, b;
-    for(var i = 0; i < rest.length; i++) {
-      b = abs(rest[i], errbacks);
-      if (! isInteger(b)) {
-        errbacks.throwDomainError('gcd: the argument ' + b.toString() +
-                                  " is not an integer.", b);
-      }
-      while (! _integerIsZero(b)) {
-        t = a;
-        a = b;
-        b = _integerModulo(t, b);
-      }
+    if (! isInteger(second)) {
+      errbacks.throwDomainError('gcd: the argument ' + second.toString() +
+                                " is not an integer.", second);
+    }
+    var a = abs(first, errbacks), t;
+    var b = abs(second, errbacks);
+    while (! _integerIsZero(b)) {
+      t = a;
+      a = b;
+      b = _integerModulo(t, b);
     }
     return a;
   };
 
-  // lcm: pyretnum [pyretnum ...] -> pyretnum
-  var lcm = function(first, rest, errbacks) {
+  // lcm: pyretnum pyretnum -> pyretnum
+  var lcm = function(first, second, errbacks) {
     if (! isInteger(first)) {
       errbacks.throwDomainError('lcm: the argument ' + first.toString() +
                                 " is not an integer.", first);
     }
+    if (! isInteger(second)) {
+      errbacks.throwDomainError('lcm: the argument ' + second.toString() +
+                                " is not an integer.", second);
+    }
     var result = abs(first, errbacks);
     if (_integerIsZero(result)) { return 0; }
-    for (var i = 0; i < rest.length; i++) {
-      if (! isInteger(rest[i])) {
-        errbacks.throwDomainError('lcm: the argument ' + rest[i].toString() +
-                                  " is not an integer.", rest[i]);
-      }
-      var divisor = _integerGcd(result, rest[i]);
-      if (_integerIsZero(divisor)) {
-        return 0;
-      }
-      result = divide(multiply(result, rest[i], errbacks), divisor, errbacks);
+    var divisor = _integerGcd(result, second);
+    if (_integerIsZero(divisor)) {
+      return 0;
     }
+    result = divide(multiply(result, second, errbacks), divisor, errbacks);
     return result;
   };
 
@@ -1004,7 +1000,7 @@ define("pyret-base/js/js-numbers", function() {
     } else if (isRational(x) && isRational(y)) {
       var xn = numerator(x, errbacks); var xd = denominator(x, errbacks);
       var yn = numerator(y, errbacks); var yd = denominator(y, errbacks);
-      var new_d = lcm(xd, [yd], errbacks);
+      var new_d = lcm(xd, yd, errbacks);
       var new_xn = multiply(xn, divide(new_d, xd, errbacks), errbacks);
       var new_yn = multiply(yn, divide(new_d, yd, errbacks), errbacks);
       return divide(remainder(new_xn, new_yn, errbacks), new_d, errbacks);
