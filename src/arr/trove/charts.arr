@@ -968,6 +968,13 @@ horizontal-method = method(self, b :: Boolean):
   self.constr()(self.obj.{horizontal: b})
 end
 
+bandwidth-method = method(self, width :: Number) block:
+  when (width <= 0) or (width > 1):
+    raise("bandwidth: must be greater than zero and at most 1, given " + num-to-string(width))
+  end
+  self.constr()(self.obj.{bandwidth: width})
+end
+
 ################################################################################
 # BOUNDING BOX
 ################################################################################
@@ -1087,6 +1094,7 @@ type BarChartSeries = {
   pointers :: Option<RawArray<Pointer>>, 
   pointer-color :: Option<I.Color>, 
   horizontal :: Boolean,
+  bandwidth :: Number,
   annotations :: RawArray<RawArray<Option<String>>>,
   intervals :: RawArray<RawArray<RawArray<Number>>>,
   default-interval-color :: Option<I.Color>,
@@ -1098,7 +1106,8 @@ default-bar-chart-series = {
   pointers: none, 
   pointer-color: none,
   axisdata: none, 
-  horizontal: false, 
+  horizontal: false,
+  bandwidth: 0.8,
   default-interval-color: none,
 }
 
@@ -1111,6 +1120,7 @@ type MultiBarChartSeries = {
   pointers :: Option<RawArray<Pointer>>, 
   pointer-color :: Option<I.Color>, 
   horizontal :: Boolean,
+  bandwidth :: Number,
   annotations :: RawArray<RawArray<Option<String>>>,
   intervals :: RawArray<RawArray<RawArray<Number>>>,
   default-interval-color :: Option<I.Color>
@@ -1122,7 +1132,8 @@ default-multi-bar-chart-series = {
   pointers: none, 
   pointer-color: none,
   axisdata: none, 
-  horizontal: false, 
+  horizontal: false,
+  bandwidth: 0.8,
   default-interval-color: none
 }
   
@@ -1608,6 +1619,7 @@ data DataSeries:
     is-single: true,
     color: color-method, 
     colors: color-list-method,
+    bandwidth: bandwidth-method,
     sort: default-sort-method,
     sort-by: sort-method,
     sort-by-label: label-sort-method,
@@ -1653,6 +1665,7 @@ data DataSeries:
   | multi-bar-chart-series(obj :: MultiBarChartSeries) with: 
     is-single: true,
     colors: color-list-method,
+    bandwidth: bandwidth-method,
     sort: super-default-multi-sort-method,
     sort-by: default-multi-sort-method,
     sort-by-data: multi-sort-method, 

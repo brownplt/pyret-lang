@@ -902,6 +902,7 @@
       const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
       const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
       const axis = get_axis(rawData);
+      const bandwidth = toFixnum(get(rawData, 'bandwidth') || 1);
 
       const data = [];
       
@@ -934,7 +935,8 @@
           name: 'primary',
           type: 'band',
           range: axesConfig.primary.range,
-          domain: { data: 'table', field: 'label' }
+          domain: { data: 'table', field: 'label' },
+          padding: 1 - bandwidth,
         },
         {
           name: 'secondary',
@@ -1034,6 +1036,7 @@
       const stackType = get(rawData, 'is-stacked');
       const isStacked = stackType !== 'none';
       const isNotFullStacked = (stackType !== 'relative') && (stackType !== 'percent');
+      const bandwidth = toFixnum(get(rawData, 'bandwidth') || 1);
 
       const data = [];
 
@@ -1114,7 +1117,7 @@
         type: 'band',
         range: axesConfig.primary.range,
         domain: { data: 'table', field: 'label' },
-        padding: 0.2
+        padding: 1 - bandwidth
       };
       const secondaryScale = {
         name: 'secondary',
