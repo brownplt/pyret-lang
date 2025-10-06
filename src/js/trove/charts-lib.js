@@ -207,6 +207,28 @@
 
     //////////////////////////////////////////////////////////////////////////////
 
+    const chartFontConfig = {
+      signals: [
+        { name: 'fontSizeScale', value: 14 }
+      ],
+      mark: {
+        fontSize: { signal: 'fontSizeScale' }
+      },
+      text: {
+        fontSize: { signal: 'fontSizeScale' }
+      },
+      title: {
+        fontSize: { signal: '1.2 * fontSizeScale' },
+      },
+      axis: {
+        labelFontSize: { signal: 'fontSizeScale' },
+        titleFontSize: { signal: 'fontSizeScale' },
+      },
+      legend: {
+        labelFontSize: { signal: 'fontSizeScale' },
+      }
+    };
+
     function pieChart(globalOptions, rawData) {
       /*
         Note: Most of the complexity here is due to supporting the "collapsed" wedge of values,
@@ -457,6 +479,7 @@
         marks,
         legends,
         onExit: defaultImageReturn,
+        config: chartFontConfig,
       };
     }
 
@@ -1017,6 +1040,7 @@
         axes,
         marks,
         onExit: defaultImageReturn,
+        config: chartFontConfig,
       };
     }
 
@@ -1303,6 +1327,7 @@
         marks,
         legends,
         onExit: defaultImageReturn,
+        config: chartFontConfig,
       }
     }
 
@@ -1575,6 +1600,7 @@
         axes,
         marks,
         onExit: defaultImageReturn,
+        config: chartFontConfig,
       };
     }
 
@@ -1754,6 +1780,7 @@
         axes,
         marks,
         onExit: defaultImageReturn,
+        config: chartFontConfig,
       };
     }
 
@@ -1914,6 +1941,7 @@
         axes,
         marks,
         onExit: defaultImageReturn,
+        config: chartFontConfig,
       };
     }
 
@@ -2031,6 +2059,7 @@
         axes,
         marks,
         onExit: defaultImageReturn,
+        config: chartFontConfig,
       };
     }
 
@@ -2998,7 +3027,9 @@
         marks,
         legends,
         config: {
+          ...chartFontConfig,
           legend: {
+            ...chartFontConfig.legend,
             orient: 'bottom',
             layout: { bottom: { anchor: 'middle' } },
           }
