@@ -375,6 +375,11 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         JN.toRepeatingDecimal(10, JN.makeRational(113, 355), undefined, sampleErrbacks);
       }).toThrowError(/not an integer/);
 
+      // errbacks given as 3rd rather than 4th arg, as happened once on cpo
+      expect(function() {
+        JN.toRepeatingDecimal(355/133, 10, sampleErrbacks);
+      }).toThrowError(/undefined/);
+
       // toStringDigits
       expect(JN.toStringDigits(123456789, 5, sampleErrbacks))
         .toBe("123456789.00000");
