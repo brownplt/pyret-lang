@@ -304,7 +304,9 @@ module-const-sets = t-module("builtin://sets",
     "branch", t-arrow([list: t-top, t-number, t-avl, t-avl], t-avl),
     "fold", t-forall([list: tva, tvb], t-arrow([list: t-arrow([list: tvb, tva], tvb), tvb, t-set-app(tva)], tvb)),
     "all", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-set-app(tva)], t-boolean)),
-    "any", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-set-app(tva)], t-boolean))
+    "any", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-set-app(tva)], t-boolean)),
+    "map", t-forall([list: tva, tvb], t-arrow([list: t-set-app(tva), t-arrow([list: tva], tvb)], t-set-app(tvb))),
+    "filter", t-forall([list: tva], t-arrow([list: t-arrow([list: tva], t-boolean), t-set-app(tva)], t-set-app(tva))),
   ]),
   SD.make-string-dict()
     .set("AVLTree", t-data("AVLTree", [list:], [list:], [string-dict:]))
