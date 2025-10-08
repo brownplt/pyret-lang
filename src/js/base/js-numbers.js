@@ -3872,6 +3872,69 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   //////////////////////////////////////////////////////////////////////
+  // getResidue: integer, integer, integer -> [string, string]
+  //
+  // Given the numerator and denominator of a proper (<= 1) fraction,
+  // returns two strings constituting its repeating-decimal representation,
+  // where the first string is the non-repeating digits immediately after the
+  // decimal point, and the second string is the repeating digits thereafter.
+  // The third argument is the limit on the size of the repeating digits.
+  // If exceeded, the second string is `...`.
+  var getResidue = function(r, d, limit, errbacks) {
+    var digits = [];
+    var seenRemainders = {};
+    seenRemainders[r] = true;
+    while(true) {
+      if (limit-- <= 0) {
+        return [digits.join(''), '...']
+      }
+
+      var nextDigit = quotient(
+        multiply(r, 10, errbacks), d, errbacks);
+      var nextRemainder = remainder(
+        multiply(r, 10, errbacks),
+        d, errbacks);
+      digits.push(nextDigit.toString());
+      if (seenRemainders[nextRemainder]) {
+        r = nextRemainder;
+        break;
+      } else {
+        seenRemainders[nextRemainder] = true;
+        r = nextRemainder;
+      }
+    }
+
+    var firstRepeatingRemainder = r;
+    var repeatingDigits = [];
+    while (true) {
+      var nextDigit = quotient(multiply(r, 10, errbacks), d, errbacks);
+      var nextRemainder = remainder(
+        multiply(r, 10, errbacks),
+        d, errbacks);
+      repeatingDigits.push(nextDigit.toString());
+      if (equals(nextRemainder, firstRepeatingRemainder, errbacks)) {
+        break;
+      } else {
+        r = nextRemainder;
+      }
+    };
+
+    var digitString = digits.join('');
+    var repeatingDigitString = repeatingDigits.join('');
+
+    while (digitString.length >= repeatingDigitString.length &&
+           (digitString.substring(
+             digitString.length - repeatingDigitString.length)
+            === repeatingDigitString)) {
+      digitString = digitString.substring(
+        0, digitString.length - repeatingDigitString.length);
+    }
+
+    return [digitString, repeatingDigitString];
+
+  };
+
+  //////////////////////////////////////////////////////////////////////
   // toRepeatingDecimal: jsnum jsnum {limit: number}? -> [string, string, string]
   //
   // Given the numerator and denominator parts of a rational,
@@ -3880,64 +3943,13 @@ define("pyret-base/js/js-numbers", function() {
   // non-repeating digits after the decimal, and the third are the
   // remaining repeating decimals.
   //
-  // An optional limit on the decimal expansion can be provided, in which
-  // case the search cuts off if we go past the limit.
-  // If this happens, the third argument returned becomes '...' to indicate
+  // An optional limit on the decimal expansion can be provided via
+  // a `limit` field of an object supplied as a third argument. This
+  // cuts off the search if we go past the limit.
+  // If this happens, the third string returned becomes '...' to indicate
   // that the search was prematurely cut off.
+  // The default limit is 512.
   var toRepeatingDecimal = (function() {
-    var getResidue = function(r, d, limit, errbacks) {
-      var digits = [];
-      var seenRemainders = {};
-      seenRemainders[r] = true;
-      while(true) {
-        if (limit-- <= 0) {
-          return [digits.join(''), '...']
-        }
-
-        var nextDigit = quotient(
-          multiply(r, 10, errbacks), d, errbacks);
-        var nextRemainder = remainder(
-          multiply(r, 10, errbacks),
-          d, errbacks);
-        digits.push(nextDigit.toString());
-        if (seenRemainders[nextRemainder]) {
-          r = nextRemainder;
-          break;
-        } else {
-          seenRemainders[nextRemainder] = true;
-          r = nextRemainder;
-        }
-      }
-
-      var firstRepeatingRemainder = r;
-      var repeatingDigits = [];
-      while (true) {
-        var nextDigit = quotient(multiply(r, 10, errbacks), d, errbacks);
-        var nextRemainder = remainder(
-          multiply(r, 10, errbacks),
-          d, errbacks);
-        repeatingDigits.push(nextDigit.toString());
-        if (equals(nextRemainder, firstRepeatingRemainder, errbacks)) {
-          break;
-        } else {
-          r = nextRemainder;
-        }
-      };
-
-      var digitString = digits.join('');
-      var repeatingDigitString = repeatingDigits.join('');
-
-      while (digitString.length >= repeatingDigitString.length &&
-             (digitString.substring(
-               digitString.length - repeatingDigitString.length)
-              === repeatingDigitString)) {
-        digitString = digitString.substring(
-          0, digitString.length - repeatingDigitString.length);
-      }
-
-      return [digitString, repeatingDigitString];
-
-    };
 
     return function(n, d, options, errbacks) {
       // default limit on decimal expansion; can be overridden
@@ -4099,6 +4111,7 @@ define("pyret-base/js/js-numbers", function() {
     _integerGreaterThanOrEqual: _integerGreaterThanOrEqual,
     _integerLessThanOrEqual: _integerLessThanOrEqual,
     splitIntIntoMantissaExpt: splitIntIntoMantissaExpt,
+    getResidue: getResidue,
     nbi: nbi,
     integerNthRoot: integerNthRoot,
     liftFixnumInteger: liftFixnumInteger,

@@ -359,7 +359,12 @@ R(["pyret-base/js/js-numbers"], function(JN) {
     it('other subrs', function() {
 
       // toRepeatingDecimal
-      expect(arrayEquals(JN.toRepeatingDecimal(883, 700, undefined, sampleErrbacks), ['1', '26', '142857'],
+      expect(arrayEquals(JN.toRepeatingDecimal(883, 700, undefined, sampleErrbacks),
+        ['1', '26', '142857'],
+        undefined, sampleErrbacks))
+        .toBe(true);
+      expect(arrayEquals(JN.toRepeatingDecimal(883, 700, {limit: 2}, sampleErrbacks),
+        ['1', '26', '...'],
         undefined, sampleErrbacks))
         .toBe(true);
       expect(function() {
@@ -379,6 +384,11 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(function() {
         JN.toRepeatingDecimal(355/133, 10, sampleErrbacks);
       }).toThrowError(/undefined/);
+
+      expect(arrayEquals(JN._innards.getResidue(183, 700, 512, sampleErrbacks), ['26', '142857']))
+      .toBe(true);
+      expect(arrayEquals(JN._innards.getResidue(183, 700, 2, sampleErrbacks), ['26', '...']))
+      .toBe(true);
 
       // toStringDigits
       expect(JN.toStringDigits(123456789, 5, sampleErrbacks))
