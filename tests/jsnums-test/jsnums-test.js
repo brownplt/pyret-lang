@@ -384,6 +384,23 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(function() {
         JN.toRepeatingDecimal(355/133, 10, sampleErrbacks);
       }).toThrowError(/undefined/);
+      expect(function() {
+        JN.toRepeatingDecimal(10, 355/133, sampleErrbacks);
+      }).toThrowError(/undefined/);
+      expect(function() {
+        JN.toRepeatingDecimal(944473296573929, JN.makeBignum(0), sampleErrbacks);
+      }).toThrowError(/undefined/);
+
+      // above 3 tests, with correct errbacks arg
+      expect(function() {
+        JN.toRepeatingDecimal(355/133, 10, undefined, sampleErrbacks);
+      }).toThrowError(/is not an integer/);
+      expect(function() {
+        JN.toRepeatingDecimal(10, 355/133, undefined, sampleErrbacks);
+      }).toThrowError(/is not an integer/);
+      expect(function() {
+        JN.toRepeatingDecimal(944473296573929, JN.makeBignum(0), undefined, sampleErrbacks);
+      }).toThrowError(/d equals 0/);
 
       expect(arrayEquals(JN._innards.getResidue(183, 700, 512, sampleErrbacks), ['26', '142857']))
       .toBe(true);
