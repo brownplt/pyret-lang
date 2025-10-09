@@ -3949,9 +3949,7 @@ define("pyret-base/js/js-numbers", function() {
   // If this happens, the third string returned becomes '...' to indicate
   // that the search was prematurely cut off.
   // The default limit is 512.
-  var toRepeatingDecimal = (function() {
-
-    return function(n, d, options, errbacks) {
+  var toRepeatingDecimal = function(n, d, options, errbacks) {
       // default limit on decimal expansion; can be overridden
       var limit = 512;
       if (options && typeof(options.limit) !== 'undefined') {
@@ -3976,8 +3974,7 @@ define("pyret-base/js/js-numbers", function() {
       var beforeDecimalPoint = sign + quotient(n, d, errbacks);
       var afterDecimals = getResidue(remainder(n, d, errbacks), d, limit, errbacks);
       return [beforeDecimalPoint].concat(afterDecimals);
-    };
-  })();
+  };
   //////////////////////////////////////////////////////////////////////
   // toStringDigits: jsnum jsnum -> string
   // Converts the number to a string, providing digits precision in the
