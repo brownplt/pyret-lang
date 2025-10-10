@@ -797,6 +797,8 @@
       this.imageData= imageData;
       this.width    = imageData.width;
       this.height   = imageData.height;
+      this.pinholeX = this.width / 2;
+      this.pinholeY = this.height / 2;
     };
 
     ImageDataImage.prototype = heir(BaseImage.prototype);
