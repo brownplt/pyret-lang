@@ -289,39 +289,39 @@ type BoxData = {
 }
 
 fun get-box-data(label :: String, lst :: List<Number>) -> BoxData:
-    n = lst.length()
-    shadow lst = lst.sort()
-    median = ST.median(lst)
-    {first-quartile; third-quartile} = if num-modulo(n, 2) == 0:
-      splitted = lst.split-at(n / 2)
-      {ST.median(splitted.prefix); ST.median(splitted.suffix)}
-    else:
-      splitted = lst.split-at((n - 1) / 2)
-      {ST.median(splitted.prefix); ST.median(splitted.suffix.rest)}
-    end
-    iqr = third-quartile - first-quartile
-    high-outliers = for filter(shadow n from lst):
-      n > (third-quartile + (1.5 * iqr))
-    end
-    low-outliers = for filter(shadow n from lst):
-      n < (first-quartile - (1.5 * iqr))
-    end
-    min-val = lst.first
-    max-val = lst.last()
-    low-whisker = lst.get(low-outliers.length())
-    high-whisker = lst.get(n - high-outliers.length() - 1)
-    {
-     label: label,
-      max-val: max-val,
-      min-val: min-val,
-      first-quartile: first-quartile,
-      median: median,
-      third-quartile: third-quartile,
-      high-whisker: high-whisker,
-      low-whisker: low-whisker,
-      high-outliers: builtins.raw-array-from-list(high-outliers),
-      low-outliers: builtins.raw-array-from-list(low-outliers)
-    }
+  n = lst.length()
+  shadow lst = lst.sort()
+  median = ST.median(lst)
+  {first-quartile; third-quartile} = if num-modulo(n, 2) == 0:
+    splitted = lst.split-at(n / 2)
+    {ST.median(splitted.prefix); ST.median(splitted.suffix)}
+  else:
+    splitted = lst.split-at((n - 1) / 2)
+    {ST.median(splitted.prefix); ST.median(splitted.suffix.rest)}
+  end
+  iqr = third-quartile - first-quartile
+  high-outliers = for filter(shadow n from lst):
+    n > (third-quartile + (1.5 * iqr))
+  end
+  low-outliers = for filter(shadow n from lst):
+    n < (first-quartile - (1.5 * iqr))
+  end
+  min-val = lst.first
+  max-val = lst.last()
+  low-whisker = lst.get(low-outliers.length())
+  high-whisker = lst.get(n - high-outliers.length() - 1)
+  {
+    label: label,
+    max-val: max-val,
+    min-val: min-val,
+    first-quartile: first-quartile,
+    median: median,
+    third-quartile: third-quartile,
+    high-whisker: high-whisker,
+    low-whisker: low-whisker,
+    high-outliers: builtins.raw-array-from-list(high-outliers),
+    low-outliers: builtins.raw-array-from-list(low-outliers)
+  }
 end
 
 ################################################################################
