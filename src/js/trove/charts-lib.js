@@ -1431,8 +1431,8 @@
                 },
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
-                  [S]: { scale: 'secondary',  field: 'lowWhisker' },
-                  [S2]: { scale: 'secondary', field: 'highWhisker' },
+                  [S]: { scale: 'secondary',  field: showOutliers ? 'lowWhisker' : 'minVal' },
+                  [S2]: { scale: 'secondary', field: showOutliers ? 'highWhisker' : 'maxVal' },
                   tooltip: { signal: tooltip }
                 },
               }
@@ -1449,7 +1449,7 @@
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
                   [axesConfig.primary.range]: { scale: 'primary', band: 0.25 },
-                  [S]: { scale: 'secondary', field: 'lowWhisker' },
+                  [S]: { scale: 'secondary', field: showOutliers ? 'lowWhisker' : 'minVal' },
                   tooltip: { signal: tooltip }
                 }
               }
@@ -1466,7 +1466,7 @@
                 update: {
                   [PC]: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
                   [axesConfig.primary.range]: { scale: 'primary', band: 0.25 },
-                  [S]: { scale: 'secondary', field: 'highWhisker' },
+                  [S]: { scale: 'secondary', field: showOutliers ? 'highWhisker' : 'maxVal' },
                   tooltip: { signal: tooltip }
                 }
               }
