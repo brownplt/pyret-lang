@@ -1,6 +1,7 @@
 ({
   requires: [
     { 'import-type': 'builtin', 'name': 'image-lib' },
+    { "import-type": "builtin", 'name': "charts-util" },
   ],
   nativeRequires: [
     'pyret-base/js/js-numbers',
@@ -19,7 +20,7 @@
       'plot': "tany",
     }
   },
-  theModule: function (RUNTIME, NAMESPACE, uri, IMAGELIB, jsnums, vega, canvasLib) {
+  theModule: function (RUNTIME, NAMESPACE, uri, IMAGELIB, CHARTSUTILLIB, jsnums, vega, canvasLib) {
     'use strict';
 
     
@@ -59,6 +60,7 @@
     const cases = RUNTIME.ffi.cases;
 
     var IMAGE = get(IMAGELIB, "internal");
+    var CHARTSUTIL = get(CHARTSUTILLIB, "values");
 
     const ann = function(name, pred) {
       return RUNTIME.makePrimitiveAnn(name, pred);
@@ -925,6 +927,8 @@
       const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
       const axesConfig = dimensions[horizontal ? 'horizontal' : 'vertical']
       const axis = get_axis(rawData);
+      const xAxisType = globalOptions['x-axis-type'];
+      const yAxisType = globalOptions['y-axis-type'];
       const bandwidth = toFixnum(get(rawData, 'bandwidth') || 1);
 
       const data = [];
@@ -963,10 +967,10 @@
         },
         {
           name: 'secondary',
-          type: 'linear',
           range: axesConfig.secondary.range,
           nice: true, zero: true,
-          domain: axis ? { signal: 'extent(domain("secondaryLabels"))' } : { data: 'table', field: 'value' }
+          domain: axis ? { signal: 'extent(domain("secondaryLabels"))' } : { data: 'table', field: 'value' },
+          ...(axesConfig.secondary.name === 'x' ? xAxisType : yAxisType)
         },
         {
           name: 'color',
@@ -1061,6 +1065,8 @@
       const isStacked = stackType !== 'none';
       const isNotFullStacked = (stackType !== 'relative') && (stackType !== 'percent');
       const bandwidth = toFixnum(get(rawData, 'bandwidth') || 1);
+      const xAxisType = globalOptions['x-axis-type'];
+      const yAxisType = globalOptions['y-axis-type'];
 
       const data = [];
 
@@ -1145,8 +1151,8 @@
       };
       const secondaryScale = {
         name: 'secondary',
-        type: 'linear',
         range: axesConfig.secondary.range,
+        ...(axesConfig.secondary.name === 'x' ? xAxisType : yAxisType),
         nice: true, zero: true,
         domain: (axis && isNotFullStacked) ? { signal: 'extent(domain("secondaryLabels"))' } : { data: 'table', field: 'value1' }
       };
@@ -1345,6 +1351,8 @@
       const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
       const min = getNumOrDefault(globalOptions['min'], undefined);
       const max = getNumOrDefault(globalOptions['max'], undefined);
+      const xAxisType = globalOptions['x-axis-type'];
+      const yAxisType = globalOptions['y-axis-type'];
 
       const data = [
         {
@@ -1562,7 +1570,7 @@
         },
         {
           name: 'secondary',
-          type: 'linear',
+          ...(axesConfig.secondary.name === 'x' ? xAxisType : yAxisType),
           range: axesConfig.secondary.range,
           nice: true, zero: false,
           domain: [{ signal: 'minValue' },{ signal: 'maxValue' }],
@@ -1614,6 +1622,7 @@
       const width = globalOptions['width'];
       const height = globalOptions['height'];
       const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
+      const yAxisType = globalOptions['y-axis-type'];
 
       const data = [
         {
@@ -1747,8 +1756,8 @@
         },
         {
           name: 'countScale',
-          type: 'linear',
           range: 'height',
+          ...yAxisType,
           domain: { data: 'rawTable', field: 'y1' }
         }
       ];
@@ -1798,6 +1807,7 @@
       const height = globalOptions['height'];
       const xAxisLabel = globalOptions['x-axis'];
       const yAxisLabel = globalOptions['y-axis'];
+      const yAxisType = globalOptions['y-axis-type'];
       const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
 
       const data = [
@@ -1860,7 +1870,7 @@
         },
         {
           name: 'dotScale',
-          type: 'linear',
+          ...yAxisType,
           range: { signal: '[height, dotSize / 2]' },
           domain: { signal: '[0, floor(height / dotSize)]' }
         }
@@ -1957,6 +1967,7 @@
       const height = globalOptions['height'];
       const xAxisLabel = globalOptions['x-axis'];
       const yAxisLabel = globalOptions['y-axis'];
+      const yAxisType = globalOptions['y-axis-type'];
       const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
 
 
@@ -1989,8 +2000,8 @@
         },
         {
           name: 'secondary',
-          type: 'linear',
           range: 'height',
+          ...yAxisType,
           nice: true, zero: true,
           domain: { data: 'bars', field: 'count' }
         }
@@ -2139,6 +2150,8 @@
     function scatterPlot(globalOptions, rawData, config) {
       const xAxisLabel = globalOptions['x-axis'];
       const yAxisLabel = globalOptions['y-axis'];
+      const xAxisType = globalOptions['x-axis-type'];
+      const yAxisType = globalOptions['y-axis-type'];
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
       const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
@@ -2158,38 +2171,50 @@
       const xMaxValue = getNumOrDefault(globalOptions['x-max'], undefined);
       const yMinValue = getNumOrDefault(globalOptions['y-min'], undefined);
       const yMaxValue = getNumOrDefault(globalOptions['y-max'], undefined);
+      const imageScaleFactorX = autosizeImage ? '-datum.imageWidth' : -pointSize;
+      const imageScaleFactorY = autosizeImage ? '-datum.imageHeight' : -pointSize;
 
       const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
-
+      const pointValues = points.map((p) => ({
+        label: get(p, 'label'),
+        x: toFixnum(get(p, 'x')),
+        y: toFixnum(get(p, 'y')),
+        image: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+          none: () => undefined,
+          some: (opaqueImg) => imageToCanvas(opaqueImg.val)
+        }),
+        imageWidth: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+          none: () => undefined,
+          some: (opaqueImg) => opaqueImg.val.getWidth()
+        }),
+        imageHeight: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+          none: () => undefined,
+          some: (opaqueImg) => opaqueImg.val.getHeight()
+        }),
+        imageOffsetX: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+          none: () => undefined,
+          some: (opaqueImg) => opaqueImg.val.getPinholeX() / opaqueImg.val.getWidth()
+        }),
+        imageOffsetY: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+          none: () => undefined,
+          some: (opaqueImg) => opaqueImg.val.getPinholeY() / opaqueImg.val.getHeight()
+        }),
+      }));
       const data = [
         {
           name: `${prefix}rawTable`,
-          values: points.map((p) => ({
-            label: get(p, 'label'),
-            x: toFixnum(get(p, 'x')),
-            y: toFixnum(get(p, 'y')),
-            image: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
-              none: () => undefined,
-              some: (opaqueImg) => imageToCanvas(opaqueImg.val)
-            }),
-            imageWidth: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
-              none: () => undefined,
-              some: (opaqueImg) => opaqueImg.val.getWidth()
-            }),
-            imageHeight: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
-              none: () => undefined,
-              some: (opaqueImg) => opaqueImg.val.getHeight()
-            }),
-            imageOffsetX: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
-              none: () => undefined,
-              some: (opaqueImg) => opaqueImg.val.getPinholeX() / opaqueImg.val.getWidth()
-            }),
-            imageOffsetY: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
-              none: () => undefined,
-              some: (opaqueImg) => opaqueImg.val.getPinholeY() / opaqueImg.val.getHeight()
-            }),
-          })),
+          values: pointValues,
           transform: []
+        },
+        {
+          name: `${prefix}tableMarkExtents`,
+          source: `${prefix}rawTable`,
+          transform: [
+            { type: 'formula', as: 'left',
+              expr: `datum.x + (isValid(datum.image) ? datum.imageOffsetX : ${-pointSize / 2}) * ${imageScaleFactorY} / ${prefix}rawDomainUnitInPx` },
+            { type: 'formula', as: 'right',
+              expr: `datum.x + (isValid(datum.image) ? (datum.imageOffsetX - datum.imageWidth) : ${pointSize / 2}) * ${imageScaleFactorY} / ${prefix}rawDomainUnitInPx` },
+          ],
         },
         {
           name: `${prefix}table`,
@@ -2203,20 +2228,81 @@
         },
       ];
 
-      const domain = computeDomain(data[0].values.map((v) => v.x));
+      // these are measured in pixels
+      let imageOverhangX, imageOverhangY;
+      const imageWidths = pointValues.map((v) => v.imageWidth).filter((v) => v !== undefined);
+      const imageHeights = pointValues.map((v) => v.imageHeight).filter((v) => v !== undefined);
+      if (imageWidths.length === 0 || autosizeImage) {
+        imageOverhangX = pointSize;
+        imageOverhangY = pointSize;
+      } else {
+        let temp;
+        temp = computeDomain(imageWidths);
+        imageOverhangX = temp[1] - temp[0];
+        temp = computeDomain(imageHeights);
+        imageOverhangY = temp[1] - temp[0];
+      }
+      let windowWidth = toFixnum(globalOptions['width']);
+      let windowHeight = toFixnum(globalOptions['height']);
 
+      const rawDomain = computeDomain(pointValues.map((v) => v.x));
+      const rawRange = computeDomain(pointValues.map((v) => v.y));
+      const reducedWidth = windowWidth - imageOverhangX;
+      const reducedHeight = windowHeight - imageOverhangY;
+      const rawDomainUnitInPx = reducedWidth / (rawDomain[1] - rawDomain[0]);
+      const rawRangeUnitInPx = reducedHeight / (rawRange[1] - rawRange[0]);
+      const domain = computeDomain(pointValues.map((v) => {
+        let left, right;
+        if (!autosizeImage || !v.image) {
+          let halfPointSize = pointSize / 2;
+          let inDomainHalfPointSize = halfPointSize / rawDomainUnitInPx;
+          return [v.x - inDomainHalfPointSize, v.x + inDomainHalfPointSize];
+        }
+        left = v.x - v.imageOffsetX * v.imageWidth / rawDomainUnitInPx;
+        right = left + v.imageWidth / rawDomainUnitInPx;
+        return [left, right];
+      }).flat());
+      console.log("Raw domain", computeDomain(pointValues.map((v) => v.x)), "Point size", pointSize);
+      console.log({reducedWidth, imageOverhangX, rawDomainUnitInPx});
+      console.log("Extended domain", domain);
+
+      const range = computeDomain(pointValues.map((v) => {
+        let top, bot;
+        if (!autosizeImage || !v.image) {
+          let halfPointSize = pointSize / 2;
+          let inDomainHalfPointSize = halfPointSize / rawDomainUnitInPx;
+          return [v.y - inDomainHalfPointSize, v.y + inDomainHalfPointSize];
+        }
+        top = v.y + v.imageOffsetY * v.imageHeight / rawDomainUnitInPx;
+        bot = top - v.imageHeight / rawDomainUnitInPx;
+        return [top, bot];
+      }).flat());
+      console.log("Raw range", computeDomain(pointValues.map((v) => v.y)), "Point size", pointSize);
+      console.log("Extended range", range);
+
+      function unionExtents(...names) {
+        const names0 = names.map((s) => `${s}[0]`);
+        const names1 = names.map((s) => `${s}[0]`);
+        return `[min(${names0.join(',')}), max(${names1.join(',')})]`
+      }
       const signals = [
-        { name: `${prefix}extentX`, update: `extent(pluck(data("${prefix}rawTable"), "x"))` },
-        { name: `${prefix}extentY`, update: `extent(pluck(data("${prefix}rawTable"), "y"))` },
+        { name: `${prefix}reducedWidth`, update: `width - ${imageOverhangX}` },
+        { name: `${prefix}reducedHeight`, update: `height - ${imageOverhangY}` },
+        { name: `${prefix}rawDomainUnitInPx`, update: `${prefix}reducedWidth / ${rawDomain[1] - rawDomain[0]}` },
+        { name: `${prefix}rawRangeUnitInPx`, update: `${prefix}reducedHeight / ${rawRange[1] - rawRange[0]}` },
+        { name: `${prefix}extentLeft`, update: `extent(pluck(data("${prefix}tableMarkExtents"), "left"))` },
+        { name: `${prefix}extentRight`, update: `extent(pluck(data("${prefix}tableMarkExtents"), "right"))` },
+        { name: `${prefix}extentX`, update: unionExtents(`${prefix}extentLeft`, `${prefix}extentRight`) },
+        { name: `${prefix}extentY`, update: `[${range}]` },
       ];
       const scales = [
         { name: `${prefix}xscale`,
-          type: 'linear',
+          ...xAxisType,
           domain: { signal: `${prefix}extentX` },
           range: 'width',
           nice: true },
         { name: `${prefix}yscale`,
-          type: 'linear',
+          ...yAxisType,
           domain: { signal: `${prefix}extentY` },
           range: 'height',
           nice: true }
@@ -2322,8 +2408,6 @@
           signal: `{ title: "${legend}", Label: datum.label, x: datum.x, y: datum.y }` },
         { signal: `{ title: "${legend}", x: datum.x, y: datum.y }` },
       ];
-      const imageScaleFactorX = autosizeImage ? '-datum.imageWidth' : -pointSize;
-      const imageScaleFactorY = autosizeImage ? '-datum.imageHeight' : -pointSize;
       marks.push({
         type: 'image',
         from: { data: `${prefix}images` },
@@ -2479,6 +2563,8 @@
     function intervalPlot(globalOptions, rawData, config) {
       const xAxisLabel = globalOptions['x-axis'];
       const yAxisLabel = globalOptions['y-axis'];
+      const xAxisType = globalOptions['x-axis-type'];
+      const yAxisType = globalOptions['y-axis-type'];
       const legend = get(rawData, 'legend') || config.legend;
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
@@ -2548,12 +2634,12 @@
 
       const scales = [
         { name: `${prefix}xscale`,
-          type: 'linear',
+          ...xAxisType,
           domain: { signal: `${prefix}extentX` },
           range: 'width',
           nice: false },
         { name: `${prefix}yscale`,
-          type: 'linear',
+          ...yAxisType,
           domain: { signal: `${prefix}extentY` },
           range: 'height',
           nice: false }
@@ -2695,6 +2781,8 @@
       const domain = config.domain;
       const xMinValue = domain[0];
       const xMaxValue = domain[1];
+      const xAxisType = globalOptions['x-axis-type'];
+      const yAxisType = globalOptions['y-axis-type'];
 
       const fraction = (xMaxValue - xMinValue) / (numSamples - 1);
 
@@ -2708,7 +2796,7 @@
         // from the surrounding chart context
         {
           name: `${prefix}yscale`,
-          type: 'linear',
+          ...yAxisType,
           domain: { signal: `${prefix}extentY` },
           range: 'height',
           nice: true
@@ -2807,6 +2895,8 @@
       const numSamples = toFixnum(globalOptions['num-samples']);
       const xAxisLabel = globalOptions['x-axis'];
       const yAxisLabel = globalOptions['y-axis'];
+      const xAxisType = globalOptions['x-axis-type'];
+      const yAxisType = globalOptions['y-axis-type'];
       const width = toFixnum(globalOptions['width']);
       const height = toFixnum(globalOptions['height']);
       const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
@@ -2827,9 +2917,9 @@
         { name: 'yscaleSignal', update: unionScaleSignal(scales.filter((s) => s.name.endsWith('yscale'))) }
       );
       scales.push(
-        { name: 'xscale', domain: { signal: 'xscaleSignal' }, range: 'width',
+        { name: 'xscale', domain: { signal: 'xscaleSignal' }, range: 'width', ...xAxisType,
           domainMin: { signal: 'xMinValue' }, domainMax: { signal: 'xMaxValue' } },
-        { name: 'yscale', domain: { signal: 'yscaleSignal' }, range: 'height',
+        { name: 'yscale', domain: { signal: 'yscaleSignal' }, range: 'height', ...yAxisType,
           domainMin: { signal: 'yMinValue' }, domainMax: { signal: 'yMaxValue' } }
       );
 
@@ -2866,10 +2956,14 @@
           clip: true,
           encode: {
             enter: {
-              x: { signal: `range("xscale")[0]` },
-              x2: { signal: `range("xscale")[1]` },
-              y: { signal: `range("yscale")[0]` },
-              y2: { signal: `range("yscale")[1]` }
+              x: { signal: `invert(0, "xscale")` },
+              x2: { signal: `invert(width, "xscale")` },
+              y2: { signal: `invert(0, "yscale")` },
+              y: { signal: `invert(height, "yscale")` }
+              // x: { signal: `range("xscale")[0]` },
+              // x2: { signal: `range("xscale")[1]` },
+              // y: { signal: `range("yscale")[0]` },
+              // y2: { signal: `range("yscale")[1]` }
             }
           },
           marks: charts.flatMap((c) => c.marks || []),
@@ -3266,10 +3360,21 @@
     }
         
 
+    function configScale(val) {
+      return cases(get(CHARTSUTIL, "is-AxisType"), "AxisType", val, {
+        'at-linear': () => ({ type: 'linear' }),
+        'at-power': (pow) => ({ type: 'pow', exponent: toFixnum(pow) }),
+        'at-log': (base) => ({ type: 'log', base: toFixnum(base) }),
+        'at-symlog': (base) => ({ type: 'symlog', constant: toFixnum(base) })
+      });
+    }
     function pyretObjToObj(globalOptions) {
       const ret = {};
       for (const field of RUNTIME.getFields(globalOptions)) {
         ret[field] = get(globalOptions, field);
+        if (get(CHARTSUTIL, 'is-AxisType').app(ret[field])) {
+          ret[field] = configScale(ret[field]);
+        }
       }
       return ret;
     }

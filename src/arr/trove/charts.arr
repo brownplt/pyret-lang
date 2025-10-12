@@ -4,15 +4,19 @@ provide:
   from-list,
   type DataSeries,
   type ChartWindow,
-  data StackType,
-  data TrendlineType,
-  data PointShape
 end
 
 import global as G
 import base as B
 include lists
 include option
+include charts-util
+import charts-util as CU
+provide from CU:
+  *,
+  type *,
+  data *
+end
 import image-structs as I
 import internal-image-untyped as IM
 import sets as S
@@ -47,45 +51,6 @@ data SciNumber:
 end
 data AxisData: 
   | axis-data(axisTop :: Number, axisBottom :: Number, ticks :: RawArray<Pointer>)
-end
-data StackType:
-  | absolute
-  | relative
-  | percent
-  | grouped
-end
-
-fun check-positive-degree(v :: Number) -> Boolean block: 
-  when v < 0: 
-    raise("degree: degree must be non-negative")
-  end
-  true
-end
-
-data TrendlineType:
-  | no-trendline
-  | linear
-  | exponential
-  | polynomial(degree :: NumInteger%(check-positive-degree))
-end
-
-fun check-positive-sides(v :: Number) -> Boolean block: 
-  when v < 0: 
-    raise("regular-polygon-shape: number of sides must be non-negative")
-  end
-  true
-end
-
-fun check-valid-dent(v :: Number) -> Boolean block: 
-  when (v < 0) or (v > 1): 
-    raise("regular-polygon-shape: dent must be between 0 and 1")
-  end
-  true
-end
-
-data PointShape: 
-  | circle-shape
-  | regular-polygon-shape(sides :: NumInteger%(check-positive-sides), dent :: Number%(check-valid-dent))
 end
 
 ################################################################################
@@ -442,9 +407,9 @@ end
 trendline-type-method = method(self, trendlineType :: TrendlineType):
 cases (TrendlineType) trendlineType: 
     | no-trendline => self.constr()(self.obj.{trendlineType: none})
-    | linear => self.constr()(self.obj.{trendlineType: some("poly"), trendlineDegree: 1})
-    | exponential => self.constr()(self.obj.{trendlineType: some("exp")})
-    | polynomial(degree) => self.constr()(self.obj.{trendlineType: some("poly"), trendlineDegree: degree})
+    | tl-linear => self.constr()(self.obj.{trendlineType: some("poly"), trendlineDegree: 1})
+    | tl-exponential => self.constr()(self.obj.{trendlineType: some("exp")})
+    | tl-polynomial(degree) => self.constr()(self.obj.{trendlineType: some("poly"), trendlineDegree: degree})
   end
   
 end
@@ -543,6 +508,14 @@ end
 
 y-axis-method = method(self, y-axis :: String):
   self.constr()(self.obj.{y-axis: y-axis})
+end
+
+x-axis-type-method = method(self, x-axis-type :: AxisType):
+  self.constr()(self.obj.{x-axis-type: x-axis-type})
+end
+
+y-axis-type-method = method(self, y-axis-type :: AxisType):
+  self.constr()(self.obj.{y-axis-type: y-axis-type})
 end
 
 x-min-method = method(self, x-min :: Number):
@@ -1375,6 +1348,8 @@ type BoxChartWindowObject = {
   borderColor :: Option<I.Color>, 
   x-axis :: String,
   y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
   min :: Option<Number>,
   max :: Option<Number>,
   render :: ( -> IM.Image),
@@ -1383,6 +1358,8 @@ type BoxChartWindowObject = {
 default-box-plot-chart-window-object :: BoxChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
+  x-axis-type: at-linear,
+  y-axis-type: at-linear,
   min: none,
   max: none,
 }
@@ -1408,12 +1385,16 @@ type DotChartWindowObject = {
   borderColor :: Option<I.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
-  y-axis :: String
+  y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
 }
 
 default-dot-chart-window-object :: DotChartWindowObject = default-chart-window-object.{
   x-axis: '',
-  y-axis: ''
+  y-axis: '',
+  x-axis-type: at-linear,
+  y-axis-type: at-linear,
 }
 
 type BarChartWindowObject = {
@@ -1426,6 +1407,8 @@ type BarChartWindowObject = {
   render :: ( -> IM.Image),
   x-axis :: String,
   y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
   y-min :: Option<Number>,
   y-max :: Option<Number>,
 }
@@ -1433,6 +1416,8 @@ type BarChartWindowObject = {
 default-bar-chart-window-object :: BarChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
+  x-axis-type: at-linear,
+  y-axis-type: at-linear,
   y-min: none,
   y-max: none,
 }
@@ -1447,6 +1432,8 @@ type IntervalChartWindowObject = {
   render :: ( -> IM.Image),
   x-axis :: String,
   y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
   y-min :: Option<Number>,
   y-max :: Option<Number>,
 }
@@ -1454,6 +1441,8 @@ type IntervalChartWindowObject = {
 default-interval-chart-window-object :: IntervalChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
+  x-axis-type: at-linear,
+  y-axis-type: at-linear,
   y-min: none,
   y-max: none,
 }
@@ -1468,6 +1457,8 @@ type HistogramChartWindowObject = {
   render :: ( -> IM.Image),
   x-axis :: String,
   y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
   x-min :: Option<Number>,
   x-max :: Option<Number>,
   y-max :: Option<Number>,
@@ -1477,6 +1468,8 @@ default-histogram-chart-window-object :: HistogramChartWindowObject =
   default-chart-window-object.{
     x-axis: '',
     y-axis: '',
+    x-axis-type: at-linear,
+    y-axis-type: at-linear,
     x-min: none,
     x-max: none,
     y-max: none,
@@ -1498,6 +1491,8 @@ type PlotChartWindowObject = {
   minorGridlineMinspacing :: Number, 
   x-axis :: String,
   y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
   x-min :: Option<Number>,
   x-max :: Option<Number>,
   y-min :: Option<Number>,
@@ -1509,6 +1504,8 @@ type PlotChartWindowObject = {
 default-plot-chart-window-object :: PlotChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
+  x-axis-type: at-linear,
+  y-axis-type: at-linear,
   show-grid-lines: true,
   show-minor-grid-lines: false,
   x-min: none,
@@ -1736,28 +1733,38 @@ data ChartWindow:
     constr: {(): dot-chart-window},
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
   | box-plot-chart-window(obj :: BoxChartWindowObject) with:
     constr: {(): box-plot-chart-window},
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
     min: min-method,
     max: max-method,
   | bar-chart-window(obj :: BarChartWindowObject) with:
     constr: {(): bar-chart-window},
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
     y-min: y-min-method,
     y-max: y-max-method,
   | interval-chart-window(obj :: IntervalChartWindowObject) with:
     constr: {(): interval-chart-window},
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
     y-min: y-min-method,
     y-max: y-max-method,
   | histogram-chart-window(obj :: HistogramChartWindowObject) with:
     constr: {(): histogram-chart-window},
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
     x-min: x-min-method,
     x-max: x-max-method,
     y-max: y-max-method,
@@ -1771,6 +1778,8 @@ data ChartWindow:
     # minor-gridlines-minspacing: minor-gridlines-min-spacing-method, 
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
     x-min: x-min-method,
     x-max: x-max-method,
     y-min: y-min-method,
