@@ -2262,9 +2262,9 @@
         right = left + v.imageWidth / rawDomainUnitInPx;
         return [left, right];
       }).flat());
-      console.log("Raw domain", computeDomain(pointValues.map((v) => v.x)), "Point size", pointSize);
-      console.log({reducedWidth, imageOverhangX, rawDomainUnitInPx});
-      console.log("Extended domain", domain);
+      // console.log("Raw domain", computeDomain(pointValues.map((v) => v.x)), "Point size", pointSize);
+      // console.log({reducedWidth, imageOverhangX, rawDomainUnitInPx});
+      // console.log("Extended domain", domain);
 
       const range = computeDomain(pointValues.map((v) => {
         let top, bot;
@@ -2277,8 +2277,8 @@
         bot = top - v.imageHeight / rawDomainUnitInPx;
         return [top, bot];
       }).flat());
-      console.log("Raw range", computeDomain(pointValues.map((v) => v.y)), "Point size", pointSize);
-      console.log("Extended range", range);
+      // console.log("Raw range", computeDomain(pointValues.map((v) => v.y)), "Point size", pointSize);
+      // console.log("Extended range", range);
 
       function unionExtents(...names) {
         const names0 = names.map((s) => `${s}[0]`);
