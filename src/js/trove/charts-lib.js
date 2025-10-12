@@ -1752,12 +1752,14 @@
           name: 'binScale',
           type: 'linear',
           range: 'width',
+          zero: false,
           domain: { data: 'rawTable', field: 'bin1' }
         },
         {
           name: 'countScale',
           range: 'height',
           ...yAxisType,
+          zero: true,
           domain: { data: 'rawTable', field: 'y1' }
         }
       ];
@@ -1865,12 +1867,14 @@
         {
           name: 'binScale',
           type: 'linear',
+          zero: false,
           range: { signal: '[0, width - dotSize / 2]' },
           domain: { data: 'rawTable', field: 'value' }
         },
         {
           name: 'dotScale',
           ...yAxisType,
+          zero: true,
           range: { signal: '[height, dotSize / 2]' },
           domain: { signal: '[0, floor(height / dotSize)]' }
         }
@@ -2211,9 +2215,13 @@
           source: `${prefix}rawTable`,
           transform: [
             { type: 'formula', as: 'left',
-              expr: `datum.x + (isValid(datum.image) ? datum.imageOffsetX : ${-pointSize / 2}) * ${imageScaleFactorY} / ${prefix}rawDomainUnitInPx` },
+              expr: `datum.x + (isValid(datum.image) ? datum.imageOffsetX * ${imageScaleFactorX}: ${-pointSize / 2}) / ${prefix}rawDomainUnitInPx` },
             { type: 'formula', as: 'right',
-              expr: `datum.x + (isValid(datum.image) ? (datum.imageOffsetX - datum.imageWidth) : ${pointSize / 2}) * ${imageScaleFactorY} / ${prefix}rawDomainUnitInPx` },
+              expr: `datum.x + (isValid(datum.image) ? (datum.imageOffsetX * ${imageScaleFactorY} - datum.imageWidth) : ${pointSize}) / ${prefix}rawDomainUnitInPx` },
+            { type: 'formula', as: 'top',
+              expr: `datum.y + (isValid(datum.image) ? datum.imageOffsetY * ${imageScaleFactorY} : ${-pointSize / 2}) / ${prefix}rawRangeUnitInPx` },
+            { type: 'formula', as: 'bot',
+              expr: `datum.y + (isValid(datum.image) ? (datum.imageOffsetY * ${imageScaleFactorY} - datum.imageHeight) : ${pointSize}) / ${prefix}rawRangeUnitInPx` },
           ],
         },
         {
@@ -2282,7 +2290,7 @@
 
       function unionExtents(...names) {
         const names0 = names.map((s) => `${s}[0]`);
-        const names1 = names.map((s) => `${s}[0]`);
+        const names1 = names.map((s) => `${s}[1]`);
         return `[min(${names0.join(',')}), max(${names1.join(',')})]`
       }
       const signals = [
@@ -2292,19 +2300,23 @@
         { name: `${prefix}rawRangeUnitInPx`, update: `${prefix}reducedHeight / ${rawRange[1] - rawRange[0]}` },
         { name: `${prefix}extentLeft`, update: `extent(pluck(data("${prefix}tableMarkExtents"), "left"))` },
         { name: `${prefix}extentRight`, update: `extent(pluck(data("${prefix}tableMarkExtents"), "right"))` },
+        { name: `${prefix}extentTop`, update: `extent(pluck(data("${prefix}tableMarkExtents"), "top"))` },
+        { name: `${prefix}extentBot`, update: `extent(pluck(data("${prefix}tableMarkExtents"), "bot"))` },
         { name: `${prefix}extentX`, update: unionExtents(`${prefix}extentLeft`, `${prefix}extentRight`) },
-        { name: `${prefix}extentY`, update: `[${range}]` },
+        { name: `${prefix}extentY`, update: unionExtents(`${prefix}extentTop`, `${prefix}extentBot`) },
       ];
       const scales = [
         { name: `${prefix}xscale`,
           ...xAxisType,
           domain: { signal: `${prefix}extentX` },
           range: 'width',
+          zero: false,
           nice: true },
         { name: `${prefix}yscale`,
           ...yAxisType,
           domain: { signal: `${prefix}extentY` },
           range: 'height',
+          zero: false,
           nice: true }
       ];
       const marks = [];
@@ -2637,12 +2649,14 @@
           ...xAxisType,
           domain: { signal: `${prefix}extentX` },
           range: 'width',
-          nice: false },
+          nice: false,
+          zero: false },
         { name: `${prefix}yscale`,
           ...yAxisType,
           domain: { signal: `${prefix}extentY` },
           range: 'height',
-          nice: false }
+          nice: false,
+          zero: false }
       ];
       const tooltip = {
         signal: `{ title: datum.label, x: datum.x, y: datum.y, ŷ: datum.yprime, 'y - ŷ': datum.delta }`
@@ -2799,7 +2813,8 @@
           ...yAxisType,
           domain: { signal: `${prefix}extentY` },
           range: 'height',
-          nice: true
+          nice: true,
+          zero: false
         }
       ];
       const tooltip = {
@@ -2918,9 +2933,9 @@
       );
       scales.push(
         { name: 'xscale', domain: { signal: 'xscaleSignal' }, range: 'width', ...xAxisType,
-          domainMin: { signal: 'xMinValue' }, domainMax: { signal: 'xMaxValue' } },
+          domainMin: { signal: 'xMinValue' }, domainMax: { signal: 'xMaxValue' }, zero: false },
         { name: 'yscale', domain: { signal: 'yscaleSignal' }, range: 'height', ...yAxisType,
-          domainMin: { signal: 'yMinValue' }, domainMax: { signal: 'yMaxValue' } }
+          domainMin: { signal: 'yMinValue' }, domainMax: { signal: 'yMaxValue' }, zero: false }
       );
 
       // NOTE: For the axes, we're going to want to put the bar lines at the zeros
@@ -2956,14 +2971,10 @@
           clip: true,
           encode: {
             enter: {
-              x: { signal: `invert(0, "xscale")` },
-              x2: { signal: `invert(width, "xscale")` },
-              y2: { signal: `invert(0, "yscale")` },
-              y: { signal: `invert(height, "yscale")` }
-              // x: { signal: `range("xscale")[0]` },
-              // x2: { signal: `range("xscale")[1]` },
-              // y: { signal: `range("yscale")[0]` },
-              // y2: { signal: `range("yscale")[1]` }
+              x: { signal: `range("xscale")[0]` },
+              x2: { signal: `range("xscale")[1]` },
+              y: { signal: `range("yscale")[0]` },
+              y2: { signal: `range("yscale")[1]` }
             }
           },
           marks: charts.flatMap((c) => c.marks || []),
