@@ -3259,10 +3259,16 @@
     }
 
     function renderStaticImage(processed, globalOptions, rawData) {
+      function isImageOrCanvas(v) {
+        if (!v) return false;
+        if (IMAGE.isImage(v)) return true;
+        return canvasLib && canvasLib.Canvas && v instanceof canvasLib.Canvas;
+      }
+      const isVegaString = isTrue(globalOptions['vega']);
       return RUNTIME.pauseStack(restarter => {
         try {
-          if (canvasLib && canvasLib.Canvas) {
-            console.log(JSON.stringify(processed, (k, v) => (v && (IMAGE.isImage(v) || (v instanceof canvasLib.Canvas))) ? v.ariaText : v, 2));
+          if (isVegaString) {
+            return restarter.resume(JSON.stringify(processed, (k, v) => isImageOrCanvas(v) ? v.ariaText : v, 2));
           }
           const width = toFixnum(globalOptions['width']);
           const height = toFixnum(globalOptions['height']);

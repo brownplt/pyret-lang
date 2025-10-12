@@ -17,7 +17,8 @@ provide from CU:
   type *,
   data *
 end
-import image-structs as I
+import image-structs as IS
+import image as I
 import internal-image-untyped as IM
 import sets as S
 import charts-lib as CL
@@ -112,7 +113,7 @@ fun table2-to-list<A>(table :: RawArray<RawArray<A>>) -> List<List<A>>:
 end
 
 fun get-vs-from-img(s :: String, raw-img :: IM.Image) -> VS.ValueSkeleton:
-  I.color(190, 190, 190, 0.75)
+  IS.color(190, 190, 190, 0.75)
     ^ IM.text-font(s, 72, _, "", "modern", "normal", "bold", false)
     ^ IM.overlay-align("center", "bottom", _, raw-img)
     ^ VS.vs-value
@@ -293,7 +294,7 @@ end
 # METHODS
 ################################################################################
 
-color-method = method(self, color :: I.Color):
+color-method = method(self, color :: IS.Color):
   self.constr()(self.obj.{color: some(color)})
 end
 
@@ -302,17 +303,17 @@ color-list-method = method(self, colors :: CL.LoC):
     | empty => self.constr()(self.obj.{colors: none})
     | link(_, _) => 
       block:
-        each({(c :: I.Color): c}, colors)
+        each({(c :: IS.Color): c}, colors)
         self.constr()(self.obj.{colors: some(colors ^ builtins.raw-array-from-list)})
       end
   end
 end
 
-pointer-color-method = method(self, color :: I.Color):
+pointer-color-method = method(self, color :: IS.Color):
   self.constr()(self.obj.{pointer-color: some(color)})
 end
 
-interval-color-method = method(self, color :: I.Color):
+interval-color-method = method(self, color :: IS.Color):
   self.constr()(self.obj.{default-interval-color: some(color)})
 end
 
@@ -414,7 +415,7 @@ cases (TrendlineType) trendlineType:
   
 end
 
-trendline-color-method = method(self, color :: I.Color):
+trendline-color-method = method(self, color :: IS.Color):
   self.constr()(self.obj.{trendlineColor: some(color)})
 end
 
@@ -453,7 +454,7 @@ select-multiple-method = method(self, multiple :: Boolean):
   self.constr()(self.obj.{multiple: multiple})
 end
 
-background-color-method = method(self, color :: I.Color):
+background-color-method = method(self, color :: IS.Color):
   self.constr()(self.obj.{backgroundColor: some(color)})
 end
 
@@ -464,7 +465,7 @@ background-border-method = method(self, border-size :: Number) block:
   self.constr()(self.obj.{borderSize: border-size})
 end
 
-border-color-method = method(self, border-color :: I.Color):
+border-color-method = method(self, border-color :: IS.Color):
   self.constr()(self.obj.{borderColor: some(border-color)})
 end
 
@@ -480,11 +481,11 @@ show-grid-lines-method = method(self, is-showing :: Boolean):
   self.constr()(self.obj.{show-grid-lines: is-showing})
 end
 
-gridlines-color-method = method(self, color ::  I.Color):
+gridlines-color-method = method(self, color ::  IS.Color):
   self.constr()(self.obj.{show-grid-lines: true, gridlineColor: some(color)})
 end
 
-minor-gridlines-color-method = method(self, color ::  I.Color):
+minor-gridlines-color-method = method(self, color ::  IS.Color):
   self.constr()(self.obj.{show-minor-grid-lines: true, minorGridlineColor: some(color)})
 end
 
@@ -1033,7 +1034,7 @@ type BoxChartSeries = {
   tab :: TableIntern,
   height :: Number, 
   horizontal :: Boolean,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
 }
 
 default-box-plot-series = {
@@ -1044,7 +1045,7 @@ default-box-plot-series = {
 
 type PieChartSeries = {
   tab :: TableIntern,
-  colors :: Option<RawArray<I.Color>>,
+  colors :: Option<RawArray<IS.Color>>,
   threeD :: Boolean,
   piehole :: Number,
   startingAngle :: Number,
@@ -1062,15 +1063,15 @@ default-pie-chart-series = {
 type BarChartSeries = {
   tab :: TableIntern,
   axisdata :: Option<AxisData>, 
-  color :: Option<I.Color>,
-  colors :: Option<RawArray<I.Color>>,
+  color :: Option<IS.Color>,
+  colors :: Option<RawArray<IS.Color>>,
   pointers :: Option<RawArray<Pointer>>, 
-  pointer-color :: Option<I.Color>, 
+  pointer-color :: Option<IS.Color>, 
   horizontal :: Boolean,
   bandwidth :: Number,
   annotations :: RawArray<RawArray<Option<String>>>,
   intervals :: RawArray<RawArray<RawArray<Number>>>,
-  default-interval-color :: Option<I.Color>,
+  default-interval-color :: Option<IS.Color>,
 }
 
 default-bar-chart-series = {
@@ -1089,14 +1090,14 @@ type MultiBarChartSeries = {
   axisdata :: Option<AxisData>,
   legends :: RawArray<String>,
   is-stacked :: String,
-  colors :: Option<RawArray<I.Color>>,
+  colors :: Option<RawArray<IS.Color>>,
   pointers :: Option<RawArray<Pointer>>, 
-  pointer-color :: Option<I.Color>, 
+  pointer-color :: Option<IS.Color>, 
   horizontal :: Boolean,
   bandwidth :: Number,
   annotations :: RawArray<RawArray<Option<String>>>,
   intervals :: RawArray<RawArray<RawArray<Number>>>,
-  default-interval-color :: Option<I.Color>
+  default-interval-color :: Option<IS.Color>
 }
 
 default-multi-bar-chart-series = {
@@ -1115,7 +1116,7 @@ type HistogramSeries = {
   bin-width :: Option<Number>,
   max-num-bins :: Option<Number>,
   min-num-bins :: Option<Number>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
 }
 
 default-histogram-series = {
@@ -1127,12 +1128,12 @@ default-histogram-series = {
 
 type LinePlotSeries = {
   ps :: List<Posn>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   legend :: String,
   curved :: String,
   lineWidth :: Number,
   trendlineType :: Option<String>,
-  trendlineColor :: Option<I.Color>,
+  trendlineColor :: Option<IS.Color>,
   trendlineWidth :: Number, 
   trendlineOpacity :: Number, 
   trendlineDegree :: NumInteger, 
@@ -1177,12 +1178,12 @@ type ScatterPoint = {
           
 type ScatterPlotSeries = {
   ps :: List<ScatterPoint>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   legend :: String,
   point-size :: Number,
   useImageSizes :: Boolean,
   trendlineType :: Option<String>,
-  trendlineColor :: Option<I.Color>,
+  trendlineColor :: Option<IS.Color>,
   trendlineWidth :: Number, 
   trendlineOpacity :: Number, 
   trendlineDegree :: NumInteger, 
@@ -1218,7 +1219,7 @@ type DotPoint = {
 
 type DotPlotSeries = {
   ps :: List<DotPoint>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   legend :: String,
   point-size :: Number,
   useImageSizes :: Boolean,
@@ -1238,7 +1239,7 @@ type CategoricalDotPoint ={
 
 type CategoricalDotPlotSeries = {
   ps :: List<CategoricalDotPoint>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   legend :: String
 }
 
@@ -1256,18 +1257,18 @@ type IntervalPoint = {
 }
 type IntervalChartSeries = {
   axisdata :: Option<AxisData>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   pointers :: Option<RawArray<Pointer>>,
-  pointer-color :: Option<I.Color>,
+  pointer-color :: Option<IS.Color>,
   point-size :: Number,
   lineWidth :: Number,
   stick-width :: Number,
   style :: String,
   horizontal :: Boolean,
-  default-interval-color :: Option<I.Color>,
+  default-interval-color :: Option<IS.Color>,
   legend :: String,
   trendlineType :: Option<String>,
-  trendlineColor :: Option<I.Color>,
+  trendlineColor :: Option<IS.Color>,
   trendlineWidth :: Number,
   trendlineOpacity :: Number,
   trendlineDegree :: NumInteger,
@@ -1306,7 +1307,7 @@ default-interval-chart-series = {
 
 type FunctionPlotSeries = {
   f :: PlottableFunction,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   legend :: String,
   horizontal :: Boolean,
 }
@@ -1323,9 +1324,9 @@ type ChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image)
 }
 
@@ -1343,9 +1344,9 @@ type BoxChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   x-axis :: String,
   y-axis :: String,
   x-axis-type :: AxisType,
@@ -1368,9 +1369,9 @@ type PieChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
 }
 
@@ -1380,9 +1381,9 @@ type DotChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
   y-axis :: String,
@@ -1401,9 +1402,9 @@ type BarChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
   y-axis :: String,
@@ -1426,9 +1427,9 @@ type IntervalChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number,
-  borderColor :: Option<I.Color>,
+  borderColor :: Option<IS.Color>,
   render :: ( -> IM.Image),
   x-axis :: String,
   y-axis :: String,
@@ -1451,9 +1452,9 @@ type HistogramChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
   y-axis :: String,
@@ -1479,15 +1480,15 @@ type PlotChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   show-grid-lines :: Boolean,
   show-minor-grid-lines :: Boolean,
-  gridlineColor :: Option<I.Color>, 
+  gridlineColor :: Option<IS.Color>, 
   gridlineMinspacing :: Option<Number>, 
-  minorGridlineColor :: Option<I.Color>, 
+  minorGridlineColor :: Option<IS.Color>, 
   minorGridlineMinspacing :: Number, 
   x-axis :: String,
   y-axis :: String,
@@ -1802,6 +1803,10 @@ sharing:
   method get-image(self):
     _ = check-chart-window(self.obj)
     self.obj.{interact: false}.render()
+  end,
+  method get-spec(self):
+    _ = check-chart-window(self.obj)
+    self.obj.{interact: false, vega: true}.render()
   end,
   method title(self, title :: String):
     self.constr()(self.obj.{title: title})
@@ -2823,51 +2828,24 @@ fun render-charts(lst :: List<DataSeries>) -> ChartWindow block:
 
       # shadow self = self.{y-min: y-min, y-max: y-max}
 
-      fun helper(shadow self, shadow function-plots-data :: Option) -> IM.Image:
-        shadow function-plots-data = cases (Option) function-plots-data:
-          | none => function-plots
-              .map(generate-xy(_, self.x-min.value, self.x-max.value, self.num-samples))
-          | some(shadow function-plots-data) => function-plots-data
-        end
-
-        # scatters-arr = for map(p from scatter-plots + function-plots-data):
-        #   ps-to-arr(p.{ps: p.ps.filter(in-bound-xy(_, self))})
-        # end ^ reverse ^ builtins.raw-array-from-list
-
-        # lines-arr = for map(p from line-plots):
-        #   ps-to-arr(p.{ps: line-plot-edge-cut(p.ps, self)})
-        # end ^ reverse ^ builtins.raw-array-from-list
-
-        # intervals-arr = for map(p from interval-plots):
-        #   ps-to-arr(p.{ps: p.ps.filter(in-bound-xy(_, self))})
-        # end ^ reverse ^ builtins.raw-array-from-list
-
-        ret = CL.plot(self, {
+      CL.plot(self, {
           scatters: builtins.raw-array-from-list(scatter-plots), 
           lines: builtins.raw-array-from-list(line-plots),
           intervals: builtins.raw-array-from-list(interval-plots),
           functions: builtins.raw-array-from-list(function-plots)
         })
-        # NOTE(Ben): THIS IS A POLYFILL FOR NOW,
-        # until I remove the Either callback hooking mechanism altogether.
-        if (IM.is-image(ret)): ret
-        else:
-          cases (E.Either<Any, IM.Image>) ret:
-            | left(new-self) => helper(new-self, none)
-            | right(image) => image
-          end
-        end
-      end
-      helper(self, some(empty))
     end
   } ^ plot-chart-window
 where:
-  p1 = from-list.function-plot(lam(x): x * x end).color(I.red)
-  p2 = from-list.line-plot([list: 1, 2, 3, 4], [list: 1, 4, 9, 16]).color(I.green)
+  xs = [list: 1, 3, 5, 8, 20]
+  ys = [list: 5, 3, 8, 2, 10]
+  p1 = from-list.function-plot(lam(x): x * x end).color(IS.red)
+  p2 = from-list.line-plot([list: 1, 2, 3, 4], [list: 1, 4, 9, 16]).color(IS.green)
   p3 = from-list.histogram([list: 1, 2, 3, 4])
   p4 = from-list.line-plot(
       [list: -1, 1,  2, 3, 11, 8, 9],
       [list: 10, -1, 11, 9,  9, 3, 2])
+  p5 = from-list.scatter-plot(ys, xs)
   render-charts([list: p1, p2, p3]) raises ''
   render-charts([list: p1, p2])
     .title('quadratic function and a scatter plot')
@@ -2882,6 +2860,12 @@ where:
     .y-min(0)
     .y-max(10)
     .get-image() does-not-raise
+  render-chart(p5) does-not-raise
+  img = render-chart(p5).get-image()
+  img satisfies I.is-image
+  I.image-pinhole-x(img) is I.image-width(img) / 2
+  I.image-pinhole-y(img) is I.image-height(img) / 2
+  render-chart(p5).get-spec() satisfies is-string
 end
 
 from-list = {
