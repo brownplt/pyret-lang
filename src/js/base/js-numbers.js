@@ -1624,8 +1624,8 @@ define("pyret-base/js/js-numbers", function() {
     var newN = sqrt(this.n);
     var newD = sqrt(this.d);
     if (isRational(newN) && isRational(newD) &&
-        equals(floor(newN), newN, errbacks) &&
-        equals(floor(newD), newD, errbacks)) {
+        equals(floor(newN, errbacks), newN, errbacks) &&
+        equals(floor(newD, errbacks), newD, errbacks)) {
       return Rational.makeInstance(newN, newD, errbacks);
     } else {
       return divide(newN, newD, errbacks);
@@ -1725,7 +1725,7 @@ define("pyret-base/js/js-numbers", function() {
     if (sign(m) < 0)
       errbacks.throwDomainError('integerNthRoot: radicand ' + m + ' is negative.');
     var guessPrev, guessToTheN;
-    var guess = floor(m);
+    var guess = floor(m, errbacks);
 
     // find closest integral zero of x^n - m = 0 using Newton-Raphson.
     // if k'th guess is x_k, then
@@ -1775,8 +1775,8 @@ define("pyret-base/js/js-numbers", function() {
       var newN = nthRoot(a.d, nRaisedToAn, errbacks);
       var newD = nthRoot(a.d, dRaisedToAn, errbacks);
       if (isRational(newN) && isRational(newD) &&
-          equals(floor(newN), newN, errbacks) &&
-          equals(floor(newD), newD, errbacks)) {
+          equals(floor(newN, errbacks), newN, errbacks) &&
+          equals(floor(newD, errbacks), newD, errbacks)) {
         return Rational.makeInstance(newN, newD, errbacks);
       } else {
         return divide(newN, newD, errbacks);
