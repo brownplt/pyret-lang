@@ -2589,7 +2589,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // (public) return string representation in given radix
   function bnToString(b) {
-    if(this.s < 0) return "-"+this.negate().toString(b);
+    if(this.s < 0) return "-"+this.negate({}).toString(b);
     var k;
     if(b == 16) k = 4;
     else if(b == 8) k = 3;
@@ -2621,7 +2621,7 @@ define("pyret-base/js/js-numbers", function() {
   function bnNegate() { var r = nbi(); BigInteger.ZERO.subTo(this,r); return r; }
 
   // (public) |this|
-  function bnAbs() { return (this.s<0)?this.negate():this; }
+  function bnAbs() { return (this.s<0)?this.negate({}):this; }
 
   // (public) return + if this > a, - if this < a, 0 if equal
   function bnCompareTo(a) {
@@ -3458,8 +3458,8 @@ define("pyret-base/js/js-numbers", function() {
 
   // (public) gcd(this,a) (HAC 14.54)
   function bnGCD(a) {
-    var x = (this.s<0)?this.negate():this.clone();
-    var y = (a.s<0)?a.negate():a.clone();
+    var x = (this.s<0)?this.negate({}):this.clone();
+    var y = (a.s<0)?a.negate({}):a.clone();
     if(x.compareTo(y) < 0) { var t = x; x = y; y = t; }
     var i = x.getLowestSetBit(), g = y.getLowestSetBit();
     if(g < 0) return x;
@@ -3648,7 +3648,7 @@ define("pyret-base/js/js-numbers", function() {
   //////////////////////////////////////////////////////////////////////
   // END OF copy-and-paste of jsbn.
 
-  BigInteger.NEGATIVE_ONE = BigInteger.ONE.negate();
+  BigInteger.NEGATIVE_ONE = BigInteger.ONE.negate({});
 
   // Other methods we need to add for compatibilty with js-numbers numeric tower.
 
