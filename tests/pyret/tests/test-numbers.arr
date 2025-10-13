@@ -193,6 +193,9 @@ check:
   # Racket gives ~84709.80298615794, Wolfram ~84709.80298615795
   num-log(1e36789) is-roughly ~84709.80298615796
 
+  # Racket gives ~-171658.17010439213, Wolfram 171658.170104392139
+  num-log(1 / num-expt(9, num-expt(5, 7))) is-roughly ~-171658.17010439216
+
   # Racket, Wolfram match
   # commenting because arg calculation takes much time
   # num-log(num-expt(10, 1e5)) is-roughly ~230258.50929940457
