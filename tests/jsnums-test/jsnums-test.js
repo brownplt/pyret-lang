@@ -282,7 +282,8 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN.toFixnum(-5, sampleErrbacks)).toBe(-5);
       expect(JN.toFixnum(0, sampleErrbacks)).toBe(0);
       expect(JN.toFixnum(3.14, sampleErrbacks)).toBe(3.14);
-      expect(JN.toFixnum(JN.Rational.makeInstance(355, 113, sampleErrbacks), sampleErrbacks)).toBe(355/113);
+      expect(JN.toFixnum(JN.Rational.makeInstance(355, 113, sampleErrbacks), sampleErrbacks))
+        .toBe(355/113);
       expect(JN.toFixnum(JN.expt(10, 400, sampleErrbacks), sampleErrbacks)).toBe(Infinity);
       expect(JN.toFixnum(JN.Roughnum.makeInstance(2.718, sampleErrbacks), sampleErrbacks)).toBe(2.718);
 

@@ -1005,7 +1005,7 @@ define("pyret-base/js/js-numbers", function() {
       var new_yn = multiply(yn, divide(new_d, yd, errbacks), errbacks);
       return divide(remainder(new_xn, new_yn, errbacks), new_d, errbacks);
     } else {
-      var res = toFixnum(x) % toFixnum(y);
+      var res = toFixnum(x, errbacks) % toFixnum(y, errbacks);
       return Roughnum.makeInstance(res, errbacks);
     }
   };
@@ -1088,7 +1088,7 @@ define("pyret-base/js/js-numbers", function() {
       }
       if (m instanceof Roughnum || n instanceof Roughnum) {
         return Roughnum.makeInstance(
-          onFixnums(toFixnum(m), toFixnum(n), errbacks), errbacks);
+          onFixnums(toFixnum(m, errbacks), toFixnum(n, errbacks), errbacks), errbacks);
       }
       if (typeof(m) === 'number') {
         m = makeBignum(m);
@@ -1755,8 +1755,9 @@ define("pyret-base/js/js-numbers", function() {
     if (mNeg) approx = negate(approx, errbacks);
     if (eqv(expt(approx, n, errbacks), m, errbacks)) return approx;
 
-    approx = Roughnum.makeInstance(Math.pow(toFixnum(mAbs),
-                                            toFixnum(divide(1,n, errbacks))), errbacks);
+    approx = Roughnum.makeInstance(Math.pow(toFixnum(mAbs, errbacks),
+                                            toFixnum(divide(1,n, errbacks), errbacks)),
+                                   errbacks);
     return (mNeg ? negate(approx, errbacks) : approx);
   };
 
@@ -3793,7 +3794,7 @@ define("pyret-base/js/js-numbers", function() {
       if (eqv(sqr(approx, errbacks), this, errbacks)) {
         return approx;
       }
-      fix = toFixnum(this);
+      fix = toFixnum(this, errbacks);
       if (isFinite(fix)) {
         return Roughnum.makeInstance(Math.sqrt(fix), errbacks);
       } else {
@@ -4006,7 +4007,7 @@ define("pyret-base/js/js-numbers", function() {
       errbacks.throwDomainError('num-to-string-digits: digits should be an integer');
     }
     var tenDigits = expt(10, digits, errbacks);
-    var d = toFixnum(digits);
+    var d = toFixnum(digits, errbacks);
     n = divide(round(multiply(n, tenDigits, errbacks), errbacks), tenDigits, errbacks);
     if (isInteger(n, errbacks)) {
       var ans = n.toString();
