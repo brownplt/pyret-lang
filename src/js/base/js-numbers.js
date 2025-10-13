@@ -235,8 +235,8 @@ define("pyret-base/js/js-numbers", function() {
 
   // isInteger: pyretnum -> boolean
   var isInteger = function(n, errbacks) {
-    if (typeof(n) === 'number') return Number.isInteger(n);
-    if (isPyretNumber(n)) return n.isInteger();
+    if (typeof(n) === 'number') return Number.isInteger(n, errbacks);
+    if (isPyretNumber(n)) return n.isInteger(errbacks);
     return false;
   };
 
@@ -336,10 +336,10 @@ define("pyret-base/js/js-numbers", function() {
       return x.add(y);
     },
     {isXSpecialCase: function(x, errbacks) {
-      return isInteger(x) && _integerIsZero(x, errbacks) },
+      return isInteger(x, errbacks) && _integerIsZero(x, errbacks) },
      onXSpecialCase: function(x, y, errbacks) { return y; },
      isYSpecialCase: function(y, errbacks) {
-       return isInteger(y) && _integerIsZero(y, errbacks) },
+       return isInteger(y, errbacks) && _integerIsZero(y, errbacks) },
      onYSpecialCase: function(x, y, errbacks) { return x; }
     });
 
@@ -369,10 +369,10 @@ define("pyret-base/js/js-numbers", function() {
       return x.subtract(y);
     },
     {isXSpecialCase: function(x, errbacks) {
-      return isInteger(x) && _integerIsZero(x, errbacks) },
+      return isInteger(x, errbacks) && _integerIsZero(x, errbacks) },
      onXSpecialCase: function(x, y, errbacks) { return negate(y, errbacks); },
      isYSpecialCase: function(y, errbacks) {
-       return isInteger(y) && _integerIsZero(y, errbacks) },
+       return isInteger(y, errbacks) && _integerIsZero(y, errbacks) },
      onYSpecialCase: function(x, y, errbacks) { return x; }
     });
 
@@ -402,7 +402,7 @@ define("pyret-base/js/js-numbers", function() {
       return x.multiply(y, errbacks);
     },
     {isXSpecialCase: function(x, errbacks) {
-      return (isInteger(x) &&
+      return (isInteger(x, errbacks) &&
               (_integerIsZero(x, errbacks) || _integerIsOne(x, errbacks) || _integerIsNegativeOne(x, errbacks))) },
      onXSpecialCase: function(x, y, errbacks) {
        if (_integerIsZero(x, errbacks))
