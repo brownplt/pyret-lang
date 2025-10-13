@@ -20,18 +20,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
     throwGeneralError: function(x) { throw new Error('generalError ' + x); },
   };
 
-  function arrayEquals(A, B) {
-    if (A === B) return true;
-    if (!Array.isArray(A) || !Array.isArray(B)) return false;
-    // both are arrays
-    var n = A.length;
-    if (B.length !== n) return false;
-    for (var i = 0; i < n; i++) {
-      if (!arrayEquals(A[i], B[i])) return false;
-    }
-    return true;
-  }
-
   describe("check functions that don't allow testing via Pyret programs", function() {
 
     it("make*opFun", function() {
@@ -358,14 +346,10 @@ R(["pyret-base/js/js-numbers"], function(JN) {
     it('other subrs', function() {
 
       // toRepeatingDecimal
-      expect(arrayEquals(JN.toRepeatingDecimal(883, 700, undefined, sampleErrbacks),
-        ['1', '26', '142857'],
-        undefined, sampleErrbacks))
-        .toBe(true);
-      expect(arrayEquals(JN.toRepeatingDecimal(883, 700, {limit: 2}, sampleErrbacks),
-        ['1', '26', '...'],
-        undefined, sampleErrbacks))
-        .toBe(true);
+      expect(JN.toRepeatingDecimal(883, 700, undefined, sampleErrbacks))
+        .toEqual(['1', '26', '142857']);
+      expect(JN.toRepeatingDecimal(883, 700, {limit: 2}, sampleErrbacks))
+        .toEqual(['1', '26', '...']);
       expect(function() {
         JN.toRepeatingDecimal(355/113, 10, undefined, sampleErrbacks);
       }).toThrowError(/not an integer/);
@@ -401,10 +385,10 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         JN.toRepeatingDecimal(944473296573929, JN.makeBignum(0), undefined, sampleErrbacks);
       }).toThrowError(/d equals 0/);
 
-      expect(arrayEquals(JN._innards.getResidue(183, 700, 512, sampleErrbacks), ['26', '142857']))
-      .toBe(true);
-      expect(arrayEquals(JN._innards.getResidue(183, 700, 2, sampleErrbacks), ['26', '...']))
-      .toBe(true);
+      expect(JN._innards.getResidue(183, 700, 512, sampleErrbacks))
+      .toEqual(['26', '142857']);
+      expect(JN._innards.getResidue(183, 700, 2, sampleErrbacks))
+      .toEqual(['26', '...']);
 
       // toStringDigits
       expect(JN.toStringDigits(123456789, 5, sampleErrbacks))
