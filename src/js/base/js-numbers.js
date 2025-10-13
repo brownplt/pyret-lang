@@ -1700,7 +1700,7 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Rational.prototype.log = function(errbacks){
-    return Roughnum.makeInstance(Math.log(this.toFixnum(errbacks)), errbacks);
+    return log(this, errbacks);
   };
 
   Rational.prototype.tan = function(errbacks){
@@ -3837,7 +3837,7 @@ define("pyret-base/js/js-numbers", function() {
   // log: -> pyretnum
   // Produce the log.
   BigInteger.prototype.log = function(errbacks) {
-    return log(this.toFixnum(errbacks), errbacks);
+    return log(this, errbacks);
   };
 
   // tan: -> pyretnum

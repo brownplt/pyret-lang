@@ -793,6 +793,14 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // should raise exception for arg <= 0
       expect(function() { JN.makeBignum(-1).log(sampleErrbacks); }).toThrowError(/logNonPositive/);
 
+      // ensure log on VERYBIGINT and VERYSMALLRAT rationals converges
+      var VERYBIGINT = JN.expt(9, JN.expt(5, 7));
+      var VERYSMALLRAT = JN.divide(1, VERYBIGINT);
+      expect(JN.roughlyEquals(VERYBIGINT.log(sampleErrbacks),
+        171658, 0.1, sampleErrbacks));
+      expect(JN.roughlyEquals(VERYSMALLRAT.log(sampleErrbacks),
+        -171658, 0.1, sampleErrbacks));
+
       expect(JN.equals(
         JN.gcd(JN.makeBignum(24), JN.makeBignum(30), sampleErrbacks),
         6, sampleErrbacks))
