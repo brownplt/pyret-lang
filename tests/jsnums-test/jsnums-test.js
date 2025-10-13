@@ -288,14 +288,13 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
     it('number casts', function() {
 
-      // toFixnum (why no errbacks?)
-      expect(JN.toFixnum(5)).toBe(5);
-      expect(JN.toFixnum(-5)).toBe(-5);
-      expect(JN.toFixnum(0)).toBe(0);
-      expect(JN.toFixnum(3.14)).toBe(3.14);
-      expect(JN.toFixnum(JN.Rational.makeInstance(355, 113, sampleErrbacks))).toBe(355/113);
-      expect(JN.toFixnum(JN.expt(10, 400, sampleErrbacks))).toBe(Infinity);
-      expect(JN.toFixnum(JN.Roughnum.makeInstance(2.718, sampleErrbacks))).toBe(2.718);
+      expect(JN.toFixnum(5, sampleErrbacks)).toBe(5);
+      expect(JN.toFixnum(-5, sampleErrbacks)).toBe(-5);
+      expect(JN.toFixnum(0, sampleErrbacks)).toBe(0);
+      expect(JN.toFixnum(3.14, sampleErrbacks)).toBe(3.14);
+      expect(JN.toFixnum(JN.Rational.makeInstance(355, 113, sampleErrbacks), sampleErrbacks)).toBe(355/113);
+      expect(JN.toFixnum(JN.expt(10, 400, sampleErrbacks), sampleErrbacks)).toBe(Infinity);
+      expect(JN.toFixnum(JN.Roughnum.makeInstance(2.718, sampleErrbacks), sampleErrbacks)).toBe(2.718);
 
       // toRational (toExact is its alias)
       expect(JN.toRational(5, sampleErrbacks)).toBe(5);
@@ -349,7 +348,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(function() {
         JN.roughlyEquals(
           JN.toRoughnum(JN.expt(10, 400), sampleErrbacks),
-          JN.toFixnum(Infinity),
+          JN.toFixnum(Infinity, sampleErrbacks),
           0.00001, sampleErrbacks);
       })
         .toThrowError(/overflow/);
@@ -627,43 +626,43 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN._innards.splitIntIntoMantissaExpt('111222333444555666777888999'))
         .toEqual([1.1122233344455567, 26]);
 
-      expect(JN._innards._integerDivideToFixnum(2, 3))
+      expect(JN._innards._integerDivideToFixnum(2, 3, sampleErrbacks))
       .toEqual(2/3);
       expect(JN._innards._integerDivideToFixnum(JN.makeBignum('2e311'),
-        JN.makeBignum('3e311')))
+        JN.makeBignum('3e311'), sampleErrbacks))
       .toEqual(2/3);
 
-      expect(JN._innards._integerEquals(2,2))
+      expect(JN._innards._integerEquals(2,2, sampleErrbacks))
       .toEqual(true);
       expect(JN._innards._integerEquals(JN.makeBignum('2e311'),
-        JN.makeBignum('2e311')))
+        JN.makeBignum('2e311'), sampleErrbacks))
       .toEqual(true);
-      expect(JN._innards._integerEquals(2,3))
+      expect(JN._innards._integerEquals(2,3, sampleErrbacks))
       .toEqual(false);
       expect(JN._innards._integerEquals(JN.makeBignum('2e311'),
-        JN.makeBignum('3e311')))
+        JN.makeBignum('3e311'), sampleErrbacks))
       .toEqual(false);
 
-      expect(JN._innards._integerGreaterThan(2,2))
+      expect(JN._innards._integerGreaterThan(2,2, sampleErrbacks))
       .toEqual(false);
       expect(JN._innards._integerGreaterThan(JN.makeBignum('2e311'),
-        JN.makeBignum('2e311')))
+        JN.makeBignum('2e311'), sampleErrbacks))
       .toEqual(false);
-      expect(JN._innards._integerGreaterThan(2,3))
+      expect(JN._innards._integerGreaterThan(2,3, sampleErrbacks))
       .toEqual(false);
       expect(JN._innards._integerGreaterThan(JN.makeBignum('2e311'),
-        JN.makeBignum('3e311')))
+        JN.makeBignum('3e311'), sampleErrbacks))
       .toEqual(false);
 
-      expect(JN._innards._integerLessThan(2,2))
+      expect(JN._innards._integerLessThan(2,2, sampleErrbacks))
       .toEqual(false);
       expect(JN._innards._integerLessThan(JN.makeBignum('2e311'),
-        JN.makeBignum('2e311')))
+        JN.makeBignum('2e311'), sampleErrbacks))
       .toEqual(false);
-      expect(JN._innards._integerLessThan(2,3))
+      expect(JN._innards._integerLessThan(2,3, sampleErrbacks))
       .toEqual(true);
       expect(JN._innards._integerLessThan(JN.makeBignum('2e311'),
-        JN.makeBignum('3e311')))
+        JN.makeBignum('3e311'), sampleErrbacks))
       .toEqual(true);
 
       expect(JN._innards._integerGreaterThanOrEqual(2,2))
@@ -857,7 +856,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       // toRational?
       expect(JN.Rational.makeInstance(2, 3, sampleErrbacks).isRational()).toBe(true);
 
-      expect(JN.Rational.makeInstance(2, 4, sampleErrbacks).toFixnum()).toEqual(0.5);
+      expect(JN.Rational.makeInstance(2, 4, sampleErrbacks).toFixnum(sampleErrbacks)).toEqual(0.5);
 
       expect(JN.Rational.makeInstance(4, 6, sampleErrbacks)
         .numerator(sampleErrbacks))
@@ -987,7 +986,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(function () { JN.Roughnum.makeInstance(undefined, sampleErrbacks); })
         .toThrowError(/unsuitable/);
 
-      expect(JN.equals(JN.Roughnum.makeInstance(3.14, sampleErrbacks).toFixnum(), 3.14)).toBe(true);
+      expect(JN.equals(JN.Roughnum.makeInstance(3.14, sampleErrbacks).toFixnum(sampleErrbacks), 3.14)).toBe(true);
 
       expect(JN.roughlyEquals(JN.Roughnum.makeInstance(3.14, sampleErrbacks), 3.14,
         0.0001, sampleErrbacks))
@@ -995,15 +994,15 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
       expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks).isRoughnum()).toBe(true);
 
-      expect(JN.equals(JN.Roughnum.makeInstance(3.14, sampleErrbacks).toFixnum(), 3.14)).toBe(true);
+      expect(JN.equals(JN.Roughnum.makeInstance(3.14, sampleErrbacks).toFixnum(sampleErrbacks), 3.14)).toBe(true);
 
       // shouldn't roughnum's numerator method take errbacks?
 
       expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks)
-        .numerator(sampleErrbacks).toFixnum())
+        .numerator(sampleErrbacks).toFixnum(sampleErrbacks))
         .toEqual(157);
       expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks)
-        .denominator(sampleErrbacks).toFixnum())
+        .denominator(sampleErrbacks).toFixnum(sampleErrbacks))
         .toEqual(50);
 
       expect(JN.equals(
