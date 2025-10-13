@@ -1077,11 +1077,11 @@ define("pyret-base/js/js-numbers", function() {
     options = options || {};
     return (function(m, n, errbacks) {
       if (m instanceof Rational) {
-        m = numerator(m);
+        m = numerator(m, errbacks);
       }
 
       if (n instanceof Rational) {
-        n = numerator(n);
+        n = numerator(n, errbacks);
       }
 
       if (typeof(m) === 'number' && typeof(n) === 'number') {
@@ -1109,7 +1109,7 @@ define("pyret-base/js/js-numbers", function() {
     options = options || {};
     return (function(m, errbacks) {
       if (m instanceof Rational) {
-        m = numerator(m);
+        m = numerator(m, errbacks);
       }
 
       if (typeof(m) === 'number') {
