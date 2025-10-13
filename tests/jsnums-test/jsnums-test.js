@@ -421,11 +421,19 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN._innards.zfill(5)).toBe('00000');
 
       // liftFixnumInteger
-      expect(JN.equals(
-        JN._innards.liftFixnumInteger(3.14, JN.Rational.makeInstance(1,2,sampleErrbacks),
-          sampleErrbacks),
-        JN.Rational.makeInstance(314, 100, sampleErrbacks), sampleErrbacks))
+      // liftFixnumInteger is a misnomer, as the fixnum it's called on need not be an integer.
+      // in such cases, ensure that it produces an appropriate fraction
+      var n3p14 = JN._innards.liftFixnumInteger(3.14,
+                                                JN.Rational.makeInstance(1, 2, sampleErrbacks),
+                                                sampleErrbacks);
+
+      expect(JN.equals(n3p14, JN.Rational.makeInstance(314, 100, sampleErrbacks), sampleErrbacks))
       .toBe(true);
+      // further ensure that liftFixnumInteger(3.14, <rational>) produces a rational
+      // whose numerator and denominator are integers
+      expect(JN.isInteger(n3p14.numerator(sampleErrbacks))).toBe(true);
+      expect(JN.isInteger(n3p14.denominator(sampleErrbacks))).toBe(true);
+      //
       expect(JN.roughlyEquals(
         JN._innards.liftFixnumInteger(3.14, JN.Roughnum.makeInstance(2,sampleErrbacks),
           sampleErrbacks),
