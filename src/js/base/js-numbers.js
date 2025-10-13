@@ -3003,10 +3003,10 @@ define("pyret-base/js/js-numbers", function() {
   }
 
   // (public) return value as byte
-  function bnByteValue() { return (this.t==0)?this.s:(this[0]<<24)>>24; }
+  function OBSbnByteValue() { return (this.t==0)?this.s:(this[0]<<24)>>24; }
 
   // (public) return value as short (assumes DB>=16)
-  function bnShortValue() { return (this.t==0)?this.s:(this[0]<<16)>>16; }
+  function OBSbnShortValue() { return (this.t==0)?this.s:(this[0]<<16)>>16; }
 
   // (protected) return x s.t. r^x < DV
   function bnpChunkSize(r) { return Math.floor(Math.LN2*this.DB/Math.log(r)); }
@@ -3087,7 +3087,7 @@ define("pyret-base/js/js-numbers", function() {
   }
 
   // (public) convert to bigendian byte array
-  function bnToByteArray() {
+  function OBSbnToByteArray() {
     var i = this.t, r = [];
     r[0] = this.s;
     var p = this.DB-(i*this.DB)%8, d, k = 0;
@@ -3112,8 +3112,8 @@ define("pyret-base/js/js-numbers", function() {
   }
 
   function bnEquals(a, errbacks) { return(this.compareTo(a)==0); }
-  function bnMin(a) { return(this.compareTo(a)<0)?this:a; }
-  function bnMax(a) { return(this.compareTo(a)>0)?this:a; }
+  function OBSbnMin(a) { return(this.compareTo(a)<0)?this:a; }
+  function OBSbnMax(a) { return(this.compareTo(a)>0)?this:a; }
 
   // (protected) r = this op a (bitwise)
   function bnpBitwiseTo(a,op,r) {
@@ -3135,22 +3135,22 @@ define("pyret-base/js/js-numbers", function() {
 
   // (public) this & a
   function op_and(x,y) { return x&y; }
-  function bnAnd(a) { var r = nbi(); this.bitwiseTo(a,op_and,r); return r; }
+  function OBSbnAnd(a) { var r = nbi(); this.bitwiseTo(a,op_and,r); return r; }
 
   // (public) this | a
   function op_or(x,y) { return x|y; }
-  function bnOr(a) { var r = nbi(); this.bitwiseTo(a,op_or,r); return r; }
+  function OBSbnOr(a) { var r = nbi(); this.bitwiseTo(a,op_or,r); return r; }
 
   // (public) this ^ a
   function op_xor(x,y) { return x^y; }
-  function bnXor(a) { var r = nbi(); this.bitwiseTo(a,op_xor,r); return r; }
+  function OBSbnXor(a) { var r = nbi(); this.bitwiseTo(a,op_xor,r); return r; }
 
   // (public) this & ~a
   function op_andnot(x,y) { return x&~y; }
-  function bnAndNot(a) { var r = nbi(); this.bitwiseTo(a,op_andnot,r); return r; }
+  function OBSbnAndNot(a) { var r = nbi(); this.bitwiseTo(a,op_andnot,r); return r; }
 
   // (public) ~this
-  function bnNot() {
+  function OBSbnNot() {
     var r = nbi();
     for(var i = 0; i < this.t; ++i) r[i] = this.DM&~this[i];
     r.t = this.t;
@@ -3200,7 +3200,7 @@ define("pyret-base/js/js-numbers", function() {
   }
 
   // (public) return number of set bits
-  function bnBitCount() {
+  function OBSbnBitCount() {
     var r = 0, x = this.s&this.DM;
     for(var i = 0; i < this.t; ++i) r += cbit(this[i]^x);
     return r;
@@ -3221,13 +3221,13 @@ define("pyret-base/js/js-numbers", function() {
   }
 
   // (public) this | (1<<n)
-  function bnSetBit(n) { return this.changeBit(n,op_or); }
+  function OBSbnSetBit(n) { return this.changeBit(n,op_or); }
 
   // (public) this & ~(1<<n)
-  function bnClearBit(n) { return this.changeBit(n,op_andnot); }
+  function OBSbnClearBit(n) { return this.changeBit(n,op_andnot); }
 
   // (public) this ^ (1<<n)
-  function bnFlipBit(n) { return this.changeBit(n,op_xor); }
+  function OBSbnFlipBit(n) { return this.changeBit(n,op_xor); }
 
   // (protected) r = this + a
   function bnpAddTo(a,r) {
@@ -3487,7 +3487,7 @@ define("pyret-base/js/js-numbers", function() {
   }
 
   // (public) 1/this % m (HAC 14.61)
-  function bnModInverse(m, errbacks) {
+  function OBSbnModInverse(m, errbacks) {
     var ac = m.isEven();
     if((this.isEven() && ac) || m.signum() == 0) return BigInteger.ZERO;
     var u = m.clone(), v = this.clone();
@@ -3592,26 +3592,26 @@ define("pyret-base/js/js-numbers", function() {
   // public
   BigInteger.prototype.clone = bnClone;
   BigInteger.prototype.intValue = bnIntValue;
-  BigInteger.prototype.byteValue = bnByteValue;
-  BigInteger.prototype.shortValue = bnShortValue;
+  BigInteger.prototype.byteValue = OBSbnByteValue; //unused?
+  BigInteger.prototype.shortValue = OBSbnShortValue; //unused?
   BigInteger.prototype.signum = bnSigNum;
-  BigInteger.prototype.toByteArray = bnToByteArray;
+  BigInteger.prototype.toByteArray = OBSbnToByteArray; //unused?
   BigInteger.prototype.equals = bnEquals;
-  BigInteger.prototype.min = bnMin;
-  BigInteger.prototype.max = bnMax;
-  BigInteger.prototype.and = bnAnd;
-  BigInteger.prototype.or = bnOr;
-  BigInteger.prototype.xor = bnXor;
-  BigInteger.prototype.andNot = bnAndNot;
-  BigInteger.prototype.not = bnNot;
+  BigInteger.prototype.min = OBSbnMin; //unused?
+  BigInteger.prototype.max = OBSbnMax; //unused?
+  BigInteger.prototype.and = OBSbnAnd; //unused?
+  BigInteger.prototype.or = OBSbnOr; //unused?
+  BigInteger.prototype.xor = OBSbnXor; //unused?
+  BigInteger.prototype.andNot = OBSbnAndNot; //unused?
+  BigInteger.prototype.not = OBSbnNot; //unusedZ?
   BigInteger.prototype.shiftLeft = bnShiftLeft;
   BigInteger.prototype.shiftRight = bnShiftRight;
   BigInteger.prototype.getLowestSetBit = bnGetLowestSetBit;
-  BigInteger.prototype.bitCount = bnBitCount;
+  BigInteger.prototype.bitCount = OBSbnBitCount; //unused?
   BigInteger.prototype.testBit = bnTestBit;
-  BigInteger.prototype.setBit = bnSetBit;
-  BigInteger.prototype.clearBit = bnClearBit;
-  BigInteger.prototype.flipBit = bnFlipBit;
+  BigInteger.prototype.setBit = OBSbnSetBit; //unused?
+  BigInteger.prototype.clearBit = OBSbnClearBit; //unused?
+  BigInteger.prototype.flipBit = OBSbnFlipBit; //unused?
   BigInteger.prototype.add = bnAdd;
   BigInteger.prototype.subtract = bnSubtract;
   BigInteger.prototype.multiply = bnMultiply;
@@ -3619,7 +3619,7 @@ define("pyret-base/js/js-numbers", function() {
   BigInteger.prototype.remainder = bnRemainder;
   BigInteger.prototype.divideAndRemainder = bnDivideAndRemainder;
   BigInteger.prototype.modPow = bnModPow;
-  BigInteger.prototype.modInverse = bnModInverse;
+  BigInteger.prototype.modInverse = OBSbnModInverse; //unused?
   BigInteger.prototype.pow = bnPow;
   BigInteger.prototype.gcd = bnGCD;
   BigInteger.prototype.isProbablePrime = bnIsProbablePrime;
