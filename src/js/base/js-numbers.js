@@ -314,7 +314,7 @@ define("pyret-base/js/js-numbers", function() {
     if (typeof(x) === 'number' && typeof(y) === 'number') {
       sum = x + y;
       if (isOverflow(sum)) {
-        return (makeBignum(x)).add(makeBignum(y));
+        return (makeBignum(x)).add(makeBignum(y), errbacks);
       }
       else {
         return sum;
@@ -327,13 +327,13 @@ define("pyret-base/js/js-numbers", function() {
     function(x, y, errbacks) {
       var sum = x + y;
       if (isOverflow(sum)) {
-        return (makeBignum(x)).add(makeBignum(y));
+        return (makeBignum(x)).add(makeBignum(y), errbacks);
       } else {
         return sum;
       }
     },
     function(x, y, errbacks) {
-      return x.add(y);
+      return x.add(y, errbacks);
     },
     {isXSpecialCase: function(x, errbacks) {
       return isInteger(x, errbacks) && _integerIsZero(x, errbacks) },
@@ -347,7 +347,7 @@ define("pyret-base/js/js-numbers", function() {
     if (typeof(x) === 'number' && typeof(y) === 'number') {
       var diff = x - y;
       if (isOverflow(diff)) {
-        return (makeBignum(x)).subtract(makeBignum(y));
+        return (makeBignum(x)).subtract(makeBignum(y), errbacks);
       } else {
         return diff;
       }
@@ -360,13 +360,13 @@ define("pyret-base/js/js-numbers", function() {
     function(x, y, errbacks) {
       var diff = x - y;
       if (isOverflow(diff)) {
-        return (makeBignum(x)).subtract(makeBignum(y));
+        return (makeBignum(x)).subtract(makeBignum(y), errbacks);
       } else {
         return diff;
       }
     },
     function(x, y, errbacks) {
-      return x.subtract(y);
+      return x.subtract(y, errbacks);
     },
     {isXSpecialCase: function(x, errbacks) {
       return isInteger(x, errbacks) && _integerIsZero(x, errbacks) },
@@ -382,7 +382,7 @@ define("pyret-base/js/js-numbers", function() {
     if (typeof(x) === 'number' && typeof(y) === 'number') {
       prod = x * y;
       if (isOverflow(prod)) {
-        return (makeBignum(x)).multiply(makeBignum(y));
+        return (makeBignum(x)).multiply(makeBignum(y), errbacks);
       } else {
         return prod;
       }
@@ -617,7 +617,7 @@ define("pyret-base/js/js-numbers", function() {
     function(x, y, errbacks) {
       var pow = Math.pow(x, y);
       if (isOverflow(pow)) {
-        return (makeBignum(x)).expt(makeBignum(y));
+        return (makeBignum(x)).expt(makeBignum(y), errbacks);
       } else {
         return pow;
       }
@@ -2385,8 +2385,10 @@ define("pyret-base/js/js-numbers", function() {
 					   o.toRoughnum(errbacks);
 	}
 
-	return exactness.floatAsInexactp() ? forceInexact(multiply(sign, add( integralPartValue, fractionalPartValue))) :
-					     multiply(sign, add(integralPartValue, fractionalPartValue));
+	return exactness.floatAsInexactp() ?
+               forceInexact(multiply(sign, add(integralPartValue, fractionalPartValue, errbacks),
+                                    errbacks)) :
+	       multiply(sign, add(integralPartValue, fractionalPartValue, errbacks), errbacks);
     }
 
     function parseExactInt(str, radix, errbacks) {
@@ -3529,7 +3531,7 @@ define("pyret-base/js/js-numbers", function() {
       }
     }
     if(v.compareTo(BigInteger.ONE) != 0) return BigInteger.ZERO;
-    if(d.compareTo(m) >= 0) return d.subtract(m);
+    if(d.compareTo(m) >= 0) return d.subtract(m, errbacks);
     if(d.signum() < 0) d.addTo(m,d); else return d;
     if(d.signum() < 0) return d.add(m, errbacks); else return d;
   }
@@ -3558,7 +3560,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // (protected) true if probably prime (HAC 4.24, Miller-Rabin)
   function bnpMillerRabin(t) {
-    var n1 = this.subtract(BigInteger.ONE);
+    var n1 = this.subtract(BigInteger.ONE, {});
     var k = n1.getLowestSetBit();
     if(k <= 0) return false;
     var r = n1.shiftRight(k);
@@ -3718,10 +3720,7 @@ define("pyret-base/js/js-numbers", function() {
 
   BigInteger.prototype.toFixnum = function(errbacks) {
     var a = splitIntIntoMantissaExpt(this);
-    //console.log('bigint.tofixnum of', this);
-    //console.log('split = ', a);
     var r = Number(String(a[0]) + 'e' + String(a[1]));
-    //console.log('returning', r);
     return r;
   }
 
