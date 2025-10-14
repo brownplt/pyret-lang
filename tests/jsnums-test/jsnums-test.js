@@ -29,23 +29,23 @@ R(["pyret-base/js/js-numbers"], function(JN) {
         .toThrowError(/Should never have happened/);
 
      var bogusIntegerUnOpFun = JN._innards.makeIntegerUnOp(
-        function(x, errbacks) {
-          if (x <= 2) return 1;
-          errbacks.throwDomainError('makeIntegerUnOp first fail');
+        function(x) {
+          if (x <= 2) return 10;
+          return 20;
         },
-        function(x, errbacks) {
-          if (JN.lessThanOrEqual(x, 2, errbacks)) return 4;
-          errbacks.throwDomainError('makeIntegerUnOp second fail');
+        function(x) {
+          if (JN.lessThanOrEqual(x, 2, sampleErrbacks)) return 30;
+          return 40;
         },
         {
           ignoreOverflow: true,
         }
       );
 
-      expect(bogusIntegerUnOpFun(1, sampleErrbacks)).toEqual(1);
-      expect(function() { bogusIntegerUnOpFun(3, sampleErrbacks); })
-        .toThrowError(/first fail/);
-      expect(bogusIntegerUnOpFun(JN.makeBignum(1), sampleErrbacks)).toEqual(4);
+      expect(bogusIntegerUnOpFun(1)).toEqual(10);
+      expect(bogusIntegerUnOpFun(3)).toEqual(20);
+      expect(bogusIntegerUnOpFun(JN.makeBignum(1))).toEqual(30);
+      expect(bogusIntegerUnOpFun(JN.makeBignum(3))).toEqual(40);
 
       var bogusIntegerBinopFun = JN._innards.makeIntegerBinop(
         function(x, y, errbacks) {
@@ -536,7 +536,7 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       .toEqual(JN.makeBignum('81e622'));
 
       expect(function() {
-        n9e311.bnpExp(JN.makeBignum(0xffffffff + 1), new JN._innards.NullExp(), sampleErrbacks);
+        n9e311.bnpExp(JN.makeBignum(0xffffffff + 1), new JN._innards.NullExp());
       }).toThrowError(/exponent .* too large/);
 
 
