@@ -314,11 +314,11 @@ define("pyret-base/js/js-numbers", function() {
 
   // toRoughnum: pyretnum -> pyretnum
 
-  var toRoughnum = function(n, errbacks) {
+  var toRoughnum = function(n) {
     if (typeof(n) === 'number') {
-      return Roughnum.makeInstance(n, errbacks);
+      return Roughnum.makeInstance(n, InternalCompilerErrorErrbacks);
     } else {
-      return n.toRoughnum(errbacks);
+      return n.toRoughnum(InternalCompilerErrorErrbacks);
     }
   };
 
@@ -566,8 +566,8 @@ define("pyret-base/js/js-numbers", function() {
 
     if (lessThanOrEqual(ratDelta, 1, errbacks)) {
       var absDelta = multiply(ratDelta, denom, errbacks)
-      if (deltaIsRough && toRoughnum(absDelta, errbacks).n === Number.MIN_VALUE) {
-        if (argNumsAreRough && Math.abs(toRoughnum(err, errbacks).n) === Number.MIN_VALUE) {
+      if (deltaIsRough && toRoughnum(absDelta).n === Number.MIN_VALUE) {
+        if (argNumsAreRough && Math.abs(toRoughnum(err).n) === Number.MIN_VALUE) {
           errbacks.throwRelToleranceError('roughnum tolerance too small for meaningful comparison, ' +
                             computedValue + ' ' + trueValue + ' ' + delta)
         }
@@ -578,7 +578,7 @@ define("pyret-base/js/js-numbers", function() {
       var errRatio = divide(err, denom, errbacks)
 
       if (deltaIsRough && delta.n === Number.MIN_VALUE) {
-        if (argNumsAreRough && Math.abs(toRoughnum(errRatio, errbacks).n) === Number.MIN_VALUE) {
+        if (argNumsAreRough && Math.abs(toRoughnum(errRatio).n) === Number.MIN_VALUE) {
           errbacks.throwRelToleranceError('roughnum tolerance too small for meaningful comparison, ' +
                             computedValue + ' ' + trueValue + ' ' + delta)
         }
@@ -2147,8 +2147,7 @@ define("pyret-base/js/js-numbers", function() {
 
     aMatch = x.match(roughnumRatRegexp);
     if (aMatch) {
-      return toRoughnum(Rational.makeInstance(fromString(aMatch[1]), fromString(aMatch[2])),
-        errbacks);
+      return toRoughnum(Rational.makeInstance(fromString(aMatch[1]), fromString(aMatch[2])));
     }
 
     aMatch = x.match(roughnumDecRegexp);

@@ -309,34 +309,33 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
       // toRoughnum
       expect(JN.roughlyEquals(
-        JN.toRoughnum(5, sampleErrbacks),
+        JN.toRoughnum(5),
         JN.fromString('~5', sampleErrbacks),
         0.00001, sampleErrbacks))
         .toBe(true);
       expect(JN.roughlyEquals(
-        JN.toRoughnum(-5, sampleErrbacks),
+        JN.toRoughnum(-5),
         JN.fromString('~-5', sampleErrbacks),
         0.00001, sampleErrbacks))
         .toBe(true);
       expect(JN.roughlyEquals(
-        JN.toRoughnum(0, sampleErrbacks),
+        JN.toRoughnum(0),
         JN.fromString('~0', sampleErrbacks),
         0.00001, sampleErrbacks))
         .toBe(true);
       expect(JN.roughlyEquals(
-        JN.toRoughnum(3.14, sampleErrbacks),
+        JN.toRoughnum(3.14),
         JN.fromString('~3.14', sampleErrbacks),
         0.00001, sampleErrbacks))
         .toBe(true);
       expect(JN.roughlyEquals(
-        JN.toRoughnum(
-          JN.Rational.makeInstance(355, 113, sampleErrbacks), sampleErrbacks),
+        JN.toRoughnum(JN.Rational.makeInstance(355, 113, sampleErrbacks)),
         JN.Roughnum.makeInstance(355/113, sampleErrbacks),
         0.00001, sampleErrbacks))
         .toBe(true);
       expect(function() {
         JN.roughlyEquals(
-          JN.toRoughnum(JN.expt(10, 400), sampleErrbacks),
+          JN.expt(10, 400).toRoughnum(sampleErrbacks),
           JN.toFixnum(Infinity),
           0.00001, sampleErrbacks);
       })

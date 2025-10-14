@@ -5382,7 +5382,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-roughnum"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-to-roughnum",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.toRoughnum(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.toRoughnum(n));
     }
     var num_to_fixnum = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-fixnum"], 1, $a, false); }
