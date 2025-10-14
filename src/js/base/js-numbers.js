@@ -300,7 +300,10 @@ define("pyret-base/js/js-numbers", function() {
   var toFixnum = function(n) {
     if (typeof(n) === 'number')
       return n;
-    return n.toFixnum(InternalCompilerErrorErrbacks);
+    if (isPyretNumber(n))
+      return n.toFixnum(InternalCompilerErrorErrbacks);
+    InternalCompilerErrorErrbacks.throwDomainError('toFixnum: arg ' +
+      n + ' is not a number.');
   };
 
   // toRational: pyretnum -> pyretnum

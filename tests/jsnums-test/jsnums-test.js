@@ -24,6 +24,10 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
     it("make*opFun", function() {
 
+      // check InternalCompilerErrorErrbacks is available
+      expect(function() { JN.toFixnum('a'); })
+        .toThrowError(/Should never have happened/);
+
      var bogusIntegerUnOpFun = JN._innards.makeIntegerUnOp(
         function(x, errbacks) {
           if (x <= 2) return 1;
