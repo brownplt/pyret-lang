@@ -110,7 +110,7 @@ define("pyret-base/js/js-numbers", function() {
   var Numbers = {};
 
   function throwInternalCompilerError(msg) {
-    thisRuntime.ffi.throwInternalError("Should never have happened; error was " + msg);
+    throw new Error("Should never have happened; error was " + msg);
   }
 
   var InternalCompilerErrorErrbacks = {
