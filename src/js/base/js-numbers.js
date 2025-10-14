@@ -1616,13 +1616,13 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   Rational.prototype.integerSqrt = function(errbacks) {
-    var result = sqrt(this);
+    var result = sqrt(this, errbacks);
     return toRational(floor(result, errbacks), errbacks);
   };
 
   Rational.prototype.sqrt = function(errbacks) {
-    var newN = sqrt(this.n);
-    var newD = sqrt(this.d);
+    var newN = sqrt(this.n, errbacks);
+    var newD = sqrt(this.d, errbacks);
     if (isRational(newN) && isRational(newD) &&
         equals(floor(newN, errbacks), newN, errbacks) &&
         equals(floor(newD, errbacks), newD, errbacks)) {
@@ -1720,9 +1720,9 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   var integerNthRoot = function(n, m, errbacks) {
-    if (sign(n) < 0)
+    if (sign(n, errbacks) < 0)
       errbacks.throwDomainError('integerNthRoot: root ' + n + ' is negative.');
-    if (sign(m) < 0)
+    if (sign(m, errbacks) < 0)
       errbacks.throwDomainError('integerNthRoot: radicand ' + m + ' is negative.');
     var guessPrev, guessToTheN;
     var guess = floor(m, errbacks);
@@ -1747,9 +1747,9 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   var nthRoot = function(n, m, errbacks) {
-    if (sign(n) < 0)
+    if (sign(n, errbacks) < 0)
       errbacks.throwDomainError('nthRoot: root ' + n + ' is negative.');
-    var mNeg = (sign(m) < 0);
+    var mNeg = (sign(m, errbacks) < 0);
     var mAbs = (mNeg ? abs(m, errbacks) : m);
     var approx;
 
@@ -2745,7 +2745,7 @@ define("pyret-base/js/js-numbers", function() {
   // (protected) r = this * a, r != this,a (HAC 14.12)
   // "this" should be the larger one if appropriate.
   function bnpMultiplyTo(a,r) {
-    var x = this.abs(), y = a.abs();
+    var x = this.abs({}), y = a.abs({});
     var i = x.t;
     r.t = i+y.t;
     while(--i >= 0) r[i] = 0;
@@ -2757,7 +2757,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // (protected) r = this^2, r != this (HAC 14.16)
   function bnpSquareTo(r) {
-    var x = this.abs();
+    var x = this.abs({});
     var i = r.t = 2*x.t;
     while(--i >= 0) r[i] = 0;
     for(i = 0; i < x.t-1; ++i) {
@@ -2775,9 +2775,9 @@ define("pyret-base/js/js-numbers", function() {
   // (protected) divide this by m, quotient and remainder to q, r (HAC 14.20)
   // r != q, this != m.  q or r may be null.
   function bnpDivRemTo(m,q,r) {
-    var pm = m.abs();
+    var pm = m.abs({});
     if(pm.t <= 0) return;
-    var pt = this.abs();
+    var pt = this.abs({});
     if(pt.t < pm.t) {
       if(q != null) q.fromInt(0);
       if(r != null) this.copyTo(r);
@@ -2824,7 +2824,7 @@ define("pyret-base/js/js-numbers", function() {
   // (public) this mod a
   function bnMod(a) {
     var r = nbi();
-    this.abs().divRemTo(a,null,r);
+    this.abs({}).divRemTo(a,null,r);
     if(this.s < 0 && r.compareTo(BigInteger.ZERO) > 0) a.subTo(r,r);
     return r;
   }
@@ -2884,7 +2884,7 @@ define("pyret-base/js/js-numbers", function() {
   // xR mod m
   function montConvert(x) {
     var r = nbi();
-    x.abs().dlShiftTo(this.m.t,r);
+    x.abs({}).dlShiftTo(this.m.t,r);
     r.divRemTo(this.m,null,r);
     if(x.s < 0 && r.compareTo(BigInteger.ZERO) > 0) this.m.subTo(r,r);
     return r;
@@ -3541,7 +3541,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // (public) test primality with certainty >= 1-.5^t
   function bnIsProbablePrime(t) {
-    var i, x = this.abs();
+    var i, x = this.abs({});
     if(x.t == 1 && x[0] <= lowprimes[lowprimes.length-1]) {
       for(i = 0; i < lowprimes.length; ++i)
         if(x[0] == lowprimes[i]) return true;
@@ -3782,7 +3782,7 @@ define("pyret-base/js/js-numbers", function() {
     // integerSqrt: -> pyretnum
     BigInteger.prototype.integerSqrt = function(errbacks) {
       var n;
-      if(sign(this) >= 0) {
+      if(sign(this, errbacks) >= 0) {
         return searchIter(this, this, errbacks);
       } else {
         errbacks.throwDomainError('integerSqrt of negative bignum ' + this);

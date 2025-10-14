@@ -413,9 +413,9 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN.fromFixnum(1e311, sampleErrbacks)).toBe(false);
 
       // sign
-      expect(JN._innards.sign(JN.fromString('-3.14', sampleErrbacks))).toBe(-1);
-      expect(JN._innards.sign(JN.fromString('3.14', sampleErrbacks))).toBe(1);
-      expect(JN._innards.sign(JN.fromString('0.0', sampleErrbacks))).toBe(0);
+      expect(JN._innards.sign(JN.fromString('-3.14', sampleErrbacks), sampleErrbacks)).toBe(-1);
+      expect(JN._innards.sign(JN.fromString('3.14', sampleErrbacks), sampleErrbacks)).toBe(1);
+      expect(JN._innards.sign(JN.fromString('0.0', sampleErrbacks), sampleErrbacks)).toBe(0);
 
       // zfill
       expect(JN._innards.zfill(5)).toBe('00000');
