@@ -429,8 +429,8 @@ R(["pyret-base/js/js-numbers"], function(JN) {
 
       expect(JN.equals(n3p14, JN.Rational.makeInstance(314, 100, sampleErrbacks), sampleErrbacks))
       .toBe(true);
-      // further ensure that liftFixnumInteger(3.14, <rational>) produces a rational
-      // whose numerator and denominator are integers
+      // further ensure that liftFixnumInteger(3.14, <rational>, ...) produces a
+      // valid rational whose numerator and denominator are integers
       expect(JN.isInteger(n3p14.numerator(sampleErrbacks))).toBe(true);
       expect(JN.isInteger(n3p14.denominator(sampleErrbacks))).toBe(true);
       //

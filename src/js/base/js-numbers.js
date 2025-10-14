@@ -128,10 +128,10 @@ define("pyret-base/js/js-numbers", function() {
       }
 
       if (typeof(x) === 'number') {
-        x = liftFixnumInteger(x, y);
+        x = liftFixnumInteger(x, y, errbacks);
       }
       if (typeof(y) === 'number') {
-        y = liftFixnumInteger(y, x);
+        y = liftFixnumInteger(y, x, errbacks);
       }
 
       if (x instanceof Roughnum) {
