@@ -4856,8 +4856,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if(jsnums.greaterThan(max, string_length(s), NumberErrbacks)) {
         thisRuntime.ffi.throwMessageException("substring: max index " + String(max) + " is larger than the string length " + String(string_length(s)));
       }
-      return thisRuntime.makeString(s.substring(jsnums.toFixnum(min, NumberErrbacks),
-                                                jsnums.toFixnum(max, NumberErrbacks)));
+      return thisRuntime.makeString(s.substring(jsnums.toFixnum(min),
+                                                jsnums.toFixnum(max)));
     }
     var string_replace = function(s, find, replace) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-replace"], 3, $a, false); }
@@ -4940,7 +4940,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         s, thisRuntime.String, n, thisRuntime.Number);
       var resultStr = "";
       // TODO(joe): loop up to a fixnum?
-      for(var i = 0; i < jsnums.toFixnum(n, NumberErrbacks); i++) {
+      for(var i = 0; i < jsnums.toFixnum(n); i++) {
         resultStr += s;
       }
       return thisRuntime.makeString(resultStr);
@@ -4974,7 +4974,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if(n > (s.length - 1)) { thisRuntime.ffi.throwMessageException("string-char-at: index " + n + " is greater than the largest index the string " + s); }
 
       //TODO: Handle bignums that are beyond javascript
-      return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n, NumberErrbacks))));
+      return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n))));
     }
     var string_toupper = function(s) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-toupper"], 1, $a, false); }
@@ -5038,7 +5038,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var string_from_code_point = function(c) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-from-code-point"], 1, $a, false); }
       checkNatural(c);
-      var c = jsnums.toFixnum(c, NumberErrbacks);
+      var c = jsnums.toFixnum(c);
       var ASTRAL_CUTOFF = 65535;
       if(c > ASTRAL_CUTOFF) {
         thisRuntime.ffi.throwMessageException("Invalid code point: " + c);
@@ -5093,7 +5093,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal1("Numbers", "num-random",
         max, thisRuntime.Number);
       var f = rng();
-      return makeNumber(Math.floor(jsnums.toFixnum(max, NumberErrbacks) * f));
+      return makeNumber(Math.floor(jsnums.toFixnum(max) * f));
     };
 
     var num_random_seed = function(seed) {
@@ -5388,7 +5388,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-fixnum"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-fixnum",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.toFixnum(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.toFixnum(n));
     }
     var num_is_integer = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-integer"], 1, $a, false); }

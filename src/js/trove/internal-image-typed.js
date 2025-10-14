@@ -217,11 +217,11 @@
       var gf = runtime.getField;
       var hf = runtime.hasField;
       if (hf(val, "r") && hf(val, "theta")) {
-        var r = jsnums.toFixnum(gf(val, "r"), runtime.NumberErrbacks);
-        var theta = jsnums.toFixnum(gf(val, "theta"), runtime.NumberErrbacks);
+        var r = jsnums.toFixnum(gf(val, "r"));
+        var theta = jsnums.toFixnum(gf(val, "theta"));
         return { x: r * Math.cos(theta), y: r * Math.sin(theta) };
       }
-      return { x: jsnums.toFixnum(gf(val, "x"), runtime.NumberErrbacks), y: jsnums.toFixnum(gf(val, "y"), runtime.NumberErrbacks) };
+      return { x: jsnums.toFixnum(gf(val, "x")), y: jsnums.toFixnum(gf(val, "y")) };
     };
     
     const ANNOTS = {
@@ -249,7 +249,7 @@
         return runtime.ffi.cases(pyAlwaysTrue, "FillMode", m, {
           "mode-solid":   function(_) { return "solid"; },
           "mode-outline": function(_) { return "outline"; },
-          "mode-fade":    function(v) { return jsnums.toFixnum(v, runtime.NumberErrbacks); },
+          "mode-fade":    function(v) { return jsnums.toFixnum(v); },
         });
       },
       annFontFamily: image.annFontFamily,

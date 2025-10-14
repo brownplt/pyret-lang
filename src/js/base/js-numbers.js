@@ -109,6 +109,22 @@ define("pyret-base/js/js-numbers", function() {
   // Abbreviation
   var Numbers = {};
 
+  function throwInternalCompilerError(msg) {
+    thisRuntime.ffi.throwInternalError("Should never have happened; error was " + msg);
+  }
+
+  var InternalCompilerErrorErrbacks = {
+    throwDivByZero: throwInternalCompilerError,
+    throwToleranceError: throwInternalCompilerError,
+    throwRelToleranceError: throwInternalCompilerError,
+    throwGeneralError: throwInternalCompilerError,
+    throwDomainError: throwInternalCompilerError,
+    throwSqrtNegative: throwInternalCompilerError,
+    throwLogNonPositive: throwInternalCompilerError,
+    throwIncomparableValues: throwInternalCompilerError,
+    throwInternalError: throwInternalCompilerError,
+  };
+
   // makeNumericBinop: (fixnum fixnum -> any) (pyretnum pyretnum -> any) -> (pyretnum pyretnum) X
   // Creates a binary function that works either on fixnums or boxnums.
   // Applies the appropriate binary function, ensuring that both pyretnums are
@@ -281,10 +297,10 @@ define("pyret-base/js/js-numbers", function() {
   };
 
   // toFixnum: pyretnum -> javascript-number
-  var toFixnum = function(n, errbacks) {
+  var toFixnum = function(n) {
     if (typeof(n) === 'number')
       return n;
-    return n.toFixnum(errbacks);
+    return n.toFixnum(InternalCompilerErrorErrbacks);
   };
 
   // toRational: pyretnum -> pyretnum
@@ -1010,7 +1026,7 @@ define("pyret-base/js/js-numbers", function() {
       var new_yn = multiply(yn, divide(new_d, yd, errbacks), errbacks);
       return divide(remainder(new_xn, new_yn, errbacks), new_d, errbacks);
     } else {
-      var res = toFixnum(x, errbacks) % toFixnum(y, errbacks);
+      var res = toFixnum(x) % toFixnum(y);
       return Roughnum.makeInstance(res, errbacks);
     }
   };
@@ -1093,7 +1109,7 @@ define("pyret-base/js/js-numbers", function() {
       }
       if (m instanceof Roughnum || n instanceof Roughnum) {
         return Roughnum.makeInstance(
-          onFixnums(toFixnum(m, errbacks), toFixnum(n, errbacks), errbacks), errbacks);
+          onFixnums(toFixnum(m), toFixnum(n), errbacks), errbacks);
       }
       if (typeof(m) === 'number') {
         m = makeBignum(m);
@@ -1120,7 +1136,7 @@ define("pyret-base/js/js-numbers", function() {
         }
       }
       if (m instanceof Roughnum) {
-        return Roughnum.makeInstance(onFixnums(toFixnum(m, errbacks), errbacks), errbacks);
+        return Roughnum.makeInstance(onFixnums(toFixnum(m), errbacks), errbacks);
       }
       if (typeof(m) === 'number') {
         m = makeBignum(m);
@@ -1576,7 +1592,7 @@ define("pyret-base/js/js-numbers", function() {
 
 
   Rational.prototype.toFixnum = function(errbacks) {
-    return _integerDivideToFixnum(this.n, this.d, errbacks);
+    return _integerDivideToFixnum(this.n, this.d);
   };
 
   Rational.prototype.toRoughnum = function(errbacks) {
@@ -1760,9 +1776,8 @@ define("pyret-base/js/js-numbers", function() {
     if (mNeg) approx = negate(approx, errbacks);
     if (eqv(expt(approx, n, errbacks), m, errbacks)) return approx;
 
-    approx = Roughnum.makeInstance(Math.pow(toFixnum(mAbs, errbacks),
-                                            toFixnum(divide(1,n, errbacks), errbacks)),
-                                   errbacks);
+    approx = Roughnum.makeInstance(Math.pow(toFixnum(mAbs),
+                                            toFixnum(divide(1,n, errbacks))), errbacks);
     return (mNeg ? negate(approx, errbacks) : approx);
   };
 
@@ -1784,8 +1799,7 @@ define("pyret-base/js/js-numbers", function() {
     } else {
       if (this.isNegative() && !a.isInteger())
         errbacks.throwDomainError('expt: raising negative number ' + this + ' to nonintegral power ' + a);
-      return Roughnum.makeInstance(Math.pow(this.toFixnum(errbacks), a.toFixnum(errbacks)),
-                                   errbacks);
+      return Roughnum.makeInstance(Math.pow(this.toFixnum(errbacks), a.toFixnum(errbacks)), errbacks);
     }
   };
 
@@ -3798,7 +3812,7 @@ define("pyret-base/js/js-numbers", function() {
       if (eqv(sqr(approx, errbacks), this, errbacks)) {
         return approx;
       }
-      fix = toFixnum(this, errbacks);
+      fix = toFixnum(this);
       if (isFinite(fix)) {
         return Roughnum.makeInstance(Math.sqrt(fix), errbacks);
       } else {
@@ -4011,7 +4025,7 @@ define("pyret-base/js/js-numbers", function() {
       errbacks.throwDomainError('num-to-string-digits: digits should be an integer');
     }
     var tenDigits = expt(10, digits, errbacks);
-    var d = toFixnum(digits, errbacks);
+    var d = toFixnum(digits);
     n = divide(round(multiply(n, tenDigits, errbacks), errbacks), tenDigits, errbacks);
     if (isInteger(n)) {
       var ans = n.toString();

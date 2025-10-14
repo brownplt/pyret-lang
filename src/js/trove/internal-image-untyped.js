@@ -213,11 +213,11 @@
       var gf = runtime.getField;
       var hf = runtime.hasField;
       if (hf(val, "r") && hf(val, "theta")) {
-        var r = jsnums.toFixnum(gf(val, "r"), runtime.NumberErrbacks);
-        var theta = jsnums.toFixnum(gf(val, "theta"), runtime.NumberErrbacks);
+        var r = jsnums.toFixnum(gf(val, "r"));
+        var theta = jsnums.toFixnum(gf(val, "theta"));
         return { x: r * Math.cos(theta), y: r * Math.sin(theta) };
       }
-      return { x: jsnums.toFixnum(gf(val, "x"), runtime.NumberErrbacks), y: jsnums.toFixnum(gf(val, "y"), runtime.NumberErrbacks) };
+      return { x: jsnums.toFixnum(gf(val, "x")), y: jsnums.toFixnum(gf(val, "y")) };
     };
 
     var annListImage = ann("List<Image>", function(val) {
@@ -272,7 +272,7 @@
         if (typeof val === "string")
           return val;
         else
-          return jsnums.toFixnum(val, runtime.NumberErrbacks);
+          return jsnums.toFixnum(val);
       },
       annFontFamily: ann("Font Family", function(x){
         return (isString(x) &&
