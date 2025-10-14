@@ -47,10 +47,10 @@
       else { return num; }
     }
     var isColor = function(c) { return unwrap(rawIsColor.app(c)); };
-    var colorRed = function(c) { return clamp(jsnums.toFixnum(unwrap(gf(c, "red"))), 0, 255); }
-    var colorGreen = function(c) { return clamp(jsnums.toFixnum(unwrap(gf(c, "green"))), 0, 255); }
-    var colorBlue = function(c) { return clamp(jsnums.toFixnum(unwrap(gf(c, "blue"))), 0, 255); }
-    var colorAlpha = function(c) { return clamp(jsnums.toFixnum(unwrap(gf(c, "alpha"))), 0, 1); }
+    var colorRed = function(c) { return clamp(jsnums.toFixnum(unwrap(gf(c, "red")), RUNTIME.NumberErrbacks), 0, 255); }
+    var colorGreen = function(c) { return clamp(jsnums.toFixnum(unwrap(gf(c, "green")), RUNTIME.NumberErrbacks), 0, 255); }
+    var colorBlue = function(c) { return clamp(jsnums.toFixnum(unwrap(gf(c, "blue")), RUNTIME.NumberErrbacks), 0, 255); }
+    var colorAlpha = function(c) { return clamp(jsnums.toFixnum(unwrap(gf(c, "alpha")), RUNTIME.NumberErrbacks), 0, 1); }
 
     var annFillMode = imageTypes["FillMode"];
     var annXPlace = imageTypes["XPlace"];
@@ -1384,8 +1384,8 @@
     var PointPolygonImage = function(vertices, style, color) {
       BaseImage.call(this);
       for (var v = 0; v < vertices.length; v++) {
-        vertices[v].x = jsnums.toFixnum(vertices[v].x);
-        vertices[v].y = jsnums.toFixnum(vertices[v].y);
+        vertices[v].x = jsnums.toFixnum(vertices[v].x, RUNTIME.NumberErrbacks);
+        vertices[v].y = jsnums.toFixnum(vertices[v].y, RUNTIME.NumberErrbacks);
         vertices[v].y *= -1;
       }
       
@@ -1804,11 +1804,11 @@
                                     height,
                                     pinholeX,
                                     pinholeY) {
-      var canvas = makeCanvas(jsnums.toFixnum(width),
-                              jsnums.toFixnum(height)),
+      var canvas = makeCanvas(jsnums.toFixnum(width, RUNTIME.NumberErrbacks),
+                              jsnums.toFixnum(height, RUNTIME.NumberErrbacks)),
       ctx = canvas.getContext("2d"),
-      imageData = ctx.createImageData(jsnums.toFixnum(width),
-                                      jsnums.toFixnum(height)),
+      imageData = ctx.createImageData(jsnums.toFixnum(width, RUNTIME.NumberErrbacks),
+                                      jsnums.toFixnum(height, RUNTIME.NumberErrbacks)),
       aColor,
       data = imageData.data,
       jsLOC = RUNTIME.ffi.toArray(listOfColors);

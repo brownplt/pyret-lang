@@ -4170,7 +4170,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       // Per https://www.ecma-international.org/ecma-262/5.1/#sec-9.6, we
       // couldn't create anything larger anyway atop JS, and 4 billion elements
       // ought to be enough for anyone (cue laughter from 2050)
-      if(jsnums.greaterThan(size, MAX_ARRAY_SIZE)) {
+      if(jsnums.greaterThan(size, MAX_ARRAY_SIZE, NumberErrbacks)) {
         thisRuntime.throwMessageException(name + ": cannot create array larger than " + MAX_ARRAY_SIZE);
       }
     }
@@ -4326,8 +4326,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var raw_array_sort_nums = function(arr, asc) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("RawArrays", "raw-array-sort-nums", arr, thisRuntime.RawArray, asc, thisRuntime.Boolean);
-      const wrappedLT = (x, y) => jsnums.lessThan(x,y)?    -1 : jsnums.roughlyEquals(x, y, 0)? 0 : 1;
-      const wrappedGT = (x, y) => jsnums.greaterThan(x,y)? -1 : jsnums.roughlyEquals(x, y, 0)? 0 : 1;
+      const wrappedLT = (x, y) => jsnums.lessThan(x,y, NumberErrbacks)?    -1 : jsnums.roughlyEquals(x, y, 0, NumberErrbacks)? 0 : 1;
+      const wrappedGT = (x, y) => jsnums.greaterThan(x,y, NumberErrbacks)? -1 : jsnums.roughlyEquals(x, y, 0, NumberErrbacks)? 0 : 1;
       arr.sort(asc? wrappedLT : wrappedGT);
       return arr;
     };
@@ -4341,8 +4341,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }, function (arrKeys) {
         debugger
         const zipped = arr.map((v, i) => [v, arrKeys[i]]);
-        const compLT = (x, y) => jsnums.lessThan(x[1], y[1])? -1 : jsnums.roughlyEquals(x[1], y[1], 0) ? 0 : 1;
-        const compGT = (x, y) => jsnums.greaterThan(x[1], y[1])? -1 : jsnums.roughlyEquals(x[1], y[1], 0) ? 0 : 1;
+        const compLT = (x, y) => jsnums.lessThan(x[1], y[1], NumberErrbacks)? -1 : jsnums.roughlyEquals(x[1], y[1], 0, NumberErrbacks) ? 0 : 1;
+        const compGT = (x, y) => jsnums.greaterThan(x[1], y[1], NumberErrbacks)? -1 : jsnums.roughlyEquals(x[1], y[1], 0, NumberErrbacks) ? 0 : 1;
         zipped.sort(asc ? compLT : compGT);
         return zipped.map((v) => v[0]);
       }, "raw_array_sort_by");
@@ -5005,7 +5005,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal2("Strings", "string-find-opt",
         s, thisRuntime.String, find, thisRuntime.String);
       var idx = s.indexOf(find);
-      if (jsnums.lessThan(idx, 0)) return thisRuntime.ffi.makeNone();
+      if (jsnums.lessThan(idx, 0, NumberErrbacks)) return thisRuntime.ffi.makeNone();
       return thisRuntime.ffi.makeSome(thisRuntime.makeNumberBig(idx));
     }
     var string_getIndex = function(s, find) {
@@ -5013,7 +5013,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal2("Strings", "string-find",
         s, thisRuntime.String, find, thisRuntime.String);
       var idx = s.indexOf(find);
-      if (jsnums.lessThan(idx, 0))
+      if (jsnums.lessThan(idx, 0, NumberErrbacks))
         thisRuntime.ffi.throwMessageException(`string-find: Target string \"${find}\" was not found inside source string \"${s}\"`);
       return thisRuntime.makeNumberBig(idx);
     }

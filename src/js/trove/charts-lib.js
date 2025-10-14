@@ -127,7 +127,7 @@
     }
 
     function convertPointer(p) {
-      return { value: toFixnum(get(p, 'value')) , label: get(p, 'label') }
+      return { value: toFixnum(get(p, 'value'), RUNTIME.NumberErrbacks) , label: get(p, 'label') }
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -180,7 +180,7 @@
 
       const minorGridlineColor = getColorOrDefault(globalOptions['minorGridlineColor'], undefined);
 
-      const minorGridlineMinspacing = toFixnum(globalOptions['minorGridlineMinspacing'])
+      const minorGridlineMinspacing = toFixnum(globalOptions['minorGridlineMinspacing'], RUNTIME.NumberErrbacks)
 
       hAxis.gridlines = {show: showGridlines, color: gridlineColor};
       vAxis.gridlines = {show: showGridlines, color: gridlineColor};
@@ -190,7 +190,7 @@
           hAxis.gridlines.count = 5;
         },
         some: function (minspacing) {
-          hAxis.gridlines.minSpacing = toFixnum(minspacing);
+          hAxis.gridlines.minSpacing = toFixnum(minspacing, RUNTIME.NumberErrbacks);
         }
       });
 
@@ -258,9 +258,9 @@
       ];
       
       const threeD = get(rawData, 'threeD');
-      const piehole = toFixnum(get(rawData, 'piehole'));
-      const startingAngle = toFixnum(get(rawData, 'startingAngle'));
-      const collapseThreshold = toFixnum(get(rawData, 'collapseThreshold'));
+      const piehole = toFixnum(get(rawData, 'piehole'), RUNTIME.NumberErrbacks);
+      const startingAngle = toFixnum(get(rawData, 'startingAngle'), RUNTIME.NumberErrbacks);
+      const collapseThreshold = toFixnum(get(rawData, 'collapseThreshold'), RUNTIME.NumberErrbacks);
 
       signals.push(
         { name: 'centerX', update: 'width / 2' },
@@ -302,8 +302,8 @@
         values: table.map((row, i) => ({
           id: i,
           label: row[0],
-          value: toFixnum(row[1]),
-          offset: toFixnum(row[2]),
+          value: toFixnum(row[1], RUNTIME.NumberErrbacks),
+          offset: toFixnum(row[2], RUNTIME.NumberErrbacks),
           // TODO: image would be from row[3], if we could support it
         })),
         transform: [
@@ -528,8 +528,8 @@
         some: function (axisdata) {
           const pointers = get(axisdata, 'ticks').map(convertPointer);
           return {
-            domainMax : toFixnum(get(axisdata, 'axisTop')), 
-            domainMin : toFixnum(get(axisdata, 'axisBottom')),
+            domainMax : toFixnum(get(axisdata, 'axisTop'), RUNTIME.NumberErrbacks),
+            domainMin : toFixnum(get(axisdata, 'axisBottom'), RUNTIME.NumberErrbacks),
             domainRaw : pointers.map(p => p.value),
             labels: pointers.map(p => p.label)
           };
@@ -661,7 +661,7 @@
           
           dataTable.values.push({
             label: row[0],
-            rawValue: toFixnum(value),
+            rawValue: toFixnum(value, RUNTIME.NumberErrbacks),
             color: chooseColor(colors_list, default_color, series, i, row[1].length),
             image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
             annotation,
@@ -1323,13 +1323,13 @@
           name: 'table',
           values: table.map((boxInfo) => ({
             label: get(boxInfo, 'label'),
-            maxVal: toFixnum(get(boxInfo, 'max-val')),
-            minVal: toFixnum(get(boxInfo, 'min-val')),
-            firstQuartile: toFixnum(get(boxInfo, 'first-quartile')),
-            median: toFixnum(get(boxInfo, 'median')),
-            thirdQuartile: toFixnum(get(boxInfo, 'third-quartile')),
-            highWhisker: toFixnum(get(boxInfo, 'high-whisker')),
-            lowWhisker: toFixnum(get(boxInfo, 'low-whisker')),
+            maxVal: toFixnum(get(boxInfo, 'max-val'), RUNTIME.NumberErrbacks),
+            minVal: toFixnum(get(boxInfo, 'min-val'), RUNTIME.NumberErrbacks),
+            firstQuartile: toFixnum(get(boxInfo, 'first-quartile'), RUNTIME.NumberErrbacks),
+            median: toFixnum(get(boxInfo, 'median'), RUNTIME.NumberErrbacks),
+            thirdQuartile: toFixnum(get(boxInfo, 'third-quartile'), RUNTIME.NumberErrbacks),
+            highWhisker: toFixnum(get(boxInfo, 'high-whisker'), RUNTIME.NumberErrbacks),
+            lowWhisker: toFixnum(get(boxInfo, 'low-whisker'), RUNTIME.NumberErrbacks),
             highOutliers: get(boxInfo, 'high-outliers').map(toFixnum),
             lowOutliers: get(boxInfo, 'low-outliers').map(toFixnum),
           })),
@@ -1591,7 +1591,7 @@
           name: 'rawTable',
           values: table.map((row, i) => ({
             label: row[0],
-            value: toFixnum(row[1]),
+            value: toFixnum(row[1], RUNTIME.NumberErrbacks),
             image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
           })),
           transform: [
@@ -1758,7 +1758,7 @@
       const defaultColor = default_colors[0];
       const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
       const legend = get(rawData, 'legend') || '';
-      const pointSize = toFixnum(get(rawData, 'point-size'));
+      const pointSize = toFixnum(get(rawData, 'point-size'), RUNTIME.NumberErrbacks);
       const autosizeImage = isTrue(get(rawData, 'useImageSizes'));
 
       const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
@@ -1775,7 +1775,7 @@
           name: 'rawTable',
           values: points.map((p) => ({
             label: get(p, 'label'),
-            value: toFixnum(get(p, 'value')),
+            value: toFixnum(get(p, 'value'), RUNTIME.NumberErrbacks),
             image: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
               none: () => undefined,
               some: (opaqueImg) => imageToCanvas(opaqueImg.val)
@@ -1932,7 +1932,7 @@
 
       const fixedPoints = points.map((p) => ({
         label: get(p, 'label'),
-        count: toFixnum(get(p, 'count'))
+        count: toFixnum(get(p, 'count'), RUNTIME.NumberErrbacks)
       }));
       const data = [
         {
@@ -2111,17 +2111,17 @@
       const defaultColor = config.defaultColor || default_colors[0];
       const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
       const legend = get(rawData, 'legend') || config.legend;
-      const pointSize = toFixnum(get(rawData, 'point-size'));
+      const pointSize = toFixnum(get(rawData, 'point-size'), RUNTIME.NumberErrbacks);
       const autosizeImage = isTrue(get(rawData, 'useImageSizes'));
       const pointshapeType = get(rawData, 'pointshapeType');
-      const pointshapeSides = toFixnum(get(rawData, 'pointshapeSides'));
-      const pointshapeDent = toFixnum(get(rawData, 'pointshapeDent'));
-      const pointshapeRotation = toFixnum(get(rawData, 'pointshapeRotation'));
+      const pointshapeSides = toFixnum(get(rawData, 'pointshapeSides'), RUNTIME.NumberErrbacks);
+      const pointshapeDent = toFixnum(get(rawData, 'pointshapeDent'), RUNTIME.NumberErrbacks);
+      const pointshapeRotation = toFixnum(get(rawData, 'pointshapeRotation'), RUNTIME.NumberErrbacks);
       const trendlineType = getOrDefault(get(rawData, 'trendlineType'), null);
       const trendlineColor = getColorOrDefault(get(rawData, 'trendlineColor'), 'green');
-      const trendlineWidth = toFixnum(get(rawData, 'trendlineWidth'));
-      const trendlineOpacity = toFixnum(get(rawData, 'trendlineOpacity'));
-      const trendlineDegree = toFixnum(get(rawData, 'trendlineDegree'));
+      const trendlineWidth = toFixnum(get(rawData, 'trendlineWidth'), RUNTIME.NumberErrbacks);
+      const trendlineOpacity = toFixnum(get(rawData, 'trendlineOpacity'), RUNTIME.NumberErrbacks);
+      const trendlineDegree = toFixnum(get(rawData, 'trendlineDegree'), RUNTIME.NumberErrbacks);
       const xMinValue = getNumOrDefault(globalOptions['x-min'], undefined);
       const xMaxValue = getNumOrDefault(globalOptions['x-max'], undefined);
       const yMinValue = getNumOrDefault(globalOptions['y-min'], undefined);
@@ -2134,8 +2134,8 @@
           name: `${prefix}rawTable`,
           values: points.map((p) => ({
             label: get(p, 'label'),
-            x: toFixnum(get(p, 'x')),
-            y: toFixnum(get(p, 'y')),
+            x: toFixnum(get(p, 'x'), RUNTIME.NumberErrbacks),
+            y: toFixnum(get(p, 'y'), RUNTIME.NumberErrbacks),
             image: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
               none: () => undefined,
               some: (opaqueImg) => imageToCanvas(opaqueImg.val)
@@ -2406,7 +2406,7 @@
     function linePlot(globalOptions, rawData, config) {
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
-      const lineWidth = toFixnum(get(rawData, 'lineWidth'));
+      const lineWidth = toFixnum(get(rawData, 'lineWidth'), RUNTIME.NumberErrbacks);
       const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
       const asScatterPlot = scatterPlot(globalOptions, rawData, config);
       const marks = asScatterPlot.marks;
@@ -2452,10 +2452,10 @@
       const defaultColor = config.defaultColor || default_colors[0];
       const dataColor = getColorOrDefault(get(rawData, 'color'), defaultColor);
       const intervalStyle = get(rawData, 'style');
-      const intervalStickWidth = toFixnum(get(rawData, 'stick-width'));
+      const intervalStickWidth = toFixnum(get(rawData, 'stick-width'), RUNTIME.NumberErrbacks);
       const intervalFillOpacity = ((intervalStyle == 'boxes') ? 0 : 1);
       const intervalColor = getColorOrDefault(get(rawData, 'pointer-color'), 'black')
-      const pointSize = toFixnum(get(rawData, 'point-size'));
+      const pointSize = toFixnum(get(rawData, 'point-size'), RUNTIME.NumberErrbacks);
 
       const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
       const data = [
@@ -2463,9 +2463,9 @@
           name: `${prefix}rawTable`,
           values: points.map((p) => ({
             label: get(p, 'label'),
-            x: toFixnum(get(p, 'x')),
-            y: toFixnum(get(p, 'y')),
-            delta: toFixnum(get(p, 'delta')),
+            x: toFixnum(get(p, 'x'), RUNTIME.NumberErrbacks),
+            y: toFixnum(get(p, 'y'), RUNTIME.NumberErrbacks),
+            delta: toFixnum(get(p, 'delta'), RUNTIME.NumberErrbacks),
             image: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
               none: () => undefined,
               some: (opaqueImg) => imageToCanvas(opaqueImg.val)
@@ -2642,8 +2642,8 @@
         funcVals.forEach((result, idx) => {
           cases(RUNTIME.ffi.isEither, 'Either', result, {
             left: (value) => dataValues.push({
-              x: toFixnum(samplePoints[idx]),
-              y: toFixnum(value)
+              x: toFixnum(samplePoints[idx], RUNTIME.NumberErrbacks),
+              y: toFixnum(value, RUNTIME.NumberErrbacks)
             }),
             right: () => {}
           })
@@ -2658,7 +2658,7 @@
       const prefix = config.prefix || '';
       const defaultColor = config.defaultColor || default_colors[0];
       const pointColor = getColorOrDefault(get(rawData, 'color'), defaultColor);
-      const numSamples = toFixnum(globalOptions['num-samples']);
+      const numSamples = toFixnum(globalOptions['num-samples'], RUNTIME.NumberErrbacks);
       const func = get(rawData, 'f');
       const domain = config.domain;
       const xMinValue = domain[0];
@@ -2772,11 +2772,11 @@
       const xMaxValue = getNumOrDefault(globalOptions['x-max'], undefined);
       const yMinValue = getNumOrDefault(globalOptions['y-min'], undefined);
       const yMaxValue = getNumOrDefault(globalOptions['y-max'], undefined);
-      const numSamples = toFixnum(globalOptions['num-samples']);
+      const numSamples = toFixnum(globalOptions['num-samples'], RUNTIME.NumberErrbacks);
       const xAxisLabel = globalOptions['x-axis'];
       const yAxisLabel = globalOptions['y-axis'];
-      const width = toFixnum(globalOptions['width']);
-      const height = toFixnum(globalOptions['height']);
+      const width = toFixnum(globalOptions['width'], RUNTIME.NumberErrbacks);
+      const height = toFixnum(globalOptions['height'], RUNTIME.NumberErrbacks);
       const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
       const title = globalOptions['title'];
       // TODO(Ben): support these options?
@@ -2961,8 +2961,8 @@
           });
           if (newWindow === null) return;
           for (const field in newWindow) {
-            globalOptions[field] = toFixnum(newWindow[field]);
-            view.signal(field, toFixnum(newWindow[field]));
+            globalOptions[field] = toFixnum(newWindow[field], RUNTIME.NumberErrbacks);
+            view.signal(field, toFixnum(newWindow[field], RUNTIME.NumberErrbacks));
           }
           for (const c of charts) {
             if (c.recompute) { await c.recompute(view); }
@@ -3136,8 +3136,8 @@
           if (canvasLib && canvasLib.Canvas) {
             console.log(JSON.stringify(processed, (k, v) => (v && (IMAGE.isImage(v) || (v instanceof canvasLib.Canvas))) ? v.ariaText : v, 2));
           }
-          const width = toFixnum(globalOptions['width']);
-          const height = toFixnum(globalOptions['height']);
+          const width = toFixnum(globalOptions['width'], RUNTIME.NumberErrbacks);
+          const height = toFixnum(globalOptions['height'], RUNTIME.NumberErrbacks);
           const view = new vega.View(vega.parse(processed));
           return renderToCanvas(view, width, height).then((data) => imageDataReturn(data, restarter));
         } catch(e) {
@@ -3155,8 +3155,8 @@
         root.append(overlay);
         
         // Unfortunately these need to be mutable, to allow for resizing the chart as the dialog resizes
-        let width = toFixnum(globalOptions['width']);
-        let height = toFixnum(globalOptions['height']);
+        let width = toFixnum(globalOptions['width'], RUNTIME.NumberErrbacks);
+        let height = toFixnum(globalOptions['height'], RUNTIME.NumberErrbacks);
         const vegaTooltipHandler = new vegaTooltip.Handler({
           formatTooltip: (value, valueToHtml, maxDepth, baseURL) => {
             if (typeof value === 'object') {

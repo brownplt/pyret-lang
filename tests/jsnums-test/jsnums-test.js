@@ -219,14 +219,13 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN.isReal(JN.Roughnum.makeInstance(2.718,sampleErrbacks))).toBe(true);
 
       // isInteger
-      expect(JN.isInteger(5, sampleErrbacks)).toBe(true);
-      expect(JN.isInteger(-5, sampleErrbacks)).toBe(true);
-      expect(JN.isInteger(0, sampleErrbacks)).toBe(true);
-      expect(JN.isInteger(3.14, sampleErrbacks)).toBe(false);
-      expect(JN.isInteger(JN.Rational.makeInstance(355,113,sampleErrbacks),
-                          sampleErrbacks)).toBe(false);
-      expect(JN.isInteger(JN.expt(10, 400), sampleErrbacks)).toBe(true);
-      expect(JN.isInteger(JN.Roughnum.makeInstance(2.718,sampleErrbacks)), sampleErrbacks)
+      expect(JN.isInteger(5)).toBe(true);
+      expect(JN.isInteger(-5)).toBe(true);
+      expect(JN.isInteger(0)).toBe(true);
+      expect(JN.isInteger(3.14)).toBe(false);
+      expect(JN.isInteger(JN.Rational.makeInstance(355,113,sampleErrbacks))).toBe(false);
+      expect(JN.isInteger(JN.expt(10, 400))).toBe(true);
+      expect(JN.isInteger(JN.Roughnum.makeInstance(2.718,sampleErrbacks)))
          .toBe(false);
 
       // isRoughnum
