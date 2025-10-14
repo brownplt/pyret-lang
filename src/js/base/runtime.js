@@ -5370,13 +5370,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-exact"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-exact",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.toRational(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.toRational(n));
     }
     var num_to_rational = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-rational"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-to-rational",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.toRational(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.toRational(n));
     }
     var num_to_roughnum = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-roughnum"], 1, $a, false); }

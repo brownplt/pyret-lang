@@ -287,18 +287,17 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN.toFixnum(JN.Roughnum.makeInstance(2.718, sampleErrbacks))).toBe(2.718);
 
       // toRational (toExact is its alias)
-      expect(JN.toRational(5, sampleErrbacks)).toBe(5);
-      expect(JN.toRational(-5, sampleErrbacks)).toBe(-5);
-      expect(JN.toRational(0, sampleErrbacks)).toBe(0);
-      expect(JN.toRational(3.14, sampleErrbacks)).toBe(3.14);
+      expect(JN.toRational(5)).toBe(5);
+      expect(JN.toRational(-5)).toBe(-5);
+      expect(JN.toRational(0)).toBe(0);
+      expect(JN.toRational(3.14)).toBe(3.14);
       expect(JN.equals(
-        JN.toRational(
-          JN.Rational.makeInstance(355, 113, sampleErrbacks), sampleErrbacks),
+        JN.toRational(JN.Rational.makeInstance(355, 113, sampleErrbacks)),
         JN.Rational.makeInstance(355, 113, sampleErrbacks),
         sampleErrbacks))
         .toBe(true);
       expect(JN.equals(
-        JN.toRational(JN.expt(10, 400), sampleErrbacks),
+        JN.toRational(JN.expt(10, 400)),
         JN.expt(10, 400, sampleErrbacks),
         sampleErrbacks))
         .toBe(true);
@@ -997,8 +996,6 @@ R(["pyret-base/js/js-numbers"], function(JN) {
       expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks).isRoughnum()).toBe(true);
 
       expect(JN.equals(JN.Roughnum.makeInstance(3.14, sampleErrbacks).toFixnum(sampleErrbacks), 3.14)).toBe(true);
-
-      // shouldn't roughnum's numerator method take errbacks?
 
       expect(JN.Roughnum.makeInstance(3.14, sampleErrbacks)
         .numerator(sampleErrbacks).toFixnum(sampleErrbacks))
