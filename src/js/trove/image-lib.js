@@ -3,13 +3,14 @@
     { "import-type": "builtin", "name": "internal-image-shared" },
     { "import-type": "builtin", "name": "color" }
   ],
-  nativeRequires: ["pyret-base/js/js-numbers", "js-md5", "canvas"],
+  nativeRequires: ["js-md5", "canvas"],
   provides: {
     aliases: { "Image": ["local", "Image"] },
     datatypes: { "Image": ["data", "Image", [], [], {}] }
   },
-  theModule: function(RUNTIME, NAMESPACE, uri, imageImp, colorLib, jsnums, md5, nodeCanvas) {
+  theModule: function(RUNTIME, NAMESPACE, uri, imageImp, colorLib, md5, nodeCanvas) {
     var gf = RUNTIME.getField;
+    var jsnums = RUNTIME.jsnums;
 
     var image = gf(imageImp, "values");
     var imageTypes = gf(imageImp, "types");
@@ -140,8 +141,8 @@
 
     var isAngle = function(x) {
       return jsnums.isReal(x) &&
-        jsnums.greaterThanOrEqual(x, 0, RUNTIME.NumberErrbacks) &&
-        jsnums.lessThan(x, 360, RUNTIME.NumberErrbacks);
+        jsnums.greaterThanOrEqual(x, 0) &&
+        jsnums.lessThan(x, 360);
     };
 
     // Produces true if the value is a color or a color string.
@@ -228,15 +229,15 @@
 
 
     var isSideCount = function(x) {
-      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 3, RUNTIME.NumberErrbacks);
+      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 3);
     };
 
     var isStepCount = function(x) {
-      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 1, RUNTIME.NumberErrbacks);
+      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 1);
     };
 
     var isPointsCount = function(x) {
-      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 2, RUNTIME.NumberErrbacks);
+      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 2);
     };
 
     // Produces true if thing is an image-like object.
@@ -1332,7 +1333,7 @@
 
       // rotate around outer circle, storing x and y coordinates
       var radians = 0, vertices = [];
-      var numComponents = jsnums.gcd(count, [step], RUNTIME.NumberErrbacks);
+      var numComponents = jsnums.gcd(count, step);
       var pointsPerComponent = count / numComponents;
       var angle = (2*Math.PI/count);
       for (var curComp = 0; curComp < numComponents; curComp++) {

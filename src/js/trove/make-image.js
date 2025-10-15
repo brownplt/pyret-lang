@@ -5,12 +5,12 @@
     { "import-type": "builtin", "name": "filesystem-internal" }
   ],
   nativeRequires: [
-    "pyret-base/js/js-numbers",
     "fs",
     "canvas",
   ],
   provides: {},
-  theModule: function(runtime, namespace, uri, imageLib, ffi, fsInternal, jsnums, fs, canvas) {
+  theModule: function(runtime, namespace, uri, imageLib, ffi, fsInternal, fs, canvas) {
+    var jsnums = runtime.jsnums;
     var image = runtime.getField(imageLib, "internal");
     if(canvas.Image) {
       var Image = canvas.Image; // The polyfill for the browser Image API (passes through raw Image on CPO)
@@ -78,14 +78,14 @@
 
 
       function less(n, m) {
-        return jsnums.lessThan(n, m, runtime.NumberErrbacks);
+        return jsnums.lessThan(n, m);
       }
 
 
       function canonicalizeAngle(angle) {
-        angle = jsnums.remainder(angle, 360, runtime.NumberErrbacks);
-        if (jsnums.lessThan(angle, 0, runtime.NumberErrbacks)) {
-          angle = jsnums.add(angle, 360, runtime.NumberErrbacks);
+        angle = jsnums.remainder(angle, 360);
+        if (jsnums.lessThan(angle, 0)) {
+          angle = jsnums.add(angle, 360);
         }
         return angle;
       };
