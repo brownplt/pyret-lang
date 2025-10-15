@@ -949,47 +949,43 @@ define("pyret-base/js/js-numbers", function() {
       return x.integerSqrt();
     };
 
-    // gcd: pyretnum [pyretnum ...] -> pyretnum
-    var gcd = function(first, rest) {
+    // gcd: pyretnum pyretnum -> pyretnum
+    var gcd = function(first, second, errbacks) {
       if (! isInteger(first)) {
         errbacks.throwDomainError('gcd: the argument ' + first.toString() +
                                   " is not an integer.", first);
       }
-      var a = abs(first), t, b;
-      for(var i = 0; i < rest.length; i++) {
-        b = abs(rest[i]);
-        if (! isInteger(b)) {
-          errbacks.throwDomainError('gcd: the argument ' + b.toString() +
-                                    " is not an integer.", b);
-        }
-        while (! _integerIsZero(b)) {
-          t = a;
-          a = b;
-          b = _integerModulo(t, b);
-        }
+      if (! isInteger(second)) {
+        errbacks.throwDomainError('gcd: the argument ' + second.toString() +
+                                  " is not an integer.", second);
+      }
+      var a = abs(first), t;
+      var b = abs(second);
+      while (! _integerIsZero(b)) {
+        t = a;
+        a = b;
+        b = _integerModulo(t, b, errbacks);
       }
       return a;
     };
 
-    // lcm: pyretnum [pyretnum ...] -> pyretnum
-    var lcm = function(first, rest) {
+    // lcm: pyretnum pyretnum -> pyretnum
+    var lcm = function(first, second, errbacks) {
       if (! isInteger(first)) {
         errbacks.throwDomainError('lcm: the argument ' + first.toString() +
                                   " is not an integer.", first);
       }
+      if (! isInteger(second)) {
+        errbacks.throwDomainError('lcm: the argument ' + second.toString() +
+                                  " is not an integer.", second);
+      }
       var result = abs(first);
       if (_integerIsZero(result)) { return 0; }
-      for (var i = 0; i < rest.length; i++) {
-        if (! isInteger(rest[i])) {
-          errbacks.throwDomainError('lcm: the argument ' + rest[i].toString() +
-                                    " is not an integer.", rest[i]);
-        }
-        var divisor = _integerGcd(result, rest[i]);
-        if (_integerIsZero(divisor)) {
-          return 0;
-        }
-        result = divide(multiply(result, rest[i]), divisor);
+      var divisor = _integerGcd(result, second, errbacks);
+      if (_integerIsZero(divisor)) {
+        return 0;
       }
+      result = divide(multiply(result, second, errbacks), divisor, errbacks);
       return result;
     };
 
@@ -1694,7 +1690,7 @@ define("pyret-base/js/js-numbers", function() {
     };
 
     Rational.prototype.log = function(){
-      return Roughnum.makeInstance(Math.log(this.toFixnum()));
+      return log(this)
     };
 
     Rational.prototype.tan = function(){
@@ -1714,8 +1710,12 @@ define("pyret-base/js/js-numbers", function() {
     };
 
     var integerNthRoot = function(n, m) {
+      if (sign(n) < 0)
+        errbacks.throwDomainError('integerNthRoot: root ' + n + ' is negative.');
+      if (sign(m) < 0)
+        errbacks.throwDomainError('integerNthRoot: radicand ' + m + ' is negative.');
       var guessPrev, guessToTheN;
-      var guess = m;
+      var guess = floor(m);
 
       // find closest integral zero of x^n - m = 0 using Newton-Raphson.
       // if k'th guess is x_k, then
@@ -2643,6 +2643,7 @@ define("pyret-base/js/js-numbers", function() {
       for(i = n-1; i >= 0; --i) r[i] = 0;
       r.t = this.t+n;
       r.s = this.s;
+      r.clamp();
     }
 
     // (protected) r = this >> n*DB
@@ -2650,6 +2651,7 @@ define("pyret-base/js/js-numbers", function() {
       for(var i = n; i < this.t; ++i) r[i-n] = this[i];
       r.t = Math.max(this.t-n,0);
       r.s = this.s;
+      r.clamp();
     }
 
     // (protected) r = this << n
@@ -3818,7 +3820,7 @@ define("pyret-base/js/js-numbers", function() {
     // log: -> pyretnum
     // Produce the log.
     BigInteger.prototype.log = function() {
-      return log(this.toFixnum());
+      return log(this);
     };
 
     // tan: -> pyretnum

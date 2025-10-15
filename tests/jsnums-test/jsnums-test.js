@@ -426,7 +426,7 @@ R(["pyret-base/js/js-numbers"], function(JNlib) {
 
     });
 
-    xit('BigInteger bnp* methods', function() {
+    it('BigInteger bnp* methods', function() {
 
       // bnpCopyTo
       var n9e311 = JN.makeBignum('9e311');
@@ -534,7 +534,7 @@ R(["pyret-base/js/js-numbers"], function(JNlib) {
 
     });
 
-    xit('BigInteger bn* functions', function() {
+    it('BigInteger bn* functions', function() {
 
       var n2r5 = JN.makeBignum(Math.pow(2,5));
 
@@ -666,7 +666,7 @@ R(["pyret-base/js/js-numbers"], function(JNlib) {
 
     });
 
-    xit("nthRoot integerNthRoot", function() {
+    it("nthRoot integerNthRoot", function() {
       expect(JN.equals(
         JN._innards.nthRoot(3, 8),
         Math.pow(8, 1/3)))
@@ -723,7 +723,7 @@ R(["pyret-base/js/js-numbers"], function(JNlib) {
 
     });
 
-    xit("BigInteger methods", function() {
+    it("BigInteger methods", function() {
 
       expect(JN.equals(
         JN.gcd(JN.makeBignum(24), JN.makeBignum(30)),

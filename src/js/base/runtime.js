@@ -5225,6 +5225,20 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
       return thisRuntime.makeNumberBig(jsnums.remainder(n, m));
     }
 
+    var num_gcd = function(n, m) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-gcd"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-gcd",
+        n, thisRuntime.Number, m, thisRuntime.Number);
+      return thisRuntime.makeNumberBig(jsnums.gcd(n, m, NumberErrbacks));
+    }
+
+    var num_lcm = function(n, m) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-lcm"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-lcm",
+        n, thisRuntime.Number, m, thisRuntime.Number);
+      return thisRuntime.makeNumberBig(jsnums.lcm(n, m, NumberErrbacks));
+    }
+
     var num_sqrt = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqrt"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-sqrt",
@@ -5945,6 +5959,8 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
       'num-remainder': makeFunction(num_remainder, "num-remainder"),
       'num-sqrt': makeFunction(num_sqrt, "num-sqrt"),
       'num-sqr': makeFunction(num_sqr, "num-sqr"),
+      'num-gcd': makeFunction(num_gcd, "num-gcd"),
+      'num-lcm': makeFunction(num_lcm, "num-lcm"),
       'num-truncate': makeFunction(num_truncate, "num-truncate"),
       'num-ceiling': makeFunction(num_ceiling, "num-ceiling"),
       'num-floor': makeFunction(num_floor, "num-floor"),
