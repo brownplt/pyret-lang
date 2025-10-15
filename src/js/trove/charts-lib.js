@@ -3,7 +3,6 @@
     { 'import-type': 'builtin', 'name': 'image-lib' },
   ],
   nativeRequires: [
-    'pyret-base/js/js-numbers',
     'vegaMin',
     'canvas',
   ],
@@ -19,9 +18,10 @@
       'plot': "tany",
     }
   },
-  theModule: function (RUNTIME, NAMESPACE, uri, IMAGELIB, jsnums, vega, canvasLib) {
+  theModule: function (RUNTIME, NAMESPACE, uri, IMAGELIB, vega, canvasLib) {
     'use strict';
 
+    var jsnums = RUNTIME.jsnums;
     
     // Default Google Chart Colors for sequential series (Like Multi Bar Charts and Pie Charts) from 
     // https://stackoverflow.com/a/75264589

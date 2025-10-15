@@ -6,12 +6,12 @@
     { "import-type": "builtin", name: "d3-lib" },
   ],
   nativeRequires: [
-    "pyret-base/js/js-numbers",
     "../../node_modules/d3/d3.min",
     "../../node_modules/d3-tip/index",
   ],
   provides: {},
-  theModule: function(RUNTIME, NAMESPACE, uri, IMAGE, IMAGESTRUCTS, STRUCTS, clib, jsnums, d3, d3tipLib) {
+  theModule: function(RUNTIME, NAMESPACE, uri, IMAGE, IMAGESTRUCTS, STRUCTS, clib, d3, d3tipLib) {
+    var jsnums = RUNTIME.jsnums;
     var libs = clib(d3);
     var libData =  libs.libData,
     libNum =       libs.libNum,

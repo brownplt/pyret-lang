@@ -4,7 +4,6 @@
     { "import-type": "builtin", "name": "make-image" }
   ],
   nativeRequires: [
-    "pyret-base/js/js-numbers",
   ],
   provides: {
     shorthands: {
@@ -166,8 +165,9 @@
                  name: "Image" },
     }
   },
-  theModule: function(runtime, namespace, uri, imageLib, makeImage, jsnums) {
+  theModule: function(runtime, namespace, uri, imageLib, makeImage) {
     var ffi = runtime.ffi;
+    var jsnums = runtime.jsnums;
 
     var image = runtime.getField(imageLib, "internal");
     var colorDb = image.colorDb;
@@ -231,15 +231,15 @@
       annNumNonNegative: runtime.NumNonNegative,
       annByte: ann("Number between 0 and 255", function(val) {
         return runtime.isNumber(val)
-          && jsnums.greaterThanOrEqual(val, 0, runtime.NumberErrbacks)
-          && jsnums.greaterThanOrEqual(255, val, runtime.NumberErrbacks);
+          && jsnums.greaterThanOrEqual(val, 0)
+          && jsnums.greaterThanOrEqual(255, val);
       }),
       annReal: ann("Real Number", function(val) {
         return runtime.isNumber(val) && jsnums.isReal(val);
       }),
       annNatural: ann("Natural Number", function(val) {
         return runtime.isNumber(val) && jsnums.isInteger(val)
-          && jsnums.greaterThanOrEqual(val, 0, runtime.NumberErrbacks);
+          && jsnums.greaterThanOrEqual(val, 0);
       }),
       unwrapColor: identity,
       annColor: image.annColor,

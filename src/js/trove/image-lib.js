@@ -3,13 +3,14 @@
     { "import-type": "builtin", "name": "internal-image-shared" },
     { "import-type": "builtin", "name": "color" }
   ],
-  nativeRequires: ["pyret-base/js/js-numbers", "js-md5", "canvas"],
+  nativeRequires: ["js-md5", "canvas"],
   provides: {
     aliases: { "Image": ["local", "Image"] },
     datatypes: { "Image": ["data", "Image", [], [], {}] }
   },
-  theModule: function(RUNTIME, NAMESPACE, uri, imageImp, colorLib, jsnums, md5, nodeCanvas) {
+  theModule: function(RUNTIME, NAMESPACE, uri, imageImp, colorLib, md5, nodeCanvas) {
     var gf = RUNTIME.getField;
+    var jsnums = RUNTIME.jsnums;
 
     var image = gf(imageImp, "values");
     var imageTypes = gf(imageImp, "types");
