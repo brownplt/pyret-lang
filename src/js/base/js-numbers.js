@@ -950,7 +950,7 @@ define("pyret-base/js/js-numbers", function() {
     };
 
     // gcd: pyretnum pyretnum -> pyretnum
-    var gcd = function(first, second, errbacks) {
+    var gcd = function(first, second) {
       if (! isInteger(first)) {
         errbacks.throwDomainError('gcd: the argument ' + first.toString() +
                                   " is not an integer.", first);
@@ -964,13 +964,13 @@ define("pyret-base/js/js-numbers", function() {
       while (! _integerIsZero(b)) {
         t = a;
         a = b;
-        b = _integerModulo(t, b, errbacks);
+        b = _integerModulo(t, b);
       }
       return a;
     };
 
     // lcm: pyretnum pyretnum -> pyretnum
-    var lcm = function(first, second, errbacks) {
+    var lcm = function(first, second) {
       if (! isInteger(first)) {
         errbacks.throwDomainError('lcm: the argument ' + first.toString() +
                                   " is not an integer.", first);
@@ -981,11 +981,11 @@ define("pyret-base/js/js-numbers", function() {
       }
       var result = abs(first);
       if (_integerIsZero(result)) { return 0; }
-      var divisor = _integerGcd(result, second, errbacks);
+      var divisor = _integerGcd(result, second);
       if (_integerIsZero(divisor)) {
         return 0;
       }
-      result = divide(multiply(result, second, errbacks), divisor, errbacks);
+      result = divide(multiply(result, second), divisor);
       return result;
     };
 
