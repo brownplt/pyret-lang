@@ -592,44 +592,44 @@ define("pyret-base/js/js-numbers", function() {
   }
 
   // greaterThanOrEqual: pyretnum pyretnum -> boolean
-  var greaterThanOrEqual = function(x, y, errbacks) {
-    if(typeof x === "number" && typeof y === "number") {
+  var greaterThanOrEqual = makeNumericBinop(
+    function(x, y, errbacks) {
       return x >= y;
-    }
-    return makeNumericBinop(undefined, function(x, y, errbacks) {
-      return x.greaterThanOrEqual(y);
-    })(x, y, errbacks);
-  }
+    },
+    function(x, y, errbacks) {
+      return x.greaterThanOrEqual(y, errbacks);
+    },
+    {});
 
   // lessThanOrEqual: pyretnum pyretnum -> boolean
-  var lessThanOrEqual = function(x, y, errbacks) {
-    if(typeof x === "number" && typeof y === "number") {
+  var lessThanOrEqual = makeNumericBinop(
+    function(x, y, errbacks) {
       return x <= y;
-    }
-    return makeNumericBinop(undefined, function(x, y, errbacks) {
+    },
+    function(x, y, errbacks) {
       return x.lessThanOrEqual(y, errbacks);
-    })(x, y, errbacks);
-  };
+    },
+    {});
 
   // greaterThan: pyretnum pyretnum -> boolean
-  var greaterThan = function(x, y, errbacks) {
-    if(typeof x === "number" && typeof y === "number") {
+  var greaterThan = makeNumericBinop(
+    function(x, y, errbacks) {
       return x > y;
-    }
-    return makeNumericBinop(undefined, function(x, y, errbacks) {
-      return x.greaterThan(y);
-    })(x, y, errbacks);
-  };
+    },
+    function(x, y, errbacks) {
+      return x.greaterThan(y, errbacks);
+    },
+    {});
 
   // lessThan: pyretnum pyretnum -> boolean
-  var lessThan = function(x, y, errbacks) {
-    if(typeof x === "number" && typeof y === "number") {
+  var lessThan = makeNumericBinop(
+    function(x, y, errbacks) {
       return x < y;
-    }
-    return makeNumericBinop(undefined, function(x, y, errbacks) {
+    },
+    function(x, y, errbacks) {
       return x.lessThan(y, errbacks);
-    })(x, y, errbacks);
-  };
+    },
+    {});
 
   // expt: pyretnum pyretnum -> pyretnum
   var expt = makeNumericBinop(
