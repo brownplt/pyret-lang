@@ -144,14 +144,14 @@
           ret[rawVal] = num;
         }
       }
-      if (jsnums.greaterThanOrEqual(ret.xMinValue, ret.xMaxValue, RUNTIME.NumberErrbacks)) {
+      if (jsnums.greaterThanOrEqual(ret.xMinValue, ret.xMaxValue)) {
         raw.xMinValue.addClass('error-bg');
         raw.xMaxValue.addClass('error-bg');
         raw.xMinValue.removeClass('ok-bg');
         raw.xMaxValue.removeClass('ok-bg');
         return null;
       }
-      if (jsnums.greaterThanOrEqual(ret.yMinValue, ret.yMaxValue, RUNTIME.NumberErrbacks)) {
+      if (jsnums.greaterThanOrEqual(ret.yMinValue, ret.yMaxValue)) {
         raw.yMinValue.addClass('error-bg');
         raw.yMaxValue.addClass('error-bg');
         raw.yMinValue.removeClass('ok-bg');
@@ -159,7 +159,7 @@
         return null;
       }
       if (!isTrue(RUNTIME.num_is_integer(ret.numSamples)) ||
-          jsnums.lessThanOrEqual(ret.numSamples, 1, RUNTIME.NumberErrbacks)) {
+          jsnums.lessThanOrEqual(ret.numSamples, 1)) {
         raw.numSamples.addClass('error-bg');
         raw.numSamples.removeClass('ok-bg');
         return null;

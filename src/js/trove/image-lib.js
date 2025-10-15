@@ -141,8 +141,8 @@
 
     var isAngle = function(x) {
       return jsnums.isReal(x) &&
-        jsnums.greaterThanOrEqual(x, 0, RUNTIME.NumberErrbacks) &&
-        jsnums.lessThan(x, 360, RUNTIME.NumberErrbacks);
+        jsnums.greaterThanOrEqual(x, 0) &&
+        jsnums.lessThan(x, 360);
     };
 
     // Produces true if the value is a color or a color string.
@@ -229,15 +229,15 @@
 
 
     var isSideCount = function(x) {
-      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 3, RUNTIME.NumberErrbacks);
+      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 3);
     };
 
     var isStepCount = function(x) {
-      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 1, RUNTIME.NumberErrbacks);
+      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 1);
     };
 
     var isPointsCount = function(x) {
-      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 2, RUNTIME.NumberErrbacks);
+      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 2);
     };
 
     // Produces true if thing is an image-like object.
@@ -1333,7 +1333,7 @@
 
       // rotate around outer circle, storing x and y coordinates
       var radians = 0, vertices = [];
-      var numComponents = jsnums.gcd(count, [step], RUNTIME.NumberErrbacks);
+      var numComponents = jsnums.gcd(count, step);
       var pointsPerComponent = count / numComponents;
       var angle = (2*Math.PI/count);
       for (var curComp = 0; curComp < numComponents; curComp++) {

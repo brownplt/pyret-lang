@@ -5229,14 +5229,14 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-gcd"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-gcd",
         n, thisRuntime.Number, m, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.gcd(n, m, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.gcd(n, m));
     }
 
     var num_lcm = function(n, m) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-lcm"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("Numbers", "num-lcm",
         n, thisRuntime.Number, m, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.lcm(n, m, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.lcm(n, m));
     }
 
     var num_sqrt = function(n) {

@@ -1007,7 +1007,7 @@ define("pyret-base/js/js-numbers", function() {
       } else if (isRational(x) && isRational(y)) {
         var xn = numerator(x); var xd = denominator(x);
         var yn = numerator(y); var yd = denominator(y);
-        var new_d = lcm(xd, [yd]);
+        var new_d = lcm(xd, yd);
         var new_xn = multiply(xn, divide(new_d, xd));
         var new_yn = multiply(yn, divide(new_d, yd));
         return divide(remainder(new_xn, new_yn), new_d);
