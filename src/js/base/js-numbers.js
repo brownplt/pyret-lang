@@ -3786,7 +3786,7 @@ define("pyret-base/js/js-numbers", function() {
     // adapted for integer-sqrt.
     // http://en.wikipedia.org/wiki/Newton's_method#Square_root_of_a_number
     var searchIter = function(n, guess, errbacks) {
-      while(!(lessThanOrEqual(sqr(guess),n, errbacks) &&
+      while(!(lessThanOrEqual(sqr(guess, errbacks), n, errbacks) &&
               lessThan(n,sqr(add(guess, 1, errbacks), errbacks), errbacks))) {
         guess = floor(divide(add(guess,
                                  floor(divide(n, guess, errbacks), errbacks), errbacks),
