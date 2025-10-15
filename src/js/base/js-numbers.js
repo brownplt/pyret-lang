@@ -3806,22 +3806,20 @@ define("pyret-base/js/js-numbers", function() {
     };
   })();
 
-  (function() {
-    // Get an approximation using integerSqrt, and then start another
-    // Newton-Raphson search if necessary.
-    BigInteger.prototype.sqrt = function(errbacks) {
-      var approx = this.integerSqrt(errbacks), fix;
-      if (eqv(sqr(approx, errbacks), this, errbacks)) {
-        return approx;
-      }
-      fix = toFixnum(this);
-      if (isFinite(fix)) {
-        return Roughnum.makeInstance(Math.sqrt(fix), errbacks);
-      } else {
-        return approx;
-      }
-    };
-  })();
+  // Get an approximation using integerSqrt, and then start another
+  // Newton-Raphson search if necessary.
+  BigInteger.prototype.sqrt = function(errbacks) {
+    var approx = this.integerSqrt(errbacks), fix;
+    if (eqv(sqr(approx, errbacks), this, errbacks)) {
+      return approx;
+    }
+    fix = toFixnum(this);
+    if (isFinite(fix)) {
+      return Roughnum.makeInstance(Math.sqrt(fix), errbacks);
+    } else {
+      return approx;
+    }
+  };
 
   // sqrt: -> pyretnum
   // http://en.wikipedia.org/wiki/Newton's_method#Square_root_of_a_number
