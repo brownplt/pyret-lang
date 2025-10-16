@@ -3304,15 +3304,20 @@
         let height = toFixnum(globalOptions['height']);
         const vegaTooltipHandler = new vegaTooltip.Handler({
           formatTooltip: (value, valueToHtml, maxDepth, baseURL) => {
-            if (typeof value === 'object') {
+            let ans;
+            if (typeof value === 'object' && value.title instanceof Array) {
               const { title, ...rest } = value;
               if (title instanceof Array) {
                 const titleStr = `<h2>${title.map(valueToHtml).join('<br/>')}</h2>`;
                 const restStr = vegaTooltip.formatValue(rest, valueToHtml, maxDepth, baseURL);
-                return titleStr + restStr;
+                ans = titleStr + restStr;
               }
+            } else {
+              ans = vegaTooltip.formatValue(value, valueToHtml, maxDepth, baseURL);
             }
-            return vegaTooltip.formatValue(value, valueToHtml, maxDepth, baseURL);
+            ans = ans.replaceAll("<table>", "<table class=\"pyret-row\">");
+            ans = ans.replaceAll("<td class=\"value\">", "<td class=\"value replTextOutput\"> ");
+            return ans;
           }
         });
         const view = new vega.View(vega.parse(processed), {
