@@ -68,3 +68,4 @@ import file("./tests/use/test-simple-use.arr") as _
 import file("./tests/use/test-essentials.arr") as _
 
 import file("./tests/test-images.arr") as _
+import file("./tests/test-charts.arr") as _
