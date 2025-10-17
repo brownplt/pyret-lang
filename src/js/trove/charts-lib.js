@@ -1753,7 +1753,7 @@
           type: 'linear',
           range: 'width',
           zero: false,
-          domain: { data: 'rawTable', field: 'bin1' }
+          domain: { data: 'rawTable', fields: ['bin0', 'bin1'] }
         },
         {
           name: 'countScale',
