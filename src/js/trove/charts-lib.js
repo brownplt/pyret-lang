@@ -1809,6 +1809,8 @@
       const height = globalOptions['height'];
       const xAxisLabel = globalOptions['x-axis'];
       const yAxisLabel = globalOptions['y-axis'];
+      const xMinValue = getNumOrDefault(globalOptions['x-min'], undefined);
+      const xMaxValue = getNumOrDefault(globalOptions['x-max'], undefined);
       const yAxisType = globalOptions['y-axis-type'];
       const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
 
@@ -1861,7 +1863,9 @@
         { name: 'binSize', update: 'invert("binScale", dotSize)' },
         { name: 'actualDotSize', update: 'scale("dotScale", 0) - scale("dotScale", 1)' },
         { name: 'headspace', value: '0.25' },
-        { name: 'wrapMaxY', update: 'floor(domain("dotScale")[1] * (1 - headspace))' }
+        { name: 'wrapMaxY', update: 'floor(domain("dotScale")[1] * (1 - headspace))' },
+        { name: 'xMinValue', value: xMinValue },
+        { name: 'xMaxValue', value: xMaxValue },
       ];
       const scales = [
         {
@@ -1869,7 +1873,8 @@
           type: 'linear',
           zero: false,
           range: { signal: '[0, width - dotSize / 2]' },
-          domain: { data: 'rawTable', field: 'value' }
+          domain: { data: 'rawTable', field: 'value' },
+          domainMin: { signal: 'xMinValue' }, domainMax: { signal: 'xMaxValue' },
         },
         {
           name: 'dotScale',
@@ -2171,8 +2176,6 @@
       const trendlineWidth = toFixnum(get(rawData, 'trendlineWidth'));
       const trendlineOpacity = toFixnum(get(rawData, 'trendlineOpacity'));
       const trendlineDegree = toFixnum(get(rawData, 'trendlineDegree'));
-      const xMinValue = getNumOrDefault(globalOptions['x-min'], undefined);
-      const xMaxValue = getNumOrDefault(globalOptions['x-max'], undefined);
       const yMinValue = getNumOrDefault(globalOptions['y-min'], undefined);
       const yMaxValue = getNumOrDefault(globalOptions['y-max'], undefined);
       const imageScaleFactorX = autosizeImage ? '-datum.imageWidth' : -pointSize;

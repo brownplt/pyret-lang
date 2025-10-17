@@ -27,6 +27,7 @@ import string-dict as SD
 import valueskeleton as VS
 import statistics as ST
 import color as C
+import error as ERR
 import render-error-display as RED
 
 ################################################################################
@@ -1389,6 +1390,8 @@ type DotChartWindowObject = {
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
+  x-min :: Option<Number>,
+  x-max :: Option<Number>,
 }
 
 default-dot-chart-window-object :: DotChartWindowObject = default-chart-window-object.{
@@ -1396,6 +1399,8 @@ default-dot-chart-window-object :: DotChartWindowObject = default-chart-window-o
   y-axis: '',
   x-axis-type: at-linear,
   y-axis-type: at-linear,
+  x-min: none,
+  x-max: none,
 }
 
 type BarChartWindowObject = {
@@ -1734,6 +1739,8 @@ data ChartWindow:
     constr: {(): dot-chart-window},
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-min: x-min-method,
+    x-max: x-max-method,
     x-axis-type: x-axis-type-method,
     y-axis-type: y-axis-type-method,
   | box-plot-chart-window(obj :: BoxChartWindowObject) with:
@@ -2449,6 +2456,16 @@ fun check-render-y-axis(self) -> Nothing:
   end
 end
 
+fun check-data-range(min, max, vals) -> Nothing:
+  fun too-small(v): v.value < min.or-else(v.value) end
+  fun too-big(v): v.value > max.or-else(v.value) end
+  if vals.any(too-small) or vals.any(too-big):
+    raise(ERR.message-exception("render: All values must be between specified x-min and x-max bounds"))
+  else:
+    nothing
+  end
+end
+
 fun render-chart(s :: DataSeries) -> ChartWindow:
   doc: 'Render it!'
   cases (DataSeries) s:
@@ -2459,6 +2476,8 @@ fun render-chart(s :: DataSeries) -> ChartWindow:
     | dot-plot-series(obj) =>
       default-dot-chart-window-object.{
         method render(self) block:
+          _ = check-render-x-axis(self)
+          _ = check-data-range(self.x-min, self.x-max, obj.ps)
           CL.dot-chart(self, obj) 
         end
       } ^ dot-chart-window
