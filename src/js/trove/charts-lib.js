@@ -1153,7 +1153,7 @@
         name: 'secondary',
         range: axesConfig.secondary.range,
         ...(axesConfig.secondary.name === 'x' ? xAxisType : yAxisType),
-        nice: true, zero: true,
+        nice: true, zero: false,
         domain: (axis && isNotFullStacked) ? { signal: 'extent(domain("secondaryLabels"))' } : { data: 'table', field: 'value1' }
       };
       const scales = [
@@ -2613,7 +2613,7 @@
             }),
           })),
           transform: [
-            { type: 'formula', as: 'yprime', expr: 'datum.y + datum.delta' }
+            { type: 'formula', as: 'yprime', expr: 'datum.y - datum.delta' }
           ]
         },
         {
