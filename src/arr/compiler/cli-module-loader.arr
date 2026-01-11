@@ -551,11 +551,9 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
     | left(problems) =>
       handle-compilation-errors(problems, options)
     | right(program) =>
-      shadow require-config-path = if not( Filesystem.is-absolute( require-config-path ) ):
-          Filesystem.resolve(Filesystem.join(options.base-dir, require-config-path))
-        else: require-config-path
-        end
-      config.set-now("out", JSON.j-str(Filesystem.resolve(Filesystem.join(options.base-dir, outfile))))
+      shadow require-config-path = get-real-path(options.base-dir, require-config-path)
+
+      config.set-now("out", JSON.j-str(get-real-path(options.base-dir, outfile)))
       when not(config.has-key-now("baseUrl")):
         config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
       end
