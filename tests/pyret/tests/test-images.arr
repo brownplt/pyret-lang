@@ -13,6 +13,11 @@ fun within-n-badness(n):
 end
 
 
+check "Image-url":
+  # prior to fixing #1831, this would fail
+  image-url("https://bootstrapworld.org/images/icon.png") satisfies is-image
+end
+
 check "Overlay equality":
   fun mk-image():
     overlay(circle(100, mode-solid, red), circle(50, mode-solid, red))

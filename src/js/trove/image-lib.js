@@ -797,6 +797,8 @@
       this.imageData= imageData;
       this.width    = imageData.width;
       this.height   = imageData.height;
+      this.pinholeX = this.width / 2;
+      this.pinholeY = this.height / 2;
     };
 
     ImageDataImage.prototype = heir(BaseImage.prototype);
@@ -890,14 +892,14 @@
       switch(placeX1.toLowerCase()) {
       case "left": x1 -= 0; anchor1 = "-left"; break;
       case "middle": x1 -= img1.width / 2; anchor1 = "-middle"; break;
-      case "pinhole": x1 -= img1.pinholeX; anchor1 = "-pinhole"; break;
+      case "pinhole": x1 -= img1.getPinholeX(); anchor1 = "-pinhole"; break;
       case "right": x1 -= img1.width; anchor1 = "-right"; break;
       default: throw new Error("Unknown XPlace option for image 1: " + placeX1);
       }
       switch(placeY1.toLowerCase()) {
       case "top": y1 -= 0; anchor1 = "top" + anchor1; break;
       case "center": y1 -= img1.height / 2; anchor1 = "center" + anchor1; break;
-      case "pinhole": y1 -= img1.pinholeY; anchor1 = "pinhole" + anchor1; break;
+      case "pinhole": y1 -= img1.getPinholeY(); anchor1 = "pinhole" + anchor1; break;
       case "baseline": y1 -= img1.getBaseline(); anchor1 = "baseline" + anchor1; break;
       case "bottom": y1 -= img1.height; anchor1 = "bottom" + anchor1; break;
       default: throw new Error("Unknown YPlace option for image 1: " + placeY1);
@@ -905,14 +907,14 @@
       switch(placeX2.toLowerCase()) {
       case "left": x2 -= 0; anchor2 = "-left"; break;
       case "middle": x2 -= img2.width / 2; anchor2 = "-middle"; break;
-      case "pinhole": x2 -= img2.pinholeX; anchor2 = "-pinhole"; break;
+      case "pinhole": x2 -= img2.getPinholeX(); anchor2 = "-pinhole"; break;
       case "right": x2 -= img2.width; anchor2 = "-right"; break;
       default: throw new Error("Unknown XPlace option for image 2: " + placeX2);
       }
       switch(placeY2.toLowerCase()) {
       case "top": y2 -= 0; anchor2 = "top" + anchor2; break;
       case "center": y2 -= img2.height / 2; anchor2 = "center" + anchor2; break;
-      case "pinhole": y2 -= img2.pinholeY; anchor2 = "pinhole" + anchor2; break;
+      case "pinhole": y2 -= img2.getPinholeY(); anchor2 = "pinhole" + anchor2; break;
       case "baseline": y2 -= img2.getBaseline(); anchor2 = "baseline" + anchor2; break;
       case "bottom": y2 -= img2.height; anchor2 = "bottom" + anchor2; break;
       default: throw new Error("Unknown YPlace option for image 2: " + placeY2);
@@ -949,8 +951,8 @@
       this.y2 = y2;
       this.img1 = img1;
       this.img2 = img2;
-      this.pinholeX = img1.pinholeX + x1;
-      this.pinholeY = img1.pinholeY + y1;
+      this.pinholeX = img1.getPinholeX() + x1;
+      this.pinholeY = img1.getPinholeY() + y1;
       this.alphaBaseline = img1.alphaBaseline ? img1.getBaseline() + y1 : img2.getBaseline() + y2;
       // console.log("Baseline1: " + img1.alphaBaseline + ", Baseline2: " + img2.alphaBaseline + " ==> " + this.alphaBaseline);
       var shiftText = "";
@@ -1022,8 +1024,8 @@
       this.angle      = Math.round(angle);
       this.translateX = translate.x;
       this.translateY = translate.y;
-      this.pinholeX   = img.pinholeX*cos - img.pinholeY*sin + translate.x;
-      this.pinholeY   = img.pinholeX*sin + img.pinholeY*cos + translate.y;
+      this.pinholeX   = img.getPinholeX()*cos - img.getPinholeY()*sin + translate.x;
+      this.pinholeY   = img.getPinholeX()*sin + img.getPinholeY()*cos + translate.y;
       this.ariaText   = "Rotated image, "+(-1 * angle)+" degrees: "+img.ariaText;
     };
 
@@ -1045,8 +1047,8 @@
               this.width     === other.width        &&
               this.height    === other.height       &&
               this.angle     === other.angle        &&
-              this.pinholeX  === other.pinholeX     &&
-              this.pinholeY  === other.pinholeX     &&
+              this.getPinholeX()  === other.getPinholeX()     &&
+              this.getPinholeY()  === other.getPinholeY()     &&
               imageEquals(this.img, other.img) )
             || BaseImage.prototype.equals.call(this, other);
     };
@@ -1066,12 +1068,12 @@
       this.height   = img.height * Math.abs(yFactor);
       this.xFactor  = xFactor;
       this.yFactor  = yFactor;
-      this.pinholeX = img.pinholeX * xFactor;
+      this.pinholeX = img.getPinholeX() * xFactor;
       if (xFactor < 0) { // translate pinhole into image region
         this.pinholeX += this.width;
         this._vertices.forEach((v) => v.x += this.width);
       }
-      this.pinholeY = img.pinholeY * yFactor;
+      this.pinholeY = img.getPinholeY() * yFactor;
       if (yFactor < 0) { // translate pinhole into image region
         this.pinholeY += this.height;
         this._vertices.forEach((v) => v.y += this.height);
@@ -1118,10 +1120,10 @@
       this.width      = width;
       this.height     = height;
       this.img        = img;
-      if (img.pinholeX >= x && img.pinholeX <= x + width &&
-          img.pinholeY >= y && img.pinholeY <= y + height) {
-        this.pinholeX = img.pinholeX - x;
-        this.pinholeY = img.pinholeY - y;
+      if (img.getPinholeX() >= x && img.getPinholeX() <= x + width &&
+          img.getPinholeY() >= y && img.getPinholeY() <= y + height) {
+        this.pinholeX = img.getPinholeX() - x;
+        this.pinholeY = img.getPinholeY() - y;
       } else {
         this.pinholeX   = width / 2;
         this.pinholeY   = height / 2;
@@ -1159,8 +1161,8 @@
       this.img        = img;
       this.width      = img.width;
       this.height     = img.height;
-      this.pinholeX   = img.pinholeX;
-      this.pinholeY   = img.pinholeY;
+      this.pinholeX   = img.getPinholeX();
+      this.pinholeY   = img.getPinholeY();
       this.ariaText = " Framed image: "+img.ariaText;
       this.alphaBaseline = img.alphaBaseline;
     };
@@ -1192,8 +1194,8 @@
       this.img        = img;
       this.width      = img.width;
       this.height     = img.height;
-      this.pinholeX   = img.pinholeX;
-      this.pinholeY   = img.pinholeY;
+      this.pinholeX   = img.getPinholeX();
+      this.pinholeY   = img.getPinholeY();
       this.ariaText = " Pinhole image: "+img.ariaText;
     };
 
@@ -1207,18 +1209,18 @@
       ctx.restore();
       ctx.beginPath();
       ctx.strokeStyle = "black"; ctx.lineWidth = 1.5;
-      ctx.moveTo(this.pinholeX - 5, this.pinholeY);
-      ctx.lineTo(this.pinholeX + 5, this.pinholeY);
-      ctx.moveTo(this.pinholeX, this.pinholeY - 5);
-      ctx.lineTo(this.pinholeX, this.pinholeY + 5);
+      ctx.moveTo(this.getPinholeX() - 5, this.getPinholeY());
+      ctx.lineTo(this.getPinholeX() + 5, this.getPinholeY());
+      ctx.moveTo(this.getPinholeX(), this.getPinholeY() - 5);
+      ctx.lineTo(this.getPinholeX(), this.getPinholeY() + 5);
       ctx.closePath();
       ctx.stroke();
       ctx.beginPath();
       ctx.strokeStyle = "white"; ctx.lineWidth = 0.75;
-      ctx.moveTo(this.pinholeX - 5, this.pinholeY);
-      ctx.lineTo(this.pinholeX + 5, this.pinholeY);
-      ctx.moveTo(this.pinholeX, this.pinholeY - 5);
-      ctx.lineTo(this.pinholeX, this.pinholeY + 5);
+      ctx.moveTo(this.getPinholeX() - 5, this.getPinholeY());
+      ctx.lineTo(this.getPinholeX() + 5, this.getPinholeY());
+      ctx.moveTo(this.getPinholeX(), this.getPinholeY() - 5);
+      ctx.lineTo(this.getPinholeX(), this.getPinholeY() + 5);
       ctx.closePath();
       ctx.stroke();
       ctx.restore();
@@ -1242,11 +1244,11 @@
       this.height     = img.height;
       this.direction  = direction;
       if (direction === "horizontal") {
-        this.pinholeX   = this.width - img.pinholeX;
-        this.pinholeY   = img.pinholeY;
+        this.pinholeX   = this.width - img.getPinholeX();
+        this.pinholeY   = img.getPinholeY();
       } else {
-        this.pinholeX   = img.pinholeX;
-        this.pinholeY   = this.height - img.pinholeY;
+        this.pinholeX   = img.getPinholeX();
+        this.pinholeY   = this.height - img.getPinholeY();
       }
       this.ariaText   = direction+"ly flipped image: " + img.ariaText;
     };
@@ -1708,8 +1710,8 @@
       var width = this.width - 2*adjust, height = this.height - 2*adjust;
       var aX = adjust, aY = adjust;
 
-      ctx.moveTo(aX + this.pinholeX - adjust, aY + this.pinholeY - adjust);
-      ctx.arc(aX + this.pinholeX - adjust, aY + this.pinholeY - adjust, this.radius - 2*adjust, 0, -this.angle, true);
+      ctx.moveTo(aX + this.getPinholeX() - adjust, aY + this.getPinholeY() - adjust);
+      ctx.arc(aX + this.getPinholeX() - adjust, aY + this.getPinholeY() - adjust, this.radius - 2*adjust, 0, -this.angle, true);
       ctx.closePath();
       if (this.style.toString().toLowerCase() === "outline") {
         ctx.strokeStyle = colorString(this.color);

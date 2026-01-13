@@ -33,3 +33,4 @@ import file("./regression/sloppy-list-filter.arr") as _
 import file("./regression/import-module-defining-but-not-exporting-data.arr") as _
 import file("./regression/render-reason-wrong-op.arr") as _
 import file("./regression/table-reduce.arr") as _
+import file("./regression/table-row-row-length-mismatch.arr") as _

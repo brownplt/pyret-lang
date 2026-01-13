@@ -837,7 +837,7 @@
         'row': runtime.makeMethodN(function(self, ...args) {
           // NOTE: Deliberately no arity check
           if(headers.length !== args.length) {
-            throw runtime.ffi.throwRowLengthMismatch(makeTable(headers, []), args);
+            throw runtime.ffi.throwRowLengthMismatch(headers, args);
           }
           return makeRow({ headerIndex: headerIndex }, args);
         }),

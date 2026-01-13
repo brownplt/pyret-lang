@@ -4,16 +4,21 @@ provide:
   from-list,
   type DataSeries,
   type ChartWindow,
-  data StackType,
-  data TrendlineType,
-  data PointShape
 end
 
 import global as G
 import base as B
 include lists
 include option
-import image-structs as I
+include charts-util
+import charts-util as CU
+provide from CU:
+  *,
+  type *,
+  data *
+end
+import image-structs as IS
+import image as I
 import internal-image-untyped as IM
 import sets as S
 import charts-lib as CL
@@ -22,6 +27,7 @@ import string-dict as SD
 import valueskeleton as VS
 import statistics as ST
 import color as C
+import error as ERR
 import render-error-display as RED
 
 ################################################################################
@@ -47,45 +53,6 @@ data SciNumber:
 end
 data AxisData: 
   | axis-data(axisTop :: Number, axisBottom :: Number, ticks :: RawArray<Pointer>)
-end
-data StackType:
-  | absolute
-  | relative
-  | percent
-  | grouped
-end
-
-fun check-positive-degree(v :: Number) -> Boolean block: 
-  when v < 0: 
-    raise("degree: degree must be non-negative")
-  end
-  true
-end
-
-data TrendlineType:
-  | no-trendline
-  | linear
-  | exponential
-  | polynomial(degree :: NumInteger%(check-positive-degree))
-end
-
-fun check-positive-sides(v :: Number) -> Boolean block: 
-  when v < 0: 
-    raise("regular-polygon-shape: number of sides must be non-negative")
-  end
-  true
-end
-
-fun check-valid-dent(v :: Number) -> Boolean block: 
-  when (v < 0) or (v > 1): 
-    raise("regular-polygon-shape: dent must be between 0 and 1")
-  end
-  true
-end
-
-data PointShape: 
-  | circle-shape
-  | regular-polygon-shape(sides :: NumInteger%(check-positive-sides), dent :: Number%(check-valid-dent))
 end
 
 ################################################################################
@@ -147,7 +114,7 @@ fun table2-to-list<A>(table :: RawArray<RawArray<A>>) -> List<List<A>>:
 end
 
 fun get-vs-from-img(s :: String, raw-img :: IM.Image) -> VS.ValueSkeleton:
-  I.color(190, 190, 190, 0.75)
+  IS.color(190, 190, 190, 0.75)
     ^ IM.text-font(s, 72, _, "", "modern", "normal", "bold", false)
     ^ IM.overlay-align("center", "bottom", _, raw-img)
     ^ VS.vs-value
@@ -187,7 +154,7 @@ fun num-to-scientific(base :: Number) -> (Number -> SciNumber) block:
        Currently only works with bases > 1.
        ```
   when base <= 1: 
-    raise("Num-to-scientific: Only defined on bases > 1")
+    raise(ERR.message-exception("Num-to-scientific: Only defined on bases > 1"))
   end
   
   fun convert(n :: Number):
@@ -222,7 +189,7 @@ fun string-to-stacktype(s :: String) -> StackType:
     | string-equal(s, 'absolute') then: absolute
     | string-equal(s, 'percent') then: percent
     | string-equal(s, 'relative') then: relative
-    | otherwise: raise('type must be absolute, relative, percent, or none')
+    | otherwise: raise(ERR.message-exception('type must be absolute, relative, percent, or none'))
   end
 end
 
@@ -289,46 +256,46 @@ type BoxData = {
 }
 
 fun get-box-data(label :: String, lst :: List<Number>) -> BoxData:
-    n = lst.length()
-    shadow lst = lst.sort()
-    median = ST.median(lst)
-    {first-quartile; third-quartile} = if num-modulo(n, 2) == 0:
-      splitted = lst.split-at(n / 2)
-      {ST.median(splitted.prefix); ST.median(splitted.suffix)}
-    else:
-      splitted = lst.split-at((n - 1) / 2)
-      {ST.median(splitted.prefix); ST.median(splitted.suffix.rest)}
-    end
-    iqr = third-quartile - first-quartile
-    high-outliers = for filter(shadow n from lst):
-      n > (third-quartile + (1.5 * iqr))
-    end
-    low-outliers = for filter(shadow n from lst):
-      n < (first-quartile - (1.5 * iqr))
-    end
-    min-val = lst.first
-    max-val = lst.last()
-    low-whisker = lst.get(low-outliers.length())
-    high-whisker = lst.get(n - high-outliers.length() - 1)
-    {
-     label: label,
-      max-val: max-val,
-      min-val: min-val,
-      first-quartile: first-quartile,
-      median: median,
-      third-quartile: third-quartile,
-      high-whisker: high-whisker,
-      low-whisker: low-whisker,
-      high-outliers: builtins.raw-array-from-list(high-outliers),
-      low-outliers: builtins.raw-array-from-list(low-outliers)
-    }
+  n = lst.length()
+  shadow lst = lst.sort()
+  median = ST.median(lst)
+  {first-quartile; third-quartile} = if num-modulo(n, 2) == 0:
+    splitted = lst.split-at(n / 2)
+    {ST.median(splitted.prefix); ST.median(splitted.suffix)}
+  else:
+    splitted = lst.split-at((n - 1) / 2)
+    {ST.median(splitted.prefix); ST.median(splitted.suffix.rest)}
+  end
+  iqr = third-quartile - first-quartile
+  high-outliers = for filter(shadow n from lst):
+    n > (third-quartile + (1.5 * iqr))
+  end
+  low-outliers = for filter(shadow n from lst):
+    n < (first-quartile - (1.5 * iqr))
+  end
+  min-val = lst.first
+  max-val = lst.last()
+  low-whisker = lst.get(low-outliers.length())
+  high-whisker = lst.get(n - high-outliers.length() - 1)
+  {
+    label: label,
+    max-val: max-val,
+    min-val: min-val,
+    first-quartile: first-quartile,
+    median: median,
+    third-quartile: third-quartile,
+    high-whisker: high-whisker,
+    low-whisker: low-whisker,
+    high-outliers: builtins.raw-array-from-list(high-outliers),
+    low-outliers: builtins.raw-array-from-list(low-outliers)
+  }
 end
 
 ################################################################################
 # METHODS
 ################################################################################
 
-color-method = method(self, color :: I.Color):
+color-method = method(self, color :: IS.Color):
   self.constr()(self.obj.{color: some(color)})
 end
 
@@ -337,30 +304,30 @@ color-list-method = method(self, colors :: CL.LoC):
     | empty => self.constr()(self.obj.{colors: none})
     | link(_, _) => 
       block:
-        each({(c :: I.Color): c}, colors)
+        each({(c :: IS.Color): c}, colors)
         self.constr()(self.obj.{colors: some(colors ^ builtins.raw-array-from-list)})
       end
   end
 end
 
-pointer-color-method = method(self, color :: I.Color):
+pointer-color-method = method(self, color :: IS.Color):
   self.constr()(self.obj.{pointer-color: some(color)})
 end
 
-interval-color-method = method(self, color :: I.Color):
+interval-color-method = method(self, color :: IS.Color):
   self.constr()(self.obj.{default-interval-color: some(color)})
 end
 
 line-width-method = method(self, lineWidth :: Number) block:
   when lineWidth < 0: 
-    raise("line-width: Line Width must be non-negative")
+    raise(ERR.message-exception("line-width: Line Width must be non-negative"))
   end
   self.constr()(self.obj.{lineWidth: lineWidth})
 end
 
 style-method = method(self, style :: String) block:
   when not(string-equal(style, "sticks")) and not(string-equal(style, "bars")) and not(string-equal(style, "boxes")):
-    raise("style: must be either sticks, bars, or boxes")
+    raise(ERR.message-exception("style: must be either sticks, bars, or boxes"))
   end
   self.constr()(self.obj.{style: style})
 end
@@ -374,7 +341,7 @@ end
 labels-method = method(self, labels :: CL.LoS): 
   block:
     when self.obj!ps.length() <> labels.length():
-      raise('plot: xs and labels should have the same length')
+      raise(ERR.message-exception('plot: xs and labels should have the same length'))
     end
     self.constr()(self.obj.{ps: map2({(arr, label): raw-array-set(arr, 2, label)}, self.obj!ps, labels)})
   end
@@ -383,7 +350,7 @@ end
 image-labels-method = method(self, images :: CL.LoI):
   block:
     when self.obj!ps.length() <> images.length():
-      raise('plot: xs and images should have the same length')
+      raise(ERR.message-exception('plot: xs and images should have the same length'))
     end
     self.constr()(self.obj.{ps: map2({(arr, image): raw-array-set(arr, 3, image)}, self.obj!ps, images)})
   end
@@ -391,11 +358,11 @@ end
 
 explode-method = method(self, offsets :: CL.LoN) block:
   when raw-array-length(self.obj!tab) <> offsets.length():
-    raise('exploding-pie-chart: labels and offsets should have the same length')
+    raise(ERR.message-exception('exploding-pie-chart: labels and offsets should have the same length'))
   end
   for each(offset from offsets):
     when (offset < 0) or (offset > 1):
-      raise('exploding-pie-chart: offset must be between 0 and 1')
+      raise(ERR.message-exception('exploding-pie-chart: offset must be between 0 and 1'))
     end
   end
   self.constr()(self.obj.{tab: raw-array-from-list(map2({(arr, offset): raw-array-set(arr, 2, offset)}, raw-array-to-list(self.obj!tab), offsets))})
@@ -403,17 +370,17 @@ end
 
 histogram-label-method = method(self, labels :: CL.LoS) block:
     when raw-array-length(self.obj!tab) <> labels.length():
-      raise('histogram: xs and labels should have the same length')
+      raise(ERR.message-exception('histogram: xs and labels should have the same length'))
     end
   self.constr()(self.obj.{tab: raw-array-from-list(map2({(arr, label): raw-array-set(arr, 0, label)}, raw-array-to-list(self.obj!tab), labels))})
 end
 
 box-labels-method = method(self, labels :: CL.LoS) block:
   when labels.length() <> self.obj!values.length():
-    raise('labeled-box-plot: labels and values should have the same length')
+    raise(ERR.message-exception('labeled-box-plot: labels and values should have the same length'))
   end
   when labels.length() == 0:
-    raise('labeled-box-plot: expect at least one box')
+    raise(ERR.message-exception('labeled-box-plot: expect at least one box'))
   end
   self.constr()(self.obj.{tab: map2(get-box-data, labels, self.obj!values) ^ builtins.raw-array-from-list,})
 end
@@ -423,7 +390,7 @@ threeD-method = method(self, threeD :: Boolean):
 end
 
 piehole-method = method(self, piehole :: Number):
-  if (piehole < 0) or (piehole > 1): raise("piehole: Value must be between 0 and 1")
+  if (piehole < 0) or (piehole > 1): raise(ERR.message-exception("piehole: Value must be between 0 and 1"))
   else: self.constr()(self.obj.{piehole: piehole})
   end
 end
@@ -434,7 +401,7 @@ end
 
 collapse-threshold-method = method(self, collapseThreshold :: Number) block:
   when (collapseThreshold < 0) or (collapseThreshold > 1): 
-    raise("collapse-threshold: Threshold must be between 0 and 1")
+    raise(ERR.message-exception("collapse-threshold: Threshold must be between 0 and 1"))
   end
   self.constr()(self.obj.{collapseThreshold: collapseThreshold})
 end
@@ -442,26 +409,26 @@ end
 trendline-type-method = method(self, trendlineType :: TrendlineType):
 cases (TrendlineType) trendlineType: 
     | no-trendline => self.constr()(self.obj.{trendlineType: none})
-    | linear => self.constr()(self.obj.{trendlineType: some("poly"), trendlineDegree: 1})
-    | exponential => self.constr()(self.obj.{trendlineType: some("exp")})
-    | polynomial(degree) => self.constr()(self.obj.{trendlineType: some("poly"), trendlineDegree: degree})
+    | tl-linear => self.constr()(self.obj.{trendlineType: some("poly"), trendlineDegree: 1})
+    | tl-exponential => self.constr()(self.obj.{trendlineType: some("exp")})
+    | tl-polynomial(degree) => self.constr()(self.obj.{trendlineType: some("poly"), trendlineDegree: degree})
   end
   
 end
 
-trendline-color-method = method(self, color :: I.Color):
+trendline-color-method = method(self, color :: IS.Color):
   self.constr()(self.obj.{trendlineColor: some(color)})
 end
 
 trendline-width-method = method(self, lineWidth :: Number) block:
   when lineWidth < 0: 
-    raise("trendline-width: Trendline Width must be non-negative")
+    raise(ERR.message-exception("trendline-width: Trendline Width must be non-negative"))
   end
   self.constr()(self.obj.{trendlineWidth: lineWidth})
 end
 
 trendline-opacity-method = method(self, opacity :: Number):
-  if (opacity < 0) or (opacity > 1): raise("Trendline opacity: Value must be between 0 and 1")
+  if (opacity < 0) or (opacity > 1): raise(ERR.message-exception("Trendline opacity: Value must be between 0 and 1"))
   else: self.constr()(self.obj.{trendlineOpacity: opacity})
   end
 end
@@ -472,7 +439,7 @@ end
 
 dashed-line-style-method = method(self, dashed-line-style :: CL.LoNi) block:
   when any({(n): n < 0}, dashed-line-style):
-    raise("Dashed Line Style: Values must be non-negative")
+    raise(ERR.message-exception("Dashed Line Style: Values must be non-negative"))
   end
   self.constr()(self.obj.{dashedLine: true, dashlineStyle: raw-array-from-list(dashed-line-style)})
 end
@@ -488,18 +455,18 @@ select-multiple-method = method(self, multiple :: Boolean):
   self.constr()(self.obj.{multiple: multiple})
 end
 
-background-color-method = method(self, color :: I.Color):
+background-color-method = method(self, color :: IS.Color):
   self.constr()(self.obj.{backgroundColor: some(color)})
 end
 
 background-border-method = method(self, border-size :: Number) block:
   when border-size < 0: 
-    raise("border-size: Border Size must be non-negative")
+    raise(ERR.message-exception("border-size: Border Size must be non-negative"))
   end
   self.constr()(self.obj.{borderSize: border-size})
 end
 
-border-color-method = method(self, border-color :: I.Color):
+border-color-method = method(self, border-color :: IS.Color):
   self.constr()(self.obj.{borderColor: some(border-color)})
 end
 
@@ -515,24 +482,24 @@ show-grid-lines-method = method(self, is-showing :: Boolean):
   self.constr()(self.obj.{show-grid-lines: is-showing})
 end
 
-gridlines-color-method = method(self, color ::  I.Color):
+gridlines-color-method = method(self, color ::  IS.Color):
   self.constr()(self.obj.{show-grid-lines: true, gridlineColor: some(color)})
 end
 
-minor-gridlines-color-method = method(self, color ::  I.Color):
+minor-gridlines-color-method = method(self, color ::  IS.Color):
   self.constr()(self.obj.{show-minor-grid-lines: true, minorGridlineColor: some(color)})
 end
 
 gridlines-min-spacing-method = method(self, minspacing :: Number) block:
   when minspacing < 0: 
-    raise("gridlines-minspacing: Min spacing must be non-negative")
+    raise(ERR.message-exception("gridlines-minspacing: Min spacing must be non-negative"))
   end
   self.constr()(self.obj.{gridlineMinspacing: some(minspacing)})
 end
 
 minor-gridlines-min-spacing-method = method(self, minspacing :: Number) block:
   when minspacing < 0: 
-    raise("minor-gridlines-minspacing: Min spacing must be non-negative")
+    raise(ERR.message-exception("minor-gridlines-minspacing: Min spacing must be non-negative"))
   end
   self.constr()(self.obj.{show-minor-grid-lines: true, minorGridlineMinspacing: minspacing})
 end
@@ -543,6 +510,14 @@ end
 
 y-axis-method = method(self, y-axis :: String):
   self.constr()(self.obj.{y-axis: y-axis})
+end
+
+x-axis-type-method = method(self, x-axis-type :: AxisType):
+  self.constr()(self.obj.{x-axis-type: x-axis-type})
+end
+
+y-axis-type-method = method(self, y-axis-type :: AxisType):
+  self.constr()(self.obj.{y-axis-type: y-axis-type})
 end
 
 x-min-method = method(self, x-min :: Number):
@@ -648,10 +623,10 @@ axis-pointer-method = method(self,
 
   # Edge Case Error Checking
   when not(distinctTVLen == TVLen): 
-    raise('add-pointers: pointers cannot overlap')
+    raise(ERR.message-exception('add-pointers: pointers cannot overlap'))
   end
   when not(TVLen == TLLen): 
-    raise('add-pointers: pointers values and names should have the same length')
+    raise(ERR.message-exception('add-pointers: pointers values and names should have the same length'))
   end
 
   ticks = fold2({(acc, e1, e2): link(pointer(e1, e2), acc)}, empty, tickLabels, tickValues)
@@ -697,7 +672,7 @@ end
 format-axis-data-method = method(self, format-func :: (Number -> String)):
   cases (Option) self.obj!axisdata: 
     | none => 
-      raise("Axis properties initialized improperly. Please report as a bug!")
+      raise(ERR.message-exception("Axis properties initialized improperly. Please report as a bug!"))
     | some(ad) => 
       ad-tick-list = ad.ticks ^ raw-array-to-list
       new-ticks = map({(p): pointer(format-func(p.value), p.value)}, ad-tick-list) ^ builtins.raw-array-from-list
@@ -756,7 +731,7 @@ stacking-type-method = method(self, stack-type :: StackType):
       {max-positive-height; max-negative-height} = 
         multi-prep-axis(grouped, value-lists)
       new-self.make-axis(max-positive-height, max-negative-height)
-    | otherwise: raise('stacking-type: type must be absolute, relative, percent, or grouped')
+    | otherwise: raise(ERR.message-exception('stacking-type: type must be absolute, relative, percent, or grouped'))
   end
 end
 
@@ -766,10 +741,10 @@ annotations-method = method(self,
   expected-length = raw-array-length(self.obj.annotations)
   given-length = annotations.length()
   when given-length <> expected-length:
-    raise("annotations: input dimensions mismatch. Expected length "
-        + num-to-string(expected-length)
-        + ", received "
-        + num-to-string(given-length))
+    raise(ERR.message-exception("annotations: input dimensions mismatch. Expected length "
+          + num-to-string(expected-length)
+          + ", received "
+          + num-to-string(given-length)))
   end
   
   block:
@@ -786,12 +761,12 @@ annotations-method = method(self,
       shadow expected-length = raw-array-length(expected)
       shadow given-length = given.length()
       when given-length <> expected-length:
-        raise("annotations: length mismatch on row "
-            + num-to-string(index)
-            + ". Expected "
-            + num-to-string(expected-length)
-            + ", received "
-            + num-to-string(given-length))
+        raise(ERR.message-exception("annotations: length mismatch on row "
+              + num-to-string(index)
+              + ". Expected "
+              + num-to-string(expected-length)
+              + ", received "
+              + num-to-string(given-length)))
       end
     end
   end
@@ -808,10 +783,10 @@ intervals-method = method(self, intervals :: CL.LoLoLoN) block:
   expected-length = raw-array-length(self.obj.intervals)
   given-length = intervals.length()
   when given-length <> expected-length:
-    raise("intervals: input dimensions mismatch. Expected length "
-        + num-to-string(expected-length)
-        + ", received "
-        + num-to-string(given-length))
+    raise(ERR.message-exception("intervals: input dimensions mismatch. Expected length "
+          + num-to-string(expected-length)
+          + ", received "
+          + num-to-string(given-length)))
   end
   block:
     each({(l :: List<List<Number>>): 
@@ -823,12 +798,12 @@ intervals-method = method(self, intervals :: CL.LoLoLoN) block:
       shadow expected-length = raw-array-length(expected)
       shadow given-length = given.length()
       when given-length <> expected-length:
-        raise("intervals: length mismatch on row "
-            + num-to-string(index)
-            + ". Expected "
-            + num-to-string(expected-length)
-            + ", received "
-            + num-to-string(given-length))
+        raise(ERR.message-exception("intervals: length mismatch on row "
+              + num-to-string(index)
+              + ". Expected "
+              + num-to-string(expected-length)
+              + ", received "
+              + num-to-string(given-length)))
       end
     end
   end
@@ -854,10 +829,10 @@ error-bars-method = method(self, errors :: CL.LoLoLoN) block:
   expected-length = raw-array-length(self.obj.intervals)
   given-length = errors.length()
   when given-length <> expected-length:
-    raise("error-bars: input dimensions mismatch. Expected length "
-        + num-to-string(expected-length)
-        + ", received "
-        + num-to-string(given-length))
+    raise(ERR.message-exception("error-bars: input dimensions mismatch. Expected length "
+          + num-to-string(expected-length)
+          + ", received "
+          + num-to-string(given-length)))
   end
   block:
     each({(l :: List<List<Number>>): 
@@ -871,26 +846,26 @@ error-bars-method = method(self, errors :: CL.LoLoLoN) block:
         shadow given-length = given.length()
         row-str = num-to-string(index)
         when given-length <> expected-length:
-          raise("error-bars: length mismatch on row " + row-str
-              + ". Expected "
-              + num-to-string(expected-length)
-              + ", received "
-              + num-to-string(given-length))
+          raise(ERR.message-exception("error-bars: length mismatch on row " + row-str
+                + ". Expected "
+                + num-to-string(expected-length)
+                + ", received "
+                + num-to-string(given-length)))
         end
         for each2(pair from given, column from range(0, given.length())):
           block:
             col-str = num-to-string(column)
             when pair.length() <> 2:
-              raise("error-bars: on row " + row-str + " column " + col-str
-                  + ", 2 intervals must be given.")
+              raise(ERR.message-exception("error-bars: on row " + row-str + " column " + col-str
+                    + ", 2 intervals must be given."))
             end
             when pair.get(0) > 0:
-              raise("error-bars: on row " + row-str + " column " + col-str
-                  + ", first pair must be non-positive.")
+              raise(ERR.message-exception("error-bars: on row " + row-str + " column " + col-str
+                    + ", first pair must be non-positive."))
             end
             when pair.get(1) < 0:
-              raise("error-bars: on row " + row-str + " column " + col-str
-                  + ", second pair must be non-negative.")
+              raise(ERR.message-exception("error-bars: on row " + row-str + " column " + col-str
+                    + ", second pair must be non-negative."))
             end
           end
         end
@@ -916,10 +891,10 @@ single-error-bars-method = method(self, errors :: CL.LoLoN) block:
   expected-length = raw-array-length(self.obj.intervals)
   given-length = errors.length()
   when given-length <> expected-length:
-    raise("error-bars: input dimensions mismatch. Expected length "
-        + num-to-string(expected-length)
-        + ", received "
-        + num-to-string(given-length))
+    raise(ERR.message-exception("error-bars: input dimensions mismatch. Expected length "
+          + num-to-string(expected-length)
+          + ", received "
+          + num-to-string(given-length)))
   end
   block:
       each({(l :: List<Number>): 
@@ -931,17 +906,17 @@ single-error-bars-method = method(self, errors :: CL.LoLoN) block:
       block:
         row-str = num-to-string(index)
         when given.length() <> 2:
-          raise("error-bars: on row " + row-str
-              + ", 2 intervals must be given (received "
-              + num-to-string(given.length()) + ").")
+          raise(ERR.message-exception("error-bars: on row " + row-str
+                + ", 2 intervals must be given (received "
+                + num-to-string(given.length()) + ")."))
         end
         when given.get(0) > 0:
-          raise("error-bars: on row " + row-str
-              + ", first pair must be non-positive.")
+          raise(ERR.message-exception("error-bars: on row " + row-str
+                + ", first pair must be non-positive."))
         end
         when given.get(1) < 0:
-          raise("error-bars: on row " + row-str
-              + ", second pair must be non-negative.")
+          raise(ERR.message-exception("error-bars: on row " + row-str
+                + ", second pair must be non-negative."))
         end
       end
     end
@@ -966,6 +941,13 @@ end
 
 horizontal-method = method(self, b :: Boolean):
   self.constr()(self.obj.{horizontal: b})
+end
+
+bandwidth-method = method(self, width :: Number) block:
+  when (width <= 0) or (width > 1):
+    raise(ERR.message-exception("bandwidth: must be greater than zero and at most 1, given " + num-to-string(width)))
+  end
+  self.constr()(self.obj.{bandwidth: width})
 end
 
 ################################################################################
@@ -1053,7 +1035,7 @@ type BoxChartSeries = {
   tab :: TableIntern,
   height :: Number, 
   horizontal :: Boolean,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
 }
 
 default-box-plot-series = {
@@ -1064,7 +1046,7 @@ default-box-plot-series = {
 
 type PieChartSeries = {
   tab :: TableIntern,
-  colors :: Option<RawArray<I.Color>>,
+  colors :: Option<RawArray<IS.Color>>,
   threeD :: Boolean,
   piehole :: Number,
   startingAngle :: Number,
@@ -1082,14 +1064,15 @@ default-pie-chart-series = {
 type BarChartSeries = {
   tab :: TableIntern,
   axisdata :: Option<AxisData>, 
-  color :: Option<I.Color>,
-  colors :: Option<RawArray<I.Color>>,
+  color :: Option<IS.Color>,
+  colors :: Option<RawArray<IS.Color>>,
   pointers :: Option<RawArray<Pointer>>, 
-  pointer-color :: Option<I.Color>, 
+  pointer-color :: Option<IS.Color>, 
   horizontal :: Boolean,
+  bandwidth :: Number,
   annotations :: RawArray<RawArray<Option<String>>>,
   intervals :: RawArray<RawArray<RawArray<Number>>>,
-  default-interval-color :: Option<I.Color>,
+  default-interval-color :: Option<IS.Color>,
 }
 
 default-bar-chart-series = {
@@ -1098,7 +1081,8 @@ default-bar-chart-series = {
   pointers: none, 
   pointer-color: none,
   axisdata: none, 
-  horizontal: false, 
+  horizontal: false,
+  bandwidth: 0.8,
   default-interval-color: none,
 }
 
@@ -1107,13 +1091,14 @@ type MultiBarChartSeries = {
   axisdata :: Option<AxisData>,
   legends :: RawArray<String>,
   is-stacked :: String,
-  colors :: Option<RawArray<I.Color>>,
+  colors :: Option<RawArray<IS.Color>>,
   pointers :: Option<RawArray<Pointer>>, 
-  pointer-color :: Option<I.Color>, 
+  pointer-color :: Option<IS.Color>, 
   horizontal :: Boolean,
+  bandwidth :: Number,
   annotations :: RawArray<RawArray<Option<String>>>,
   intervals :: RawArray<RawArray<RawArray<Number>>>,
-  default-interval-color :: Option<I.Color>
+  default-interval-color :: Option<IS.Color>
 }
 
 default-multi-bar-chart-series = {
@@ -1122,7 +1107,8 @@ default-multi-bar-chart-series = {
   pointers: none, 
   pointer-color: none,
   axisdata: none, 
-  horizontal: false, 
+  horizontal: false,
+  bandwidth: 0.8,
   default-interval-color: none
 }
   
@@ -1131,7 +1117,7 @@ type HistogramSeries = {
   bin-width :: Option<Number>,
   max-num-bins :: Option<Number>,
   min-num-bins :: Option<Number>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
 }
 
 default-histogram-series = {
@@ -1143,12 +1129,12 @@ default-histogram-series = {
 
 type LinePlotSeries = {
   ps :: List<Posn>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   legend :: String,
   curved :: String,
   lineWidth :: Number,
   trendlineType :: Option<String>,
-  trendlineColor :: Option<I.Color>,
+  trendlineColor :: Option<IS.Color>,
   trendlineWidth :: Number, 
   trendlineOpacity :: Number, 
   trendlineDegree :: NumInteger, 
@@ -1193,12 +1179,12 @@ type ScatterPoint = {
           
 type ScatterPlotSeries = {
   ps :: List<ScatterPoint>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   legend :: String,
   point-size :: Number,
   useImageSizes :: Boolean,
   trendlineType :: Option<String>,
-  trendlineColor :: Option<I.Color>,
+  trendlineColor :: Option<IS.Color>,
   trendlineWidth :: Number, 
   trendlineOpacity :: Number, 
   trendlineDegree :: NumInteger, 
@@ -1234,7 +1220,7 @@ type DotPoint = {
 
 type DotPlotSeries = {
   ps :: List<DotPoint>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   legend :: String,
   point-size :: Number,
   useImageSizes :: Boolean,
@@ -1254,7 +1240,7 @@ type CategoricalDotPoint ={
 
 type CategoricalDotPlotSeries = {
   ps :: List<CategoricalDotPoint>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   legend :: String
 }
 
@@ -1272,18 +1258,18 @@ type IntervalPoint = {
 }
 type IntervalChartSeries = {
   axisdata :: Option<AxisData>,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   pointers :: Option<RawArray<Pointer>>,
-  pointer-color :: Option<I.Color>,
+  pointer-color :: Option<IS.Color>,
   point-size :: Number,
   lineWidth :: Number,
   stick-width :: Number,
   style :: String,
   horizontal :: Boolean,
-  default-interval-color :: Option<I.Color>,
+  default-interval-color :: Option<IS.Color>,
   legend :: String,
   trendlineType :: Option<String>,
-  trendlineColor :: Option<I.Color>,
+  trendlineColor :: Option<IS.Color>,
   trendlineWidth :: Number,
   trendlineOpacity :: Number,
   trendlineDegree :: NumInteger,
@@ -1322,7 +1308,7 @@ default-interval-chart-series = {
 
 type FunctionPlotSeries = {
   f :: PlottableFunction,
-  color :: Option<I.Color>,
+  color :: Option<IS.Color>,
   legend :: String,
   horizontal :: Boolean,
 }
@@ -1339,9 +1325,9 @@ type ChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image)
 }
 
@@ -1352,18 +1338,20 @@ default-chart-window-object :: ChartWindowObject = {
   backgroundColor: none,
   borderSize: 0, 
   borderColor: none, 
-  method render(self): raise('unimplemented') end,
+  method render(self): raise(ERR.message-exception('unimplemented')) end,
 }
 
 type BoxChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   x-axis :: String,
   y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
   min :: Option<Number>,
   max :: Option<Number>,
   render :: ( -> IM.Image),
@@ -1372,6 +1360,8 @@ type BoxChartWindowObject = {
 default-box-plot-chart-window-object :: BoxChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
+  x-axis-type: at-linear,
+  y-axis-type: at-linear,
   min: none,
   max: none,
 }
@@ -1380,9 +1370,9 @@ type PieChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
 }
 
@@ -1392,29 +1382,39 @@ type DotChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
-  y-axis :: String
+  y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
+  x-min :: Option<Number>,
+  x-max :: Option<Number>,
 }
 
 default-dot-chart-window-object :: DotChartWindowObject = default-chart-window-object.{
   x-axis: '',
-  y-axis: ''
+  y-axis: '',
+  x-axis-type: at-linear,
+  y-axis-type: at-linear,
+  x-min: none,
+  x-max: none,
 }
 
 type BarChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
   y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
   y-min :: Option<Number>,
   y-max :: Option<Number>,
 }
@@ -1422,6 +1422,8 @@ type BarChartWindowObject = {
 default-bar-chart-window-object :: BarChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
+  x-axis-type: at-linear,
+  y-axis-type: at-linear,
   y-min: none,
   y-max: none,
 }
@@ -1430,12 +1432,14 @@ type IntervalChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number,
-  borderColor :: Option<I.Color>,
+  borderColor :: Option<IS.Color>,
   render :: ( -> IM.Image),
   x-axis :: String,
   y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
   y-min :: Option<Number>,
   y-max :: Option<Number>,
 }
@@ -1443,6 +1447,8 @@ type IntervalChartWindowObject = {
 default-interval-chart-window-object :: IntervalChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
+  x-axis-type: at-linear,
+  y-axis-type: at-linear,
   y-min: none,
   y-max: none,
 }
@@ -1451,12 +1457,14 @@ type HistogramChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
   y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
   x-min :: Option<Number>,
   x-max :: Option<Number>,
   y-max :: Option<Number>,
@@ -1466,6 +1474,8 @@ default-histogram-chart-window-object :: HistogramChartWindowObject =
   default-chart-window-object.{
     x-axis: '',
     y-axis: '',
+    x-axis-type: at-linear,
+    y-axis-type: at-linear,
     x-min: none,
     x-max: none,
     y-max: none,
@@ -1475,18 +1485,20 @@ type PlotChartWindowObject = {
   title :: String,
   width :: Number,
   height :: Number,
-  backgroundColor :: Option<I.Color>,
+  backgroundColor :: Option<IS.Color>,
   borderSize :: Number, 
-  borderColor :: Option<I.Color>, 
+  borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   show-grid-lines :: Boolean,
   show-minor-grid-lines :: Boolean,
-  gridlineColor :: Option<I.Color>, 
+  gridlineColor :: Option<IS.Color>, 
   gridlineMinspacing :: Option<Number>, 
-  minorGridlineColor :: Option<I.Color>, 
+  minorGridlineColor :: Option<IS.Color>, 
   minorGridlineMinspacing :: Number, 
   x-axis :: String,
   y-axis :: String,
+  x-axis-type :: AxisType,
+  y-axis-type :: AxisType,
   x-min :: Option<Number>,
   x-max :: Option<Number>,
   y-min :: Option<Number>,
@@ -1498,6 +1510,8 @@ type PlotChartWindowObject = {
 default-plot-chart-window-object :: PlotChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
+  x-axis-type: at-linear,
+  y-axis-type: at-linear,
   show-grid-lines: true,
   show-minor-grid-lines: false,
   x-min: none,
@@ -1535,7 +1549,7 @@ data DataSeries:
     image-labels: image-labels-method,
     method point-size(self, point-size :: Number) block:
       when point-size < 0: 
-        raise("point-size: Point Size must be non-negative")
+        raise(ERR.message-exception("point-size: Point Size must be non-negative"))
       end
       self.constr()(self.obj.{point-size: point-size})
     end,
@@ -1557,7 +1571,7 @@ data DataSeries:
     point-shape: pointshape-method, 
     method point-size(self, point-size :: Number) block:
       when point-size <= 0: 
-        raise("point-size: Point Size must be positive")
+        raise(ERR.message-exception("point-size: Point Size must be positive"))
       end
       self.constr()(self.obj.{point-size: point-size})
     end,
@@ -1574,7 +1588,7 @@ data DataSeries:
     labels: labels-method,
     method point-size(self, point-size :: Number) block:
       when point-size < 0: 
-        raise("point-size: Point Size must be non-negative")
+        raise(ERR.message-exception("point-size: Point Size must be non-negative"))
       end
       self.constr()(self.obj.{point-size: point-size})
     end,
@@ -1608,6 +1622,7 @@ data DataSeries:
     is-single: true,
     color: color-method, 
     colors: color-list-method,
+    bandwidth: bandwidth-method,
     sort: default-sort-method,
     sort-by: sort-method,
     sort-by-label: label-sort-method,
@@ -1640,7 +1655,7 @@ data DataSeries:
     trendline-type: trendline-type-method,
     method point-size(self, point-size :: Number) block:
       when point-size < 0:
-        raise("point-size: Point Size must be non-negative")
+        raise(ERR.message-exception("point-size: Point Size must be non-negative"))
       end
       self.constr()(self.obj.{point-size: point-size})
     end,
@@ -1653,6 +1668,7 @@ data DataSeries:
   | multi-bar-chart-series(obj :: MultiBarChartSeries) with: 
     is-single: true,
     colors: color-list-method,
+    bandwidth: bandwidth-method,
     sort: super-default-multi-sort-method,
     sort-by: default-multi-sort-method,
     sort-by-data: multi-sort-method, 
@@ -1710,7 +1726,7 @@ end
 
 fun check-chart-window(p :: ChartWindowObject) -> Nothing:
   if (p.width <= 0) or (p.height <= 0):
-    raise('render: width and height must be positive')
+    raise(ERR.message-exception('render: width and height must be positive'))
   else:
     nothing
   end
@@ -1723,28 +1739,40 @@ data ChartWindow:
     constr: {(): dot-chart-window},
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-min: x-min-method,
+    x-max: x-max-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
   | box-plot-chart-window(obj :: BoxChartWindowObject) with:
     constr: {(): box-plot-chart-window},
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
     min: min-method,
     max: max-method,
   | bar-chart-window(obj :: BarChartWindowObject) with:
     constr: {(): bar-chart-window},
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
     y-min: y-min-method,
     y-max: y-max-method,
   | interval-chart-window(obj :: IntervalChartWindowObject) with:
     constr: {(): interval-chart-window},
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
     y-min: y-min-method,
     y-max: y-max-method,
   | histogram-chart-window(obj :: HistogramChartWindowObject) with:
     constr: {(): histogram-chart-window},
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
     x-min: x-min-method,
     x-max: x-max-method,
     y-max: y-max-method,
@@ -1758,6 +1786,8 @@ data ChartWindow:
     # minor-gridlines-minspacing: minor-gridlines-min-spacing-method, 
     x-axis: x-axis-method,
     y-axis: y-axis-method,
+    x-axis-type: x-axis-type-method,
+    y-axis-type: y-axis-type-method,
     x-min: x-min-method,
     x-max: x-max-method,
     y-min: y-min-method,
@@ -1765,7 +1795,7 @@ data ChartWindow:
     select-multiple: select-multiple-method,
     method num-samples(self, num-samples :: Number) block:
       when (num-samples <= 0) or (num-samples > 100000) or not(num-is-integer(num-samples)):
-        raise('num-samples: value must be an ineger between 1 and 100000')
+        raise(ERR.message-exception('num-samples: value must be an ineger between 1 and 100000'))
       end
       plot-chart-window(self.obj.{num-samples: num-samples})
     end,
@@ -1780,6 +1810,10 @@ sharing:
   method get-image(self):
     _ = check-chart-window(self.obj)
     self.obj.{interact: false}.render()
+  end,
+  method get-spec(self):
+    _ = check-chart-window(self.obj)
+    self.obj.{interact: false, vega: true}.render()
   end,
   method title(self, title :: String):
     self.constr()(self.obj.{title: title})
@@ -1807,7 +1841,7 @@ end
 
 fun line-plot-from-list(xs :: CL.LoN, ys :: CL.LoN) -> DataSeries block:
   when xs.length() <> ys.length():
-    raise('line-plot: xs and ys should have the same length')
+    raise(ERR.message-exception('line-plot: xs and ys should have the same length'))
   end
   xs.each(check-num)
   ys.each(check-num)
@@ -1818,10 +1852,10 @@ end
 
 fun labeled-line-plot-from-list(labels :: CL.LoS, xs :: CL.LoN, ys :: CL.LoN) -> DataSeries block:
   when xs.length() <> ys.length():
-    raise('labeled-line-plot: xs and ys should have the same length')
+    raise(ERR.message-exception('labeled-line-plot: xs and ys should have the same length'))
   end
   when xs.length() <> labels.length():
-    raise('labeled-line-plot: xs and labels should have the same length')
+    raise(ERR.message-exception('labeled-line-plot: xs and labels should have the same length'))
   end
   xs.each(check-num)
   ys.each(check-num)
@@ -1832,10 +1866,10 @@ end
 
 fun image-line-plot-from-list(images :: CL.LoI, xs :: CL.LoN, ys :: CL.LoN) -> DataSeries block:
   when xs.length() <> ys.length():
-    raise('image-line-plot: xs and ys should have the same length')
+    raise(ERR.message-exception('image-line-plot: xs and ys should have the same length'))
   end
   when xs.length() <> images.length():
-    raise('image-line-plot: xs and images should have the same length')
+    raise(ERR.message-exception('image-line-plot: xs and images should have the same length'))
   end
   xs.each(check-num)
   ys.each(check-num)
@@ -1849,7 +1883,7 @@ fun get-scatter-point(x :: Number, y :: Number, label :: String, optimg :: Optio
 end
 fun scatter-plot-from-list(xs :: CL.LoN, ys :: CL.LoN) -> DataSeries block:
   when xs.length() <> ys.length():
-    raise('scatter-plot: xs and ys should have the same length')
+    raise(ERR.message-exception('scatter-plot: xs and ys should have the same length'))
   end
   xs.each(check-num)
   ys.each(check-num)
@@ -1863,10 +1897,10 @@ fun labeled-scatter-plot-from-list(
   xs :: CL.LoN,
   ys :: CL.LoN) -> DataSeries block:
   when xs.length() <> ys.length():
-    raise('labeled-scatter-plot: xs and ys should have the same length')
+    raise(ERR.message-exception('labeled-scatter-plot: xs and ys should have the same length'))
   end
   when xs.length() <> labels.length():
-    raise('labeled-scatter-plot: xs and labels should have the same length')
+    raise(ERR.message-exception('labeled-scatter-plot: xs and labels should have the same length'))
   end
   xs.each(check-num)
   ys.each(check-num)
@@ -1881,10 +1915,10 @@ fun image-scatter-plot-from-list(
   xs :: CL.LoN,
   ys :: CL.LoN) -> DataSeries block:
   when xs.length() <> ys.length():
-    raise('labeled-scatter-plot: xs and ys should have the same length')
+    raise(ERR.message-exception('labeled-scatter-plot: xs and ys should have the same length'))
   end
   when xs.length() <> images.length():
-    raise('labeled-scatter-plot: xs and images should have the same length')
+    raise(ERR.message-exception('labeled-scatter-plot: xs and images should have the same length'))
   end
   xs.each(check-num)
   ys.each(check-num)
@@ -1917,10 +1951,10 @@ fun image-bar-chart-from-list(
 
   # Edge Case Error Checking
   when value-length == 0:
-    raise("bar-chart: can't have empty data")
+    raise(ERR.message-exception("bar-chart: can't have empty data"))
   end
   when label-length <> value-length:
-    raise('bar-chart: labels and values should have the same length')
+    raise(ERR.message-exception('bar-chart: labels and values should have the same length'))
   end
 
   {max-positive-height; max-negative-height} = prep-axis(rational-values)
@@ -1946,22 +1980,22 @@ fun exploding-pie-chart-from-list(
   value-length = values.length()
   for each(value from values):
     when value < 0:
-      raise('exploding-pie-chart: values must be non-negative')
+      raise(ERR.message-exception('exploding-pie-chart: values must be non-negative'))
     end
   end
   when label-length <> value-length:
-    raise('exploding-pie-chart: labels and values should have the same length')
+    raise(ERR.message-exception('exploding-pie-chart: labels and values should have the same length'))
   end
   offset-length = offsets.length()
   when label-length <> offset-length:
-    raise('exploding-pie-chart: labels and offsets should have the same length')
+    raise(ERR.message-exception('exploding-pie-chart: labels and offsets should have the same length'))
   end
   when label-length == 0:
-    raise('exploding-pie-chart: need at least one data')
+    raise(ERR.message-exception('exploding-pie-chart: need at least one data'))
   end
   for each(offset from offsets):
     when (offset < 0) or (offset > 1):
-      raise('exploding-pie-chart: offset must be between 0 and 1')
+      raise(ERR.message-exception('exploding-pie-chart: offset must be between 0 and 1'))
     end
   end
   values.each(check-num)
@@ -1981,14 +2015,14 @@ fun pie-chart-from-list(labels :: CL.LoS, values :: CL.LoN) -> DataSeries block:
   value-length = values.length()
   for each(value from values):
     when value < 0:
-      raise('pie-chart: values must be non-negative')
+      raise(ERR.message-exception('pie-chart: values must be non-negative'))
     end
   end
   when label-length <> value-length:
-    raise('pie-chart: labels and values should have the same length')
+    raise(ERR.message-exception('pie-chart: labels and values should have the same length'))
   end
   when label-length == 0:
-    raise('pie-chart: need at least one data')
+    raise(ERR.message-exception('pie-chart: need at least one data'))
   end
   values.each(check-num)
   labels.each(check-string)
@@ -2006,14 +2040,14 @@ fun image-pie-chart-from-list(images :: CL.LoI, labels :: CL.LoS, values :: CL.L
   value-length = values.length()
   for each(value from values):
     when value < 0:
-      raise('pie-chart: values must be non-negative')
+      raise(ERR.message-exception('pie-chart: values must be non-negative'))
     end
   end
   when label-length <> value-length:
-    raise('pie-chart: labels and values should have the same length')
+    raise(ERR.message-exception('pie-chart: labels and values should have the same length'))
   end
   when label-length == 0:
-    raise('pie-chart: need at least one data')
+    raise(ERR.message-exception('pie-chart: need at least one data'))
   end
   images.each(check-image)
   values.each(check-num)
@@ -2039,10 +2073,10 @@ fun bar-chart-from-list(labels :: CL.LoS, values :: CL.LoN) -> DataSeries block:
 
   # Edge Case Error Checking
   when value-length == 0:
-    raise("bar-chart: can't have empty data")
+    raise(ERR.message-exception("bar-chart: can't have empty data"))
   end
   when label-length <> value-length:
-    raise('bar-chart: labels and values should have the same length')
+    raise(ERR.message-exception('bar-chart: labels and values should have the same length'))
   end
 
   {max-positive-height; max-negative-height} = prep-axis(rational-values)
@@ -2068,7 +2102,7 @@ fun num-dot-chart-from-list(x-values :: CL.LoN) -> DataSeries block:
        ```
   x-values.each(check-num)
   when x-values.length() == 0:
-    raise("num-dot-chart: can't have empty data")
+    raise(ERR.message-exception("num-dot-chart: can't have empty data"))
   end
   default-dot-plot-series.{
     ps: map3(get-dot-point, x-values, x-values.map({(_): ''}), x-values.map({(_): none})),
@@ -2082,11 +2116,11 @@ fun image-num-dot-chart-from-list(images :: CL.LoI, x-values :: CL.LoN) -> DataS
        ```
   x-values.each(check-num)
   when x-values.length() == 0:
-    raise("num-dot-chart: can't have empty data")
+    raise(ERR.message-exception("num-dot-chart: can't have empty data"))
   end
   images.each(check-image)
   when images.length() <> x-values.length():
-    raise("num-dot-chart: the lists of numbers and images must have the same length")
+    raise(ERR.message-exception("num-dot-chart: the lists of numbers and images must have the same length"))
   end
   default-dot-plot-series.{
     ps: map3(get-dot-point, x-values, x-values.map({(_): ''}), images.map(some)),
@@ -2100,11 +2134,11 @@ fun labeled-num-dot-chart-from-list(labels :: CL.LoS, x-values :: CL.LoN) -> Dat
        ```
   x-values.each(check-num)
   when x-values.length() == 0:
-    raise("num-dot-chart: can't have empty data")
+    raise(ERR.message-exception("num-dot-chart: can't have empty data"))
   end
   labels.each(check-string)
   when labels.length() <> x-values.length():
-    raise("num-dot-chart: the lists of numbers and labels must have the same length")
+    raise(ERR.message-exception("num-dot-chart: the lists of numbers and labels must have the same length"))
   end
   default-dot-plot-series.{
     ps: map3(get-dot-point, x-values, labels, x-values.map({(_): none})),
@@ -2118,7 +2152,7 @@ fun dot-chart-from-list(input-labels :: CL.LoS) -> DataSeries block:
 
   # Edge Case Error Checking
   when input-labels.length() == 0:
-    raise("dot-chart: can't have empty data")
+    raise(ERR.message-exception("dot-chart: can't have empty data"))
   end
 
   # Type Checking
@@ -2153,16 +2187,16 @@ fun grouped-bar-chart-from-list(
 
   # Edge Case Error Checking 
   when value-length == 0:
-    raise("grouped-bar-chart: can't have empty data")
+    raise(ERR.message-exception("grouped-bar-chart: can't have empty data"))
   end
   when legend-length == 0: 
-    raise("grouped-bar-chart: can't have empty legends")
+    raise(ERR.message-exception("grouped-bar-chart: can't have empty legends"))
   end
   when label-length <> value-length:
-    raise('grouped-bar-chart: labels and values should have the same length')
+    raise(ERR.message-exception('grouped-bar-chart: labels and values should have the same length'))
   end
   when any({(group): legend-length <> group.length()}, value-lists):
-    raise('grouped-bar-chart: labels and legends should have the same length')
+    raise(ERR.message-exception('grouped-bar-chart: labels and legends should have the same length'))
   end
   
   # Typechecking each input
@@ -2202,16 +2236,16 @@ fun stacked-bar-chart-from-list(
 
   # Edge Case Error Checking 
   when value-length == 0:
-    raise("stacked-bar-chart: can't have empty data")
+    raise(ERR.message-exception("stacked-bar-chart: can't have empty data"))
   end
   when legend-length == 0: 
-    raise("stacked-bar-chart: can't have empty legends")
+    raise(ERR.message-exception("stacked-bar-chart: can't have empty legends"))
   end
   when label-length <> value-length:
-    raise('stacked-bar-chart: labels and values should have the same length')
+    raise(ERR.message-exception('stacked-bar-chart: labels and values should have the same length'))
   end
   when any({(stack): legend-length <> stack.length()}, value-lists):
-    raise('stacked-bar-chart: labels and legends should have the same length')
+    raise(ERR.message-exception('stacked-bar-chart: labels and legends should have the same length'))
   end
   
   # Typechecking the input 
@@ -2262,16 +2296,16 @@ fun labeled-interval-chart-from-list(
   ys-length = ys.length()
   deltas-length = deltas.length()
   when xs-length <> ys-length:
-    raise('interval-chart: xs and ys should have the same length')
+    raise(ERR.message-exception('interval-chart: xs and ys should have the same length'))
   end
   when xs-length <> deltas-length:
-    raise('interval-chart: deltas should have the same length as xs and ys')
+    raise(ERR.message-exception('interval-chart: deltas should have the same length as xs and ys'))
   end
   when xs-length <> labels-length:
-    raise('interval-chart: labels should have the same length as xs and ys')
+    raise(ERR.message-exception('interval-chart: labels should have the same length as xs and ys'))
   end
   when xs-length == 0:
-    raise('interval-chart: need at least one datum')
+    raise(ERR.message-exception('interval-chart: need at least one datum'))
   end
   xs.each(check-num)
   ys.each(check-num)
@@ -2303,16 +2337,16 @@ fun labeled-box-plot-from-list(
   label-length = labels.length()
   value-length = values.length()
   when label-length <> value-length:
-    raise('labeled-box-plot: labels and values should have the same length')
+    raise(ERR.message-exception('labeled-box-plot: labels and values should have the same length'))
   end
   when label-length == 0:
-    raise('labeled-box-plot: expect at least one box')
+    raise(ERR.message-exception('labeled-box-plot: expect at least one box'))
   end
   values.each(_.each(check-num))
   values.each(
     lam(lst):
       when lst.length() <= 1:
-        raise('labeled-box-plot: the list length should be at least 2')
+        raise(ERR.message-exception('labeled-box-plot: the list length should be at least 2'))
       end
     end)
   labels.each(check-string)
@@ -2363,7 +2397,7 @@ fun labeled-histogram-from-list(labels :: CL.LoS, values :: CL.LoN) -> DataSerie
   label-length = labels.length()
   value-length = values.length()
   when label-length <> value-length:
-    raise('labeled-histogram: labels and values should have the same length')
+    raise(ERR.message-exception('labeled-histogram: labels and values should have the same length'))
   end
   values.each(check-num)
   labels.each(check-string)
@@ -2396,7 +2430,7 @@ fun check-render-x-axis(self) -> Nothing:
       cases (Option) self.x-max:
         | some(x-max) =>
           if x-min >= x-max:
-            raise("render: x-min must be strictly less than x-max")
+            raise(ERR.message-exception("render: x-min must be strictly less than x-max"))
           else:
             nothing
           end
@@ -2412,13 +2446,23 @@ fun check-render-y-axis(self) -> Nothing:
       cases (Option) self.y-max:
         | some(y-max) =>
           if y-min >= y-max:
-            raise("render: y-min must be strictly less than y-max")
+            raise(ERR.message-exception("render: y-min must be strictly less than y-max"))
           else:
             nothing
           end
         | else => nothing
       end
     | else => nothing
+  end
+end
+
+fun check-data-range(min, max, vals) -> Nothing:
+  fun too-small(v): v.value < min.or-else(v.value) end
+  fun too-big(v): v.value > max.or-else(v.value) end
+  if vals.any(too-small) or vals.any(too-big):
+    raise(ERR.message-exception("render: All values must be between specified x-min and x-max bounds"))
+  else:
+    nothing
   end
 end
 
@@ -2432,6 +2476,8 @@ fun render-chart(s :: DataSeries) -> ChartWindow:
     | dot-plot-series(obj) =>
       default-dot-chart-window-object.{
         method render(self) block:
+          _ = check-render-x-axis(self)
+          _ = check-data-range(self.x-min, self.x-max, obj.ps)
           CL.dot-chart(self, obj) 
         end
       } ^ dot-chart-window
@@ -2740,18 +2786,18 @@ end
 fun render-charts(lst :: List<DataSeries>) -> ChartWindow block:
   doc: "Draw 'em all"
   cases (Option) find(_.is-single, lst):
-    | some(v) => raise(
-        [sprintf: "render-charts: can't draw ", v,
-                  " with `render-charts`. Use `render-chart` instead."])
+    | some(v) => raise(ERR.message-exception(
+          [sprintf: "render-charts: can't draw ", v,
+            " with `render-charts`. Use `render-chart` instead."]))
     | else => nothing
   end
   cases (List<DataSeries>) lst:
-    | empty => raise('render-charts: need at least one series to plot')
+    | empty => raise(ERR.message-exception('render-charts: need at least one series to plot'))
     | else => nothing
   end
   when lst.any({(ds): ds.obj.horizontal}) and not(lst.all({(ds): ds.obj.horizontal})):
-    raise("render-charts: Cannot render a mix of horizontal and vertical charts.  "
-        + "Make sure all charts have the same direction.")
+    raise(ERR.message-exception("render-charts: Cannot render a mix of horizontal and vertical charts.  "
+          + "Make sure all charts have the same direction."))
   end
     
   partitioned = partition(is-function-plot-series, lst)
@@ -2801,51 +2847,24 @@ fun render-charts(lst :: List<DataSeries>) -> ChartWindow block:
 
       # shadow self = self.{y-min: y-min, y-max: y-max}
 
-      fun helper(shadow self, shadow function-plots-data :: Option) -> IM.Image:
-        shadow function-plots-data = cases (Option) function-plots-data:
-          | none => function-plots
-              .map(generate-xy(_, self.x-min.value, self.x-max.value, self.num-samples))
-          | some(shadow function-plots-data) => function-plots-data
-        end
-
-        # scatters-arr = for map(p from scatter-plots + function-plots-data):
-        #   ps-to-arr(p.{ps: p.ps.filter(in-bound-xy(_, self))})
-        # end ^ reverse ^ builtins.raw-array-from-list
-
-        # lines-arr = for map(p from line-plots):
-        #   ps-to-arr(p.{ps: line-plot-edge-cut(p.ps, self)})
-        # end ^ reverse ^ builtins.raw-array-from-list
-
-        # intervals-arr = for map(p from interval-plots):
-        #   ps-to-arr(p.{ps: p.ps.filter(in-bound-xy(_, self))})
-        # end ^ reverse ^ builtins.raw-array-from-list
-
-        ret = CL.plot(self, {
+      CL.plot(self, {
           scatters: builtins.raw-array-from-list(scatter-plots), 
           lines: builtins.raw-array-from-list(line-plots),
           intervals: builtins.raw-array-from-list(interval-plots),
           functions: builtins.raw-array-from-list(function-plots)
         })
-        # NOTE(Ben): THIS IS A POLYFILL FOR NOW,
-        # until I remove the Either callback hooking mechanism altogether.
-        if (IM.is-image(ret)): ret
-        else:
-          cases (E.Either<Any, IM.Image>) ret:
-            | left(new-self) => helper(new-self, none)
-            | right(image) => image
-          end
-        end
-      end
-      helper(self, some(empty))
     end
   } ^ plot-chart-window
 where:
-  p1 = from-list.function-plot(lam(x): x * x end).color(I.red)
-  p2 = from-list.line-plot([list: 1, 2, 3, 4], [list: 1, 4, 9, 16]).color(I.green)
+  xs = [list: 1, 3, 5, 8, 20]
+  ys = [list: 5, 3, 8, 2, 10]
+  p1 = from-list.function-plot(lam(x): x * x end).color(IS.red)
+  p2 = from-list.line-plot([list: 1, 2, 3, 4], [list: 1, 4, 9, 16]).color(IS.green)
   p3 = from-list.histogram([list: 1, 2, 3, 4])
   p4 = from-list.line-plot(
       [list: -1, 1,  2, 3, 11, 8, 9],
       [list: 10, -1, 11, 9,  9, 3, 2])
+  p5 = from-list.scatter-plot(ys, xs)
   render-charts([list: p1, p2, p3]) raises ''
   render-charts([list: p1, p2])
     .title('quadratic function and a scatter plot')
@@ -2860,6 +2879,12 @@ where:
     .y-min(0)
     .y-max(10)
     .get-image() does-not-raise
+  render-chart(p5) does-not-raise
+  img = render-chart(p5).get-image()
+  img satisfies I.is-image
+  I.image-pinhole-x(img) is I.image-width(img) / 2
+  I.image-pinhole-y(img) is I.image-height(img) / 2
+  render-chart(p5).get-spec() satisfies is-string
 end
 
 from-list = {

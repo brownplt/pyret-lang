@@ -160,31 +160,7 @@ define("pyret-base/js/js-numbers", function() {
 
   // fromFixnum: fixnum -> pyretnum
   var fromFixnum = function(x, errbacks) {
-    if (!isFinite(x)) {
-      return Roughnum.makeInstance(x, errbacks);
-    }
-    var nf = Math.floor(x);
-    if (nf === x) {
-      if (isOverflow(nf)) {
-        return makeBignum(expandExponent(x+''));
-      } else {
-        return nf;
-      }
-    } else {
-      //  used to return float, now rational
-      var stringRep = x.toString();
-      var match = stringRep.match(/^(.*)\.(.*)$/);
-      if (match) {
-        var afterDecimal = parseInt(match[2]);
-        var factorToInt = Math.pow(10, match[2].length);
-        var extraFactor = _integerGcd(factorToInt, afterDecimal);
-        var multFactor = factorToInt / extraFactor;
-        return Rational.makeInstance(Math.round(x*multFactor), Math.round(factorToInt/extraFactor), errbacks);
-      } else {
-        return Rational.makeInstance(x, 1, errbacks);
-      }
-
-    }
+    return fromString(String(x), errbacks);
   };
 
   var expandExponent = function(s) {
@@ -813,6 +789,8 @@ define("pyret-base/js/js-numbers", function() {
   // NB: all of these trig-gy generic functions should now return roughnum rather than float
   // (except for an arg of 0, etc)
 
+  var ln10 = Math.log(10)
+
   // log: pyretnum -> pyretnum
   var log = function(n, errbacks) {
     if ( eqv(n, 1, errbacks) ) {
@@ -824,7 +802,40 @@ define("pyret-base/js/js-numbers", function() {
     if (typeof(n) === 'number') {
       return Roughnum.makeInstance(Math.log(n), errbacks);
     }
-    return n.log(errbacks);
+    if (isRational(n) && !isInteger(n)) {
+      return subtract(log(numerator(n, errbacks), errbacks),
+        log(denominator(n, errbacks), errbacks),
+        errbacks);
+    }
+    var nFix = n.toFixnum();
+    if (typeof(nFix) === 'number' && nFix !== Infinity) {
+      return Roughnum.makeInstance(Math.log(nFix), errbacks);
+    }
+    // at this point, n must be a very large positive number;
+    // n > 1e308, i.e, has at least 308 digits;
+    // we can safely ignore its fractional part;
+    var nStr = n.round(errbacks).toString();
+    var nLen = nStr.length;
+    // we furthermore need only the integer part's first few digits
+    // although we must remember the number of digits ignored;
+    var firstFewLen = 308; // has to be <= 308
+    // say integer      N = yyy...yyyxxx...xxx
+    // where the number of x's is nx;
+    // So              N ~= yyy...yyy * 10^nx
+    // We'll first find the common (base 10) log of N
+    //          log10(N) ~= log10(yyy...yyy * 10^nx)
+    //                    = log10(yyy...yyy) + nx
+    // Now to convert this to the natural log
+    //              ln(N) = log10(N) / log10(e)
+    //                    = log10(N) * ln(10)
+    //                   ~= [log10(yyy...yyy) + nx] * ln(10)
+    //                    = log10(yyy...yyy) * ln(10) + nx * ln(10)
+    //                    = ln(yyy...yyy)             + nx * ln(10)
+    // JS gives us ln(yyy...yyy) and ln(10) so we have a good
+    // approximation for ln(N)
+    var nFirstFew = parseInt(nStr.substring(0, firstFewLen));
+    var nLog = Math.log(nFirstFew) + (nLen - firstFewLen) * ln10;
+    return Roughnum.makeInstance(nLog, errbacks);
   };
 
   // tan: pyretnum -> pyretnum
@@ -2033,7 +2044,6 @@ define("pyret-base/js/js-numbers", function() {
 
   var roughnumRatRegexp = new RegExp("^~([+-]?\\d+)/(\\d+)$");
 
-
   var scientificPattern = new RegExp("^([+-]?\\d*\\.?\\d*)[Ee]([+]?\\d+)$");
 
   // fromString: string -> (pyretnum | false)
@@ -2889,8 +2899,13 @@ define("pyret-base/js/js-numbers", function() {
   function bnpIsEven() { return ((this.t>0)?(this[0]&1):this.s) == 0; }
 
   // (protected) this^e, e < 2^32, doing sqr and mul with "r" (HAC 14.79)
-  function bnpExp(e,z) {
-    if(e > 0xffffffff || e < 1) return BigInteger.ONE;
+  function bnpExp(e, z, errbacks) {
+    if (greaterThan(e, 0xffffffff, errbacks)) {
+      errbacks.throwDomainError('expt: exponent ' + e + ' too large');
+    }
+    if (lessThan(e, 1, errbacks)) {
+      return BigInteger.ONE;
+    }
     var r = nbi(), r2 = nbi(), g = z.convert(this), i = nbits(e)-1;
     g.copyTo(r);
     while(--i >= 0) {
@@ -2902,10 +2917,10 @@ define("pyret-base/js/js-numbers", function() {
   }
 
   // (public) this^e % m, 0 <= e < 2^32
-  function bnModPowInt(e,m) {
+  function bnModPowInt(e, m, errbacks) {
     var z;
     if(e < 256 || m.isEven()) z = new Classic(m); else z = new Montgomery(m);
-    return this.bnpExp(e,z);
+    return this.bnpExp(e, z, errbacks);
   }
 
   // protected
@@ -3274,7 +3289,9 @@ define("pyret-base/js/js-numbers", function() {
   NullExp.prototype.sqrTo = nSqrTo;
 
   // (public) this^e
-  function bnPow(e) { return this.bnpExp(e,new NullExp()); }
+  function bnPow(e, errbacks) {
+    return this.bnpExp(e,new NullExp(), errbacks);
+  }
 
   // (protected) r = lower n words of "this * a", a.t <= n
   // "this" should be the larger one if appropriate.
@@ -3774,48 +3791,48 @@ define("pyret-base/js/js-numbers", function() {
 
   // round: -> pyretnum
   // Round to the nearest integer.
-  BigInteger.prototype.round = function(n, errbacks) {
+  BigInteger.prototype.round = function(errbacks) {
     return this;
   };
 
-  BigInteger.prototype.roundEven = function(n, errbacks) {
+  BigInteger.prototype.roundEven = function(errbacks) {
     return this;
   };
 
   // log: -> pyretnum
   // Produce the log.
-  BigInteger.prototype.log = function(n, errbacks) {
+  BigInteger.prototype.log = function(errbacks) {
     return log(this.toFixnum(), errbacks);
   };
 
   // tan: -> pyretnum
   // Produce the tan.
-  BigInteger.prototype.tan = function(n, errbacks) {
+  BigInteger.prototype.tan = function(errbacks) {
     return tan(this.toFixnum(), errbacks);
   };
 
   // atan: -> pyretnum
   // Produce the arc tangent.
-  BigInteger.prototype.atan = function(n, errbacks) {
+  BigInteger.prototype.atan = function(errbacks) {
     return atan(this.toFixnum(), errbacks);
   };
 
   // cos: -> pyretnum
   // Produce the cosine.
-  BigInteger.prototype.cos = function(n, errbacks) {
+  BigInteger.prototype.cos = function(errbacks) {
     return cos(this.toFixnum(), errbacks);
   };
 
   // sin: -> pyretnum
   // Produce the sine.
-  BigInteger.prototype.sin = function(n, errbacks) {
+  BigInteger.prototype.sin = function(errbacks) {
     return sin(this.toFixnum(), errbacks);
   };
 
   // expt: pyretnum -> pyretnum
   // Produce the power to the input.
   BigInteger.prototype.expt = function(n, errbacks) {
-    return bnPow.call(this, n);
+    return bnPow.call(this, n, errbacks);
   };
 
   // exp: -> pyretnum
@@ -3829,13 +3846,13 @@ define("pyret-base/js/js-numbers", function() {
 
   // acos: -> pyretnum
   // Produce the arc cosine.
-  BigInteger.prototype.acos = function(n, errbacks) {
+  BigInteger.prototype.acos = function(errbacks) {
     return acos(this.toFixnum(), errbacks);
   };
 
   // asin: -> pyretnum
   // Produce the arc sine.
-  BigInteger.prototype.asin = function(n, errbacks) {
+  BigInteger.prototype.asin = function(errbacks) {
     return asin(this.toFixnum(), errbacks);
   };
 
