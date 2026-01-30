@@ -1328,7 +1328,13 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
             cases(Option) maybe-uri block:
               | none => # path must be a single element if there's no URI of a remote module
                         # e.g. provide: D end   NOT    provide: M.D end
-                data-expr = datatypes.get-value-now(path.first.toname())
+                var data-expr = datatypes.get-now(path.first.toname())
+                if is-none(data-expr):
+                  raise("You have an Unbound ID bro")
+                else: 
+                  data-expr := datatypes.get-value-now(path.first.toname())
+                end
+
                 maybe-add(provided-datatypes, data-expr.name, {l; none; data-expr.namet})
                 data-checker-name = A.make-checker-name(data-expr.name)
                 data-checker-vb = val-env.get-value(data-checker-name)
