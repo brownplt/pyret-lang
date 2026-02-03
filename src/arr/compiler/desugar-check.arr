@@ -165,7 +165,7 @@ fun get-checks(stmts):
         cases(A.Expr) stmt:
           | s-fun(l, name, _, _, _, _, _, _, _check, _) =>
             cases(Option) _check:
-              | some(v) => link(check-info(l, name, v.visit(check-stmts-visitor), true), add-check(rest))
+              | some(v) => link(check-info(l, name + "()" + " where block", v.visit(check-stmts-visitor), true), add-check(rest))
               | none => add-check(rest)
             end
           | s-data(l, name, _, _, _, _, _, _check) =>
