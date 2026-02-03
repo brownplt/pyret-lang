@@ -13,6 +13,7 @@ import filesystem as Filesystem
 import file as F
 import error as ERR
 import system as SYS
+import url as URL
 import file("js-ast.arr") as J
 import file("concat-lists.arr") as C
 import file("compile-lib.arr") as CL
@@ -308,6 +309,13 @@ fun get-real-path(current-load-path :: String, this-path :: String):
   end
 end
 
+fun maybe-add-slash(s):
+  last-index = string-length(s) - 1
+  if string-char-at(s, last-index) == "/": s
+  else: s + "/"
+  end
+end
+
 fun locate-file(ctxt :: CLIContext, rel-path :: String):
   clp = ctxt.current-load-path
   real-path = get-real-path(clp, rel-path)
@@ -329,7 +337,8 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
       else if protocol == "url":
         CL.located(UL.url-locator(dep.arguments.get(0), CS.standard-globals), ctxt)
       else if protocol == "url-file":
-        full-url = args.get(0) + "/" + args.get(1)
+        base = maybe-add-slash(args.get(0))
+        full-url = URL.resolve(args.get(1), base)
         cases(CS.UrlFileMode) ctxt.url-file-mode:
           | all-remote =>
             CL.located(UL.url-locator(full-url, CS.standard-globals), ctxt)
@@ -551,11 +560,9 @@ fun build-runnable-standalone(path, require-config-path, outfile, options) block
     | left(problems) =>
       handle-compilation-errors(problems, options)
     | right(program) =>
-      shadow require-config-path = if not( Filesystem.is-absolute( require-config-path ) ):
-          Filesystem.resolve(Filesystem.join(options.base-dir, require-config-path))
-        else: require-config-path
-        end
-      config.set-now("out", JSON.j-str(Filesystem.resolve(Filesystem.join(options.base-dir, outfile))))
+      shadow require-config-path = get-real-path(options.base-dir, require-config-path)
+
+      config.set-now("out", JSON.j-str(get-real-path(options.base-dir, outfile)))
       when not(config.has-key-now("baseUrl")):
         config.set-now("baseUrl", JSON.j-str(options.compiled-cache))
       end

@@ -276,10 +276,12 @@
       });
       f("bitmap-url", function(maybeURL) {
         checkArity(1, arguments, "bitmap-url", false);
+        c1("bitmap-url", maybeURL, annString);
         return bitmapURL(maybeURL);
       }),
       f("image-url", function(maybeURL) {
         checkArity(1, arguments, "image-url", false);
+        c1("image-url", maybeURL, annString);
         return bitmapURL(maybeURL);
       }),
       f("image-file", function(path) {
