@@ -1860,7 +1860,7 @@
       ];
       const signals = [
         { name: 'dotSize', value: pointSize },
-        { name: 'binSize', update: 'invert("binScale", dotSize)' },
+        { name: 'binSize', update: 'abs(dotSize * (domain("binScale")[1] - domain("binScale")[0]) / (range("binScale")[1] - range("binScale")[0]))' },
         { name: 'actualDotSize', update: 'scale("dotScale", 0) - scale("dotScale", 1)' },
         { name: 'headspace', value: '0.25' },
         { name: 'wrapMaxY', update: 'floor(domain("dotScale")[1] * (1 - headspace))' },
