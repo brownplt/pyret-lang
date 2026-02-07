@@ -15,6 +15,16 @@ then
     exit 1
 fi
 
+VERBOSE=0
+if [ "$#" -gt 0 ] && [ "$1" = "-v" ]; then
+    VERBOSE=1
+    shift 1
+fi
+if [ "$#" -lt 1 ]; then
+  echo "Expecting 1 argument; received $#"
+  echo "Usage: $PHASE [-v] file.arr [args]"
+  exit 1
+fi
 PHASE="$SYMLINK_NAME"
 PYRET_JARR="build/$PHASE/pyret.jarr"
 FILE=$1
@@ -40,9 +50,16 @@ fi
 
 shift 1
 
+if [ "$VERBOSE" = 1 ]
+then
+    PROGRESS_FLAG=""
+else
+    PROGRESS_FLAG="-no-display-progress"
+fi
+
 if [ "$#" -gt 0 ]
 then
-    $NODE $PYRET_JARR -no-display-progress --run $FILE - "$@"
+    $NODE $PYRET_JARR $PROGRESS_FLAG --run $FILE - "$@"
 else
-    $NODE $PYRET_JARR -no-display-progress --run $FILE
+    $NODE $PYRET_JARR $PROGRESS_FLAG --run $FILE
 fi
