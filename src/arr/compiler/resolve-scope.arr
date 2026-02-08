@@ -1328,25 +1328,26 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
             cases(Option) maybe-uri block:
               | none => # path must be a single element if there's no URI of a remote module
                         # e.g. provide: D end   NOT    provide: M.D end
-                var data-expr = datatypes.get-now(path.first.toname())
-                if is-none(data-expr):
-                  raise("You have an Unbound ID bro")
-                else: 
-                  data-expr := datatypes.get-value-now(path.first.toname())
-                end
 
-                maybe-add(provided-datatypes, data-expr.name, {l; none; data-expr.namet})
-                data-checker-name = A.make-checker-name(data-expr.name)
-                data-checker-vb = val-env.get-value(data-checker-name)
-                maybe-add(provided-values, data-checker-name, {l; none; data-checker-vb.atom})
-                data-alias-tb = type-env.get-value(data-expr.name)
-                maybe-add(provided-types, data-expr.name, {l; none; data-alias-tb.atom})
-                for each(v from data-expr.variants) block:
-                  variant-vb = val-env.get-value(v.name)
-                  checker-name = A.make-checker-name(v.name)
-                  variant-checker-vb = val-env.get-value(checker-name)
-                  maybe-add(provided-values, v.name, {l; none; variant-vb.atom})
-                  maybe-add(provided-values, checker-name, {l; none; variant-checker-vb.atom})
+                data-expr = datatypes.get-now(path.first.toname())
+                cases(Option) data-expr block:
+                  | some(shadow data-expr) =>
+                    maybe-add(provided-datatypes, data-expr.name, {l; none; data-expr.namet})
+                    data-checker-name = A.make-checker-name(data-expr.name)
+                    data-checker-vb = val-env.get-value(data-checker-name)
+                    maybe-add(provided-values, data-checker-name, {l; none; data-checker-vb.atom})
+                    data-alias-tb = type-env.get-value(data-expr.name)
+                    maybe-add(provided-types, data-expr.name, {l; none; data-alias-tb.atom})
+                    for each(v from data-expr.variants) block:
+                      variant-vb = val-env.get-value(v.name)
+                      checker-name = A.make-checker-name(v.name)
+                      variant-checker-vb = val-env.get-value(checker-name)
+                      maybe-add(provided-values, v.name, {l; none; variant-vb.atom})
+                      maybe-add(provided-values, checker-name, {l; none; variant-checker-vb.atom})
+                    end
+                  | none =>
+                    name-errors := link(C.unbound-id(A.s-id(l, A.s-name(l, path.last().toname()))), name-errors)
+                    { none; A.s-name(l, path.last().toname()) }
                 end
                 
               | some(uri) =>
