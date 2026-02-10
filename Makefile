@@ -13,7 +13,7 @@ PHASEA           = build/phaseA
 PHASEB           = build/phaseB
 PHASEC           = build/phaseC
 BUNDLED_DEPS     = build/bundled-node-deps.js
-SHELL := /usr/bin/env bash
+SHELL := bash
 
 # CUSTOMIZE THESE IF NECESSARY
 PARSERS         := $(patsubst src/js/base/%-grammar.bnf,src/js/%-parser.js,$(wildcard src/$(JSBASE)/*-grammar.bnf))
