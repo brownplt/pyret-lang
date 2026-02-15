@@ -1613,11 +1613,15 @@
     }
 
     function histogram(globalOptions, rawData) {
-      const table = get(rawData, 'tab');
+      const values = RUNTIME.ffi.toArray(get(rawData, 'vals'));
       const binWidth = getNumOrDefault(get(rawData, 'bin-width'), undefined);
 
       const maxNumBins = getNumOrDefault(get(rawData, 'max-num-bins'), undefined);
 
+      const xMinValue = getNumOrDefault(globalOptions['x-min'], undefined);
+      const xMaxValue = getNumOrDefault(globalOptions['x-max'], undefined);
+      const yMinValue = getNumOrDefault(globalOptions['y-min'], undefined);
+      const yMaxValue = getNumOrDefault(globalOptions['y-max'], undefined);
       const title = globalOptions['title'];
       const width = globalOptions['width'];
       const height = globalOptions['height'];
@@ -1627,10 +1631,13 @@
       const data = [
         {
           name: 'rawTable',
-          values: table.map((row, i) => ({
-            label: row[0],
-            value: toFixnum(row[1]),
-            image: (row[2] && row[2].val && IMAGE.isImage(row[2].val)) ? imageToCanvas(row[2].val) : undefined,
+          values: values.map((v, i) => ({
+            label: get(v, 'label'),
+            value: toFixnum(get(v, 'value')),
+            image: cases(RUNTIME.ffi.isOption, 'Option', get(v, 'image'), {
+              none: () => undefined,
+              some: (opaqueImg) => imageToCanvas(opaqueImg.val)
+            }),
           })),
           transform: [
             {
@@ -1684,7 +1691,11 @@
       const signals = [
         { name: 'boxHeight', update: 'height / abs(domain("countScale")[0] - domain("countScale")[1])' },
         { name: 'showIndividualBoxes', update: 'boxHeight >= 5' },
-        { name: 'binWidth', update: `${binWidth ?? 0}` }
+        { name: 'binWidth', update: `${binWidth ?? 0}` },
+        { name: 'xMinValue', value: xMinValue },
+        { name: 'xMaxValue', value: xMaxValue },
+        { name: 'yMinValue', value: yMinValue },
+        { name: 'yMaxValue', value: yMaxValue },
       ];
 
       const rangeFormatStr = '"[" + trim(format(datum.bin0, "5~f")) + ", " + trim(format(datum.bin1, "5~f")) + "]"';
@@ -1753,7 +1764,8 @@
           type: 'linear',
           range: 'width',
           zero: false,
-          domain: { data: 'rawTable', fields: ['bin0', 'bin1'] }
+          domain: { data: 'rawTable', fields: ['bin0', 'bin1'] },
+          domainMin: { signal: 'xMinValue' }, domainMax: { signal: 'xMaxValue' }
         },
         {
           name: 'countScale',
@@ -1770,7 +1782,7 @@
         { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel,
           format: '5~r',
           values: (binWidth
-                   ? { signal: `sequence(range('binScale')[0], range('binScale')[1] + binWidth, binWidth)` }
+                   ? { signal: `sequence(floor(domain('binScale')[0] / binWidth) * binWidth, domain('binScale')[1] + binWidth, binWidth)` }
                    : undefined) },
         { orient: 'left', scale: 'countScale', grid: true, title: yAxisLabel }
       ];
