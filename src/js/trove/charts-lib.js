@@ -211,7 +211,8 @@
 
     const chartFontConfig = {
       signals: [
-        { name: 'fontSizeScale', value: 14 }
+        { name: 'fontSizeScale', value: 14 },
+        { name: 'titleText', value: '' },
       ],
       mark: {
         fontSize: { signal: 'fontSizeScale' }
@@ -469,7 +470,7 @@
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
-        title: title ? { text: title } : '',
+        title: title && { text: { signal: 'titleText' } },
         width,
         height,
         padding: 0,
@@ -1032,7 +1033,7 @@
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
-        title: title ? { text: title } : '',
+        title: title && { text: { signal: 'titleText' } },
         width,
         height,
         padding: 0,
@@ -1320,7 +1321,7 @@
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
-        title: title ? { text: title } : '',
+        title: title && { text: { signal: 'titleText' } },
         width,
         height,
         padding: 0,
@@ -1596,7 +1597,7 @@
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
-        title: title ? { text: title } : '',
+        title: title && { text: { signal: 'titleText' } },
         width,
         height,
         padding: 0,
@@ -1791,7 +1792,7 @@
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
-        title: title ? { text: title } : '',
+        title: title && { text: { signal: 'titleText' } },
         width,
         height,
         padding: 0,
@@ -1960,7 +1961,7 @@
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
-        title: title ? { text: title } : '',
+        title: title && { text: { signal: 'titleText' } },
         width,
         height,
         padding: 0,
@@ -2079,7 +2080,7 @@
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
-        title: title ? { text: title } : '',
+        title: title && { text: { signal: 'titleText' } },
         width,
         height,
         padding: 0,
@@ -3134,7 +3135,7 @@
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
-        title: title ? { text: title } : '',
+        title: title && { text: { signal: 'titleText' } },
         width,
         height,
         padding: 0,
@@ -3263,9 +3264,9 @@
       // NOTE(Ben): this externalContext *should* be unnecessary, but for some reason,
       // vega-as-bundled-in-a-jarr doesn't seem to notice NodeCanvas correctly
       const externalContext = canvas.getContext('2d');
-      view.width(width).height(height).resize()
+      view.width(width).height(height).signal('titleText', 'spacer').resize()
       return view.runAsync()
-        .then(() => view.toCanvas(1, { externalContext }))
+        .then(() => view.signal('titleText', view.description()).toCanvas(1, { externalContext }))
         .then(() => externalContext.getImageData(0, 0, width, height));
     }
 
@@ -3341,7 +3342,7 @@
           hover: true,
           tooltip: vegaTooltipHandler.call
         });
-        view.width(width).height(height).resize();
+        view.width(width).height(height).signal('titleText', view.description()).resize();
 
         var tmp = processed;
         tmp.view = view;
