@@ -806,9 +806,9 @@ end
 fun compile-anns(visitor, step, binds :: List<N.ABind>, entry-label):
   var cur-target = entry-label
   new-cases = for lists.fold(acc from cl-empty, b from binds):
-    if A.is-a-blank(b.ann) or A.is-a-any(b.ann) block:
+    if b.ann.is-ignorable() block:
       acc
-    else if A.is-a-tuple(b.ann) and b.ann.fields.all(lam(a): A.is-a-blank(a) or A.is-a-any(a) end):
+    else if A.is-a-tuple(b.ann) and b.ann.fields.all(lam(a): a.is-ignorable() end):
       new-label = visitor.make-label()
       new-case =
         j-case(cur-target,
@@ -866,7 +866,7 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
       raise(string-append(string-append("Unknown ", b.value.label()), " in compile-annotated-let"))
     end
   shadow b = b.value
-  if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+  if b.ann.is-ignorable():
     c-block(
       j-block(
         cl-append(
@@ -877,7 +877,7 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
         ),
       compiled-body.new-cases
       )
-  else if A.is-a-tuple(b.ann) and b.ann.fields.all(lam(a): A.is-a-blank(a) or A.is-a-any(a) end):
+  else if A.is-a-tuple(b.ann) and b.ann.fields.all(lam(a): a.is-ignorable() end):
     step = visitor.cur-step
     after-ann = visitor.make-label()
     after-ann-case = j-case(after-ann, j-block(compiled-body.block.stmts))
@@ -1909,7 +1909,7 @@ compiler-visitor = {
     fun make-variant-constructor(l2, base-id, brands-id, members, refl-name, refl-ref-fields-mask, refl-fields, constructor-id):
 
       nonblank-anns = for filter(m from members):
-        not(A.is-a-blank(m.bind.ann)) and not(A.is-a-any(m.bind.ann))
+        not(m.bind.ann.is-ignorable())
       end
       compiled-anns = for fold(acc from {anns: cl-empty, others: cl-empty}, m from nonblank-anns):
         compiled = compile-ann(m.bind.ann, none, self)
