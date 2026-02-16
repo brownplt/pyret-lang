@@ -2426,7 +2426,7 @@ fun image-histogram-from-list(images :: CL.LoI, values :: CL.LoN) -> DataSeries 
   values.each(check-num)
 
   default-histogram-series.{
-    vals: map3(get-histogram-value, values, values.map({(_): ''}), images)
+    vals: map3(get-histogram-value, values, values.map({(_): ''}), images.map(some))
   } ^ histogram-series
 end
 
