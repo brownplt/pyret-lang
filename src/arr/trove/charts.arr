@@ -369,10 +369,10 @@ explode-method = method(self, offsets :: CL.LoN) block:
 end
 
 histogram-label-method = method(self, labels :: CL.LoS) block:
-    when raw-array-length(self.obj!tab) <> labels.length():
+    when self.obj.vals.length() <> labels.length():
       raise(ERR.message-exception('histogram: xs and labels should have the same length'))
     end
-  self.constr()(self.obj.{tab: raw-array-from-list(map2({(arr, label): raw-array-set(arr, 0, label)}, raw-array-to-list(self.obj!tab), labels))})
+  self.constr()(self.obj.{vals: map2({(v, l): v.{label: l} }, self.obj.vals, labels)})
 end
 
 box-labels-method = method(self, labels :: CL.LoS) block:
@@ -1111,9 +1111,15 @@ default-multi-bar-chart-series = {
   bandwidth: 0.8,
   default-interval-color: none
 }
+
+type HistogramValue = {
+  value :: Number,
+  label :: String,
+  image :: Option<IM.Image>
+}
   
 type HistogramSeries = {
-  tab :: TableIntern,
+  vals :: List<HistogramValue>,
   bin-width :: Option<Number>,
   max-num-bins :: Option<Number>,
   min-num-bins :: Option<Number>,
@@ -2380,13 +2386,17 @@ fun freq-bar-chart-from-list(label :: CL.LoS) -> DataSeries:
   bar-chart-from-list(ls.reverse(), vs.reverse())
 end
 
+fun get-histogram-value(value :: Number, label :: String, optimg :: Option<IM.Image>) -> HistogramValue:
+  { value: value, label: label, image: optimg }
+end
+
 fun histogram-from-list(values :: CL.LoN) -> DataSeries block:
   doc: ```
        Consume a list of numbers and construct a histogram
        ```
   values.each(check-num)
   default-histogram-series.{
-    tab: to-table2(values.map({(_): ''}), values),
+    vals: map3(get-histogram-value, values, values.map({(_): ''}), values.map({(_): none})),
   } ^ histogram-series
 end
 
@@ -2402,7 +2412,7 @@ fun labeled-histogram-from-list(labels :: CL.LoS, values :: CL.LoN) -> DataSerie
   values.each(check-num)
   labels.each(check-string)
   default-histogram-series.{
-    tab: to-table2(labels, values),
+    vals: map3(get-histogram-value, values, labels, values.map({(_): none})),
   } ^ histogram-series
 end
 
@@ -2416,7 +2426,7 @@ fun image-histogram-from-list(images :: CL.LoI, values :: CL.LoN) -> DataSeries 
   values.each(check-num)
 
   default-histogram-series.{
-    tab: to-table3(values.map({(_): ''}), values, images),
+    vals: map3(get-histogram-value, values, values.map({(_): ''}), images.map(some))
   } ^ histogram-series
 end
 
@@ -2517,6 +2527,7 @@ fun render-chart(s :: DataSeries) -> ChartWindow:
           shadow self = self.{y-min: none}
           _ = check-render-x-axis(self)
           _ = check-render-y-axis(self)
+          _ = check-data-range(self.x-min, self.x-max, obj.vals)
           CL.histogram(self, obj)
         end
       } ^ histogram-chart-window
