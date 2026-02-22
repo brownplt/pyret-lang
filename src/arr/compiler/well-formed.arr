@@ -233,11 +233,11 @@ fun ensure-distinct-lines(loc :: Loc, prev-is-template :: Boolean, stmts :: List
     | link(first, rest) =>
       cases(Loc) loc:
         | builtin(_) => ensure-distinct-lines(first.l, A.is-s-template(first), rest)
-        | srcloc(_, _, _, _, end-line1, _, _) =>
+        | srcloc(end-source1, _, _, _, end-line1, _, _) =>
           cases(Loc) first.l block:
             | builtin(_) => ensure-distinct-lines(loc, prev-is-template, rest) # No need to preserve builtin() locs
-            | srcloc(_, start-line2, _, _, _, _, _) =>
-              when (end-line1 == start-line2):
+            | srcloc(start-source2, start-line2, _, _, _, _, _) =>
+              when (end-line1 == start-line2) and (end-source1 == start-source2):
                 if A.is-s-template(first) and prev-is-template:
                   add-error(C.template-same-line(loc, first.l))
                 else if not(A.is-s-template(first)) and not(prev-is-template):
