@@ -554,7 +554,7 @@
         some: function (axisdata) {
           const pointers = get(axisdata, 'ticks').map(convertPointer);
           return {
-            domainMax : toFixnum(get(axisdata, 'axisTop')), 
+            domainMax : toFixnum(get(axisdata, 'axisTop')),
             domainMin : toFixnum(get(axisdata, 'axisBottom')),
             domainRaw : pointers.map(p => p.value),
             labels: pointers.map(p => p.label)
