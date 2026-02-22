@@ -3317,14 +3317,20 @@ no-globals = globals([string-dict:], [string-dict:], [string-dict:])
 reactor-optional-fields = [SD.string-dict:
   "last-image",       {(l): A.a-name(l, A.s-type-global("Function"))},
   "on-tick",          {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-tick-send",     {(l): A.a-name(l, A.s-type-global("Function"))},
   "to-draw",          {(l): A.a-name(l, A.s-type-global("Function"))},
   "on-key",           {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-key-send",      {(l): A.a-name(l, A.s-type-global("Function"))},
   "on-raw-key",       {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-raw-key-send",  {(l): A.a-name(l, A.s-type-global("Function"))},
   "on-mouse",         {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-mouse-send",    {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-receive",       {(l): A.a-name(l, A.s-type-global("Function"))},
+  "on-receive-send",  {(l): A.a-name(l, A.s-type-global("Function"))},
   "stop-when",        {(l): A.a-name(l, A.s-type-global("Function"))},
   "seconds-per-tick", {(l): A.a-name(l, A.s-type-global("NumPositive"))},
+  "close-when-stop",  {(l): A.a-name(l, A.s-type-global("Boolean"))},
   "title",            {(l): A.a-name(l, A.s-type-global("String"))},
-  "close-when-stop",  {(l): A.a-name(l, A.s-type-global("Boolean"))}
 ]
 
 reactor-fields = reactor-optional-fields.set("init", {(l): A.a-any(l)})
