@@ -1273,16 +1273,16 @@
         return runtime.wrap(img.getHeight());
       });
 
-      f("vertical-symmetry", function(maybeImg) {
-        checkArity(1, arguments, "vertical-symmetry", false);
-        c1("vertical-symmetry", maybeImg, annImage);
+      f("image-vertical-symmetry", function(maybeImg) {
+        checkArity(1, arguments, "image-vertical-symmetry", false);
+        c1("image-vertical-symmetry", maybeImg, annImage);
         var img = unwrapImage(maybeImg);
         return runtime.wrap(image.verticalSymmetry(img));
       });
 
-      f("horizontal-symmetry", function(maybeImg) {
-        checkArity(1, arguments, "horizontal-symmetry", false);
-        c1("horizontal-symmetry", maybeImg, annImage);
+      f("image-horizontal-symmetry", function(maybeImg) {
+        checkArity(1, arguments, "image-horizontal-symmetry", false);
+        c1("image-horizontal-symmetry", maybeImg, annImage);
         var img = unwrapImage(maybeImg);
         return runtime.wrap(image.horizontalSymmetry(img));
       });

@@ -146,8 +146,8 @@
       "image-baseline": ["arrow", ["Image"], "Number"],
       "image-pinhole-x": ["arrow", ["Image"], "Number"],
       "image-pinhole-y": ["arrow", ["Image"], "Number"],
-      "vertical-symmetry": ["arrow", ["Image"], "Number"],
-      "horizontal-symmetry": ["arrow", ["Image"], "Number"],
+      "image-vertical-symmetry": ["arrow", ["Image"], "Number"],
+      "image-horizontal-symmetry": ["arrow", ["Image"], "Number"],
       "name-to-color": ["arrow", ["String"], "OptColor"],
       "color-named": ["arrow", ["String"], "Color"],
       "empty-image": "Image"
