@@ -741,14 +741,14 @@
       this.src = src;
       this.ariaText = " video file from "+decodeURIComponent(src).slice(16);
       if (rawVideo) {
-        this.video			= rawVideo;
-        this.width			= self.video.videoWidth;
-        this.height			= self.video.videoHeight;
-        this.video.volume	= 1;
-        this.video.poster	= "http://www.wescheme.org/images/broken.png";
-        this.video.autoplay	= true;
+        this.video      = rawVideo;
+        this.width      = self.video.videoWidth;
+        this.height      = self.video.videoHeight;
+        this.video.volume  = 1;
+        this.video.poster  = "http://www.wescheme.org/images/broken.png";
+        this.video.autoplay  = true;
         this.video.autobuffer=true;
-        this.video.loop		= true;
+        this.video.loop    = true;
         this.video.play();
       } else {
         // fixme: we may want to do something blocking here for
@@ -758,12 +758,12 @@
         this.video = document.createElement('video');
         this.video.src = src;
         this.video.addEventListener('canplay', function() {
-          this.width			= self.video.videoWidth;
-          this.height			= self.video.videoHeight;
-          this.video.poster	= "http://www.wescheme.org/images/broken.png";
-          this.video.autoplay	= true;
+          this.width      = self.video.videoWidth;
+          this.height      = self.video.videoHeight;
+          this.video.poster  = "http://www.wescheme.org/images/broken.png";
+          this.video.autoplay  = true;
           this.video.autobuffer=true;
-          this.video.loop		= true;
+          this.video.loop    = true;
           this.video.play();
         });
         this.video.addEventListener('error', function(e) {
@@ -849,7 +849,7 @@
         var blank = makeCanvas(0, 0);
         return blank;
       }
-        
+
       var ctx = canvas.getContext("2d");
       var width = canvas.width;
       var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -887,7 +887,7 @@
       // start in a coordinate system with origin at top/left corners
       var x1 = 0, y1 = 0, x2 = 0, y2 = 0;
       var anchor1, anchor2;
-      
+
       // compute the x1/y1 and x2/y2 offsets, relative to the top/left of img1/img2:
       switch(placeX1.toLowerCase()) {
       case "left": x1 -= 0; anchor1 = "-left"; break;
@@ -919,10 +919,10 @@
       case "bottom": y2 -= img2.height; anchor2 = "bottom" + anchor2; break;
       default: throw new Error("Unknown YPlace option for image 2: " + placeY2);
       }
-      
+
       // Next, offset x2/y2 by the given offsetX/Y
       x2 += offsetX; y2 += offsetY;
-      
+
 
       // Translate both offset pairs by the smaller of the half-dimensions
       var xMax = Math.max(img1.width, img2.width);
@@ -940,7 +940,7 @@
       var i, v1 = img1.getVertices(), v2 = img2.getVertices(), xs = [], ys = [];
       v1 = v1.map(function(v){ return {x: v.x + x1, y: v.y + y1}; });
       v2 = v2.map(function(v){ return {x: v.x + x2, y: v.y + y2}; });
-        
+
       // store the vertices as something private, so this.getVertices() will still return undefined
       this._vertices = v1.concat(v2);
 
@@ -1277,7 +1277,7 @@
               this.width     === other.width     &&
               this.height    === other.height    &&
               this.direction === other.direction &&
-              imageEquals(this.img, other.img) ) 
+              imageEquals(this.img, other.img) )
             || BaseImage.prototype.equals.call(this, other);
     };
 
@@ -1390,7 +1390,7 @@
         vertices[v].y = jsnums.toFixnum(vertices[v].y);
         vertices[v].y *= -1;
       }
-      
+
       this.width      = findWidth(vertices);
       this.height     = findHeight(vertices);
       this.style      = style;
@@ -1408,7 +1408,7 @@
       this.ariaText = " a"+colorToSpokenString(color,style) + ", polygon with "+vertices.length+" points";
     };
     PointPolygonImage.prototype = heir(BaseImage.prototype);
-    
+
 
     // We don't trust ctx.measureText, since (a) it's buggy and (b) it doesn't measure height
     // based off of https://stackoverflow.com/a/9847841/783424,
@@ -1432,7 +1432,7 @@
       var block = document.createElement("div");
       block.style.display = "inline-block";
       block.style.width = 1; block.style.height = 0;
-      block.style.margin = "0"; block.style.padding = "0";      
+      block.style.margin = "0"; block.style.padding = "0";
       var div = document.createElement("div");
       div.style.margin = "0"; div.style.padding = "0";
       div.append(text, block);
@@ -1754,10 +1754,56 @@
       this.pinholeX = Math.abs(x) / 2;
       this.pinholeY = Math.abs(y) / 2;
       this.ariaText = " a" + colorToSpokenString(color,'solid') + " line of width "+x+" and height "+y;
-      
+
     };
 
     LineImage.prototype = heir(BaseImage.prototype);
+
+    var verticalSymmetry = function(img) {
+      var width  = img.getWidth();
+      var height = img.getHeight();
+      var halfW  = Math.floor(width / 2);
+      if (halfW === 0 || height === 0) { return 1; }
+      var canvas = makeCanvas(width, height);
+      img.render(canvas.getContext("2d"));
+      var data = canvas.getContext("2d").getImageData(0, 0, width, height).data;
+      var sumSq = 0, count = 0;
+      for (var y = 0; y < height; y++) {
+        for (var x = 0; x < halfW; x++) {
+          var i1 = (y * width + x) * 4;
+          var i2 = (y * width + (width - 1 - x)) * 4;
+          for (var ch = 0; ch < 4; ch++) {
+            var d = data[i1 + ch] - data[i2 + ch];
+            sumSq += d * d;
+          }
+          count += 4;
+        }
+      }
+      return 1 - Math.sqrt(sumSq / count) / 255;
+    };
+
+    var horizontalSymmetry = function(img) {
+      var width  = img.getWidth();
+      var height = img.getHeight();
+      var halfH  = Math.floor(height / 2);
+      if (width === 0 || halfH === 0) { return 1; }
+      var canvas = makeCanvas(width, height);
+      img.render(canvas.getContext("2d"));
+      var data = canvas.getContext("2d").getImageData(0, 0, width, height).data;
+      var sumSq = 0, count = 0;
+      for (var y = 0; y < halfH; y++) {
+        for (var x = 0; x < width; x++) {
+          var i1 = (y * width + x) * 4;
+          var i2 = ((height - 1 - y) * width + x) * 4;
+          for (var ch = 0; ch < 4; ch++) {
+            var d = data[i1 + ch] - data[i2 + ch];
+            sumSq += d * d;
+          }
+          count += 4;
+        }
+      }
+      return 1 - Math.sqrt(sumSq / count) / 255;
+    };
 
     var colorAtPosition = function(img, x, y) {
       var width = img.getWidth(),
@@ -1902,26 +1948,26 @@
     var isSceneImage = function(x) { return x instanceof SceneImage; };
     var isCircleImage = function(x) { return x instanceof EllipseImage &&
                                       x.width === x.height; };
-    var isStarImage	= function(x) { return x instanceof StarImage; };
+    var isStarImage  = function(x) { return x instanceof StarImage; };
     var isRectangleImage=function(x) { return x instanceof RectangleImage; };
     var isRegularPolygonImage = function(x) { return x instanceof RegularPolygonImage; };
     var isPointPolygonImage = function(x) { return x instanceof PointPolygonImage; };
     var isRhombusImage = function(x) { return x instanceof RhombusImage; };
-    var isSquareImage	= function(x) { return x instanceof SquareImage; };
+    var isSquareImage  = function(x) { return x instanceof SquareImage; };
     var isTriangleImage= function(x) { return x instanceof TriangleImage; };
     var isWedgeImage = function(x) { return x instanceof WedgeImage; };
     var isEllipseImage = function(x) { return x instanceof EllipseImage; };
-    var isLineImage	= function(x) { return x instanceof LineImage; };
+    var isLineImage  = function(x) { return x instanceof LineImage; };
     var isOverlayImage = function(x) { return x instanceof OverlayImage; };
-    var isRotateImage	= function(x) { return x instanceof RotateImage; };
-    var isScaleImage	= function(x) { return x instanceof ScaleImage; };
-    var isCropImage	= function(x) { return x instanceof CropImage; };
-    var isFrameImage	= function(x) { return x instanceof FrameImage; };
-    var isPinholeImage	= function(x) { return x instanceof PinholeImage; };
-    var isFlipImage	= function(x) { return x instanceof FlipImage; };
-    var isTextImage	= function(x) { return x instanceof TextImage; };
-    var isFileImage	= function(x) { return x instanceof FileImage; };
-    var isFileVideo	= function(x) { return x instanceof FileVideo; };
+    var isRotateImage  = function(x) { return x instanceof RotateImage; };
+    var isScaleImage  = function(x) { return x instanceof ScaleImage; };
+    var isCropImage  = function(x) { return x instanceof CropImage; };
+    var isFrameImage  = function(x) { return x instanceof FrameImage; };
+    var isPinholeImage  = function(x) { return x instanceof PinholeImage; };
+    var isFlipImage  = function(x) { return x instanceof FlipImage; };
+    var isTextImage  = function(x) { return x instanceof TextImage; };
+    var isFileImage  = function(x) { return x instanceof FileImage; };
+    var isFileVideo  = function(x) { return x instanceof FileVideo; };
 
     ///////////////////////////////////////////////////////////////
     // Exports
@@ -1989,6 +2035,8 @@
 
         colorAtPosition: colorAtPosition,
         imageToColorList: imageToColorList,
+        verticalSymmetry: verticalSymmetry,
+        horizontalSymmetry: horizontalSymmetry,
         colorListToImage: colorListToImage,
         trimCanvas: trimCanvas,
         trimImageToCanvas: trimImageToCanvas,

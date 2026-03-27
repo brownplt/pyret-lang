@@ -154,6 +154,8 @@
       "image-width": ["arrow", ["Image"], "Number"],
       "image-height": ["arrow", ["Image"], "Number"],
       "image-baseline": ["arrow", ["Image"], "Number"],
+      "vertical-symmetry": ["arrow", ["Image"], "Number"],
+      "horizontal-symmetry": ["arrow", ["Image"], "Number"],
       "image-pinhole-x": ["arrow", ["Image"], "Number"],
       "image-pinhole-y": ["arrow", ["Image"], "Number"],
       "name-to-color": ["arrow", ["String"], "OptColor"],
@@ -223,7 +225,7 @@
       }
       return { x: jsnums.toFixnum(gf(val, "x")), y: jsnums.toFixnum(gf(val, "y")) };
     };
-    
+
     const ANNOTS = {
       annString: runtime.String,
       annNumber: runtime.Number,
@@ -264,7 +266,7 @@
           "ff-symbol":     function(_) { return "symbol"; },
           "ff-system":     function(_) { return "system"; },
         });
-      },   
+      },
       annFontStyle: image.annFontStyle,
       unwrapFontStyle: function(fs) {
         return runtime.ffi.cases(pyAlwaysTrue, "FontStyle", fs, {

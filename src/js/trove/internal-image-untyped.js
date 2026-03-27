@@ -143,6 +143,8 @@
       "color-list-to-bitmap": ["arrow", ["LoC", "Number", "Number"], "Image"],
       "image-width": ["arrow", ["Image"], "Number"],
       "image-height": ["arrow", ["Image"], "Number"],
+      "vertical-symmetry": ["arrow", ["Image"], "Number"],
+      "horizontal-symmetry": ["arrow", ["Image"], "Number"],
       "image-baseline": ["arrow", ["Image"], "Number"],
       "image-pinhole-x": ["arrow", ["Image"], "Number"],
       "image-pinhole-y": ["arrow", ["Image"], "Number"],
@@ -194,7 +196,7 @@
     };
     var isPlaceY = function(x) {
       return (isString(x) &&
-              (x.toString().toLowerCase() == "top"	  ||
+              (x.toString().toLowerCase() == "top"    ||
                x.toString().toLowerCase() == "bottom"   ||
                x.toString().toLowerCase() == "baseline" ||
                x.toString().toLowerCase() == "center"   ||
@@ -284,7 +286,7 @@
                  x.toString().toLowerCase() == "modern" ||
                  x.toString().toLowerCase() == "symbol" ||
                  x.toString().toLowerCase() == "system"))
-          || (x === false);		// false is also acceptable
+          || (x === false);    // false is also acceptable
       }),
       unwrapFontFamily: identity,
       annFontStyle: ann("Font Style (\"normal\", \"italic\", or \"slant\")", function(x){
@@ -292,7 +294,7 @@
                 (x.toString().toLowerCase() == "normal" ||
                  x.toString().toLowerCase() == "italic" ||
                  x.toString().toLowerCase() == "slant"))
-          || (x === false);		// false is also acceptable
+          || (x === false);    // false is also acceptable
       }),
       unwrapFontStyle: identity,
       annFontWeight: ann("Font Weight", function(x){
@@ -300,7 +302,7 @@
                 (x.toString().toLowerCase() == "normal" ||
                  x.toString().toLowerCase() == "bold" ||
                  x.toString().toLowerCase() == "light"))
-          || (x === false);		// false is also acceptable
+          || (x === false);    // false is also acceptable
       }),
       unwrapFontWeight: identity,
       annPlaceX: ann("X Place (\"left\", \"middle\", \"center\", \"pinhole\", or \"right\")", isPlaceX),
@@ -367,7 +369,7 @@
     });
 
 
-    
+
     return runtime.makeModuleReturn(values, {
         "Image": image.Image,
         "Scene": runtime.makePrimitiveAnn("Scene", checkScenePred)
