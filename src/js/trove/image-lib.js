@@ -1759,6 +1759,52 @@
 
     LineImage.prototype = heir(BaseImage.prototype);
 
+ var verticalSymmetry = function(img) {
+      var width  = img.getWidth();
+      var height = img.getHeight();
+      var halfW  = Math.floor(width / 2);
+      if (halfW === 0 || height === 0) { return 1; }
+      var canvas = makeCanvas(width, height);
+      img.render(canvas.getContext("2d"));
+      var data = canvas.getContext("2d").getImageData(0, 0, width, height).data;
+      var sumSq = 0, count = 0;
+      for (var y = 0; y < height; y++) {
+        for (var x = 0; x < halfW; x++) {
+          var i1 = (y * width + x) * 4;
+          var i2 = (y * width + (width - 1 - x)) * 4;
+          for (var ch = 0; ch < 4; ch++) {
+            var d = data[i1 + ch] - data[i2 + ch];
+            sumSq += d * d;
+          }
+          count += 4;
+        }
+      }
+      return 1 - Math.sqrt(sumSq / count) / 255;
+    };
+
+    var horizontalSymmetry = function(img) {
+      var width  = img.getWidth();
+      var height = img.getHeight();
+      var halfH  = Math.floor(height / 2);
+      if (width === 0 || halfH === 0) { return 1; }
+      var canvas = makeCanvas(width, height);
+      img.render(canvas.getContext("2d"));
+      var data = canvas.getContext("2d").getImageData(0, 0, width, height).data;
+      var sumSq = 0, count = 0;
+      for (var y = 0; y < halfH; y++) {
+        for (var x = 0; x < width; x++) {
+          var i1 = (y * width + x) * 4;
+          var i2 = ((height - 1 - y) * width + x) * 4;
+          for (var ch = 0; ch < 4; ch++) {
+            var d = data[i1 + ch] - data[i2 + ch];
+            sumSq += d * d;
+          }
+          count += 4;
+        }
+      }
+      return 1 - Math.sqrt(sumSq / count) / 255;
+    };
+
     var colorAtPosition = function(img, x, y) {
       var width = img.getWidth(),
       height = img.getHeight(),
@@ -2038,6 +2084,9 @@
         colorBlue: colorBlue,
         colorAlpha: colorAlpha,
         colorString: colorString,
+
+        verticalSymmetry: verticalSymmetry,
+        horizontalSymmetry: horizontalSymmetry,
       }
     );
     return RUNTIME.makeJSModuleReturn();
