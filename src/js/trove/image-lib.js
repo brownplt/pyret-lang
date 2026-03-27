@@ -1768,10 +1768,12 @@
       img.render(canvas.getContext("2d"));
       var data = canvas.getContext("2d").getImageData(0, 0, width, height).data;
       var sumSq = 0, count = 0;
+
+      const basePixelIndex = (x, y) => ((y * width) + x) * 4;
       for (var y = 0; y < height; y++) {
         for (var x = 0; x < halfW; x++) {
-          var i1 = (y * width + x) * 4;
-          var i2 = (y * width + (width - 1 - x)) * 4;
+          var i1 = basePixelIndex(x, y);
+          var i2 = basePixelIndex(width - 1 - x, y);
           for (var ch = 0; ch < 4; ch++) {
             var d = data[i1 + ch] - data[i2 + ch];
             sumSq += d * d;
@@ -1791,10 +1793,11 @@
       img.render(canvas.getContext("2d"));
       var data = canvas.getContext("2d").getImageData(0, 0, width, height).data;
       var sumSq = 0, count = 0;
+      const basePixelIndex = (x, y) => ((y * width) + x) * 4;
       for (var y = 0; y < halfH; y++) {
         for (var x = 0; x < width; x++) {
-          var i1 = (y * width + x) * 4;
-          var i2 = ((height - 1 - y) * width + x) * 4;
+          var i1 = basePixelIndex(x, y);
+          var i2 = basePixelIndex(x, height - 1 - y);
           for (var ch = 0; ch < 4; ch++) {
             var d = data[i1 + ch] - data[i2 + ch];
             sumSq += d * d;
