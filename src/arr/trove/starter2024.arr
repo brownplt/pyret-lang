@@ -235,6 +235,8 @@ provide from I:
   underlay-align-list,
   underlay-list,
   underlay-xy,
+  vertical-symmetry,
+  horizontal-symmetry,
   wedge,
   x-center,
   x-left,
