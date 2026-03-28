@@ -1281,7 +1281,7 @@
            maybeImg, annImage,
            maybeSimilarityMeasure, annImageSimilarity);
         var img        = unwrapImage(maybeImg);
-        var similarity = unwrapImageSimilarity(annImageSimilarity);
+        var similarity = unwrapImageSimilarity(maybeSimilarityMeasure);
         return runtime.wrap(image.verticalSymmetry(img, similarity));
       });
 
@@ -1291,7 +1291,7 @@
            maybeImg, annImage,
            maybeSimilarityMeasure, annImageSimilarity);
         var img        = unwrapImage(maybeImg);
-        var similarity = unwrapImageSimilarity(annImageSimilarity);
+        var similarity = unwrapImageSimilarity(maybeSimilarityMeasure);
         return runtime.wrap(image.horizontalSymmetry(img, similarity));
       });
 

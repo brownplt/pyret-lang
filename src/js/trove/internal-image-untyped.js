@@ -48,6 +48,9 @@
               [{ tag: "name",
                  origin: { "import-type": "uri", uri: "builtin://internal-image-shared" },
                  name: "Point" }]],
+      "ImageSimilarity": { tag: "name",
+                     origin: { "import-type": "uri", uri: "builtin://internal-image-shared" },
+                     name: "ImageSimilarity" },
     },
     values: {
       "circle": ["arrow", ["Number", "FillMode", "ColorString"], "Image"],
@@ -146,8 +149,8 @@
       "image-baseline": ["arrow", ["Image"], "Number"],
       "image-pinhole-x": ["arrow", ["Image"], "Number"],
       "image-pinhole-y": ["arrow", ["Image"], "Number"],
-      "image-vertical-symmetry": ["arrow", ["Image"], "Number"],
-      "image-horizontal-symmetry": ["arrow", ["Image"], "Number"],
+      "image-vertical-symmetry": ["arrow", ["Image", "ImageSimilarity"], "Number"],
+      "image-horizontal-symmetry": ["arrow", ["Image", "ImageSimilarity"], "Number"],
       "name-to-color": ["arrow", ["String"], "OptColor"],
       "color-named": ["arrow", ["String"], "Color"],
       "empty-image": "Image"

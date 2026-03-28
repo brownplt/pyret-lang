@@ -23,6 +23,7 @@
     var isPoint = function(p) { return unwrap(rawIsPoint.app(p)); };
     var unwrap = RUNTIME.unwrap;
 
+
     var hasOwnProperty = {}.hasOwnProperty;
 
 
@@ -58,6 +59,7 @@
     var annFontFamily = imageTypes["FontFamily"];
     var annFontStyle = imageTypes["FontStyle"];
     var annFontWeight = imageTypes["FontWeight"];
+    var annImageSimilarity = imageTypes["ImageSimilarity"];
     
     // Color database
     var ColorDb = function() {
@@ -2084,6 +2086,7 @@
         isTextImage: isTextImage,
         isFileImage: isFileImage,
         isFileVideo: isFileVideo,
+        annImageSimilarity: annImageSimilarity,
 
         makeColor: makeColor,
         isColor: isColor,
