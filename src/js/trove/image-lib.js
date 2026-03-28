@@ -1759,7 +1759,13 @@
 
     LineImage.prototype = heir(BaseImage.prototype);
 
- var verticalSymmetry = function(img) {
+   // Note(Emmanuel): As of fall2026 the similarity arg is unused.
+   // We use RMSE across all pixel channels and assume an axis
+   // that is straight down the middle.
+   // But in the future, we could add other forms of similarity
+   // or allow for a "fudge factor" that considers an axis that
+   // isn't *quite* at the middle (imagefluency.com/reference/img_symmetry.html)
+   var verticalSymmetry = function(img, similarity) {
       var width  = img.getWidth();
       var height = img.getHeight();
       var halfW  = Math.floor(width / 2);
@@ -1784,7 +1790,7 @@
       return 1 - Math.sqrt(sumSq / count) / 255;
     };
 
-    var horizontalSymmetry = function(img) {
+    var horizontalSymmetry = function(img, similarity) {
       var width  = img.getWidth();
       var height = img.getHeight();
       var halfH  = Math.floor(height / 2);

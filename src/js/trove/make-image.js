@@ -41,6 +41,8 @@
       const unwrapFontStyle = annots.unwrapFontStyle;
       const annFontWeight = annots.annFontWeight;
       const unwrapFontWeight = annots.unwrapFontWeight;
+      const annImageSimilarity = annots.annImageSimilarity;
+      const unwrapImageSimilarity = annots.unwrapImageSimilarity;
       const annPlaceX = annots.annPlaceX;
       const unwrapPlaceX = annots.unwrapPlaceX;
       const annPlaceY = annots.annPlaceY;
@@ -1273,18 +1275,24 @@
         return runtime.wrap(img.getHeight());
       });
 
-      f("image-vertical-symmetry", function(maybeImg) {
-        checkArity(1, arguments, "image-vertical-symmetry", false);
-        c1("image-vertical-symmetry", maybeImg, annImage);
-        var img = unwrapImage(maybeImg);
-        return runtime.wrap(image.verticalSymmetry(img));
+      f("image-vertical-symmetry", function(maybeImg, maybeSimilarityMeasure) {
+        checkArity(2, arguments, "image-vertical-symmetry", false);
+         c2("image-vertical-symmetry",
+           maybeImg, annImage,
+           maybeSimilarityMeasure, annImageSimilarity);
+        var img        = unwrapImage(maybeImg);
+        var similarity = unwrapImageSimilarity(annImageSimilarity);
+        return runtime.wrap(image.verticalSymmetry(img, similarity));
       });
 
-      f("image-horizontal-symmetry", function(maybeImg) {
-        checkArity(1, arguments, "image-horizontal-symmetry", false);
-        c1("image-horizontal-symmetry", maybeImg, annImage);
-        var img = unwrapImage(maybeImg);
-        return runtime.wrap(image.horizontalSymmetry(img));
+      f("image-horizontal-symmetry", function(maybeImg, maybeSimilarityMeasure) {
+        checkArity(2, arguments, "image-horizontal-symmetry", false);
+         c2("image-horizontal-symmetry",
+           maybeImg, annImage,
+           maybeSimilarityMeasure, annImageSimilarity);
+        var img        = unwrapImage(maybeImg);
+        var similarity = unwrapImageSimilarity(annImageSimilarity);
+        return runtime.wrap(image.horizontalSymmetry(img, similarity));
       });
 
       f("image-baseline", function(maybeImg) {

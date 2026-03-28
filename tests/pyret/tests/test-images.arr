@@ -257,46 +257,47 @@ end
 check "Symmetry":
   fun less-than(n1, n2): n1 < n2 end
 
+
   # A simple square should be perfectly symmetrical in both directions
   perfect-sym = square(50, mode-solid, blue)
-  image-vertical-symmetry(perfect-sym) is%(within-abs(0.01)) 1
-  image-horizontal-symmetry(perfect-sym) is%(within-abs(0.01)) 1
+  image-vertical-symmetry(perfect-sym, ism-rmse(0)) is%(within-abs(0.01)) 1
+  image-horizontal-symmetry(perfect-sym, ism-rmse(0)) is%(within-abs(0.01)) 1
 
   # Two different-colored shapes beside each other break vertical symmetry (left vs right)
   # but maintain horizontal symmetry (top vs bottom)
   asym-vert = beside(square(20, mode-solid, red), square(20, mode-solid, blue))
-  image-vertical-symmetry(asym-vert) is%(less-than) 1
-  image-horizontal-symmetry(asym-vert) is%(within-abs(0.01)) 1
+  image-vertical-symmetry(asym-vert, ism-rmse(0)) is%(less-than) 1
+  image-horizontal-symmetry(asym-vert, ism-rmse(0)) is%(within-abs(0.01)) 1
 
   # Two different-colored shapes above each other break horizontal symmetry (top vs bottom)
   # but maintain vertical symmetry (left vs right)
   asym-horiz = above(square(20, mode-solid, red), square(20, mode-solid, blue))
-  image-vertical-symmetry(asym-horiz) is%(within-abs(0.01)) 1
-  image-horizontal-symmetry(asym-horiz) is%(less-than) 1
+  image-vertical-symmetry(asym-horiz, ism-rmse(0)) is%(within-abs(0.01)) 1
+  image-horizontal-symmetry(asym-horiz, ism-rmse(0)) is%(less-than) 1
 
   # A right triangle is typically asymmetrical in both dimensions
   rt = right-triangle(40, 50, mode-solid, black)
-  (image-vertical-symmetry(rt) < 1) is%(within-abs(0.01)) true
-  (image-horizontal-symmetry(rt) < 1) is%(within-abs(0.01)) true
+  (image-vertical-symmetry(rt, ism-rmse(0)) < 1) is%(within-abs(0.01)) true
+  (image-horizontal-symmetry(rt, ism-rmse(0)) < 1) is%(within-abs(0.01)) true
 
   # Empty scenes should be perfectly symmetrical
   empty-sn = empty-scene(50, 50)
-  image-vertical-symmetry(empty-sn) is%(within-abs(0.01)) 1
-  image-horizontal-symmetry(empty-sn) is%(within-abs(0.01)) 1
+  image-vertical-symmetry(empty-sn, ism-rmse(0)) is%(within-abs(0.01)) 1
+  image-horizontal-symmetry(empty-sn, ism-rmse(0)) is%(within-abs(0.01)) 1
 
   # Truly empty/0-width or 0-height images should also be symmetrical
   empty-width = rectangle(0, 100, mode-solid, black)
-  image-vertical-symmetry(empty-width) is%(within-abs(0.01)) 1
-  image-horizontal-symmetry(empty-width) is%(within-abs(0.01)) 1
+  image-vertical-symmetry(empty-width, ism-rmse(0)) is%(within-abs(0.01)) 1
+  image-horizontal-symmetry(empty-width, ism-rmse(0)) is%(within-abs(0.01)) 1
 
   # Create an asymmetrical image to test cropping
   asym-base = beside(square(40, mode-solid, red), square(40, mode-solid, blue))
-  image-vertical-symmetry(asym-base) is%(less-than) 1
-  image-horizontal-symmetry(asym-base) is%(within-abs(0.01)) 1
+  image-vertical-symmetry(asym-base, ism-rmse(0)) is%(less-than) 1
+  image-horizontal-symmetry(asym-base, ism-rmse(0)) is%(within-abs(0.01)) 1
 
   # Cropping just the left side (the red square) restores vertical symmetry
   cropped-sym = crop(0, 0, 40, 40, asym-base)
-  image-vertical-symmetry(cropped-sym) is%(within-abs(0.01)) 1
-  image-horizontal-symmetry(cropped-sym) is%(within-abs(0.01)) 1
+  image-vertical-symmetry(cropped-sym, ism-rmse(0)) is%(within-abs(0.01)) 1
+  image-horizontal-symmetry(cropped-sym, ism-rmse(0)) is%(within-abs(0.01)) 1
 end
 

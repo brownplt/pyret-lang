@@ -35,3 +35,5 @@ data FontFamily:
 end
 data FontStyle: fs-normal | fs-italic | fs-slant end
 data FontWeight: fw-normal | fw-bold | fw-light end
+
+data ImageSimilarity: ism-rmse(fudge-factor ::  Number) end

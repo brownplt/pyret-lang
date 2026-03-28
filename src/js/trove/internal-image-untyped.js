@@ -305,6 +305,12 @@
           || (x === false);		// false is also acceptable
       }),
       unwrapFontWeight: identity,
+      annImageSimilarity: ann("Image Similarity", function(x){
+        return (isString(x) &&
+                (x.toString().toLowerCase() == "ism-rmse" ||
+                 false)) // add other similarity measure here
+      }),
+      unwrapImageSimilarity: identity,
       annPlaceX: ann("X Place (\"left\", \"middle\", \"center\", \"pinhole\", or \"right\")", isPlaceX),
       unwrapPlaceX: function(val) {
         if (val.toString().toLowerCase() == "center") return "middle";

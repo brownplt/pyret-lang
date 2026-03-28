@@ -283,6 +283,12 @@
           "fw-light": function(_) { return "light"; },
         });
       },
+      annImageSimilarity: image.ImageSimilarity,
+      unwrapImageSimilarity: function(ism){
+        return runtime.ffi.cases(pyAlwaysTrue, "ImageSimilarity", ism, {
+          "ism-rmse": function(_) { return "ism-rmse"; },
+        });
+      },
       annPlaceX: image.annXPlace,
       unwrapPlaceX: function(px) {
         return runtime.ffi.cases(pyAlwaysTrue, "XPlace", px, {
