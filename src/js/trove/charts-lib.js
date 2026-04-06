@@ -18,6 +18,7 @@
       'histogram': "tany",
       'box-plot': "tany",
       'plot': "tany",
+      'scatter-plot-3d': "tany",
     }
   },
   theModule: function (RUNTIME, NAMESPACE, uri, IMAGELIB, CHARTSUTILLIB, jsnums, vega, canvasLib) {
@@ -49,6 +50,7 @@
           'histogram': notImp('histogram'),
           'box-plot': notImp('box-plot'),
           'plot': notImp('plot'),
+          'scatter-plot-3d': notImp('scatter-plot-3d'),
         }, 
         { }
       )
@@ -2573,6 +2575,402 @@
       };
     }
 
+    function scatterPlot3D(globalOptions, rawData) {
+      const title      = globalOptions['title'];
+      const width      = toFixnum(globalOptions['width']);
+      const height     = toFixnum(globalOptions['height']);
+      const background = getColorOrDefault(globalOptions['backgroundColor'], 'transparent');
+
+      // Axis labels come from the ChartWindow (globalOptions), not the series.
+      const xAxisLabel = globalOptions['x-axis'] || 'x';
+      const yAxisLabel = globalOptions['y-axis'] || 'y';
+      const zAxisLabel = globalOptions['z-axis'] || 'z';
+
+      // Optional data-range clipping (undefined = infer from data).
+      const xMinClip = getNumOrDefault(globalOptions['x-min'], undefined);
+      const xMaxClip = getNumOrDefault(globalOptions['x-max'], undefined);
+      const yMinClip = getNumOrDefault(globalOptions['y-min'], undefined);
+      const yMaxClip = getNumOrDefault(globalOptions['y-max'], undefined);
+      const zMinClip = getNumOrDefault(globalOptions['z-min'], undefined);
+      const zMaxClip = getNumOrDefault(globalOptions['z-max'], undefined);
+
+      const color     = getColorOrDefault(get(rawData, 'color'), default_colors[0]);
+      const legend    = get(rawData, 'legend') || '';
+      const pointSize = toFixnum(get(rawData, 'point-size'));
+      const rotationX = getNumOrDefault(globalOptions['rotation-x'],
+                          toFixnum(get(rawData, 'rotation-x')));
+      const rotationY = getNumOrDefault(globalOptions['rotation-y'],
+                          toFixnum(get(rawData, 'rotation-y')));
+
+      // ── Extract points ────────────────────────────────────────────────────────
+      const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
+      const pointValues = points.map((p) => ({
+        rawX:  toFixnum(get(p, 'x')),
+        rawY:  toFixnum(get(p, 'y')),
+        rawZ:  toFixnum(get(p, 'z')),
+        label: get(p, 'label'),
+      }));
+
+      // ── Normalization constants ────────────────────────────────────────────────
+      // Respect user-supplied clipping bounds; fall back to data extents.
+      const xs = pointValues.map((p) => p.rawX);
+      const ys = pointValues.map((p) => p.rawY);
+      const zs = pointValues.map((p) => p.rawZ);
+      const [xDataMin, xDataMax] = computeDomain(xs.length ? xs : [0, 1]);
+      const [yDataMin, yDataMax] = computeDomain(ys.length ? ys : [0, 1]);
+      const [zDataMin, zDataMax] = computeDomain(zs.length ? zs : [0, 1]);
+      const xMin = xMinClip ?? xDataMin;
+      const xMax = xMaxClip ?? xDataMax;
+      const yMin = yMinClip ?? yDataMin;
+      const yMax = yMaxClip ?? yDataMax;
+      const zMin = zMinClip ?? zDataMin;
+      const zMax = zMaxClip ?? zDataMax;
+      // Each axis is normalized independently to [-0.5, +0.5], so xMin → -0.5
+      // and xMax → +0.5 (and likewise for y and z). Points therefore align
+      // correctly with the axis tick labels at the tips.
+      // Guard against degenerate single-value axes with || 1.
+      const xRange = (xMax - xMin) || 1;
+      const yRange = (yMax - yMin) || 1;
+      const zRange = (zMax - zMin) || 1;
+
+      // ── Quaternion rotation expressions (Vega expression strings) ─────────────
+      // First half of sandwich product q * v (v is a pure quaternion with w=0):
+      const q1Expr =
+        `{x: q.w*datum.v.x + q.y*datum.v.z - q.z*datum.v.y,` +
+         ` y: q.w*datum.v.y - q.x*datum.v.z + q.z*datum.v.x,` +
+         ` z: q.w*datum.v.z + q.x*datum.v.y - q.y*datum.v.x,` +
+         ` w: -q.x*datum.v.x - q.y*datum.v.y - q.z*datum.v.z}`;
+
+      // Second half (q*v) * q⁻¹ — we need all three components:
+      //   x, y → screen position; z → depth for painter's sort + opacity
+      const q2xExpr = `datum.q1.w*q_1.x + datum.q1.x*q_1.w + datum.q1.y*q_1.z - datum.q1.z*q_1.y`;
+      const q2yExpr = `datum.q1.w*q_1.y - datum.q1.x*q_1.z + datum.q1.y*q_1.w + datum.q1.z*q_1.x`;
+      const q2zExpr = `datum.q1.w*q_1.z + datum.q1.x*q_1.y - datum.q1.y*q_1.x + datum.q1.z*q_1.w`;
+
+      // Shared pipeline applied to every dataset (points + 12 axis datasets).
+      function rotationTransforms() {
+        return [
+          { type: 'formula', as: 'q1',    expr: q1Expr },
+          { type: 'formula', as: 'sx',    expr: `(${q2xExpr}) * scale * size + width/2` },
+          { type: 'formula', as: 'sy',    expr: `(${q2yExpr}) * scale * size + height/2` },
+          { type: 'formula', as: 'depth', expr: q2zExpr },
+        ];
+      }
+
+      // ── Data ──────────────────────────────────────────────────────────────────
+      const data = [
+        // Main point cloud: normalize → rotate → sort back-to-front.
+        {
+          name: 'points',
+          values: pointValues,
+          transform: [
+            { type: 'formula', as: 'v',
+              expr: `{x: (datum.rawX - ${xMin}) / ${xRange} - 0.5,` +
+                    ` y: (datum.rawY - ${yMin}) / ${yRange} - 0.5,` +
+                    ` z: (datum.rawZ - ${zMin}) / ${zRange} - 0.5}` },
+            ...rotationTransforms(),
+            // Painter's algorithm: far points first so near ones render on top.
+            { type: 'collect', sort: { field: 'depth', order: 'ascending' } },
+          ],
+        },
+        // Three axis lines (2 points each: origin → tip).
+        {
+          name: 'xAxisLine',
+          values: [{ v: { x: -0.5, y: 0, z: 0 } }, { v: { x: 0.5, y: 0, z: 0 } }],
+          transform: rotationTransforms(),
+        },
+        {
+          name: 'yAxisLine',
+          values: [{ v: { x: 0, y: -0.5, z: 0 } }, { v: { x: 0, y: 0.5, z: 0 } }],
+          transform: rotationTransforms(),
+        },
+        {
+          name: 'zAxisLine',
+          values: [{ v: { x: 0, y: 0, z: -0.5 } }, { v: { x: 0, y: 0, z: 0.5 } }],
+          transform: rotationTransforms(),
+        },
+        // Positive-tip label positions (axis name labels).
+        {
+          name: 'xAxisTip',
+          values: [{ v: { x: 0.5, y: 0, z: 0 } }],
+          transform: rotationTransforms(),
+        },
+        {
+          name: 'yAxisTip',
+          values: [{ v: { x: 0, y: 0.5, z: 0 } }],
+          transform: rotationTransforms(),
+        },
+        {
+          name: 'zAxisTip',
+          values: [{ v: { x: 0, y: 0, z: 0.5 } }],
+          transform: rotationTransforms(),
+        },
+        // Min-value tick labels at negative tips.
+        {
+          name: 'xAxisNegTip',
+          values: [{ v: { x: -0.5, y: 0, z: 0 }, tickLabel: String(xMin) }],
+          transform: rotationTransforms(),
+        },
+        {
+          name: 'yAxisNegTip',
+          values: [{ v: { x: 0, y: -0.5, z: 0 }, tickLabel: String(yMin) }],
+          transform: rotationTransforms(),
+        },
+        {
+          name: 'zAxisNegTip',
+          values: [{ v: { x: 0, y: 0, z: -0.5 }, tickLabel: String(zMin) }],
+          transform: rotationTransforms(),
+        },
+        // Max-value tick labels at positive tips.
+        {
+          name: 'xAxisPosTip',
+          values: [{ v: { x: 0.5, y: 0, z: 0 }, tickLabel: String(xMax) }],
+          transform: rotationTransforms(),
+        },
+        {
+          name: 'yAxisPosTip',
+          values: [{ v: { x: 0, y: 0.5, z: 0 }, tickLabel: String(yMax) }],
+          transform: rotationTransforms(),
+        },
+        {
+          name: 'zAxisPosTip',
+          values: [{ v: { x: 0, y: 0, z: 0.5 }, tickLabel: String(zMax) }],
+          transform: rotationTransforms(),
+        },
+      ];
+
+      // ── Signals ───────────────────────────────────────────────────────────────
+      // Seed with the series' initial rotation values. Use plain JS numbers
+      // for qrAngleX/Y `value` fields to avoid Vega signal init-order hazards.
+      const initQrX = Math.PI * rotationX / 360.0;
+      const initQrY = Math.PI * rotationY / 360.0;
+
+      const signals = [
+        { name: 'staggerXAxisLabels', update: false },
+
+        { name: 'size', init: 'min(width, height)' },
+
+        // X rotation: horizontal drag or slider.
+        { name: 'rotationX', value: rotationX,
+          bind: { input: 'range', min: 0, max: 360, step: 1 },
+          on: [{ events: { signal: 'validAngleX' }, update: 'validAngleX' }] },
+        { name: 'angleX',
+          on: [{ events: { source: 'view', type: 'mousemove', filter: 'event.buttons === 1' },
+                 update: 'rotationX + (event.movementX > 0 ? -5 : event.movementX < 0 ? 5 : 0)' }] },
+        { name: 'validAngleX',
+          update: 'angleX % 360 < 0 ? 360 + angleX % 360 : angleX % 360' },
+
+        // Y rotation: vertical drag or slider.
+        { name: 'rotationY', value: rotationY,
+          bind: { input: 'range', min: 0, max: 360, step: 1 },
+          on: [{ events: { signal: 'validAngleY' }, update: 'validAngleY' }] },
+        { name: 'angleY',
+          on: [{ events: { source: 'view', type: 'mousemove', filter: 'event.buttons === 1' },
+                 update: 'rotationY + (event.movementY < 0 ? 5 : event.movementY > 0 ? -5 : 0)' }] },
+        { name: 'validAngleY',
+          update: 'angleY % 360 < 0 ? 360 + angleY % 360 : angleY % 360' },
+
+        // Zoom: mousewheel or slider.
+        // Rounding is needed here to prevent scale values with 10+ decimals
+        // It is *not* needed for the rotation sliders because '% 360' operation
+        // keeps us in integer-land
+        { name: 'scale', value: 0.8,
+          bind: { input: 'range', min: 0.1, max: 2.0, step: 0.05 },
+          on: [{ events: 'view:mousewheel',
+                 update: 'round(max(0.1, min(2.0, scale + (event.wheelDelta > 0 ? 0.05 : -0.05))) * 100) / 100' }] },
+
+        // Quaternion derivation. The composed quaternion q = qY * qX rotates
+        // a point by rotationY degrees around world-Y then rotationX around world-X.
+        { name: 'qrAngleX', value: initQrX,
+          on: [{ events: { signal: 'rotationX' }, update: 'PI*rotationX/360.0' }] },
+        { name: 'qrAngleY', value: initQrY,
+          on: [{ events: { signal: 'rotationY' }, update: 'PI*rotationY/360.0' }] },
+        { name: 'qrw0', update: 'cos(qrAngleY)' },
+        { name: 'qrw1', update: 'cos(qrAngleX)' },
+        { name: 'qrx0', update: 'sin(qrAngleY)' },
+        { name: 'qrz1', update: 'sin(qrAngleX)' },
+        { name: 'q',
+          update: '{x: qrx0*qrw1, y: -qrx0*qrz1, z: qrw0*qrz1, w: qrw0*qrw1}' },
+        // Conjugate (inverse of unit quaternion).
+        { name: 'q_1',
+          update: '{x: -q.x, y: -q.y, z: -q.z, w: q.w}' },
+      ];
+
+      // ── Marks ─────────────────────────────────────────────────────────────────
+      const axisStrokeWidth = 1.5;
+      const axisLabelSize   = 11;
+      const tickLabelSize   = 9;
+
+      // Depth ∈ [-0.5, 0.5] → opacity ∈ [0.25, 1.0]. Clamped so non-cubic
+      // point clouds with out-of-range depth values don't produce invalid values.
+      const opacityExpr = 'clamp(0.25 + 0.75 * (datum.depth + 0.5), 0.25, 1.0)';
+
+      const marks = [
+        // ── Axis lines ─────────────────────────────────────────────────────────
+        {
+          type: 'line', from: { data: 'xAxisLine' },
+          encode: {
+            enter:  { stroke: { value: '#cc3333' }, strokeWidth: { value: axisStrokeWidth },
+                      strokeOpacity: { value: 0.7 } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' } },
+          },
+        },
+        {
+          type: 'line', from: { data: 'yAxisLine' },
+          encode: {
+            enter:  { stroke: { value: '#33aa33' }, strokeWidth: { value: axisStrokeWidth },
+                      strokeOpacity: { value: 0.7 } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' } },
+          },
+        },
+        {
+          type: 'line', from: { data: 'zAxisLine' },
+          encode: {
+            enter:  { stroke: { value: '#3355cc' }, strokeWidth: { value: axisStrokeWidth },
+                      strokeOpacity: { value: 0.7 } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' } },
+          },
+        },
+
+        // ── Axis name labels (at positive tips) ────────────────────────────────
+        {
+          type: 'text', from: { data: 'xAxisTip' },
+          encode: {
+            enter:  { text: { value: xAxisLabel }, fill: { value: '#cc3333' },
+                      fontSize: { value: axisLabelSize }, fontWeight: { value: 'bold' },
+                      dx: { value: 4 }, baseline: { value: 'middle' } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' } },
+          },
+        },
+        {
+          type: 'text', from: { data: 'yAxisTip' },
+          encode: {
+            enter:  { text: { value: yAxisLabel }, fill: { value: '#33aa33' },
+                      fontSize: { value: axisLabelSize }, fontWeight: { value: 'bold' },
+                      dx: { value: 4 }, baseline: { value: 'middle' } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' } },
+          },
+        },
+        {
+          type: 'text', from: { data: 'zAxisTip' },
+          encode: {
+            enter:  { text: { value: zAxisLabel }, fill: { value: '#3355cc' },
+                      fontSize: { value: axisLabelSize }, fontWeight: { value: 'bold' },
+                      dx: { value: 4 }, baseline: { value: 'middle' } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' } },
+          },
+        },
+
+        // ── Min-value tick labels (at negative tips) ───────────────────────────
+        {
+          type: 'text', from: { data: 'xAxisNegTip' },
+          encode: {
+            enter:  { fill: { value: '#cc3333' }, fontSize: { value: tickLabelSize },
+                      fillOpacity: { value: 0.75 }, dx: { value: -3 },
+                      align: { value: 'right' }, baseline: { value: 'middle' } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' }, text: { field: 'tickLabel' } },
+          },
+        },
+        {
+          type: 'text', from: { data: 'yAxisNegTip' },
+          encode: {
+            enter:  { fill: { value: '#33aa33' }, fontSize: { value: tickLabelSize },
+                      fillOpacity: { value: 0.75 }, dx: { value: -3 },
+                      align: { value: 'right' }, baseline: { value: 'middle' } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' }, text: { field: 'tickLabel' } },
+          },
+        },
+        {
+          type: 'text', from: { data: 'zAxisNegTip' },
+          encode: {
+            enter:  { fill: { value: '#3355cc' }, fontSize: { value: tickLabelSize },
+                      fillOpacity: { value: 0.75 }, dx: { value: -3 },
+                      align: { value: 'right' }, baseline: { value: 'middle' } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' }, text: { field: 'tickLabel' } },
+          },
+        },
+
+        // ── Max-value tick labels (at positive tips) ───────────────────────────
+        {
+          type: 'text', from: { data: 'xAxisPosTip' },
+          encode: {
+            enter:  { fill: { value: '#cc3333' }, fontSize: { value: tickLabelSize },
+                      fillOpacity: { value: 0.75 }, dx: { value: 4 },
+                      align: { value: 'left' }, baseline: { value: 'top' } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' }, text: { field: 'tickLabel' } },
+          },
+        },
+        {
+          type: 'text', from: { data: 'yAxisPosTip' },
+          encode: {
+            enter:  { fill: { value: '#33aa33' }, fontSize: { value: tickLabelSize },
+                      fillOpacity: { value: 0.75 }, dx: { value: 4 },
+                      align: { value: 'left' }, baseline: { value: 'top' } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' }, text: { field: 'tickLabel' } },
+          },
+        },
+        {
+          type: 'text', from: { data: 'zAxisPosTip' },
+          encode: {
+            enter:  { fill: { value: '#3355cc' }, fontSize: { value: tickLabelSize },
+                      fillOpacity: { value: 0.75 }, dx: { value: 4 },
+                      align: { value: 'left' }, baseline: { value: 'top' } },
+            update: { x: { field: 'sx' }, y: { field: 'sy' }, text: { field: 'tickLabel' } },
+          },
+        },
+
+        // ── Data points ────────────────────────────────────────────────────────
+        // Already sorted back-to-front by the collect transform.
+        // Depth cues: opacity and size both vary with distance.
+        {
+          type: 'symbol',
+          from: { data: 'points' },
+          encode: {
+            enter: {
+              shape: { value: 'circle' },
+              fill:  { value: color },
+              tooltip: [
+                { test: 'datum.label != ""',
+                  signal: `{title: "${legend || 'Point'}", Label: datum.label,` +
+                          ` "${xAxisLabel}": datum.rawX,` +
+                          ` "${yAxisLabel}": datum.rawY,` +
+                          ` "${zAxisLabel}": datum.rawZ}` },
+                { signal: `{title: "${legend || 'Point'}",` +
+                          ` "${xAxisLabel}": datum.rawX,` +
+                          ` "${yAxisLabel}": datum.rawY,` +
+                          ` "${zAxisLabel}": datum.rawZ}` },
+              ],
+            },
+            update: {
+              x:             { field: 'sx' },
+              y:             { field: 'sy' },
+              fillOpacity:   { signal: opacityExpr },
+              size:          { signal: `${pointSize * pointSize} * clamp(0.5 + 0.5*(datum.depth+0.5), 0.5, 1.0)` },
+              stroke:        { value: 'white' },
+              strokeWidth:   { value: 0.5 },
+              strokeOpacity: { signal: opacityExpr },
+            },
+          },
+        },
+      ];
+
+      return {
+        "$schema": "https://vega.github.io/schema/vega/v6.json",
+        description: title,
+        title: title && { text: { signal: 'titleText' } },
+        width,
+        height,
+        padding: 0,
+        autosize: 'fit',
+        background,
+        data,
+        signals,
+        marks,
+        onExit: defaultImageReturn,
+        config: chartFontConfig,
+      };
+    }
+
     function linePlot(globalOptions, rawData, config) {
       const prefix = config.prefix || ''
       const defaultColor = config.defaultColor || default_colors[0];
@@ -3482,6 +3880,7 @@
         'dot-chart': makeFunction(dotChart),
         'categorical-dot-chart': makeFunction(categoricalDotChart),
         'plot': makeFunction(plot),
+        'scatter-plot-3d': makeFunction(scatterPlot3D),
       }, 
       {
         "LoC": ann("List<Color>", checkListWith(IMAGE.isColorOrColorString)),

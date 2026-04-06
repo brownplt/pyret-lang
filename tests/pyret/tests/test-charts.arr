@@ -21,6 +21,8 @@ end
 check "render-chart":
   xs = [list: 1, 3, 5, 8, 20]
   ys = [list: 5, 3, 8, 2, 10]
+  zs = [list: 2, 6, -4, 9, 15]
+
   p1 = from-list.function-plot(lam(x): x * x end).color(red)
   p2 = from-list.line-plot([list: 1, 2, 3, 4], [list: 1, 4, 9, 16]).color(green)
   p3 = from-list.histogram([list: 1, 2, 3, 4])
@@ -28,7 +30,10 @@ check "render-chart":
       [list: -1, 1,  2, 3, 11, 8, 9],
       [list: 10, -1, 11, 9,  9, 3, 2])
   p5 = from-list.scatter-plot(ys, xs)
+  p6 = from-list.scatter-plot-3d(ys, xs, zs)
+
   render-charts([list: p1, p2, p3]) raises ''
+  render-charts([list: p1, p6]) raises '' # 3d scatterplots cannot be composed right now
   render-charts([list: p1, p2])
     .title('quadratic function and a scatter plot')
     .x-min(0)
@@ -43,4 +48,17 @@ check "render-chart":
     .y-max(10)
     .get-image() does-not-raise
   render-chart(p5) does-not-raise
+  render-chart(p6)
+    .x-axis("R")
+    .x-min(-4)
+    .x-max(25)
+    .y-axis("G")
+    .y-min(0)
+    .y-max(12)
+    .z-axis("B")
+    .z-min(5)
+    .z-max(10)
+    .rotationX(295)
+    .rotationY(115)
+    .title("demo 3d plot") does-not-raise
 end

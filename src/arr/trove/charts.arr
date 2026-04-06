@@ -1222,6 +1222,30 @@ default-scatter-plot-series = {
   horizontal: false,
 }
 
+type ScatterPoint3D = {
+  x     :: Number,
+  y     :: Number,
+  z     :: Number,
+  label :: String,
+}
+
+type ScatterPlotSeries3D = {
+  ps         :: List<ScatterPoint3D>,
+  color      :: Option<IS.Color>,
+  legend     :: String,
+  point-size :: Number,
+  rotation-x :: Number,   # initial X rotation in degrees [0, 360)
+  rotation-y :: Number,   # initial Y rotation in degrees [0, 360)
+}
+
+default-scatter-plot-series-3d = {
+  color:      none,
+  legend:     '',
+  point-size: 7,
+  rotation-x: 30,
+  rotation-y: 45,
+}
+
 type DotPoint = {
   value :: Number,
   label :: String,
@@ -1548,6 +1572,41 @@ default-plot-chart-window-object :: PlotChartWindowObject = default-chart-window
   minorGridlineMinspacing: 10, 
 }
 
+type ScatterPlot3DChartWindowObject = {
+  title         :: String,
+  width         :: Number,
+  height        :: Number,
+  backgroundColor :: Option<IS.Color>,
+  borderSize    :: Number,
+  borderColor   :: Option<IS.Color>,
+  render        :: ( -> IM.Image),
+  x-axis        :: String,
+  y-axis        :: String,
+  z-axis        :: String,
+  x-min         :: Option<Number>,
+  x-max         :: Option<Number>,
+  y-min         :: Option<Number>,
+  y-max         :: Option<Number>,
+  z-min         :: Option<Number>,
+  z-max         :: Option<Number>,
+  rotation-x    :: Option<Number>,
+  rotation-y    :: Option<Number>,
+}
+
+default-scatter-plot-3d-chart-window-object :: ScatterPlot3DChartWindowObject =
+  default-chart-window-object.{
+    x-axis: '',
+    y-axis: '',
+    z-axis: '',
+    x-min: none,
+    x-max: none,
+    y-min: none,
+    y-max: none,
+    z-min: none,
+    z-max: none,
+    rotation-x: none,
+    rotation-y: none,
+  }
 ################################################################################
 # DATA DEFINITIONS
 ################################################################################
@@ -1601,7 +1660,24 @@ data DataSeries:
       self.constr()(self.obj.{useImageSizes: use-image-sizes})
     end,
     horizontal: horizontal-method,
-  | dot-plot-series(obj :: DotPlotSeries) with:
+| scatter-plot-series-3d(obj :: ScatterPlotSeries3D) with:
+    is-single: true, # don't allow for composition right now
+    constr: {(): scatter-plot-series-3d},
+    color:  color-method,
+    legend: legend-method,
+    method point-size(self, point-size :: Number) block:
+      when point-size <= 0:
+        raise(ERR.message-exception("point-size: Point Size must be positive"))
+      end
+      self.constr()(self.obj.{point-size: point-size})
+    end,
+    method rotation-x(self, rx :: Number):
+      self.constr()(self.obj.{rotation-x: num-modulo(rx, 360)})
+    end,
+    method rotation-y(self, ry :: Number):
+      self.constr()(self.obj.{rotation-y: num-modulo(ry, 360)})
+    end,
+| dot-plot-series(obj :: DotPlotSeries) with:
     is-single: true,
     constr: {(): dot-plot-series},
     color: color-method,
@@ -1827,6 +1903,29 @@ data ChartWindow:
       end
       plot-chart-window(self.obj.{num-samples: num-samples})
     end,
+  | scatter-plot-3d-chart-window(obj :: ScatterPlot3DChartWindowObject) with:
+    constr: {(): scatter-plot-3d-chart-window},
+    x-axis: x-axis-method,
+    y-axis: y-axis-method,
+    method z-axis(self, label :: String):
+      self.constr()(self.obj.{z-axis: label})
+    end,
+    x-min: x-min-method,
+    x-max: x-max-method,
+    y-min: y-min-method,
+    y-max: y-max-method,
+    method z-min(self, z-min :: Number):
+      self.constr()(self.obj.{z-min: some(z-min)})
+    end,
+    method z-max(self, z-max :: Number):
+      self.constr()(self.obj.{z-max: some(z-max)})
+    end,
+    method rotation-x(self, rx :: Number):
+      self.constr()(self.obj.{rotation-x: some(num-modulo(rx, 360))})
+    end,
+    method rotation-y(self, ry :: Number):
+      self.constr()(self.obj.{rotation-y: some(num-modulo(ry, 360))})
+    end,
 sharing:
   background-color: background-color-method,
   border-size: background-border-method, 
@@ -1954,6 +2053,57 @@ fun image-scatter-plot-from-list(
   default-scatter-plot-series.{
     ps: map4(get-scatter-point, xs, ys, xs.map({(_): ''}), images.map(some))
   } ^ scatter-plot-series
+end
+
+fun get-scatter-point-3d(
+    x     :: Number,
+    y     :: Number,
+    z     :: Number,
+    label :: String) -> ScatterPoint3D:
+  { x: x, y: y, z: z, label: label }
+end
+
+fun scatter-plot-3d-from-list(
+    xs :: CL.LoN,
+    ys :: CL.LoN,
+    zs :: CL.LoN) -> DataSeries block:
+  when xs.length() <> ys.length():
+    raise(ERR.message-exception('scatter-plot-3d: xs and ys should have the same length'))
+  end
+  when xs.length() <> zs.length():
+    raise(ERR.message-exception('scatter-plot-3d: xs and zs should have the same length'))
+  end
+  xs.each(check-num)
+  ys.each(check-num)
+  zs.each(check-num)
+  default-scatter-plot-series-3d.{
+    ps: map3(
+      {(x, y, z): get-scatter-point-3d(x, y, z, '')},
+      xs, ys, zs)
+  } ^ scatter-plot-series-3d
+end
+
+fun labeled-scatter-plot-3d-from-list(
+    labels :: CL.LoS,
+    xs     :: CL.LoN,
+    ys     :: CL.LoN,
+    zs     :: CL.LoN) -> DataSeries block:
+  when xs.length() <> ys.length():
+    raise(ERR.message-exception('labeled-scatter-plot-3d: xs and ys should have the same length'))
+  end
+  when xs.length() <> zs.length():
+    raise(ERR.message-exception('labeled-scatter-plot-3d: xs and zs should have the same length'))
+  end
+  when xs.length() <> labels.length():
+    raise(ERR.message-exception('labeled-scatter-plot-3d: xs and labels should have the same length'))
+  end
+  xs.each(check-num)
+  ys.each(check-num)
+  zs.each(check-num)
+  labels.each(check-string)
+  default-scatter-plot-series-3d.{
+    ps: map4(get-scatter-point-3d, xs, ys, zs, labels)
+  } ^ scatter-plot-series-3d
 end
 
 fun image-bar-chart-from-list(
@@ -2504,6 +2654,10 @@ fun render-chart(s :: DataSeries) -> ChartWindow:
     | line-plot-series(_) => render-charts([list: s])
     | function-plot-series(_) => render-charts([list: s])
     | scatter-plot-series(_) => render-charts([list: s])
+    | scatter-plot-series-3d(obj) =>
+      default-scatter-plot-3d-chart-window-object.{
+        method render(self): CL.scatter-plot-3d(self, obj) end
+      } ^ scatter-plot-3d-chart-window
     | interval-chart-series(_) => render-charts([list: s])
     | dot-plot-series(obj) =>
       default-dot-chart-window-object.{
@@ -2927,6 +3081,8 @@ from-list = {
   labeled-scatter-plot: labeled-scatter-plot-from-list,
   image-scatter-plot: image-scatter-plot-from-list,
   scatter-plot: scatter-plot-from-list,
+  scatter-plot-3d: scatter-plot-3d-from-list,
+  labeled-scatter-plot-3d: labeled-scatter-plot-3d-from-list,
   function-plot: function-plot-from-list,
   histogram: histogram-from-list,
   labeled-histogram: labeled-histogram-from-list,
