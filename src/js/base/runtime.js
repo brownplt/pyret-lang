@@ -4170,7 +4170,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       // Per https://www.ecma-international.org/ecma-262/5.1/#sec-9.6, we
       // couldn't create anything larger anyway atop JS, and 4 billion elements
       // ought to be enough for anyone (cue laughter from 2050)
-      if(jsnums.greaterThan(size, MAX_ARRAY_SIZE)) {
+      if(jsnums.greaterThan(size, MAX_ARRAY_SIZE, NumberErrbacks)) {
         thisRuntime.throwMessageException(name + ": cannot create array larger than " + MAX_ARRAY_SIZE);
       }
     }
@@ -4326,8 +4326,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var raw_array_sort_nums = function(arr, asc) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["raw-array-from-list"], 2, $a, false); }
       thisRuntime.checkArgsInternal2("RawArrays", "raw-array-sort-nums", arr, thisRuntime.RawArray, asc, thisRuntime.Boolean);
-      const wrappedLT = (x, y) => jsnums.lessThan(x,y)?    -1 : jsnums.roughlyEquals(x, y, 0)? 0 : 1;
-      const wrappedGT = (x, y) => jsnums.greaterThan(x,y)? -1 : jsnums.roughlyEquals(x, y, 0)? 0 : 1;
+      const wrappedLT = (x, y) => jsnums.lessThan(x,y, NumberErrbacks)?    -1 : jsnums.roughlyEquals(x, y, 0, NumberErrbacks)? 0 : 1;
+      const wrappedGT = (x, y) => jsnums.greaterThan(x,y, NumberErrbacks)? -1 : jsnums.roughlyEquals(x, y, 0, NumberErrbacks)? 0 : 1;
       arr.sort(asc? wrappedLT : wrappedGT);
       return arr;
     };
@@ -4341,8 +4341,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       }, function (arrKeys) {
         debugger
         const zipped = arr.map((v, i) => [v, arrKeys[i]]);
-        const compLT = (x, y) => jsnums.lessThan(x[1], y[1])? -1 : jsnums.roughlyEquals(x[1], y[1], 0) ? 0 : 1;
-        const compGT = (x, y) => jsnums.greaterThan(x[1], y[1])? -1 : jsnums.roughlyEquals(x[1], y[1], 0) ? 0 : 1;
+        const compLT = (x, y) => jsnums.lessThan(x[1], y[1], NumberErrbacks)? -1 : jsnums.roughlyEquals(x[1], y[1], 0, NumberErrbacks) ? 0 : 1;
+        const compGT = (x, y) => jsnums.greaterThan(x[1], y[1], NumberErrbacks)? -1 : jsnums.roughlyEquals(x[1], y[1], 0, NumberErrbacks) ? 0 : 1;
         zipped.sort(asc ? compLT : compGT);
         return zipped.map((v) => v[0]);
       }, "raw_array_sort_by");
@@ -4856,8 +4856,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if(jsnums.greaterThan(max, string_length(s), NumberErrbacks)) {
         thisRuntime.ffi.throwMessageException("substring: max index " + String(max) + " is larger than the string length " + String(string_length(s)));
       }
-      return thisRuntime.makeString(s.substring(jsnums.toFixnum(min, NumberErrbacks),
-                                                jsnums.toFixnum(max, NumberErrbacks)));
+      return thisRuntime.makeString(s.substring(jsnums.toFixnum(min),
+                                                jsnums.toFixnum(max)));
     }
     var string_replace = function(s, find, replace) {
       if (arguments.length !== 3) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-replace"], 3, $a, false); }
@@ -4940,7 +4940,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
         s, thisRuntime.String, n, thisRuntime.Number);
       var resultStr = "";
       // TODO(joe): loop up to a fixnum?
-      for(var i = 0; i < jsnums.toFixnum(n, NumberErrbacks); i++) {
+      for(var i = 0; i < jsnums.toFixnum(n); i++) {
         resultStr += s;
       }
       return thisRuntime.makeString(resultStr);
@@ -4974,7 +4974,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if(n > (s.length - 1)) { thisRuntime.ffi.throwMessageException("string-char-at: index " + n + " is greater than the largest index the string " + s); }
 
       //TODO: Handle bignums that are beyond javascript
-      return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n, NumberErrbacks))));
+      return thisRuntime.makeString(String(s.charAt(jsnums.toFixnum(n))));
     }
     var string_toupper = function(s) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-toupper"], 1, $a, false); }
@@ -5005,7 +5005,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal2("Strings", "string-find-opt",
         s, thisRuntime.String, find, thisRuntime.String);
       var idx = s.indexOf(find);
-      if (jsnums.lessThan(idx, 0)) return thisRuntime.ffi.makeNone();
+      if (jsnums.lessThan(idx, 0, NumberErrbacks)) return thisRuntime.ffi.makeNone();
       return thisRuntime.ffi.makeSome(thisRuntime.makeNumberBig(idx));
     }
     var string_getIndex = function(s, find) {
@@ -5013,7 +5013,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal2("Strings", "string-find",
         s, thisRuntime.String, find, thisRuntime.String);
       var idx = s.indexOf(find);
-      if (jsnums.lessThan(idx, 0))
+      if (jsnums.lessThan(idx, 0, NumberErrbacks))
         thisRuntime.ffi.throwMessageException(`string-find: Target string \"${find}\" was not found inside source string \"${s}\"`);
       return thisRuntime.makeNumberBig(idx);
     }
@@ -5038,7 +5038,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
     var string_from_code_point = function(c) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["string-from-code-point"], 1, $a, false); }
       checkNatural(c);
-      var c = jsnums.toFixnum(c, NumberErrbacks);
+      var c = jsnums.toFixnum(c);
       var ASTRAL_CUTOFF = 65535;
       if(c > ASTRAL_CUTOFF) {
         thisRuntime.ffi.throwMessageException("Invalid code point: " + c);
@@ -5093,7 +5093,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal1("Numbers", "num-random",
         max, thisRuntime.Number);
       var f = rng();
-      return makeNumber(Math.floor(jsnums.toFixnum(max, NumberErrbacks) * f));
+      return makeNumber(Math.floor(jsnums.toFixnum(max) * f));
     };
 
     var num_random_seed = function(seed) {
@@ -5163,7 +5163,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-abs"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-abs",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.abs(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.abs(n));
     }
 
     var num_sin = function(n) {
@@ -5224,6 +5224,20 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       return thisRuntime.makeNumberBig(jsnums.remainder(n, m, NumberErrbacks));
     }
 
+    var num_gcd = function(n, m) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-gcd"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-gcd",
+        n, thisRuntime.Number, m, thisRuntime.Number);
+      return thisRuntime.makeNumberBig(jsnums.gcd(n, m, NumberErrbacks));
+    }
+
+    var num_lcm = function(n, m) {
+      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-lcm"], 2, $a, false); }
+      thisRuntime.checkArgsInternal2("Numbers", "num-lcm",
+        n, thisRuntime.Number, m, thisRuntime.Number);
+      return thisRuntime.makeNumberBig(jsnums.lcm(n, m, NumberErrbacks));
+    }
+
     var num_sqrt = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-sqrt"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-sqrt",
@@ -5241,34 +5255,34 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       thisRuntime.checkArgsInternal1("Numbers", "num-truncate",
         n, thisRuntime.Number);
       if (jsnums.greaterThanOrEqual(n, 0, NumberErrbacks)) {
-        return thisRuntime.makeNumberBig(jsnums.floor(n, NumberErrbacks));
+        return thisRuntime.makeNumberBig(jsnums.floor(n));
       } else {
-        return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));
+        return thisRuntime.makeNumberBig(jsnums.ceiling(n));
       }
     }
     var num_ceiling = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-ceiling"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-ceiling",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.ceiling(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.ceiling(n));
     }
     var num_floor = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-floor"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-floor",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.floor(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.floor(n));
     }
     var num_round = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-round",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.round(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.round(n));
     }
     var num_round_even = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-round-even"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-round-even",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.roundEven(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.roundEven(n));
     }
     var num_truncate_digits = function(n, digits) {
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-truncate-digits"], 2, $a, false); }
@@ -5356,25 +5370,25 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-exact"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-exact",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.toRational(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.toRational(n));
     }
     var num_to_rational = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-rational"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-to-rational",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.toRational(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.toRational(n));
     }
     var num_to_roughnum = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-roughnum"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-to-roughnum",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.toRoughnum(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.toRoughnum(n));
     }
     var num_to_fixnum = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-to-fixnum"], 1, $a, false); }
       thisRuntime.checkArgsInternal1("Numbers", "num-fixnum",
         n, thisRuntime.Number);
-      return thisRuntime.makeNumberBig(jsnums.toFixnum(n, NumberErrbacks));
+      return thisRuntime.makeNumberBig(jsnums.toFixnum(n));
     }
     var num_is_integer = function(n) {
       if (arguments.length !== 1) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["num-is-integer"], 1, $a, false); }
@@ -5944,6 +5958,8 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'num-remainder': makeFunction(num_remainder, "num-remainder"),
       'num-sqrt': makeFunction(num_sqrt, "num-sqrt"),
       'num-sqr': makeFunction(num_sqr, "num-sqr"),
+      'num-gcd': makeFunction(num_gcd, "num-gcd"),
+      'num-lcm': makeFunction(num_lcm, "num-lcm"),
       'num-truncate': makeFunction(num_truncate, "num-truncate"),
       'num-ceiling': makeFunction(num_ceiling, "num-ceiling"),
       'num-floor': makeFunction(num_floor, "num-floor"),
