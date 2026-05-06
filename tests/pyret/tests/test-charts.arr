@@ -44,3 +44,39 @@ check "render-chart":
     .get-image() does-not-raise
   render-chart(p5) does-not-raise
 end
+
+check "image-dot-chart-from-list ordering invariant":
+  # Each image carries the name of its own category, so a save-image of a
+  # failing run shows exactly which image landed under which column label.
+  ant-img = text("ant", 24, red)
+  bee-img = text("bee", 24, blue)
+  cat-img = text("cat", 24, green)
+
+  # Two inputs encoding the same logical (image, category) bag but in
+  # different input orders. dot-chart-from-list sorts categories internally,
+  # and a categorical chart should depend only on the bag, not the input
+  # order; so both inputs should render to byte-identical images.
+  scrambled = render-chart(from-list.image-dot-chart(
+      [list: bee-img, cat-img, ant-img],
+      [list: "bee", "cat", "ant"])).get-image()
+  pre-sorted = render-chart(from-list.image-dot-chart(
+      [list: ant-img, bee-img, cat-img],
+      [list: "ant", "bee", "cat"])).get-image()
+
+  images-equal(scrambled, pre-sorted) is true
+end
+
+check "image-dot-chart-from-list use-image-sizes(false) actually changes rendering":
+  # use-image-sizes(true) renders images at their natural dimensions;
+  # use-image-sizes(false) is supposed to size them via the chart's dotSize
+  # signal. The two settings must therefore produce visibly different charts.
+  # If they render byte-identically, the use-image-sizes(false) branch is a
+  # no-op (e.g. its width/height encoding form is silently ignored by Vega).
+  ant-img = text("ant", 24, red)
+  data-fn = lam(): from-list.image-dot-chart([list: ant-img], [list: "ant"]) end
+
+  natural = render-chart(data-fn().use-image-sizes(true)).get-image()
+  sized = render-chart(data-fn().use-image-sizes(false)).get-image()
+
+  images-equal(natural, sized) is false
+end

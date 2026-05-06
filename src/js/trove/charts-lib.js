@@ -4,7 +4,6 @@
     { "import-type": "builtin", 'name': "charts-util" },
   ],
   nativeRequires: [
-    'pyret-base/js/js-numbers',
     'vegaMin',
     'canvas',
   ],
@@ -20,9 +19,10 @@
       'plot': "tany",
     }
   },
-  theModule: function (RUNTIME, NAMESPACE, uri, IMAGELIB, CHARTSUTILLIB, jsnums, vega, canvasLib) {
+  theModule: function (RUNTIME, NAMESPACE, uri, IMAGELIB, CHARTSUTILLIB, vega, canvasLib) {
     'use strict';
 
+    const jsnums = RUNTIME.jsnums;
     
     // Default Google Chart Colors for sequential series (Like Multi Bar Charts and Pie Charts) from 
     // https://stackoverflow.com/a/75264589
@@ -300,7 +300,7 @@
         { name: 'collapseThreshold', update: `${collapseThreshold}` },
         {
           name: 'hoveredId',
-          value: 'null',
+          update: 'null',
           on: [
             {
               events: [
@@ -319,7 +319,8 @@
               update: 'null'
             },
           ]
-        }
+        },
+        { name: 'staggerXAxisLabels', update: false },
       );
 
       const dataTable = {
@@ -916,7 +917,29 @@
           }
         }
       );
-    }      
+    }
+
+    function prepareAxisForOffsets(dir, axis, scales, data, signals) {
+      axis.encode = {
+        labels: {
+          name: `${dir}AxisLabels`,
+          update: {
+            dy: { scale: 'xAxisYOffsets', signal: 'datum.index' }
+          }
+        }
+      };
+      scales.push({
+        name: 'xAxisYOffsets',
+        type: 'ordinal',
+        domain: { data: 'xAxisLabelOffsets', field: 'index' },
+        range: { data: 'xAxisLabelOffsets', field: 'offset' },
+      });
+      data.push({
+        name: 'xAxisLabelOffsets',
+        values: []
+      });
+      signals.push({name: 'staggerXAxisLabels', value: false});
+    }
     
     function barChart(globalOptions, rawData) {
       // Variables and constants 
@@ -1004,6 +1027,9 @@
           grid: true, ticks: false, labels: false }
       ];
 
+      // TODO: change this to affect the horizontal axis even if it's a horizontal bar chart?
+      prepareAxisForOffsets(axesConfig.primary.dir, axes[0], scales, data, signals);
+      
       if (axis) {
         axes[1].values = axis.domainRaw;
         axes[1].encode = {
@@ -1122,7 +1148,7 @@
       const signals = [
         {
           name: 'hoveredSeries',
-          value: 'null',
+          update: 'null',
           on: [
             {
               events: [
@@ -1197,6 +1223,9 @@
       ];
       // set the axis with the ticks to have the title, so they don't overlap
       axes[isNotFullStacked ? 1 : 2].title = axisLabels[axesConfig.secondary.dir];
+
+      // TODO: change this to affect the horizontal axis even if it's a horizontal bar chart?
+      prepareAxisForOffsets(axesConfig.primary.dir, axes[0], scales, data, signals);
       
       if (axis) {
         axes[1].values = axis.domainRaw;
@@ -1393,7 +1422,8 @@
         { name: 'minValue',
           update: 'extent(pluck(data("table"), "minVal"))[0]' },
         { name: 'maxValue',
-          update: 'extent(pluck(data("table"), "maxVal"))[1]' }
+          update: 'extent(pluck(data("table"), "maxVal"))[1]' },
+        { name: 'staggerXAxisLabels', update: false },
       ];
       const outlierTooltip = `, 'bottom whisker': datum.lowWhisker, 'top whisker': datum.highWhisker`;
       const tooltip = `{
@@ -1788,7 +1818,8 @@
         { orient: 'left', scale: 'countScale', grid: true, title: yAxisLabel }
       ];
       
-
+      prepareAxisForOffsets('x', axes[0], scales, data, signals);
+      
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
         description: title,
@@ -1879,6 +1910,7 @@
         { name: 'wrapMaxY', update: 'floor(domain("dotScale")[1] * (1 - headspace))' },
         { name: 'xMinValue', value: xMinValue },
         { name: 'xMaxValue', value: xMaxValue },
+        { name: 'staggerXAxisLabels', update: false },
       ];
       const scales = [
         {
@@ -1981,6 +2013,7 @@
       const defaultColor = default_colors[0];
       const color = getColorOrDefault(get(rawData, 'color'), defaultColor);
       const legend = get(rawData, 'legend') || '';
+      const autosizeImage = isTrue(get(rawData, 'useImageSizes'));
 
       const points = RUNTIME.ffi.toArray(get(rawData, 'ps'));
 
@@ -1994,49 +2027,134 @@
 
 
 
+      const rawCounts = new Map();
       const fixedPoints = points.map((p) => ({
         label: get(p, 'label'),
-        count: toFixnum(get(p, 'count'))
+        category: get(p, 'category'),
+        value: 0, // PLACEHOLDER, updated below
+        count: rawCounts.get(get(p, 'category')),
+        image: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+          none: () => undefined,
+          some: (opaqueImg) => imageToCanvas(opaqueImg.val)
+        }),
+        imageOffsetX: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+          none: () => undefined,
+          some: (opaqueImg) => opaqueImg.val.getPinholeX() / opaqueImg.val.getWidth()
+        }),
+        imageOffsetY: cases(RUNTIME.ffi.isOption, 'Option', get(p, 'image'), {
+          none: () => undefined,
+          some: (opaqueImg) => opaqueImg.val.getPinholeY() / opaqueImg.val.getHeight()
+        }),
       }));
+      for (const p of fixedPoints) {
+        const countForCat = rawCounts.get(p.category) ?? 0;
+        p.value = countForCat;
+        rawCounts.set(p.category, countForCat + 1);
+      }
+      const counts = [...rawCounts.entries().map((kv) => ({ category: kv[0], count: kv[1] }))];
       const data = [
         {
-          name: 'bars',
-          values: fixedPoints
+          name: 'rawDotsData',
+          values: fixedPoints,
+          transform: [
+            { type: 'collect', sort: { field: 'category' } },
+            { type: 'extent', field: 'value', signal: 'rawDotExtent' }
+          ]
         },
         {
-          name: 'dotsData',
-          values: fixedPoints.flatMap((p) =>
-            Array.from({length: p.count}).map((_, i) => ({ label: p.label, value: i }))
-          )
+          name: `dotsData`,
+          source: `rawDotsData`,
+          transform: [ { type: 'filter', expr: '!isValid(datum.image)' } ]
         },
+        {
+          name: `imagesData`,
+          source: `rawDotsData`,
+          transform: [ { type: 'filter', expr: 'isValid(datum.image)' } ]
+        },
+        {
+          name: 'bars',
+          values: counts
+        }
       ];
       const signals = [
-        { name: 'dotSize', update: "scale('secondary', 1) - scale('secondary', 0)" },
+        { name: 'dotSize', update: "0.8 * abs(scale('secondary', 1) - scale('secondary', 0))" },
+        { name: 'staggerXAxisLabels', update: false },
+        { name: 'hoveredCategory', update: false,
+          on: [
+            {
+              events: [
+                { markname: 'blocks', type: 'mouseover' },
+                { markname: 'DotMarks', type: 'mouseover' },
+                { markname: 'ImageMarks', type: 'mouseover' }
+              ],
+              force: true,
+              update: 'datum.category'
+            },
+            {
+              events: [
+                { markname: 'blocks', type: 'mouseout' },
+                { markname: 'DotMarks', type: 'mouseout' },
+                { markname: 'ImageMarks', type: 'mouseout' }
+              ],
+              force: true,
+              update: 'null'
+            },            
+          ]},
       ];
       const scales = [
         {
           name: 'primary',
           type: 'band',
           range: 'width',
-          domain: { data: 'bars', field: 'label' }
+          domain: { data: 'rawDotsData', field: 'category' }
         },
         {
           name: 'secondary',
           range: 'height',
           ...yAxisType,
           nice: true, zero: true,
-          domain: { data: 'bars', field: 'count' }
-        }
+          domain: { signal: '[0, rawDotExtent[1] + 1]' },
+        },
       ];
       const axes = [
         { orient: 'bottom', scale: 'primary', zindex: 1, title: xAxisLabel },
         { orient: 'bottom', scale: 'primary', zindex: 0, grid: true, ticks: false, labels: false },
         { orient: 'left', scale: 'secondary', grid: true, ticks: true, labels: true, title: yAxisLabel, zindex: 1 }
       ];
+      const markTooltip = [
+        {
+          test: '!!datum.label',
+          signal: `{ title: datum.label }`
+        },
+        { signal: `{ title: datum.category, Count: datum.count }` }
+      ];
       const marks = [
         {
+          type: 'rect',
+          name: 'blocks',
+          from: { data: 'bars' },
+          encode: {
+            enter: {
+              x: { scale: 'primary', field: 'category', offset: { scale: 'primary', band: 0.25 } },
+              x2: { scale: 'primary', field: 'category', offset: { scale: 'primary', band: 0.75 } },
+              y: { scale: 'secondary', value: 0 },
+              y2: { scale: 'secondary', field: 'count' },
+              tooltip: { signal: `{ title: datum.category, Count: datum.count }`},
+              stroke: { value: 'gray' },
+              strokeWidth: { value: 2 },
+              fill: { value: 'transparent' },
+            },
+            update: {
+              opacity: { signal: 'hoveredCategory == datum.category ? 1 : 0' },
+            },
+            hover: {
+              opacity: { value: 1 }
+            }
+          }
+        },
+        {
           type: 'symbol',
-          name: 'dots',
+          name: 'DotMarks',
           from: { data: 'dotsData' },
           encode: {
             enter: {
@@ -2045,34 +2163,33 @@
               fill: { value: color },
               stroke: { value: 'white' },
               strokeWidth: { value: 0.25 },
-              tooltip: { signal: '{ title: datum.label, Value: datum.value }' },
-              xc: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.5 } },
-              yc: { scale: 'secondary', field: 'value', offset: { signal: '0.5 * dotSize' } },
-              size: { signal: '0.8 * 0.8 * dotSize * dotSize' },
+              tooltip: markTooltip,
+              xc: { scale: 'primary', field: 'category', offset: { scale: 'primary', band: 0.5 } },
+              yc: { scale: 'secondary', field: 'value',
+                    offset: { signal: "scale('secondary', 0.5) - scale('secondary', 0)" } },
+              size: { signal: 'dotSize * dotSize' },
             }
           }
         },
         {
-          type: 'rect',
-          name: 'blocks',
-          from: { data: 'bars' },
+          type: 'image',
+          from: { data: `imagesData` },
+          name: `ImageMarks`,
           encode: {
             enter: {
-              x: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.25 } },
-              x2: { scale: 'primary', field: 'label', offset: { scale: 'primary', band: 0.75 } },
-              y: { scale: 'secondary', value: 0 },
-              y2: { scale: 'secondary', field: 'count' },
-              tooltip: { signal: `{ title: datum.label, Count: datum.count }`},
-              stroke: { value: 'gray' },
-              strokeWidth: { value: 2 },
-              fill: { value: 'transparent' },
+              width: autosizeImage ? undefined : { signal: "dotSize" },
+              height: autosizeImage ? undefined : { signal: "dotSize" },
+              image: { field: 'image' },
+              tooltip: markTooltip,
             },
             update: {
-              opacity: { value: 0 },
+              xc: { scale: 'primary', field: 'category',
+                    offset: { scale: 'primary', band: 0.5 } },
+              yc: { scale: 'secondary', signal: 'datum.value',
+                    offset: { signal: "scale('secondary', 0.5) - scale('secondary', 0)" } },
+              align: autosizeImage ? { value: 'center' } : undefined,
+              baseline: autosizeImage ? { value: 'middle' } : undefined
             },
-            hover: {
-              opacity: { value: 1 }
-            }
           }
         },
       ];
@@ -2452,11 +2569,7 @@
             y: { scale: `yscale`, field: 'y', offset: { signal: `${imageScaleFactorY} * datum.imageOffsetY` } },
             stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${color}'` },
             strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 1 : 0)` },
-            zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
           },
-          hover: {
-            zindex: { value: 1 }
-          }
         }
       });
       if (pointshapeType === 'circle') {
@@ -2476,11 +2589,9 @@
               y: { scale: `yscale`, field: 'y' },
               fill: { value: color },
               stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${color}'` },
-              zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
             },
             hover: {
               stroke: { value: color },
-              zindex: { value: 1 }
             }
           }
         });
@@ -2576,11 +2687,9 @@
             x: { scale: `xscale`, field: 'x' },
             y: { scale: `yscale`, field: 'y' },
             strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 2 : 1) * ${lineWidth}` },
-            zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
           },
           hover: {
             strokeWidth: { value: 2 * lineWidth },
-            zindex: { value: 1 }
           }
         }
       });
@@ -2694,11 +2803,7 @@
               y: { scale: `yscale`, field: 'y', offset: { signal: `${-pointSize} * datum.imageOffsetY` } },
               stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${dataColor}'` },
               strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 1 : 0)` },
-              zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
             },
-            hover: {
-              zindex: { value: 1 }
-            }
           }
         },
         {
@@ -2717,11 +2822,7 @@
               yc: { scale: `yscale`, field: 'y' },
               fill: { value: dataColor },
               stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${dataColor}'` },
-              zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
             },
-            hover: {
-              zindex: { value: 1 }
-            }
           }
         },
         {
@@ -2755,10 +2856,6 @@
               xc: { scale: `xscale`, field: 'x' },
               yc: { scale: `yscale`, field: 'yprime' },
               stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${intervalColor}'` },
-              zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
-            },
-            hover: {
-              zindex: { value: 1 }
             }
           }
         },
@@ -2783,14 +2880,14 @@
     function recomputePoints(func, samplePoints, then) {
       return RUNTIME.safeCall(() => {
         return RUNTIME.raw_array_map(RUNTIME.makeFunction((sample) => {
-          return RUNTIME.execThunk(RUNTIME.makeFunction(() => func.app(sample)));
+          return RUNTIME.execThunk(RUNTIME.makeFunction(() => func.app(jsnums.fromFixnum(sample))));
         }), samplePoints);
       }, (funcVals) => {
         const dataValues = [];
         funcVals.forEach((result, idx) => {
           cases(RUNTIME.ffi.isEither, 'Either', result, {
             left: (value) => dataValues.push({
-              x: toFixnum(samplePoints[idx]),
+              x: samplePoints[idx],
               y: toFixnum(value)
             }),
             right: () => {}
@@ -2854,10 +2951,6 @@
               yc: { scale: `yscale`, field: 'y' },
               stroke: { signal: `hoveredLegend === '${prefix}' ? 'white' : '${pointColor}'` },
               strokeWidth: { signal: `(hoveredLegend === '${prefix}' ? 1 : 0)` },
-              zindex: { signal: `hoveredLegend === '${prefix}' ? 1 : null` }
-            },
-            hover: {
-              zindex: { value: 1 }
             }
           }
         }
@@ -2936,6 +3029,7 @@
       const gridlines = getGridlines({}, globalOptions);
       const scales = charts.flatMap((c) => c.scales || []);
       const signals = charts.flatMap((c) => c.signals || []);
+      const data = charts.flatMap((c) => c.data || []);
       // NOTE: must compute these before updating the scales array...or else the new scales will
       // become part of the signal definition, which is incorrect!
       signals.push(
@@ -2980,6 +3074,8 @@
         },
       ];
 
+      prepareAxisForOffsets('x', axes[2], scales, data, signals);
+      
       const marks = [
         {
           type: 'group',
@@ -3038,7 +3134,7 @@
         });
         signals.push({
           name: 'hoveredLegend',
-          value: 'null',
+          update: 'null',
           on: [
             {
               events: [
@@ -3061,7 +3157,7 @@
       } else {
         signals.push({
           name: 'hoveredLegend',
-          value: 'null'
+          update: 'null'
         });
       }
 
@@ -3141,7 +3237,7 @@
         padding: 0,
         autosize: 'fit',
         background,
-        data: charts.flatMap((c) => c.data || []),
+        data,
         signals,
         scales,
         axes,
@@ -3220,8 +3316,8 @@
               }
               // Reflect the updated values back into the globalOptions,
               // so that they'll be picked up by the initial computation of function plots
-              globalOptions['x-min'] = RUNTIME.ffi.makeSome(clippedDomain[0]);
-              globalOptions['x-max'] = RUNTIME.ffi.makeSome(clippedDomain[1]);
+              globalOptions['x-min'] = RUNTIME.ffi.makeSome(jsnums.fromFixnum(clippedDomain[0]));
+              globalOptions['x-max'] = RUNTIME.ffi.makeSome(jsnums.fromFixnum(clippedDomain[1]));
               return RUNTIME.safeCall(
                 () => makeFunctionPlots(clippedDomain),
                 (functionPlots) => composeCharts(globalOptions, clippedDomain, {
@@ -3266,6 +3362,7 @@
       const externalContext = canvas.getContext('2d');
       view.width(width).height(height).signal('titleText', 'spacer').resize()
       return view.runAsync()
+        .then(() => rebuildAxisLabels(view))
         .then(() => view.signal('titleText', view.description()).toCanvas(1, { externalContext }))
         .then(() => externalContext.getImageData(0, 0, width, height));
     }
@@ -3292,6 +3389,7 @@
         return canvasLib && canvasLib.Canvas && v instanceof canvasLib.Canvas;
       }
       const isVegaString = isTrue(globalOptions['vega']);
+      const staggerXAxisLabels = isTrue(globalOptions['x-axis-stagger-labels']);
       return RUNTIME.pauseStack(restarter => {
         try {
           if (isVegaString) {
@@ -3300,6 +3398,7 @@
           const width = toFixnum(globalOptions['width']);
           const height = toFixnum(globalOptions['height']);
           const view = new vega.View(vega.parse(processed));
+          view.signal('staggerXAxisLabels', staggerXAxisLabels);
           return renderToCanvas(view, width, height).then((data) => imageDataReturn(data, restarter));
         } catch(e) {
           return restarter.error(e);
@@ -3307,6 +3406,18 @@
       });
     }
 
+    function rebuildAxisLabels(view) {
+      // const { data: { xAxisLabels } } = view.getState({data: (name) => name === "xAxisLabels"});
+      try {
+        if (!view.signal('staggerXAxisLabels')) return view;
+        const xAxisLabels = view.data("xAxisLabels");
+        const offsets = xAxisLabels.map((mark, i) => ({ index: mark.datum.index, offset: (i % 2) * 25 }));
+        return view.data('xAxisLabelOffsets', offsets).runAsync();
+      } catch(e) {
+        return view;
+      }
+    }
+    
     function renderInteractiveChart(processed, globalOptions, rawData) {
       return RUNTIME.pauseStack(restarter => {
         const root = $('<div/>');
@@ -3336,13 +3447,18 @@
             return ans;
           }
         });
+        const staggerXAxisLabels = isTrue(globalOptions['x-axis-stagger-labels']);
         const view = new vega.View(vega.parse(processed), {
           container: chart[0],
           renderer: 'svg',
           hover: true,
           tooltip: vegaTooltipHandler.call
         });
-        view.width(width).height(height).signal('titleText', view.description()).resize();
+        view.width(width)
+          .height(height)
+          .signal('staggerXAxisLabels', staggerXAxisLabels)
+          .signal('titleText', view.description())
+          .resize();
 
         var tmp = processed;
         tmp.view = view;
@@ -3360,6 +3476,7 @@
         const result = tmp;
         try {
           view.runAsync()
+            .then(() => rebuildAxisLabels(view))
             .then(() => {
               if (processed.addControls) {
                 processed.addControls(view, overlay);
@@ -3429,7 +3546,6 @@
             return RUNTIME.safeCall(() => f(globalOptions, rawData), (chart) => {
               return renderInteractiveChart(chart, globalOptions, rawData);
             }, 'render-interactive-chart');
-            return renderInteractiveChart(f(globalOptions, rawData), globalOptions, rawData);
           } else {
             return RUNTIME.ffi.throwMessageException('Cannot display interactive charts headlessly');
           }

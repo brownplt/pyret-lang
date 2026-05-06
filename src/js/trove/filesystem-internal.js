@@ -57,8 +57,8 @@
         async function stat(p) {
             const stats = await fsp.stat(p);
             return {
-                ctime: stats.ctimeMs,
-                mtime: stats.mtimeMs,
+                ctime: Math.floor(stats.ctimeMs),
+                mtime: Math.floor(stats.mtimeMs),
                 size: stats.size,
                 native: stats
             };

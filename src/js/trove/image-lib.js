@@ -3,13 +3,14 @@
     { "import-type": "builtin", "name": "internal-image-shared" },
     { "import-type": "builtin", "name": "color" }
   ],
-  nativeRequires: ["pyret-base/js/js-numbers", "js-md5", "canvas"],
+  nativeRequires: ["js-md5", "canvas"],
   provides: {
     aliases: { "Image": ["local", "Image"] },
     datatypes: { "Image": ["data", "Image", [], [], {}] }
   },
-  theModule: function(RUNTIME, NAMESPACE, uri, imageImp, colorLib, jsnums, md5, nodeCanvas) {
+  theModule: function(RUNTIME, NAMESPACE, uri, imageImp, colorLib, md5, nodeCanvas) {
     var gf = RUNTIME.getField;
+    var jsnums = RUNTIME.jsnums;
 
     var image = gf(imageImp, "values");
     var imageTypes = gf(imageImp, "types");
@@ -140,8 +141,8 @@
 
     var isAngle = function(x) {
       return jsnums.isReal(x) &&
-        jsnums.greaterThanOrEqual(x, 0, RUNTIME.NumberErrbacks) &&
-        jsnums.lessThan(x, 360, RUNTIME.NumberErrbacks);
+        jsnums.greaterThanOrEqual(x, 0) &&
+        jsnums.lessThan(x, 360);
     };
 
     // Produces true if the value is a color or a color string.
@@ -228,15 +229,15 @@
 
 
     var isSideCount = function(x) {
-      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 3, RUNTIME.NumberErrbacks);
+      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 3);
     };
 
     var isStepCount = function(x) {
-      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 1, RUNTIME.NumberErrbacks);
+      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 1);
     };
 
     var isPointsCount = function(x) {
-      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 2, RUNTIME.NumberErrbacks);
+      return jsnums.isInteger(x) && jsnums.greaterThanOrEqual(x, 2);
     };
 
     // Produces true if thing is an image-like object.
@@ -494,11 +495,11 @@
       this.render(ctx1);
       other.render(ctx2);
       try{
-        var data1 = ctx1.getImageData(0, 0, w1, h1),
-        data2 = ctx2.getImageData(0, 0, w2, h2);
+        var data1 = ctx1.getImageData(0, 0, w1, h1, { pixelFormat: 'rgba-unorm8' }),
+        data2 = ctx2.getImageData(0, 0, w2, h2, { pixelFormat: 'rgba-unorm8' });
         var pixels1 = data1.data,
             pixels2 = data2.data;
-        return RUNTIME.ffi.makeRight(rmsDiff(pixels1, pixels2));
+        return RUNTIME.ffi.makeRight(RUNTIME.wrap(jsnums.makeRoughnum(rmsDiff(pixels1, pixels2))));
       } catch(e){
         // if we violate CORS, just bail
         return RUNTIME.ffi.makeLeft("exception: " + String(e));
@@ -1334,7 +1335,7 @@
 
       // rotate around outer circle, storing x and y coordinates
       var radians = 0, vertices = [];
-      var numComponents = jsnums.gcd(count, [step], RUNTIME.NumberErrbacks);
+      var numComponents = jsnums.gcd(count, step);
       var pointsPerComponent = count / numComponents;
       var angle = (2*Math.PI/count);
       for (var curComp = 0; curComp < numComponents; curComp++) {
@@ -1386,8 +1387,6 @@
     var PointPolygonImage = function(vertices, style, color) {
       BaseImage.call(this);
       for (var v = 0; v < vertices.length; v++) {
-        vertices[v].x = jsnums.toFixnum(vertices[v].x);
-        vertices[v].y = jsnums.toFixnum(vertices[v].y);
         vertices[v].y *= -1;
       }
       

@@ -343,7 +343,7 @@ labels-method = method(self, labels :: CL.LoS):
     when self.obj!ps.length() <> labels.length():
       raise(ERR.message-exception('plot: xs and labels should have the same length'))
     end
-    self.constr()(self.obj.{ps: map2({(arr, label): raw-array-set(arr, 2, label)}, self.obj!ps, labels)})
+    self.constr()(self.obj.{ps: map2({(val, label): val.{label: label}}, self.obj!ps, labels)})
   end
 end
 
@@ -352,7 +352,7 @@ image-labels-method = method(self, images :: CL.LoI):
     when self.obj!ps.length() <> images.length():
       raise(ERR.message-exception('plot: xs and images should have the same length'))
     end
-    self.constr()(self.obj.{ps: map2({(arr, image): raw-array-set(arr, 3, image)}, self.obj!ps, images)})
+    self.constr()(self.obj.{ps: map2({(val, image): val.{image : some(image)}}, self.obj!ps, images)})
   end
 end
 
@@ -506,6 +506,10 @@ end
 
 x-axis-method = method(self, x-axis :: String):
   self.constr()(self.obj.{x-axis: x-axis})
+end
+
+x-axis-stagger-labels-method = method(self, stagger :: Boolean):
+  self.constr()(self.obj.{x-axis-stagger-labels: stagger})
 end
 
 y-axis-method = method(self, y-axis :: String):
@@ -1241,18 +1245,21 @@ default-dot-plot-series = {
 
 type CategoricalDotPoint ={
   label :: String,
-  count :: Number
+  category :: String,
+  image :: Option<IM.Image>
 }
 
 type CategoricalDotPlotSeries = {
   ps :: List<CategoricalDotPoint>,
   color :: Option<IS.Color>,
-  legend :: String
+  legend :: String,
+  useImageSizes :: Boolean
 }
 
 default-categorical-dot-plot-series = {
   color: none,
   legend: '',
+  useImageSizes: true,
 }
 
 type IntervalPoint = {
@@ -1355,6 +1362,7 @@ type BoxChartWindowObject = {
   borderSize :: Number, 
   borderColor :: Option<IS.Color>, 
   x-axis :: String,
+  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1366,6 +1374,7 @@ type BoxChartWindowObject = {
 default-box-plot-chart-window-object :: BoxChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
+  x-axis-stagger-labels: false,
   x-axis-type: at-linear,
   y-axis-type: at-linear,
   min: none,
@@ -1393,6 +1402,7 @@ type DotChartWindowObject = {
   borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
+  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1402,6 +1412,7 @@ type DotChartWindowObject = {
 
 default-dot-chart-window-object :: DotChartWindowObject = default-chart-window-object.{
   x-axis: '',
+  x-axis-stagger-labels: false,
   y-axis: '',
   x-axis-type: at-linear,
   y-axis-type: at-linear,
@@ -1418,6 +1429,7 @@ type BarChartWindowObject = {
   borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
+  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1427,6 +1439,7 @@ type BarChartWindowObject = {
 
 default-bar-chart-window-object :: BarChartWindowObject = default-chart-window-object.{
   x-axis: '',
+  x-axis-stagger-labels: false,
   y-axis: '',
   x-axis-type: at-linear,
   y-axis-type: at-linear,
@@ -1443,6 +1456,7 @@ type IntervalChartWindowObject = {
   borderColor :: Option<IS.Color>,
   render :: ( -> IM.Image),
   x-axis :: String,
+  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1452,6 +1466,7 @@ type IntervalChartWindowObject = {
 
 default-interval-chart-window-object :: IntervalChartWindowObject = default-chart-window-object.{
   x-axis: '',
+  x-axis-stagger-labels: false,
   y-axis: '',
   x-axis-type: at-linear,
   y-axis-type: at-linear,
@@ -1468,6 +1483,7 @@ type HistogramChartWindowObject = {
   borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
+  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1479,6 +1495,7 @@ type HistogramChartWindowObject = {
 default-histogram-chart-window-object :: HistogramChartWindowObject =
   default-chart-window-object.{
     x-axis: '',
+    x-axis-stagger-labels: false,
     y-axis: '',
     x-axis-type: at-linear,
     y-axis-type: at-linear,
@@ -1502,6 +1519,7 @@ type PlotChartWindowObject = {
   minorGridlineColor :: Option<IS.Color>, 
   minorGridlineMinspacing :: Number, 
   x-axis :: String,
+  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1515,6 +1533,7 @@ type PlotChartWindowObject = {
 
 default-plot-chart-window-object :: PlotChartWindowObject = default-chart-window-object.{
   x-axis: '',
+  x-axis-stagger-labels: false,
   y-axis: '',
   x-axis-type: at-linear,
   y-axis-type: at-linear,
@@ -1606,6 +1625,11 @@ data DataSeries:
     constr: {(): categorical-dot-plot-series},
     color: color-method,
     legend: legend-method,
+    labels: labels-method,
+    image-labels: image-labels-method,
+    method use-image-sizes(self, use-image-sizes :: Boolean):
+      self.constr()(self.obj.{useImageSizes: use-image-sizes})
+    end,
   | function-plot-series(obj :: FunctionPlotSeries) with:
     is-single: false,
     constr: {(): function-plot-series},
@@ -1744,6 +1768,7 @@ data ChartWindow:
   | dot-chart-window(obj :: DotChartWindowObject) with:
     constr: {(): dot-chart-window},
     x-axis: x-axis-method,
+    x-axis-stagger-labels: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-min: x-min-method,
     x-max: x-max-method,
@@ -1752,6 +1777,7 @@ data ChartWindow:
   | box-plot-chart-window(obj :: BoxChartWindowObject) with:
     constr: {(): box-plot-chart-window},
     x-axis: x-axis-method,
+    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-axis-type: x-axis-type-method,
     y-axis-type: y-axis-type-method,
@@ -1760,6 +1786,7 @@ data ChartWindow:
   | bar-chart-window(obj :: BarChartWindowObject) with:
     constr: {(): bar-chart-window},
     x-axis: x-axis-method,
+    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-axis-type: x-axis-type-method,
     y-axis-type: y-axis-type-method,
@@ -1768,6 +1795,7 @@ data ChartWindow:
   | interval-chart-window(obj :: IntervalChartWindowObject) with:
     constr: {(): interval-chart-window},
     x-axis: x-axis-method,
+    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-axis-type: x-axis-type-method,
     y-axis-type: y-axis-type-method,
@@ -1776,6 +1804,7 @@ data ChartWindow:
   | histogram-chart-window(obj :: HistogramChartWindowObject) with:
     constr: {(): histogram-chart-window},
     x-axis: x-axis-method,
+    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-axis-type: x-axis-type-method,
     y-axis-type: y-axis-type-method,
@@ -1791,6 +1820,7 @@ data ChartWindow:
     # minor-gridlines-color: minor-gridlines-color-method, 
     # minor-gridlines-minspacing: minor-gridlines-min-spacing-method, 
     x-axis: x-axis-method,
+    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-axis-type: x-axis-type-method,
     y-axis-type: y-axis-type-method,
@@ -1943,12 +1973,6 @@ fun image-bar-chart-from-list(
        Consume images, labels, a list of string, and values, a list of numbers
        and construct a bar chart using images as bars
        ```
-
-  # Type Checking
-  images.each(check-image)
-  values.each(check-num)
-  labels.each(check-string)
-
   # Constants
   label-length = labels.length()
   value-length = values.length()
@@ -2068,10 +2092,6 @@ fun bar-chart-from-list(labels :: CL.LoS, values :: CL.LoN) -> DataSeries block:
        Consume labels, a list of string, and values, a list of numbers
        and construct a bar chart
        ```
-  # Type Checking
-  values.each(check-num)
-  labels.each(check-string)
-
   # Constants
   label-length = labels.length()
   value-length = values.length()
@@ -2115,65 +2135,46 @@ fun num-dot-chart-from-list(x-values :: CL.LoN) -> DataSeries block:
   } ^ dot-plot-series
 end
 
-fun image-num-dot-chart-from-list(images :: CL.LoI, x-values :: CL.LoN) -> DataSeries block:
+fun image-num-dot-chart-from-list(images :: CL.LoI, x-values :: CL.LoN) -> DataSeries:
   doc: ```
        Consume unordered, possibly-repeating lists of image-labels and numbers, 
        and construct a dot chart
        ```
-  x-values.each(check-num)
-  when x-values.length() == 0:
-    raise(ERR.message-exception("num-dot-chart: can't have empty data"))
-  end
-  images.each(check-image)
-  when images.length() <> x-values.length():
-    raise(ERR.message-exception("num-dot-chart: the lists of numbers and images must have the same length"))
-  end
-  default-dot-plot-series.{
-    ps: map3(get-dot-point, x-values, x-values.map({(_): ''}), images.map(some)),
-  } ^ dot-plot-series
+  num-dot-chart-from-list(x-values).image-labels(images)
 end
 
-fun labeled-num-dot-chart-from-list(labels :: CL.LoS, x-values :: CL.LoN) -> DataSeries block:
+fun labeled-num-dot-chart-from-list(labels :: CL.LoS, x-values :: CL.LoN) -> DataSeries:
   doc: ```
        Consume unordered, possibly-repeating lists of labels and numbers, 
        and construct a dot chart
        ```
-  x-values.each(check-num)
-  when x-values.length() == 0:
-    raise(ERR.message-exception("num-dot-chart: can't have empty data"))
-  end
-  labels.each(check-string)
-  when labels.length() <> x-values.length():
-    raise(ERR.message-exception("num-dot-chart: the lists of numbers and labels must have the same length"))
-  end
-  default-dot-plot-series.{
-    ps: map3(get-dot-point, x-values, labels, x-values.map({(_): none})),
-  } ^ dot-plot-series
+  num-dot-chart-from-list(x-values).labels(labels)
 end
 
-fun dot-chart-from-list(input-labels :: CL.LoS) -> DataSeries block:
+fun get-cat-dot-point(label :: String, category :: String, optimg :: Option<IM.Image>) -> CategoricalDotPoint:
+  { label: label, category: category, image: optimg }
+end
+fun dot-chart-from-list(categories :: CL.LoS) -> DataSeries block:
   doc: ```
-       Consume a list of string-values and construct a dot chart
+       Consume a list of string categories and construct a dot chart
        ```
 
   # Edge Case Error Checking
-  when input-labels.length() == 0:
+  when categories.length() == 0:
     raise(ERR.message-exception("dot-chart: can't have empty data"))
   end
 
-  # Type Checking
-  input-labels.each(check-string)
-
-  # Walk through the (sorted) values, creating lists of labels and counts
-  unique-counts = for fold(acc from [SD.mutable-string-dict: ], label from input-labels) block:
-    acc.set-now(label, acc.get-now(label).or-else(0) + 1)
-    acc
-  end
-
-  labels = unique-counts.keys-list-now().sort()
   default-categorical-dot-plot-series.{
-    ps: labels.map({(l): { label: l, count: unique-counts.get-value-now(l) }})
+    ps: categories.map(get-cat-dot-point('', _, none))
   } ^ categorical-dot-plot-series
+end
+
+fun image-dot-chart-from-list(images :: CL.LoI, categories :: CL.LoS) -> DataSeries:
+  doc: ```
+       Consume unordered, possibly-repeating lists of images and categories, 
+       and construct a dot chart
+       ```
+  dot-chart-from-list(categories).image-labels(images)
 end
 
 fun grouped-bar-chart-from-list(
@@ -2205,11 +2206,6 @@ fun grouped-bar-chart-from-list(
     raise(ERR.message-exception('grouped-bar-chart: labels and legends should have the same length'))
   end
   
-  # Typechecking each input
-  value-lists.each(_.each(check-num))
-  labels.each(check-string)
-  legends.each(check-string)
-
  {max-positive-height; max-negative-height} = multi-prep-axis(grouped, rational-values)
 
   # Constructing the Data Series
@@ -2254,11 +2250,6 @@ fun stacked-bar-chart-from-list(
     raise(ERR.message-exception('stacked-bar-chart: labels and legends should have the same length'))
   end
   
-  # Typechecking the input 
-  value-lists.each(_.each(check-num))
-  labels.each(check-string)
-  legends.each(check-string)
-
   {max-positive-height; max-negative-height} = multi-prep-axis(absolute, rational-values)
 
   # Constructing the Data Series
@@ -2421,10 +2412,6 @@ fun image-histogram-from-list(images :: CL.LoI, values :: CL.LoN) -> DataSeries 
        Consume images and numbers, then construct a histogram matching those
        images to the original histogram bricks
        ```
-  # Type Checking
-  images.each(check-image)
-  values.each(check-num)
-
   default-histogram-series.{
     vals: map3(get-histogram-value, values, values.map({(_): ''}), images.map(some))
   } ^ histogram-series
@@ -2916,6 +2903,7 @@ from-list = {
   dot-chart: dot-chart-from-list,
   num-dot-chart: num-dot-chart-from-list,
   image-num-dot-chart: image-num-dot-chart-from-list,
+  image-dot-chart: image-dot-chart-from-list,
   labeled-num-dot-chart: labeled-num-dot-chart-from-list,
   image-bar-chart: image-bar-chart-from-list,
   grouped-bar-chart: grouped-bar-chart-from-list,

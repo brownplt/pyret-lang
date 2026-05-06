@@ -65,8 +65,10 @@ describe("IO Tests", () => {
   let server;
   beforeAll(() => {
     server = cp.spawn(
-      "npx",
-      ["http-server", "-p", "7999", "tests/io-tests/tests/"],
+      process.execPath,
+      [require.resolve("http-server/bin/http-server"),
+       "-p", "7999", "tests/io-tests/tests/"],
+      { stdio: "ignore" },
     );
   });
   afterAll(() => {

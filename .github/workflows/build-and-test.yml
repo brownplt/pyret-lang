@@ -27,7 +27,10 @@ jobs:
 
     - name: run tests
       run: make all-pyret-test
-      
+
+    - name: run jsnums tests
+      run: make jsnums-test
+
   deploy-trigger:
     needs: build
     uses: ./.github/workflows/deploy-trigger.yml
