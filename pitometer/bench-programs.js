@@ -9,18 +9,18 @@ define(["child_process", "time-helpers", "fs", "path"], function(childProcess, t
     const programsPath = config.programsPath || "pitometer/programs/";
     const include = config.include || [];
 
-    function echoRun(cmd, opts) {
-      console.log(cmd);
-      return childProcess.execSync(cmd, opts);
+    function echoRun(cmd, args, opts) {
+      console.log([cmd].concat(args).join(" "));
+      return childProcess.execFileSync(cmd, args, opts);
     }
 
 
     function compileAndTimeRun(program) {
       const toBuild = program.replace(/\.arr$/, ".jarr");
       const [compileSuccess, , ] = maybeTime(true, () => echoRun(
-        `env EF="-no-user-annotations" make ${toBuild}`, {stdio: [0, 1, 2]}));
+        "make", [toBuild], {stdio: [0, 1, 2], env: Object.assign({}, process.env, {EF: "-no-user-annotations"})}));
 
-      return maybeTime(compileSuccess, () => echoRun(`node ${toBuild}`));
+      return maybeTime(compileSuccess, () => echoRun("node", [toBuild]));
     }
 
     let paths = fs.readdirSync(programsPath);
@@ -28,7 +28,7 @@ define(["child_process", "time-helpers", "fs", "path"], function(childProcess, t
     paths = paths.filter((p) => p.slice(-4) === ".arr");
     paths = paths.filter((p) => include === "*" || include.some((i) => (p.indexOf(i) !== -1)));
     console.log("Running for these programs after filters: ", paths);
-    echoRun(`make phaseA`);
+    echoRun("make", ["phaseA"]);
     const results = [];
     paths.map((p) => {
       const programPath = path.join(programsPath, p);
