@@ -42,6 +42,26 @@ R(["pyret-base/js/js-numbers"], function(JNlib) {
 
     });
 
+    it("BigInteger uses a canonical representation (toEqual works)", function() {
+      // BigIntegers are stored as variable-length digit arrays. Operations
+      // that produce a result with fewer significant words than the
+      // operands historically left "phantom" enumerable slots beyond the
+      // canonical word count `t`, so jasmine's `toEqual` (deep structural
+      // compare) would distinguish two BigIntegers that JN.equals says
+      // are the same number. bnpClamp() normalizes by deleting those
+      // slots so structural equality matches numeric equality.
+
+      // Same number via different parse paths should be structurally equal.
+      expect(JN.fromString("1e5")).toEqual(JN.makeBignum("1e5"));
+      expect(JN.fromString("1e30")).toEqual(JN.makeBignum("1e30"));
+      expect(JN.fromString("1e140")).toEqual(JN.makeBignum("1e140"));
+      expect(JN.fromString("1e309")).toEqual(JN.makeBignum("1e309"));
+
+      // Different surface forms of the same number should also be equal.
+      expect(JN.makeBignum("1e1")).toEqual(JN.makeBignum("10"));
+      expect(JN.makeBignum("1e3")).toEqual(JN.makeBignum("1000"));
+    });
+
     it("atan2 four quadrants and boundaries", function() {
       // atan2(y, x) takes y first, x second (math convention).
       // The x<0 and (x>0, y<0) branches historically leaked bare

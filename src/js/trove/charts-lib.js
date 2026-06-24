@@ -3505,7 +3505,9 @@
                 },
                 windowOptions: {  },
                 isInteractive: true,
-                getImageURI: () => view.toImageURI('png'),
+                // toImageURL is async and returns a Promise that resolves to a
+                // PNG data URL; the chart-port consumer handles the Promise.
+                getImageURI: () => view.toImageURL('png'),
               });
             });
         } catch(e) {
