@@ -1180,7 +1180,7 @@
         name: 'secondary',
         range: axesConfig.secondary.range,
         ...(axesConfig.secondary.name === 'x' ? xAxisType : yAxisType),
-        nice: true, zero: false,
+        nice: true, zero: true,
         domain: (axis && isNotFullStacked) ? { signal: 'extent(domain("secondaryLabels"))' } : { data: 'table', field: 'value1' }
       };
       const scales = [
