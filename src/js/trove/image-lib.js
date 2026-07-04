@@ -24,6 +24,7 @@
     var isPoint = function(p) { return unwrap(rawIsPoint.app(p)); };
     var unwrap = RUNTIME.unwrap;
 
+
     var hasOwnProperty = {}.hasOwnProperty;
 
 
@@ -59,6 +60,7 @@
     var annFontFamily = imageTypes["FontFamily"];
     var annFontStyle = imageTypes["FontStyle"];
     var annFontWeight = imageTypes["FontWeight"];
+    var annImageSimilarity = imageTypes["ImageSimilarity"];
     
     // Color database
     var ColorDb = function() {
@@ -1758,6 +1760,61 @@
 
     LineImage.prototype = heir(BaseImage.prototype);
 
+   // Note(Emmanuel): As of fall2026 the similarity arg is unused.
+   // We use RMSE across all pixel channels and assume an axis
+   // that is straight down the middle.
+   // But in the future, we could add other forms of similarity
+   // or allow for a "fudge factor" that considers an axis that
+   // isn't *quite* at the middle (imagefluency.com/reference/img_symmetry.html)
+   var verticalSymmetry = function(img, similarity) {
+      var width  = img.getWidth();
+      var height = img.getHeight();
+      var halfW  = Math.floor(width / 2);
+      if (halfW === 0 || height === 0) { return 1; }
+      var canvas = makeCanvas(width, height);
+      img.render(canvas.getContext("2d"));
+      var data = canvas.getContext("2d").getImageData(0, 0, width, height).data;
+      var sumSq = 0, count = 0;
+
+      const basePixelIndex = (x, y) => ((y * width) + x) * 4;
+      for (var y = 0; y < height; y++) {
+        for (var x = 0; x < halfW; x++) {
+          var i1 = basePixelIndex(x, y);
+          var i2 = basePixelIndex(width - 1 - x, y);
+          for (var ch = 0; ch < 4; ch++) {
+            var d = data[i1 + ch] - data[i2 + ch];
+            sumSq += d * d;
+          }
+          count += 4;
+        }
+      }
+      return 1 - Math.sqrt(sumSq / count) / 255;
+    };
+
+    var horizontalSymmetry = function(img, similarity) {
+      var width  = img.getWidth();
+      var height = img.getHeight();
+      var halfH  = Math.floor(height / 2);
+      if (width === 0 || halfH === 0) { return 1; }
+      var canvas = makeCanvas(width, height);
+      img.render(canvas.getContext("2d"));
+      var data = canvas.getContext("2d").getImageData(0, 0, width, height).data;
+      var sumSq = 0, count = 0;
+      const basePixelIndex = (x, y) => ((y * width) + x) * 4;
+      for (var y = 0; y < halfH; y++) {
+        for (var x = 0; x < width; x++) {
+          var i1 = basePixelIndex(x, y);
+          var i2 = basePixelIndex(x, height - 1 - y);
+          for (var ch = 0; ch < 4; ch++) {
+            var d = data[i1 + ch] - data[i2 + ch];
+            sumSq += d * d;
+          }
+          count += 4;
+        }
+      }
+      return 1 - Math.sqrt(sumSq / count) / 255;
+    };
+
     var colorAtPosition = function(img, x, y) {
       var width = img.getWidth(),
       height = img.getHeight(),
@@ -2028,6 +2085,7 @@
         isTextImage: isTextImage,
         isFileImage: isFileImage,
         isFileVideo: isFileVideo,
+        annImageSimilarity: annImageSimilarity,
 
         makeColor: makeColor,
         isColor: isColor,
@@ -2037,6 +2095,9 @@
         colorBlue: colorBlue,
         colorAlpha: colorAlpha,
         colorString: colorString,
+
+        verticalSymmetry: verticalSymmetry,
+        horizontalSymmetry: horizontalSymmetry,
       }
     );
     return RUNTIME.makeJSModuleReturn();

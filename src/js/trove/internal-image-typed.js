@@ -61,6 +61,9 @@
               [{ tag: "name",
                  origin: { "import-type": "uri", uri: "builtin://internal-image-shared" },
                  name: "Point" }]],
+      "ImageSimilarity": { tag: "name",
+                     origin: { "import-type": "uri", uri: "builtin://internal-image-shared" },
+                     name: "ImageSimilarity" },
     },
     values: {
       "circle": ["arrow", ["Number", "FillMode", "Color"], "Image"],
@@ -155,6 +158,8 @@
       "image-baseline": ["arrow", ["Image"], "Number"],
       "image-pinhole-x": ["arrow", ["Image"], "Number"],
       "image-pinhole-y": ["arrow", ["Image"], "Number"],
+      "image-vertical-symmetry": ["arrow", ["Image", "ImageSimilarity"], "Number"],
+      "image-horizontal-symmetry": ["arrow", ["Image", "ImageSimilarity"], "Number"],
       "name-to-color": ["arrow", ["String"], "OptColor"],
       "color-named": ["arrow", ["String"], "Color"],
       "empty-image": "Image"
@@ -279,6 +284,12 @@
           "fw-normal": function(_) { return "normal"; },
           "fw-bold": function(_) { return "bold"; },
           "fw-light": function(_) { return "light"; },
+        });
+      },
+      annImageSimilarity: image.annImageSimilarity,
+      unwrapImageSimilarity: function(ism){
+        return runtime.ffi.cases(pyAlwaysTrue, "ImageSimilarity", ism, {
+          "ism-rmse": function(_) { return "ism-rmse"; },
         });
       },
       annPlaceX: image.annXPlace,
