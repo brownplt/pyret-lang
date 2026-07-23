@@ -320,7 +320,6 @@
             },
           ]
         },
-        { name: 'staggerXAxisLabels', update: false },
       );
 
       const dataTable = {
@@ -919,26 +918,24 @@
       );
     }
 
-    function prepareAxisForOffsets(dir, axis, scales, data, signals) {
+    function prepareAxisForOffsets(globalOptions, axis) {
+      const staggerXAxisLabels = isTrue(globalOptions['x-axis-stagger-labels']);
+      if (!staggerXAxisLabels) return;
+
+      // TODO: maybe change x-axis-stagger from Bool to Nat? this would
+      // allow for longer cycles/more rows of labels
+      const cycleSize = 2;
+      
       axis.encode = {
+        ... axis.encode,
         labels: {
-          name: `${dir}AxisLabels`,
+          ... axis.encode?.labels,
           update: {
-            dy: { scale: 'xAxisYOffsets', signal: 'datum.index' }
+            ... axis.encode?.labels?.update,
+            dy: { signal: `(datum.tickIndex % ${cycleSize}) * 20 + 5` }
           }
         }
       };
-      scales.push({
-        name: 'xAxisYOffsets',
-        type: 'ordinal',
-        domain: { data: 'xAxisLabelOffsets', field: 'index' },
-        range: { data: 'xAxisLabelOffsets', field: 'offset' },
-      });
-      data.push({
-        name: 'xAxisLabelOffsets',
-        values: []
-      });
-      signals.push({name: 'staggerXAxisLabels', value: false});
     }
     
     function barChart(globalOptions, rawData) {
@@ -1027,15 +1024,15 @@
           grid: true, ticks: false, labels: false }
       ];
 
-      // TODO: change this to affect the horizontal axis even if it's a horizontal bar chart?
-      prepareAxisForOffsets(axesConfig.primary.dir, axes[0], scales, data, signals);
-      
       if (axis) {
         axes[1].values = axis.domainRaw;
         axes[1].encode = {
           labels: { update: { text: { signal: 'scale("secondaryLabels", datum.value)' } } }
         };
       }
+
+      prepareAxisForOffsets(globalOptions, axes[horizontal ? 1 : 0]);
+      
       const marks = [];
       const tooltips = [
         {
@@ -1224,8 +1221,7 @@
       // set the axis with the ticks to have the title, so they don't overlap
       axes[isNotFullStacked ? 1 : 2].title = axisLabels[axesConfig.secondary.dir];
 
-      // TODO: change this to affect the horizontal axis even if it's a horizontal bar chart?
-      prepareAxisForOffsets(axesConfig.primary.dir, axes[0], scales, data, signals);
+      prepareAxisForOffsets(globalOptions, axes[horizontal ? 1 : 0]);
       
       if (axis) {
         axes[1].values = axis.domainRaw;
@@ -1423,7 +1419,6 @@
           update: 'extent(pluck(data("table"), "minVal"))[0]' },
         { name: 'maxValue',
           update: 'extent(pluck(data("table"), "maxVal"))[1]' },
-        { name: 'staggerXAxisLabels', update: false },
       ];
       const outlierTooltip = `, 'bottom whisker': datum.lowWhisker, 'top whisker': datum.highWhisker`;
       const tooltip = `{
@@ -1623,6 +1618,8 @@
         { orient: axesConfig.secondary.axes, scale: 'secondary', zindex: 0, grid:
           true, ticks: false, labels: false }
       ];
+
+      prepareAxisForOffsets(globalOptions, axes[horizontal ? 1 : 0]);
       
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
@@ -1818,7 +1815,7 @@
         { orient: 'left', scale: 'countScale', grid: true, title: yAxisLabel }
       ];
       
-      prepareAxisForOffsets('x', axes[0], scales, data, signals);
+      prepareAxisForOffsets(globalOptions, axes[0]);
       
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
@@ -1910,7 +1907,6 @@
         { name: 'wrapMaxY', update: 'floor(domain("dotScale")[1] * (1 - headspace))' },
         { name: 'xMinValue', value: xMinValue },
         { name: 'xMaxValue', value: xMaxValue },
-        { name: 'staggerXAxisLabels', update: false },
       ];
       const scales = [
         {
@@ -1934,6 +1930,9 @@
         { orient: 'bottom', scale: 'binScale', zindex: 0, grid: true, ticks: false, labels: false },
         { orient: 'left', scale: 'dotScale', grid: false, ticks: false, labels: false, title: yAxisLabel, zindex: 1 }
       ];
+
+      prepareAxisForOffsets(globalOptions, axes[0]);
+
       const marks = [
         // {
         //   type: 'rule',
@@ -2078,7 +2077,6 @@
       ];
       const signals = [
         { name: 'dotSize', update: "0.8 * abs(scale('secondary', 1) - scale('secondary', 0))" },
-        { name: 'staggerXAxisLabels', update: false },
         { name: 'hoveredCategory', update: false,
           on: [
             {
@@ -2121,6 +2119,9 @@
         { orient: 'bottom', scale: 'primary', zindex: 0, grid: true, ticks: false, labels: false },
         { orient: 'left', scale: 'secondary', grid: true, ticks: true, labels: true, title: yAxisLabel, zindex: 1 }
       ];
+
+      prepareAxisForOffsets(globalOptions, axes[0]);
+      
       const markTooltip = [
         {
           test: '!!datum.label',
@@ -3066,7 +3067,7 @@
         },
       ];
 
-      prepareAxisForOffsets('x', axes[2], scales, data, signals);
+      prepareAxisForOffsets(globalOptions, axes[2]);
       
       const marks = [
         {
@@ -3354,7 +3355,6 @@
       const externalContext = canvas.getContext('2d');
       view.width(width).height(height).signal('titleText', 'spacer').resize()
       return view.runAsync()
-        .then(() => rebuildAxisLabels(view))
         .then(() => view.signal('titleText', view.description()).toCanvas(1, { externalContext }))
         .then(() => externalContext.getImageData(0, 0, width, height));
     }
@@ -3381,7 +3381,6 @@
         return canvasLib && canvasLib.Canvas && v instanceof canvasLib.Canvas;
       }
       const isVegaString = isTrue(globalOptions['vega']);
-      const staggerXAxisLabels = isTrue(globalOptions['x-axis-stagger-labels']);
       return RUNTIME.pauseStack(restarter => {
         try {
           if (isVegaString) {
@@ -3390,24 +3389,11 @@
           const width = toFixnum(globalOptions['width']);
           const height = toFixnum(globalOptions['height']);
           const view = new vega.View(vega.parse(processed));
-          view.signal('staggerXAxisLabels', staggerXAxisLabels);
           return renderToCanvas(view, width, height).then((data) => imageDataReturn(data, restarter));
         } catch(e) {
           return restarter.error(e);
         }
       });
-    }
-
-    function rebuildAxisLabels(view) {
-      // const { data: { xAxisLabels } } = view.getState({data: (name) => name === "xAxisLabels"});
-      try {
-        if (!view.signal('staggerXAxisLabels')) return view;
-        const xAxisLabels = view.data("xAxisLabels");
-        const offsets = xAxisLabels.map((mark, i) => ({ index: mark.datum.index, offset: (i % 2) * 25 }));
-        return view.data('xAxisLabelOffsets', offsets).runAsync();
-      } catch(e) {
-        return view;
-      }
     }
     
     function renderInteractiveChart(processed, globalOptions, rawData) {
@@ -3439,7 +3425,6 @@
             return ans;
           }
         });
-        const staggerXAxisLabels = isTrue(globalOptions['x-axis-stagger-labels']);
         const view = new vega.View(vega.parse(processed), {
           container: chart[0],
           renderer: 'svg',
@@ -3448,7 +3433,6 @@
         });
         view.width(width)
           .height(height)
-          .signal('staggerXAxisLabels', staggerXAxisLabels)
           .signal('titleText', view.description())
           .resize();
 
@@ -3468,7 +3452,6 @@
         const result = tmp;
         try {
           view.runAsync()
-            .then(() => rebuildAxisLabels(view))
             .then(() => {
               if (processed.addControls) {
                 processed.addControls(view, overlay);
