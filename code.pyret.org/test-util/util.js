@@ -472,7 +472,7 @@ function testErrorRendersString(it, name, toEval, expectedString, options) {
 function testRunsAndHasCheckBlocks(it, name, toEval, specs, options) {
   it("should render " + name + " check blocks", function() {
     var self = this;
-    this.timeout(20000);
+    this.timeout((options && options.timeout) || 20000);
     var replOutput = setDefinitionsEvalAndWait(self.browser, toEval, options);
     var checkBlocks = replOutput.then(function(response) {
       self.browser.wait(function () {

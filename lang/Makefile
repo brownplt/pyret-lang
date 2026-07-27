@@ -22,7 +22,6 @@ COPY_JS          = $(patsubst src/js/base/%.js,src/js/%.js,$(wildcard src/$(JSBA
 COPY_LIB         = $(wildcard lib/jglr/*.js)
 COMPILER_FILES = $(wildcard src/arr/compiler/*.js) $(wildcard src/arr/compiler/*.arr) $(wildcard src/arr/compiler/locators/*.arr) $(wildcard src/js/trove/*.js) $(wildcard src/arr/trove/*.arr)
 TROVE_ARR_FILES = $(wildcard src/arr/trove/*.arr)
-
 PHASEA_ALL_DEPS := $(patsubst src/%,$(PHASEA)/%,$(COPY_JS)) $(patsubst lib/jglr/%.js,$(PHASEA)/js/%.js,$(COPY_LIB)) $(PHASEA)/bundled-node-compile-deps.js $(PHASEA)/bundled-node-deps.js $(PHASEA)/config.json
 PHASEB_ALL_DEPS := $(patsubst src/%,$(PHASEB)/%,$(COPY_JS)) $(patsubst lib/jglr/%.js,$(PHASEB)/js/%.js,$(COPY_LIB)) $(PHASEB)/bundled-node-compile-deps.js $(PHASEB)/bundled-node-deps.js $(PHASEB)/config.json
 PHASEC_ALL_DEPS := $(patsubst src/%,$(PHASEC)/%,$(COPY_JS)) $(patsubst lib/jglr/%.js,$(PHASEC)/js/%.js,$(COPY_LIB)) $(PHASEC)/bundled-node-compile-deps.js $(PHASEC)/bundled-node-deps.js $(PHASEC)/config.json
@@ -71,7 +70,7 @@ $(PHASEA)/pyret.jarr: $(PYRET_COMPA) $(PHASEA_ALL_DEPS) $(COMPILER_FILES) $(pats
                       -no-check-mode $(EF) \
                       --require-config src/scripts/standalone-configA.json
 
-$(PHASEA)/libs.jarr: $(PHASEA)/pyret.jarr
+$(PHASEA)/base.jarr: $(PHASEA)/pyret.jarr
 	$(NODE) $(PHASEA)/pyret.jarr --outfile build/phaseA/base.jarr \
                       --build-runnable src/arr/compiler/libs.arr \
                       --builtin-js-dir src/js/trove/ \
@@ -82,7 +81,7 @@ $(PHASEA)/libs.jarr: $(PHASEA)/pyret.jarr
                       --require-config src/scripts/standalone-configA.json
 
 .PHONY : libA
-libA : $(PHASEA)/libs.jarr
+libA : $(PHASEA)/base.jarr
 
 .PHONY : phaseB
 phaseB: $(PHASEB)/pyret.jarr

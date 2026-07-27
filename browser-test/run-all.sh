@@ -44,7 +44,7 @@ curl -fs -o /dev/null "$BASE_URL/editor" || { echo "CPO server not reachable at 
 rc=0
 for ENVNAME in cpo embed vscode; do
   echo "=== $ENVNAME ==="
-  node "$HERE/run.js" --env="$ENVNAME" | tee "$RESULTS/$ENVNAME-full.txt"
+  node "$HERE/run.js" --env="$ENVNAME" "$@" | tee "$RESULTS/$ENVNAME-full.txt"
   test "${PIPESTATUS[0]}" -eq 0 || rc=1
 done
 echo "Done. See $RESULTS/. (overall rc=$rc)"

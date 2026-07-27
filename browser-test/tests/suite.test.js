@@ -23,15 +23,29 @@ const SUITES = {
   "charts": "chart.js",
   "type-check": "type-check.js",
   "tables": "tables.js",
+  "url-imports": "url-imports.js",
 };
 
 if (!ENV || !["cpo", "embed", "embed-static", "vscode", "vscode-ovsx"].includes(ENV)) {
   throw new Error("PYRET_ENV must be one of cpo | embed | embed-static | vscode | vscode-ovsx (got " + JSON.stringify(ENV) + ")");
 }
+// An unrecognized (or empty) selection is an error, not a silent no-op: naming
+// a suite that doesn't exist used to skip it and exit 0, which looks exactly
+// like a clean run. Note "" is checked separately from undefined -- only the
+// latter means "no selection given, run everything".
+const rawSuites = process.env.PYRET_SUITES;
 const chosen =
-  !process.env.PYRET_SUITES || process.env.PYRET_SUITES === "all"
+  rawSuites === undefined || rawSuites === "all"
     ? Object.keys(SUITES)
-    : process.env.PYRET_SUITES.split(",").map((s) => s.trim());
+    : rawSuites.split(",").map((s) => s.trim()).filter((s) => s !== "");
+const known = Object.keys(SUITES).join(", ");
+if (chosen.length === 0) {
+  throw new Error("PYRET_SUITES selected no suites (got " + JSON.stringify(rawSuites) + "); known suites are " + known);
+}
+const unknown = chosen.filter((s) => !SUITES[s]);
+if (unknown.length > 0) {
+  throw new Error("unknown suite(s): " + unknown.join(", ") + "; known suites are " + known);
+}
 
 // One editor frame for the whole run (specs share it, sequentially).
 let session = null;
@@ -54,7 +68,6 @@ after(async () => {
 
 for (const suite of chosen) {
   const file = SUITES[suite];
-  if (!file) continue;
   describe(suite, () => {
     for (const s of loadSpecsFromFile(file)) {
       test(s.name || s.program, { timeout: specTimeout(s) }, async () => {

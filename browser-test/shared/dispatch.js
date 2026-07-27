@@ -28,7 +28,9 @@ async function runSpec(page, s) {
 }
 
 // A reasonable per-test timeout by spec kind (charts/tables render slowly).
+// A spec's own options.timeout (e.g. url-imports' remote fetches) wins.
 function specTimeout(s) {
+  if (s.options && s.options.timeout) return s.options.timeout + 30000;
   if (s.kind === "pyretFile" || s.kind === "repl") return s.baseTimeout || 900000;
   return 60000;
 }

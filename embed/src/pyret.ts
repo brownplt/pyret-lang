@@ -85,7 +85,7 @@ async function receiveRPC(frame : HTMLIFrameElement, e: MessageEvent, rpcs: RPCF
   console.log("RPC:", e.data);
   const data = e.data.data;
   const module = (rpcs as any)[data.module];
-  if (!(module as any)[data.method]) {
+  if (!module || !(module as any)[data.method]) {
     sendRpcResponse(frame, data, { resultType: 'exception', exception: `Unknown method ${data.method}` });
   }
   else {

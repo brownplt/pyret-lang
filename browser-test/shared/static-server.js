@@ -63,11 +63,23 @@ async function startStaticServer(opts) {
         continue;
       }
       if (!st.isFile()) continue;
-      res.writeHead(200, { "Content-Type": contentType(filePath) });
+      // Allow-origin because the editor is rarely same-origin with this server:
+      // each env serves the editor from its own origin, so anything fetched here
+      // (notably url-file fixtures) is a cross-origin request. raw.github-
+      // usercontent.com, the host the url-import tests are otherwise written
+      // against, answers with the same header -- without it those imports fail
+      // with an opaque "TypeError: Failed to fetch".
+      res.writeHead(200, {
+        "Content-Type": contentType(filePath),
+        "Access-Control-Allow-Origin": "*",
+      });
       fs.createReadStream(filePath).pipe(res);
       return;
     }
-    res.writeHead(404, { "Content-Type": "text/plain" }).end("not found: " + pathname);
+    res.writeHead(404, {
+      "Content-Type": "text/plain",
+      "Access-Control-Allow-Origin": "*",
+    }).end("not found: " + pathname);
   });
 
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));

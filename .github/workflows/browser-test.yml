@@ -18,6 +18,7 @@ name: browser-test (embed + vscode webviews)
 
 on:
   push:
+    branches: [drydock, mainmast]
     tags-ignore:
       - automated*
   pull_request:
@@ -140,5 +141,8 @@ jobs:
 
       - name: Run ${{ matrix.env }}
         working-directory: ./browser-test
-        env: { BASE_URL: 'http://localhost:4999' }
+        # Only cpo/embed are meant to test a live running CPO server, others
+        # only use static files.
+        env:
+          BASE_URL: ${{ (matrix.env == 'cpo' || matrix.env == 'embed') && 'http://localhost:4999' || '' }}
         run: node run.js --env=${{ matrix.env }}

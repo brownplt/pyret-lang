@@ -2,7 +2,7 @@
 /*
  * run.js -- friendly CLI over the node:test suite.
  *
- *   node run.js --env=cpo|embed|vscode [--grep=<regex>] [--suites=all|a,b] [--reporter=spec|tap|dot]
+ *   node run.js --env=cpo|embed|embed-static|vscode|vscode-ovsx [--grep=<regex>] [--suites=all|a,b] [--reporter=spec|tap|dot]
  *
  * Examples:
  *   node run.js --env=embed --grep tables        # one feature, in the embed instance
@@ -19,6 +19,15 @@
 const path = require("path");
 const { spawn } = require("child_process");
 
+const KNOWN_FLAGS = ["env", "grep", "suites", "reporter"];
+const USAGE = "usage: node run.js --env=cpo|embed|embed-static|vscode|vscode-ovsx [--grep=<regex>] [--suites=all|a,b] [--reporter=spec|tap|dot]";
+
+function die(msg) {
+  console.error(msg);
+  console.error(USAGE);
+  process.exit(2);
+}
+
 function arg(name) {
   // supports "--name=value" and "--name value"
   const argv = process.argv.slice(2);
@@ -29,24 +38,65 @@ function arg(name) {
   return undefined;
 }
 
+// Reject anything unrecognized rather than ignoring it. A misspelled flag used
+// to fall through to the defaults, so `--suite=url-imports` (singular) ran the
+// FULL suite in every environment -- which reads as "my filter matched
+// everything" rather than "my filter was never applied".
+(function rejectUnknownArgs() {
+  const argv = process.argv.slice(2);
+  for (let i = 0; i < argv.length; i++) {
+    const tok = argv[i];
+    if (!tok.startsWith("--")) die("unexpected argument: " + tok);
+    const name = tok.slice(2).split("=")[0];
+    if (!KNOWN_FLAGS.includes(name)) die("unknown flag: " + tok);
+    if (!tok.includes("=")) i++; // "--name value": step over the value
+  }
+})();
+
 const env = arg("env");
 if (!env || !["cpo", "embed", "embed-static", "vscode", "vscode-ovsx"].includes(env)) {
-  console.error("usage: node run.js --env=cpo|embed|embed-static|vscode|vscode-ovsx [--grep=<regex>] [--suites=all|a,b] [--reporter=spec|tap|dot]");
-  process.exit(2);
+  die("--env must be one of cpo | embed | embed-static | vscode | vscode-ovsx (got " + JSON.stringify(env) + ")");
 }
 const grep = arg("grep");
-const suites = arg("suites") || "all";
+// Only an ABSENT --suites means "run everything"; `--suites=` is an empty
+// selection, which suite.test.js rejects rather than quietly widening to all.
+const suitesArg = arg("suites");
+const suites = suitesArg === undefined ? "all" : suitesArg;
 const reporter = arg("reporter") || "spec";
 
 const nodeArgs = ["--test", "--test-reporter=" + reporter];
 if (grep) nodeArgs.push("--test-name-pattern=" + grep);
 nodeArgs.push(path.join(__dirname, "tests", "suite.test.js"));
 
-const child = spawn(process.execPath, nodeArgs, {
-  stdio: "inherit",
-  env: { ...process.env, PYRET_ENV: env, PYRET_SUITES: suites },
-});
-child.on("exit", (code, signal) => {
-  if (signal) process.kill(process.pid, signal);
-  else process.exit(code == null ? 1 : code);
-});
+// Serve the url-file fixtures ourselves, for every environment.
+//
+// They used to be reached through the CPO server's dev-only test-util mount,
+// which meant the three environments that run no CPO server (embed-static,
+// vscode, vscode-ovsx) either skipped those tests or failed them. Serving them
+// here makes the "no external network" cases genuinely hermetic and identical
+// across all five envs.
+//
+// It has to start HERE rather than in an env's setup(): suite.test.js builds its
+// spec list at module load, before before() ever runs, so the origin must be
+// known before the child is spawned. Hence a parent-side server and an env var.
+const { startStaticServer } = require("./shared/static-server");
+const FIXTURE_ROOT = path.resolve(__dirname, "..", "code.pyret.org", "test-util");
+
+(async () => {
+  const fixtures = await startStaticServer({ roots: [FIXTURE_ROOT] });
+
+  const child = spawn(process.execPath, nodeArgs, {
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      PYRET_ENV: env,
+      PYRET_SUITES: suites,
+      PYRET_FIXTURE_BASE: fixtures.origin,
+    },
+  });
+  child.on("exit", async (code, signal) => {
+    await fixtures.close();
+    if (signal) process.kill(process.pid, signal);
+    else process.exit(code == null ? 1 : code);
+  });
+})();

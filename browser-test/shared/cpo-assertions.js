@@ -52,7 +52,7 @@ async function setDefinitionsRunAndWait(page, code, options) {
   } else {
     await page.eval("window.PA.run()");
   }
-  await page.waitFor("window.PA.breakDone()", 30000);
+  await page.waitFor("window.PA.breakDone()", (options && options.timeout) || 30000);
 }
 
 // Warm up the Pyret runtime once, in setup. The FIRST program run in a freshly
