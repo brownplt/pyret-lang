@@ -56,38 +56,46 @@ const parse_file_for_expected_std = (f) => {
 
 
 
-describe("IO Tests", () => {
-  let server;
-  glob.sync(`test/tests/test-*.arr`, {}).forEach(f => {
-    describe("Testing " + f, () => {
-      const {stdioExpected, stdInToInject, stderrExpected, compilestderrExpected, extraArgs} = parse_file_for_expected_std(f);
+const registerIOTests = (suiteName, backendArgs, testFn) => {
+  describe(suiteName, () => {
+    glob.sync(`test/tests/test-*.arr`, {}).forEach(f => {
+      describe("Testing " + f, () => {
+        const {stdioExpected, stdInToInject, stderrExpected, compilestderrExpected, extraArgs} = parse_file_for_expected_std(f);
 
-      test(`it should return io that is expected: ${stdioExpected}`, () => {  
-        const args = [ "pyret.js", ...extraArgs, f ];
-        const pyretProcess = cp.spawnSync(
-          "node",
-          args,
-          {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
-         
-        if(compilestderrExpected === "") {
-          expect(pyretProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
-          expect(pyretProcess.status).toEqual(SUCCESS_EXIT_CODE);
-        }
-        else {
-          expect(pyretProcess.stderr.toString()).toContain(compilestderrExpected);
-          expect(pyretProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
-          return; // Don't try to run the program if an error was expected
-        }
+        testFn(`it should return io that is expected: ${stdioExpected}`, () => {
+          const args = [ "pyret.js", ...backendArgs, ...extraArgs, f ];
+          const pyretProcess = cp.spawnSync(
+            "node",
+            args,
+            {stdio: "pipe", stderr: "pipe", timeout: COMPILER_TIMEOUT});
 
-        if (stderrExpected !== EMPTY_MESSAGE) {
-          expect(pyretProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
-          expect(pyretProcess.stderr.toString()).toMatch(new RegExp(stderrExpected));
-        } 
-        else {
-          expect(pyretProcess.status).toEqual(SUCCESS_EXIT_CODE);
-          expect(pyretProcess.stdout.toString()).toMatch(new RegExp(stdioExpected));
-        }
+          if(compilestderrExpected === "") {
+            expect(pyretProcess.stderr.toString()).toEqual(EMPTY_MESSAGE);
+            expect(pyretProcess.status).toEqual(SUCCESS_EXIT_CODE);
+          }
+          else {
+            expect(pyretProcess.stderr.toString()).toContain(compilestderrExpected);
+            expect(pyretProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
+            return; // Don't try to run the program if an error was expected
+          }
+
+          if (stderrExpected !== EMPTY_MESSAGE) {
+            expect(pyretProcess.status).not.toEqual(SUCCESS_EXIT_CODE);
+            expect(pyretProcess.stderr.toString()).toMatch(new RegExp(stderrExpected));
+          }
+          else {
+            expect(pyretProcess.status).toEqual(SUCCESS_EXIT_CODE);
+            expect(pyretProcess.stdout.toString()).toMatch(new RegExp(stdioExpected));
+          }
+        });
       });
     });
   });
-});
+};
+
+registerIOTests("IO Tests", [], test);
+registerIOTests(
+  "IO Tests (ts backend)",
+  ["--backend", "ts"],
+  fs.existsSync("pyret-lang/build/ts-compiler/pyret.js") ? test : test.skip
+);

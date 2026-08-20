@@ -16,6 +16,8 @@ jobs:
 
       - name: Build pyret-lang and stage the build that pyret.js loads
         working-directory: ./npm
+        env:
+          PYRET_NPM_TS: '1'
         run: npm run build
 
       - name: Test the CLI against that build
@@ -23,3 +25,7 @@ jobs:
         run: |
           npm ci
           npm test
+
+      - name: Pack the tarball and smoke both backends from a clean install
+        working-directory: ./npm
+        run: bash test/packaged-cli.test.sh
