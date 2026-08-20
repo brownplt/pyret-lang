@@ -110,6 +110,7 @@
     "serialize-javascript": "^7.0.6",
     "request": {
       "form-data": "^4.0.6"
-    }
+    },
+    "brace-expansion": "1.1.18"
   }
 }
