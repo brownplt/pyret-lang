@@ -21,7 +21,7 @@ import * as RS from './resolve-scope';
 import * as T from './type-check';
 import * as W from './well-formed';
 import * as CH from './desugar-check';
-import { DefaultMapVisitor } from './ast-visitors';
+import { PostScopeMapVisitor } from './ast-visitors';
 import {
   Either, left, right,
   InternalCompilerError, TODOError,
@@ -394,17 +394,17 @@ export function unique<A2>(lst: A2[]): A2[] {
   return out.reverse();
 }
 
-class SpyStripVisitor extends DefaultMapVisitor {
-  sBlock(node: A.SBlock): A.Expr {
-    // foldr: rightmost statements are visited first
-    const stmts: A.Expr[] = [];
-    for (let i = node.stmts.length - 1; i >= 0; i--) {
-      const stmt = node.stmts[i];
-      if (!A.isSSpyBlock(stmt)) {
-        stmts.unshift(stmt.visit(this));
+class SpyStripVisitor extends PostScopeMapVisitor {
+  sScopeBlock(node: A.SScopeBlock): A.Expr {
+    // foldr: rightmost entries are visited first
+    const entries: A.ScopeEntry[] = [];
+    for (let i = node.entries.length - 1; i >= 0; i--) {
+      const entry = node.entries[i];
+      if (!(A.isSScopeStmt(entry) && A.isSSpyBlock(entry.stmt))) {
+        entries.unshift(entry.visit(this));
       }
     }
-    return new A.SBlock(node.l, stmts);
+    return new A.SScopeBlock(node.l, entries, node.tail.visit(this));
   }
 }
 const spyStripVisitor = new SpyStripVisitor();
@@ -614,6 +614,7 @@ export function makeStandalone(
   for (const w of wl) {
     natives = [...w.locator.getNativeModules().map((n) => n.path), ...natives];
   }
+  natives.sort();
 
   let allCompileProblems: CS.CompileError[] = [];
   const staticModules = new J.JObj(CL.map_list<ToCompile, J.JFieldT>((w) => {
@@ -635,7 +636,11 @@ export function makeStandalone(
     new J.JField("disableAnnotationChecks",
       options.runtimeAnnotations
         ? new J.JFalse()
-        : new J.JTrue())
+        : new J.JTrue()),
+    new J.JField("pauseSchedule",
+      options.pauseSchedule === undefined
+        ? new J.JFalse()
+        : new J.JStr(options.pauseSchedule))
   ));
 
   if (allCompileProblems.length > 0) {

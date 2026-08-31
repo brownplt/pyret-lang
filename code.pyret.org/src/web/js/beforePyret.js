@@ -1507,8 +1507,53 @@ $(function() {
 
   console.log("About to load Pyret: ", originalPageLoad, Date.now());
 
+  // If the primary Pyret URL (usually a CDN) fails, we fall back to the
+  // same-origin copy at PYRET_BACKUP (always the plain compiler). The
+  // "error" event alone isn't enough to trigger that: school content
+  // filters have been seen both silently stalling the request (neither
+  // "load" nor "error" ever fires) and answering it with an empty 200
+  // (which fires "load"!). So two extra signals count as failure: going
+  // PYRET_LOAD_TIMEOUT_MS with no event, and a "load" after which the
+  // bundle's globals aren't actually defined. When the primary fails
+  // either way, we record it in localSettings; until that record expires,
+  // page loads swap the two URLs and go straight to the backup rather
+  // than failing over from scratch again. A successful load from the
+  // primary clears the record.
+  var PYRET_LOAD_TIMEOUT_MS = 20000;
+  var PYRET_FAILED_KEY = "pyret-primary-failed-at";
+  var PYRET_FAILED_TTL_MS = 24 * 60 * 60 * 1000;
+
+  function primaryFailedRecently() {
+    var stamp = Number(localSettings.getItem(PYRET_FAILED_KEY));
+    return stamp > 0 && (Date.now() - stamp) < PYRET_FAILED_TTL_MS;
+  }
+
+  function recordPrimaryFailure() {
+    if (primaryPyret === window.PYRET && !window.PYRET_GZIPPED && window.CPO_COMPILER !== "ts") {
+      localSettings.setItem(PYRET_FAILED_KEY, String(Date.now()));
+    }
+  }
+
+  // The bundle synchronously installs its module loader as `define` and
+  // `requirejs`; if neither exists after a script's "load" event, whatever
+  // the network handed us was not Pyret (e.g. a filter's empty 200).
+  function pyretActuallyLoaded() {
+    return !(typeof window.define === "undefined" && typeof window.requirejs === "undefined");
+  }
+
+  var primaryPyret = window.PYRET;
+  var backupPyret = process.env.PYRET_BACKUP;
+  // No swapping in the gzipped (webview) configuration, where the two URLs
+  // are fetched by different mechanisms, or in the ts flavor, where the
+  // primary is the ts jarr but every fallback goes to the plain compiler.
+  if (!window.PYRET_GZIPPED && window.CPO_COMPILER !== "ts" && backupPyret && primaryFailedRecently()) {
+    console.log("Primary Pyret URL failed recently; loading from backup first");
+    primaryPyret = process.env.PYRET_BACKUP;
+    backupPyret = window.PYRET;
+  }
+
   var pyretLoad = document.createElement('script');
-  console.log(window.PYRET);
+  console.log(primaryPyret);
   pyretLoad.type = "text/javascript";
   pyretLoad.setAttribute("crossorigin", "anonymous");
 
@@ -1554,17 +1599,51 @@ $(function() {
         return new Response(resp.body.pipeThrough(new DecompressionStream("gzip"))).blob();
       })
       .then(function (blob) {
+        // If the fetch stalled long enough for the timeout to fire, the
+        // backup owns the page now; don't run a second copy.
+        if (backupStarted) { return; }
         pyretLoad.src = URL.createObjectURL(new Blob([blob], { type: "application/javascript" }));
         document.body.appendChild(pyretLoad);
       })
       .catch(function (e) {
+        clearTimeout(primaryTimer);
         logFailureAndManualFetch(window.PYRET, e);
         loadBackupPyret("fetching/decompressing " + window.PYRET + " failed: " + e.message);
       });
   } else {
-    pyretLoad.src = window.PYRET;
+    pyretLoad.src = primaryPyret;
     document.body.appendChild(pyretLoad);
   }
+
+  var primaryTimer = setTimeout(function() {
+    logger.log('pyret-load-failure', {
+      event : 'timeout',
+      url : primaryPyret,
+      timeoutMs : PYRET_LOAD_TIMEOUT_MS
+    });
+    recordPrimaryFailure();
+    // Removing the element abandons the stalled request; a script element
+    // that is disconnected before it executes won't run, so a late arrival
+    // can't execute a second copy of Pyret alongside the backup.
+    pyretLoad.remove();
+    loadBackupPyret("the request for " + primaryPyret + " went " + PYRET_LOAD_TIMEOUT_MS + "ms with neither load nor error (stalled?)");
+  }, PYRET_LOAD_TIMEOUT_MS);
+
+  $(pyretLoad).on("load", function() {
+    clearTimeout(primaryTimer);
+    if (!pyretActuallyLoaded()) {
+      logger.log('pyret-load-failure', {
+        event : 'empty-load',
+        url : primaryPyret
+      });
+      recordPrimaryFailure();
+      loadBackupPyret("the response for " + primaryPyret + " loaded without defining Pyret's globals (empty or replaced body?)");
+      return;
+    }
+    if (primaryPyret === window.PYRET && localSettings.getItem(PYRET_FAILED_KEY)) {
+      localSettings.setItem(PYRET_FAILED_KEY, "");
+    }
+  });
 
   // The page's terminal state: neither the runtime bundle nor its backup is
   // coming. Alongside the user-facing banner, say WHY on the console -- in a
@@ -1579,20 +1658,43 @@ $(function() {
     window.stickError("Pyret failed to load; check your connection or try refreshing the page.  If this happens repeatedly, please report it as a bug.  (" + detail + ")");
   }
 
+  var backupStarted = false;
   function loadBackupPyret(primaryDetail) {
     console.error("Pyret runtime bundle failed to load: " + primaryDetail);
+    if (backupStarted) { return; }
+    backupStarted = true;
     // Builds without a configured PYRET_BACKUP (the vscode webview, anything
     // built without the env var) used to assign it anyway, so the browser
     // requested a literal "undefined" -- an instant 404 whose error event
     // replaced the primary failure's story. No backup: go straight to the
     // terminal state, carrying the reason the primary died.
-    if (process.env.PYRET_BACKUP) {
-      pyretLoad2.src = process.env.PYRET_BACKUP;
-      pyretLoad2.type = "text/javascript";
-      document.body.appendChild(pyretLoad2);
-    } else {
+    if (!backupPyret) {
       terminalPyretLoadFailure(primaryDetail);
+      return;
     }
+    var backupTimer = setTimeout(function() {
+      // The backup request is left in flight, so if it does eventually
+      // finish, the page still becomes usable under the banner.
+      logger.log('pyret-load-failure', {
+        event : 'timeout',
+        url : backupPyret,
+        timeoutMs : PYRET_LOAD_TIMEOUT_MS
+      });
+      terminalPyretLoadFailure("the backup bundle " + backupPyret + " also went " + PYRET_LOAD_TIMEOUT_MS + "ms with neither load nor error");
+    }, PYRET_LOAD_TIMEOUT_MS);
+    $(pyretLoad2).on("load", function() {
+      clearTimeout(backupTimer);
+      if (!pyretActuallyLoaded()) {
+        logger.log('pyret-load-failure', {
+          event : 'empty-load',
+          url : backupPyret
+        });
+        terminalPyretLoadFailure("the backup bundle " + backupPyret + " loaded without defining Pyret's globals");
+      }
+    });
+    pyretLoad2.src = backupPyret;
+    pyretLoad2.type = "text/javascript";
+    document.body.appendChild(pyretLoad2);
   }
 
   function logFailureAndManualFetch(url, e) {
@@ -1642,13 +1744,14 @@ $(function() {
   }
 
   $(pyretLoad).on("error", function(e) {
-    logFailureAndManualFetch(window.PYRET, e);
-    loadBackupPyret("the script tag for " + window.PYRET + " fired its error event");
+    clearTimeout(primaryTimer);
+    logFailureAndManualFetch(primaryPyret, e);
+    loadBackupPyret("the script tag for " + primaryPyret + " fired its error event");
   });
 
   $(pyretLoad2).on("error", function(e) {
-    terminalPyretLoadFailure("the backup bundle " + process.env.PYRET_BACKUP + " also failed");
-    logFailureAndManualFetch(process.env.PYRET_BACKUP, e);
+    terminalPyretLoadFailure("the backup bundle " + backupPyret + " also failed");
+    logFailureAndManualFetch(backupPyret, e);
   });
 
   window.addEventListener("focus", (e) => {

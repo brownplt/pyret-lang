@@ -65,7 +65,7 @@
     "uglify-js": "^3.19.3",
     "url-loader": "^0.6.2",
     "url.js": "^1.0.3",
-    "vega": "^6.1.2",
+    "vega": "^6.3.0",
     "vega-tooltip": "^1.0.0",
     "webpack": "^5.89.0"
   },

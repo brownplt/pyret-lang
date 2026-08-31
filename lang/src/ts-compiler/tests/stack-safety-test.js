@@ -37,7 +37,7 @@ const line = (n, f) => Array.from({ length: n }, (_, i) => f(i + 1)).join('\n');
 const GENERATORS = {
   // one binding statement per line; pins the ConcatList spine + emit path
   stmts: (n) => line(n, (i) => `x${i} = ${i}`) + '\nx1',
-  // alternating binding/use pairs; pins the desugar s-let-expr body spine
+  // alternating binding/use pairs; pins the s-scope-block entry list
   alt: (n) => line(n, (i) => `y${i} = ${i}\nprint(y${i})`),
   // one long left-associated arithmetic chain on a single source line
   binop: (n) => 'n = ' + new Array(n).fill('1').join(' + ') + '\nn',
@@ -72,7 +72,8 @@ const CASES = [
   ['stmts', 2000, false],
   ['stmts', 8000, false],
   ['alt', 200, false],
-  ['alt', 1000, true, 'resolve-scope NamesVisitor (ast-visitors body spine)'],
+  ['alt', 1000, false],
+  ['alt', 4000, false],
   ['binop', 200, false],
   ['binop', 1000, true, 'anf continuation unwind'],
   ['binop', 3000, true, 'resolve-scope CheckUnbound (ast-visitors app spine)'],
@@ -82,7 +83,7 @@ const CASES = [
   ['chain', 500, true, 'anf continuation unwind (borderline at 600k)'],
   ['chain', 2000, true, 'parse-pyret tr app-expr chain'],
   ['ask', 400, false],
-  ['ask', 2000, true, 'flatness a-if arm cycle'],
+  ['ask', 2000, false],
   ['data', 150, false],
   ['data', 1000, false],
   ['cases', 150, false],

@@ -1229,6 +1229,71 @@ export class SUserBlock extends ExprBase {
   }
 }
 
+export class SScopeLet {
+  get $name(): 's-scope-let' { return 's-scope-let'; }
+  constructor(public l: Loc, public binds: LetBind[]) {}
+  visit(visitor: any): any { return visitor.sScopeLet(this); }
+  label(): string { return 's-scope-let'; }
+  tosource(): any {
+    return PP.surroundSeparate(2 * INDENT, 1, strLet, strLet.append(PP.str(' ')), PP.commabreak, PP.mtDoc,
+      this.binds.map((b) => b.tosource())).append(PP.str(':'));
+  }
+}
+
+export class SScopeTypeLet {
+  get $name(): 's-scope-type-let' { return 's-scope-type-let'; }
+  constructor(public l: Loc, public binds: TypeLetBind[]) {}
+  visit(visitor: any): any { return visitor.sScopeTypeLet(this); }
+  label(): string { return 's-scope-type-let'; }
+  tosource(): any {
+    return PP.surroundSeparate(2 * INDENT, 1, strTypeLet, strTypeLet.append(PP.str(' ')), PP.commabreak, PP.mtDoc,
+      this.binds.map((b) => b.tosource())).append(PP.str(':'));
+  }
+}
+
+export class SScopeLetrec {
+  get $name(): 's-scope-letrec' { return 's-scope-letrec'; }
+  constructor(public l: Loc, public binds: LetrecBind[]) {}
+  visit(visitor: any): any { return visitor.sScopeLetrec(this); }
+  label(): string { return 's-scope-letrec'; }
+  tosource(): any {
+    return PP.surroundSeparate(2 * INDENT, 1, strLetrec, strLetrec.append(PP.str(' ')), PP.commabreak, PP.mtDoc,
+      this.binds.map((b) => b.tosource())).append(PP.str(':'));
+  }
+}
+
+// A plain (non-binding) statement between binding groups. The wrapper
+// exists so ScopeEntry is a closed union of scope-entry nodes -- a bare
+// Expr member would make every consumer's else-branch a silent
+// catch-all.
+export class SScopeStmt {
+  get $name(): 's-scope-stmt' { return 's-scope-stmt'; }
+  constructor(public l: Loc, public stmt: Expr) {}
+  visit(visitor: any): any { return visitor.sScopeStmt(this); }
+  label(): string { return 's-scope-stmt'; }
+  tosource(): any { return this.stmt.tosource(); }
+}
+
+export type ScopeEntry = SScopeLet | SScopeTypeLet | SScopeLetrec | SScopeStmt;
+
+export class SScopeBlock extends ExprBase {
+  get $name(): 's-scope-block' { return 's-scope-block'; }
+  constructor(public l: Loc, public entries: ScopeEntry[], public tail: Expr) { super(); }
+  visit(visitor: any): any { return visitor.sScopeBlock(this); }
+  label(): string { return 's-scope-block'; }
+  tosource(): any {
+    let doc = PP.mtDoc;
+    for (const e of this.entries) {
+      doc = doc.append(e.tosource()).append(PP.hardline);
+    }
+    return doc.append(this.tail.tosource());
+  }
+}
+
+export function sScopeLetBlock(l: Loc, binds: LetBind[], body: Expr): SScopeBlock {
+  return new SScopeBlock(l, [new SScopeLet(l, binds)], body);
+}
+
 export class SFun extends ExprBase {
   get $name(): 's-fun' { return 's-fun'; }
   constructor(public l: Loc, public name: string, public params: Name[], public args: Bind[],
@@ -2121,7 +2186,7 @@ export class SSpyBlock extends ExprBase {
 
 export type Expr =
   | SModule | STemplate | STypeLetExpr | SLetExpr | SLetrec | SHintExp | SInstantiate
-  | SBlock | SUserBlock | SFun | SType | SNewtype | SVar | SRec | SLet | SRef
+  | SBlock | SUserBlock | SScopeBlock | SFun | SType | SNewtype | SVar | SRec | SLet | SRef
   | SContract | SWhen | SAssign | SIfPipe | SIfPipeElse | SIf | SIfElse | SCases
   | SCasesElse | SOp | SCheckTest | SCheckExpr | SParen | SLam | SMethod | SExtend
   | SUpdate | STuple | STupleGet | SObj | SArray | SConstruct | SApp | SAppEnriched
@@ -2140,6 +2205,11 @@ export function isSHintExp(x: any): x is SHintExp { return x instanceof SHintExp
 export function isSInstantiate(x: any): x is SInstantiate { return x instanceof SInstantiate; }
 export function isSBlock(x: any): x is SBlock { return x instanceof SBlock; }
 export function isSUserBlock(x: any): x is SUserBlock { return x instanceof SUserBlock; }
+export function isSScopeBlock(x: any): x is SScopeBlock { return x instanceof SScopeBlock; }
+export function isSScopeLet(x: any): x is SScopeLet { return x instanceof SScopeLet; }
+export function isSScopeTypeLet(x: any): x is SScopeTypeLet { return x instanceof SScopeTypeLet; }
+export function isSScopeLetrec(x: any): x is SScopeLetrec { return x instanceof SScopeLetrec; }
+export function isSScopeStmt(x: any): x is SScopeStmt { return x instanceof SScopeStmt; }
 export function isSFun(x: any): x is SFun { return x instanceof SFun; }
 export function isSType(x: any): x is SType { return x instanceof SType; }
 export function isSNewtype(x: any): x is SNewtype { return x instanceof SNewtype; }

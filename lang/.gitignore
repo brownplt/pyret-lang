@@ -34,7 +34,10 @@ docs/*.arr.js
 build/docs
 build/phaseA
 build/phaseB
+build/phaseB-ts
 build/phaseC
+build/phaseB-ts
+build/phaseC-ts
 build/phase1
 build/phase2
 build/phase3

@@ -715,7 +715,7 @@
 
     function eqHelp(self, other, selfKeys, hasKey, getValue, recEq) {
       if (runtime.isActivationRecord(self)) {
-        var $ar = sekf;
+        var $ar = self;
         $step = $ar.step;
         $ans = $ar.ans;
         curIdx = $ar.vars[0];
@@ -743,12 +743,12 @@
           }
           $ans = recEq.app(getValue.full_meth(self, selfKeys[curIdx]), getValue.full_meth(other, selfKeys[curIdx]));
           if (runtime.isContinuation($ans)) {
-            $ans.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
-              stackFrameDesc,
-              equalFun,
+            $ans.stack[runtime.EXN_STACKHEIGHT++] = runtime.makeActivationRecord(
+              ["string-dict equality"],
+              eqHelp,
               $step,
-              [],
-              []);
+              [self, other, selfKeys, hasKey, getValue, recEq],
+              [curIdx, curEq]);
             return $ans;
           }
           break;

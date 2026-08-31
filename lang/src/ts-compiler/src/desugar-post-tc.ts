@@ -6,7 +6,7 @@
 import * as A from './ast';
 import * as D from './desugar';
 import * as C from './compile-structs';
-import { DefaultMapVisitor } from './ast-visitors';
+import { PostScopeMapVisitor } from './ast-visitors';
 import { Loc } from './srcloc';
 
 export const mkId = D.mkId;
@@ -17,7 +17,7 @@ export function noCasesExn(l: Loc, val: A.Expr): A.Expr {
   return new A.SPrimApp(l, 'throwNoCasesMatched', [new A.SSrcloc(l, l), val], flatPrimApp);
 }
 
-class DesugarVisitor extends DefaultMapVisitor {
+class DesugarVisitor extends PostScopeMapVisitor {
   sTemplate(node: A.STemplate): A.Expr {
     return new A.SPrimApp(node.l, 'throwUnfinishedTemplate', [new A.SSrcloc(node.l, node.l)], flatPrimApp);
   }
@@ -27,9 +27,9 @@ class DesugarVisitor extends DefaultMapVisitor {
     const typCompiled = node.typ.visit(this);
     const valExp = node.val.visit(this);
     const valId = new A.SId(l, name);
-    return new A.SLetExpr(l, [new A.SLetBind(l, new A.SBind(l, false, name, typCompiled), valExp)],
+    return A.sScopeLetBlock(l, [new A.SLetBind(l, new A.SBind(l, false, name, typCompiled), valExp)],
       new A.SCasesElse(l, A.aBlank, valId, node.branches.map((b) => b.visit(this)),
-        node._else.visit(this), true), false);
+        node._else.visit(this), true));
   }
   sCases(node: A.SCases): A.Expr {
     const l = node.l;
@@ -37,9 +37,9 @@ class DesugarVisitor extends DefaultMapVisitor {
     const typCompiled = node.typ.visit(this);
     const valExp = node.val.visit(this);
     const valId = new A.SId(l, name);
-    return new A.SLetExpr(l, [new A.SLetBind(l, new A.SBind(l, false, name, typCompiled), valExp)],
+    return A.sScopeLetBlock(l, [new A.SLetBind(l, new A.SBind(l, false, name, typCompiled), valExp)],
       new A.SCasesElse(l, A.aBlank, valId, node.branches.map((b) => b.visit(this)),
-        new A.SBlock(l, [noCasesExn(l, valId)]), true), false);
+        new A.SBlock(l, [noCasesExn(l, valId)]), true));
   }
   sCheck(node: A.SCheck): A.Expr {
     return new A.SId(node.l, new A.SGlobal('nothing'));

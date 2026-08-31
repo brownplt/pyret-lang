@@ -3,8 +3,8 @@
   See CONVENTIONS.md.
 
   Name-collision note: in ast-anf.arr several data-type names collide with
-  the PascalCased name of one of their own variants (data ALettable vs
-  variant a-lettable of AExpr, data AVal vs variant a-val of ALettable,
+  the PascalCased name of one of their own variants (data AVal vs
+  a-val of ALettable,
   data ATypeBind vs variant a-type-bind, data AVariant vs variant
   a-variant, data ACasesBranch vs variant a-cases-branch, data
   ADefinedValue vs variant a-defined-value). For those, the class is
@@ -134,49 +134,48 @@ export function isANewtypeBind(x: any): x is ANewtypeBind { return x instanceof 
 
 // ---------- data AExpr ----------
 
-export abstract class AExprBase {
+export abstract class AExprHeadBase {
   abstract get $name(): string;
+  abstract l: Loc;
   abstract label(): string;
-  abstract tosource(): PP.PPrintDoc;
-  abstract visit(visitor: any): any;
+  // The old nested nodes pretty-printed themselves around their body's
+  // doc; heads take the (already rendered) rest of the chain instead.
+  abstract tosourceWith(body: PP.PPrintDoc): PP.PPrintDoc;
 }
 
-export class ATypeLet extends AExprBase {
+export class ATypeLet extends AExprHeadBase {
   get $name(): 'a-type-let' { return 'a-type-let'; }
-  constructor(public l: Loc, public bind: ATypeBind, public body: AExpr) { super(); }
-  visit(visitor: any): any { return visitor.aTypeLet(this); }
+  constructor(public l: Loc, public bind: ATypeBind) { super(); }
   label(): string { return 'a-type-let'; }
-  tosource(): PP.PPrintDoc {
+  tosourceWith(body: PP.PPrintDoc): PP.PPrintDoc {
     return PP.softSurround(INDENT, 1,
       strTypeLet
         .append(PP.group(PP.nest(INDENT,
           this.bind.tosource()))).append(strColon),
-      this.body.tosource(),
+      body,
       strEnd);
   }
 }
 
-export class ALet extends AExprBase {
+export class ALet extends AExprHeadBase {
   get $name(): 'a-let' { return 'a-let'; }
-  constructor(public l: Loc, public bind: ABind, public e: ALettable, public body: AExpr) { super(); }
-  visit(visitor: any): any { return visitor.aLet(this); }
+  constructor(public l: Loc, public bind: ABind, public e: ALettable) { super(); }
   label(): string { return 'a-let'; }
-  tosource(): PP.PPrintDoc {
+  tosourceWith(body: PP.PPrintDoc): PP.PPrintDoc {
     return PP.softSurround(INDENT, 1,
       strLet
         .append(PP.group(PP.nest(INDENT,
           this.bind.tosource().append(strSpaceequal).append(breakOne).append(this.e.tosource())))).append(strColon),
-      this.body.tosource(),
+      body,
       strEnd);
   }
 }
 
-export class AArrLet extends AExprBase {
+export class AArrLet extends AExprHeadBase {
   get $name(): 'a-arr-let' { return 'a-arr-let'; }
-  constructor(public l: Loc, public bind: ABind, public idx: number, public e: ALettable, public body: AExpr) { super(); }
-  visit(visitor: any): any { return visitor.aArrLet(this); }
+  constructor(public l: Loc, public bind: ABind, public idx: number, public e: ALettable) { super(); }
   label(): string { return 'a-arr-let'; }
-  tosource(): PP.PPrintDoc {
+  tosourceWith(body: PP.PPrintDoc): PP.PPrintDoc {
     return PP.softSurround(INDENT, 1,
       strLet
         .append(PP.group(
@@ -187,55 +186,58 @@ export class AArrLet extends AExprBase {
               .append(breakOne)
               .append(this.e.tosource()))))
         .append(strColon),
-      this.body.tosource(),
+      body,
       strEnd);
   }
 }
 
-export class AVar extends AExprBase {
+export class AVar extends AExprHeadBase {
   get $name(): 'a-var' { return 'a-var'; }
-  constructor(public l: Loc, public bind: ABind, public e: ALettable, public body: AExpr) { super(); }
-  visit(visitor: any): any { return visitor.aVar(this); }
+  constructor(public l: Loc, public bind: ABind, public e: ALettable) { super(); }
   label(): string { return 'a-var'; }
-  tosource(): PP.PPrintDoc {
+  tosourceWith(body: PP.PPrintDoc): PP.PPrintDoc {
     return PP.softSurround(INDENT, 1,
       strVar
         .append(PP.group(PP.nest(INDENT,
           this.bind.tosource().append(strSpaceequal).append(breakOne).append(this.e.tosource())))).append(strColon),
-      this.body.tosource(),
+      body,
       strEnd);
   }
 }
 
-export class ASeq extends AExprBase {
+export class ASeq extends AExprHeadBase {
   get $name(): 'a-seq' { return 'a-seq'; }
-  constructor(public l: Loc, public e1: ALettable, public e2: AExpr) { super(); }
-  visit(visitor: any): any { return visitor.aSeq(this); }
+  constructor(public l: Loc, public e1: ALettable) { super(); }
   label(): string { return 'a-seq'; }
-  tosource(): PP.PPrintDoc {
-    return this.e1.tosource().append(PP.hardline).append(this.e2.tosource());
+  tosourceWith(body: PP.PPrintDoc): PP.PPrintDoc {
+    return this.e1.tosource().append(PP.hardline).append(body);
   }
 }
 
-export class ALettable$ extends AExprBase {
-  get $name(): 'a-lettable' { return 'a-lettable'; }
-  constructor(public l: Loc, public e: ALettable) { super(); }
-  visit(visitor: any): any { return visitor.aLettable(this); }
-  label(): string { return 'a-lettable'; }
+export type AExprHead = ATypeLet | ALet | AArrLet | AVar | ASeq;
+
+export class AExpr {
+  get $name(): 'a-expr' { return 'a-expr'; }
+  constructor(public heads: AExprHead[], public e: ALettable) {}
+  // The old chain's root node was the first statement; its loc is what
+  // consumers of `.l` saw, so derive it the same way.
+  get l(): Loc { return this.heads.length > 0 ? this.heads[0].l : this.e.l; }
+  label(): string { return 'a-expr'; }
   tosource(): PP.PPrintDoc {
-    return this.e.tosource();
+    let doc = this.e.tosource();
+    for (let i = this.heads.length - 1; i >= 0; i--) {
+      doc = this.heads[i].tosourceWith(doc);
+    }
+    return doc;
   }
 }
-
-export const ALettable = ALettable$;
-export type AExpr = ATypeLet | ALet | AArrLet | AVar | ASeq | ALettable$;
 
 export function isATypeLet(x: any): x is ATypeLet { return x instanceof ATypeLet; }
 export function isALet(x: any): x is ALet { return x instanceof ALet; }
 export function isAArrLet(x: any): x is AArrLet { return x instanceof AArrLet; }
 export function isAVar(x: any): x is AVar { return x instanceof AVar; }
 export function isASeq(x: any): x is ASeq { return x instanceof ASeq; }
-export function isALettable(x: any): x is ALettable$ { return x instanceof ALettable$; }
+export function isAExpr(x: any): x is AExpr { return x instanceof AExpr; }
 
 // ---------- data ABind ----------
 
@@ -561,18 +563,33 @@ export class ACases extends ALettableBase {
   }
 }
 
+
+export class AIfBranch {
+  get $name(): 'a-if-branch' { return 'a-if-branch'; }
+  constructor(public l: Loc, public heads: AExprHead[], public test: AVal, public body: AExpr) {}
+}
+
 export class AIf extends ALettableBase {
   get $name(): 'a-if' { return 'a-if'; }
-  constructor(public l: Loc, public c: AVal, public t: AExpr, public e: AExpr) { super(); }
+  constructor(public l: Loc, public branches: AIfBranch[], public elseBody: AExpr) { super(); }
   visit(visitor: any): any { return visitor.aIf(this); }
   label(): string { return 'a-if'; }
   tosource(): PP.PPrintDoc {
-    return PP.group(
-      strIf.append(PP.nest(2 * INDENT, this.c.tosource().append(strColon)))
-        .append(PP.nest(INDENT, breakOne.append(this.t.tosource())))
-        .append(breakOne).append(strElsecolon)
-        .append(PP.nest(INDENT, breakOne.append(this.e.tosource())))
-        .append(breakOne).append(strEnd));
+    // Rendered as the nested chain the Pyret original stored.
+    let doc = this.elseBody.tosource();
+    for (let i = this.branches.length - 1; i >= 0; i--) {
+      const b = this.branches[i];
+      doc = PP.group(
+        strIf.append(PP.nest(2 * INDENT, b.test.tosource().append(strColon)))
+          .append(PP.nest(INDENT, breakOne.append(b.body.tosource())))
+          .append(breakOne).append(strElsecolon)
+          .append(PP.nest(INDENT, breakOne.append(doc)))
+          .append(breakOne).append(strEnd));
+      for (let j = b.heads.length - 1; j >= 0; j--) {
+        doc = b.heads[j].tosourceWith(doc);
+      }
+    }
+    return doc;
   }
 }
 
@@ -944,21 +961,25 @@ export function stripLocProg(p: AProg): AProg {
 }
 
 export function stripLocExpr(expr: AExpr): AExpr {
-  switch (expr.$name) {
+  return new AExpr(expr.heads.map(stripLocHead), stripLocLettable(expr.e));
+}
+
+export function stripLocHead(head: AExprHead): AExprHead {
+  // Mirrors the per-variant behavior of the nested original (note
+  // a-type-let and a-arr-let did not strip their sub-pieces there either).
+  switch (head.$name) {
     case 'a-type-let':
-      return new ATypeLet(dummyLoc, expr.bind, expr.body);
+      return new ATypeLet(dummyLoc, head.bind);
     case 'a-let':
-      return new ALet(dummyLoc, stripLocBind(expr.bind), stripLocLettable(expr.e), stripLocExpr(expr.body));
+      return new ALet(dummyLoc, stripLocBind(head.bind), stripLocLettable(head.e));
     case 'a-arr-let':
-      return new AArrLet(dummyLoc, expr.bind, expr.idx, expr.e, expr.body);
+      return new AArrLet(dummyLoc, head.bind, head.idx, head.e);
     case 'a-var':
-      return new AVar(dummyLoc, stripLocBind(expr.bind), stripLocLettable(expr.e), stripLocExpr(expr.body));
+      return new AVar(dummyLoc, stripLocBind(head.bind), stripLocLettable(head.e));
     case 'a-seq':
-      return new ASeq(dummyLoc, stripLocLettable(expr.e1), stripLocExpr(expr.e2));
-    case 'a-lettable':
-      return new ALettable$(dummyLoc, stripLocLettable(expr.e));
+      return new ASeq(dummyLoc, stripLocLettable(head.e1));
     default:
-      throw new InternalCompilerError('No cases matched in strip-loc-expr: ' + (expr as any).$name);
+      throw new InternalCompilerError('No cases matched in strip-loc-head: ' + (head as any).$name);
   }
 }
 
@@ -980,7 +1001,9 @@ export function stripLocLettable(lettable: ALettable): ALettable {
       return new AModule(dummyLoc, stripLocVal(lettable.answer), lettable.definedModules,
         lettable.definedValues, lettable.definedTypes, stripLocVal(lettable.checks));
     case 'a-if':
-      return new AIf(dummyLoc, stripLocVal(lettable.c), stripLocExpr(lettable.t), stripLocExpr(lettable.e));
+      return new AIf(dummyLoc,
+        lettable.branches.map((b) => new AIfBranch(dummyLoc, b.heads.map(stripLocHead), stripLocVal(b.test), stripLocExpr(b.body))),
+        stripLocExpr(lettable.elseBody));
     case 'a-assign':
       return new AAssign(dummyLoc, lettable.id, stripLocVal(lettable.value));
     case 'a-app':
@@ -1063,161 +1086,6 @@ export function stripLocVal(val: AVal): AVal {
   }
 }
 
-// ---------- default-map-visitor ----------
-
-export class DefaultMapVisitor {
-  aModule(node: AModule): ALettable {
-    return new AModule(node.l, node.answer.visit(this), node.definedModules, node.definedValues, node.definedTypes, node.checks.visit(this));
-  }
-  aProgram(node: AProgram): AProg {
-    return new AProgram(node.l, node.provides, node.imports.map((i: any) => i.visit(this)), node.body.visit(this));
-  }
-  aTypeBind(node: ATypeBind$): ATypeBind {
-    return new ATypeBind$(node.l, node.name, node.ann);
-  }
-  aNewtypeBind(node: ANewtypeBind): ATypeBind {
-    return new ANewtypeBind(node.l, node.name, node.namet);
-  }
-  aTypeLet(node: ATypeLet): AExpr {
-    return new ATypeLet(node.l, node.bind.visit(this), node.body.visit(this));
-  }
-  aLet(node: ALet): AExpr {
-    return new ALet(node.l, node.bind.visit(this), node.e.visit(this), node.body.visit(this));
-  }
-  aArrLet(node: AArrLet): AExpr {
-    return new AArrLet(node.l, node.bind.visit(this), node.idx, node.e.visit(this), node.body.visit(this));
-  }
-  aVar(node: AVar): AExpr {
-    return new AVar(node.l, node.bind.visit(this), node.e.visit(this), node.body.visit(this));
-  }
-  aSeq(node: ASeq): AExpr {
-    return new ASeq(node.l, node.e1.visit(this), node.e2.visit(this));
-  }
-  aCases(node: ACases): ALettable {
-    // NOTE: Not visiting the annotation yet
-    return new ACases(node.l, node.typ, node.val.visit(this), node.branches.map((b) => b.visit(this)), node._else.visit(this));
-  }
-  aCasesBind(node: ACasesBind): ACasesBind {
-    return new ACasesBind(node.l, node.fieldType, node.bind.visit(this));
-  }
-  aCasesBranch(node: ACasesBranch$): ACasesBranch {
-    return new ACasesBranch$(node.l, node.patLoc, node.name, node.args.map((a) => a.visit(this)), node.body.visit(this));
-  }
-  aSingletonCasesBranch(node: ASingletonCasesBranch): ACasesBranch {
-    return new ASingletonCasesBranch(node.l, node.patLoc, node.name, node.body.visit(this));
-  }
-  aDataExpr(node: ADataExpr): ALettable {
-    return new ADataExpr(node.l, node.name, node.namet, node.variants.map((v) => v.visit(this)), node.shared.map((s) => s.visit(this)));
-  }
-  aVariant(node: AVariant$): AVariant {
-    return new AVariant$(node.l, node.constrLoc, node.name, node.members.map((m) => m.visit(this)), node.withMembers.map((m) => m.visit(this)));
-  }
-  aSingletonVariant(node: ASingletonVariant): AVariant {
-    return new ASingletonVariant(node.l, node.name, node.withMembers.map((m) => m.visit(this)));
-  }
-  aVariantMember(node: AVariantMember): AVariantMember {
-    return new AVariantMember(node.l, node.memberType, node.bind.visit(this));
-  }
-  aIf(node: AIf): ALettable {
-    return new AIf(node.l, node.c.visit(this), node.t.visit(this), node.e.visit(this));
-  }
-  aLettable(node: ALettable$): AExpr {
-    return new ALettable$(node.l, node.e.visit(this));
-  }
-  aAssign(node: AAssign): ALettable {
-    return new AAssign(node.l, node.id, node.value.visit(this));
-  }
-  aApp(node: AApp): ALettable {
-    return new AApp(node.l, node._fun.visit(this), node.args.map((a) => a.visit(this)), node.appInfo);
-  }
-  aMethodApp(node: AMethodApp): ALettable {
-    return new AMethodApp(node.l, node.obj.visit(this), node.meth, node.args.map((a) => a.visit(this)));
-  }
-  aPrimApp(node: APrimApp): ALettable {
-    return new APrimApp(node.l, node.f, node.args.map((a) => a.visit(this)), node.appInfo);
-  }
-  aRef(node: ARef): ALettable {
-    return new ARef(node.l, node.ann);
-  }
-  aTuple(node: ATuple): ALettable {
-    return new ATuple(node.l, node.fields.map((f) => f.visit(this)));
-  }
-  aTupleGet(node: ATupleGet): ALettable {
-    return new ATupleGet(node.l, node.tup.visit(this), node.index);
-  }
-  aObj(node: AObj): ALettable {
-    return new AObj(node.l, node.fields.map((f) => f.visit(this)));
-  }
-  aUpdate(node: AUpdate): ALettable {
-    return new AUpdate(node.l, node.supe.visit(this), node.fields.map((f) => f.visit(this)));
-  }
-  aExtend(node: AExtend): ALettable {
-    return new AExtend(node.l, node.supe.visit(this), node.fields.map((f) => f.visit(this)));
-  }
-  aDot(node: ADot): ALettable {
-    return new ADot(node.l, node.obj.visit(this), node.field);
-  }
-  aColon(node: AColon): ALettable {
-    return new AColon(node.l, node.obj.visit(this), node.field);
-  }
-  aGetBang(node: AGetBang): ALettable {
-    return new AGetBang(node.l, node.obj.visit(this), node.field);
-  }
-  aLam(node: ALam): ALettable {
-    return new ALam(node.l, node.name, node.args.map((a) => a.visit(this)), node.ret, node.body.visit(this));
-  }
-  aMethod(node: AMethod): ALettable {
-    return new AMethod(node.l, node.name, node.args.map((a) => a.visit(this)), node.ret, node.body.visit(this));
-  }
-  aVal(node: AVal$): ALettable {
-    return new AVal$(node.l, node.v.visit(this));
-  }
-  aBind(node: ABind): ABind {
-    return new ABind(node.l, node.id, node.ann);
-  }
-  aField(node: AField): AField {
-    return new AField(node.l, node.name, node.value.visit(this));
-  }
-  aSrcloc(node: ASrcloc): AVal {
-    return new ASrcloc(node.l, node.loc);
-  }
-  aNum(node: ANum): AVal {
-    return new ANum(node.l, node.n);
-  }
-  aStr(node: AStr): AVal {
-    return new AStr(node.l, node.s);
-  }
-  aBool(node: ABool): AVal {
-    return new ABool(node.l, node.b);
-  }
-  aUndefined(node: AUndefined): AVal {
-    return new AUndefined(node.l);
-  }
-  aPrimVal(node: APrimVal): AVal {
-    return new APrimVal(node.l, node.name);
-  }
-  aId(node: AId): AVal {
-    return new AId(node.l, node.id);
-  }
-  aIdModref(node: AIdModref): AVal {
-    return new AIdModref(node.l, node.id, node.uri, node.name);
-  }
-  aIdVar(node: AIdVar): ALettable {
-    return new AIdVar(node.l, node.id);
-  }
-  aIdVarModref(node: AIdVarModref): ALettable {
-    return new AIdVarModref(node.l, node.id, node.uri, node.name);
-  }
-  aIdLetrec(node: AIdLetrec): ALettable {
-    return new AIdLetrec(node.l, node.id, node.safe);
-  }
-  aIdSafeLetrec(node: AIdSafeLetrec): AVal {
-    return new AIdSafeLetrec(node.l, node.id);
-  }
-}
-
-export const defaultMapVisitor = new DefaultMapVisitor();
-
 // ---------- freevars ----------
 
 export function freevarsListAcc(anns: A.Ann[], seenSoFar: NameDict<A.Name>): NameDict<A.Name> {
@@ -1276,80 +1144,44 @@ export function freevarsAnnAcc(ann: A.Ann, seenSoFar: NameDict<A.Name>): NameDic
   }
 }
 
-/*
-  The spine is one chain node per statement, and the natural recursion is
-  a fold on the way back up: the deepest body's free variables are
-  computed first, then each binding is processed innermost-to-outermost.
-  Walk down iteratively collecting the spine, then process it in reverse,
-  so stack use is bounded on long programs (e.g. browsers); nested
-  expressions still recur through freevarsLAcc, bounded by nesting depth.
-  The dict operations happen in exactly the order of the recursive
-  formulation.
-*/
 export function freevarsEAcc(expr: AExpr, seenSoFar: NameDict<A.Name>): NameDict<A.Name> {
-  const spine: Exclude<AExpr, ALettable$>[] = [];
-  let cur: AExpr = expr;
-  let descending = true;
-  while (descending) {
-    switch (cur.$name) {
-      case 'a-type-let':
-      case 'a-let':
-      case 'a-arr-let':
-      case 'a-var':
-        spine.push(cur);
-        cur = cur.body;
-        break;
-      case 'a-seq':
-        spine.push(cur);
-        cur = cur.e2;
-        break;
-      default:
-        descending = false;
-    }
-  }
-  let acc: NameDict<A.Name>;
-  switch (cur.$name) {
-    case 'a-lettable':
-      acc = freevarsLAcc(cur.e, seenSoFar);
-      break;
-    default:
-      throw new InternalCompilerError('No cases matched in freevars-e-acc: ' + (cur as any).$name);
-  }
-  for (let i = spine.length - 1; i >= 0; i--) {
-    const node = spine[i];
-    switch (node.$name) {
-      case 'a-type-let': {
-        const b = node.bind;
-        switch (b.$name) {
-          case 'a-type-bind': {
-            acc.delete(b.name.key());
-            acc = freevarsAnnAcc(b.ann, acc);
-            break;
-          }
-          case 'a-newtype-bind': {
-            acc.delete(b.name.key());
-            acc.delete(b.namet.key());
-            break;
-          }
-          default:
-            throw new InternalCompilerError('No cases matched in freevars-e-acc: ' + (b as any).$name);
-        }
-        break;
-      }
-      case 'a-let':
-      case 'a-arr-let':
-      case 'a-var': {
-        acc.delete(node.bind.id.key());
-        acc = freevarsAnnAcc(node.bind.ann, freevarsLAcc(node.e, acc));
-        break;
-      }
-      case 'a-seq': {
-        acc = freevarsLAcc(node.e1, acc);
-        break;
-      }
-    }
+  let acc = freevarsLAcc(expr.e, seenSoFar);
+  const heads = expr.heads;
+  for (let i = heads.length - 1; i >= 0; i--) {
+    acc = freevarsHeadAcc(heads[i], acc);
   }
   return acc;
+}
+
+export function freevarsHeadAcc(node: AExprHead, acc: NameDict<A.Name>): NameDict<A.Name> {
+  switch (node.$name) {
+    case 'a-type-let': {
+      const b = node.bind;
+      switch (b.$name) {
+        case 'a-type-bind': {
+          acc.delete(b.name.key());
+          return freevarsAnnAcc(b.ann, acc);
+        }
+        case 'a-newtype-bind': {
+          acc.delete(b.name.key());
+          acc.delete(b.namet.key());
+          return acc;
+        }
+        default:
+          throw new InternalCompilerError('No cases matched in freevars-e-acc: ' + (b as any).$name);
+      }
+    }
+    case 'a-let':
+    case 'a-arr-let':
+    case 'a-var': {
+      acc.delete(node.bind.id.key());
+      return freevarsAnnAcc(node.bind.ann, freevarsLAcc(node.e, acc));
+    }
+    case 'a-seq':
+      return freevarsLAcc(node.e1, acc);
+    default:
+      throw new InternalCompilerError('No cases matched in freevars-head-acc: ' + (node as any).$name);
+  }
 }
 
 export function freevarsE(expr: AExpr): FrozenNameDict<A.Name> {
@@ -1422,8 +1254,23 @@ export function freevarsLAcc(e: ALettable, seenSoFar: NameDict<A.Name>): NameDic
         freevarsVAcc(e.val,
           freevarsBranchesAcc(e.branches,
             freevarsEAcc(e._else, seenSoFar))));
-    case 'a-if':
-      return freevarsEAcc(e.e, freevarsEAcc(e.t, freevarsVAcc(e.c, seenSoFar)));
+    case 'a-if': {
+      // Same dict-operation order as the nested chain: each arm's test
+      // then body (the first arm's test heads live in the enclosing
+      // AExpr), then the else, then the arms' test heads innermost-first.
+      let acc = seenSoFar;
+      for (const b of e.branches) {
+        acc = freevarsEAcc(b.body, freevarsVAcc(b.test, acc));
+      }
+      acc = freevarsEAcc(e.elseBody, acc);
+      for (let i = e.branches.length - 1; i >= 0; i--) {
+        const hs = e.branches[i].heads;
+        for (let j = hs.length - 1; j >= 0; j--) {
+          acc = freevarsHeadAcc(hs[j], acc);
+        }
+      }
+      return acc;
+    }
     case 'a-assign': {
       seenSoFar.set(e.id.key(), e.id);
       return freevarsVAcc(e.value, seenSoFar);

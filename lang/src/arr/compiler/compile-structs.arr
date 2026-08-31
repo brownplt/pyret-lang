@@ -2980,7 +2980,8 @@ default-compile-options = {
   html-file: none,
   deps-file: "build/bundled-node-deps.js",
   standalone-file: "src/js/base/handalone.js",
-  url-file-mode: all-remote
+  url-file-mode: all-remote,
+  pause-schedule: none
 }
 
 fun make-default-compile-options(this-pyret-dir):

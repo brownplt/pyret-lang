@@ -1013,6 +1013,7 @@ export interface CompileOptions {
   depsFile: string;
   standaloneFile: string;
   urlFileMode: UrlFileMode;
+  pauseSchedule: string | undefined;
   // Set by some front ends (CLI/webworker); not part of the defaults.
   pipeline?: string;
   compileModule?: boolean;
@@ -1060,7 +1061,8 @@ export const defaultCompileOptions: CompileOptions = {
   htmlFile: undefined,
   depsFile: "build/bundled-node-deps.js",
   standaloneFile: "src/js/base/handalone.js",
-  urlFileMode: allRemote
+  urlFileMode: allRemote,
+  pauseSchedule: undefined
 };
 
 export function makeDefaultCompileOptions(thisPyretDir: string): CompileOptions {

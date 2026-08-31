@@ -9,7 +9,7 @@ import * as CE from './compile-errors';
 import type { CompileError } from './compile-errors';
 import * as U from './ast-util';
 import * as T from './type-structs';
-import { DefaultMapVisitor, DefaultIterVisitor } from './ast-visitors';
+import { DefaultMapVisitor, PostScopeMapVisitor, PostScopeIterVisitor } from './ast-visitors';
 import { InternalCompilerError, mapSet, mapGetValue, toRepr, field, asVariant } from './shared';
 
 export type ValueBind = C.ValueBind;
@@ -40,10 +40,9 @@ export function mkId(loc: C.Loc, base: string): { id: A.Name; idB: A.Bind; idE: 
   return { id: t, idB: mkBind(loc, t), idE: new A.SId(loc, t) };
 }
 
-export function desugarToplevelTypes(stmts: A.Expr[]): A.Expr[] {
-  // Treating stmts as a toplevel block, hoist any type-lets or newtype declarations
-  // to the top, turning them into a type-let-expression, and generate newtypes for all
-  // data expressions.
+export function desugarToplevelTypes(stmts: A.Expr[]): { typeBinds: A.TypeLetBind[]; stmts: A.Expr[] } {
+  // Treating stmts as a toplevel block, hoist any newtype declarations
+  // to the top, and generate newtypes for all data expressions.
   // NOTE: the Pyret original accumulates reversed lists and reverses them at the
   // end; here we just push in order (the reversed intermediates are unobserved).
   const typeBinds: A.TypeLetBind[] = [];
@@ -62,11 +61,16 @@ export function desugarToplevelTypes(stmts: A.Expr[]): A.Expr[] {
       newStmts.push(s);
     }
   }
-  if (typeBinds.length === 0) {
-    return stmts;
+  return { typeBinds, stmts: newStmts };
+}
+
+export function prependScopeEntries(l: C.Loc, entries: A.ScopeEntry[], body: A.Expr): A.Expr {
+  if (entries.length === 0) {
+    return body;
+  } else if (A.isSScopeBlock(body)) {
+    return new A.SScopeBlock(l, [...entries, ...body.entries], body.tail);
   } else {
-    return [new A.STypeLetExpr(typeBinds[0].l, typeBinds,
-      new A.SBlock(typeBinds[0].l, newStmts), newStmts.length > 1)];
+    return new A.SScopeBlock(l, entries, body);
   }
 }
 
@@ -274,35 +278,15 @@ export function weaveContracts(contracts: Contract[], revBinds: any[]): any[] {
   return ans;
 }
 
-export function bindWrap(bg: BindingGroup, expr: A.Expr): A.Expr {
-  if (bg.binds.length === 0) {
-    // NOTE: for type-let-binds (which has no contracts field) this access
-    // fails, mirroring the Pyret field-access error; that case cannot occur.
-    for (const c of field<Contract[]>(bg, 'contracts')) {
-      errors = [new CE.ContractUnused(c.l, c.name.toname()), ...errors];
-    }
-    return expr;
-  } else {
-    if (isLetBinds(bg)) {
-      return new A.SLetExpr(bg.binds[0].l, weaveContracts(bg.contracts, bg.binds), expr, false);
-    } else if (isLetrecBinds(bg)) {
-      return new A.SLetrec(bg.binds[0].l, weaveContracts(bg.contracts, bg.binds), expr, false);
-    } else if (isTypeLetBinds(bg)) {
-      return new A.STypeLetExpr(bg.binds[0].l, [...bg.binds].reverse(), expr, false);
-    }
-    throw new InternalCompilerError("bind-wrap: no cases matched");
-  }
-}
-
-export function addLetrecBind(bg: BindingGroup, lrb: A.LetrecBind, stmts: A.Expr[]): A.Expr {
+function addLetrecBind(bg: BindingGroup, lrb: A.LetrecBind, stmts: A.Expr[]): DsbStep {
   return addLetrecBinds(bg, [lrb], stmts);
 }
 
-export function addLetrecBinds(bg: BindingGroup, lrbs: A.LetrecBind[], stmts: A.Expr[]): A.Expr {
+function addLetrecBinds(bg: BindingGroup, lrbs: A.LetrecBind[], stmts: A.Expr[]): DsbStep {
   if (isLetrecBinds(bg)) {
     return dsbDefer(stmts, new LetrecBinds(bg.contracts, [...lrbs, ...bg.binds]));
   } else {
-    return dsbDeferWrapped((e) => bindWrap(bg, e), stmts, new LetrecBinds([], lrbs));
+    return dsbDeferGroup(bg, stmts, new LetrecBinds([], lrbs));
   }
 }
 
@@ -353,7 +337,7 @@ export function simplifyLetBind(
 const mkSLetBind = (l: C.Loc, b: A.Bind, v: A.Expr) => new A.SLetBind(l, b, v);
 const mkSVarBind = (l: C.Loc, b: A.Bind, v: A.Expr) => new A.SVarBind(l, b, v);
 
-export function addLetBinds(bg: BindingGroup, lbs: A.LetBind[], stmts: A.Expr[]): A.Expr {
+function addLetBinds(bg: BindingGroup, lbs: A.LetBind[], stmts: A.Expr[]): DsbStep {
   let simplifiedLbs: any[] = [];
   for (const lb of lbs) {
     if (A.isSLetBind(lb)) {
@@ -367,23 +351,23 @@ export function addLetBinds(bg: BindingGroup, lbs: A.LetBind[], stmts: A.Expr[])
   if (isLetBinds(bg)) {
     return dsbDefer(stmts, new LetBinds(bg.contracts, [...simplifiedLbs, ...bg.binds]));
   } else {
-    return dsbDeferWrapped((e) => bindWrap(bg, e), stmts, new LetBinds([], simplifiedLbs));
+    return dsbDeferGroup(bg, stmts, new LetBinds([], simplifiedLbs));
   }
 }
 
-export function addLetBind(bg: BindingGroup, lb: A.LetBind, stmts: A.Expr[]): A.Expr {
+function addLetBind(bg: BindingGroup, lb: A.LetBind, stmts: A.Expr[]): DsbStep {
   return addLetBinds(bg, [lb], stmts);
 }
 
-export function addTypeLetBind(bg: BindingGroup, tlb: A.TypeLetBind, stmts: A.Expr[]): A.Expr {
+function addTypeLetBind(bg: BindingGroup, tlb: A.TypeLetBind, stmts: A.Expr[]): DsbStep {
   if (isTypeLetBinds(bg)) {
     return dsbDefer(stmts, new TypeLetBinds([tlb, ...bg.binds]));
   } else {
-    return dsbDeferWrapped((e) => bindWrap(bg, e), stmts, new TypeLetBinds([tlb]));
+    return dsbDeferGroup(bg, stmts, new TypeLetBinds([tlb]));
   }
 }
 
-export function addContracts(bg: BindingGroup, cs: Contract[], stmts: A.Expr[]): A.Expr {
+function addContracts(bg: BindingGroup, cs: Contract[], stmts: A.Expr[]): DsbStep {
   // The type of the next statement determines which binding group this contract belongs in
   if (stmts.length === 0) {
     // NOTE(Ben): would rather raise an informative error than a "no cases matched" error,
@@ -398,13 +382,13 @@ export function addContracts(bg: BindingGroup, cs: Contract[], stmts: A.Expr[]):
       if (isLetrecBinds(bg)) { // keep the current binding group going
         return dsbDefer(stmts, new LetrecBinds([...cs, ...bg.contracts], bg.binds));
       } else {
-        return dsbDeferWrapped((e) => bindWrap(bg, e), stmts, new LetrecBinds(cs, []));
+        return dsbDeferGroup(bg, stmts, new LetrecBinds(cs, []));
       }
     } else {
       if (isLetBinds(bg)) { // keep the current binding group going
         return dsbDefer(stmts, new LetBinds([...cs, ...bg.contracts], bg.binds));
       } else {
-        return dsbDeferWrapped((e) => bindWrap(bg, e), stmts, new LetBinds(cs, []));
+        return dsbDeferGroup(bg, stmts, new LetBinds(cs, []));
       }
     }
   }
@@ -415,48 +399,108 @@ export function addContracts(bg: BindingGroup, cs: Contract[], stmts: A.Expr[]):
   one full activation per block statement (all calls are tail calls or a
   single wrap around a tail call), which overflows fixed-size stacks
   (e.g. browsers) on long blocks. desugarScopeBlock drives the per-step
-  worker iteratively instead: a step either returns a final expression or
-  defers (optionally with a wrap to apply to the eventual result, in
-  original unwind order). Side effects (atom generation) happen in the
-  worker steps, in the same order as the recursive formulation.
+  worker iteratively, and assembles the FLAT s-scope-block directly.
+  Side effects happen in the same order as the nested formulation did
+  them: atom generation in the worker steps, forward; contract weaving
+  and unused-contract errors when groups are materialized, in the nested
+  unwind order (the tail's group first, then the rest right-to-left).
 */
-let dsbPending: { stmts: A.Expr[]; bg: BindingGroup; wrap?: (e: A.Expr) => A.Expr } | undefined = undefined;
-const dsbSentinel: A.Expr = undefined as unknown as A.Expr;
+// One flat-block output item, listed in source order: a completed
+// binding group (binds nonempty), contracts that never met a binding
+// (reported as ContractUnused when reached), or a plain statement.
+type DsbEmit =
+  | { kind: 'group'; bg: BindingGroup }
+  | { kind: 'unusedContracts'; contracts: Contract[] }
+  | { kind: 'stmt'; stmt: A.Expr };
+type DsbStep =
+  | { kind: 'step'; emits: DsbEmit[]; stmts: A.Expr[]; bg: BindingGroup }
+  | { kind: 'tail'; emits: DsbEmit[]; tail: A.Expr };
 
-function dsbDefer(stmts: A.Expr[], bg: BindingGroup): A.Expr {
-  dsbPending = { stmts, bg };
-  return dsbSentinel;
+// Close a binding group into its emission: a real group, leftover
+// contracts, or nothing. (TypeLetBinds has no contracts field and is
+// never constructed empty.)
+function dsbGroupEmits(bg: BindingGroup): DsbEmit[] {
+  if (bg.binds.length > 0) {
+    return [{ kind: 'group', bg }];
+  }
+  if (isTypeLetBinds(bg) || bg.contracts.length === 0) {
+    return [];
+  }
+  return [{ kind: 'unusedContracts', contracts: bg.contracts }];
 }
 
-function dsbDeferWrapped(wrap: (e: A.Expr) => A.Expr, stmts: A.Expr[], bg: BindingGroup): A.Expr {
-  dsbPending = { stmts, bg, wrap };
-  return dsbSentinel;
+function dsbDefer(stmts: A.Expr[], bg: BindingGroup): DsbStep {
+  return { kind: 'step', emits: [], stmts, bg };
 }
 
-export function desugarScopeBlock(stmts: A.Expr[], bindingGroup: BindingGroup): A.Expr {
-  const wraps: Array<(e: A.Expr) => A.Expr> = [];
+// The binding group `closedBg` is complete (the next statement starts a
+// group of a different kind); it becomes one flat entry.
+function dsbDeferGroup(closedBg: BindingGroup, stmts: A.Expr[], bg: BindingGroup): DsbStep {
+  return { kind: 'step', emits: dsbGroupEmits(closedBg), stmts, bg };
+}
+
+// A plain (non-binding) statement: the pending group is closed and the
+// statement itself becomes an entry.
+function dsbDeferStmt(closedBg: BindingGroup, stmt: A.Expr, stmts: A.Expr[]): DsbStep {
+  return { kind: 'step', emits: [...dsbGroupEmits(closedBg), { kind: 'stmt', stmt }],
+           stmts, bg: new LetBinds([], []) };
+}
+
+function dsbFinish(closedBg: BindingGroup, tail: A.Expr): DsbStep {
+  return { kind: 'tail', emits: dsbGroupEmits(closedBg), tail };
+}
+
+// The group half of the old bindWrap: weave the group's contracts and
+// build its flat entry. Only nonempty groups reach here (dsbGroupEmits
+// resolves empty ones into unusedContracts or nothing).
+function materializeGroup(bg: BindingGroup): A.ScopeEntry {
+  if (isLetBinds(bg)) {
+    return new A.SScopeLet(bg.binds[0].l, weaveContracts(bg.contracts, bg.binds));
+  } else if (isLetrecBinds(bg)) {
+    return new A.SScopeLetrec(bg.binds[0].l, weaveContracts(bg.contracts, bg.binds));
+  } else if (isTypeLetBinds(bg)) {
+    return new A.SScopeTypeLet(bg.binds[0].l, [...bg.binds].reverse());
+  }
+  throw new InternalCompilerError('materialize-group: no cases matched');
+}
+
+export function desugarScopeBlock(l: C.Loc, stmts: A.Expr[], bindingGroup: BindingGroup): A.Expr {
+  const items: DsbEmit[] = [];
   let curStmts = stmts;
   let curBg = bindingGroup;
+  let tail: A.Expr;
   for (;;) {
-    dsbPending = undefined;
-    const result = desugarScopeBlockStep(curStmts, curBg);
-    if (dsbPending === undefined) {
-      let out = result;
-      for (let i = wraps.length - 1; i >= 0; i--) {
-        out = wraps[i](out);
-      }
-      return out;
-    }
-    const pending: { stmts: A.Expr[]; bg: BindingGroup; wrap?: (e: A.Expr) => A.Expr } = dsbPending;
-    if (pending.wrap !== undefined) {
-      wraps.push(pending.wrap);
+    const pending = desugarScopeBlockStep(curStmts, curBg);
+    items.push(...pending.emits);
+    if (pending.kind === 'tail') {
+      tail = pending.tail;
+      break;
     }
     curStmts = pending.stmts;
     curBg = pending.bg;
   }
+  // Materialize backwards: the nested formulation wove contracts and
+  // reported unused-contract errors in unwind order (tail's group first).
+  const rev: A.ScopeEntry[] = [];
+  for (let i = items.length - 1; i >= 0; i--) {
+    const it = items[i];
+    if (it.kind === 'stmt') {
+      rev.push(new A.SScopeStmt(it.stmt.l, it.stmt));
+    } else if (it.kind === 'unusedContracts') {
+      const mkErr = c => new CE.ContractUnused(c.l, c.name.toname());
+      const contractErrs = it.contracts.map(mkErr).reverse();
+      errors = [ ...contractErrs, ...errors ]
+    } else {
+      rev.push(materializeGroup(it.bg));
+    }
+  }
+  if (rev.length === 0) {
+    return tail;
+  }
+  return new A.SScopeBlock(l, rev.reverse(), tail);
 }
 
-function desugarScopeBlockStep(stmts: A.Expr[], bindingGroup: BindingGroup): A.Expr {
+function desugarScopeBlockStep(stmts: A.Expr[], bindingGroup: BindingGroup): DsbStep {
   // Treating stmts as a block, resolve scope.
   // There should be no blocks left after this stage of the compiler pipeline.
   if (stmts.length === 0) {
@@ -521,17 +565,9 @@ function desugarScopeBlockStep(stmts: A.Expr[], bindingGroup: BindingGroup): A.E
       [new A.SLetrecBind(l, b(l), new A.SCheck(l, f.name, f.body, f.keywordCheck))], restStmts);
   } else {
     if (restStmts.length === 0) {
-      return bindWrap(bindingGroup, f);
+      return dsbFinish(bindingGroup, f);
     } else {
-      return dsbDeferWrapped((restStmt) => {
-        let newRestStmts: A.Expr[];
-        if (A.isSBlock(restStmt)) {
-          newRestStmts = [f, ...restStmt.stmts];
-        } else {
-          newRestStmts = [f, restStmt];
-        }
-        return bindWrap(bindingGroup, new A.SBlock(f.l, newRestStmts));
-      }, restStmts, new LetBinds([], []));
+      return dsbDeferStmt(bindingGroup, f, restStmts);
     }
   }
 }
@@ -548,21 +584,23 @@ export function rebuildFun(
   const vCheck = _check === undefined ? undefined : _check.visit(visitor);
   const placeholder = new A.SStr(l, "placeholder");
   let newBinds: A.Bind[] = [];
-  let newBody: A.Expr = vBody;
+  // reverse arg order: the Pyret original nests these last arg outermost
+  const tupleGroups: A.ScopeEntry[] = [];
   for (const a of args) {
     const lbs = simplifyLetBind(mkSLetBind, a.l, a.visit(visitor), placeholder, []).reverse();
     const argBind = lbs[0];
     newBinds = [argBind.b, ...newBinds];
     if (lbs.length > 1) {
-      newBody = new A.SLetExpr(a.l, lbs.slice(1), newBody, false);
+      tupleGroups.unshift(new A.SScopeLet(a.l, lbs.slice(1)));
     }
   }
+  const newBody = tupleGroups.length === 0 ? vBody : new A.SScopeBlock(tupleGroups[0].l, tupleGroups, vBody);
   return rebuild(l, name, vParams, [...newBinds].reverse(), vAnn, doc, newBody, _checkLoc, vCheck, blocky);
 }
 
 export class DesugarScopeVisitor extends DefaultMapVisitor {
   sBlock(node: A.SBlock): A.Expr {
-    return desugarScopeBlock(node.stmts.map((s) => s.visit(this)), new LetBinds([], []));
+    return desugarScopeBlock(node.l, node.stmts.map((s) => s.visit(this)), new LetBinds([], []));
   }
   sLetExpr(node: A.SLetExpr): A.Expr {
     const vBody = node.body.visit(this);
@@ -570,36 +608,48 @@ export class DesugarScopeVisitor extends DefaultMapVisitor {
     for (const b of node.binds) {
       newBinds = simplifyLetBind(mkSLetBind, b.l, b.b.visit(this), b.value.visit(this), newBinds);
     }
-    return new A.SLetExpr(node.l, [...newBinds].reverse(), vBody, node.blocky);
+    return A.sScopeLetBlock(node.l, [...newBinds].reverse(), vBody);
+  }
+  sLetrec(node: A.SLetrec): A.Expr {
+    const vBinds = node.binds.map((b) => b.visit(this));
+    const vBody = node.body.visit(this);
+    return new A.SScopeBlock(node.l, [new A.SScopeLetrec(node.l, vBinds)], vBody);
+  }
+  sTypeLetExpr(node: A.STypeLetExpr): A.Expr {
+    const vBinds = node.binds.map((b) => b.visit(this));
+    const vBody = node.body.visit(this);
+    return new A.SScopeBlock(node.l, [new A.SScopeTypeLet(node.l, vBinds)], vBody);
   }
   sFor(node: A.SFor): A.Expr {
     const vIterator = node.iterator.visit(this);
     const vAnn = node.ann.visit(this);
     const vBody = node.body.visit(this);
     let newBinds: A.ForBind[] = [];
-    let newBody: A.Expr = vBody;
+    const tupleGroups: A.ScopeEntry[] = []; // reverse binding order, as in rebuildFun
     for (const b of node.bindings) {
       const lbs = simplifyLetBind(mkSLetBind, b.l, b.bind.visit(this), b.value.visit(this), []).reverse();
       const argBind = lbs[0];
       newBinds = [new A.SForBind(b.l, argBind.b, argBind.value), ...newBinds];
       if (lbs.length > 1) {
-        newBody = new A.SLetExpr(b.l, lbs.slice(1), newBody, false);
+        tupleGroups.unshift(new A.SScopeLet(b.l, lbs.slice(1)));
       }
     }
+    const newBody = tupleGroups.length === 0 ? vBody : new A.SScopeBlock(tupleGroups[0].l, tupleGroups, vBody);
     return new A.SFor(node.l, vIterator, [...newBinds].reverse(), vAnn, newBody, node.blocky);
   }
   sCasesBranch(node: A.SCasesBranch): A.CasesBranch {
     const vBody = node.body.visit(this);
     let newBinds: A.CasesBind[] = [];
-    let newBody: A.Expr = vBody;
+    const tupleGroups: A.ScopeEntry[] = []; // reverse binding order, as in rebuildFun
     for (const b of node.args) {
       const lbs = simplifyLetBind(mkSLetBind, b.l, b.bind.visit(this), new A.SStr(b.l, "placeholder"), []).reverse();
       const argBind = lbs[0];
       newBinds = [new A.SCasesBind(b.l, b.fieldType, argBind.b), ...newBinds];
       if (lbs.length > 1) {
-        newBody = new A.SLetExpr(b.l, lbs.slice(1), newBody, false);
+        tupleGroups.unshift(new A.SScopeLet(b.l, lbs.slice(1)));
       }
     }
+    const newBody = tupleGroups.length === 0 ? vBody : new A.SScopeBlock(tupleGroups[0].l, tupleGroups, vBody);
     return new A.SCasesBranch(node.l, node.patLoc, node.name, [...newBinds].reverse(), newBody);
   }
   sFun(node: A.SFun): A.Expr {
@@ -651,45 +701,28 @@ export function desugarScope(prog: A.Program, env: C.CompileEnvironment): C.Scop
   const importsRaw = prog.imports;
   const body = prog.block;
 
-  let withImports: A.Expr;
-  if (A.isSBlock(body)) {
-    withImports = new A.SBlock(body.l, desugarToplevelTypes(body.stmts));
-  } else {
-    withImports = new A.SBlock(l, desugarToplevelTypes([body]));
-  }
+  const bodyL = A.isSBlock(body) ? body.l : l;
+  const { typeBinds, stmts } = desugarToplevelTypes(A.isSBlock(body) ? body.stmts : [body]);
+  // the loc the Pyret original's type-let wrapper carries
+  const blockL = typeBinds.length > 0 ? typeBinds[0].l : bodyL;
   function transformToplevelLast(l2: C.Loc, last: A.Expr): A.Expr {
     return new A.SModule(l2, last, [], [], [],
       new A.SApp(l2, new A.SDot(l2, U.checkers(l2), "results"), []));
   }
-  let withProvides: A.Expr;
-  if (A.isSBlock(withImports)) {
-    const l2 = withImports.l;
-    const stmts = withImports.stmts;
-    const last = stmts[stmts.length - 1];
-    if (A.isSTypeLetExpr(last)) {
-      const l3 = last.l;
-      const binds = last.binds;
-      const body2 = asVariant(last.body, A.SBlock);
-      const innerLast = body2.stmts[body2.stmts.length - 1];
-      withProvides = new A.SBlock(l2,
-        [...stmts.slice(0, stmts.length - 1),
-          new A.STypeLetExpr(l3, binds,
-            new A.SBlock(body2.l, [...body2.stmts.slice(0, body2.stmts.length - 1),
-              transformToplevelLast(l3, innerLast)]),
-            true)]);
-    } else {
-      withProvides = new A.SBlock(l2, [...stmts.slice(0, stmts.length - 1), transformToplevelLast(l2, last)]);
-    }
-  } else {
-    throw new InternalCompilerError("Impossible");
-  }
+  const last = stmts[stmts.length - 1];
+  const withProvides = new A.SBlock(blockL, [...stmts.slice(0, stmts.length - 1), transformToplevelLast(blockL, last)]);
 
   errors = [];
-
-  const recombined = new A.SBlock(withProvides.l, field(withProvides, 'stmts'));
-  const visited = recombined.visit(desugarScopeVisitor);
+  const visited = withProvides.visit(desugarScopeVisitor);
+  // The hoisted binds get the same visit the statements got: today their
+  // anns can only carry ids (refinements are syntactically ids), but this
+  // is where a block-bearing ann would need scope-desugaring.
+  const visitedTypeBinds = typeBinds.map((b) => b.visit(desugarScopeVisitor));
+  const block = typeBinds.length === 0
+    ? visited
+    : prependScopeEntries(blockL, [new A.SScopeTypeLet(blockL, visitedTypeBinds)], visited);
   return new C.ResolvedScope(
-    new A.SProgram(l, _useRaw, _provideRaw, provideTypesRaw, provides, importsRaw, visited),
+    new A.SProgram(l, _useRaw, _provideRaw, provideTypesRaw, provides, importsRaw, block),
     errors);
 }
 
@@ -1221,7 +1254,7 @@ export function resolveNames(p: A.Program, thismoduleUri: string, initialEnv: C.
 
   let finalVisitor: NamesVisitor | undefined = undefined;
 
-  class NamesVisitor extends DefaultMapVisitor {
+  class NamesVisitor extends PostScopeMapVisitor {
     constructor(public env: ScopeEnv, public typeEnv: TypeEnv, public moduleEnv: ModuleEnv) {
       super();
     }
@@ -1613,102 +1646,103 @@ export function resolveNames(p: A.Program, thismoduleUri: string, initialEnv: C.
       return new A.SProgram(l, _use, new A.SProvideNone(l), new A.SProvideTypesNone(l), oneTrueProvide, [...impImps].reverse(), visitBody);
     }
 
-    sTypeLetExpr(node: A.STypeLetExpr): A.Expr {
-      let e = this.env;
-      let te = this.typeEnv;
-      let bs: A.TypeLetBind[] = [];
-      for (const b of node.binds) {
-        if (A.isSTypeBind(b)) {
-          const l2 = b.l;
-          const name = b.name;
-          const params = b.params;
-          const ann = b.ann;
-          const accTe = te;
-          let newTypesEnv = accTe;
-          let newTypesAtoms: A.Name[] = [];
-          for (const param of params) {
-            const atomEnv = makeAtomFor(param, false, newTypesEnv, typeBindings,
-              (atom) => new C.TypeBind(C.boLocal(l2, param), C.tbTypeVar, atom, C.tbNone));
-            newTypesEnv = atomEnv.env;
-            newTypesAtoms = [atomEnv.atom, ...newTypesAtoms];
+    sScopeBlock(node: A.SScopeBlock): A.Expr {
+      let cur: NamesVisitor = this;
+      const newEntries: A.ScopeEntry[] = [];
+      for (const entry of node.entries) {
+        if (A.isSScopeLet(entry)) {
+          let e = cur.env;
+          let bs: A.LetBind[] = [];
+          for (const b of entry.binds) {
+            if (A.isSLetBind(b)) {
+              const l2 = b.l;
+              const bind = asVariant(b.b, A.SBind);
+              const expr = b.value;
+              const visitedAnn = bind.ann.visit(cur.extend({ env: e }));
+              const atomEnv = makeAtomFor(bind.id, bind.shadows, e, bindings,
+                (atom) => new C.ValueBind(C.boLocal(l2, bind.id), C.vbLet, atom, visitedAnn));
+              const visitExpr = expr.visit(cur.extend({ env: e }));
+              const newBind = new A.SLetBind(l2, new A.SBind(l2, bind.shadows, atomEnv.atom, visitedAnn), visitExpr);
+              e = atomEnv.env;
+              bs = [newBind, ...bs];
+            } else if (A.isSVarBind(b)) {
+              const l2 = b.l;
+              const bind = asVariant(b.b, A.SBind);
+              const expr = b.value;
+              const visitedAnn = bind.ann.visit(cur.extend({ env: e }));
+              const atomEnv = makeAtomFor(bind.id, bind.shadows, e, bindings,
+                (atom) => new C.ValueBind(C.boLocal(l2, bind.id), C.vbVar, atom, visitedAnn));
+              const visitExpr = expr.visit(cur.extend({ env: e }));
+              const newBind = new A.SVarBind(l2, new A.SBind(l2, bind.shadows, atomEnv.atom, visitedAnn), visitExpr);
+              e = atomEnv.env;
+              bs = [newBind, ...bs];
+            } else {
+              throw new InternalCompilerError("s-scope-block let entry: no cases matched");
+            }
           }
-          const visitedAnn = ann.visit(this.extend({ env: e, typeEnv: newTypesEnv }));
-          let fullTyp: T.Type;
-          if (params.length === 0) {
-            fullTyp = U.annToTyp(visitedAnn, thismoduleUri, initialEnv);
-          } else {
-            const tbody = U.annToTyp(visitedAnn, thismoduleUri, initialEnv);
-            const tparams = newTypesAtoms.map((id) => new T.TVar(id, l2, false));
-            fullTyp = new T.TForall(tparams, tbody, node.l, false);
+          newEntries.push(new A.SScopeLet(entry.l, [...bs].reverse()));
+          cur = cur.extend({ env: e });
+        } else if (A.isSScopeTypeLet(entry)) {
+          let e = cur.env;
+          let te = cur.typeEnv;
+          let bs: A.TypeLetBind[] = [];
+          for (const b of entry.binds) {
+            if (A.isSTypeBind(b)) {
+              const l2 = b.l;
+              const name = b.name;
+              const params = b.params;
+              const ann = b.ann;
+              const accTe = te;
+              let newTypesEnv = accTe;
+              let newTypesAtoms: A.Name[] = [];
+              for (const param of params) {
+                const atomEnv = makeAtomFor(param, false, newTypesEnv, typeBindings,
+                  (atom) => new C.TypeBind(C.boLocal(l2, param), C.tbTypeVar, atom, C.tbNone));
+                newTypesEnv = atomEnv.env;
+                newTypesAtoms = [atomEnv.atom, ...newTypesAtoms];
+              }
+              const visitedAnn = ann.visit(cur.extend({ env: e, typeEnv: newTypesEnv }));
+              let fullTyp: T.Type;
+              if (params.length === 0) {
+                fullTyp = U.annToTyp(visitedAnn, thismoduleUri, initialEnv);
+              } else {
+                const tbody = U.annToTyp(visitedAnn, thismoduleUri, initialEnv);
+                const tparams = newTypesAtoms.map((id) => new T.TVar(id, l2, false));
+                fullTyp = new T.TForall(tparams, tbody, entry.l, false);
+              }
+              const atomEnv = makeAtomFor(name, false, accTe, typeBindings,
+                (atom) => new C.TypeBind(C.boLocal(l2, name), C.tbTypeLet, atom, new C.TbTyp(fullTyp)));
+              const newBind = new A.STypeBind(l2, atomEnv.atom, [...newTypesAtoms].reverse(), visitedAnn);
+              te = atomEnv.env;
+              bs = [newBind, ...bs];
+            } else if (A.isSNewtypeBind(b)) {
+              const l2 = b.l;
+              const name = b.name;
+              const tname = b.namet;
+              // TODO(joe): What should the TypeBindTyp be here?
+              const atomEnvT = makeAtomFor(name, false, te, typeBindings,
+                (atom) => new C.TypeBind(C.boLocal(l2, name), C.tbTypeLet, atom, C.tbNone));
+              const atomEnv = makeAtomFor(tname, false, e, bindings,
+                (atom) => new C.ValueBind(C.boLocal(l2, tname), C.vbLet, atom, A.aBlank));
+              const newBind = new A.SNewtypeBind(l2, atomEnvT.atom, atomEnv.atom);
+              e = atomEnv.env;
+              te = atomEnvT.env;
+              bs = [newBind, ...bs];
+            } else {
+              throw new InternalCompilerError("s-scope-block type-let entry: no cases matched");
+            }
           }
-          const atomEnv = makeAtomFor(name, false, accTe, typeBindings,
-            (atom) => new C.TypeBind(C.boLocal(l2, name), C.tbTypeLet, atom, new C.TbTyp(fullTyp)));
-          const newBind = new A.STypeBind(l2, atomEnv.atom, [...newTypesAtoms].reverse(), visitedAnn);
-          te = atomEnv.env;
-          bs = [newBind, ...bs];
-        } else if (A.isSNewtypeBind(b)) {
-          const l2 = b.l;
-          const name = b.name;
-          const tname = b.namet;
-          // TODO(joe): What should the TypeBindTyp be here?
-          const atomEnvT = makeAtomFor(name, false, te, typeBindings,
-            (atom) => new C.TypeBind(C.boLocal(l2, name), C.tbTypeLet, atom, C.tbNone));
-          const atomEnv = makeAtomFor(tname, false, e, bindings,
-            (atom) => new C.ValueBind(C.boLocal(l2, tname), C.vbLet, atom, A.aBlank));
-          const newBind = new A.SNewtypeBind(l2, atomEnvT.atom, atomEnv.atom);
-          e = atomEnv.env;
-          te = atomEnvT.env;
-          bs = [newBind, ...bs];
+          newEntries.push(new A.SScopeTypeLet(entry.l, [...bs].reverse()));
+          cur = cur.extend({ env: e, typeEnv: te });
+        } else if (A.isSScopeLetrec(entry)) {
+          const [newBinds, newVisitor] = resolveLetrecBinds(cur, entry.binds);
+          newEntries.push(new A.SScopeLetrec(entry.l, newBinds));
+          cur = newVisitor;
         } else {
-          throw new InternalCompilerError("s-type-let-expr: no cases matched");
+          newEntries.push(entry.visit(cur));
         }
       }
-      const visitBody = node.body.visit(this.extend({ env: e, typeEnv: te }));
-      return new A.STypeLetExpr(node.l, [...bs].reverse(), visitBody, node.blocky);
-    }
-
-    sLetExpr(node: A.SLetExpr): A.Expr {
-      let e = this.env;
-      let bs: A.LetBind[] = [];
-      let atoms: A.Name[] = [];
-      for (const b of node.binds) {
-        if (A.isSLetBind(b)) {
-          const l2 = b.l;
-          const bind = asVariant(b.b, A.SBind);
-          const expr = b.value;
-          const visitedAnn = bind.ann.visit(this.extend({ env: e }));
-          const atomEnv = makeAtomFor(bind.id, bind.shadows, e, bindings,
-            (atom) => new C.ValueBind(C.boLocal(l2, bind.id), C.vbLet, atom, visitedAnn));
-          const visitExpr = expr.visit(this.extend({ env: e }));
-          const newBind = new A.SLetBind(l2, new A.SBind(l2, bind.shadows, atomEnv.atom, visitedAnn), visitExpr);
-          e = atomEnv.env;
-          bs = [newBind, ...bs];
-          atoms = [atomEnv.atom, ...atoms];
-        } else if (A.isSVarBind(b)) {
-          const l2 = b.l;
-          const bind = asVariant(b.b, A.SBind);
-          const expr = b.value;
-          const visitedAnn = bind.ann.visit(this.extend({ env: e }));
-          const atomEnv = makeAtomFor(bind.id, bind.shadows, e, bindings,
-            (atom) => new C.ValueBind(C.boLocal(l2, bind.id), C.vbVar, atom, visitedAnn));
-          const visitExpr = expr.visit(this.extend({ env: e }));
-          const newBind = new A.SVarBind(l2, new A.SBind(l2, bind.shadows, atomEnv.atom, visitedAnn), visitExpr);
-          e = atomEnv.env;
-          bs = [newBind, ...bs];
-          atoms = [atomEnv.atom, ...atoms];
-        } else {
-          throw new InternalCompilerError("s-let-expr: no cases matched");
-        }
-      }
-      const visitBinds = [...bs].reverse();
-      const visitBody = node.body.visit(this.extend({ env: e }));
-      return new A.SLetExpr(node.l, visitBinds, visitBody, node.blocky);
-    }
-
-    sLetrec(node: A.SLetrec): A.Expr {
-      const [newBinds, newVisitor] = resolveLetrecBinds(this, node.binds);
-      const visitBody = node.body.visit(newVisitor);
-      return new A.SLetrec(node.l, newBinds, visitBody, node.blocky);
+      return new A.SScopeBlock(node.l, newEntries, node.tail.visit(cur));
     }
 
     sFor(node: A.SFor): A.Expr {
@@ -2094,7 +2128,7 @@ export function checkUnboundIdsBadAssignments(ast: A.Program, resolved: C.NameRe
       return true;
     }
   }
-  class CheckUnboundVisitor extends DefaultIterVisitor {
+  class CheckUnboundVisitor extends PostScopeIterVisitor {
     sId(node: A.SId): boolean {
       if (handleId(node.id, node.l)) {
         addError(new CE.UnboundId(new A.SId(node.l, node.id)));

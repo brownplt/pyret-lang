@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Parity test: compile each test program with BOTH the Pyret-hosted
 # compiler (build/phaseA/pyret.jarr) and the TypeScript compiler
-# (build/ts-compiler/pyret.js), using the same options, run both
-# standalones, and compare stdout + exit codes.
+# (build/ts-compiler/pyret.js), using the same options, require the
+# standalones to be byte-identical, run both, and compare stdout +
+# exit codes.
 #
 # Run from the pyret-lang root (lang/): bash src/ts-compiler/tests/parity-test.sh
 
@@ -72,6 +73,11 @@ run_one() {
       echo "FAIL $base: compile error output differs (see $WORK/$base.compile.diff)"
       return 1
     fi
+  fi
+
+  if ! cmp -s "$dir_a/$base.jarr" "$dir_t/$base.jarr"; then
+    echo "FAIL $base: standalone bytes differ (cmp $dir_a/$base.jarr $dir_t/$base.jarr)"
+    return 1
   fi
 
   $NODE "$dir_a/$base.jarr" > "$dir_a/run.out" 2>&1

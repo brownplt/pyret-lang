@@ -1773,7 +1773,7 @@ data ChartWindow:
   | dot-chart-window(obj :: DotChartWindowObject) with:
     constr: {(): dot-chart-window},
     x-axis: x-axis-method,
-    x-axis-stagger-labels: x-axis-stagger-labels-method,
+    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-min: x-min-method,
     x-max: x-max-method,

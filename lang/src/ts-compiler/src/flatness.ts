@@ -130,13 +130,24 @@ export function makeExprDataEnv(
   typeNameToVariants: Map<string, AA.AVariant[]>,
   aliasToTypeName: Map<string, string>
 ): void {
-  // The body recursion is a tail call in every case; loop instead of
-  // recursing so long programs (one chain node per statement) don't
-  // overflow fixed-size stacks (e.g. browsers).
-  for (;;) {
-  switch (aexpr.$name) {
+  for (const head of aexpr.heads) {
+    makeHeadDataEnv(head, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
+  }
+  makeLettableDataEnv(aexpr.e, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
+}
+
+export function makeHeadDataEnv(
+  head: AA.AExprHead,
+  sd: FEnv,
+  ad: FEnv,
+  mb: Map<string, C.ModuleBind>,
+  env: C.CompileEnvironment,
+  typeNameToVariants: Map<string, AA.AVariant[]>,
+  aliasToTypeName: Map<string, string>
+): void {
+  switch (head.$name) {
     case 'a-type-let': {
-      const bind = aexpr.bind;
+      const bind = head.bind;
       switch (bind.$name) {
         case 'a-newtype-bind':
           // We know that the annotation for a newtype bind is just a flat
@@ -149,12 +160,11 @@ export function makeExprDataEnv(
         default:
           throw new InternalCompilerError('makeExprDataEnv: unknown type bind ' + (bind as any).$name);
       }
-      aexpr = aexpr.body;
-      continue;
+      return;
     }
     case 'a-let': {
-      const bind = aexpr.bind;
-      const val = aexpr.e;
+      const bind = head.bind;
+      const val = head.e;
       if (AA.isADataExpr(val)) {
         typeNameToVariants.set(bind.id.key(), val.variants);
         // Make self-mapping entry so we know it's a "type" name
@@ -196,28 +206,19 @@ export function makeExprDataEnv(
         // nothing
       }
       makeLettableDataEnv(val, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
-      aexpr = aexpr.body;
-      continue;
+      return;
     }
-    case 'a-arr-let': {
-      makeLettableDataEnv(aexpr.e, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
-      aexpr = aexpr.body;
-      continue;
-    }
+    case 'a-arr-let':
+      makeLettableDataEnv(head.e, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
+      return;
     case 'a-var':
-      aexpr = aexpr.body;
-      continue;
-    case 'a-seq': {
-      makeLettableDataEnv(aexpr.e1, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
-      aexpr = aexpr.e2;
-      continue;
-    }
-    case 'a-lettable':
-      makeLettableDataEnv(aexpr.e, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
+      // (as in the Pyret original, a-var's value is not examined here)
+      return;
+    case 'a-seq':
+      makeLettableDataEnv(head.e1, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
       return;
     default:
-      throw new InternalCompilerError('makeExprDataEnv: unknown expr ' + (aexpr as any).$name);
-  }
+      throw new InternalCompilerError('makeHeadDataEnv: unknown head ' + (head as any).$name);
   }
 }
 
@@ -233,8 +234,15 @@ export function makeLettableDataEnv(
   // default-ret = none (return value is ignored by all callers)
   switch (lettable.$name) {
     case 'a-if': {
-      makeExprDataEnv(lettable.t, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
-      makeExprDataEnv(lettable.e, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
+      // Arm order matches the nested chain: each arm's body, then the
+      // next arm's test-computation heads, ..., then the else.
+      for (const b of lettable.branches) {
+        for (const h of b.heads) {
+          makeHeadDataEnv(h, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
+        }
+        makeExprDataEnv(b.body, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
+      }
+      makeExprDataEnv(lettable.elseBody, sd, ad, mb, env, typeNameToVariants, aliasToTypeName);
       break;
     }
     case 'a-assign': {
@@ -294,106 +302,106 @@ export function makeLettableDataEnv(
   }
 }
 
+/*
+  Per-head flatness: the forward part (run in statement order; includes
+  all sd/ad mutations and the value-side flatness) returns the backward
+  part, a frame combining the flatness of everything after the head —
+  work the recursive formulation on the nested representation did after
+  its body call (a-let's annFlatness and the flatnessMax combinations),
+  applied in the original unwind order (deepest first).
+*/
+type FlatnessFrame = (bodyFlatness: Flatness) => Flatness;
+
+export function headFlatnessForward(
+  head: AA.AExprHead,
+  sd: FEnv,
+  ad: FEnv,
+  mb: Map<string, C.ModuleBind>,
+  env: C.CompileEnvironment
+): FlatnessFrame {
+  switch (head.$name) {
+    case 'a-type-let':
+      return (bodyFlatness) => bodyFlatness;
+    case 'a-let': {
+      const bind = head.bind;
+      const val = head.e;
+
+      let valFlatness: Flatness;
+      if (AA.isALam(val)) {
+        const retFlatness = annFlatness(val.ret, sd, ad, mb, env);
+        let argsFlatness = retFlatness;
+        for (const elt of val.args) {
+          argsFlatness = flatnessMax(argsFlatness, annFlatness(elt.ann, sd, ad, mb, env));
+        }
+
+        const bodyFlatness = makeExprFlatnessEnv(val.body, sd, ad, mb, env);
+        const lamFlatness = flatnessMax(bodyFlatness, argsFlatness);
+
+        sd.set(bind.id.key(), lamFlatness);
+        // flatness of defining this lambda is 0, since we're not actually
+        // doing anything with it
+        valFlatness = 0;
+      } else if (AA.isAIdSafeLetrec(val)) {
+        // If we're binding this name to something that's already been defined
+        // just copy over the definition
+        // (NOTE: as in the Pyret original, this test can never succeed for
+        // an ALettable; a-id-safe-letrec is an AVal variant)
+        const valISL = val as unknown as AA.AIdSafeLetrec;
+        if (sd.has(valISL.id.key())) {
+          sd.set(bind.id.key(), sd.get(valISL.id.key()));
+        }
+        // flatness of the binding part of the let is 0 since we don't
+        // call anything
+        valFlatness = 0;
+      } else if (AA.isAVal(val) && AA.isAIdModref(val.v)) {
+        const funFlatness = getFlatnessForModuleFun(val.v.id, val.v.name, mb, env);
+        sd.set(bind.id.key(), funFlatness);
+        valFlatness = 0;
+      } else {
+        valFlatness = makeLettableFlatnessEnv(val, sd, ad, mb, env);
+      }
+
+      return (bodyFlatness) => {
+        const annF = annFlatness(bind.ann, sd, ad, mb, env);
+        return flatnessMax(flatnessMax(valFlatness, bodyFlatness), annF);
+      };
+    }
+    case 'a-arr-let': {
+      // Could maybe try to add some string like "bind.name + idx" to the
+      // sd to let us keep track of the flatness if e is an a-lam, but for
+      // now we don't since I'm not sure it'd work right.
+      const annF = annFlatness(head.bind.ann, sd, ad, mb, env);
+      const lettF = makeLettableFlatnessEnv(head.e, sd, ad, mb, env);
+      return (bodyFlatness) => flatnessMax(annF, flatnessMax(lettF, bodyFlatness));
+    }
+    case 'a-var': {
+      // Do same thing with a-var as with a-let for now
+      const annF = annFlatness(head.bind.ann, sd, ad, mb, env);
+      return (bodyFlatness) => flatnessMax(annF, bodyFlatness);
+    }
+    case 'a-seq': {
+      const aFlatness = makeLettableFlatnessEnv(head.e1, sd, ad, mb, env);
+      return (bodyFlatness) => flatnessMax(aFlatness, bodyFlatness);
+    }
+    default:
+      throw new InternalCompilerError('headFlatnessForward: unknown head ' + (head as any).$name);
+  }
+}
+
 // Calculate the flatness of aexpr, and along the way mutably update sd to
 // contain mappings for all defined names of functions
 export function makeExprFlatnessEnv(
-  aexprIn: AA.AExpr,
+  aexpr: AA.AExpr,
   sd: FEnv,
   ad: FEnv,
   mb: Map<string, C.ModuleBind>,
   env: C.CompileEnvironment
 ): Flatness {
-  // The body recursion (one chain node per statement) is rewritten as a
-  // forward loop plus a backward fold so long programs don't overflow
-  // fixed-size stacks (e.g. browsers). Per-node pre-work (incl. sd/ad
-  // mutations) happens in the forward pass in the original order; work
-  // the recursive code did after the body call (a-let's annFlatness and
-  // the flatnessMax combinations) happens in the frames, applied in the
-  // original unwind order (deepest first).
-  const frames: Array<(bodyFlatness: Flatness) => Flatness> = [];
-  let aexpr: AA.AExpr = aexprIn;
-  let result: Flatness;
-  forward: for (;;) {
-    switch (aexpr.$name) {
-      case 'a-type-let':
-        aexpr = aexpr.body;
-        continue;
-      case 'a-let': {
-        const bind = aexpr.bind;
-        const val = aexpr.e;
-
-        let valFlatness: Flatness;
-        if (AA.isALam(val)) {
-          const retFlatness = annFlatness(val.ret, sd, ad, mb, env);
-          let argsFlatness = retFlatness;
-          for (const elt of val.args) {
-            argsFlatness = flatnessMax(argsFlatness, annFlatness(elt.ann, sd, ad, mb, env));
-          }
-
-          const bodyFlatness = makeExprFlatnessEnv(val.body, sd, ad, mb, env);
-          const lamFlatness = flatnessMax(bodyFlatness, argsFlatness);
-
-          sd.set(bind.id.key(), lamFlatness);
-          // flatness of defining this lambda is 0, since we're not actually
-          // doing anything with it
-          valFlatness = 0;
-        } else if (AA.isAIdSafeLetrec(val)) {
-          // If we're binding this name to something that's already been defined
-          // just copy over the definition
-          // (NOTE: as in the Pyret original, this test can never succeed for
-          // an ALettable; a-id-safe-letrec is an AVal variant)
-          const valISL = val as unknown as AA.AIdSafeLetrec;
-          if (sd.has(valISL.id.key())) {
-            sd.set(bind.id.key(), sd.get(valISL.id.key()));
-          }
-          // flatness of the binding part of the let is 0 since we don't
-          // call anything
-          valFlatness = 0;
-        } else if (AA.isAVal(val) && AA.isAIdModref(val.v)) {
-          const funFlatness = getFlatnessForModuleFun(val.v.id, val.v.name, mb, env);
-          sd.set(bind.id.key(), funFlatness);
-          valFlatness = 0;
-        } else {
-          valFlatness = makeLettableFlatnessEnv(val, sd, ad, mb, env);
-        }
-
-        frames.push((bodyFlatness) => {
-          const annF = annFlatness(bind.ann, sd, ad, mb, env);
-          return flatnessMax(flatnessMax(valFlatness, bodyFlatness), annF);
-        });
-        aexpr = aexpr.body;
-        continue;
-      }
-      case 'a-arr-let': {
-        // Could maybe try to add some string like "bind.name + idx" to the
-        // sd to let us keep track of the flatness if e is an a-lam, but for
-        // now we don't since I'm not sure it'd work right.
-        const annF = annFlatness(aexpr.bind.ann, sd, ad, mb, env);
-        const lettF = makeLettableFlatnessEnv(aexpr.e, sd, ad, mb, env);
-        frames.push((bodyFlatness) => flatnessMax(annF, flatnessMax(lettF, bodyFlatness)));
-        aexpr = aexpr.body;
-        continue;
-      }
-      case 'a-var': {
-        // Do same thing with a-var as with a-let for now
-        const annF = annFlatness(aexpr.bind.ann, sd, ad, mb, env);
-        frames.push((bodyFlatness) => flatnessMax(annF, bodyFlatness));
-        aexpr = aexpr.body;
-        continue;
-      }
-      case 'a-seq': {
-        const aFlatness = makeLettableFlatnessEnv(aexpr.e1, sd, ad, mb, env);
-        frames.push((bodyFlatness) => flatnessMax(aFlatness, bodyFlatness));
-        aexpr = aexpr.e2;
-        continue;
-      }
-      case 'a-lettable':
-        result = makeLettableFlatnessEnv(aexpr.e, sd, ad, mb, env);
-        break forward;
-      default:
-        throw new InternalCompilerError('makeExprFlatnessEnv: unknown expr ' + (aexpr as any).$name);
-    }
+  const frames: FlatnessFrame[] = [];
+  for (const head of aexpr.heads) {
+    frames.push(headFlatnessForward(head, sd, ad, mb, env));
   }
+  let result = makeLettableFlatnessEnv(aexpr.e, sd, ad, mb, env);
   for (let i = frames.length - 1; i >= 0; i--) {
     result = frames[i](result);
   }
@@ -455,8 +463,34 @@ export function makeLettableFlatnessEnv(
   switch (lettable.$name) {
     case 'a-module':
       return defaultRet;
-    case 'a-if':
-      return flatnessMax(makeExprFlatnessEnv(lettable.t, sd, ad, mb, env), makeExprFlatnessEnv(lettable.e, sd, ad, mb, env));
+    case 'a-if': {
+      // The nested chain computed
+      //   max(t1, wrap2(max(t2, wrap3(... max(tn, else) ...))))
+      // where wrap_i applies arm i's test-computation head frames.
+      // Forward pass (arm bodies and head pre-work, in arm order), then
+      // a backward fold — the same value and the same sd/ad effect order
+      // as the recursion, without stack growth in the arm count.
+      const branches = lettable.branches;
+      const branchFrames: FlatnessFrame[][] = [];
+      const branchFlats: Flatness[] = [];
+      for (const b of branches) {
+        const frames: FlatnessFrame[] = [];
+        for (const h of b.heads) {
+          frames.push(headFlatnessForward(h, sd, ad, mb, env));
+        }
+        branchFrames.push(frames);
+        branchFlats.push(makeExprFlatnessEnv(b.body, sd, ad, mb, env));
+      }
+      let result = makeExprFlatnessEnv(lettable.elseBody, sd, ad, mb, env);
+      for (let i = branches.length - 1; i >= 0; i--) {
+        result = flatnessMax(branchFlats[i], result);
+        const frames = branchFrames[i];
+        for (let j = frames.length - 1; j >= 0; j--) {
+          result = frames[j](result);
+        }
+      }
+      return result;
+    }
 
     // NOTE -- a-assign might not be flat b/c it checks annotations
     case 'a-assign': {
@@ -619,31 +653,12 @@ export function makeProgFlatnessEnv(
 }
 
 export function getDefinedValues(ast: AA.AProg): Map<string, string> {
-  // The spine is one chain node per statement; loop instead of recursing
-  // so long programs don't overflow fixed-size stacks (e.g. browsers).
-  function help(aeInit: AA.AExpr): AA.AModule {
-    let ae = aeInit;
-    for (;;) {
-      switch (ae.$name) {
-        case 'a-type-let': ae = ae.body; continue;
-        case 'a-let': ae = ae.body; continue;
-        case 'a-arr-let': ae = ae.body; continue;
-        case 'a-var': ae = ae.body; continue;
-        case 'a-seq': ae = ae.e2; continue;
-        case 'a-lettable': {
-          const e = ae.e;
-          if (!AA.isAModule(e)) {
-            raise('Ill-formed ANF ast: ' + torepr(e));
-          }
-          return e;
-        }
-        default:
-          throw new InternalCompilerError('getDefinedValues: unknown expr ' + (ae as any).$name);
-      }
-    }
+  // The program's tail lettable must be the a-module.
+  const tail = ast.body.e;
+  if (!AA.isAModule(tail)) {
+    raise('Ill-formed ANF ast: ' + torepr(tail));
   }
-
-  const theModule = help(ast.body);
+  const theModule = tail as AA.AModule;
   const theDvs = theModule.definedValues;
 
   const dvsDict = new Map<string, string>();

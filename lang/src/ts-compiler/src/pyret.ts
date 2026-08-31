@@ -2,6 +2,7 @@
 // Invoked as `node build/ts-compiler/pyret.js <options>`.
 
 import * as P from 'path';
+import * as fs from 'fs';
 import * as C from './cmdline';
 import * as CLI from './cli-module-loader';
 import * as CS from './compile-structs';
@@ -98,6 +99,8 @@ export async function main(args: string[]): Promise<number> {
       C.flag(C.once, 'Ignore all annotations in the runtime, treating them as if they were blank.')],
     ['url-file-mode',
       C.nextValDefault(C.Str, 'all-remote', undefined, C.once, 'How to handle url-file imports (all-remote, all-local, or local-if-present)')],
+    ['pause-schedule',
+      C.nextVal(C.Str, C.once, 'JS file computing initial GAS/RUNGAS for the runtime; its code is baked into the standalone')],
   ]);
 
   const paramsParsed = C.parseArgs(options, args);
@@ -129,6 +132,8 @@ export async function main(args: string[]): Promise<number> {
     const moduleEval = !r.has('no-module-eval');
     const userAnnotations = !r.has('no-user-annotations');
     const runtimeAnnotations = !r.has('no-runtime-annotations');
+    const pauseSchedule: string | undefined =
+      r.has('pause-schedule') ? fs.readFileSync(r.get('pause-schedule'), { encoding: 'utf8' }) : undefined;
     if (r.has('builtin-js-dir')) {
       B.setBuiltinJsDirs(r.get('builtin-js-dir'));
     }
@@ -195,7 +200,8 @@ export async function main(args: string[]): Promise<number> {
           moduleEval: moduleEval,
           userAnnotations: userAnnotations,
           runtimeAnnotations: runtimeAnnotations,
-          urlFileMode: urlFileMode
+          urlFileMode: urlFileMode,
+          pauseSchedule: pauseSchedule
         });
       return successCode;
     } else if (r.has('serve')) {

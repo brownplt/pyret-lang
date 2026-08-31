@@ -689,9 +689,15 @@ $(PHASEBTS)/config.json: src/scripts/node_modules-config.json
 $(PHASECTS)/config.json: src/scripts/node_modules-config.json
 	cp $< $@
 
+.PHONY : no-diff-ts
+no-diff-ts:
+	rm -rf $(PHASEBTS)/pyret.jarr $(PHASEBTS)/compiled $(PHASECTS)/pyret.jarr $(PHASECTS)/compiled
+	$(MAKE) phaseB-ts phaseC-ts
+	diff $(PHASEBTS)/pyret.jarr $(PHASECTS)/pyret.jarr
+
 # The grand convergence check.  Builds both chains and asserts that all
 # four standalones are one byte-identical fixpoint reached from two
-# independent seeds (the committed phase0 chain and the TS compiler):
+# independent seeds (the committed phase0 chain and the TS compiler).
 #   * phaseB    == phaseC     (.arr self-fixpoint; == existing no-diff-standalone)
 #   * phaseB-ts == phaseC-ts  (TS  self-fixpoint)
 #   * phaseB    == phaseB-ts  (headline: TS compiler is a byte-exact drop-in)
@@ -712,3 +718,56 @@ bootstrap-converge: phaseB phaseC phaseB-ts phaseC-ts
 	 if [ $$fail -eq 0 ]; then echo "CONVERGED: all four standalones are byte-identical"; \
 	 else echo "NOT CONVERGED: see FAILs above (diff the named .jarr files to diagnose)"; fi; \
 	 exit $$fail
+
+# ============================================================
+# Pause schedules: run the main2 suite with varied initial GAS/RUNGAS
+# (see tests/pause-schedules/). Each scheduled run's output must match
+# the unscheduled baseline run, and the rand-small build is repeated
+# with the TS compiler (same compiled cache) and must be byte-identical
+# to the .arr build.
+# ============================================================
+
+PAUSE_SCHEDULES := const-small const-medium rand-small rand-wide alternate sawtooth
+
+tests/pyret/main2-ps-%.jarr: phaseA tests/pyret/main2.arr $(TEST_FILES) tests/pause-schedules/%.js
+	$(TEST_BUILD) \
+		--outfile $@ \
+		--build-runnable tests/pyret/main2.arr \
+		--pause-schedule tests/pause-schedules/$*.js \
+		-check-all
+
+# Shares tests/compiled with the .arr builds: cached module code depends on
+# the worklist that warmed the cache (gensym numbering), so a byte-equal
+# standalone needs both compilers reading the same cache. Module-codegen
+# parity itself is covered by ts-parity-test / bootstrap-converge.
+tests/pyret/main2-ps-ts-rand-small.jarr: ts-compiler $(CONFIGA_RUNTIME_FILES) tests/pyret/main2-ps-rand-small.jarr tests/pyret/main2.arr $(TEST_FILES) tests/pause-schedules/rand-small.js
+	$(TS_PYRET) \
+		--builtin-js-dir src/js/trove/ \
+		--builtin-arr-dir src/arr/trove/ \
+		--require-config src/scripts/standalone-configA.json \
+		--compiled-dir tests/compiled/ \
+		--outfile $@ \
+		--build-runnable tests/pyret/main2.arr \
+		--pause-schedule tests/pause-schedules/rand-small.js \
+		-check-all
+
+.PHONY : pause-schedule-test
+pause-schedule-test: phaseA tests/pyret/main2.jarr $(patsubst %,tests/pyret/main2-ps-%.jarr,$(PAUSE_SCHEDULES)) tests/pyret/main2-ps-ts-rand-small.jarr
+	cmp tests/pyret/main2-ps-rand-small.jarr tests/pyret/main2-ps-ts-rand-small.jarr
+	$(NODE) tests/pyret/main2.jarr > build/pause-schedule-baseline.out
+	set -e; for s in $(PAUSE_SCHEDULES); do \
+	  echo "== pause schedule: $$s"; \
+	  $(NODE) tests/pyret/main2-ps-$$s.jarr > build/pause-schedule-$$s.out; \
+	  diff build/pause-schedule-baseline.out build/pause-schedule-$$s.out; \
+	  echo "ok $$s"; \
+	done
+
+.PHONY : pause-schedule-clean
+pause-schedule-clean:
+	$(call RM,tests/pyret/main2-ps-const-small.jarr)
+	$(call RM,tests/pyret/main2-ps-const-medium.jarr)
+	$(call RM,tests/pyret/main2-ps-rand-small.jarr)
+	$(call RM,tests/pyret/main2-ps-rand-wide.jarr)
+	$(call RM,tests/pyret/main2-ps-alternate.jarr)
+	$(call RM,tests/pyret/main2-ps-sawtooth.jarr)
+	$(call RM,tests/pyret/main2-ps-ts-rand-small.jarr)

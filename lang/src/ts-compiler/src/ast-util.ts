@@ -4,7 +4,7 @@ import * as A from './ast';
 import * as SL from './srcloc';
 import * as CS from './compile-structs';
 import * as T from './type-structs';
-import { DefaultMapVisitor, DefaultIterVisitor } from './ast-visitors';
+import { DefaultMapVisitor, DefaultIterVisitor, PostScopeMapVisitor, PostScopeIterVisitor } from './ast-visitors';
 import { raise, mapSet, mapGetValue, map2, field, asVariant, nonNull } from './shared';
 
 export type URI = string;
@@ -217,7 +217,7 @@ export interface EnvBindHandlers<E, TE> {
   sParamBind(l: Loc, param: A.Name, typeEnv: TE): TE;
 }
 
-export class DefaultEnvMapVisitor<E, TE> extends DefaultMapVisitor {
+export class DefaultEnvMapVisitor<E, TE> extends PostScopeMapVisitor {
   env: E;
   typeEnv: TE;
   bindHandlers: EnvBindHandlers<E, TE>;
@@ -243,44 +243,44 @@ export class DefaultEnvMapVisitor<E, TE> extends DefaultMapVisitor {
     return new A.SProgram(node.l, visitUse, visitProvide, visitProvideTypes, node.provides, visitImports, visitBody);
   }
 
-  sTypeLetExpr(node: A.STypeLetExpr): A.Expr {
-    let valEnv = this.env;
+  sScopeBlock(node: A.SScopeBlock): A.Expr {
+    let env = this.env;
     let typeEnv = this.typeEnv;
-    const bs: A.TypeLetBind[] = [];
-    for (const b of node.binds) {
-      const updated = this.bindHandlers.sTypeLetBind(b, valEnv, typeEnv);
-      const visitEnvs = extendVisitor(this, { env: updated.valEnv, typeEnv: updated.typeEnv });
-      const newBind = b.visit(visitEnvs);
-      valEnv = updated.valEnv;
-      typeEnv = updated.typeEnv;
-      bs.push(newBind);
+    const newEntries: A.ScopeEntry[] = [];
+    for (const entry of node.entries) {
+      if (A.isSScopeLet(entry)) {
+        const bs: A.LetBind[] = [];
+        for (const b of entry.binds) {
+          const newBind = b.visit(extendVisitor(this, { env, typeEnv }));
+          env = this.bindHandlers.sLetBind(newBind, env);
+          bs.push(newBind);
+        }
+        newEntries.push(new A.SScopeLet(entry.l, bs));
+      } else if (A.isSScopeTypeLet(entry)) {
+        const bs: A.TypeLetBind[] = [];
+        for (const b of entry.binds) {
+          const updated = this.bindHandlers.sTypeLetBind(b, env, typeEnv);
+          const visitEnvs = extendVisitor(this, { env: updated.valEnv, typeEnv: updated.typeEnv });
+          const newBind = b.visit(visitEnvs);
+          env = updated.valEnv;
+          typeEnv = updated.typeEnv;
+          bs.push(newBind);
+        }
+        newEntries.push(new A.SScopeTypeLet(entry.l, bs));
+      } else if (A.isSScopeLetrec(entry)) {
+        let bindEnv = env;
+        for (const b of entry.binds) {
+          bindEnv = this.bindHandlers.sLetrecBind(b, bindEnv);
+        }
+        const newVisitor = extendVisitor(this, { env: bindEnv, typeEnv });
+        newEntries.push(new A.SScopeLetrec(entry.l, entry.binds.map((b: A.LetrecBind) => b.visit(newVisitor))));
+        env = bindEnv;
+      } else {
+        newEntries.push(entry.visit(extendVisitor(this, { env, typeEnv })));
+      }
     }
-    return new A.STypeLetExpr(node.l, bs, node.body.visit(extendVisitor(this, { env: valEnv, typeEnv: typeEnv })), node.blocky);
-  }
-
-  sLetExpr(node: A.SLetExpr): A.Expr {
-    let e = this.env;
-    const bs: A.LetBind[] = [];
-    for (const b of node.binds) {
-      const newBind = b.visit(extendVisitor(this, { env: e }));
-      const thisEnv = this.bindHandlers.sLetBind(newBind, e);
-      e = thisEnv;
-      bs.push(newBind);
-    }
-    const visitBinds = bs;
-    const visitBody = node.body.visit(extendVisitor(this, { env: e }));
-    return new A.SLetExpr(node.l, visitBinds, visitBody, node.blocky);
-  }
-
-  sLetrec(node: A.SLetrec): A.Expr {
-    let bindEnv = this.env;
-    for (const b of node.binds) {
-      bindEnv = this.bindHandlers.sLetrecBind(b, bindEnv);
-    }
-    const newVisitor = extendVisitor(this, { env: bindEnv });
-    const visitBinds = node.binds.map((b: A.LetrecBind) => b.visit(newVisitor));
-    const visitBody = node.body.visit(newVisitor);
-    return new A.SLetrec(node.l, visitBinds, visitBody, node.blocky);
+    const tail = node.tail.visit(extendVisitor(this, { env, typeEnv }));
+    return new A.SScopeBlock(node.l, newEntries, tail);
   }
 
   sLam(node: A.SLam): A.Expr {
@@ -357,7 +357,7 @@ export function defaultEnvMapVisitor<E, TE>(
   return new DefaultEnvMapVisitor(initialEnv, initialTypeEnv, bindHandlers);
 }
 
-export class DefaultEnvIterVisitor<E, TE> extends DefaultIterVisitor {
+export class DefaultEnvIterVisitor<E, TE> extends PostScopeIterVisitor {
   env: E;
   typeEnv: TE;
   bindHandlers: EnvBindHandlers<E, TE>;
@@ -385,41 +385,39 @@ export class DefaultEnvIterVisitor<E, TE> extends DefaultIterVisitor {
     }
   }
 
-  sTypeLetExpr(node: A.STypeLetExpr): boolean {
-    let valEnv = this.env;
+  sScopeBlock(node: A.SScopeBlock): boolean {
+    let env = this.env;
     let typeEnv = this.typeEnv;
-    let bs = true;
-    for (const b of node.binds) {
-      const updated = this.bindHandlers.sTypeLetBind(b, valEnv, typeEnv);
-      const visitEnvs = extendVisitor(this, { env: updated.valEnv, typeEnv: updated.typeEnv });
-      const newBind = b.visit(visitEnvs);
-      valEnv = updated.valEnv;
-      typeEnv = updated.typeEnv;
-      if (!newBind) { bs = false; break; }
+    for (const entry of node.entries) {
+      if (A.isSScopeLet(entry)) {
+        for (const b of entry.binds) {
+          const thisEnv = this.bindHandlers.sLetBind(b, env);
+          const newBind = b.visit(extendVisitor(this, { env, typeEnv }));
+          env = thisEnv;
+          if (!newBind) { return false; }
+        }
+      } else if (A.isSScopeTypeLet(entry)) {
+        for (const b of entry.binds) {
+          const updated = this.bindHandlers.sTypeLetBind(b, env, typeEnv);
+          const visitEnvs = extendVisitor(this, { env: updated.valEnv, typeEnv: updated.typeEnv });
+          const newBind = b.visit(visitEnvs);
+          env = updated.valEnv;
+          typeEnv = updated.typeEnv;
+          if (!newBind) { return false; }
+        }
+      } else if (A.isSScopeLetrec(entry)) {
+        let bindEnv = env;
+        for (const b of entry.binds) {
+          bindEnv = this.bindHandlers.sLetrecBind(b, bindEnv);
+        }
+        const newVisitor = extendVisitor(this, { env: bindEnv, typeEnv });
+        if (!entry.binds.every((b: A.LetrecBind) => b.visit(newVisitor))) { return false; }
+        env = bindEnv;
+      } else {
+        if (!entry.visit(extendVisitor(this, { env, typeEnv }))) { return false; }
+      }
     }
-    return bs && node.body.visit(extendVisitor(this, { env: valEnv, typeEnv: typeEnv }));
-  }
-
-  sLetExpr(node: A.SLetExpr): boolean {
-    let e = this.env;
-    let bs = true;
-    for (const b of node.binds) {
-      const thisEnv = this.bindHandlers.sLetBind(b, e);
-      const newBind = b.visit(extendVisitor(this, { env: e }));
-      e = thisEnv;
-      if (!newBind) { bs = false; break; }
-    }
-    return bs && node.body.visit(extendVisitor(this, { env: e }));
-  }
-
-  sLetrec(node: A.SLetrec): boolean {
-    let bindEnv = this.env;
-    for (const b of node.binds) {
-      bindEnv = this.bindHandlers.sLetrecBind(b, bindEnv);
-    }
-    const newVisitor = extendVisitor(this, { env: bindEnv });
-    const continueBinds = node.binds.every((b: A.LetrecBind) => b.visit(newVisitor));
-    return continueBinds && node.body.visit(newVisitor);
+    return node.tail.visit(extendVisitor(this, { env, typeEnv }));
   }
 
   sLam(node: A.SLam): boolean {
@@ -644,7 +642,7 @@ export function badAssignments(initialEnv: CS.CompileEnvironment, ast: A.Program
   return errors;
 }
 
-class InlineLams extends DefaultMapVisitor {
+class InlineLams extends PostScopeMapVisitor {
   sApp(node: A.SApp): A.Expr {
     const f = node._fun;
     if (A.isSLam(f)) {
@@ -657,13 +655,12 @@ class InlineLams extends DefaultMapVisitor {
         const letBinds = map2((arg: A.Bind, exp: A.Expr): A.LetBind =>
           new A.SLetBind(arg.l, arg, exp.visit(this)), args, node.args);
         switch (ann.$name) {
-          case 'a-blank': return new A.SLetExpr(l, letBinds, body.visit(this), false);
-          case 'a-any': return new A.SLetExpr(l, letBinds, body.visit(this), false);
+          case 'a-blank': return A.sScopeLetBlock(l, letBinds, body.visit(this));
+          case 'a-any': return A.sScopeLetBlock(l, letBinds, body.visit(this));
           default:
-            return new A.SLetExpr(l,
+            return A.sScopeLetBlock(l,
               [...letBinds, new A.SLetBind(body.l, new A.SBind(l, false, a, ann), body.visit(this))],
-              new A.SId(l, a),
-              false);
+              new A.SId(l, a));
         }
       } else {
         return new A.SApp(node.l, f.visit(this), node.args.map((e: A.Expr) => e.visit(this)));
@@ -711,7 +708,7 @@ export function isPartialMethodS(x: any): x is PartialMethodS { return x instanc
 // set-recursive-visitor is to replace s-app with s-app-enhanced with correct is-recursive
 // but with incorrect is-tail (all false)
 // postcondition: no s-app
-class SetRecursiveVisitor extends DefaultMapVisitor {
+class SetRecursiveVisitor extends PostScopeMapVisitor {
   scope: Scope = noS;
 
   clearScope(): this {
@@ -810,12 +807,10 @@ class SetRecursiveVisitor extends DefaultMapVisitor {
       node.blocky);
   }
 
-  sLetrec(node: A.SLetrec): A.Expr {
-    return new A.SLetrec(
+  sScopeLetrec(node: A.SScopeLetrec): A.ScopeEntry {
+    return new A.SScopeLetrec(
       node.l,
-      node.binds.map((bind: A.LetrecBind) => bind.visit(this.collectFunName(bind))),
-      node.body.visit(this),
-      node.blocky);
+      node.binds.map((bind: A.LetrecBind) => bind.visit(this.collectFunName(bind))));
   }
 
   sDataField(node: A.SDataField): A.Member {
@@ -850,7 +845,7 @@ export function isStatefulAnn(ann: A.Ann): boolean {
 
 // set-tail-visitor is to correct is-tail in s-app-enriched
 // precondition: no s-app
-class SetTailVisitor extends DefaultMapVisitor {
+class SetTailVisitor extends PostScopeMapVisitor {
   isTail: boolean = false;
 
   private noTail(): this {
@@ -870,24 +865,6 @@ class SetTailVisitor extends DefaultMapVisitor {
 
   // skip s-num, s-frac, s-str, s-undefined, s-bool, s-id, s-id-var, s-id-letrec, s-srcloc
   // because it has no s-app-enriched
-
-  // skip s-type-let-expr because all positions which could have s-app-enriched could be in the tail position
-
-  sLetExpr(node: A.SLetExpr): A.Expr {
-    return new A.SLetExpr(
-      node.l,
-      node.binds.map((b: A.LetBind) => b.visit(this.noTail())),
-      node.body.visit(this),
-      node.blocky);
-  }
-
-  sLetrec(node: A.SLetrec): A.Expr {
-    return new A.SLetrec(
-      node.l,
-      node.binds.map((b: A.LetrecBind) => b.visit(this.noTail())),
-      node.body.visit(this),
-      node.blocky);
-  }
 
   // skip s-data-expr because it couldn't be at the tail position
 
@@ -910,6 +887,19 @@ class SetTailVisitor extends DefaultMapVisitor {
       node.l,
       [...prefix.map((s: A.Expr) => s.visit(this.noTail())),
        ...suffix.map((s: A.Expr) => s.visit(this))]);
+  }
+
+  sScopeBlock(node: A.SScopeBlock): A.Expr {
+    // type-let binds keep the CURRENT flag: the Pyret original skips
+    // s-type-let-expr, so its default traversal carries is-tail into them
+    const noTail = this.noTail();
+    const newEntries: A.ScopeEntry[] = node.entries.map((entry) => {
+      if (A.isSScopeTypeLet(entry)) {
+        return entry.visit(this);
+      }
+      return entry.visit(noTail);
+    });
+    return new A.SScopeBlock(node.l, newEntries, node.tail.visit(this));
   }
 
   sCheckExpr(node: A.SCheckExpr): A.Expr {
@@ -998,35 +988,44 @@ export function valueDelaysExecOf(name: A.Name, expr: A.Expr): boolean {
   return A.isSLam(expr) || A.isSMethod(expr);
 }
 
-class LetrecVisitor extends DefaultMapVisitor {
+class LetrecVisitor extends PostScopeMapVisitor {
   env: Map<string, boolean> = new Map();
-
-  sLetrec(node: A.SLetrec): A.Expr {
-    const bindEnvs = node.binds.map((b1: A.LetrecBind, i: number) => {
-      const rhsIsDelayed = valueDelaysExecOf(field(b1.b, 'id'), b1.value);
-      const acc = new Map(this.env);
-      node.binds.forEach((b2: A.LetrecBind, j: number) => {
-        const key = field(b2.b, 'id').key();
-        if (i < j) {
-          acc.set(key, false);
-        } else if (i === j) {
-          acc.set(key, rhsIsDelayed);
-        } else {
-          acc.set(key, true);
-        }
-      });
-      return acc;
-    });
-    const newBinds = map2((b: A.LetrecBind, bindEnv: Map<string, boolean>) =>
-      b.visit(extendVisitor(this, { env: bindEnv } as Partial<this>)), node.binds, bindEnvs);
-    const bodyEnv = mapSet(bindEnvs[bindEnvs.length - 1],
-      field(node.binds[node.binds.length - 1].b, 'id').key(), true);
-    const newBody = node.body.visit(extendVisitor(this, { env: bodyEnv } as Partial<this>));
-    return new A.SLetrec(node.l, newBinds, newBody, node.blocky);
-  }
 
   sIdLetrec(node: A.SIdLetrec): A.Expr {
     return new A.SIdLetrec(node.l, node.id, mapGetValue(this.env, node.id.key()));
+  }
+
+  sScopeBlock(node: A.SScopeBlock): A.Expr {
+    let cur: LetrecVisitor = this;
+    const newEntries: A.ScopeEntry[] = [];
+    for (const entry of node.entries) {
+      if (A.isSScopeLetrec(entry)) {
+        const bindEnvs = entry.binds.map((b1: A.LetrecBind, i: number) => {
+          const rhsIsDelayed = valueDelaysExecOf(field(b1.b, 'id'), b1.value);
+          const acc = new Map(cur.env);
+          entry.binds.forEach((b2: A.LetrecBind, j: number) => {
+            const key = field(b2.b, 'id').key();
+            if (i < j) {
+              acc.set(key, false);
+            } else if (i === j) {
+              acc.set(key, rhsIsDelayed);
+            } else {
+              acc.set(key, true);
+            }
+          });
+          return acc;
+        });
+        const newBinds = map2((b: A.LetrecBind, bindEnv: Map<string, boolean>) =>
+          b.visit(extendVisitor(cur, { env: bindEnv } as Partial<LetrecVisitor>)), entry.binds, bindEnvs);
+        const bodyEnv = mapSet(bindEnvs[bindEnvs.length - 1],
+          field(entry.binds[entry.binds.length - 1].b, 'id').key(), true);
+        newEntries.push(new A.SScopeLetrec(entry.l, newBinds));
+        cur = extendVisitor(cur, { env: bodyEnv } as Partial<LetrecVisitor>);
+      } else {
+        newEntries.push(entry.visit(cur));
+      }
+    }
+    return new A.SScopeBlock(node.l, newEntries, node.tail.visit(cur));
   }
 }
 

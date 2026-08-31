@@ -37,7 +37,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
 
@@ -63,12 +63,12 @@ jobs:
 
       # /editor + the embed host page are served from code.pyret.org/build;
       # the vscode webview's assets are self-contained in vscode/dist.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: cpo-build
           path: code.pyret.org/build
           retention-days: 1
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: vscode-dist
           path: vscode/dist
@@ -89,7 +89,7 @@ jobs:
             compiler: ts
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
 
@@ -97,13 +97,13 @@ jobs:
       # the CPO *server* (embed-static serves the built artifact itself).
       - name: Restore cpo build
         if: ${{ !startsWith(matrix.env, 'vscode') }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: cpo-build
           path: code.pyret.org/build
       - name: Restore vscode extension
         if: ${{ startsWith(matrix.env, 'vscode') }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: vscode-dist
           path: vscode/dist

@@ -8,6 +8,7 @@ import * as C from './compile-structs';
 import { Loc, dummyLoc } from './srcloc';
 import { jsnums, throwingErrbacks } from './interop/js-numbers';
 import { raise, partition, field, nonNull } from './shared';
+import { eliminatedScopeForm } from './ast-visitors';
 
 const names = A.globalNames;
 
@@ -51,7 +52,7 @@ export function checkTable<T>(l: Loc, e: A.Expr, cont: (e: A.Expr) => T): T {
 
 export function checkAnn(l: Loc, expr: A.Expr, ann: A.Ann): A.Expr {
   const id = mkIdAnn(l, 'ann-check_', ann);
-  return new A.SLetExpr(l, [new A.SLetBind(l, id.idB, expr)], id.idE, true);
+  return A.sScopeLetBlock(l, [new A.SLetBind(l, id.idB, expr)], id.idE);
 }
 
 export function getTableColumn(opL: Loc, l: Loc, e: A.Expr, column: { name: A.Expr; l: Loc }): A.Expr {
@@ -323,6 +324,18 @@ export function desugarLetrecBinds(binds: A.LetrecBind[]): A.LetrecBind[] {
     new A.SLetrecBind(bind.l, desugarBind(bind.b), desugarExpr(bind.value)));
 }
 
+function desugarScopeEntry(entry: A.ScopeEntry): A.ScopeEntry {
+  if (A.isSScopeLet(entry)) {
+    return new A.SScopeLet(entry.l, desugarLetBinds(entry.binds));
+  } else if (A.isSScopeTypeLet(entry)) {
+    return new A.SScopeTypeLet(entry.l, entry.binds.map(desugarTypeLetBind));
+  } else if (A.isSScopeLetrec(entry)) {
+    return new A.SScopeLetrec(entry.l, desugarLetrecBinds(entry.binds));
+  } else {
+    return new A.SScopeStmt(entry.l, desugarExpr(entry.stmt));
+  }
+}
+
 // The desugaring of a dot/app chain (`o.m(1).n(2)…`) recurses once per link
 // through desugarExpr -> dsCurry -> dsCurryNullary, so chain LENGTH became
 // stack depth. This walker consumes the whole receiver spine with an explicit
@@ -411,61 +424,6 @@ function desugarTypeLetBind(tb: A.TypeLetBind): A.TypeLetBind {
 // body spine iteratively: binds (and the block's leading statements) are
 // desugared on the way down, in source order, exactly as the recursive arms
 // evaluated them; the nodes are rebuilt on the way back up.
-type BodyFrame =
-  | { kind: 'block', l: Loc, dsInit: A.Expr[] }
-  | { kind: 'let', l: Loc, binds: A.LetBind[], blocky: boolean }
-  | { kind: 'letrec', l: Loc, binds: A.LetrecBind[], blocky: boolean }
-  | { kind: 'tlet', l: Loc, binds: A.TypeLetBind[], blocky: boolean };
-
-function continuesBodySpine(e: A.Expr): boolean {
-  return e.$name === 's-let-expr' || e.$name === 's-letrec' || e.$name === 's-type-let-expr';
-}
-
-function desugarBodySpine(expr: A.Expr): A.Expr {
-  const frames: BodyFrame[] = [];
-  let cur: A.Expr = expr;
-  let acc: A.Expr;
-  for (;;) {
-    if (A.isSBlock(cur)) {
-      const last = cur.stmts.length > 0 ? cur.stmts[cur.stmts.length - 1] : undefined;
-      if (last !== undefined && continuesBodySpine(last)) {
-        frames.push({ kind: 'block', l: cur.l, dsInit: cur.stmts.slice(0, -1).map(desugarExpr) });
-        cur = last;
-        continue;
-      }
-      acc = new A.SBlock(cur.l, cur.stmts.map(desugarExpr));
-      break;
-    }
-    if (A.isSLetExpr(cur)) {
-      frames.push({ kind: 'let', l: cur.l, binds: desugarLetBinds(cur.binds), blocky: cur.blocky });
-      cur = cur.body;
-      continue;
-    }
-    if (A.isSLetrec(cur)) {
-      frames.push({ kind: 'letrec', l: cur.l, binds: desugarLetrecBinds(cur.binds), blocky: cur.blocky });
-      cur = cur.body;
-      continue;
-    }
-    if (A.isSTypeLetExpr(cur)) {
-      frames.push({ kind: 'tlet', l: cur.l, binds: cur.binds.map(desugarTypeLetBind), blocky: cur.blocky });
-      cur = cur.body;
-      continue;
-    }
-    acc = desugarExpr(cur);
-    break;
-  }
-  for (let i = frames.length - 1; i >= 0; i--) {
-    const fr = frames[i];
-    switch (fr.kind) {
-      case 'block': acc = new A.SBlock(fr.l, [...fr.dsInit, acc]); break;
-      case 'let': acc = new A.SLetExpr(fr.l, fr.binds, acc, fr.blocky); break;
-      case 'letrec': acc = new A.SLetrec(fr.l, fr.binds, acc, fr.blocky); break;
-      case 'tlet': acc = new A.STypeLetExpr(fr.l, fr.binds, acc, fr.blocky); break;
-    }
-  }
-  return acc;
-}
-
 export function desugarExpr(expr: A.Expr): A.Expr {
   switch (expr.$name) {
     case 's-module': {
@@ -475,7 +433,9 @@ export function desugarExpr(expr: A.Expr): A.Expr {
     case 's-instantiate':
       return new A.SInstantiate(expr.l, desugarExpr(expr.expr), expr.params.map(desugarAnn));
     case 's-block':
-      return desugarBodySpine(expr);
+      return new A.SBlock(expr.l, expr.stmts.map(desugarExpr));
+    case 's-scope-block':
+      return new A.SScopeBlock(expr.l, expr.entries.map(desugarScopeEntry), desugarExpr(expr.tail));
     case 's-user-block':
       return desugarExpr(expr.body);
     case 's-template': return expr; // template-exn(l)
@@ -494,7 +454,7 @@ export function desugarExpr(expr: A.Expr): A.Expr {
     case 's-type-let-expr':
     case 's-let-expr':
     case 's-letrec':
-      return desugarBodySpine(expr);
+      return eliminatedScopeForm(expr);
     case 's-data-expr': {
       const extendVariant = (v: A.Variant): A.Variant => {
         switch (v.$name) {
@@ -844,7 +804,7 @@ export function desugarExpr(expr: A.Expr): A.Expr {
       }
 
       const withInitializedReducers = (body: A.Expr): A.Expr =>
-        initializedReducers === undefined ? body : new A.SLetExpr(dummyLoc, initializedReducers, body, true);
+        initializedReducers === undefined ? body : A.sScopeLetBlock(dummyLoc, initializedReducers, body);
 
       const processExtension = (isFirst: boolean) => (extension: A.TableExtendField): A.Expr => {
         switch (extension.$name) {
@@ -887,7 +847,7 @@ export function desugarExpr(expr: A.Expr): A.Expr {
 
       const dataPopMapfun = (first: boolean): A.Expr =>
         new A.SLam(dummyLoc, '', [], [row.idB], A.aBlank, '',
-          new A.SLetExpr(dummyLoc,
+          A.sScopeLetBlock(dummyLoc,
             columns.map((column) =>
               new A.SLetBind(dummyLoc, column.val.idB,
                 new A.SPrimApp(dummyLoc, 'raw_array_get',
@@ -895,7 +855,7 @@ export function desugarExpr(expr: A.Expr): A.Expr {
             new A.SPrimApp(dummyLoc, 'raw_array_concat', [
               row.idE,
               new A.SArray(dummyLoc,
-                extensions.map(processExtension(first)))], flatPrimApp), true),
+                extensions.map(processExtension(first)))], flatPrimApp)),
           undefined, undefined, true);
 
       const binds: A.LetBind[] = [
@@ -922,7 +882,7 @@ export function desugarExpr(expr: A.Expr): A.Expr {
               dataPopMapfun(true),
               dataPopMapfun(false),
               new A.SDot(dummyLoc, tbl.idE, '_rows-raw-array')]))], flatPrimApp)]);
-      return new A.SLetExpr(dummyLoc, binds, body, true);
+      return A.sScopeLetBlock(dummyLoc, binds, body);
     }
     case 's-table-update': {
       const l = expr.l;
@@ -963,7 +923,7 @@ export function desugarExpr(expr: A.Expr): A.Expr {
         // Data
         new A.SApp(l, new A.SId(dummyLoc, g('raw-array-map')), [
           new A.SLam(dummyLoc, '', [], [row.idB], A.aBlank, '',
-            new A.SLetExpr(dummyLoc,
+            A.sScopeLetBlock(dummyLoc,
               [
                 new A.SLetBind(dummyLoc, newRow.idB,
                   new A.SPrimApp(dummyLoc, 'raw_array_concat', [
@@ -973,15 +933,15 @@ export function desugarExpr(expr: A.Expr): A.Expr {
                     new A.SPrimApp(dummyLoc, 'raw_array_get',
                       [newRow.idE, column.idx.idE], flatPrimApp)))
               ],
-              new A.SLetExpr(dummyLoc,
+              A.sScopeLetBlock(dummyLoc,
                 updates.map((update) =>
                   new A.SLetBind(dummyLoc, newRow.idB,
                     new A.SPrimApp(dummyLoc, 'raw_array_set', [
                       newRow.idE, update.idx.idE, update.val], flatPrimApp))),
-                newRow.idE, true), true), undefined, undefined, true),
+                newRow.idE)), undefined, undefined, true),
           new A.SDot(dummyLoc, tbl.idE, '_rows-raw-array')])],
       flatPrimApp);
-      return new A.SLetExpr(dummyLoc, binds, body, true);
+      return A.sScopeLetBlock(dummyLoc, binds, body);
     }
     case 's-table-select': {
       const l = expr.l;
@@ -1012,7 +972,7 @@ export function desugarExpr(expr: A.Expr): A.Expr {
                 new A.SPrimApp(dummyLoc, 'raw_array_get',
                   [row.idE, c.idx.idE], flatPrimApp))), undefined, undefined, true),
           new A.SDot(dummyLoc, tbl.idE, '_rows-raw-array')])], flatPrimApp);
-      return new A.SLetExpr(dummyLoc, binds, body, true);
+      return A.sScopeLetBlock(dummyLoc, binds, body);
     }
     case 's-table-extract': {
       const l = expr.l;
@@ -1021,7 +981,7 @@ export function desugarExpr(expr: A.Expr): A.Expr {
       const tbl = mkId(table.l, 'table');
       const col = mkId(dummyLoc, field(column, 's'));
       const row = mkId(dummyLoc, field(column, 's'));
-      return new A.SLetExpr(dummyLoc, [
+      return A.sScopeLetBlock(dummyLoc, [
         new A.SLetBind(dummyLoc, tbl.idB,
           checkTable(table.l, desugarExpr(table), (t) => t)),
         new A.SLetBind(dummyLoc, col.idB,
@@ -1031,7 +991,7 @@ export function desugarExpr(expr: A.Expr): A.Expr {
           new A.SApp(l, new A.SId(dummyLoc, g('raw-array-map')), [
             new A.SLam(dummyLoc, '', [], [row.idB], A.aBlank, '',
               new A.SPrimApp(dummyLoc, 'raw_array_get', [row.idE, col.idE], flatPrimApp), undefined, undefined, true),
-            new A.SDot(dummyLoc, tbl.idE, '_rows-raw-array')])], flatPrimApp), true);
+            new A.SDot(dummyLoc, tbl.idE, '_rows-raw-array')])], flatPrimApp));
     }
     case 's-table-order': {
       const l = expr.l;
@@ -1071,17 +1031,17 @@ export function desugarExpr(expr: A.Expr): A.Expr {
         // Data
         new A.SApp(l, new A.SId(dummyLoc, g('raw-array-filter')), [
           new A.SLam(dummyLoc, '', [], [row.idB], A.aBlank, '',
-            new A.SLetExpr(dummyLoc,
+            A.sScopeLetBlock(dummyLoc,
               columns.map((column) =>
                 new A.SLetBind(dummyLoc, column.val.idB,
                   new A.SPrimApp(dummyLoc, 'raw_array_get',
                     [row.idE, column.idx.idE], flatPrimApp))),
-              new A.SLetExpr(dummyLoc,
+              A.sScopeLetBlock(dummyLoc,
                 [new A.SLetBind(predicate.l, predRes.idB, desugarExpr(predicate))],
-                predRes.idE, true), true), undefined, undefined, true),
+                predRes.idE)), undefined, undefined, true),
           new A.SDot(dummyLoc, tbl.idE, '_rows-raw-array')])],
       flatPrimApp);
-      return new A.SLetExpr(dummyLoc, binds, body, true);
+      return A.sScopeLetBlock(dummyLoc, binds, body);
     }
     case 's-spy-block': {
       const l = expr.l;

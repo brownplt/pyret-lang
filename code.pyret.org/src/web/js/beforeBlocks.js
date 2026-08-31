@@ -1294,13 +1294,120 @@ $(function() {
     CPO.documents.set("definitions://", CPO.editor.cm.getDoc());
   });
 
+  // If the primary Pyret URL (usually a CDN) fails, we fall back to the
+  // same-origin copy at PYRET_BACKUP. The "error" event alone isn't enough
+  // to trigger that: school content filters have been seen both silently
+  // stalling the request (neither "load" nor "error" ever fires) and
+  // answering it with an empty 200 (which fires "load"!). So two extra
+  // signals count as failure: going PYRET_LOAD_TIMEOUT_MS with no event,
+  // and a "load" after which the bundle's globals aren't actually defined.
+  // When the primary fails either way, we record it in localSettings; until
+  // that record expires, page loads swap the two URLs and go straight to
+  // the backup rather than failing over from scratch again. A successful
+  // load from the primary clears the record.
+  var PYRET_LOAD_TIMEOUT_MS = 20000;
+  var PYRET_FAILED_KEY = "pyret-primary-failed-at";
+  var PYRET_FAILED_TTL_MS = 24 * 60 * 60 * 1000;
+
+  function primaryFailedRecently() {
+    var stamp = Number(localSettings.getItem(PYRET_FAILED_KEY));
+    return stamp > 0 && (Date.now() - stamp) < PYRET_FAILED_TTL_MS;
+  }
+
+  function recordPrimaryFailure() {
+    if (primaryPyret === window.PYRET) {
+      localSettings.setItem(PYRET_FAILED_KEY, String(Date.now()));
+    }
+  }
+
+  // The bundle synchronously installs its module loader as `define` and
+  // `requirejs`; if neither exists after a script's "load" event, whatever
+  // the network handed us was not Pyret (e.g. a filter's empty 200).
+  function pyretActuallyLoaded() {
+    return !(typeof window.define === "undefined" && typeof window.requirejs === "undefined");
+  }
+
+  var primaryPyret = window.PYRET;
+  var backupPyret = process.env.PYRET_BACKUP;
+  if (backupPyret && primaryFailedRecently()) {
+    console.log("Primary Pyret URL timed out recently; loading from backup first");
+    primaryPyret = process.env.PYRET_BACKUP;
+    backupPyret = window.PYRET;
+  }
+
   var pyretLoad = document.createElement('script');
-  console.log(window.PYRET);
-  pyretLoad.src = window.PYRET;
+  console.log(primaryPyret);
+  pyretLoad.src = primaryPyret;
   pyretLoad.type = "text/javascript";
   document.body.appendChild(pyretLoad);
 
   var pyretLoad2 = document.createElement('script');
+
+  var backupStarted = false;
+  function startBackupLoad() {
+    if (backupStarted) { return; }
+    backupStarted = true;
+    var backupTimer = setTimeout(function() {
+      // Both attempts wedged. Stop the spinner and tell the user; the backup
+      // request is left in flight, so if it does eventually finish, the page
+      // still becomes usable.
+      logger.log('pyret-load-failure', {
+        event : 'timeout',
+        url : backupPyret,
+        timeoutMs : PYRET_LOAD_TIMEOUT_MS
+      });
+      $("#loader").hide();
+      $("#runPart").hide();
+      $("#breakButton").hide();
+      window.stickError("Pyret failed to load; check your connection or try refreshing the page.  If this happens repeatedly, please report it as a bug.");
+    }, PYRET_LOAD_TIMEOUT_MS);
+    $(pyretLoad2).on("load", function() {
+      clearTimeout(backupTimer);
+      if (!pyretActuallyLoaded()) {
+        logger.log('pyret-load-failure', {
+          event : 'empty-load',
+          url : backupPyret
+        });
+        $("#loader").hide();
+        $("#runPart").hide();
+        $("#breakButton").hide();
+        window.stickError("Pyret failed to load; check your connection or try refreshing the page.  If this happens repeatedly, please report it as a bug.");
+      }
+    });
+    pyretLoad2.src = backupPyret;
+    pyretLoad2.type = "text/javascript";
+    document.body.appendChild(pyretLoad2);
+  }
+
+  var primaryTimer = setTimeout(function() {
+    logger.log('pyret-load-failure', {
+      event : 'timeout',
+      url : primaryPyret,
+      timeoutMs : PYRET_LOAD_TIMEOUT_MS
+    });
+    recordPrimaryFailure();
+    // Removing the element abandons the stalled request; a script element
+    // that is disconnected before it executes won't run, so a late arrival
+    // can't execute a second copy of Pyret alongside the backup.
+    pyretLoad.remove();
+    startBackupLoad();
+  }, PYRET_LOAD_TIMEOUT_MS);
+
+  $(pyretLoad).on("load", function() {
+    clearTimeout(primaryTimer);
+    if (!pyretActuallyLoaded()) {
+      logger.log('pyret-load-failure', {
+        event : 'empty-load',
+        url : primaryPyret
+      });
+      recordPrimaryFailure();
+      startBackupLoad();
+      return;
+    }
+    if (primaryPyret === window.PYRET && localSettings.getItem(PYRET_FAILED_KEY)) {
+      localSettings.setItem(PYRET_FAILED_KEY, "");
+    }
+  });
 
   function logFailureAndManualFetch(url, e) {
 
@@ -1349,10 +1456,9 @@ $(function() {
   }
 
   $(pyretLoad).on("error", function(e) {
-    logFailureAndManualFetch(window.PYRET, e);
-    pyretLoad2.src = process.env.PYRET_BACKUP;
-    pyretLoad2.type = "text/javascript";
-    document.body.appendChild(pyretLoad2);
+    clearTimeout(primaryTimer);
+    logFailureAndManualFetch(primaryPyret, e);
+    startBackupLoad();
   });
 
   $(pyretLoad2).on("error", function(e) {
@@ -1360,7 +1466,7 @@ $(function() {
     $("#runPart").hide();
     $("#breakButton").hide();
     window.stickError("Pyret failed to load; check your connection or try refreshing the page.  If this happens repeatedly, please report it as a bug.");
-    logFailureAndManualFetch(process.env.PYRET_BACKUP, e);
+    logFailureAndManualFetch(backupPyret, e);
 
   });
 
