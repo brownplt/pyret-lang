@@ -80,13 +80,12 @@ build/web/views/%.html: src/web/%.html
 # Self-contained variant of the editor template: shell scripts/styles inlined so
 # the page boots where its assets are served without an executable MIME type
 # (see src/scripts/inline-selfcontained.js). Depends on the built shell js/css
-# it inlines.
+# it inlines -- the RULE lives further down, after the COPY_*/MISC_* variables
+# are assigned: make expands a rule's prerequisite list when it READS the rule,
+# so a rule up here would see every one of those `:=` variables as empty and
+# never rebuild the template when an inlined asset changes (fresh builds hide
+# this; every incremental build served a stale webview).
 SELFCONTAINED = build/web/views/editor.selfcontained.html
-
-$(SELFCONTAINED): build/web/views/editor.html src/scripts/inline-selfcontained.js \
-    $(COPY_JS) $(COPY_LIB_JS) $(COPY_NEW_JS) $(MISC_JS) build/web/js/editor-misc.min.js \
-    $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(OUT_CSS) $(MISC_CSS) $(COPY_NEW_CSS)
-	node src/scripts/inline-selfcontained.js build/web/views/editor.html build/web $@
 
 OUT_CSS := $(patsubst src/web/%.template.css,build/web/%.css,$(wildcard src/web/css/*.template.css))
 
@@ -386,6 +385,16 @@ $(WEBIMG):
 $(WEBARR):
 	@$(call MKDIR,$(WEBARR))
 
+# The self-contained template's rule (see the SELFCONTAINED comment near the
+# top for why it must sit below the COPY_*/MISC_* assignments it depends on).
+# beforePyret.js is spelled out because no COPY_* var contains it (it has its
+# own webpack rule) -- without it the inlined copy in the template goes stale.
+$(SELFCONTAINED): build/web/views/editor.html src/scripts/inline-selfcontained.js \
+    $(COPY_JS) $(COPY_LIB_JS) $(COPY_NEW_JS) $(MISC_JS) build/web/js/editor-misc.min.js \
+    build/web/js/beforePyret.js \
+    $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(OUT_CSS) $(MISC_CSS) $(COPY_NEW_CSS)
+	node src/scripts/inline-selfcontained.js build/web/views/editor.html build/web $@
+
 web-local: $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONTS) $(WEBIMG) $(WEBIMAGES) $(WEBARR) $(OUT_HTML) $(COPY_HTML) $(OUT_CSS) $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(COPY_FONTS) $(COPY_JS) $(COPY_LIB_JS) $(COPY_LIB_IMAGES) $(COPY_ARR) $(COPY_GIF) $(COPY_SVG) $(COPY_PNG) $(MISC_JS) $(MISC_CSS) $(MISC_IMG) $(COPY_NEW_CSS) $(COPY_NEW_JS) $(COPY_GOOGLE_JS) $(CPOMAIN) $(CPOGZ) build/web/js/editor-misc.min.js build/web/js/snap build/web/js/transpile.xml build/web/editor.html build/web/editor.embed.html $(SELFCONTAINED) 
 
 web: $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONTS) $(WEBIMG) $(WEBIMAGES) $(WEBARR) $(OUT_HTML) $(COPY_HTML) $(OUT_CSS) $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(COPY_FONTS) $(COPY_JS) $(COPY_LIB_JS) $(COPY_LIB_IMAGES) $(COPY_ARR) $(COPY_GIF) $(COPY_SVG) $(COPY_PNG) $(MISC_JS) $(MISC_CSS) $(MISC_IMG) $(COPY_NEW_CSS) $(COPY_NEW_JS) $(COPY_GOOGLE_JS) build/web/js/editor-misc.min.js build/web/js/snap build/web/js/transpile.xml build/web/editor.html build/web/editor.embed.html $(SELFCONTAINED)
@@ -441,6 +450,62 @@ $(CPOGZ): $(CPOMAIN)
 	cp $(CPOMAIN) $(CPOMAIN).js
 	npx uglifyjs --compress -o $(CPOMAIN).min -- $(CPOMAIN)
 	gzip -c -f $(CPOMAIN).min > $(CPOGZ)
+
+# ============================================================
+# TypeScript compiler flavor (strictly additive, opt-in).
+# Builds a second jarr (cpo-main-ts.jarr, no Pyret-hosted compiler
+# modules) plus a browser bundle of lang/src/ts-compiler. The editor
+# page selects between flavors via ?compiler=ts or CPO_COMPILER=ts
+# (see src/web/editor.html and src/server.js).
+#
+# The servable ts artifacts are gzip-at-rest under canonical names next
+# to cpo-main.jarr.gz.js -- cpo-main-ts.jarr.gz.js and ts-compiler.gz.js
+# -- because every consumer derives their URLs from PYRET's directory
+# (see editor.html). The plain browserify bundle is an intermediate and
+# deliberately lives OUTSIDE build/web so no packaging step ships it.
+# ============================================================
+
+TS_CPOMAIN=build/web/js/cpo-main-ts.jarr
+TS_CPOGZ=build/web/js/cpo-main-ts.jarr.gz.js
+TS_COMPILER_JS=build/ts-compiler.js
+TS_COMPILER_GZ=build/web/js/ts-compiler.gz.js
+
+.PHONY: ts-libpyret
+ts-libpyret:
+	$(MAKE) ts-compiler -C pyret/
+
+$(TS_COMPILER_JS): src/scripts/make-ts-compiler-entry.js ts-libpyret
+	@$(call MKDIR,build)
+	node src/scripts/make-ts-compiler-entry.js build/ts-compiler-entry.js
+	npx browserify build/ts-compiler-entry.js -s PyretTSCompiler -o $(TS_COMPILER_JS)
+
+$(TS_COMPILER_GZ): $(TS_COMPILER_JS)
+	@$(call MKDIR,build/web/js)
+	npx uglifyjs --compress -o $(TS_COMPILER_JS).min -- $(TS_COMPILER_JS)
+	gzip -c -f $(TS_COMPILER_JS).min > $(TS_COMPILER_GZ)
+
+$(TS_CPOMAIN): $(BUNDLED_DEPS) $(TROVE_JS) $(TROVE_ARR) $(WEBJS) src/web/js/*.js src/web/arr/*.arr cpo-standalone.js cpo-config.json src/web/arr/cpo-main-ts.arr $(PHASEA)
+	mkdir -p compiled/;
+	node pyret/build/phaseA/pyret.jarr \
+    --builtin-js-dir src/web/js/trove/ \
+    --builtin-js-dir pyret/src/js/trove/ \
+    -allow-builtin-overrides \
+    --builtin-arr-dir src/web/arr/trove/ \
+    --builtin-arr-dir pyret/src/arr/trove/ \
+    --require-config cpo-config.json \
+    --build-runnable src/web/arr/cpo-main-ts.arr \
+    --standalone-file cpo-standalone.js \
+    --compiled-dir ./compiled \
+    --deps-file $(BUNDLED_DEPS) \
+    --outfile $(TS_CPOMAIN) -no-check-mode
+
+$(TS_CPOGZ): $(TS_CPOMAIN)
+	cp $(TS_CPOMAIN) $(TS_CPOMAIN).js
+	npx uglifyjs --compress -o $(TS_CPOMAIN).min -- $(TS_CPOMAIN)
+	gzip -c -f $(TS_CPOMAIN).min > $(TS_CPOGZ)
+
+.PHONY: web-ts
+web-ts: $(TS_CPOMAIN) $(TS_CPOGZ) $(TS_COMPILER_GZ)
 
 clean:
 	rm -rf build/

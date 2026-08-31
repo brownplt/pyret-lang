@@ -34,3 +34,4 @@ import file("./regression/import-module-defining-but-not-exporting-data.arr") as
 import file("./regression/render-reason-wrong-op.arr") as _
 import file("./regression/table-reduce.arr") as _
 import file("./regression/table-row-row-length-mismatch.arr") as _
+import file("./regression/unguarded-checker-app-continuation.arr") as _

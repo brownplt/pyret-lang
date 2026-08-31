@@ -137,9 +137,19 @@ define("pyret-base/js/post-load-hooks", function() {
       "builtin://checker": function(checker) {
         var checker = runtime.getField(runtime.getField(checker, "provide-plus-types"), "values");
         const checks = hookOptions.checks || "main";
-        var currentChecker = runtime.getField(checker, "make-check-context").app(runtime.makeString(hookOptions.main),
-                                                                                 checks);
-        runtime.setParam("current-checker", currentChecker);
+        // make-check-context is a compiled Pyret function, so .app() can return
+        // a continuation if GAS is spent when it's entered. This hook runs
+        // inside runStandalone's safeCall, so wrap the call in safeCall too and
+        // only stash the result once it's the real check-context -- returning
+        // the continuation lets the enclosing trampoline pump it. Calling
+        // .app() bare here would store a continuation in "current-checker".
+        return runtime.safeCall(function() {
+          return runtime.getField(checker, "make-check-context").app(runtime.makeString(hookOptions.main),
+                                                                     checks);
+        }, function(currentChecker) {
+          runtime.setParam("current-checker", currentChecker);
+          return runtime.nothing;
+        }, "post-load-hooks: make-check-context");
       }
     };
   }

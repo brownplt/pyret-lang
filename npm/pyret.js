@@ -9,6 +9,11 @@ const stripAnsi = require('strip-ansi');
 const {version} = require("./package.json");
 
 const compilerPath = path.join(__dirname, "pyret-lang", "build", "phaseA", "pyret.jarr");
+// The TypeScript port of the compiler (pyret-lang/src/ts-compiler). Present
+// when the package was built with PYRET_NPM_TS=1 (see build.sh); selected by
+// --backend ts or PYRET_COMPILER=ts, the CLI analogue of code.pyret.org's
+// ?compiler=ts flag.
+const tsCompilerPath = path.join(__dirname, "pyret-lang", "build", "ts-compiler", "pyret.js");
 
 const usages = [
   {
@@ -124,6 +129,11 @@ const usages = [
         type: String,
         description: "Specify the path to a socket file to use to communicate with the server. Defaults to {underline /tmp/parley-<username>/comm.sock}."
       },
+      {
+        name: 'backend',
+        typeLabel: "{underline pyret|ts}",
+        description: "Which compiler backend to use (defaults to {bold pyret} or the PYRET_COMPILER environment variable if set). {bold ts} selects the TypeScript port of the compiler. An explicit {bold --compiler} path overrides this choice."
+      },
     ]
   },
   {
@@ -213,7 +223,8 @@ const optionDefinitions = [
   { name: 'port', alias: 't', type: String, group: "client" },
 //   { name: 'clean', type: Boolean, group: "client", defaultValue: false },
 
-  { name: 'compiler', type: String, defaultValue: compilerPath, group: "client" },
+  { name: 'compiler', type: String, group: "client" },
+  { name: 'backend', type: String, defaultValue: process.env.PYRET_COMPILER || 'pyret', group: "client" },
   { name: 'global-parley', type: String, defaultValue: "~/.parley/" },
   { name: 'local-parley', type: String, defaultValue: ".pyret" },
 
@@ -267,6 +278,22 @@ try {
 }
 catch(e) {
   printUsage();
+  process.exit(1);
+}
+
+const backend = options.client.backend;
+if(backend !== "pyret" && backend !== "ts") {
+  console.error("--backend must be pyret or ts (got " + backend + ")");
+  process.exit(1);
+}
+if(!options.client.compiler) {
+  const resolved = backend === "ts" ? tsCompilerPath : compilerPath;
+  options.client.compiler = resolved;
+  options["_all"]["compiler"] = resolved;
+}
+if(backend === "ts" && !fs.existsSync(options.client.compiler)) {
+  console.error("The ts backend is not available: " + options.client.compiler + " does not exist.");
+  console.error("(Build it with `make ts-compiler` in the pyret-lang checkout, or reinstall a package built with PYRET_NPM_TS=1.)");
   process.exit(1);
 }
 

@@ -93,7 +93,10 @@
       //fs.writeSync(outFile, "if(typeof window === 'undefined') {\n");
       //fs.writeSync(outFile, "var requirejs = require(\"requirejs\");\n");
       //fs.writeSync(outFile, "var define = requirejs.define;\n}\n");
-      Object.keys(filesToFetch).forEach(function(f) {
+      // Sorted so concatenation order doesn't depend on config-dict
+      // iteration order (the config round-trips through a string-dict in
+      // cli-module-loader.arr, so JSON file order is not preserved here)
+      Object.keys(filesToFetch).sort().forEach(function(f) {
         if (filesToFetch[f].indexOf( "$PYRET" ) !== -1) {
           var filename = filesToFetch[f].replace("$PYRET", thisPyretDir);
         } else if (!path.isAbsolute( filesToFetch[f] )) {

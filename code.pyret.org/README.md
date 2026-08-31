@@ -60,6 +60,44 @@ could just run this from the CPO directory:
 $ ln -s ../pyret-lang pyret
 ```
 
+## Running with the TypeScript compiler (experimental)
+
+CPO can also run on the TypeScript port of the Pyret compiler
+(`pyret/src/ts-compiler`), compiled in the page exactly like the stock
+compiler. This is strictly additive: the default build and behavior are
+unchanged.
+
+Build the parallel artifacts (in addition to the normal build):
+
+```
+$ make web-ts
+```
+
+This produces `build/web/js/ts-compiler.js` (a browserify bundle of the
+TS compiler, exposing the `PyretTSCompiler` global) and
+`build/web/js/cpo-main-ts.jarr` (the same editor UI and builtin modules
+as `cpo-main.jarr`, minus the Pyret-hosted compiler modules, with the
+TS-compiler glue from `src/web/js/cpo-main-ts.js` and
+`src/web/js/ts-compiler-lib.js`).
+
+Select the compiler at page startup:
+
+- per page load: open `/editor?compiler=ts` (or `?compiler=pyret`);
+- server-wide default: set `CPO_COMPILER=ts` in the environment (see
+  `PYRET_TS` / `PYRET_TS_COMPILER` in `src/server.js` for overriding the
+  artifact URLs).
+
+Execution, check results, and runtime errors go through the same runtime,
+realm, and UI code as the stock build; parse errors are re-raised as the
+same Pyret exceptions, and compile errors render through
+`builtin://error-display` values bridged from the TS compiler's error
+structures. The whole mocha suite passes in both configurations (run it
+with `CPO_COMPILER=ts` set on the server for the TS flavor). Known
+limits: `my-gdrive`/`shared-gdrive`/`gdrive-js` imports are not yet
+supported with the TS compiler (url/url-file imports are), and very long
+programs (beyond roughly 5000 statements) can still exhaust the browser's
+fixed JS stack during compilation.
+
 ## Configuration with Google Auth and Storage
 
 In order to have share links, saving, and other docs-related functionality

@@ -15,7 +15,9 @@ async function runSpec(page, s) {
     case "repl":
       return A.testRunAndUseRepl(page, s.code, s.repl, s.options);
     case "allTestsPass":
-      return A.runAndCheckAllTestsPassed(page, s.code, s.name, 20000);
+      // Upstream's testRunAndAllTestsPass uses a fixed 20s content budget;
+      // an explicit spec timeout (e.g. big-programs' large compiles) wins.
+      return A.runAndCheckAllTestsPassed(page, s.code, s.name, (s.options && s.options.timeout) || 20000);
     case "pyretFile":
       // tables.js uses doForEachPyretFile with a table-specific assertion.
       if (s.suite === "tables") {

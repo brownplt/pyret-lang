@@ -37,8 +37,10 @@ cl-cons = CL.concat-cons
 cl-snoc = CL.concat-snoc
 
 fun cl-map-sd(f, sd):
-  for D.fold-keys(acc from cl-empty, key from sd):
-    cl-cons(f(key), acc)
+  # Iterate in sorted key order so emitted field order is deterministic
+  # (string-dict iteration order is unspecified)
+  for fold(acc from cl-empty, key from sd.keys-list().sort()):
+    cl-snoc(acc, f(key))
   end
 end
 
@@ -647,7 +649,9 @@ fun compile-fun-body(l :: Loc, step :: A.Name, fun-name :: A.Name, compiler, arg
   for D.each-key(d from main-body-cases-and-dead-vars.discardable-vars):
     all-needed-vars.remove-now(d)
   end
-  vars = all-needed-vars.map-keys-now(all-needed-vars.get-value-now(_))
+  vars = for map(k from all-needed-vars.keys-list-now().sort()):
+    all-needed-vars.get-value-now(k)
+  end
 
   num-vars = vars.length()
 
@@ -2228,7 +2232,9 @@ fun compile-module(self, l, prog-provides, imports-in, prog, freevars, provides,
     end
   end
 
-  free-ids = freevars.map-keys-now(freevars.get-value-now(_))
+  free-ids = for map(k from freevars.keys-list-now().sort()):
+    freevars.get-value-now(k)
+  end
   module-and-global-binds = lists.partition(A.is-s-atom, free-ids)
   global-binds = for CL.map_list(n from module-and-global-binds.is-false):
     { maybe-origin; which } =

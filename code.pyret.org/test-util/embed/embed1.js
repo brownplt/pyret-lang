@@ -13,7 +13,8 @@ window.addEventListener('message', function(message) {
 window.addEventListener('load', function() {
   const frame = document.createElement("iframe");
   frame.id = "embed1";
-  frame.src = `${window.BASE_URL}/editor#controlled=true`;
+  const compilerQuery = window.EMBED_COMPILER ? `?compiler=${window.EMBED_COMPILER}` : "";
+  frame.src = `${window.BASE_URL}/editor${compilerQuery}#controlled=true`;
   frame.style = "width: 100%; height: 100%";
   const container = document.getElementById("container");
   container.appendChild(frame);

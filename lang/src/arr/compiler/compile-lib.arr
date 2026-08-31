@@ -549,7 +549,7 @@ end
 fun make-standalone(wl, compiled, options):
   natives = for fold(natives from empty, w from wl):
     w.locator.get-native-modules().map(_.path) + natives
-  end
+  end.sort()
   
   var all-compile-problems = empty
   static-modules = j-obj(for C.map_list(w from wl):
@@ -578,6 +578,11 @@ fun make-standalone(wl, compiled, options):
           j-false
         else:
           j-true
+        end),
+      J.j-field("pauseSchedule",
+        cases(Option) options.pause-schedule:
+          | none => j-false
+          | some(code) => j-str(code)
         end)
     ])
 
@@ -587,7 +592,7 @@ fun make-standalone(wl, compiled, options):
       depmap = j-obj(for C.map_list(w from wl):
         deps = w.dependency-map
         j-field(w.locator.uri(),
-          j-obj(for C.map_list(k from deps.keys-now().to-list()):
+          j-obj(for C.map_list(k from deps.keys-now().to-list().sort()):
             j-field(k, j-str(deps.get-value-now(k).uri()))
           end))
       end)

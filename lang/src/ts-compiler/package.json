@@ -1,0 +1,14 @@
+{
+  "name": "pyret-ts-compiler",
+  "version": "0.0.1",
+  "description": "TypeScript port of the Pyret compiler (arr/compiler). Strictly additive; does not alter the existing Pyret-hosted compiler.",
+  "private": true,
+  "main": "../../build/ts-compiler/pyret.js",
+  "scripts": {
+    "build": "tsc -p ."
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^18.0.0"
+  }
+}

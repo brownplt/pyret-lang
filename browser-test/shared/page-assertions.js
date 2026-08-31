@@ -39,13 +39,29 @@ function PYRET_PAGE_ASSERTIONS() {
       const cm = document.querySelector(".CodeMirror");
       return cm && cm.CodeMirror ? cm.CodeMirror.getValue() : null;
     },
-    // Ready means Pyret has loaded AND the editor's initial contents have been
-    // installed (CM is non-empty). Mirrors util.waitForPyretLoad, which waits
-    // for getValue() !== '' so a test's setDefinitions can't race with the
-    // initial content load (important for the vscode webview, whose custom
-    // editor pushes the file contents into CM asynchronously).
+    // Ready means Pyret has loaded AND whoever owns the initial contents is
+    // done installing them. The editor declares the second fact itself
+    // (EDITOR_CONTENTS_SETTLED: beforePyret's programLoaded for standalone
+    // pages; the end of events.js reset() -- warm-start run included -- for
+    // host-fed ones), so this predicate means the same thing in every env.
+    // The previous shape inferred it from cmValue() !== "", which is honest
+    // only where the reset is CM's sole writer (embed's controlled mode); the
+    // vscode webview self-populates CM at boot, so the harness would start
+    // driving while the host's reset was still in flight -- and a Run clicked
+    // during its warm-start run is silently swallowed (the vscode x pyret CI
+    // flake).
     editorReady() {
-      return PA.pyretLoaded() && PA.cmPresent() && PA.cmValue() !== "";
+      return PA.pyretLoaded() && PA.cmPresent() && window.EDITOR_CONTENTS_SETTLED === true;
+    },
+    // stickError banners: every caller (runtime-bundle load failure, program
+    // load failure, save failure) marks a genuinely broken editor. Crucially,
+    // beforePyret's terminal load-failure path HIDES #loader while posting one
+    // of these, so pyretLoaded()/editorReady() alone cannot tell a booted
+    // runtime from a dead page -- the harness must check here too.
+    stickyErrors() {
+      return Array.from(document.querySelectorAll(".notificationArea .error"))
+        .map((e) => (e.textContent || "").trim())
+        .filter((t) => t !== "");
     },
 
     // ---- input (mirrors util.setCodemirror on the definitions CM) ----

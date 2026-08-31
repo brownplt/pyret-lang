@@ -25,6 +25,28 @@ editor.embed.html work from your source.
    ```
 See examples/ for more examples!
 
+## Choosing the compiler backend
+
+The embedded editor can run on either the stock Pyret-hosted compiler or the
+TypeScript port of the compiler (`pyret-lang/src/ts-compiler`) — the same
+opt-in as code.pyret.org's `?compiler=ts` flag. Pass `compiler: 'ts'` in the
+config form of the API and the flag is appended to the embed URL for you:
+
+```
+const embed = await makeEmbedConfig({
+  container,
+  src: "/dist/build/web/editor.embed.html",
+  compiler: "ts",   // default: "pyret" (the stock compiler)
+  options: { footerStyle: "hide" },
+});
+```
+
+For self-hosted builds the ts artifacts (`cpo-main-ts.jarr.js`,
+`ts-compiler.js`) are only present if you build with `npm run build:ts`
+(which runs the regular build plus code.pyret.org's `make web-ts`); the
+default `npm run build` produces the stock-only bundle and the default
+behavior is unchanged.
+
 ## API
 
 ```

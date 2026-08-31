@@ -1368,7 +1368,7 @@ fun canonicalize-value-export(ve :: CS.ValueExport, uri :: URI, tn):
 end
 
 fun find-mod(compile-env, uri) -> Option<String>:
-  for find(depkey from compile-env.my-modules.keys-list()):
+  for find(depkey from compile-env.my-modules.keys-list().sort()):
     other-uri = compile-env.my-modules.get-value(depkey)
     other-uri == uri
   end

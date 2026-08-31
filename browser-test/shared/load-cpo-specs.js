@@ -29,6 +29,7 @@ const fs = require("fs");
 const Module = require("module");
 
 const CPO_DIR = path.resolve(__dirname, "../../code.pyret.org");
+const TESTS_DIR = path.resolve(__dirname, "../tests");
 const UTIL_PATH = require.resolve(path.join(CPO_DIR, "test-util/util.js"));
 
 // The upstream test files use require("../test-util/util.js"). We intercept that
@@ -154,12 +155,34 @@ function loadSpecsFromFile(testFileName) {
   return recorder;
 }
 
-module.exports = { loadSpecsFromFile, CPO_DIR };
+/**
+ * Load one suite's specs, whichever kind of source names them.
+ *
+ * A bare filename ("errors.js") is an upstream code.pyret.org/test file, read
+ * through the recording shims above. A relative specifier ("./big-programs.js")
+ * is a harness-local module that exports specs() -- generated or hand-written
+ * stress shapes that have no upstream counterpart, kept here so the "nothing
+ * under code.pyret.org/ is modified" property holds. Node's own rule for
+ * telling those apart (bare vs relative) is the rule used here, so a suite
+ * entry reads like the require() it stands in for; local paths resolve against
+ * tests/, where the suite table lives.
+ *
+ * Both kinds yield the same {kind, name, code, options} spec objects, so no
+ * caller has to know which one a suite came from -- that is the point of
+ * having one entry form rather than two.
+ */
+function loadSpecs(source) {
+  const isRelative = source.startsWith("./") || source.startsWith("../");
+  if (isRelative) return require(path.join(TESTS_DIR, source)).specs();
+  return loadSpecsFromFile(source);
+}
+
+module.exports = { loadSpecs, loadSpecsFromFile, CPO_DIR };
 
 // CLI: `node load-cpo-specs.js errors.js` prints a summary.
 if (require.main === module) {
   const file = process.argv[2] || "errors.js";
-  const specs = loadSpecsFromFile(file);
+  const specs = loadSpecs(file);
   const byKind = {};
   for (const s of specs) byKind[s.kind] = (byKind[s.kind] || 0) + 1;
   console.log(`Loaded ${specs.length} specs from test/${file}:`, byKind);

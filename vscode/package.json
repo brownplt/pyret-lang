@@ -101,6 +101,20 @@
 						"Load `url-file()` imports from the local filesystem if they exist, otherwise from the URL"
 					],
 					"description": "Controls how `url-file()` imports are resolved"
+				},
+				"pyret-parley.compiler": {
+					"type": "string",
+					"default": "pyret",
+					"scope": "resource",
+					"enum": [
+						"pyret",
+						"ts"
+					],
+					"markdownEnumDescriptions": [
+						"“Regular” Pyret. This is the default, pick this if you're not sure.",
+						"A version of the compiler implemented in TypeScript. No special features, just loads and runs faster. Currently an experiment."
+					],
+					"description": "Which compiler implementation to use"
 				}
 			}
 		}
@@ -111,7 +125,8 @@
 		"compile": "webpack --mode production",
 		"compile-tests": "webpack --config webpack.test.config.js --mode development",
 		"pretest": "npm run compile && npm run compile-tests",
-		"test": "vscode-test-web --browserType=chromium --headless --esm --extensionDevelopmentPath=. --extensionTestsPath=./dist/web/test/index.js ./test/fixtures/spell-checker"
+		"test": "vscode-test-web --browserType=chromium --headless --esm --extensionDevelopmentPath=. --extensionTestsPath=./dist/web/test/index.js ./test/fixtures/spell-checker",
+		"test:ts": "vscode-test-web --browserType=chromium --headless --esm --extensionDevelopmentPath=. --extensionTestsPath=./dist/web/test/index.js ./test/fixtures/spell-checker-ts"
 	},
 	"devDependencies": {
 		"@types/mocha": "^10.0.6",

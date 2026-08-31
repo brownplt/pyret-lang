@@ -3583,8 +3583,20 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
       var TOS = 0;
 
       var sync = options.sync || false;
-      var initialGas = options.initialGas || thisRuntime.INITIAL_GAS;
-      var initialRunGas = options.initialRunGas || initialGas * 10;
+      var defaultInitialGas = options.initialGas || thisRuntime.INITIAL_GAS;
+      var defaultInitialRunGas = options.initialRunGas || defaultInitialGas * 10;
+      function nextInitialGas() {
+        var schedule = thisRuntime.pauseSchedule;
+        if(schedule && schedule.initialGas) { return schedule.initialGas(); }
+        return defaultInitialGas;
+      }
+      function nextInitialRunGas() {
+        var schedule = thisRuntime.pauseSchedule;
+        if(schedule && schedule.initialRunGas) { return schedule.initialRunGas(); }
+        return defaultInitialRunGas;
+      }
+      var initialGas = nextInitialGas();
+      var initialRunGas = nextInitialRunGas();
       thisRuntime.GAS = initialGas;
       thisRuntime.RUNGAS = sync ? Infinity : initialRunGas;
 
@@ -3617,6 +3629,10 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
             val = restartVal;
             TOS++;
             RUN_ACTIVE = true;
+            // Must refill: a nested run during the pause may leave GAS <= 1,
+            // and an entry-check capture on the resumed frame drops its ans.
+            thisRuntime.GAS = nextInitialGas();
+            thisRuntime.RUNGAS = nextInitialRunGas();
             util.suspend(iter);
           },
           break: breakFun,
@@ -3668,11 +3684,20 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
             }
             while(theOneTrueStackHeight > 0) {
               if(!sync && thisRuntime.RUNGAS <= 1) {
-                thisRuntime.RUNGAS = initialRunGas;
+                thisRuntime.RUNGAS = nextInitialRunGas();
                 TOS++;
                 // CONSOLE.log("Setting timeout to resume iter");
                 util.suspend(iter);
                 return;
+              }
+              // A frame popped with GAS <= 1 (or RUNGAS <= 1) trips its entry
+              // check, which re-captures and replaces a delivered-but-unconsumed
+              // ans with UNINITIALIZED_ANSWER; keep both >= 2 at every pop.
+              if(thisRuntime.GAS <= 1) {
+                thisRuntime.GAS = nextInitialGas();
+              }
+              if(sync && thisRuntime.RUNGAS <= 1) {
+                thisRuntime.RUNGAS = nextInitialRunGas();
               }
               var next = theOneTrueStack[--theOneTrueStackHeight];
               // CONSOLE.log("ActivationRecord[" + theOneTrueStackHeight + "] = " + JSON.stringify(next, null, "  "));
@@ -3698,8 +3723,8 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
               if(next.fun instanceof Function && thisRuntime.isContinuation(val)) {
                 // console.log("BOUNCING");
                 BOUNCES++;
-                thisRuntime.GAS = initialGas;
-                thisRuntime.RUNGAS = initialRunGas;
+                thisRuntime.GAS = nextInitialGas();
+                thisRuntime.RUNGAS = nextInitialRunGas();
                 for(var i = val.stack.length - 1; i >= 0; i--) {
     //              console.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
                   theOneTrueStack[theOneTrueStackHeight++] = val.stack[i];
@@ -3736,7 +3761,7 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
             if(thisRuntime.isCont(e)) {
               // CONSOLE.log("BOUNCING");
               BOUNCES++;
-              thisRuntime.GAS = initialGas;
+              thisRuntime.GAS = nextInitialGas();
               for(var i = e.stack.length - 1; i >= 0; i--) {
               // CONSOLE.error(e.stack[i].vars.length + " width;" + e.stack[i].vars + "; from " + e.stack[i].from + "; frame " + theOneTrueStackHeight);
                 theOneTrueStack[theOneTrueStackHeight++] = e.stack[i];
@@ -4026,6 +4051,11 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
     }
 
     var INITIAL_GAS = theOutsideWorld.initialGas || 500;
+
+    // schedule :: { initialGas: () -> Number, initialRunGas: () -> Number }
+    function setPauseSchedule(schedule) {
+      thisRuntime.pauseSchedule = schedule;
+    }
 
     var DEBUGLOG = true;
     /**
@@ -4475,6 +4505,9 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
           return good;
         }
         function foldFun($ar) {
+          if (thisRuntime.isInitializedActivationRecord($ar)) {
+            if ($ar.ans === bad) { return $ar.ans; }
+          }
           var res = foldHelp();
           if(isContinuation(res)) {
             res.stack[thisRuntime.EXN_STACKHEIGHT++] = thisRuntime.makeActivationRecord(
@@ -6119,6 +6152,8 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
 
       'GAS': INITIAL_GAS,
       'INITIAL_GAS': INITIAL_GAS,
+      'pauseSchedule': theOutsideWorld.pauseSchedule || null,
+      'setPauseSchedule': setPauseSchedule,
 
       'jsnums': jsnums,
       'NumberErrbacks': NumberErrbacks,

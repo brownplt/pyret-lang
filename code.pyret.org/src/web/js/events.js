@@ -156,7 +156,22 @@ function makeEvents(config) {
       await window.RUN_CODE(state.definitionsAtLastRun);
     }
     else if (state.definitionsAtLastRun === false) {
-      await window.RUN_CODE("");
+      // "Never run": the empty run below establishes the REPL baseline. Two
+      // audiences depend on it -- interaction replay (the loop after this
+      // branch assumes a runtime to replay against), and hosts that show the
+      // interactions pane, whose prompt only appears at a run's completion
+      // (repl-ui's showPrompt) -- pyret-embed's default reset state relies on
+      // that for a live prompt at boot.
+      //
+      // A host that needs neither can send warmStart: false to skip it.
+      // While this run is in flight the editor LOOKS ready, but a Run click
+      // is silently swallowed and edits race the contents install below --
+      // so a host whose pane hides interactions (the vscode cpo editor) pays
+      // boot latency plus a race window for an invisible effect. Interaction
+      // replay always gets its baseline regardless of the flag.
+      if (state.warmStart !== false || (state.interactionsSinceLastRun || []).length > 0) {
+        await window.RUN_CODE("");
+      }
     }
     const interactions = state.interactionsSinceLastRun;
     for(let i = 0; i < interactions.length; i += 1) {
@@ -164,6 +179,11 @@ function makeEvents(config) {
     }
     editorUpdate(state.editorContents);
     replUpdate(state.replContents);
+    // The host-fed settle point (see EXPECTS_HOST_RESET in beforePyret.js):
+    // everything above -- the awaited warm-start run included -- is done and
+    // the host's contents are installed. RECEIVED_RESET (commSetup) marks
+    // receipt, which is the START of that window; this marks its end.
+    window.EDITOR_CONTENTS_SETTLED = true;
   }
 
   config.CPO.events.onLoad(async function () {
@@ -328,6 +348,9 @@ function makeEvents(config) {
       });
       CPO.loadProgram(toLoad).then((text) => {
         editorUpdate(text);
+        // The share-link flavor of a host reset settles here (it bypasses
+        // reset(), so the end of reset() can't cover it).
+        window.EDITOR_CONTENTS_SETTLED = true;
       })
       .catch((e) => {
         console.error("Error loading initial state from share link: ", e, link);

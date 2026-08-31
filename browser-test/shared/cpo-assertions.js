@@ -109,7 +109,12 @@ async function testErrorRendersString(page, code, expected, options) {
 // substrings each test must contain.
 async function testRunsAndHasCheckBlocks(page, code, specs, options) {
   await setDefinitionsRunAndWait(page, code, options);
-  await page.waitFor("window.PA.doneRendering()", 20000);
+  await page.waitFor("window.PA.doneRendering() || window.PA.compileErrorPresent()", 20000);
+  if (!(await page.eval("window.PA.doneRendering()"))) {
+    await page.eval("window.PA.removeOutputCodeMirrors()");
+    const text = await page.eval("window.PA.outputText()");
+    assert.fail("expected check results, but the run produced an error:\n" + text);
+  }
   await page.eval("window.PA.removeOutputCodeMirrors()");
   const specLens = specs.map((s) => s.length);
   const blocks = await page.eval("window.PA.collectCheckBlocks(" + JSON.stringify(specLens) + ")");

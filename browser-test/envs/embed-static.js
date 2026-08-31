@@ -24,9 +24,10 @@
  */
 const path = require("path");
 const fs = require("fs");
-const { launchChromium } = require("../shared/browser");
+const { launchChromium, wireBrowserLogs } = require("../shared/browser");
 const { findEditorFrame } = require("../shared/find-frame");
 const { startStaticServer } = require("../shared/static-server");
+const { resourceScope } = require("../shared/resource-scope");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const BUILD_ROOT = process.env.EMBED_STATIC_ROOT || path.join(REPO_ROOT, "code.pyret.org", "build", "web");
@@ -49,35 +50,37 @@ async function setup() {
     );
   }
 
-  const server = await startStaticServer({
-    roots: [BUILD_ROOT, EMBED_DIST, PAGES_ROOT],
-  });
+  const scope = resourceScope();
+  try {
+    const server = await startStaticServer({
+      roots: [BUILD_ROOT, EMBED_DIST, PAGES_ROOT],
+    });
+    scope.add(() => server.close());
 
-  const browser = await launchChromium();
-  const page = await browser.newPage();
-  page.setDefaultTimeout(60000);
+    const browser = await launchChromium();
+    scope.add(() => browser.close());
+    const page = await browser.newPage();
+    wireBrowserLogs(page);
+    page.setDefaultTimeout(60000);
 
-  await page.goto(server.origin + "/embed-static-host.html", {
-    waitUntil: "domcontentloaded",
-    timeout: 120000,
-  });
+    await page.goto(server.origin + "/embed-static-host.html", {
+      waitUntil: "domcontentloaded",
+      timeout: 120000,
+    });
 
-  // makeEmbedConfig resolves (and the host page sets window.embedAPI) once the
-  // editor announces pyret-init and the initial state reset has been sent.
-  await page.waitForFunction(() => !!window.embedAPI, undefined, {
-    timeout: 60000,
-    polling: 200,
-  });
+    // makeEmbedConfig resolves (and the host page sets window.embedAPI) once the
+    // editor announces pyret-init and the initial state reset has been sent.
+    await page.waitForFunction(() => !!window.embedAPI, undefined, {
+      timeout: 60000,
+      polling: 200,
+    });
 
-  const frame = await findEditorFrame(page);
-  return {
-    page,
-    frame,
-    cleanup: async () => {
-      await browser.close();
-      await server.close();
-    },
-  };
+    const frame = await findEditorFrame(page);
+    return { page, frame, cleanup: scope.closeAll };
+  } catch (e) {
+    await scope.closeAll();
+    throw e;
+  }
 }
 
 module.exports = {

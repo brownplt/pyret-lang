@@ -865,6 +865,10 @@
         running = true;
         output.empty();
         promptContainer.hide();
+        // This gained stop() after having been just hide() for a while,
+        // because we found cases where queued up fadeIns needed to be
+        // canceled to avoid showing the prompt while running.
+        promptContainer.stop(true, true).hide();
         lastEditorRun = uiOptions.cm || null;
         setWhileRunning();
 
@@ -917,7 +921,7 @@
         var echoCM = CodeMirror.fromTextArea(echo[0], { readOnly: true });
         echoCM.setValue(code);
         CM.setValue("");
-        promptContainer.hide();
+        promptContainer.stop(true, true).hide();
         setWhileRunning();
         interactionsCount++;
         var thisName = 'interactions://' + interactionsCount;
@@ -1005,7 +1009,8 @@
         runCode: runMainCode,
         runner: runner,
         focus: function() { CM.focus(); },
-        stop: onBreak
+        stop: onBreak,
+        isRunning: function() { return running; }
       };
     }
 

@@ -91,6 +91,8 @@ fun main(args :: List<String>) -> Number block:
     C.flag(C.once, "Ignore all annotations in the runtime, treating them as if they were blank."),
     "url-file-mode",
     C.next-val-default(C.Str, "all-remote", none, C.once, "How to handle url-file imports (all-remote, all-local, or local-if-present)"),
+    "pause-schedule",
+    C.next-val(C.Str, C.once, "JS file computing initial GAS/RUNGAS for the runtime; its code is baked into the standalone"),
   ]
 
   params-parsed = C.parse-args(options, args)
@@ -127,6 +129,7 @@ fun main(args :: List<String>) -> Number block:
       module-eval = not(r.has-key("no-module-eval"))
       user-annotations = not(r.has-key("no-user-annotations"))
       runtime-annotations = not(r.has-key("no-runtime-annotations"))
+      pause-schedule = r.get("pause-schedule").and-then(F.file-to-string)
       when r.has-key("builtin-js-dir"):
         B.set-builtin-js-dirs(r.get-value("builtin-js-dir"))
       end
@@ -197,7 +200,8 @@ fun main(args :: List<String>) -> Number block:
             module-eval: module-eval,
             user-annotations: user-annotations,
             runtime-annotations: runtime-annotations,
-            url-file-mode: url-file-mode
+            url-file-mode: url-file-mode,
+            pause-schedule: pause-schedule
           })
         success-code
       else if r.has-key("serve"):

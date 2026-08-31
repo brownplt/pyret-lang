@@ -2,12 +2,17 @@
 /*
  * run.js -- friendly CLI over the node:test suite.
  *
- *   node run.js --env=cpo|embed|embed-static|vscode|vscode-ovsx [--grep=<regex>] [--suites=all|a,b] [--reporter=spec|tap|dot]
+ *   node run.js --env=cpo|embed|embed-static|vscode|vscode-ovsx [--compiler=pyret|ts] [--grep=<regex>] [--suites=all|a,b] [--reporter=spec|tap|dot]
  *
  * Examples:
  *   node run.js --env=embed --grep tables        # one feature, in the embed instance
  *   node run.js --env=cpo   --grep 'is-not'      # regex over test names
  *   node run.js --env=vscode                     # everything, in the vscode webview
+ *   node run.js --env=cpo --compiler=ts          # same suite, on the TS-compiler flavor
+ *
+ * --compiler selects which compiler backend the environment loads (the
+ * editor's ?compiler= flavor; default pyret). It maps to PYRET_COMPILER,
+ * which each env adapter honors; the assertions themselves are identical.
  *
  * This just shells out to `node --test` with the right flags + PYRET_ENV, so you
  * get node:test's native reporters and exit code. `--grep` maps to
@@ -19,8 +24,8 @@
 const path = require("path");
 const { spawn } = require("child_process");
 
-const KNOWN_FLAGS = ["env", "grep", "suites", "reporter"];
-const USAGE = "usage: node run.js --env=cpo|embed|embed-static|vscode|vscode-ovsx [--grep=<regex>] [--suites=all|a,b] [--reporter=spec|tap|dot]";
+const KNOWN_FLAGS = ["env", "grep", "suites", "reporter", "compiler"];
+const USAGE = "usage: node run.js --env=cpo|embed|embed-static|vscode|vscode-ovsx [--compiler=pyret|ts] [--grep=<regex>] [--suites=all|a,b] [--reporter=spec|tap|dot]";
 
 function die(msg) {
   console.error(msg);
@@ -63,6 +68,11 @@ const grep = arg("grep");
 const suitesArg = arg("suites");
 const suites = suitesArg === undefined ? "all" : suitesArg;
 const reporter = arg("reporter") || "spec";
+const compiler = arg("compiler") || process.env.PYRET_COMPILER || "pyret";
+if (!["pyret", "ts"].includes(compiler)) {
+  console.error("--compiler must be pyret or ts");
+  process.exit(2);
+}
 
 const nodeArgs = ["--test", "--test-reporter=" + reporter];
 if (grep) nodeArgs.push("--test-name-pattern=" + grep);
@@ -91,6 +101,7 @@ const FIXTURE_ROOT = path.resolve(__dirname, "..", "code.pyret.org", "test-util"
       ...process.env,
       PYRET_ENV: env,
       PYRET_SUITES: suites,
+      PYRET_COMPILER: compiler,
       PYRET_FIXTURE_BASE: fixtures.origin,
     },
   });

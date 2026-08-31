@@ -48,6 +48,12 @@ export type EmbedConfig = {
   id?: string,
   state?: State,
   rpc?: RPCFunctions,
+  // Which compiler backend the embedded editor loads -- the same knob as
+  // code.pyret.org's ?compiler= flag; it is appended to `src` as a query
+  // parameter. 'ts' selects the TypeScript port of the compiler; omitting
+  // it (or 'pyret') keeps the stock Pyret-hosted compiler. Self-hosted
+  // builds have the ts artifacts when built via `npm run build:ts`.
+  compiler?: 'pyret' | 'ts',
   options: {
     footerStyle?: 'hide' | 'normal',
     warnOnExit?: boolean,
@@ -109,6 +115,15 @@ export function makeEmbedConfig(config : EmbedConfig) : Promise<API> {
   const propIfTrue = (obj, prop) => { if(obj[prop] === true) { return `&${prop}=true`; } else { return ""; }};
   const propIfPresent = (obj, prop) => { if(hasprop(obj, prop)) { return `&${prop}=${obj[prop]}`; } else { return ""; }};
   const fragment = `${propIfPresent(mergedOptions, "footerStyle")}${propIfPresent(mergedOptions, "warnOnExit")}${propIfTrue(mergedOptions, "hideDefinitions")}${propIfTrue(mergedOptions, "hideInteractions")}`;
+  if(mergedConfig.compiler && mergedConfig.compiler !== "pyret") {
+    // The compiler choice travels as a query parameter (?compiler=ts), not a
+    // hash option, mirroring code.pyret.org's /editor flag; insert it before
+    // any hash fragment already present on src.
+    const hashAt = src.indexOf("#");
+    const base = hashAt === -1 ? src : src.substring(0, hashAt);
+    const hash = hashAt === -1 ? "" : src.substring(hashAt);
+    src = base + (base.indexOf("?") === -1 ? "?" : "&") + "compiler=" + mergedConfig.compiler + hash;
+  }
   if(src.indexOf("#") !== -1) {
     src = src + "&" + fragment;
   }

@@ -29,3 +29,77 @@ jobs:
     - name: run tests
       run: make all-pyret-test
 
+  ts-suite:
+    name: Pyret test suite, compiled by the TS compiler
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./lang
+
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 24
+
+    - name: install
+      run: make install
+
+    - name: build TypeScript compiler
+      run: make ts-compiler
+
+    # The .arr-compiled counterpart of this suite is the `build` job's
+    # `make all-pyret-test`: same tests/all.arr (main2 + type-check +
+    # regression + lib-test), built and run through build/ts-compiler.
+    - name: run tests
+      run: make all-ts-pyret-test
+
+    # The npm CLI's compile-server path (`pyret --backend ts`): -serve mode
+    # driven over the npm client's ws+unix protocol -- compile / failure /
+    # reconnect / shutdown, and the served standalone must run.
+    - name: compile-server test
+      run: make ts-serve-test
+
+  bootstrap-converge:
+    name: bootstrap convergence (.arr == TS, byte-identical)
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./lang
+
+    steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v6
+      with:
+        node-version: 24
+
+    - name: install
+      run: make install
+
+    - name: build TypeScript compiler
+      run: make ts-compiler
+
+    # Builds both bootstrap chains and asserts all four standalones are one
+    # byte-identical fixpoint: phaseB==phaseC (.arr self-fixpoint),
+    # phaseB-ts==phaseC-ts (TS self-fixpoint), phaseB==phaseB-ts (the TS
+    # compiler is a byte-exact drop-in for the Pyret-hosted compiler).
+    - name: converge
+      run: make bootstrap-converge
+
+    # Runs here because this job has already built both compilers (phaseA is
+    # a prerequisite of the phaseB chain). Compiles the whole tests/type-check
+    # corpus with -type-check under both and requires identical diagnostics --
+    # the direct coverage for type-check.ts, which the ts-suite job's tests
+    # never execute (they import the .arr type checker).
+    - name: type-check parity
+      run: make ts-type-check-parity
+
+    # Same rationale, for well-formedness/scope errors: the corpus is the
+    # inline programs of the in-suite wf tests, extracted at runtime.
+    - name: well-formedness parity
+      run: make ts-wf-parity
+

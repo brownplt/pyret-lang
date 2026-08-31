@@ -67,15 +67,22 @@ const webExtensionConfig = {
 					from: path.resolve(__dirname, "build"),
 					to: "./build",
 					globOptions: {
-						// Only cpo-main.jarr.gz.js is fetched (and inflated in-page
-						// by beforePyret); drop the uncompressed 37MB bundle and the
-						// CPO build's big intermediates, which also keeps every
-						// shipped file under Open VSX's ~15MB cap.
+						// Only the gz artifacts are fetched (and inflated in-page by
+						// beforePyret): cpo-main.jarr.gz.js, and in the ts flavor
+						// cpo-main-ts.jarr.gz.js + ts-compiler.gz.js. Drop the
+						// uncompressed bundles and both flavors' big intermediates,
+						// which also keeps every shipped file under Open VSX's ~15MB
+						// cap (the ts intermediates are ~20MB EACH when a `make
+						// web-ts` build preceded packaging).
 						ignore: [
 							"**/snap/**",
 							"**/js/cpo-main.jarr",
 							"**/js/cpo-main.jarr.js",
 							"**/js/cpo-main.jarr.min",
+							"**/js/cpo-main-ts.jarr",
+							"**/js/cpo-main-ts.jarr.js",
+							"**/js/cpo-main-ts.jarr.min",
+							"**/js/ts-compiler.js",
 						],
 					},
 					// Terser skip this file for minification

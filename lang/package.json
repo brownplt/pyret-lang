@@ -2,6 +2,9 @@
   "name": "pyret-lang",
   "version": "0.0.0",
   "description": "The Pyret programming language",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "main": "build/phase0/main-wrapper.js",
   "directories": {
     "doc": "docs",

@@ -13,3 +13,16 @@ check:
   d2.set-now("c", 4)
   equal-now(d1, d2) is false
 end
+
+slow-equal = {
+  method _equals(_, _, _) block:
+    for each(_ from range(0, 1000)):
+      nothing
+    end
+    Equal
+  end
+}
+
+check:
+  [string-dict: "a", slow-equal] is [string-dict: "a", {}]
+end

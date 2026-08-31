@@ -576,7 +576,7 @@ fun desugar-expr(expr :: A.Expr):
       init = init-and-non-init.is-true.first.value
       non-init-fields = init-and-non-init.is-false
       field-names = C.reactor-optional-fields
-      option-fields = for SD.map-keys(f from field-names):
+      option-fields = for map(f from field-names.keys-list().sort()):
         if fields-by-name.has-key-now(f):
           this-field = fields-by-name.get-value-now(f)
           this-field-l = this-field.l

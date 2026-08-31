@@ -333,14 +333,7 @@
       var main = toLoad[toLoad.length - 1];
       runtime.setParam("currentMainURL", main);
 
-      if(realm.instantiated["builtin://checker"]) {
-        // NOTE(joe): This is the place to add checkAll
-        if (checks !== "none") {
-          var checker = otherRuntime.getField(otherRuntime.getField(realm.instantiated["builtin://checker"], "provide-plus-types"), "values");
-          var currentChecker = otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checks);
-          otherRuntime.setParam("current-checker", currentChecker);
-        }
-      }
+      var checkerPreInstantiated = realm.instantiated["builtin://checker"] && checks !== "none";
 
       var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(otherRuntime, {main: main, checks });
 
@@ -353,6 +346,24 @@
         }
         return otherRuntime.runThunk(function() {
           otherRuntime.modules = realm.instantiated;
+          // NOTE(joe): This is the place to add checkAll
+          if (checkerPreInstantiated) {
+            // The checker module is already instantiated in this realm, so
+            // runStandalone won't re-run its post-load hook -- set up
+            // current-checker ourselves. make-check-context is a compiled
+            // function whose .app() can return a continuation if GAS is spent
+            // when it's entered, so do it under safeCall (inside this runThunk's
+            // trampoline) and stash the result only once it's the real
+            // check-context. Calling .app() bare here would store a
+            // continuation in "current-checker".
+            return otherRuntime.safeCall(function() {
+              var checker = otherRuntime.getField(otherRuntime.getField(realm.instantiated["builtin://checker"], "provide-plus-types"), "values");
+              return otherRuntime.getField(checker, "make-check-context").app(otherRuntime.makeString(main), checks);
+            }, function(currentChecker) {
+              otherRuntime.setParam("current-checker", currentChecker);
+              return otherRuntime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
+            }, "load-lib: make-check-context");
+          }
           return otherRuntime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
         }, function(result) {
           if(!mainReached) {

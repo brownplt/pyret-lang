@@ -218,10 +218,10 @@ fun weave-contracts(contracts, rev-binds) block:
       | else => link(bind, acc)
     end
   end
-  contracts-sd.each-key-now(lam(c-name):
-      c = contracts-sd.get-value-now(c-name)
-      errors := link(C.contract-unused(c.l, c-name), errors)
-    end)
+  for each(c-name from contracts-sd.keys-list-now().sort()):
+    c = contracts-sd.get-value-now(c-name)
+    errors := link(C.contract-unused(c.l, c-name), errors)
+  end
   ans
 end
 
@@ -948,8 +948,8 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
 
     fun add-name-spec(name-spec, dict, which-env, adder):
       cases(A.NameSpec) name-spec block:
-        | s-star(l, hidings) =>          
-          all-names = dict.keys-list()
+        | s-star(l, hidings) =>
+          all-names = dict.keys-list().sort()
           imported-names = star-names(l, all-names, hidings)
           for fold(shadow which-env from which-env, n from imported-names):
             adder(l, imp-loc, which-env, A.s-name(l, n), A.s-name(l, n), mod-info)
@@ -980,7 +980,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
     fun add-data-spec(envs, name-spec, hidings):
       cases(A.NameSpec) name-spec block:
         | s-star(l, _) => # NOTE(joe): s-star on data-spec never has hidings, they are on the include-data-spec
-          datatype-names = mod-info.data-definitions.keys-list()
+          datatype-names = mod-info.data-definitions.keys-list().sort()
           for fold(shadow envs from envs, dname from datatype-names):
             add-data-spec(envs, A.s-module-ref(l, [list: A.s-name(l, dname)], none), hidings)
           end
@@ -1031,7 +1031,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
           shared-data-hidings.set-now(h.toname(), true)
         end
         { imp-e-dts; imp-te-dts } = add-data-spec({imp-e; imp-te}, name-spec, hidings)
-        for each(extraneous-hiding from shared-data-hidings.keys-list-now()):
+        for each(extraneous-hiding from shared-data-hidings.keys-list-now().sort()):
           name-errors := link(C.wf-err-split("The name " + extraneous-hiding + " is listed as hidden but was not included.", [list: l]), name-errors)
         end
         { imp-e-dts; imp-te-dts; imp-me; imp-imps }
@@ -1122,7 +1122,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
  |#
 
       non-globals =
-        for filter(k from self.env.keys-list()):
+        for filter(k from self.env.keys-list().sort()):
           vb = self.env.get-value(k)
           vb.origin.new-definition
         end
@@ -1137,7 +1137,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
       end
 
       non-global-types =
-        for filter(k from self.type-env.keys-list()):
+        for filter(k from self.type-env.keys-list().sort()):
           tb = self.type-env.get-value(k)
           tb.origin.new-definition
         end
@@ -1146,8 +1146,8 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
         A.s-defined-type(key, A.a-name(l, atom))
       end
 
-      non-global-modules = 
-        for filter(k from self.module-env.keys-list()):
+      non-global-modules =
+        for filter(k from self.module-env.keys-list().sort()):
           mb = self.module-env.get-value(k)
           mb.origin.new-definition
         end
@@ -1309,13 +1309,13 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
             remote-reference-uri = maybe-uri-for-path(pre-path, initial-env, final-visitor.module-env)
             cases(Option) remote-reference-uri:
               | none => 
-                for each(k from datatypes.keys-list-now()):
+                for each(k from datatypes.keys-list-now().sort()):
                   data-expr = datatypes.get-value-now(k)
                   expand-data-spec(val-env, type-env, A.s-module-ref(l, [list: A.s-name(l, data-expr.name)], none), pre-path, hidden, hidden-todo)
                 end
               | some(remote-uri) =>
                 datatyps-from-module = initial-env.provides-by-uri-value(remote-uri).data-definitions
-                for each(k from datatyps-from-module.keys-list()):
+                for each(k from datatyps-from-module.keys-list().sort()):
                   data-name = cases(C.DataExport) datatyps-from-module.get-value(k):
                     | d-alias(_, name) => name
                     | d-type(_, typ) => typ.name
@@ -1398,7 +1398,7 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
               hidden-todo.set-now(h.toname(), some(h.l))
             end
             expand-data-spec(final-visitor.env, final-visitor.type-env, name-spec, path, hidden, hidden-todo)
-            for SD.each-key-now(key from hidden-todo):
+            for each(key from hidden-todo.keys-list-now().sort()):
               cases(Option) hidden-todo.get-value-now(key):
                 | none => nothing
                 | some(shadow l) =>
@@ -1428,16 +1428,16 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
         provided-datatypes.set-now(k, {dt.l; none; dt.namet})
       end
 
-      final-val-provides = for map(k from provided-values.keys-list-now()):
+      final-val-provides = for map(k from provided-values.keys-list-now().sort()):
         make-provide-spec(provided-values.get-value-now(k), k, A.s-provide-name(l, _))
       end
-      final-type-provides = for map(k from provided-types.keys-list-now()):
+      final-type-provides = for map(k from provided-types.keys-list-now().sort()):
         make-provide-spec(provided-types.get-value-now(k), k, A.s-provide-type(l, _))
       end
-      final-module-provides = for map(k from provided-modules.keys-list-now()):
+      final-module-provides = for map(k from provided-modules.keys-list-now().sort()):
         make-provide-spec(provided-modules.get-value-now(k), k, A.s-provide-module(l, _))
       end
-      final-datatype-provides = for map(k from provided-datatypes.keys-list-now()):
+      final-datatype-provides = for map(k from provided-datatypes.keys-list-now().sort()):
         make-provide-spec(provided-datatypes.get-value-now(k), k, A.s-provide-data(l, _, empty))
       end
 

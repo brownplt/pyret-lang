@@ -10,6 +10,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc; cd node_modules/code.pyret.org; make link-pyret; npm run build; cd ../..; npm run copy-pyret",
+    "build:ts": "npm run build; cd node_modules/code.pyret.org; make web-ts; cd ../..; npm run copy-pyret",
     "copy-pyret": "cp -r node_modules/code.pyret.org/build dist/"
   },
   "author": "",

@@ -25,6 +25,17 @@ function start(config, onServerReady) {
 
   var defaultOpts = {
       PYRET: process.env.PYRET,
+      // TypeScript-compiler flavor (opt-in; see editor.html). The ts asset
+      // URLs are never configured: editor.html derives them client-side from
+      // PYRET's directory + canonical names (every host publishes the three
+      // files side by side). PYRET_TS below is the same rule applied early,
+      // so the /editor route can point the preload link and window.PYRET at
+      // the jarr that will actually load in ts mode. No PYRET -> no ts
+      // flavor: ?compiler=ts silently serves the stock compiler.
+      PYRET_TS: process.env.PYRET
+        ? process.env.PYRET.slice(0, process.env.PYRET.lastIndexOf("/") + 1) + "cpo-main-ts.jarr.gz.js"
+        : "",
+      CPO_COMPILER: process.env.CPO_COMPILER || "pyret",
       BASE_URL: config.baseUrl,
       GOOGLE_API_KEY: config.google.apiKey,
       GOOGLE_APP_ID: config.google.appId,
@@ -99,6 +110,19 @@ function start(config, onServerReady) {
     res.set("Content-Encoding", "gzip");
     res.set("Content-Type", "application/javascript");
     res.send(fs.readFileSync("build/web/js/cpo-main.jarr.gz.js"));
+  });
+  // The ts assets are gzip-at-rest under the same .gz.js convention, so they
+  // need the same explicit routes -- express.static would serve the raw gzip
+  // bytes with no Content-Encoding.
+  app.get("/js/cpo-main-ts.jarr.gz.js", function(req, res) {
+    res.set("Content-Encoding", "gzip");
+    res.set("Content-Type", "application/javascript");
+    res.send(fs.readFileSync("build/web/js/cpo-main-ts.jarr.gz.js"));
+  });
+  app.get("/js/ts-compiler.gz.js", function(req, res) {
+    res.set("Content-Encoding", "gzip");
+    res.set("Content-Type", "application/javascript");
+    res.send(fs.readFileSync("build/web/js/ts-compiler.gz.js"));
   });
 
   app.use(cookieSession({
@@ -605,7 +629,17 @@ function start(config, onServerReady) {
   });
 
   app.get("/editor", function(req, res) {
+    // The compiler flavor can be chosen per request (?compiler=ts|pyret),
+    // falling back to the CPO_COMPILER env default. Resolving it here (in
+    // addition to the client-side check in editor.html) keeps the preload
+    // link and window.PYRET pointing at the jarr that will actually load,
+    // so the stock jarr isn't downloaded pointlessly in ts mode.
+    var compiler = req.query.compiler || defaultOpts.CPO_COMPILER;
+    var compilerOpts = (compiler === "ts" && defaultOpts.PYRET_TS)
+      ? { PYRET: defaultOpts.PYRET_TS, CPO_COMPILER: "ts" }
+      : {};
     res.render("editor.html", { ...defaultOpts,
+      ...compilerOpts,
       CSRF_TOKEN: req.csrfToken(),
     });
   });

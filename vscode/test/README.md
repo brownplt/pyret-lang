@@ -35,6 +35,9 @@ No browser DOM, no network: `url-file` mode is `all-local` (see
 ```sh
 # from vscode/
 npm test            # pretest compiles the extension + the test bundle, then runs
+npm run test:ts     # the same three tests, on the TypeScript compiler backend
+                    # (fixtures/spell-checker-ts sets pyret-parley.compiler: "ts";
+                    # requires a code.pyret.org build that ran `make web-ts`)
 ```
 
 Prerequisites (one-time):
@@ -71,9 +74,10 @@ The three tests:
 | --- | --- | --- |
 | working-dir probe | `ai/plain.arr` | **passes** — relative output lands next to the tab (`ai/`), not at the workspace root |
 | starter chain (workaround) | `ai/starter-ok.arr` → `lib-ok.arr` (`../libraries/core.arr`) | **passes** — value flows starter → Lib → Core and is written out |
-| DESIRED (the wish) | `ai/starter-bug.arr` → `lib-bug.arr` (`core.arr`) | **fails today** — a library should resolve its sibling as `core.arr`, but resolution against the tab dir makes it not-found |
+| module-relative sibling | `ai/starter-bug.arr` → `lib-bug.arr` (`core.arr`) | **passes** — the context-aware finder resolves a library's sibling relative to the importing module |
 
-The last test is intentionally red: it's the "before" of the workaround diff and
-captures the behavior we'd want if `url-file`'s local path were resolved relative
-to the importing module (likely by threading the importer's location through
-`compile-lib` instead of always using `document.uri`).
+The last test was intentionally red when first added; it went green when the
+web module finder became context-aware (a per-module load-path threaded through
+`compile-lib`, with path arithmetic in the embedding host — the same fix
+described above). Both compiler backends implement these semantics, which is
+what `npm run test:ts` pins down.

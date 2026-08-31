@@ -2,9 +2,13 @@
 <head>
 <script>
 // Expect harness to pass this in as a URL param. To view on your own put the param or
-// use the default 4999
+// use the default 4999. An optional &compiler=ts|pyret suffix picks the
+// editor's compiler flavor (forwarded to the iframe by embed1.js, the same
+// way the embed library's `compiler` config option does).
 const s = window.location.search;
-window.BASE_URL = s === "" ? "http://localhost:4999" : s.substring(1);
+const parts = (s === "" ? "http://localhost:4999" : s.substring(1)).split("&compiler=");
+window.BASE_URL = parts[0];
+window.EMBED_COMPILER = parts[1] || "";
 </script>
 <script src="embed-util.js"></script>
 <script src="embed1.js"></script>

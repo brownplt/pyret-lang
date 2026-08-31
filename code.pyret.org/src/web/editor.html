@@ -4,7 +4,36 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   <title>{{APP_NAME}}</title>
   {{^PYRET_GZIPPED}}<link crossorigin="anonymous" rel="preload" href="{{&PYRET}}" as="script">{{/PYRET_GZIPPED}}
-  <script>window.PYRET = "{{&PYRET}}"; window.PYRET_GZIPPED = "{{ PYRET_GZIPPED }}" === "true"; window.APP_NAME = "{{APP_NAME}}"; window.APP_DOMAIN = "{{APP_DOMAIN}}";</script>
+  <script>
+  window.PYRET = "{{&PYRET}}"; window.PYRET_GZIPPED = "{{ PYRET_GZIPPED }}" === "true"; window.APP_NAME = "{{APP_NAME}}"; window.APP_DOMAIN = "{{APP_DOMAIN}}";
+  // Opt-in TypeScript-compiler flavor: chosen by ?compiler=ts (or the
+  // server-side CPO_COMPILER env default). Swaps in the cpo-main-ts jarr
+  // and loads the TS compiler bundle; default behavior is unchanged.
+  //
+  // The ts asset URLs are never configured -- they are derived from PYRET's
+  // directory plus canonical names, a contract every host satisfies by
+  // publishing the three files side by side (deploys upload them together;
+  // static/webview builds copy them together). Both ts assets are gzip bytes
+  // at rest everywhere. No PYRET means no ts flavor: ?compiler=ts silently
+  // serves the stock compiler.
+  window.CPO_COMPILER = "{{&CPO_COMPILER}}" || "pyret";
+  (function() {
+    var dir = window.PYRET ? window.PYRET.slice(0, window.PYRET.lastIndexOf("/") + 1) : "";
+    window.PYRET_TS = window.PYRET ? dir + "cpo-main-ts.jarr.gz.js" : "";
+    window.PYRET_TS_COMPILER = window.PYRET ? dir + "ts-compiler.gz.js" : "";
+    var m = /[?&]compiler=([^&]*)/.exec(window.location.search);
+    if(m) { window.CPO_COMPILER = decodeURIComponent(m[1]); }
+    if(window.CPO_COMPILER === "ts" && window.PYRET_TS) {
+      window.PYRET = window.PYRET_TS;
+      // In gzipped mode the host may serve assets without an executable MIME
+      // type (nosniff), which refuses a <script src> load outright --
+      // beforePyret.js fetches the compiler bundle alongside the jarr instead.
+      if(!window.PYRET_GZIPPED) {
+        document.write('<script src="' + window.PYRET_TS_COMPILER + '"><\/script>');
+      }
+    }
+  })();
+  </script>
   <link rel="stylesheet" href="{{ &BASE_URL }}/css/reset.css" />
   <link rel="stylesheet" href="{{ &BASE_URL }}/css/smoothness-jquery-ui.css" />
   <link rel="stylesheet" href="{{ &BASE_URL }}/css/fira-mono.css" />

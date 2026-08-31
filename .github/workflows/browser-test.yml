@@ -15,6 +15,13 @@ name: browser-test (embed + vscode webviews)
 # Shape: build code.pyret.org + the extension ONCE, then fan out the five
 # environments as a parallel matrix (each on its own runner, so chart rendering
 # doesn't contend for CPU).
+#
+# cpo/embed/vscode/vscode-ovsx each run twice: once per compiler flavor (the
+# stock Pyret-hosted compiler and the TypeScript port, run.js's --compiler
+# knob); vscode-ovsx x ts covers the pyret-parley.compiler=ts setting under
+# hostile (nosniff) serving, where the compiler bundle must load via
+# beforePyret's fetch path. embed-static drives the built editor.embed.html
+# artifact whose flavor is baked at build time, so it stays pyret-only.
 
 on:
   push:
@@ -27,7 +34,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
@@ -42,6 +49,7 @@ jobs:
           cd ../code.pyret.org
           npm ci --ignore-scripts
           npm run build
+          make web-ts
 
       - name: Build vscode extension
         working-directory: ./vscode
@@ -74,6 +82,11 @@ jobs:
       fail-fast: false
       matrix:
         env: [cpo, embed, embed-static, vscode, vscode-ovsx]
+        compiler: [pyret, ts]
+        exclude:
+          # editor.embed.html's flavor is baked at build time (pyret)
+          - env: embed-static
+            compiler: ts
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
@@ -139,10 +152,10 @@ jobs:
           for _ in $(seq 1 30); do curl -fs -o /dev/null http://localhost:4999/editor && break; sleep 1; done
           curl -f http://localhost:4999/editor
 
-      - name: Run ${{ matrix.env }}
+      - name: Run ${{ matrix.env }} (${{ matrix.compiler }} compiler)
         working-directory: ./browser-test
         # Only cpo/embed are meant to test a live running CPO server, others
         # only use static files.
         env:
           BASE_URL: ${{ (matrix.env == 'cpo' || matrix.env == 'embed') && 'http://localhost:4999' || '' }}
-        run: node run.js --env=${{ matrix.env }}
+        run: node run.js --env=${{ matrix.env }} --compiler=${{ matrix.compiler }}

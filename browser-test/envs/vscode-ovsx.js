@@ -30,10 +30,11 @@
  *   OVSX_CAP_MB      hostile size cap in MB (default 15)
  */
 const path = require("path");
-const { launchChromium } = require("../shared/browser");
+const { launchChromium, wireBrowserLogs } = require("../shared/browser");
 const { findEditorFrame } = require("../shared/find-frame");
 const { startOvsxServer } = require("../shared/ovsx-server");
 const { ProceduralError } = require("../shared/errors");
+const { resourceScope } = require("../shared/resource-scope");
 
 const VSCODE_DIR = path.resolve(__dirname, "..", "..", "vscode");
 const ASSET_ROOT =
@@ -51,69 +52,71 @@ const INITIAL_STATE = JSON.stringify({
 });
 
 async function setup() {
-  const server = await startOvsxServer({
-    assetRoot: ASSET_ROOT,
-    hostile: HOSTILE,
-    capBytes: CAP_MB * 1024 * 1024,
-  });
-
-  const browser = await launchChromium();
-  const page = await browser.newPage();
-  page.setDefaultTimeout(60000);
-
-  // Take the real vscode branch. The host is a no-op; content + control come from
-  // the initialState URL param (see file header).
-  await page.addInitScript(() => {
-    let vscodeState;
-    window.acquireVsCodeApi = function () {
-      return {
-        postMessage() {},
-        getState() { return vscodeState; },
-        setState(s) { vscodeState = s; return s; },
-      };
-    };
-  });
-
-  const hash =
-    "#footerStyle=hide&hideInteractions=true&theme=default&initialState=" +
-    encodeURIComponent(INITIAL_STATE);
-  await page.goto(server.origin + server.editorPath + hash, {
-    waitUntil: "domcontentloaded",
-    timeout: 120000,
-  });
-
-  // #runButton is a static element in editor.html, so findEditorFrame succeeds
-  // even when scripts are blocked. Do a bounded check for the runtime actually
-  // coming up so hostile mode fails fast with a clear message (rather than the
-  // before() hook's editorReady wait timing out at 120s two minutes later).
-  // jQuery loads near-instantly when not MIME-blocked, so this never trips in
-  // faithful mode.
+  const scope = resourceScope();
   try {
-    await page.waitForFunction(() => typeof window.$ !== "undefined", null, {
-      timeout: 30000,
-      polling: 250,
+    const server = await startOvsxServer({
+      assetRoot: ASSET_ROOT,
+      hostile: HOSTILE,
+      capBytes: CAP_MB * 1024 * 1024,
     });
-  } catch (e) {
-    if (HOSTILE) {
-      throw new ProceduralError(
-        "editor scripts never executed (window.$ undefined) -- the issue #21 " +
-          "regression: under text/plain+nosniff serving, only inlined scripts can " +
-          "run, so the self-contained template has stopped booting (or " +
-          "OVSX_ASSET_ROOT points at a stale/unbuilt extension)."
-      );
-    }
-    throw e; // faithful mode: an unexpected boot failure, surface it
-  }
+    scope.add(() => server.close());
 
-  const frame = await findEditorFrame(page);
-  return {
-    page,
-    frame,
-    cleanup: async () => {
-      await browser.close();
-      await server.close();
-    },
-  };
+    const browser = await launchChromium();
+    scope.add(() => browser.close());
+    const page = await browser.newPage();
+    wireBrowserLogs(page);
+    page.setDefaultTimeout(60000);
+
+    // Take the real vscode branch. The host is a no-op; content + control come from
+    // the initialState URL param (see file header).
+    await page.addInitScript(() => {
+      let vscodeState;
+      window.acquireVsCodeApi = function () {
+        return {
+          postMessage() {},
+          getState() { return vscodeState; },
+          setState(s) { vscodeState = s; return s; },
+        };
+      };
+    });
+
+    const hash =
+      "#footerStyle=hide&hideInteractions=true&theme=default&initialState=" +
+      encodeURIComponent(INITIAL_STATE);
+    await page.goto(server.origin + server.editorPath + hash, {
+      waitUntil: "domcontentloaded",
+      timeout: 120000,
+    });
+
+    // #runButton is a static element in editor.html, so findEditorFrame succeeds
+    // even when scripts are blocked. Do a bounded check for the runtime actually
+    // coming up so hostile mode fails fast with a clear message (rather than the
+    // before() hook's editorReady wait timing out at 120s two minutes later).
+    // jQuery loads near-instantly when not MIME-blocked, so this never trips in
+    // faithful mode.
+    try {
+      await page.waitForFunction(() => typeof window.$ !== "undefined", null, {
+        timeout: 30000,
+        polling: 250,
+      });
+    } catch (e) {
+      if (HOSTILE) {
+        throw new ProceduralError(
+          "editor scripts never executed (window.$ undefined) -- the issue #21 " +
+            "regression: under text/plain+nosniff serving, only inlined scripts can " +
+            "run, so the self-contained template has stopped booting (or " +
+            "OVSX_ASSET_ROOT points at a stale/unbuilt extension)."
+        );
+      }
+      throw e; // faithful mode: an unexpected boot failure, surface it
+    }
+
+    const frame = await findEditorFrame(page);
+    return { page, frame, cleanup: scope.closeAll };
+  } catch (e) {
+    await scope.closeAll();
+    throw e;
+  }
 }
 
 const label =

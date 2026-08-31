@@ -137,7 +137,8 @@ async function startOvsxServer(opts) {
   editorHtml = template
     .split("__PYRET_WEBVIEW_BASE_URL__").join(origin)
     .split("__PYRET_WEBVIEW_HASH__").join("")
-    .split("__PYRET_WEBVIEW_URL_FILE_MODE__").join("");
+    .split("__PYRET_WEBVIEW_URL_FILE_MODE__").join("")
+    .split("__PYRET_WEBVIEW_COMPILER__").join(process.env.PYRET_COMPILER || "pyret");
 
   return {
     origin,

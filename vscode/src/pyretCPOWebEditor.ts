@@ -2,12 +2,14 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { URI, Utils } from 'vscode-uri';
 import { Buffer } from 'buffer';
+import { mark } from './diagnostics';
 // See cross-file dependencies with code.pyret.org/src/scripts/inline-selfcontained.js
 const code = require('../build/web/views/editor.selfcontained.html');
 
 const WEBVIEW_BASE_URL = '__PYRET_WEBVIEW_BASE_URL__';
 const WEBVIEW_HASH = '__PYRET_WEBVIEW_HASH__';
 const WEBVIEW_URL_FILE_MODE = '__PYRET_WEBVIEW_URL_FILE_MODE__';
+const WEBVIEW_COMPILER = '__PYRET_WEBVIEW_COMPILER__';
 
 // import * as fs from 'fs';
 // import * as path from 'path';
@@ -71,6 +73,7 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
         retainContextWhenHidden: true,
       }
     });
+    mark('provider-registered');
     return providerRegistration;
   }
 
@@ -90,8 +93,10 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): Promise<void> {
+    mark('resolve-enter');
     console.log("Pyret: resolving custom text editor at: ", document.uri);
     makePyretPane(webviewPanel, this.context, document, 'cpo');
+    mark('resolve-done');
   }
 }
 
@@ -120,13 +125,19 @@ export function getHtmlForWebview(context: vscode.ExtensionContext, webview: vsc
   const baseURI = webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'dist', 'web', 'build', 'web')).toString();
   const view = showDefinitions === false ? "hideDefinitions=true&headerStyle=hide" : "hideInteractions=true";
   const hashOptions = `#footerStyle=hide&${view}&theme=${theme}`;
+  // The compiler backend is chosen by the pyret-parley.compiler setting --
+  // the same knob as code.pyret.org's ?compiler= flag. The selfcontained
+  // template bakes both flavors' asset paths (relative to the BASE_URL
+  // sentinel); this fill is only the choice between them.
+  const compiler = config.get('compiler') === 'ts' ? 'ts' : 'pyret';
   // Plain string replacement of the build's literal placeholders. split/join,
   // not String.replace, so a `$` in a filled value can't be read as a
   // replacement pattern.
   return (code as string)
     .split(WEBVIEW_BASE_URL).join(baseURI)
     .split(WEBVIEW_HASH).join(hashOptions)
-    .split(WEBVIEW_URL_FILE_MODE).join(String(urlFileMode ?? ""));
+    .split(WEBVIEW_URL_FILE_MODE).join(String(urlFileMode ?? ""))
+    .split(WEBVIEW_COMPILER).join(compiler);
 }
 
 
@@ -371,6 +382,14 @@ export function makePyretPane(
         interactionsSinceLastRun: [],
         editorContents: docText,
         replContents: "",
+        // Skip the editor's boot warm-start run (events.js reset()). Its only
+        // observable effect is a live REPL prompt at boot, and the cpo pane
+        // hides the interactions pane anyway -- while the run is in flight the
+        // editor looks ready but swallows Run clicks and races typed edits
+        // against the contents install. For the repl pane this field is inert:
+        // definitionsAtLastRun is the file's text there, and that run always
+        // happens.
+        warmStart: false,
       };
       switch (e.data.type) {
         case 'pyret-init': {

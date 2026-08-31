@@ -1,2 +1,3 @@
 pyret-lang
 !pyret-lang/build/phaseA/*
+!pyret-lang/build/ts-compiler/*

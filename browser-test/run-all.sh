@@ -7,10 +7,15 @@
 #   embed  -- the embed API's embedded instance
 #   vscode -- the pyret-parley.cpo webview (headless VS Code for the Web)
 #
+# ... and, for each, against both compiler backends (the stock Pyret-hosted
+# compiler and the TypeScript port), unless PYRET_COMPILERS narrows the set
+# (e.g. PYRET_COMPILERS=pyret ./run-all.sh).
+#
 # Strictly additive: only reads code.pyret.org / vscode, writes under results/.
 #
 # Prereqs (once):
-#   - code.pyret.org built (build/web/js/cpo-main.jarr) + its npm deps
+#   - code.pyret.org built (build/web/js/cpo-main.jarr) + its npm deps;
+#     for the ts flavor also `make web-ts` (cpo-main-ts.jarr + ts-compiler.js)
 #   - vscode extension built: (cd vscode && ln -sf ../code.pyret.org/build build
 #       && npm install && npm run compile)
 #   - this harness's deps: (cd browser-test && npm install)
@@ -42,10 +47,12 @@ fi
 curl -fs -o /dev/null "$BASE_URL/editor" || { echo "CPO server not reachable at $BASE_URL"; exit 1; }
 
 rc=0
-for ENVNAME in cpo embed vscode; do
-  echo "=== $ENVNAME ==="
-  node "$HERE/run.js" --env="$ENVNAME" "$@" | tee "$RESULTS/$ENVNAME-full.txt"
-  test "${PIPESTATUS[0]}" -eq 0 || rc=1
+for COMPILER in ${PYRET_COMPILERS:-pyret ts}; do
+  for ENVNAME in cpo embed vscode; do
+    echo "=== $ENVNAME ($COMPILER compiler) ==="
+    node "$HERE/run.js" --env="$ENVNAME" --compiler="$COMPILER" "$@" | tee "$RESULTS/$ENVNAME-$COMPILER-full.txt"
+    test "${PIPESTATUS[0]}" -eq 0 || rc=1
+  done
 done
 echo "Done. See $RESULTS/. (overall rc=$rc)"
 exit $rc

@@ -1,0 +1,5 @@
+{
+  "pyret-parley.urlFileMode": "local-if-present",
+  "pyret-parley.compiler": "ts",
+  "pyret-parley.diagnostics": true
+}

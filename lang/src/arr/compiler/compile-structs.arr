@@ -983,7 +983,7 @@ data CompileError:
         [ED.para:
           ED.code(ED.text("`where`")),
           ED.text(" blocks are only allowed on named function and declarations; a where block may not be added to a "),
-          ED.loc(self.kind),
+          ED.text(self.kind),
           ED.text(" at "),
           ED.loc(self.loc),
           ED.text(".")]]
@@ -2461,7 +2461,7 @@ data CompileError:
           ED.text(". However, the branch pattern binds "),
           ED.highlight(ed-fields(self.branch.args.length()), self.branch.args.map(_.l), 1),
           ED.text(" and the variant is declared as having "),
-          ED.highlight(ed-fields(self.variant.fields.count()), [list: A.dummy-loc], 3)]]
+          ED.highlight(ed-fields(self.variant.fields.length()), [list: A.dummy-loc], 3)]]
     end,
     method render-reason(self):
       fun ed-fields(n):
@@ -2856,7 +2856,7 @@ data CompileError:
     end
   | load-table-bad-number-srcs(lte :: A.Expr#|%(A.is-s-load-table)|#, num-found :: Number) with:
     method render-fancy-reason(self):
-      load-table-expr = self.lte.tosource().pretty(80)
+      load-table-expr = self.lte.tosource().pretty(80).join-str("")
       [ED.error:
         [ED.para:
           ED.text("The table loader "),
@@ -2876,8 +2876,7 @@ data CompileError:
     end
   | load-table-duplicate-sanitizer(original :: A.LoadTableSpec, col-name :: String, duplicate-exp :: A.LoadTableSpec) with:
     method render-fancy-reason(self):
-      orig-pretty = self.original.tosource().pretty(80)
-      dup-pretty = self.duplicate-exp.tosource().pretty(80)
+      orig-pretty = self.original.tosource().pretty(80).join-str("")
       [ED.error:
         [ED.para:
           ED.text("The column "),
@@ -2897,7 +2896,7 @@ data CompileError:
     end
   | load-table-no-body(load-table-exp :: A.Expr#|%(A.is-s-load-table)|#) with:
     method render-fancy-reason(self):
-      pretty = self.load-table-exp.tosource().pretty(80)
+      pretty = self.load-table-exp.tosource().pretty(80).join-str("")
       [ED.error:
         [ED.para:
           ED.text("The table loader "),
@@ -2981,7 +2980,8 @@ default-compile-options = {
   html-file: none,
   deps-file: "build/bundled-node-deps.js",
   standalone-file: "src/js/base/handalone.js",
-  url-file-mode: all-remote
+  url-file-mode: all-remote,
+  pause-schedule: none
 }
 
 fun make-default-compile-options(this-pyret-dir):

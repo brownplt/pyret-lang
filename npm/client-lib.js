@@ -34,9 +34,13 @@ function tmpdir() {
   return fulldir; 
 }
 
-function getSocket() {
+function getSocket(backend) {
   const dir = tmpdir();
-  const portFile = path.join(dir, "comm.sock");
+  // Each compiler backend keeps its own server, so the sockets must not
+  // collide: a client asking for the ts backend must never reach a stock
+  // server that happens to already be running (and vice versa).
+  const name = (backend && backend !== "pyret") ? "comm-" + backend + ".sock" : "comm.sock";
+  const portFile = path.join(dir, name);
   return portFile;
 }
 
@@ -80,7 +84,7 @@ function start(options) {
   }
   
   const serverModule = options.client.compiler;
-  var portFile = getSocket();
+  var portFile = getSocket(options.client.backend);
 
   if(options.client.port) {
     portFile = path.resolve(options.client.port); // Allow user to override location of port file
@@ -194,12 +198,19 @@ function start(options) {
 
 
   function startupServer(port, wait) {
+    // The ts backend runs the compiler on the JS stack (not the Pyret
+    // runtime's segmented stack), so give it the big stack up front;
+    // that also keeps it from re-exec'ing itself for --stack-size, which
+    // would sever this IPC channel and lose the startup success message.
+    const isTS = options.client.backend === "ts";
     const child = childProcess.fork(
       serverModule,
       ["-serve", "--port", port],
       {
         stdio: [0, 1, 2, 'ipc'],
-        execArgv: ["-max-old-space-size=8192"]
+        execArgv: isTS
+          ? ["--max-old-space-size=8192", "--stack-size=8192"]
+          : ["-max-old-space-size=8192"]
       } // To send messages on completion of startup
     );
 

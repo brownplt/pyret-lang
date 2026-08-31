@@ -52,6 +52,7 @@ const path = require("path");
 const BASE = "__PYRET_WEBVIEW_BASE_URL__";
 const HASH = "__PYRET_WEBVIEW_HASH__";
 const URL_FILE_MODE = "__PYRET_WEBVIEW_URL_FILE_MODE__";
+const COMPILER = "__PYRET_WEBVIEW_COMPILER__";
 const SENTINEL_PREFIX = "__PYRET_WEBVIEW_";
 
 // The complete render dictionary for the self-contained template:
@@ -64,6 +65,13 @@ const TEMPLATE_VARS = {
   BASE_URL: BASE,
   PYRET: BASE + "/js/cpo-main.jarr.gz.js",
   PYRET_GZIPPED: "true",
+  // The TS-compiler flavor (editor.html's CPO_COMPILER script). Its asset
+  // URLs are derived in-page from PYRET's directory + canonical names, so
+  // baking PYRET above covers them; only the choice between backends is a
+  // runtime sentinel (known at webview startup, from the
+  // pyret-parley.compiler setting). The gz ts assets only need to exist in
+  // the build (`make web-ts`) when a host actually selects ts.
+  CPO_COMPILER: COMPILER,
   HASH_OPTIONS: HASH,
   URL_FILE_MODE: URL_FILE_MODE,
   IMAGE_PROXY_BYPASS: "true",
@@ -190,10 +198,12 @@ function buildSelfContained(template, readAsset, Mustache) {
   //    contract broke -- here, not in the webview.
   const hashCount = countOccurrences(html, HASH);
   const modeCount = countOccurrences(html, URL_FILE_MODE);
-  if (hashCount !== 1 || modeCount !== 1 || countOccurrences(html, BASE) < 1) {
+  const compilerCount = countOccurrences(html, COMPILER);
+  if (hashCount !== 1 || modeCount !== 1 || compilerCount !== 1 || countOccurrences(html, BASE) < 1) {
     throw new Error(
       "inline-selfcontained: sentinel contract broke: expected HASH x1 (got " +
-      hashCount + "), URL_FILE_MODE x1 (got " + modeCount + "), BASE >= 1"
+      hashCount + "), URL_FILE_MODE x1 (got " + modeCount + "), COMPILER x1 (got " +
+      compilerCount + "), BASE >= 1"
     );
   }
 
@@ -224,6 +234,6 @@ function main() {
   console.log("wrote self-contained editor template: " + outPath);
 }
 
-module.exports = { escapeForScript, escapeForStyle, absolutizeCssUrls, checkInlinable, buildSelfContained, BASE, HASH, URL_FILE_MODE };
+module.exports = { escapeForScript, escapeForStyle, absolutizeCssUrls, checkInlinable, buildSelfContained, BASE, HASH, URL_FILE_MODE, COMPILER };
 
 if (require.main === module) main();
