@@ -249,6 +249,47 @@ describe("Rendering errors", function() {
      "load-table: h1, h2\n  source: src1\n  sanitize h1 using s1\n  sanitize h2 using s2\n  sanitize h1 using s1\nend",
      "is already sanitized by the sanitizer sanitize h1 using s1"],
 
+    ["bad-check-operator-outside-test",
+     "check:\n  f(g\n    is\n    h)\nend",
+     "must be used inside a"],
+
+    // well-formedness
+    ["single-branch-if", "if true: 5 end", "if-expression"],
+    ["non-example", "examples: 2 + 2 end", "testing statement"],
+    ["block-needed", "fun f():\n  print(1)\n  2\nend\nv = f()", "multiple expressions"],
+    ["unwelcome-test-refinement", "check: raise('x') raises%(tostring) 'x' end", "may not be used with"],
+    ["no-arguments", "x = method(): 5 end", "should accept at least one argument"],
+    ["tuple-get-bad-index", "x = {1;2}\ny = x.{1001}", "There are no tuples that big"],
+    ["table-row-wrong-size", "t = table: a, b row: 1 end", "but the table header"],
+    ["table-duplicate-column-name", "t = table: a, a row: 1, 1 end", "have the same name"],
+    ["table-reducer-bad-column",
+     "t = table: a row: 1 end\nu = extend t using a:\n  c: running-sum of b\nend",
+     "is used with the reducer"],
+    ["table-sanitizer-bad-column",
+     "load-table: a\n  source: 5\n  sanitize b using c\nend",
+     "is used with the sanitizer"],
+    ["load-table-no-body", "load-table: a end", "has no information about how to load the table"],
+    ["load-table-bad-number-srcs",
+     "load-table: a\n  source: 5\n  source: 6\nend",
+     "but it should only specify one"],
+
+    // scope resolution
+    ["unbound-id", "y = zzz", "is unbound"],
+    ["unbound-type-id", "y :: NotAType = 5", "is used to indicate a type"],
+    ["bad-assignment", "x = 5\nx := 6", "to refer to a variable definition"],
+    ["name-not-provided", "import lists as L\ninclude from L: zzz end", "is not provided as a value"],
+
+    // type checker
+    ["toplevel-unann", "fun f(x): x end\nv = f(1)", "needs a type annotation", {typeCheck: true}],
+    ["incorrect-number-of-args",
+     "fun f(x :: Number) -> Number: x end\nv = f(1, 2)",
+     "the same number of arguments", {typeCheck: true}],
+    ["apply-non-function", "x = 5\ny = x(1)", "to evaluate to a function value", {typeCheck: true}],
+    ["incorrect-type-expression", "o = {x: 5}\ny = o!x", "The type checker rejected the expression", {typeCheck: true}],
+    ["unnecessary-branch",
+     "v = cases(Option) none:\n  | none => 1\n  | empty => 2\nend",
+     "have a variant of the same name", {typeCheck: true}],
+
     ["incorrect-number-of-bindings",
      "data D:\n  | d(a :: Number, b :: Number)\nend\nfun f(x :: D) -> Number:\n  cases(D) x:\n    | d(a) => 1\n  end\nend",
      "same number of field bindings",

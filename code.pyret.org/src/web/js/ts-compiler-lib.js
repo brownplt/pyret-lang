@@ -27,11 +27,12 @@
   requires: [
     { "import-type": "builtin", name: "load-lib" },
     { "import-type": "builtin", name: "either" },
-    { "import-type": "builtin", name: "error-display" }
+    { "import-type": "builtin", name: "error-display" },
+    { "import-type": "builtin", name: "ast" }
   ],
   nativeRequires: [],
   provides: {},
-  theModule: function(runtime, namespace, uri, loadLib, eitherLib, errorDisplayLib) {
+  theModule: function(runtime, namespace, uri, loadLib, eitherLib, errorDisplayLib, astLib) {
     var gf = runtime.getField;
     var gmf = function(m, f) { return gf(gf(m, "values"), f); };
     // NOTE: runtime.ffi is not fully populated until the ffi builtin
@@ -183,6 +184,13 @@
       return e && e.name === "PyretParseError" && typeof e.kind === "string";
     }
 
+    function tsCheckOpToPyret(op) {
+      var mkOp = gmf(astLib, op.$name);
+      var l = tsLocToPyret(op.l);
+      if(typeof op.op === "string") { return mkOp.app(l, op.op); }
+      return mkOp.app(l);
+    }
+
     function throwPyretParseError(e) {
       var loc = tsLocToPyret(e.loc);
       switch(e.kind) {
@@ -197,7 +205,7 @@
         case "parse-error-bad-operator":
           return runtime.ffi.throwParseErrorBadOper(loc);
         case "parse-error-bad-check-operator":
-          return runtime.ffi.throwParseErrorBadCheckOper(tsLocToPyret(e.op && e.op.l ? e.op.l : e.loc));
+          return runtime.ffi.throwParseErrorBadCheckOper(tsCheckOpToPyret(e.op));
         case "parse-error-colon-colon":
           return runtime.ffi.throwParseErrorColonColon(loc, e.nextToken);
         case "parse-error-bad-app":

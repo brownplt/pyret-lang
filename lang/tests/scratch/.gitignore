@@ -1,0 +1,9 @@
+# Scratch space for files the test suite writes at run time (e.g. save-image
+# round-trip checks). Everything here is disposable and ignored; the directory
+# itself is tracked via this file so tests can write into it on a fresh
+# checkout without having to mkdir first.
+#
+# Paths are relative to lang/, which is the working directory the suite runs
+# from, so tests refer to this as "tests/scratch/<name>".
+*
+!.gitignore

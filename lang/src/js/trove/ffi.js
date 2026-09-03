@@ -499,8 +499,10 @@
     function throwParseErrorBadOper(loc) {
       raise(err("parse-error-bad-operator")(loc));
     }
-    function throwParseErrorBadCheckOper(loc) {
-      raise(err("parse-error-bad-check-operator")(loc));
+    // NOTE(joe Sep 2026): unique among these parse-level errors, this takes an
+    // AST node, not a loc
+    function throwParseErrorBadCheckOper(opNode) {
+      raise(err("parse-error-bad-check-operator")(opNode));
     }
     function throwParseErrorColonColon(loc, nextToken) {
       raise(err("parse-error-colon-colon")(loc));

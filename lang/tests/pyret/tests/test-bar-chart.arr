@@ -77,7 +77,7 @@ rendered = VC.render-chart(VC.from-list.exploding-pie-chart(
     .piehole(0.25)
   ).background-color(C.gray)
 
-I.save-image(rendered.get-image(), 'test-bar-chart.png')
+I.save-image(rendered.get-image(), 'tests/scratch/test-bar-chart.png')
 
 |#
 
@@ -138,4 +138,4 @@ rendered = VC.render-charts([list: va-int, va-scatter, va-fun, va-line])
 # # rendered = VC.render-chart(VC.from-list.histogram(vals).bin-width(7.15)).height(400).background-color(C.gray)
 # rendered = VC.render-chart(scatter).height(600).background-color(C.gray)
 
-I.save-image(rendered.get-image(), 'test-bar-chart.png')
+I.save-image(rendered.get-image(), 'tests/scratch/test-bar-chart.png')

@@ -1,7 +1,0 @@
-{
-  "measurements": {
-    "bench-programs": {
-      "include": ["tail-sum-10000"]
-    }
-  }
-}

@@ -248,8 +248,9 @@ check:
   color-at-position(logo, 250, 280) is color(238, 30, 16, 1)
 end
 
-save-image(logo, "pyret-logo-copy.png")
-logo2 = image-file("pyret-logo-copy.png")
+logo-copy-path = "tests/scratch/pyret-logo-copy.png"
+save-image(logo, logo-copy-path)
+logo2 = image-file(logo-copy-path)
 check:
   logo is logo2
 end
