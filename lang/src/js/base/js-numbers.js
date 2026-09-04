@@ -1370,9 +1370,14 @@ define("pyret-base/js/js-numbers", function() {
       if (shift > 0) { num = n.shiftLeft(shift); }
       else if (shift < 0) { den = d.shiftLeft(-shift); }
       var qr = num.divideAndRemainder(den);
-      var q = qr[0], r = qr[1];
-      // value = q * 2^(-shift) + eps, with 2^54 < value-ish, so q has 55
-      // or 56 bits; binary exponent of the value:
+      return roundScaledToDouble(qr[0], shift, qr[1].signum() !== 0, negative);
+    };
+
+    // roundScaledToDouble: BigInteger int boolean boolean -> JS-double
+    //
+    // Correctly rounded (half even) double of q * 2^(-shift) (+ a positive
+    // amount below one unit of q when sticky), q having at least 55 bits.
+    var roundScaledToDouble = function(q, shift, sticky, negative) {
       var e2 = q.bitLength() - 1 - shift;
 
       if (e2 > 1023) { return negative ? -Infinity : Infinity; }
@@ -1386,7 +1391,7 @@ define("pyret-base/js/js-numbers", function() {
       var rem = q.subtract(q2.shiftLeft(drop));
       var half = BigInteger.ONE.shiftLeft(drop - 1);
       var cmp = rem.compareTo(half);
-      if (cmp > 0 || (cmp === 0 && (r.signum() !== 0 || q2.testBit(0)))) {
+      if (cmp > 0 || (cmp === 0 && (sticky || q2.testBit(0)))) {
         // a carry to 2^keep needs no renormalization: it still scales
         // exactly below, yielding 2^(e2+1) (or Infinity on overflow)
         q2 = q2.add(BigInteger.ONE);
@@ -1400,6 +1405,19 @@ define("pyret-base/js/js-numbers", function() {
       while (s > 0) { res *= 2; s -= 1; }
       while (s < 0) { res *= 0.5; s += 1; }
       return negative ? -res : res;
+    };
+
+    // bigIntegerSqrtToDouble: BigInteger -> JS-double
+    //
+    // Correctly rounded double of the square root of a nonnegative
+    // BigInteger, for radicands that do not fit a double themselves.
+    var bigIntegerSqrtToDouble = function(n) {
+      var k = Math.max(0, 56 - (n.bitLength() >> 1));
+      var m = n.shiftLeft(2 * k);
+      var s = m.integerSqrt();
+      if (typeof(s) === 'number') { s = makeBignum(s); }
+      var sticky = !s.multiply(s).equals(m);
+      return roundScaledToDouble(s, k, sticky, false);
     };
 
     // _integerDivideToFixnum: integer-pyretnum integer-pyretnum -> fixnum
@@ -3943,7 +3961,10 @@ define("pyret-base/js/js-numbers", function() {
           return approx;
         }
         fix = toFixnum(this);
-        return Roughnum.makeInstance(Math.sqrt(fix));
+        if (isFinite(fix)) {
+          return Roughnum.makeInstance(Math.sqrt(fix));
+        }
+        return Roughnum.makeInstance(bigIntegerSqrtToDouble(this));
       };
     })();
 
