@@ -919,31 +919,24 @@ define("pyret-base/js/js-numbers", function() {
       return n.atan();
     };
 
+    // atan2: pyretnum pyretnum -> pyretnum, angle in [0, 2pi)
     var atan2 = function(y, x) {
-      if (eqv(x, 0)) { // x = 0
-        if (eqv(y, 0)) { // x = 0, y = 0
-          //return Roughnum.makeInstance(Infinity);
-          errbacks.throwDomainError('atan2: out of domain argument (0, 0)');
-        } else if (greaterThan(y, 0)) { // x = 0, y > 0
-          return Roughnum.makeInstance(Math.PI/2);
-        } else { // x = 0, y < 0
-          return Roughnum.makeInstance(3*Math.PI/2);
-        }
-      } else if (greaterThan(x, 0)) { // x > 0
-        if (greaterThanOrEqual(y, 0)) { // x > 0, y >= 0, 1st qdt
-          // atan(y/x) is already in the right qdt
-          return atan(divide(y, x));
-        } else { // x > 0, y < 0, 4th qdt
-          // atan(y/x) is the 4th qdt and negative, so make it positive by adding 2pi
-          return add(atan(divide(y, x)), Roughnum.makeInstance(2*Math.PI));
-        }
-      } else { // x < 0
-        // either x < 0, y >= 0 (2nd qdt), in which case
-        //        atan(y/x) must be reflected from 4th to 2nd qdt, by adding pi
-        //     or x < 0, y < 0  (3rd qdt), in which case
-        //        atan(y/x) must be reflected from 1st to 3rd qdt, again by adding pi
-        return add(atan(divide(y, x)), Roughnum.makeInstance(Math.PI));
+      if (equalsAnyZero(x) && equalsAnyZero(y)) {
+        errbacks.throwDomainError('atan2: out of domain argument (0, 0)');
       }
+      if (isRational(y) && equalsAnyZero(y) && isPositive(x)) {
+        return 0;
+      }
+      var fy = toFixnum(y), fx = toFixnum(x);
+      if (!isFinite(fy) || !isFinite(fx)) {
+        // both exact and at least one beyond the double range: scale by the larger
+        var m = greaterThan(abs(y), abs(x)) ? abs(y) : abs(x);
+        fy = toFixnum(divide(y, m));
+        fx = toFixnum(divide(x, m));
+      }
+      var res = Math.atan2(fy, fx);
+      if (res < 0) { res += 2 * Math.PI; }
+      return Roughnum.makeInstance(res);
     };
 
     // cos: pyretnum -> pyretnum
