@@ -902,6 +902,27 @@ body.hideFooter .replContainer {
   padding-bottom: 0rem;
 }
 
+/* Unobtrusive compiler-flavor indicator, pinned to the REPL's corner just
+   above the footer padding. Hidden unless the page resolved to the ts
+   flavor (editor.html adds .ts-mode to <html> in the same branch that
+   swaps PYRET), so the stock editor shows nothing new. */
+#compilerFlavorBadge {
+  display: none;
+  position: absolute;
+  right: 8px;
+  bottom: calc(2.5rem + 4px);
+  font-size: 11px;
+  color: #999;
+  z-index: 1;
+  user-select: none;
+}
+html.ts-mode #compilerFlavorBadge {
+  display: block;
+}
+body.hideFooter #compilerFlavorBadge {
+  bottom: 4px;
+}
+
 body.hideHeader .replContainer {
   padding-top: 0px;
 }

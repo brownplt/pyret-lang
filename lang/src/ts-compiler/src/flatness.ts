@@ -303,30 +303,26 @@ export function makeLettableDataEnv(
 }
 
 /*
-  Per-head flatness: the forward part (run in statement order; includes
-  all sd/ad mutations and the value-side flatness) returns the backward
-  part, a frame combining the flatness of everything after the head —
-  work the recursive formulation on the nested representation did after
-  its body call (a-let's annFlatness and the flatnessMax combinations),
-  applied in the original unwind order (deepest first).
+  A head's own contribution to the chain's flatness: its env mutations and
+  its value-side flatness, computed in statement order. An a-let's binding
+  annotation is deliberately NOT included -- the nested representation
+  resolved it after compiling the body, so it must see the env the body
+  leaves behind; foldHeadsAfterBody adds it on the way back out.
 */
-type FlatnessFrame = (bodyFlatness: Flatness) => Flatness;
-
-export function headFlatnessForward(
+export function headFlatness(
   head: AA.AExprHead,
   sd: FEnv,
   ad: FEnv,
   mb: Map<string, C.ModuleBind>,
   env: C.CompileEnvironment
-): FlatnessFrame {
+): Flatness {
   switch (head.$name) {
     case 'a-type-let':
-      return (bodyFlatness) => bodyFlatness;
+      return 0;
     case 'a-let': {
       const bind = head.bind;
       const val = head.e;
 
-      let valFlatness: Flatness;
       if (AA.isALam(val)) {
         const retFlatness = annFlatness(val.ret, sd, ad, mb, env);
         let argsFlatness = retFlatness;
@@ -340,7 +336,7 @@ export function headFlatnessForward(
         sd.set(bind.id.key(), lamFlatness);
         // flatness of defining this lambda is 0, since we're not actually
         // doing anything with it
-        valFlatness = 0;
+        return 0;
       } else if (AA.isAIdSafeLetrec(val)) {
         // If we're binding this name to something that's already been defined
         // just copy over the definition
@@ -352,40 +348,54 @@ export function headFlatnessForward(
         }
         // flatness of the binding part of the let is 0 since we don't
         // call anything
-        valFlatness = 0;
+        return 0;
       } else if (AA.isAVal(val) && AA.isAIdModref(val.v)) {
         const funFlatness = getFlatnessForModuleFun(val.v.id, val.v.name, mb, env);
         sd.set(bind.id.key(), funFlatness);
-        valFlatness = 0;
+        return 0;
       } else {
-        valFlatness = makeLettableFlatnessEnv(val, sd, ad, mb, env);
+        return makeLettableFlatnessEnv(val, sd, ad, mb, env);
       }
-
-      return (bodyFlatness) => {
-        const annF = annFlatness(bind.ann, sd, ad, mb, env);
-        return flatnessMax(flatnessMax(valFlatness, bodyFlatness), annF);
-      };
     }
     case 'a-arr-let': {
       // Could maybe try to add some string like "bind.name + idx" to the
       // sd to let us keep track of the flatness if e is an a-lam, but for
       // now we don't since I'm not sure it'd work right.
       const annF = annFlatness(head.bind.ann, sd, ad, mb, env);
-      const lettF = makeLettableFlatnessEnv(head.e, sd, ad, mb, env);
-      return (bodyFlatness) => flatnessMax(annF, flatnessMax(lettF, bodyFlatness));
+      return flatnessMax(annF, makeLettableFlatnessEnv(head.e, sd, ad, mb, env));
     }
-    case 'a-var': {
+    case 'a-var':
       // Do same thing with a-var as with a-let for now
-      const annF = annFlatness(head.bind.ann, sd, ad, mb, env);
-      return (bodyFlatness) => flatnessMax(annF, bodyFlatness);
-    }
-    case 'a-seq': {
-      const aFlatness = makeLettableFlatnessEnv(head.e1, sd, ad, mb, env);
-      return (bodyFlatness) => flatnessMax(aFlatness, bodyFlatness);
-    }
+      return annFlatness(head.bind.ann, sd, ad, mb, env);
+    case 'a-seq':
+      return makeLettableFlatnessEnv(head.e1, sd, ad, mb, env);
     default:
-      throw new InternalCompilerError('headFlatnessForward: unknown head ' + (head as any).$name);
+      throw new InternalCompilerError('headFlatness: unknown head ' + (head as any).$name);
   }
+}
+
+// Combine a chain's heads with the flatness of everything that follows
+// them, innermost head first -- the order the nested representation
+// unwound in, and the point at which an a-let's binding annotation is
+// resolved (see headFlatness).
+function foldHeadsAfterBody(
+  heads: AA.AExprHead[],
+  headFlats: Flatness[],
+  bodyFlatness: Flatness,
+  sd: FEnv,
+  ad: FEnv,
+  mb: Map<string, C.ModuleBind>,
+  env: C.CompileEnvironment
+): Flatness {
+  let result = bodyFlatness;
+  for (let i = heads.length - 1; i >= 0; i--) {
+    const head = heads[i];
+    result = flatnessMax(headFlats[i], result);
+    if (head.$name === 'a-let') {
+      result = flatnessMax(result, annFlatness(head.bind.ann, sd, ad, mb, env));
+    }
+  }
+  return result;
 }
 
 // Calculate the flatness of aexpr, and along the way mutably update sd to
@@ -397,15 +407,9 @@ export function makeExprFlatnessEnv(
   mb: Map<string, C.ModuleBind>,
   env: C.CompileEnvironment
 ): Flatness {
-  const frames: FlatnessFrame[] = [];
-  for (const head of aexpr.heads) {
-    frames.push(headFlatnessForward(head, sd, ad, mb, env));
-  }
-  let result = makeLettableFlatnessEnv(aexpr.e, sd, ad, mb, env);
-  for (let i = frames.length - 1; i >= 0; i--) {
-    result = frames[i](result);
-  }
-  return result;
+  const headFlats = aexpr.heads.map((head) => headFlatness(head, sd, ad, mb, env));
+  const tailFlatness = makeLettableFlatnessEnv(aexpr.e, sd, ad, mb, env);
+  return foldHeadsAfterBody(aexpr.heads, headFlats, tailFlatness, sd, ad, mb, env);
 }
 
 export function incrementFlatness(f: Flatness): Flatness {
@@ -466,28 +470,19 @@ export function makeLettableFlatnessEnv(
     case 'a-if': {
       // The nested chain computed
       //   max(t1, wrap2(max(t2, wrap3(... max(tn, else) ...))))
-      // where wrap_i applies arm i's test-computation head frames.
-      // Forward pass (arm bodies and head pre-work, in arm order), then
-      // a backward fold — the same value and the same sd/ad effect order
-      // as the recursion, without stack growth in the arm count.
+      // where wrap_i folds in arm i's test-computation heads. Forward over
+      // the arms (their heads and bodies, in arm order), then back out.
       const branches = lettable.branches;
-      const branchFrames: FlatnessFrame[][] = [];
+      const branchHeadFlats: Flatness[][] = [];
       const branchFlats: Flatness[] = [];
       for (const b of branches) {
-        const frames: FlatnessFrame[] = [];
-        for (const h of b.heads) {
-          frames.push(headFlatnessForward(h, sd, ad, mb, env));
-        }
-        branchFrames.push(frames);
+        branchHeadFlats.push(b.heads.map((h) => headFlatness(h, sd, ad, mb, env)));
         branchFlats.push(makeExprFlatnessEnv(b.body, sd, ad, mb, env));
       }
       let result = makeExprFlatnessEnv(lettable.elseBody, sd, ad, mb, env);
       for (let i = branches.length - 1; i >= 0; i--) {
         result = flatnessMax(branchFlats[i], result);
-        const frames = branchFrames[i];
-        for (let j = frames.length - 1; j >= 0; j--) {
-          result = frames[j](result);
-        }
+        result = foldHeadsAfterBody(branches[i].heads, branchHeadFlats[i], result, sd, ad, mb, env);
       }
       return result;
     }

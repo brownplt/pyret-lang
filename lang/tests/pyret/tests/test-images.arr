@@ -125,6 +125,8 @@ check "Polygons":
   star-polygon(43, 3, 5, mode-solid, blue, {}) raises ""
   star-polygon(43, 2, 5, mode-solid, blue) raises ""
   star-polygon(43, 3, 0, mode-solid, blue) raises ""
+  star-polygon(6, 5, 10, mode-outline, red) raises "multiple"
+  star-polygon(6, 5, 5, mode-outline, red) raises "multiple"
 
   regular-polygon(45, 10, mode-solid, blue) satisfies is-image
   regular-polygon(45, 10, mode-solid, blue) satisfies is-image

@@ -153,7 +153,7 @@ generates the browserify entry; `make web-ts` there builds
 Because browsers have fixed ~1MB stacks (no `--stack-size` escape
 hatch), every per-statement recursion in the pipeline is implemented
 iteratively: the ANF spine (`anfLinear` in `anf.ts`), the splitting
-code generator (generators + the `runChain` driver in
+code generator (`compileAExpr`'s backward walk over a chain's heads in
 `anf-loop-compiler.ts`), scope resolution (`desugarScopeBlock`'s step
 driver), the flatness environment passes, and DAG liveness
 (`computeLiveVars`). All of these preserve the exact statement/effect

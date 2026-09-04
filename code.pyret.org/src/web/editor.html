@@ -25,6 +25,9 @@
     if(m) { window.CPO_COMPILER = decodeURIComponent(m[1]); }
     if(window.CPO_COMPILER === "ts" && window.PYRET_TS) {
       window.PYRET = window.PYRET_TS;
+      // Lets pure CSS show ts-only chrome (the "(ts mode)" badge in the
+      // REPL corner) without another script running at DOM-ready.
+      document.documentElement.classList.add("ts-mode");
       // In gzipped mode the host may serve assets without an executable MIME
       // type (nosniff), which refuses a <script src> load outright --
       // beforePyret.js fetches the compiler bundle alongside the jarr instead.
@@ -391,6 +394,7 @@
 </div>
 <div id="REPL" class="replContainer" role="region" aria-label="Interactions">
 <div id="handle" class="ui-resizable-handle ui-resizable-w"></div>
+<div id="compilerFlavorBadge" title="This session uses the TypeScript version of Pyret. Visit /settings/clear-ts to turn it off.">(ts mode)</div>
 </div>
 <div id="help-keys">
   <p><b>Press <kbd>Esc</kbd> to close this help window</b></p>

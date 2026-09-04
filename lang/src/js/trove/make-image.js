@@ -1218,6 +1218,10 @@
         var length = jsnums.toFixnum(maybeLength);
         var count = jsnums.toFixnum(maybeCount);
         var step = jsnums.toFixnum(maybeStep);
+        if ((step % count) === 0) {
+          throwMessage("star-polygon: the step count (" + step + ") must not be a multiple "
+                       + "of the side count (" + count + ")");
+        }
         var mode = unwrapMode(maybeMode);
         var color = unwrapColor(maybeColor);
         return makeImage(

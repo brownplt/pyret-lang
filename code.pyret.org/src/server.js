@@ -628,13 +628,62 @@ function start(config, onServerReady) {
     });
   });
 
+  // Sticky ts opt-in for this browser: /settings/try-ts pins the ts flavor
+  // in a cookie so ordinary visits -- bookmarks, Drive opens, share links,
+  // none of which carry ?compiler= -- stay on it; /settings/clear-ts unpins.
+  // A cookie (not localStorage) because the flavor is resolved server-side
+  // at render time: the page's preload link and window.PYRET must point at
+  // the jarr that will actually load. 180 days: a class that opts in at the
+  // start of a term shouldn't silently revert mid-course; stale opt-ins are
+  // harmless because this resolution code remains the kill switch.
+  var COMPILER_COOKIE = "pyret-compiler";
+  var COMPILER_COOKIE_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
+  app.get("/settings/try-ts", function(req, res) {
+    res.cookie(COMPILER_COOKIE, "ts", {
+      maxAge: COMPILER_COOKIE_MAX_AGE_MS,
+      sameSite: "lax"
+    });
+    res.type("text/plain").send(
+      "You visited /settings/try-ts, so in this browser you'll use a new version\n" +
+      "of Pyret that is faster. This choice is remembered for around 6 months.\n" +
+      "\n" +
+      "You can visit /settings/clear-ts to clear this option.\n" +
+      "\n" +
+      "If anything seems off, turning it off and telling your teacher/instructor,\n" +
+      "or someone from the Pyret team, what you saw helps a lot.\n" +
+      "\n" +
+      "Thanks for testing it out!\n" +
+      "- The Pyret Team\n"
+    );
+  });
+  app.get("/settings/clear-ts", function(req, res) {
+    res.clearCookie(COMPILER_COOKIE);
+    res.type("text/plain").send(
+      "You visited /settings/clear-ts, so in this browser you'll use the regular\n" +
+      "Pyret version.\n" +
+      "\n" +
+      "You can visit /settings/try-ts to turn on the TypeScript mode (or back on,\n" +
+      "if you've used it before). It is an experimental faster version of the\n" +
+      "compiler.\n" +
+      "\n" +
+      "Thanks!\n" +
+      "- The Pyret Team\n"
+    );
+  });
+
   app.get("/editor", function(req, res) {
     // The compiler flavor can be chosen per request (?compiler=ts|pyret),
-    // falling back to the CPO_COMPILER env default. Resolving it here (in
-    // addition to the client-side check in editor.html) keeps the preload
-    // link and window.PYRET pointing at the jarr that will actually load,
-    // so the stock jarr isn't downloaded pointlessly in ts mode.
-    var compiler = req.query.compiler || defaultOpts.CPO_COMPILER;
+    // then by the sticky opt-in cookie (see /settings/try-ts above), then
+    // the CPO_COMPILER env default. Resolving it here (in addition to the
+    // client-side check in editor.html) keeps the preload link and
+    // window.PYRET pointing at the jarr that will actually load, so the
+    // stock jarr isn't downloaded pointlessly in ts mode. Only known
+    // flavor names are honored from the cookie; anything else falls
+    // through to the default. (No route sets "pyret" today, but honoring
+    // it gives a future ramp a per-user pin-to-stock for free.)
+    var cookieFlavor = req.cookies && req.cookies[COMPILER_COOKIE];
+    if (cookieFlavor !== "ts" && cookieFlavor !== "pyret") { cookieFlavor = ""; }
+    var compiler = req.query.compiler || cookieFlavor || defaultOpts.CPO_COMPILER;
     var compilerOpts = (compiler === "ts" && defaultOpts.PYRET_TS)
       ? { PYRET: defaultOpts.PYRET_TS, CPO_COMPILER: "ts" }
       : {};

@@ -917,26 +917,30 @@ fun compile-annotated-let(visitor, b :: BindType, compiled-e :: DAG.CaseResults%
   end
 end
 
-fun get-remaining-code(compiler, opt-dest, body, ans) -> {J.JBlock;CList<J.JCase>}:
-  compiled-body = body.visit(compiler)
-  shadow compiled-body = cases(Option) opt-dest:
+# The rest of the chain is compiled BEFORE the head that precedes it (see
+# the compiler-visitor's a-let/a-seq), so these take an already-compiled
+# `rest` rather than an AExpr to visit. Every effect a head performs --
+# fresh-id/js-id-of minting, get-loc interning, dispatch-table pushes --
+# therefore happens after all of its body's, which is what lets a
+# consumer of a flattened statement chain walk it as one backward loop.
+fun get-remaining-code(compiler, opt-dest, rest :: DAG.CaseResults%(is-c-block), ans) -> {J.JBlock;CList<J.JCase>}:
+  compiled-body = cases(Option) opt-dest:
     | some(dest) =>
-      compiled-binding = compile-annotated-let(compiler, dest, c-exp(j-id(ans), cl-empty), compiled-body)
-      compiled-binding
+      compile-annotated-let(compiler, dest, c-exp(j-id(ans), cl-empty), rest)
     | none =>
-      compiled-body
+      rest
   end
 
   {compiled-body.block; compiled-body.new-cases}
 end
 
-# Return code for opt-body and the label the caller should jump to after
+# Return code for opt-rest and the label the caller should jump to after
 # their block of code is done
-fun get-new-cases(compiler, opt-dest, opt-body, ans) -> {CList<J.JBlock>; J.JExpr}:
-  cases(Option) opt-body:
-    | some(compiled-body) =>
+fun get-new-cases(compiler, opt-dest, opt-rest, ans) -> {CList<J.JBlock>; J.JExpr}:
+  cases(Option) opt-rest:
+    | some(rest :: DAG.CaseResults%(is-c-block)) =>
       pre-body-label = compiler.make-label()
-      {next-block; next-cases} = get-remaining-code(compiler, opt-dest, compiled-body, ans)
+      {next-block; next-cases} = get-remaining-code(compiler, opt-dest, rest, ans)
       remaining-cases = cl-cons(j-case(pre-body-label, next-block), next-cases)
 
       {remaining-cases; pre-body-label}
@@ -944,7 +948,7 @@ fun get-new-cases(compiler, opt-dest, opt-body, ans) -> {CList<J.JBlock>; J.JExp
   end
 end
 
-fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-body):
+fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-rest):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-obj = obj.visit(compiler).exp
@@ -966,7 +970,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
             j-str(methname),
             compiler.get-loc(l)],
           compiled-args)))
-    {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+    {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-rest, ans)
     c-block(j-block([clist:
       j-expr(j-assign(step, after-app-label)),
       j-expr(j-assign(ans, call)),
@@ -977,7 +981,7 @@ fun compile-split-method-app(l, compiler, opt-dest, obj, methname, args, opt-bod
     colon-field = rt-method("getColonFieldLoc", [clist: obj-id, j-str(methname), compiler.get-loc(l)])
     colon-field-id = j-id(fresh-id(compiler-name("field")))
     check-method = rt-method("isMethod", [clist: colon-field-id])
-    {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+    {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-rest, ans)
     c-block(
       j-block([clist:
           # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
@@ -1062,12 +1066,12 @@ fun get-assignments(lst :: List<J.JExpr>, limit :: Number) -> {List<J.JStmt>; Li
   end
 end
 
-fun compile-split-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-definitely-fn):
+fun compile-split-app(l, compiler, opt-dest, f, args, opt-rest, app-info, is-definitely-fn):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-f = f.visit(compiler).exp
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
-  {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+  {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-rest, ans)
   if app-info.is-recursive and
      app-info.is-tail and
      compiler.allow-tco and
@@ -1123,7 +1127,7 @@ fun j-block-to-stmt-list(b :: J.JBlock) -> CL.ConcatList<J.JStmt>:
   end
 end
 
-fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-definitely-fn) block:
+fun compile-flat-app(l, compiler, opt-dest, f, args, opt-rest, app-info, is-definitely-fn) block:
   ans = compiler.cur-ans
   compiled-f = f.visit(compiler).exp
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
@@ -1134,12 +1138,12 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-defi
     j-expr(wrap-with-srcnode(l, j-assign(ans, app(l, compiled-f, compiled-args))))
   ]
 
-  # Compile the body of the let. We split it into two portions:
-  # 1) the code that can be in the same "block" (or case region) and
-  # 2) the rest of the case statements
-  {remaining-code; new-cases} = cases (Option) opt-body:
-    | some(body) =>
-      get-remaining-code(compiler, opt-dest, body, ans)
+  # Splice in the already-compiled rest of the let. We split it into two
+  # portions: 1) the code that can be in the same "block" (or case region)
+  # and 2) the rest of the case statements
+  {remaining-code; new-cases} = cases (Option) opt-rest:
+    | some(rest :: DAG.CaseResults%(is-c-block)) =>
+      get-remaining-code(compiler, opt-dest, rest, ans)
     | none =>
       # Special case: there is no more code after this so just jump to the
       # special last block in the function
@@ -1158,11 +1162,11 @@ fun compile-flat-app(l, compiler, opt-dest, f, args, opt-body, app-info, is-defi
     new-cases)
 end
 
-fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-body):
+fun compile-split-if(compiler, opt-dest, cond, consq, alt, opt-rest):
   consq-label = compiler.make-label()
   alt-label = compiler.make-label()
   ans = compiler.cur-ans
-  {after-if-cases; after-if-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+  {after-if-cases; after-if-label} = get-new-cases(compiler, opt-dest, opt-rest, ans)
   compiler-after-if = compiler.{cur-target: after-if-label}
   compiled-consq = consq.visit(compiler-after-if)
   compiled-alt = alt.visit(compiler-after-if)
@@ -1281,9 +1285,9 @@ fun compile-inline-cases-branch(compiler, compiled-val, branch, compiled-body, c
     c-block(j-block(cl-append(preamble, compiled-body.block.stmts)), compiled-body.new-cases)
   end
 end
-fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-body :: Option<N.AExpr>) block:
+fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branches :: List<N.ACasesBranch>, _else :: N.AExpr, opt-rest :: Option<DAG.CaseResults%(is-c-block)>) block:
   compiled-val = val.visit(compiler).exp
-  {after-cases-cases; after-cases-label} = get-new-cases(compiler, opt-dest, opt-body, compiler.cur-ans)
+  {after-cases-cases; after-cases-label} = get-new-cases(compiler, opt-dest, opt-rest, compiler.cur-ans)
   compiler-after-cases = compiler.{cur-target: after-cases-label}
   compiled-branches = branches.map(compile-cases-branch(compiler-after-cases, compiled-val, _, cases-loc))
   compiled-else = _else.visit(compiler-after-cases)
@@ -1318,14 +1322,14 @@ fun compile-split-cases(compiler, cases-loc, opt-dest, typ, val :: N.AVal, branc
     new-cases)
 end
 
-fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<N.AField>, opt-body :: Option<N.AExpr>):
+fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<N.AField>, opt-rest :: Option<DAG.CaseResults%(is-c-block)>):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-obj = obj.visit(compiler).exp
   compiled-field-vals = CL.map_list(lam(a): a.value.visit(compiler).exp end, fields)
   field-names = CL.map_list(lam(f): j-str(f.name) end, fields)
   field-locs = CL.map_list(lam(f): compiler.get-loc(f.l) end, fields)
-  {new-cases; after-update-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+  {new-cases; after-update-label} = get-new-cases(compiler, opt-dest, opt-rest, ans)
   c-block(
     j-block([clist:
         # Update step before the call, so that if it runs out of gas, the resumer goes to the right step
@@ -1350,7 +1354,7 @@ end
 fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
     compiler,
     b :: Option<BindType>,
-    opt-body :: Option<N.AExpr>,
+    opt-rest :: Option<DAG.CaseResults%(is-c-block)>,
     app-info :: A.AppInfo):
 
   is-safe-id = N.is-a-id(f) or N.is-a-id-safe-letrec(f)
@@ -1361,7 +1365,7 @@ fun compile-a-app(l :: N.Loc, f :: N.AVal, args :: List<N.AVal>,
   end
 
   is-fn = is-safe-id and is-id-fn-name(compiler.flatness-env, f.id.key())
-  app-compiler(l, compiler, b, f, args, opt-body, app-info, is-fn)
+  app-compiler(l, compiler, b, f, args, opt-rest, app-info, is-fn)
 end
 
 fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret :: A.Ann, body :: N.AExpr, bind-opt :: Option<BindType>) block:
@@ -1389,11 +1393,11 @@ fun compile-a-lam(compiler, l :: Loc, name :: String, args :: List<N.ABind>, ret
 end
 
 
-fun compile-split-prim-app(l, compiler, opt-dest, f, args, opt-body):
+fun compile-split-prim-app(l, compiler, opt-dest, f, args, opt-rest):
   ans = compiler.cur-ans
   step = compiler.cur-step
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
-  {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-body, ans)
+  {new-cases; after-app-label} = get-new-cases(compiler, opt-dest, opt-rest, ans)
   c-block(
     j-block(
       # Update step before the call, so that if it runs out of gas,
@@ -1408,19 +1412,19 @@ fun compile-split-prim-app(l, compiler, opt-dest, f, args, opt-body):
 end
 
 
-fun compile-flat-prim-app(l, compiler, opt-dest, f, args, opt-body):
+fun compile-flat-prim-app(l, compiler, opt-dest, f, args, opt-rest):
   ans = compiler.cur-ans
   compiled-args = CL.map_list(lam(a): a.visit(compiler).exp end, args)
 
   # Generate the code for calling the function
   call-code = j-expr(wrap-with-srcnode(l, j-assign(ans, rt-method(f, compiled-args))))
 
-  # Compile the body of the let. We split it into two portions:
-  # 1) the code that can be in the same "block" (or case region) and
-  # 2) the rest of the case statements
-  {remaining-code; new-cases} = cases (Option) opt-body:
-    | some(body) =>
-      get-remaining-code(compiler, opt-dest, body, ans)
+  # Splice in the already-compiled rest of the let. We split it into two
+  # portions: 1) the code that can be in the same "block" (or case region)
+  # and 2) the rest of the case statements
+  {remaining-code; new-cases} = cases (Option) opt-rest:
+    | some(rest :: DAG.CaseResults%(is-c-block)) =>
+      get-remaining-code(compiler, opt-dest, rest, ans)
     | none =>
       # Special case: there is no more code after this so just jump to the
       # special last block in the function
@@ -1442,7 +1446,7 @@ end
 fun compile-a-prim-app(l :: N.Loc, f :: String, args :: List<N.AVal>,
     compiler,
     b :: Option<BindType>,
-    opt-body :: Option<N.AExpr>,
+    opt-rest :: Option<DAG.CaseResults%(is-c-block)>,
     app-info :: A.PrimAppInfo):
 
   app-compiler = if app-info.needs-step:
@@ -1450,23 +1454,23 @@ fun compile-a-prim-app(l :: N.Loc, f :: String, args :: List<N.AVal>,
   else:
     compile-flat-prim-app
   end
-  app-compiler(l, compiler, b, f, args, opt-body)
+  app-compiler(l, compiler, b, f, args, opt-rest)
 end
 
-fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-body :: Option<N.AExpr>, else-case :: (DAG.CaseResults -> DAG.CaseResults)):
+fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-rest :: Option<DAG.CaseResults%(is-c-block)>, else-case :: (DAG.CaseResults -> DAG.CaseResults)):
   cases(N.ALettable) e:
     | a-prim-app(l2, f, args, app-info) =>
-      compile-a-prim-app(l2, f, args, compiler, b, opt-body, app-info)
+      compile-a-prim-app(l2, f, args, compiler, b, opt-rest, app-info)
     | a-app(l2, f, args, app-info) =>
-      compile-a-app(l2, f, args, compiler, b, opt-body, app-info)
+      compile-a-app(l2, f, args, compiler, b, opt-rest, app-info)
     | a-method-app(l2, obj, m, args) =>
-      compile-split-method-app(l2, compiler, b, obj, m, args, opt-body)
+      compile-split-method-app(l2, compiler, b, obj, m, args, opt-rest)
     | a-if(l2, cond, then, els) =>
-      compile-split-if(compiler, b, cond, then, els, opt-body)
+      compile-split-if(compiler, b, cond, then, els, opt-rest)
     | a-cases(l2, typ, val, branches, _else) =>
-      compile-split-cases(compiler, l2, b, typ, val, branches, _else, opt-body)
+      compile-split-cases(compiler, l2, b, typ, val, branches, _else, opt-rest)
     | a-update(l2, obj, fields) =>
-      compile-split-update(compiler, l2, b, obj, fields, opt-body)
+      compile-split-update(compiler, l2, b, obj, fields, opt-rest)
     | a-lam(l2, name, args, ret, body) =>
       compiled-e = compile-a-lam(compiler, l2, name, args, ret, body, b)
       else-case(compiled-e)
@@ -1590,8 +1594,8 @@ compiler-visitor = {
             cl-append(_, visited-body.block.stmts)),
           visited-body.new-cases)
       | a-newtype-bind(l2, name, nameb) =>
-        brander-id = js-id-of(nameb)
         visited-body = body.visit(self)
+        brander-id = js-id-of(nameb)
         c-block(
           j-block(
             [clist:
@@ -1603,14 +1607,14 @@ compiler-visitor = {
     end
   end,
   method a-let(self, _, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
-    compile-lettable(self, some(b-let(b)), e, some(body), lam(compiled-e):
-      compiled-body = body.visit(self)
+    compiled-body = body.visit(self)
+    compile-lettable(self, some(b-let(b)), e, some(compiled-body), lam(compiled-e):
       compile-annotated-let(self, b-let(b), compiled-e, compiled-body)
     end)
   end,
   method a-arr-let(self, _, b :: N.ABind, idx :: Number, e :: N.ALettable, body :: N.AExpr):
-    compile-lettable(self, some(b-array(b, idx)), e, some(body), lam(compiled-e):
-      compiled-body = body.visit(self)
+    compiled-body = body.visit(self)
+    compile-lettable(self, some(b-array(b, idx)), e, some(compiled-body), lam(compiled-e):
       compile-annotated-let(self, b-array(b, idx), compiled-e, compiled-body)
     end)
   end,
@@ -1629,8 +1633,8 @@ compiler-visitor = {
       compiled-body.new-cases)
   end,
   method a-seq(self, _, e1, e2):
-    compile-lettable(self, none, e1, some(e2), lam(e1-visit):
-      e2-visit = e2.visit(self)
+    e2-visit = e2.visit(self)
+    compile-lettable(self, none, e1, some(e2-visit), lam(e1-visit):
       first-stmt = if J.is-JStmt(e1-visit.exp): e1-visit.exp else: j-expr(e1-visit.exp) end
       c-block(
         j-block(cl-append(e1-visit.other-stmts, cl-cons(first-stmt, e2-visit.block.stmts))),

@@ -1097,208 +1097,122 @@ export function compileAnnotatedLet(
 }
 
 /*
-  The original recursive implementation compiled each head by doing some
-  work, compiling the entire rest of the chain, and then wrapping the
-  compiled rest -- one stack frame per statement. Here each head's
-  compilation is split at exactly that point: a "pre" phase (the work
-  done before the rest -- visiting operand values, minting labels and
-  fresh ids) run in a forward loop, and a "post" phase (the work done
-  after -- wrapping the destination binding, assembling the block and
-  case list) folded backward from the compiled tail. The effect order
-  (jsIdOf/freshId minting, makeLabel, getLoc interning, dispatch-table
-  pushes) is kept exactly the same, so the generated code is identical.
+  A statement chain is compiled from the tail outward: the tail lettable
+  first, then each head wrapped around the already-compiled rest. That is
+  also the order the Pyret compiler works in -- its a-let/a-seq visit the
+  body before handing the compiled result to compile-lettable (see the
+  comment on get-remaining-code in anf-loop-compiler.arr) -- so every
+  head's effects (freshId/jsIdOf minting, getLoc interning, dispatch-table
+  pushes) happen after all of its body's, and the generated code matches.
+  Chains are flat, so the backward walk costs no stack per statement.
 */
-type HeadPost = (rest: DAG.CBlock) => DAG.CBlock;
-
 export function compileAExpr(compiler: CompilerVisitor, ae: N.AExpr): DAG.CBlock {
-  const posts: HeadPost[] = [];
-  for (const head of ae.heads) {
-    posts.push(preHead(compiler, head));
+  let rest = compileLettable(compiler, undefined, ae.e, undefined,
+    (compiledE) => tailLettable(compiler, compiledE));
+  for (let i = ae.heads.length - 1; i >= 0; i--) {
+    rest = compileHead(compiler, ae.heads[i], rest);
   }
-  let cur = compileTailLettable(compiler, ae.e);
-  for (let i = posts.length - 1; i >= 0; i--) {
-    cur = posts[i](cur);
-  }
-  return cur;
+  return rest;
 }
 
-function preHead(compiler: CompilerVisitor, head: N.AExprHead): HeadPost {
+function compileHead(compiler: CompilerVisitor, head: N.AExprHead, rest: DAG.CBlock): DAG.CBlock {
   switch (head.$name) {
-    case 'a-let':
-      return preLettable(compiler, new BLet(head.bind), head.e);
-    case 'a-arr-let':
-      return preLettable(compiler, new BArray(head.bind, head.idx), head.e);
+    case 'a-let': {
+      const b = new BLet(head.bind);
+      return compileLettable(compiler, b, head.e, rest,
+        (compiledE) => compileAnnotatedLet(compiler, b, compiledE, rest));
+    }
+    case 'a-arr-let': {
+      const b = new BArray(head.bind, head.idx);
+      return compileLettable(compiler, b, head.e, rest,
+        (compiledE) => compileAnnotatedLet(compiler, b, compiledE, rest));
+    }
     case 'a-seq':
-      return preLettable(compiler, undefined, head.e1);
-    case 'a-var': {
-      const node = head;
-      // The value is visited after the rest of the chain is compiled,
-      // as in the recursive formulation.
-      return (compiledBody) => {
-        const compiledE: DAG.CExp = node.e.visit(compiler);
-        // TODO: annotations here?
+      return compileLettable(compiler, undefined, head.e1, rest, (e1Visit) => {
+        const firstStmt: J.JStmt = (e1Visit.exp as any) instanceof J.JStmtBase
+          ? (e1Visit.exp as any as J.JStmt)
+          : jExpr(e1Visit.exp);
         return cBlock(
-          jBlock(
-            clCons(
-              jVar(jsIdOf(node.bind.id),
-                jObj(clist<J.JFieldT>(jField('$var', compiledE.exp)
-                  // NOTE(joe): This can be useful to turn on for debugging
-                  //                     , j-field("$name", j-str(b.id.toname()))
-                ))) as J.JStmt,
-              DAG.stmtsOf(compiledBody.block))),
-          compiledBody.newCases);
-      };
+          jBlock(clAppend(e1Visit.otherStmts, clCons(firstStmt, DAG.stmtsOf(rest.block)))),
+          rest.newCases);
+      });
+    case 'a-var': {
+      const compiledE: DAG.CExp = head.e.visit(compiler);
+      // TODO: annotations here?
+      return cBlock(
+        jBlock(
+          clCons(
+            jVar(jsIdOf(head.bind.id),
+              jObj(clist<J.JFieldT>(jField('$var', compiledE.exp)
+                // NOTE(joe): This can be useful to turn on for debugging
+                //                     , j-field("$name", j-str(b.id.toname()))
+              ))) as J.JStmt,
+            DAG.stmtsOf(rest.block))),
+        rest.newCases);
     }
     case 'a-type-let': {
       const bind = head.bind;
       switch (bind.$name) {
-        case 'a-type-bind':
-          return (visitedBody) => {
-            const compiledAnn = compileAnn(bind.ann, bind.name.toname(), compiler);
-            return cBlock(
-              jBlock(
-                clAppend(
-                  clSnoc(compiledAnn.otherStmts, jVar(jsIdOf(bind.name), compiledAnn.exp) as J.JStmt),
-                  DAG.stmtsOf(visitedBody.block))),
-              visitedBody.newCases);
-          };
+        case 'a-type-bind': {
+          const compiledAnn = compileAnn(bind.ann, bind.name.toname(), compiler);
+          return cBlock(
+            jBlock(
+              clAppend(
+                clSnoc(compiledAnn.otherStmts, jVar(jsIdOf(bind.name), compiledAnn.exp) as J.JStmt),
+                DAG.stmtsOf(rest.block))),
+            rest.newCases);
+        }
         case 'a-newtype-bind': {
           const branderId = jsIdOf(bind.namet);
-          return (visitedBody) => cBlock(
+          return cBlock(
             jBlock(
               clAppend(
                 clist<J.JStmt>(
                   jVar(branderId, rtMethod('namedBrander', clist<J.JExprT>(jStr(bind.name.toname()), compiler.getLoc(bind.l)))),
                   jVar(jsIdOf(bind.name), rtMethod('makeBranderAnn', clist<J.JExprT>(jId(branderId), jStr(bind.name.toname()))))
                 ),
-                DAG.stmtsOf(visitedBody.block))),
-            visitedBody.newCases);
+                DAG.stmtsOf(rest.block))),
+            rest.newCases);
         }
         default:
           throw new InternalCompilerError('Unknown ATypeBind in a-type-let');
       }
     }
     default:
-      throw new InternalCompilerError('Unknown AExprHead in preHead: ' + (head as any).$name);
+      throw new InternalCompilerError('Unknown AExprHead in compileHead: ' + (head as any).$name);
   }
 }
 
-// The "rest of the chain follows this head" bookkeeping the recursive
-// formulation did in getNewCases/getRemainingCode: the pre-body label is
-// minted in the head's pre phase; once the rest is compiled, the
-// destination binding (if any) is wrapped around it and it becomes the
-// case the head's code jumps to.
-function finishRest(
+function compileLettable(
   compiler: CompilerVisitor,
-  optDest: BindType | undefined,
-  preBodyLabel: J.JExprT,
-  rest: DAG.CBlock
-): [CList<J.JCaseT>, J.JExprT] {
-  let compiledBody = rest;
-  if (optDest !== undefined) {
-    compiledBody = compileAnnotatedLet(compiler, optDest, cExp(jId(compiler.curAns), clEmpty), compiledBody);
-  }
-  return [clCons(jCase(preBodyLabel, compiledBody.block) as J.JCaseT, compiledBody.newCases), preBodyLabel];
-}
-
-function plainPost(compiler: CompilerVisitor, b: BindType | undefined, compiledE: DAG.CExp): HeadPost {
-  if (b !== undefined) {
-    return (rest) => compileAnnotatedLet(compiler, b, compiledE, rest);
-  }
-  return (rest) => {
-    const firstStmt: J.JStmt = (compiledE.exp as any) instanceof J.JStmtBase ? (compiledE.exp as any as J.JStmt) : jExpr(compiledE.exp);
-    return cBlock(
-      jBlock(clAppend(compiledE.otherStmts, clCons(firstStmt, DAG.stmtsOf(rest.block)))),
-      rest.newCases);
-  };
-}
-
-function preLettable(compiler: CompilerVisitor, b: BindType | undefined, e: N.ALettable): HeadPost {
+  b: BindType | undefined,
+  e: N.ALettable,
+  optRest: DAG.CBlock | undefined,
+  elseCase: (compiledE: DAG.CExp) => DAG.CBlock
+): DAG.CBlock {
   switch (e.$name) {
     case 'a-prim-app':
-      return e.appInfo.needsStep
-        ? preSplitPrimApp(e.l, compiler, b, e.f, e.args)
-        : preFlatPrimApp(e.l, compiler, b, e.f, e.args);
-    case 'a-app': {
-      const f = e._fun;
-      const isSafeId = N.isAId(f) || N.isAIdSafeLetrec(f);
-      if (isSafeId && isFunctionFlat(compiler.flatnessEnv, (f as any).id.key())) {
-        return preFlatApp(e.l, compiler, b, f, e.args);
-      }
-      const isFn = isSafeId && isIdFnName(compiler.flatnessEnv, (f as any).id.key());
-      return preSplitApp(e.l, compiler, b, f, e.args, e.appInfo, isFn);
-    }
+      return compileAPrimApp(e.l, e.f, e.args, compiler, b, optRest, e.appInfo);
+    case 'a-app':
+      return compileAApp(e.l, e._fun, e.args, compiler, b, optRest, e.appInfo);
     case 'a-method-app':
-      return preSplitMethodApp(e.l, compiler, b, e.obj, e.meth, e.args);
+      return compileSplitMethodApp(e.l, compiler, b, e.obj, e.meth, e.args, optRest);
     case 'a-if':
-      return preSplitIf(compiler, b, e);
+      return compileSplitIf(compiler, b, e, optRest);
     case 'a-cases':
-      return preSplitCases(compiler, e.l, b, e.val, e.branches, e._else);
+      return compileSplitCases(compiler, e.l, b, e.val, e.branches, e._else, optRest);
     case 'a-update':
-      return preSplitUpdate(compiler, e.l, b, e.supe, e.fields);
-    case 'a-lam': {
-      const compiledE = compileALam(compiler, e.l, e.name, e.args, e.ret, e.body, b);
-      return plainPost(compiler, b, compiledE);
-    }
-    default: {
-      const compiledE: DAG.CExp = e.visit(compiler);
-      return plainPost(compiler, b, compiledE);
-    }
+      return compileSplitUpdate(compiler, e.l, b, e.supe, e.fields, optRest);
+    case 'a-lam':
+      return elseCase(compileALam(compiler, e.l, e.name, e.args, e.ret, e.body, b));
+    default:
+      return elseCase(e.visit(compiler));
   }
 }
 
-function compileTailLettable(compiler: CompilerVisitor, e: N.ALettable): DAG.CBlock {
-  switch (e.$name) {
-    case 'a-prim-app': {
-      if (e.appInfo.needsStep) {
-        const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), e.args);
-        return buildSplitPrimApp(e.l, compiler, e.f, compiledArgs, clEmpty, compiler.curTarget);
-      }
-      const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), e.args);
-      return buildFlatPrimApp(e.l, compiler, e.f, compiledArgs, tailRemainingBlock(compiler), clEmpty);
-    }
-    case 'a-app': {
-      const f = e._fun;
-      const isSafeId = N.isAId(f) || N.isAIdSafeLetrec(f);
-      if (isSafeId && isFunctionFlat(compiler.flatnessEnv, (f as any).id.key())) {
-        const compiledF = field(f.visit(compiler), 'exp');
-        const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), e.args);
-        return buildFlatApp(e.l, compiler, compiledF, compiledArgs, tailRemainingBlock(compiler), clEmpty);
-      }
-      const isFn = isSafeId && isIdFnName(compiler.flatnessEnv, (f as any).id.key());
-      const compiledF = field(f.visit(compiler), 'exp');
-      const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), e.args);
-      return buildSplitApp(e.l, compiler, compiledF, compiledArgs, e.appInfo, isFn, clEmpty, compiler.curTarget);
-    }
-    case 'a-method-app': {
-      const state = methodAppState(e.l, compiler, e.obj, e.meth, e.args);
-      return buildMethodApp(e.l, compiler, state, clEmpty, compiler.curTarget);
-    }
-    case 'a-if': {
-      const consqLabel = compiler.makeLabel();
-      const altLabel = compiler.makeLabel();
-      return buildNaryIf(compiler, e, consqLabel, altLabel, clEmpty, compiler.curTarget);
-    }
-    case 'a-cases': {
-      const compiledVal = field(e.val.visit(compiler), 'exp');
-      return buildSplitCases(compiler, e.l, compiledVal, e.branches, e._else, clEmpty, compiler.curTarget);
-    }
-    case 'a-update': {
-      const state = updateState(compiler, e.supe, e.fields);
-      return buildSplitUpdate(compiler, e.l, state, clEmpty, compiler.curTarget);
-    }
-    case 'a-lam': {
-      const compiledE = compileALam(compiler, e.l, e.name, e.args, e.ret, e.body, undefined);
-      return tailPlain(compiler, compiledE);
-    }
-    default: {
-      const compiledE: DAG.CExp = e.visit(compiler);
-      return tailPlain(compiler, compiledE);
-    }
-  }
-}
-
-function tailPlain(compiler: CompilerVisitor, visitE: DAG.CExp): DAG.CBlock {
+// The last lettable in a chain has nothing to bind its answer to: stash it
+// in curAns and jump to the block the enclosing construct nominated.
+function tailLettable(compiler: CompilerVisitor, visitE: DAG.CExp): DAG.CBlock {
   return cBlock(
     jBlock(
       clAppend(
@@ -1318,38 +1232,73 @@ function tailRemainingBlock(compiler: CompilerVisitor): J.JBlockT {
   ));
 }
 
+/*
+  The rest of the chain is already compiled by the time a head asks for it
+  (see compileAExpr), so these take a `rest` CBlock rather than an AExpr to
+  visit -- as get-remaining-code/get-new-cases do in anf-loop-compiler.arr.
+*/
+function getRemainingCode(
+  compiler: CompilerVisitor,
+  optDest: BindType | undefined,
+  rest: DAG.CBlock,
+  ans: A.Name
+): [J.JBlockT, CList<J.JCaseT>] {
+  const compiledBody = optDest !== undefined
+    ? compileAnnotatedLet(compiler, optDest, cExp(jId(ans), clEmpty), rest)
+    : rest;
+  return [compiledBody.block, compiledBody.newCases];
+}
+
+// Return code for optRest and the label the caller should jump to after
+// their block of code is done
+function getNewCases(
+  compiler: CompilerVisitor,
+  optDest: BindType | undefined,
+  optRest: DAG.CBlock | undefined,
+  ans: A.Name
+): [CList<J.JCaseT>, J.JExprT] {
+  if (optRest === undefined) {
+    return [clEmpty, compiler.curTarget];
+  }
+  const preBodyLabel = compiler.makeLabel();
+  const [nextBlock, nextCases] = getRemainingCode(compiler, optDest, optRest, ans);
+  return [clCons(jCase(preBodyLabel, nextBlock) as J.JCaseT, nextCases), preBodyLabel];
+}
+
 // ---------- a-app ----------
 
-function preSplitApp(
+function compileAApp(
+  l: Loc,
+  f: N.AVal,
+  args: N.AVal[],
+  compiler: CompilerVisitor,
+  b: BindType | undefined,
+  optRest: DAG.CBlock | undefined,
+  appInfo: A.AppInfo
+): DAG.CBlock {
+  const isSafeId = N.isAId(f) || N.isAIdSafeLetrec(f);
+  if (isSafeId && isFunctionFlat(compiler.flatnessEnv, (f as any).id.key())) {
+    return compileFlatApp(l, compiler, b, f, args, optRest);
+  }
+  const isFn = isSafeId && isIdFnName(compiler.flatnessEnv, (f as any).id.key());
+  return compileSplitApp(l, compiler, b, f, args, optRest, appInfo, isFn);
+}
+
+function compileSplitApp(
   l: Loc,
   compiler: CompilerVisitor,
   optDest: BindType | undefined,
   f: N.AVal,
   args: N.AVal[],
+  optRest: DAG.CBlock | undefined,
   appInfo: A.AppInfo,
   isDefinitelyFn: boolean
-): HeadPost {
-  const compiledF = field(f.visit(compiler), 'exp');
-  const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), args);
-  const preBodyLabel = compiler.makeLabel();
-  return (rest) => {
-    const [newCases, afterAppLabel] = finishRest(compiler, optDest, preBodyLabel, rest);
-    return buildSplitApp(l, compiler, compiledF, compiledArgs, appInfo, isDefinitelyFn, newCases, afterAppLabel);
-  };
-}
-
-function buildSplitApp(
-  l: Loc,
-  compiler: CompilerVisitor,
-  compiledF: J.JExprT,
-  compiledArgs: CList<J.JExprT>,
-  appInfo: A.AppInfo,
-  isDefinitelyFn: boolean,
-  newCases: CList<J.JCaseT>,
-  afterAppLabel: J.JExprT
 ): DAG.CBlock {
   const ans = compiler.curAns;
   const step = compiler.curStep;
+  const compiledF = field(f.visit(compiler), 'exp');
+  const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), args);
+  const [newCases, afterAppLabel] = getNewCases(compiler, optDest, optRest, ans);
   if (appInfo.isRecursive &&
     appInfo.isTail &&
     compiler.allowTco &&
@@ -1399,39 +1348,33 @@ export function jBlockToStmtList(b: J.JBlockT): CList<J.JStmt> {
   }
 }
 
-function preFlatApp(
+function compileFlatApp(
   l: Loc,
   compiler: CompilerVisitor,
   optDest: BindType | undefined,
   f: N.AVal,
-  args: N.AVal[]
-): HeadPost {
-  const compiledF = field(f.visit(compiler), 'exp');
-  const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), args);
-  return (rest) => {
-    let compiledBody = rest;
-    if (optDest !== undefined) {
-      compiledBody = compileAnnotatedLet(compiler, optDest, cExp(jId(compiler.curAns), clEmpty), compiledBody);
-    }
-    return buildFlatApp(l, compiler, compiledF, compiledArgs, compiledBody.block, compiledBody.newCases);
-  };
-}
-
-function buildFlatApp(
-  l: Loc,
-  compiler: CompilerVisitor,
-  compiledF: J.JExprT,
-  compiledArgs: CList<J.JExprT>,
-  remainingCode: J.JBlockT,
-  newCases: CList<J.JCaseT>
+  args: N.AVal[],
+  optRest: DAG.CBlock | undefined
 ): DAG.CBlock {
   const ans = compiler.curAns;
+  const compiledF = field(f.visit(compiler), 'exp');
+  const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), args);
+
   // Generate the code for calling the function
   const callCode = clist<J.JStmt>(
     jExpr(jRawCode('// caller optimization')),
     jExpr(wrapWithSrcnode(l, jAssign(ans, app(l, compiledF, compiledArgs))))
   );
-  // Merge the code for calling the function with the next block
+
+  // Splice in the already-compiled rest of the let. We split it into two
+  // portions: 1) the code that can be in the same "block" (or case region)
+  // and 2) the rest of the case statements. With no rest there is no more
+  // code after this, so just jump to the function's special last block.
+  const [remainingCode, newCases]: [J.JBlockT, CList<J.JCaseT>] = optRest !== undefined
+    ? getRemainingCode(compiler, optDest, optRest, ans)
+    : [tailRemainingBlock(compiler), clEmpty];
+
+  // Now merge the code for calling the function with the next block
   // (this is basically our optimization, since we're not starting a new case
   // for the next block)
   return cBlock(
@@ -1441,31 +1384,32 @@ function buildFlatApp(
 
 // ---------- a-prim-app ----------
 
-function preSplitPrimApp(
+function compileAPrimApp(
+  l: Loc,
+  f: string,
+  args: N.AVal[],
+  compiler: CompilerVisitor,
+  b: BindType | undefined,
+  optRest: DAG.CBlock | undefined,
+  appInfo: A.PrimAppInfo
+): DAG.CBlock {
+  return appInfo.needsStep
+    ? compileSplitPrimApp(l, compiler, b, f, args, optRest)
+    : compileFlatPrimApp(l, compiler, b, f, args, optRest);
+}
+
+function compileSplitPrimApp(
   l: Loc,
   compiler: CompilerVisitor,
   optDest: BindType | undefined,
   f: string,
-  args: N.AVal[]
-): HeadPost {
-  const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), args);
-  const preBodyLabel = compiler.makeLabel();
-  return (rest) => {
-    const [newCases, afterAppLabel] = finishRest(compiler, optDest, preBodyLabel, rest);
-    return buildSplitPrimApp(l, compiler, f, compiledArgs, newCases, afterAppLabel);
-  };
-}
-
-function buildSplitPrimApp(
-  l: Loc,
-  compiler: CompilerVisitor,
-  f: string,
-  compiledArgs: CList<J.JExprT>,
-  newCases: CList<J.JCaseT>,
-  afterAppLabel: J.JExprT
+  args: N.AVal[],
+  optRest: DAG.CBlock | undefined
 ): DAG.CBlock {
   const ans = compiler.curAns;
   const step = compiler.curStep;
+  const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), args);
+  const [newCases, afterAppLabel] = getNewCases(compiler, optDest, optRest, ans);
   return cBlock(
     jBlock(
       // Update step before the call, so that if it runs out of gas,
@@ -1479,34 +1423,24 @@ function buildSplitPrimApp(
     newCases);
 }
 
-function preFlatPrimApp(
+function compileFlatPrimApp(
   l: Loc,
   compiler: CompilerVisitor,
   optDest: BindType | undefined,
   f: string,
-  args: N.AVal[]
-): HeadPost {
-  const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), args);
-  return (rest) => {
-    let compiledBody = rest;
-    if (optDest !== undefined) {
-      compiledBody = compileAnnotatedLet(compiler, optDest, cExp(jId(compiler.curAns), clEmpty), compiledBody);
-    }
-    return buildFlatPrimApp(l, compiler, f, compiledArgs, compiledBody.block, compiledBody.newCases);
-  };
-}
-
-function buildFlatPrimApp(
-  l: Loc,
-  compiler: CompilerVisitor,
-  f: string,
-  compiledArgs: CList<J.JExprT>,
-  remainingCode: J.JBlockT,
-  newCases: CList<J.JCaseT>
+  args: N.AVal[],
+  optRest: DAG.CBlock | undefined
 ): DAG.CBlock {
   const ans = compiler.curAns;
+  const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), args);
+
   // Generate the code for calling the function
   const callCode = jExpr(wrapWithSrcnode(l, jAssign(ans, rtMethod(f, compiledArgs))));
+
+  const [remainingCode, newCases]: [J.JBlockT, CList<J.JCaseT>] = optRest !== undefined
+    ? getRemainingCode(compiler, optDest, optRest, ans)
+    : [tailRemainingBlock(compiler), clEmpty];
+
   // Merge the code for calling the function with the next block
   return cBlock(
     jBlock(clCons(callCode as J.JStmt, jBlockToStmtList(remainingCode))),
@@ -1515,30 +1449,23 @@ function buildFlatPrimApp(
 
 // ---------- a-method-app ----------
 
-interface MethodAppState {
-  compiledObj: J.JExprT;
-  compiledArgs: CList<J.JExprT>;
-  // isJId(compiledObj) path: the whole call is built (interning its loc)
-  // before the rest of the chain is compiled, as in the recursive
-  // formulation.
-  call: J.JExprT | undefined;
-  objId: J.JId | undefined;
-  colonField: J.JExprT | undefined;
-  colonFieldId: J.JId | undefined;
-  checkMethod: J.JExprT | undefined;
-}
-
-function methodAppState(
+function compileSplitMethodApp(
   l: Loc,
   compiler: CompilerVisitor,
+  optDest: BindType | undefined,
   obj: N.AVal,
   methname: string,
-  args: N.AVal[]
-): MethodAppState {
+  args: N.AVal[],
+  optRest: DAG.CBlock | undefined
+): DAG.CBlock {
+  const ans = compiler.curAns;
+  const step = compiler.curStep;
   const compiledObj = field(obj.visit(compiler), 'exp');
   const compiledArgs = CL.map_list((a: N.AVal) => field(a.visit(compiler), 'exp'), args);
+
   const argcount = compiledArgs.length();
   const helperName = argcount <= 7 ? 'maybeMethodCall' + String(argcount) : 'maybeMethodCall';
+
   if (J.isJId(compiledObj)) {
     const call = wrapWithSrcnode(l,
       rtMethod(helperName,
@@ -1546,64 +1473,32 @@ function methodAppState(
           jStr(methname),
           compiler.getLoc(l)),
         compiledArgs)));
-    return { compiledObj, compiledArgs, call, objId: undefined, colonField: undefined, colonFieldId: undefined, checkMethod: undefined };
+    const [newCases, afterAppLabel] = getNewCases(compiler, optDest, optRest, ans);
+    return cBlock(jBlock(clist<J.JStmt>(
+      jExpr(jAssign(step, afterAppLabel)),
+      jExpr(jAssign(ans, call)),
+      jBreak
+    )), newCases);
   } else {
     const objId = jId(freshId(compilerName('obj')));
     const colonField = rtMethod('getColonFieldLoc', clist(objId, jStr(methname), compiler.getLoc(l)));
     const colonFieldId = jId(freshId(compilerName('field')));
     const checkMethod = rtMethod('isMethod', clist<J.JExprT>(colonFieldId));
-    return { compiledObj, compiledArgs, call: undefined, objId, colonField, colonFieldId, checkMethod };
-  }
-}
-
-function preSplitMethodApp(
-  l: Loc,
-  compiler: CompilerVisitor,
-  optDest: BindType | undefined,
-  obj: N.AVal,
-  methname: string,
-  args: N.AVal[]
-): HeadPost {
-  const state = methodAppState(l, compiler, obj, methname, args);
-  const preBodyLabel = compiler.makeLabel();
-  return (rest) => {
-    const [newCases, afterAppLabel] = finishRest(compiler, optDest, preBodyLabel, rest);
-    return buildMethodApp(l, compiler, state, newCases, afterAppLabel);
-  };
-}
-
-function buildMethodApp(
-  l: Loc,
-  compiler: CompilerVisitor,
-  state: MethodAppState,
-  newCases: CList<J.JCaseT>,
-  afterAppLabel: J.JExprT
-): DAG.CBlock {
-  const ans = compiler.curAns;
-  const step = compiler.curStep;
-  if (state.objId === undefined) {
-    return cBlock(jBlock(clist<J.JStmt>(
-      jExpr(jAssign(step, afterAppLabel)),
-      jExpr(jAssign(ans, state.call!)),
-      jBreak
-    )), newCases);
-  } else {
-    const objId = state.objId;
-    const colonFieldId = state.colonFieldId!;
+    const [newCases, afterAppLabel] = getNewCases(compiler, optDest, optRest, ans);
     return cBlock(
       jBlock(clist<J.JStmt>(
         // Update step before the call, so that if it runs out of gas, the resumer goes to the right step
         jExpr(jAssign(step, afterAppLabel)),
         jExpr(jAssign(compiler.curApploc, compiler.getLoc(l))),
-        jVar(objId.id, state.compiledObj),
-        jVar(colonFieldId.id, state.colonField!),
-        jIf(state.checkMethod!, jBlock(clist<J.JStmt>(
+        jVar(objId.id, compiledObj),
+        jVar(colonFieldId.id, colonField),
+        jIf(checkMethod, jBlock(clist<J.JStmt>(
           jExpr(jAssign(ans, jApp(jDot(colonFieldId, 'full_meth'),
-            clCons<J.JExprT>(objId, state.compiledArgs))))
+            clCons<J.JExprT>(objId, compiledArgs))))
         )),
         jBlock(clist<J.JStmt>(
           checkFun(l, compiler.getLoc(l), colonFieldId),
-          jExpr(wrapWithSrcnode(l, jAssign(ans, app(l, colonFieldId, state.compiledArgs))))
+          jExpr(wrapWithSrcnode(l, jAssign(ans, app(l, colonFieldId, compiledArgs))))
         ))),
         // If the answer is a cont, jump to the end of the current function
         // rather than continuing normally
@@ -1675,87 +1570,56 @@ export function getAssignments(lst: J.JExprT[], limit: number): [J.JStmt[], J.JS
 
 // ---------- a-if ----------
 
-function preSplitIf(
-  compiler: CompilerVisitor,
-  optDest: BindType | undefined,
-  node: N.AIf
-): HeadPost {
-  const consqLabel = compiler.makeLabel();
-  const altLabel = compiler.makeLabel();
-  const preBodyLabel = compiler.makeLabel();
-  return (rest) => {
-    const [afterIfCases, afterIfLabel] = finishRest(compiler, optDest, preBodyLabel, rest);
-    return buildNaryIf(compiler, node, consqLabel, altLabel, afterIfCases, afterIfLabel);
-  };
-}
-
 /*
   The flattened n-ary a-if, compiled exactly as the nested binary chain
-  was: arm 1's dispatch block tests c1 and jumps to its body's case or to
-  the alt case holding arm 2's test-computation heads followed by arm 2's
-  dispatch, and so on; the else is the innermost alt. Forward over the
-  arms: each arm's test-head pre phases, its two labels, then its
-  compiled body. Backward: each arm's condition value is visited (the
-  recursive formulation visited it after compiling the whole alt chain --
-  this is where anf_if temporaries get their JS names, so the reverse-arm
-  minting order is preserved), the dispatch block is assembled, and the
-  arm's test-head posts wrap it to become the next-outer arm's alt.
+  was. Arm 1's dispatch block tests c1 and jumps either to its body's case
+  or to the alt case, which holds arm 2's test-computation heads followed
+  by arm 2's dispatch, and so on; the else is the innermost alt. So the
+  bodies are compiled outermost-first, then the arms are assembled inward
+  out: each arm's condition is visited only once its whole alt chain is
+  compiled (this is where anf_if temporaries get their JS names), and its
+  test-computation heads wrap the result to become the next-outer arm's alt.
 */
-function buildNaryIf(
+function compileSplitIf(
   compiler: CompilerVisitor,
+  optDest: BindType | undefined,
   node: N.AIf,
-  consqLabel1: J.JExprT,
-  altLabel1: J.JExprT,
-  afterIfCases: CList<J.JCaseT>,
-  afterIfLabel: J.JExprT
+  optRest: DAG.CBlock | undefined
 ): DAG.CBlock {
+  const [afterIfCases, afterIfLabel] = getNewCases(compiler, optDest, optRest, compiler.curAns);
   const compilerAfterIf = ext(compiler, { curTarget: afterIfLabel });
   const branches = node.branches;
-  const n = branches.length;
-  const consqLabels: J.JExprT[] = [consqLabel1];
-  const altLabels: J.JExprT[] = [altLabel1];
-  const compiledBodies: DAG.CBlock[] = [];
-  const headPosts: HeadPost[][] = [];
-  for (let i = 0; i < n; i++) {
-    const b = branches[i];
-    const posts: HeadPost[] = [];
-    for (const h of b.heads) {
-      posts.push(preHead(compilerAfterIf, h));
-    }
-    headPosts.push(posts);
-    if (i > 0) {
-      consqLabels.push(compiler.makeLabel());
-      altLabels.push(compiler.makeLabel());
-    }
-    compiledBodies.push(compileAExpr(compilerAfterIf, b.body));
-  }
-  let cur = compileAExpr(compilerAfterIf, node.elseBody);
-  for (let i = n - 1; i >= 0; i--) {
+  const compiledConsqs = branches.map((b) => compileAExpr(compilerAfterIf, b.body));
+  let compiledAlt = compileAExpr(compilerAfterIf, node.elseBody);
+  for (let i = branches.length - 1; i >= 0; i--) {
     // The nested chain visited arm 1's condition with the enclosing
     // compiler and inner arms' with the after-if one; they only differ
     // in curTarget, which value visits never read -- match it anyway.
     const condCompiler = i === 0 ? compiler : compilerAfterIf;
-    const condExp = field(branches[i].test.visit(condCompiler), 'exp');
+    const compiledCond = field(branches[i].test.visit(condCompiler), 'exp');
+    const consqLabel = compiler.makeLabel();
+    const altLabel = compiler.makeLabel();
     const newCases =
       clAppend(
         clAppend(
-          clCons(jCase(consqLabels[i], compiledBodies[i].block) as J.JCaseT, compiledBodies[i].newCases),
-          clCons(jCase(altLabels[i], cur.block) as J.JCaseT, cur.newCases)),
+          clCons(jCase(consqLabel, compiledConsqs[i].block) as J.JCaseT, compiledConsqs[i].newCases),
+          clCons(jCase(altLabel, compiledAlt.block) as J.JCaseT, compiledAlt.newCases)),
         i === 0 ? afterIfCases : clEmpty);
-    cur = cBlock(
+    compiledAlt = cBlock(
       jBlock(clist<J.JStmt>(
         jExpr(jAssign(compiler.curStep,
-          jTernary(rtMethod('checkPyretTrue', clist(condExp)),
-            consqLabels[i], altLabels[i]))),
+          jTernary(rtMethod('checkPyretTrue', clist(compiledCond)),
+            consqLabel, altLabel))),
         jBreak
       )),
       newCases);
-    const posts = headPosts[i];
-    for (let j = posts.length - 1; j >= 0; j--) {
-      cur = posts[j](cur);
+    // Arm 1's heads belong to the enclosing chain, so it has none here.
+    const heads = branches[i].heads;
+    for (let j = heads.length - 1; j >= 0; j--) {
+      compiledAlt = compileHead(compilerAfterIf, heads[j], compiledAlt);
     }
   }
-  return cur;
+  return compiledAlt;
 }
 
 // ---------- a-cases ----------
@@ -1884,31 +1748,17 @@ export function compileInlineCasesBranch(
   }
 }
 
-function preSplitCases(
+function compileSplitCases(
   compiler: CompilerVisitor,
   casesLoc: Loc,
   optDest: BindType | undefined,
   val: N.AVal,
   branches: N.ACasesBranch[],
-  _else: N.AExpr
-): HeadPost {
-  const compiledVal = field(val.visit(compiler), 'exp');
-  const preBodyLabel = compiler.makeLabel();
-  return (rest) => {
-    const [afterCasesCases, afterCasesLabel] = finishRest(compiler, optDest, preBodyLabel, rest);
-    return buildSplitCases(compiler, casesLoc, compiledVal, branches, _else, afterCasesCases, afterCasesLabel);
-  };
-}
-
-function buildSplitCases(
-  compiler: CompilerVisitor,
-  casesLoc: Loc,
-  compiledVal: J.JExprT,
-  branches: N.ACasesBranch[],
   _else: N.AExpr,
-  afterCasesCases: CList<J.JCaseT>,
-  afterCasesLabel: J.JExprT
+  optRest: DAG.CBlock | undefined
 ): DAG.CBlock {
+  const compiledVal = field(val.visit(compiler), 'exp');
+  const [afterCasesCases, afterCasesLabel] = getNewCases(compiler, optDest, optRest, compiler.curAns);
   const compilerAfterCases = ext(compiler, { curTarget: afterCasesLabel });
   const compiledBranches: DAG.CBlock[] = [];
   for (const branch of branches) {
@@ -1943,58 +1793,33 @@ function buildSplitCases(
 
 // ---------- a-update ----------
 
-interface UpdateState {
-  compiledObj: J.JExprT;
-  compiledFieldVals: CList<J.JExprT>;
-  fieldNames: CList<J.JExprT>;
-  fieldLocs: CList<J.JExprT>;
-  objLoc: Loc;
-}
-
-function updateState(compiler: CompilerVisitor, obj: N.AVal, fields: N.AField[]): UpdateState {
-  const compiledObj = field(obj.visit(compiler), 'exp');
-  const compiledFieldVals = CL.map_list((a: N.AField) => field(a.value.visit(compiler), 'exp'), fields);
-  const fieldNames = CL.map_list((f: N.AField) => jStr(f.name) as J.JExprT, fields);
-  const fieldLocs = CL.map_list((f: N.AField) => compiler.getLoc(f.l), fields);
-  return { compiledObj, compiledFieldVals, fieldNames, fieldLocs, objLoc: obj.l };
-}
-
-function preSplitUpdate(
+function compileSplitUpdate(
   compiler: CompilerVisitor,
   loc: Loc,
   optDest: BindType | undefined,
   obj: N.AVal,
-  fields: N.AField[]
-): HeadPost {
-  const state = updateState(compiler, obj, fields);
-  const preBodyLabel = compiler.makeLabel();
-  return (rest) => {
-    const [newCases, afterUpdateLabel] = finishRest(compiler, optDest, preBodyLabel, rest);
-    return buildSplitUpdate(compiler, loc, state, newCases, afterUpdateLabel);
-  };
-}
-
-function buildSplitUpdate(
-  compiler: CompilerVisitor,
-  loc: Loc,
-  state: UpdateState,
-  newCases: CList<J.JCaseT>,
-  afterUpdateLabel: J.JExprT
+  fields: N.AField[],
+  optRest: DAG.CBlock | undefined
 ): DAG.CBlock {
   const ans = compiler.curAns;
   const step = compiler.curStep;
+  const compiledObj = field(obj.visit(compiler), 'exp');
+  const compiledFieldVals = CL.map_list((a: N.AField) => field(a.value.visit(compiler), 'exp'), fields);
+  const fieldNames = CL.map_list((f: N.AField) => jStr(f.name) as J.JExprT, fields);
+  const fieldLocs = CL.map_list((f: N.AField) => compiler.getLoc(f.l), fields);
+  const [newCases, afterUpdateLabel] = getNewCases(compiler, optDest, optRest, ans);
   return cBlock(
     jBlock(clist<J.JStmt>(
       // Update step before the call, so that if it runs out of gas, the resumer goes to the right step
       jExpr(jAssign(step, afterUpdateLabel)),
       jExpr(jAssign(ans, rtMethod('checkRefAnns',
         clist(
-          state.compiledObj,
-          jList(false, state.fieldNames),
-          jList(false, state.compiledFieldVals),
-          jList(false, state.fieldLocs),
+          compiledObj,
+          jList(false, fieldNames),
+          jList(false, compiledFieldVals),
+          jList(false, fieldLocs),
           compiler.getLoc(loc),
-          compiler.getLoc(state.objLoc))))),
+          compiler.getLoc(obj.l))))),
       jBreak)),
     newCases);
 }
@@ -2180,8 +2005,8 @@ export class CompilerVisitor {
         compiledChecks.otherStmts));
   }
 
-  // AExpr chains are not visited: compileAExpr drives them directly
-  // (see the pre/post machinery above).
+  // AExpr chains are not visited: compileAExpr walks them directly, and
+  // these lettables always sit in a chain (see compileLettable).
   aIf(_node: N.AIf): never {
     return raise('Impossible: a-if directly in compiler-visitor should never happen');
   }
