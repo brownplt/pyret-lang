@@ -1911,11 +1911,11 @@ define("pyret-base/js/js-numbers", function() {
     };
 
     Rational.prototype.acos = function(){
-      return acos(this.toFixnum());
+      return Roughnum.makeInstance(Math.acos(this.toFixnum()));
     };
 
     Rational.prototype.asin = function(){
-      return asin(this.toFixnum());
+      return Roughnum.makeInstance(Math.asin(this.toFixnum()));
     };
 
     // sign: Number -> {-1, 0, 1}
@@ -2152,11 +2152,11 @@ define("pyret-base/js/js-numbers", function() {
     };
 
     Roughnum.prototype.acos = function(){
-      return acos(this.n);
+      return Roughnum.makeInstance(Math.acos(this.n));
     };
 
     Roughnum.prototype.asin = function(){
-      return asin(this.n);
+      return Roughnum.makeInstance(Math.asin(this.n));
     };
 
     var rationalRegexp = new RegExp("^([+-]?\\d+)/(\\d+)$");
@@ -4008,13 +4008,13 @@ define("pyret-base/js/js-numbers", function() {
     // acos: -> pyretnum
     // Produce the arc cosine.
     BigInteger.prototype.acos = function() {
-      return acos(this.toFixnum());
+      return Roughnum.makeInstance(Math.acos(this.toFixnum()));
     };
 
     // asin: -> pyretnum
     // Produce the arc sine.
     BigInteger.prototype.asin = function() {
-      return asin(this.toFixnum());
+      return Roughnum.makeInstance(Math.asin(this.toFixnum()));
     };
 
     //////////////////////////////////////////////////////////////////////
