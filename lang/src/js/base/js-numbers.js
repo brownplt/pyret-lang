@@ -1588,6 +1588,10 @@ define("pyret-base/js/js-numbers", function() {
 
       if (d === undefined) { d = 1; }
 
+      if (!isInteger(n) || !isInteger(d)) {
+        errbacks.throwDomainError("makeRational: " + n + ' ' + d + " are not both integers");
+      }
+
       if (_integerIsZero(d)) {
         errbacks.throwDivByZero("/: division by zero, " + n + ' ' + d);
       }
