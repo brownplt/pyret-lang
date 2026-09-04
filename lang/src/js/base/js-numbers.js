@@ -622,6 +622,9 @@ define("pyret-base/js/js-numbers", function() {
       if(typeof x === "number" && typeof y === "number") {
         return x >= y;
       }
+      if (x instanceof Roughnum || y instanceof Roughnum) {
+        return toFixnum(x) >= toFixnum(y);
+      }
       return makeNumericBinop(undefined, function(x, y) {
         return x.greaterThanOrEqual(y);
       })(x, y);
@@ -631,6 +634,9 @@ define("pyret-base/js/js-numbers", function() {
     var lessThanOrEqual = function(x, y) {
       if(typeof x === "number" && typeof y === "number") {
         return x <= y;
+      }
+      if (x instanceof Roughnum || y instanceof Roughnum) {
+        return toFixnum(x) <= toFixnum(y);
       }
       return makeNumericBinop(undefined, function(x, y) {
         return x.lessThanOrEqual(y);
@@ -642,6 +648,9 @@ define("pyret-base/js/js-numbers", function() {
       if(typeof x === "number" && typeof y === "number") {
         return x > y;
       }
+      if (x instanceof Roughnum || y instanceof Roughnum) {
+        return toFixnum(x) > toFixnum(y);
+      }
       return makeNumericBinop(undefined, function(x, y) {
         return x.greaterThan(y);
       })(x, y);
@@ -651,6 +660,9 @@ define("pyret-base/js/js-numbers", function() {
     var lessThan = function(x, y) {
       if(typeof x === "number" && typeof y === "number") {
         return x < y;
+      }
+      if (x instanceof Roughnum || y instanceof Roughnum) {
+        return toFixnum(x) < toFixnum(y);
       }
       return makeNumericBinop(undefined, function(x, y) {
         return x.lessThan(y);
