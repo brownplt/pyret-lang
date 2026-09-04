@@ -3823,6 +3823,13 @@ define("pyret-base/js/js-numbers", function() {
     // makeBignum: string -> BigInteger
     var makeBignum = function(s) {
       if (typeof(s) === 'number') { s = s + ''; }
+      var sci = s.match(scientificPattern);
+      if (sci) {
+        var fraction = (sci[1].split('.')[1] || '').replace(/0+$/, '');
+        if (fraction.length > Number(sci[2])) {
+          errbacks.throwDomainError('makeBignum: ' + s + ' is not an integer string');
+        }
+      }
       s = expandExponent(s);
       if (! s.match(digitRegexp)) {
         errbacks.throwDomainError('makeBignum: ' + s + ' is not an integer string');
