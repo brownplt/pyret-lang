@@ -725,6 +725,17 @@ define("pyret-base/js/js-numbers", function() {
           if (eqv(y, 0)) {
             return 1;
           } else { // i.e., y is negative
+            if (x instanceof Roughnum || y instanceof Roughnum) {
+              if (equalsAnyZero(x)) {
+                errbacks.throwDivByZero("expt: division by zero");
+              }
+              var pow = Math.pow(toFixnum(x), toFixnum(y));
+              if (isNaN(pow)) {
+                errbacks.throwDomainError('expt: taking nonintegral power ' + y +
+                                          ' of negative number ' + x);
+              }
+              return Roughnum.makeInstance(pow);
+            }
             return expt(divide(1, x), negate(y));
           }
         }
