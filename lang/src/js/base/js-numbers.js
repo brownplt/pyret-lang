@@ -879,6 +879,10 @@ define("pyret-base/js/js-numbers", function() {
         return Roughnum.makeInstance(Math.log(n));
       }
       if (isRational(n) && !isInteger(n)) {
+        var nfix = n.toFixnum();
+        if (isFinite(nfix) && nfix !== 0) {
+          return Roughnum.makeInstance(Math.log(nfix));
+        }
         return subtract(log(numerator(n)),
                         log(denominator(n)));
       }
