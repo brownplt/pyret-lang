@@ -1882,7 +1882,9 @@ define("pyret-base/js/js-numbers", function() {
       if (sign(m) < 0)
         errbacks.throwDomainError('integerNthRoot: radicand ' + m + ' is negative.');
       var guessPrev, guessToTheN;
-      var guess = floor(m);
+      var guess = (m instanceof BigInteger)
+        ? BigInteger.ONE.shiftLeft(Math.ceil(m.bitLength() / toFixnum(n)))
+        : floor(m);
 
       // find closest integral zero of x^n - m = 0 using Newton-Raphson.
       // if k'th guess is x_k, then
@@ -3963,7 +3965,7 @@ define("pyret-base/js/js-numbers", function() {
       BigInteger.prototype.integerSqrt = function() {
         var n;
         if(sign(this) >= 0) {
-          return searchIter(this, this);
+          return searchIter(this, BigInteger.ONE.shiftLeft(Math.ceil(this.bitLength() / 2)));
         } else {
           errbacks.throwDomainError('integerSqrt of negative bignum ' + this);
         }
