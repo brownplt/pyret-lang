@@ -106,6 +106,11 @@ var logger = (function(backend) {
   function log(name, obj) {
     if(!(obj instanceof Object))
       obj = {};
+    // Which compiler flavor this page is running (see editor.html: resolved
+    // before any script here runs), on EVERY record so ts-vs-stock counts
+    // and rates (loads, runs, errors, load failures) can be compared
+    // directly. Pages with no flavor branch (blocks) report the stock name.
+    obj.compiler = window.CPO_COMPILER || "pyret";
     obj.meta = [  Date.now()
                 , name
                 , identifiers.windowID
