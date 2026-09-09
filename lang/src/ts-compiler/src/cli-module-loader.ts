@@ -180,8 +180,9 @@ export function getCachedIfAvailableKnownMtimes(basedir: string, loc: CL.Locator
   }
 }
 
-export function getFileLocator(basedir: string, realPath: string): CL.Locator {
-  const loc = FL.fileLocator(realPath, CS.standardGlobals);
+export function getFileLocator(basedir: string, realPath: string, logicalUri?: string): CL.Locator {
+  const base = FL.fileLocator(realPath, CS.standardGlobals);
+  const loc = logicalUri === undefined ? base : { ...base, uri(): string { return logicalUri; } };
   return getCachedIfAvailable(basedir, loc);
 }
 
@@ -215,12 +216,13 @@ type ToCompile = CL.ToCompile;
 
 export function getLoadable(basedir: string, readOnlyBasedirs: string[], l: ToCompile, maxDepTimes: Map<string, number>): Loadable | undefined {
   const locuri = l.locator.uri();
+  const stalenessFloor = (rob: string): number => rob === basedir ? mapGetValue(maxDepTimes, locuri) : 0;
   const firstAvailable = [basedir, ...readOnlyBasedirs].find((rob) =>
-    cachedAvailable(rob, l.locator.uri(), l.locator.name(), mapGetValue(maxDepTimes, locuri)) !== undefined);
+    cachedAvailable(rob, l.locator.uri(), l.locator.name(), stalenessFloor(rob)) !== undefined);
   if (firstAvailable === undefined) {
     return undefined;
   } else {
-    const c = cachedAvailable(firstAvailable, l.locator.uri(), l.locator.name(), mapGetValue(maxDepTimes, locuri));
+    const c = cachedAvailable(firstAvailable, l.locator.uri(), l.locator.name(), stalenessFloor(firstAvailable));
     const savedPath = P.join(firstAvailable, uriToPath(locuri, l.locator.name()));
     const ct = c ?? singleFile;
     const staticPath = isSplit(ct) ? savedPath + "-static" : savedPath;
@@ -279,11 +281,17 @@ export function setLoadable(basedir: string, locator: CL.Locator, loadable: Load
   }
 }
 
+export interface LogicalRoot {
+  real: string;
+  uri: string;
+}
+
 export interface CLIContext {
   currentLoadPath: string;
   cacheBaseDir: string;
   compiledReadOnlyDirs: string[];
   urlFileMode: CS.UrlFileMode;
+  logical?: LogicalRoot;
   // Per-build cache of already-located url locators, keyed by full url. The
   // async finder fetches at construction, and the chase calls the finder once
   // per dependency *edge*, so without this a diamond-shaped url import graph
@@ -291,6 +299,16 @@ export interface CLIContext {
   // copies of the context threaded through the chase. Absent => no caching
   // (only matters for url imports; local files are cheap to relocate).
   urlCache?: Map<string, CL.Locator>;
+}
+
+export function logicalUriFor(ctxt: CLIContext, realPath: string): string | undefined {
+  const lr = ctxt.logical;
+  if (lr === undefined) { return undefined; }
+  const prefix = lr.real + "/";
+  if (realPath.startsWith(prefix)) {
+    return lr.uri + realPath.slice(lr.real.length);
+  }
+  return undefined;
 }
 
 export function getRealPath(currentLoadPath: string, thisPath: string): string {
@@ -315,7 +333,8 @@ export function locateFile(ctxt: CLIContext, relPath: string): CL.Located<CLICon
   const realPath = getRealPath(clp, relPath);
   const newContext = { ...ctxt, currentLoadPath: P.dirname(realPath) };
   if (fs.existsSync(realPath)) {
-    return new CL.Located(getFileLocator(ctxt.cacheBaseDir, realPath), newContext);
+    const locator = getFileLocator(ctxt.cacheBaseDir, realPath, logicalUriFor(ctxt, realPath));
+    return new CL.Located(locator, newContext);
   } else {
     return undefined;
   }
@@ -370,14 +389,23 @@ export async function moduleFinder(ctxt: CLIContext, dep: CS.AnyDependency): Pro
       } else {
         return raise("Unknown url-file-mode");
       }
+    } else if (protocol === "file-reset-load-path") {
+      const newContext = { ...ctxt, currentLoadPath: P.resolve(".") };
+      return moduleFinder(newContext, new CS.Dependency("file", args));
     } else if (protocol === "npm") {
       const packageName = args[0];
       const path = args[1];
       const locator = NPM.makeNpmLocator(packageName, path, ctxt.currentLoadPath);
       const clp = ctxt.currentLoadPath;
       const realPath = getRealPath(clp, locator.path);
-      const newContext = { ...ctxt, currentLoadPath: P.dirname(realPath) };
-      return new CL.Located(locator, newContext);
+      const newContext = {
+        ...ctxt,
+        currentLoadPath: P.dirname(realPath),
+        logical: { real: NPM.npmPackageRoot(packageName, clp), uri: "npm://" + packageName }
+      };
+      const logicalUri = logicalUriFor(newContext, realPath);
+      const locatorWithUri = logicalUri === undefined ? locator : { ...locator, uri(): string { return logicalUri; } };
+      return new CL.Located(locatorWithUri, newContext);
     } else if (protocol === "builtin-test") {
       const l = getBuiltinTestLocator(ctxt.cacheBaseDir, args[0]);
       const forceCheckMode = {
@@ -400,7 +428,9 @@ export async function moduleFinder(ctxt: CLIContext, dep: CS.AnyDependency): Pro
       const clp = ctxt.currentLoadPath;
       const realPath = getRealPath(clp, args[0]);
       const newContext = { ...ctxt, currentLoadPath: P.dirname(realPath) };
-      const locator = JSF.makeJsfileLocator(realPath);
+      const base = JSF.makeJsfileLocator(realPath);
+      const logicalUri = logicalUriFor(ctxt, realPath);
+      const locator = logicalUri === undefined ? base : { ...base, uri(): string { return logicalUri; } };
       return new CL.Located(locator, newContext);
     } else {
       return raise("Unknown import type: " + protocol);
