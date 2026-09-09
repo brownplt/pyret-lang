@@ -383,6 +383,9 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         else:
           raise("Cannot find import " + torepr(dep))
         end
+      else if protocol == "file-reset-load-path":
+        new-context = ctxt.{current-load-path: "."}
+        module-finder(new-context, CS.dependency("file", args))
       else if protocol == "js-file":
         clp = ctxt.current-load-path
         real-path = get-real-path(clp, args.get(0))
