@@ -313,15 +313,12 @@ end
 type CLIContext = {
   current-load-path :: String,
   cache-base-dir :: String,
-  url-file-mode :: CS.UrlFileMode
+  url-file-mode :: CS.UrlFileMode,
+  logical :: Option<LogicalRoot>
 }
 
-fun logical-root-of(ctxt :: CLIContext) -> Option<LogicalRoot>:
-  if builtins.has-field(ctxt, "logical"): ctxt.logical else: none end
-end
-
 fun logical-uri-for(ctxt :: CLIContext, real-path :: String) -> Option<String>:
-  cases(Option) logical-root-of(ctxt):
+  cases(Option) ctxt.logical:
     | none => none
     | some(lr) =>
       prefix = lr.real + "/"
@@ -430,7 +427,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
           raise("Cannot find import " + torepr(dep))
         end
       else if protocol == "file-reset-load-path":
-        new-context = ctxt.{current-load-path: "."}
+        new-context = ctxt.{current-load-path: Filesystem.resolve(".")}
         module-finder(new-context, CS.dependency("file", args))
       else if protocol == "js-file":
         clp = ctxt.current-load-path

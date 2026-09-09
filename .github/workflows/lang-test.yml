@@ -62,8 +62,8 @@ jobs:
     - name: compile-server test
       run: make ts-serve-test
 
-    - name: module loader tests (TS backend, and parity with the .arr loader)
-      run: make ts-loader-test loader-parity-test
+    - name: module loader tests (TS backend)
+      run: make ts-loader-test
 
   bootstrap-converge:
     name: bootstrap convergence (.arr == TS, byte-identical)

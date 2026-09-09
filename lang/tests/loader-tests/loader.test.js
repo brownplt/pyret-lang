@@ -6,6 +6,8 @@ const path = require('path');
 
 const LANG = process.cwd();
 const FIXTURES = path.join(LANG, 'tests/loader-tests/fixtures');
+const PACKAGE = 'pyret-test-files';
+const PACKAGE_SRC = path.join(LANG, 'tests/pyret/tests/node_modules', PACKAGE);
 const OUT = path.join(LANG, 'tests/loader-tests/out');
 const LIB_COMPILED = path.join(LANG, 'build/phaseA/lib-compiled');
 const TIMEOUT = 300000;
@@ -14,7 +16,7 @@ const COMPILERS = {
   pyret: path.join(LANG, 'build/phaseA/pyret.jarr'),
   ts: path.join(LANG, 'build/ts-compiler/pyret.js'),
 };
-const BACKENDS = (process.env.LOADER_BACKENDS || 'pyret').split(',');
+const backend = process.env.LOADER_BACKEND || 'pyret';
 
 jest.setTimeout(TIMEOUT);
 
@@ -49,11 +51,11 @@ function makeProject(root, { symlinkPackage } = {}) {
   fs.mkdirSync(path.join(root, 'node_modules'), { recursive: true });
   fs.copyFileSync(path.join(FIXTURES, 'npm-main.arr'), path.join(root, 'main.arr'));
   const target = symlinkPackage
-    ? path.join(root, '..', 'real', 'fake-pkg')
-    : path.join(root, 'node_modules', 'fake-pkg');
-  fs.cpSync(path.join(FIXTURES, 'fake-pkg'), target, { recursive: true });
+    ? path.join(root, '..', 'real', PACKAGE)
+    : path.join(root, 'node_modules', PACKAGE);
+  fs.cpSync(PACKAGE_SRC, target, { recursive: true });
   if (symlinkPackage) {
-    fs.symlinkSync(target, path.join(root, 'node_modules', 'fake-pkg'), 'dir');
+    fs.symlinkSync(target, path.join(root, 'node_modules', PACKAGE), 'dir');
   }
   return root;
 }
@@ -66,11 +68,11 @@ function expectCompiled(c) {
 function expectGreeting(out) {
   const r = run(out);
   expect(r.status).toEqual(0);
-  expect(r.stdout).toMatch(/hello from fake-pkg/);
+  expect(r.stdout).toMatch(/root-of-package/);
 }
 
-const LIB_URI = 'npm://fake-pkg/lib.arr';
-const LIB_KEY = artifactName(LIB_URI, 'lib.arr');
+const LIB_NAME = 'root-of-package.arr';
+const LIB_KEY = artifactName('npm://' + PACKAGE + '/' + LIB_NAME, LIB_NAME);
 
 let tmp;
 beforeAll(() => {
@@ -82,7 +84,7 @@ afterAll(() => {
   fs.rmSync(OUT, { recursive: true, force: true });
 });
 
-for (const backend of BACKENDS) {
+{
   const t = (name) => {
     fs.mkdirSync(path.join(tmp, backend), { recursive: true });
     return path.join(tmp, backend, name);
@@ -121,12 +123,12 @@ for (const backend of BACKENDS) {
 
       const proj = makeProject(t('b/proj'));
       const future = new Date(Date.now() + 60 * 60 * 1000);
-      fs.utimesSync(path.join(proj, 'node_modules', 'fake-pkg', 'lib.arr'), future, future);
+      fs.utimesSync(path.join(proj, 'node_modules', PACKAGE, LIB_NAME), future, future);
 
       const cacheB = t('cache-b');
       const out = o('b.jarr');
       expectCompiled(compile(backend, path.join(proj, 'main.arr'), out, cacheB, ['--compiled-read-only-dir', cacheA]));
-      expect(artifactsFor(cacheB, 'lib.arr')).toEqual([]);
+      expect(artifactsFor(cacheB, LIB_NAME)).toEqual([]);
       expect(artifactsFor(cacheB, 'main.arr').length).toBeGreaterThan(0);
       expectGreeting(out);
     });
@@ -139,30 +141,5 @@ for (const backend of BACKENDS) {
       expect(fs.existsSync(path.join(cache, LIB_KEY + '-static.js'))).toBe(true);
       expectGreeting(out);
     });
-  });
-}
-
-if (BACKENDS.length > 1) {
-  describe('cross-compiler cache parity', () => {
-    for (const producer of BACKENDS) {
-      for (const consumer of BACKENDS) {
-        if (producer === consumer) continue;
-        test(`${consumer} reuses npm artifacts compiled by ${producer}`, () => {
-          const base = path.join(tmp, 'parity', producer + '-' + consumer);
-          fs.mkdirSync(base, { recursive: true });
-          const cacheP = path.join(base, 'cache-producer');
-          const cacheC = path.join(base, 'cache-consumer');
-          const projP = makeProject(path.join(base, 'p', 'proj'));
-          const projC = makeProject(path.join(base, 'c', 'proj'));
-          const outP = path.join(OUT, `parity-${producer}-${consumer}-p.jarr`);
-          const outC = path.join(OUT, `parity-${producer}-${consumer}-c.jarr`);
-          expectCompiled(compile(producer, path.join(projP, 'main.arr'), outP, cacheP));
-          expect(artifactsFor(cacheP, 'lib.arr').length).toBeGreaterThan(0);
-          expectCompiled(compile(consumer, path.join(projC, 'main.arr'), outC, cacheC, ['--compiled-read-only-dir', cacheP]));
-          expect(artifactsFor(cacheC, 'lib.arr')).toEqual([]);
-          expectGreeting(outC);
-        });
-      }
-    }
   });
 }

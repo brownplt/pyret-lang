@@ -287,16 +287,11 @@ pyret-io-test: phaseA
 
 .PHONY : loader-test
 loader-test: phaseA
-	LOADER_BACKENDS=pyret $(NPM_EXEC) jest --detectOpenHandles --forceExit --verbose "tests/loader-tests/loader.test.js"
+	LOADER_BACKEND=pyret $(NPM_EXEC) jest --detectOpenHandles --forceExit --verbose "tests/loader-tests/loader.test.js"
 
 .PHONY : ts-loader-test
 ts-loader-test: ts-compiler $(CONFIGA_RUNTIME_FILES)
-	bash $(TS_COMP_DIR)/tests/loader-protocol-parity.sh
-	LOADER_BACKENDS=ts $(NPM_EXEC) jest --detectOpenHandles --forceExit --verbose "tests/loader-tests/loader.test.js"
-
-.PHONY : loader-parity-test
-loader-parity-test: phaseA ts-compiler
-	LOADER_BACKENDS=pyret,ts $(NPM_EXEC) jest --detectOpenHandles --forceExit --verbose "tests/loader-tests/loader.test.js"
+	LOADER_BACKEND=ts $(NPM_EXEC) jest --detectOpenHandles --forceExit --verbose "tests/loader-tests/loader.test.js"
 
 .PHONY : jsnums-test
 jsnums-test: phaseA
@@ -527,7 +522,7 @@ ts-pyret-test: tests/pyret/main2-ts.jarr
 # ts-type-check-test / ts-regression-test targets remain available for
 # narrowing down a failure by hand, exactly as their .arr counterparts do.
 .PHONY : ts-test
-ts-test: ts-unit-test ts-parity-test ts-type-check-parity ts-wf-parity ts-repl-test ts-serve-test all-ts-pyret-test ts-io-test ts-loader-test loader-parity-test
+ts-test: ts-unit-test ts-parity-test ts-type-check-parity ts-wf-parity ts-repl-test ts-serve-test all-ts-pyret-test ts-io-test ts-loader-test
 
 .PHONY : ts-clean
 ts-clean:

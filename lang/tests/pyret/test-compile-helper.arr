@@ -66,7 +66,8 @@ fun make-base-path-context(base-path):
   {current-load-path: P.resolve(base-path),
    cache-base-dir: P.resolve("./tests/compiled"),
    compiled-read-only-dirs: empty,
-   url-file-mode: CS.all-remote}
+   url-file-mode: CS.all-remote,
+   logical: none}
 end
 
 fun compile-str(program):

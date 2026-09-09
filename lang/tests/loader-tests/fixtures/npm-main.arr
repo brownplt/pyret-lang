@@ -1,3 +1,3 @@
-import npm("fake-pkg", "lib.arr") as L
+import npm("pyret-test-files", "root-of-package.arr") as R
 
-print(L.greet())
+print(R.name)

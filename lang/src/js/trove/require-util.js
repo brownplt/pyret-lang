@@ -9,21 +9,18 @@
     nativeRequires: ["resolve"],
     theModule: function(runtime, _, _, browserifyResolve) {
         function resolve(moduleName, baseDir) {
-            console.log(moduleName, baseDir);
             runtime.checkArgsInternal2('require-util', 'resolve', moduleName, runtime.String, baseDir, runtime.String);
             try {
                 return runtime.pauseStack((restarter) => {
                     browserifyResolve(moduleName, { basedir: baseDir, preserveSymlinks: true }, (err, resolved) => {
                         if (err) {
-                            console.dir(err);
-                            restarter.error(runtime.makeMessageException(`[CB] Error resolving ${moduleName} from ${baseDir}: ${String(err)}`));
+                            restarter.error(runtime.makeMessageException(`Error resolving ${moduleName} from ${baseDir}: ${String(err)}`));
                         }
                         restarter.resume(resolved);
                     });
                 });
             } catch (err) {
-                console.dir(err);
-                throw runtime.throwMessageException(`[Catch] Error resolving ${moduleName} from ${baseDir}: ${String(err)}`);
+                throw runtime.throwMessageException(`Error resolving ${moduleName} from ${baseDir}: ${String(err)}`);
             }
         }
         function cannotResolve(moduleName) {
