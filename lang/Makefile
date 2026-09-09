@@ -234,7 +234,7 @@ TEST_BUILD=$(NODE) $(PYRET_TEST_PHASE)/pyret.jarr \
 		--compiled-dir tests/compiled/
 
 .PHONY : test
-test: pyret-test compiler-test type-check-test pyret-io-test jsnums-test
+test: pyret-test compiler-test type-check-test pyret-io-test loader-test jsnums-test
 
 .PHONY : parse-test
 parse-test: tests/parse/parse.js build/phaseA/js/pyret-tokenizer.js build/phaseA/js/pyret-parser.js
@@ -284,6 +284,10 @@ compiler-test: phaseA tests/pyret/compiler-tests.jarr
 .PHONY : pyret-io-test
 pyret-io-test: phaseA
 	$(NPM_EXEC) jest --detectOpenHandles --forceExit --verbose "tests/io-tests/io.test.js"
+
+.PHONY : loader-test
+loader-test: phaseA
+	$(NPM_EXEC) jest --detectOpenHandles --forceExit --verbose "tests/loader-tests/loader.test.js"
 
 .PHONY : jsnums-test
 jsnums-test: phaseA

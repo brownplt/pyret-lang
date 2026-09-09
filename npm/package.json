@@ -7,7 +7,11 @@
     "client-lib.js",
     "pyret-lang/build/phaseA/*",
     "pyret-lang/build/ts-compiler/*",
+    "pyret-lang/src/arr/compiler/*",
+    "pyret-lang/src/arr/trove/*",
+    "pyret-lang/src/js/trove/*",
     "pyret-lang/src/js/base/*",
+    "pyret-lang/src/scripts/*",
     "pyret-lang/lib/jglr/*"
   ],
   "dependencies": {
