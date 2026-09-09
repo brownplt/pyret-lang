@@ -313,12 +313,15 @@ end
 type CLIContext = {
   current-load-path :: String,
   cache-base-dir :: String,
-  url-file-mode :: CS.UrlFileMode,
-  logical :: Option<LogicalRoot>
+  url-file-mode :: CS.UrlFileMode
 }
 
+fun logical-root-of(ctxt :: CLIContext) -> Option<LogicalRoot>:
+  if builtins.has-field(ctxt, "logical"): ctxt.logical else: none end
+end
+
 fun logical-uri-for(ctxt :: CLIContext, real-path :: String) -> Option<String>:
-  cases(Option) ctxt.logical:
+  cases(Option) logical-root-of(ctxt):
     | none => none
     | some(lr) =>
       prefix = lr.real + "/"
