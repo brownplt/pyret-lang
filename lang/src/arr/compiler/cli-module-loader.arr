@@ -229,14 +229,18 @@ end
 
 fun get-loadable(basedir, read-only-basedirs, l, max-dep-times) -> Option<Loadable>:
   locuri = l.locator.uri()
+  # read-only dirs are immutable caches
+  fun staleness-floor(rob):
+    if rob == basedir: max-dep-times.get-value(locuri) else: 0 end
+  end
 #  cached = cached-available(basedir, l.locator.uri(), l.locator.name(), l.locator.get-modified-time())
   first-available = for find(rob from link(basedir, read-only-basedirs)):
-    is-some(cached-available(rob, l.locator.uri(), l.locator.name(), max-dep-times.get-value(locuri)))
+    is-some(cached-available(rob, l.locator.uri(), l.locator.name(), staleness-floor(rob)))
   end
   cases(Option) first-available block:
     | none => none
     | some(found-basedir) => 
-      c = cached-available(found-basedir, l.locator.uri(), l.locator.name(), max-dep-times.get-value(locuri))
+      c = cached-available(found-basedir, l.locator.uri(), l.locator.name(), staleness-floor(found-basedir))
       saved-path = Filesystem.join(found-basedir, uri-to-path(locuri, l.locator.name()))
       {static-path; module-path} = cases(CachedType) c.or-else(single-file):
         | split =>
