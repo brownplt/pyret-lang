@@ -2,6 +2,7 @@
   "name": "pyret-npm",
   "version": "0.1.0",
   "description": "The CLI for the Pyret programming language",
+  "main": "client-lib.js",
   "files": [
     "pyret.js",
     "client-lib.js",
