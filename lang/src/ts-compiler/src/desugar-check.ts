@@ -156,7 +156,7 @@ export function getChecks(stmts: A.Expr[]): CheckInfo[] {
       switch (stmt.$name) {
         case 's-fun': {
           if (stmt._check !== undefined) {
-            result.push(checkInfo(stmt.l, stmt.name, stmt._check.visit(checkStmtsVisitor), true));
+            result.push(checkInfo(stmt.l, "where: block for fun " + stmt.name + "(...)", stmt._check.visit(checkStmtsVisitor), true));
           }
           break;
         }
