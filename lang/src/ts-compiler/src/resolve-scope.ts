@@ -991,7 +991,13 @@ export function resolveNames(p: A.Program, thismoduleUri: string, initialEnv: C.
       return env;
     } else {
       const valueExport = maybeValueExport;
-      const vbinder = C.isVVar(valueExport) ? C.vbVar : C.vbLet;
+      // A re-exported name (`provide from M: x end`) arrives here as a
+      // v-alias; follow it to the defining module so a `var` stays
+      // assignable through any number of re-exports.
+      const resolvedExport = C.isVAlias(valueExport)
+        ? initialEnv.valueByUriValue(valueExport.origin.uriOfDefinition, valueExport.originalName)
+        : valueExport;
+      const vbinder = C.isVVar(resolvedExport) ? C.vbVar : C.vbLet;
       const atomEnv = makeImportAtomFor(asName, valueExport.origin.uriOfDefinition, env, bindings,
         (atom) => new C.ValueBind(
           C.boModule(field(asName, 'l'), valueExport.origin.definitionBindSite, valueExport.origin.uriOfDefinition, valueExport.origin.originalName),
