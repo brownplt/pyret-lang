@@ -35,6 +35,7 @@ import file("./tests/test-parse.arr") as _
 import file("./tests/test-pprint.arr") as _
 import file("./tests/test-module-syntax.arr") as _
 import file("./tests/test-import-variable.arr") as _
+import file("./tests/test-import-variable-reexport.arr") as _
 import file("./tests/test-constants.arr") as _
 import file("./tests/test-constants-scope.arr") as _
 import file("./tests/test-timing.arr") as _
