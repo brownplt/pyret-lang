@@ -887,10 +887,17 @@ fun resolve-names(p :: A.Program, thismodule-uri :: String, initial-env :: C.Com
       | some(value-export) =>
         # A re-exported name (`provide from M: x end`) arrives here as a
         # v-alias; follow it to the defining module so a `var` stays
-        # assignable through any number of re-exports.
+        # assignable through any number of re-exports. If the target isn't
+        # in the environment (e.g. builtin://global in CPO, whose values
+        # aren't listed as provides), keep the alias and bind it as a let,
+        # which is what happened before aliases were followed at all.
         resolved-export = cases(C.ValueExport) value-export:
           | v-alias(origin, original-name) =>
-            initial-env.value-by-uri-value(origin.uri-of-definition, original-name)
+            if initial-env.all-modules.has-key-now(origin.uri-of-definition):
+              initial-env.value-by-uri(origin.uri-of-definition, original-name).or-else(value-export)
+            else:
+              value-export
+            end
           | else => value-export
         end
         vbinder = cases(C.ValueExport) resolved-export block:

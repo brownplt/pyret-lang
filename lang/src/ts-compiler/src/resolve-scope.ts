@@ -993,9 +993,12 @@ export function resolveNames(p: A.Program, thismoduleUri: string, initialEnv: C.
       const valueExport = maybeValueExport;
       // A re-exported name (`provide from M: x end`) arrives here as a
       // v-alias; follow it to the defining module so a `var` stays
-      // assignable through any number of re-exports.
-      const resolvedExport = C.isVAlias(valueExport)
-        ? initialEnv.valueByUriValue(valueExport.origin.uriOfDefinition, valueExport.originalName)
+      // assignable through any number of re-exports. If the target isn't
+      // in the environment (e.g. builtin://global in CPO, whose values
+      // aren't listed as provides), keep the alias and bind it as a let,
+      // which is what happened before aliases were followed at all.
+      const resolvedExport = (C.isVAlias(valueExport) && initialEnv.allModules.has(valueExport.origin.uriOfDefinition))
+        ? (initialEnv.valueByUri(valueExport.origin.uriOfDefinition, valueExport.originalName) ?? valueExport)
         : valueExport;
       const vbinder = C.isVVar(resolvedExport) ? C.vbVar : C.vbLet;
       const atomEnv = makeImportAtomFor(asName, valueExport.origin.uriOfDefinition, env, bindings,
