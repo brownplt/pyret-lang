@@ -1499,7 +1499,11 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
                   vb.origin.uri-of-definition,
                   as-name)
                 # TODO(joe): Still have v-var questions here
-                vp.set(as-name.toname(), CS.v-just-type(corrected-origin, c(tc-typ)))
+                provided-value = cases(CS.ValueBinder) vb.binder:
+                  | vb-var => CS.v-var(corrected-origin, c(tc-typ))
+                  | else => CS.v-just-type(corrected-origin, c(tc-typ))
+                end
+                vp.set(as-name.toname(), provided-value)
             end
           end
 

@@ -1717,7 +1717,10 @@ export function getTypedProvides(resolved: CS.NameResolution, typed: any, uri: U
           vb.origin.uriOfDefinition,
           asName);
         // TODO(joe): Still have v-var questions here
-        valProvides.set(asName.toname(), new CS.VJustType(correctedOrigin, c(tcTyp)));
+        const providedValue = CS.isVbVar(vb.binder)
+          ? new CS.VVar(correctedOrigin, c(tcTyp))
+          : new CS.VJustType(correctedOrigin, c(tcTyp));
+        valProvides.set(asName.toname(), providedValue);
         break;
       }
       default:
