@@ -1515,12 +1515,8 @@ fun get-typed-provides(resolved, typed :: TCS.Typed, uri :: URI, compile-env :: 
                 tp.set(as-name.toname(), remote-typ)
               | s-local-ref(l, name, as-name) =>
                 key = name.key()
-                cases(Option) typed.info.data-types.get(key):
-                  | some(typ) => tp.set(name, c(typ))
-                  | none =>
-                    typ = typed.info.aliases.get-value(key)
-                    tp.set(as-name.toname(), c(typ))
-                end
+                typ = typed.info.aliases.get-value(key)
+                tp.set(as-name.toname(), c(typ))
             end
 
           end

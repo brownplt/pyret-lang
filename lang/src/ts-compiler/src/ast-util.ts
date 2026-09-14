@@ -1740,15 +1740,8 @@ export function getTypedProvides(resolved: CS.NameResolution, typed: any, uri: U
       }
       case 's-local-ref': {
         const key = ns.name.key();
-        const dataTyp = (typed.info.dataTypes as Map<string, T.Type>).get(key);
-        if (dataTyp !== undefined) {
-          // NOTE: the Pyret source says `tp.set(name, c(typ))`, using the Name
-          // itself as the string-dict key; we use its string form.
-          typProvides.set(ns.name.toname(), c(dataTyp));
-        } else {
-          const typ = mapGetValue(typed.info.aliases as Map<string, T.Type>, key);
-          typProvides.set(nonNull(ns.asName).toname(), c(typ));
-        }
+        const typ = mapGetValue(typed.info.aliases as Map<string, T.Type>, key);
+        typProvides.set(nonNull(ns.asName).toname(), c(typ));
         break;
       }
       default:
