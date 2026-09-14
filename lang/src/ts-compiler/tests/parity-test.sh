@@ -65,9 +65,9 @@ run_one() {
   # compiler appends a "Pyret stack:" trailer pointing into its own
   # compiler sources; that is compiler-internal and stripped before diffing.
   if [ "$cstat_a" -ne 0 ]; then
-    sed -i '/^Pyret stack:/,$d' "$dir_a/compile.out"
-    sed -i '/^Pyret stack:/,$d' "$dir_t/compile.out"
-    if diff -u "$dir_a/compile.out" "$dir_t/compile.out" > "$WORK/$base.compile.diff"; then
+    sed '/^Pyret stack:/,$d' "$dir_a/compile.out" > "$dir_a/compile.stripped"
+    sed '/^Pyret stack:/,$d' "$dir_t/compile.out" > "$dir_t/compile.stripped"
+    if diff -u "$dir_a/compile.stripped" "$dir_t/compile.stripped" > "$WORK/$base.compile.diff"; then
       return 0
     else
       echo "FAIL $base: compile error output differs (see $WORK/$base.compile.diff)"
