@@ -315,8 +315,13 @@ fun make-expr-flatness-env(aexpr :: AA.AExpr, sd :: FEnv, ad :: FEnv, mb :: SD.M
       flatness-max(ann-flatness(bind.ann, sd, ad, mb, env),
         flatness-max(make-lettable-flatness-env(e, sd, ad, mb, env), make-expr-flatness-env(body, sd, ad, mb, env)))
     | a-var(_, bind, val, body) =>
-      # Do same thing with a-var as with a-let for now
-      flatness-max(ann-flatness(bind.ann, sd, ad, mb, env), make-expr-flatness-env(body, sd, ad, mb, env))
+      block:
+        ann-f = ann-flatness(bind.ann, sd, ad, mb, env)
+        ad.set-now(bind.id.key(), ann-f)
+        # a var's flatness is the flatness of its *annotation*, which is checked
+        # on assignment and may be nonflat
+        flatness-max(ann-f, make-expr-flatness-env(body, sd, ad, mb, env))
+      end
     | a-seq(_, lettable, expr) =>
       a-flatness = make-lettable-flatness-env(lettable, sd, ad, mb, env)
       b-flatness = make-expr-flatness-env(expr, sd, ad, mb, env)
@@ -368,14 +373,15 @@ fun make-lettable-flatness-env(lettable :: AA.ALettable, sd :: FEnv, ad :: FEnv,
     | a-if(_, c, t, e) =>
       flatness-max(make-expr-flatness-env(t, sd, ad, mb, env), make-expr-flatness-env(e, sd, ad, mb, env))
 
-    # NOTE -- a-assign might not be flat b/c it checks annotations
     | a-assign(_, id, value) =>
       block:
         when AA.is-a-id(value) and sd.has-key-now(value.id.key()):
           sd.set-now(id.key(),
             flatness-max(sd.get-now(id.key()).or-else(some(0)), sd.get-value-now(value.id.key())))
         end
-        default-ret
+        # The flatness on a mutable var was calculated from the flatness of the
+        # *annotation* at definition; an assignment may be nonflat
+        ad.get-now(id.key()).or-else(none)
       end
 
     | a-app(_, f, args, _) =>

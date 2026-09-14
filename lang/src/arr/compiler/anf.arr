@@ -181,19 +181,12 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
         | link(f, r) =>
           cases(A.LetBind) f:
             | s-var-bind(l2, b, val) =>
-              if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
-                anf-name(val, "var", lam(new-val):
-                      N.a-var(l2, N.a-bind(l2, b.id, b.ann), N.a-val(new-val.l, new-val),
-                        anf(A.s-let-expr(l, r, body, blocky), k))
-                    end)
-              else:
-                var-name = mk-id(l2, "var")
-                anf(val, lam(lettable):
-                    N.a-let(l2, var-name.id-b, lettable,
-                      N.a-var(l2, N.a-bind(l2, b.id, b.ann), N.a-val(l2, var-name.id-e),
-                        anf(A.s-let-expr(l, r, body, blocky), k)))
+              # The a-var carries b.ann: anf-loop-compiler attaches it to the
+              # box and checks the initial value through it.
+              anf-name(val, "var", lam(new-val):
+                    N.a-var(l2, N.a-bind(l2, b.id, b.ann), N.a-val(new-val.l, new-val),
+                      anf(A.s-let-expr(l, r, body, blocky), k))
                   end)
-              end
             | s-let-bind(l2, b, val) => anf(val, lam(lettable):
                   N.a-let(l2, N.a-bind(l2, b.id, b.ann), lettable,
                     anf(A.s-let-expr(l, r, body, blocky), k))

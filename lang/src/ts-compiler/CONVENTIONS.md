@@ -3,9 +3,12 @@
 This directory contains a TypeScript port of the Pyret compiler that lives in
 `src/arr/compiler`. The port is **strictly additive**: nothing under
 `src/arr/`, `src/js/`, or the existing Makefile targets may change. The TS
-compiler must produce compiled modules that run on the *unchanged*
+compiler must produce compiled modules that run on the *same*
 `src/js/base/runtime.js` (same value representations, stack management,
-module format).
+module format) as the Pyret version. Sometimes that runtime may change to
+support new features or fix a bug; the important thing is that it is the same
+for both backends, not that it is the same as when the original .ts code was
+authored.
 
 ## Layout
 

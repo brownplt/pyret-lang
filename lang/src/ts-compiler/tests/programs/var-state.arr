@@ -1,3 +1,4 @@
+provide: counter end
 var counter = 0
 fun bump() block:
   counter := counter + 1

@@ -72,4 +72,20 @@ describe('repl (in-process load-lib)', () => {
     const r6 = await repl.runInteraction(repl.makeInteractionLocator(() => 'y\n'));
     assert.equal(r6.$name, 'left');
   });
+
+  // A var's annotation travels on its box (checkVarAssign), so a later
+  // interaction's store is checked without the annotation being in scope
+  // there, and a failed store leaves the var as it was.
+  test('var annotation is checked from a later interaction; a failed store keeps the value', async () => {
+    const r7 = await repl.runInteraction(repl.makeInteractionLocator(() => 'var count :: Number = 5\n'));
+    assert.equal(r7.$name, 'right');
+    assert.equal(X.isSuccessResult(r7.v), true);
+    const r8 = await repl.runInteraction(repl.makeInteractionLocator(() => 'count := "no"\n'));
+    assert.equal(r8.$name, 'right');
+    assert.equal(X.isSuccessResult(r8.v), false);
+    assert.equal(num(await repl.runInteraction(repl.makeInteractionLocator(() => 'count\n'))), '5');
+    const r9 = await repl.runInteraction(repl.makeInteractionLocator(() => 'count := 6\n'));
+    assert.equal(X.isSuccessResult(r9.v), true);
+    assert.equal(num(await repl.runInteraction(repl.makeInteractionLocator(() => 'count\n'))), '6');
+  });
 });

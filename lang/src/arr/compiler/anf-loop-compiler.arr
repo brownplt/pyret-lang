@@ -180,6 +180,7 @@ rt-name-map = [D.string-dict:
   "addModuleToNamespace", "aMTN",
   "checkArityC", "cAC",
   "checkRefAnns", "cRA",
+  "checkVarAssign", "cVA",
   "derefField", "dF",
   "getColonFieldLoc", "gCFL",
   "getDotAnn", "gDA",
@@ -1347,6 +1348,32 @@ fun compile-split-update(compiler, loc, opt-dest, obj :: N.AVal, fields :: List<
 
 end
 
+# An assignment is a plain store only when its target is a box this module
+# created without an annotation.
+fun var-assign-is-checked(compiler, id :: A.Name) -> Boolean:
+  cases(Option) compiler.bindings.get-now(id.key()):
+    | none => false
+    | some(vb) => not(vb.origin.new-definition) or not(A.is-a-blank(vb.ann) or A.is-a-any(vb.ann))
+  end
+end
+
+fun compile-split-assign(compiler, loc, opt-dest, id :: A.Name, value :: N.AVal, opt-rest :: Option<DAG.CaseResults%(is-c-block)>):
+  ans = compiler.cur-ans
+  step = compiler.cur-step
+  compiled-value = value.visit(compiler)
+  {new-cases; after-assign-label} = get-new-cases(compiler, opt-dest, opt-rest, ans)
+  c-block(
+    j-block(
+      cl-append(compiled-value.other-stmts, [clist:
+        # Update step before the check, so that if it pauses, the resumer
+        # lands after the store (which checkVarAssign performs on success)
+        j-expr(j-assign(step, after-assign-label)),
+        j-expr(j-assign(compiler.cur-apploc, compiler.get-loc(loc))),
+        j-expr(j-assign(ans, rt-method("checkVarAssign", [clist: j-id(js-id-of(id)), compiled-value.exp]))),
+        j-break])),
+    new-cases)
+end
+
 fun is-id-fn-name(flatness-env :: D.MutableStringDict<Option<Number>>, name :: String) -> Boolean:
     flatness-env.has-key-now(name)
 end
@@ -1471,6 +1498,12 @@ fun compile-lettable(compiler, b :: Option<BindType>, e :: N.ALettable, opt-rest
       compile-split-cases(compiler, l2, b, typ, val, branches, _else, opt-rest)
     | a-update(l2, obj, fields) =>
       compile-split-update(compiler, l2, b, obj, fields, opt-rest)
+    | a-assign(l2, id, value) =>
+      if var-assign-is-checked(compiler, id):
+        compile-split-assign(compiler, l2, b, id, value, opt-rest)
+      else:
+        else-case(e.visit(compiler))
+      end
     | a-lam(l2, name, args, ret, body) =>
       compiled-e = compile-a-lam(compiler, l2, name, args, ret, body, b)
       else-case(compiled-e)
@@ -1621,16 +1654,51 @@ compiler-visitor = {
   method a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
     compiled-e = e.visit(self)
-    # TODO: annotations here?
-    c-block(
-      j-block(
-        j-var(js-id-of(b.id),
-          j-obj([clist: j-field("$var", compiled-e.exp)
-              # NOTE(joe): This can be useful to turn on for debugging
-              #                     , j-field("$name", j-str(b.id.toname()))
-            ]))
-        ^ cl-cons(_, compiled-body.block.stmts)),
-      compiled-body.new-cases)
+    if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+      c-block(
+        j-block(
+          j-var(js-id-of(b.id),
+            j-obj([clist: j-field("$var", compiled-e.exp)
+                # NOTE(joe): This can be useful to turn on for debugging
+                #                     , j-field("$name", j-str(b.id.toname()))
+              ]))
+          ^ cl-cons(_, compiled-body.block.stmts)),
+        compiled-body.new-cases)
+    else:
+      # The annotation is compiled once and *attached* to the box, so every
+      # store -- the initial value here, later assignments anywhere -- is
+      # checked against it by checkVarAssign. An undefined initializer is the
+      # s-letrec desugaring; the assignment that follows does its checking.
+      compiled-ann = compile-ann(b.ann, none, self)
+      ann-loc-exp = self.get-loc(b.ann.l)
+      if N.is-a-val(e) and N.is-a-undefined(e.v):
+        c-block(
+          j-block(
+            cl-append(compiled-ann.other-stmts,
+              j-var(js-id-of(b.id), j-obj([clist:
+                    j-field("$var", compiled-e.exp),
+                    j-field("$ann", compiled-ann.exp),
+                    j-field("$loc", ann-loc-exp)]))
+              ^ cl-cons(_, compiled-body.block.stmts))),
+          compiled-body.new-cases)
+      else:
+        step = self.cur-step
+        after-check = self.make-label()
+        after-check-case = j-case(after-check, j-block(compiled-body.block.stmts))
+        c-block(
+          j-block(
+            cl-append(compiled-ann.other-stmts, [clist:
+                j-var(js-id-of(b.id), j-obj([clist:
+                      j-field("$var", undefined),
+                      j-field("$ann", compiled-ann.exp),
+                      j-field("$loc", ann-loc-exp)])),
+                j-expr(j-assign(step, after-check)),
+                j-expr(j-assign(self.cur-apploc, ann-loc-exp)),
+                j-expr(j-assign(self.cur-ans, rt-method("checkVarAssign", [clist: j-id(js-id-of(b.id)), compiled-e.exp]))),
+                j-break])),
+          cl-cons(after-check-case, compiled-body.new-cases))
+      end
+    end
   end,
   method a-seq(self, _, e1, e2):
     e2-visit = e2.visit(self)
