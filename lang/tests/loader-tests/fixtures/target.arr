@@ -1,3 +1,3 @@
 provide *
 
-value = "reset-load-path-target-ok"
+value = "project-path-target-ok"

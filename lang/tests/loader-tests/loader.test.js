@@ -91,17 +91,17 @@ afterAll(() => {
   };
   const o = (name) => path.join(OUT, backend + '-' + name);
 
-  describe(`[${backend}] file-reset-load-path`, () => {
+  describe(`[${backend}] project-path`, () => {
     test('resolves relative to the working directory, not the importing file', () => {
-      const out = o('reset.jarr');
-      expectCompiled(compile(backend, 'tests/loader-tests/fixtures/reset/importer.arr', out, t('reset-cache')));
+      const out = o('project-path.jarr');
+      expectCompiled(compile(backend, 'tests/loader-tests/fixtures/project-path/importer.arr', out, t('project-path-cache')));
       const r = run(out);
       expect(r.status).toEqual(0);
-      expect(r.stdout).toMatch(/reset-load-path-target-ok/);
+      expect(r.stdout).toMatch(/project-path-target-ok/);
     });
 
     test('the same path through file() does not resolve', () => {
-      const c = compile(backend, 'tests/loader-tests/fixtures/reset/importer-file.arr', o('reset-file.jarr'), t('reset-file-cache'));
+      const c = compile(backend, 'tests/loader-tests/fixtures/project-path/importer-file.arr', o('project-path-file.jarr'), t('project-path-file-cache'));
       expect(c.status).not.toEqual(0);
     });
   });

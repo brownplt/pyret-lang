@@ -201,21 +201,24 @@ fun get-cached-if-available-known-mtimes(basedir, loc, max-dep-times) block:
   end
 end
 
+fun with-uri(locator, uri :: Option<String>):
+  cases(Option) uri:
+    | none => locator
+    | some(u) => locator.{ method uri(self): u end }
+  end
+end
+
 # override uri before the cache lookup: the lookup hashes it
 fun get-file-locator(basedir, real-path, logical-uri :: Option<String>):
   base = FL.file-locator(real-path, CS.standard-globals)
-  loc = cases(Option) logical-uri:
-    | none => base
-    | some(u) => base.{ method uri(self): u end }
-  end
-  get-cached-if-available(basedir, loc)
+  get-cached-if-available(basedir, with-uri(base, logical-uri))
 end
 
 fun get-builtin-locator(basedir, read-only-basedirs, modname):
   all-dirs = read-only-basedirs
 
-  first-available = for find(rob from all-dirs):
-    is-some(cached-available(rob, "builtin://" + modname, modname, 0))
+  first-available = for find(cache-dir from all-dirs):
+    is-some(cached-available(cache-dir, "builtin://" + modname, modname, 0))
   end
   cases(Option) first-available:
     | none =>
@@ -241,12 +244,12 @@ end
 fun get-loadable(basedir, read-only-basedirs, l, max-dep-times) -> Option<Loadable>:
   locuri = l.locator.uri()
   # read-only dirs are immutable caches
-  fun staleness-floor(rob):
-    if rob == basedir: max-dep-times.get-value(locuri) else: 0 end
+  fun staleness-floor(cache-dir):
+    if cache-dir == basedir: max-dep-times.get-value(locuri) else: 0 end
   end
 #  cached = cached-available(basedir, l.locator.uri(), l.locator.name(), l.locator.get-modified-time())
-  first-available = for find(rob from link(basedir, read-only-basedirs)):
-    is-some(cached-available(rob, l.locator.uri(), l.locator.name(), staleness-floor(rob)))
+  first-available = for find(cache-dir from link(basedir, read-only-basedirs)):
+    is-some(cached-available(cache-dir, l.locator.uri(), l.locator.name(), staleness-floor(cache-dir)))
   end
   cases(Option) first-available block:
     | none => none
@@ -317,18 +320,29 @@ type CLIContext = {
   logical :: Option<LogicalRoot>
 }
 
+# Is real-path inside the logical root, and if so what is it called there? This
+# is path math rather than a string prefix test: a trailing slash on lr.real, a
+# ".." segment, or an otherwise non-normalized real-path all miss a
+# starts-with check, and the miss is silent -- the module just goes back to
+# being cached under its absolute path.
 fun logical-uri-for(ctxt :: CLIContext, real-path :: String) -> Option<String>:
   cases(Option) ctxt.logical:
     | none => none
     | some(lr) =>
-      prefix = lr.real + "/"
-      if string-starts-with(real-path, prefix):
-        rest = string-substring(real-path, string-length(lr.real), string-length(real-path))
-        some(lr.uri + rest)
-      else:
+      rel = Filesystem.relative(Filesystem.resolve(lr.real), Filesystem.resolve(real-path))
+      outside = (rel == "..") or string-starts-with(rel, "../") or Filesystem.is-absolute(rel)
+      if (rel == "") or outside:
         none
+      else:
+        some(lr.uri + "/" + rel)
       end
   end
+end
+
+# The cache is keyed by locator uri, so this is what puts a module in the cache
+# under its logical (e.g. npm://) name instead of its absolute path.
+fun wrap-in-logical-uri(locator, ctxt :: CLIContext, real-path :: String):
+  with-uri(locator, logical-uri-for(ctxt, real-path))
 end
 
 fun get-real-path(current-load-path :: String, this-path :: String):
@@ -404,11 +418,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
             NPM.npm-package-root(package-name, clp), "npm://" + package-name
           ))
         }
-        locator-with-uri = cases(Option) logical-uri-for(new-context, real-path):
-          | none => locator
-          | some(u) => locator.{ method uri(self): u end }
-        end
-        CL.located(locator-with-uri, new-context)
+        CL.located(wrap-in-logical-uri(locator, new-context, real-path), new-context)
       else if protocol == "builtin-test":
         l = get-builtin-test-locator(ctxt.cache-base-dir, args.first)
         force-check-mode = l.{
@@ -426,7 +436,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         else:
           raise("Cannot find import " + torepr(dep))
         end
-      else if protocol == "file-reset-load-path":
+      else if protocol == "project-path":
         new-context = ctxt.{current-load-path: Filesystem.resolve(".")}
         module-finder(new-context, CS.dependency("file", args))
       else if protocol == "js-file":
@@ -434,11 +444,7 @@ fun module-finder(ctxt :: CLIContext, dep :: CS.Dependency):
         real-path = get-real-path(clp, args.get(0))
         new-context = ctxt.{current-load-path: Filesystem.dirname(real-path)}
         base = JSF.make-jsfile-locator(real-path)
-        locator = cases(Option) logical-uri-for(ctxt, real-path):
-          | none => base
-          | some(u) => base.{ method uri(self): u end }
-        end
-        CL.located(locator, new-context)
+        CL.located(wrap-in-logical-uri(base, ctxt, real-path), new-context)
       else:
         raise("Unknown import type: " + protocol)
       end
