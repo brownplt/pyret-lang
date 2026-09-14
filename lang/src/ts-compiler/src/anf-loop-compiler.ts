@@ -231,6 +231,7 @@ export const rtNameMap: Map<string, string> = new Map([
   ['addModuleToNamespace', 'aMTN'],
   ['checkArityC', 'cAC'],
   ['checkRefAnns', 'cRA'],
+  ['checkVarAssign', 'cVA'],
   ['derefField', 'dF'],
   ['getColonFieldLoc', 'gCFL'],
   ['getDotAnn', 'gDA'],
@@ -1138,17 +1139,52 @@ function compileHead(compiler: CompilerVisitor, head: N.AExprHead, rest: DAG.CBl
       });
     case 'a-var': {
       const compiledE: DAG.CExp = head.e.visit(compiler);
-      // TODO: annotations here?
+      const bind = head.bind;
+      if (A.isABlank(bind.ann) || A.isAAny(bind.ann)) {
+        return cBlock(
+          jBlock(
+            clCons(
+              jVar(jsIdOf(bind.id),
+                jObj(clist<J.JFieldT>(jField('$var', compiledE.exp)
+                  // NOTE(joe): This can be useful to turn on for debugging
+                  //                     , j-field("$name", j-str(b.id.toname()))
+                ))) as J.JStmt,
+              DAG.stmtsOf(rest.block))),
+          rest.newCases);
+      }
+      // The annotation is compiled once and *attached* to the box, so every
+      // store -- the initial value here, later assignments anywhere -- is
+      // checked against it by checkVarAssign. An undefined initializer is the
+      // s-letrec desugaring; the assignment that follows does its checking.
+      const compiledAnn = compileAnn(bind.ann, undefined, compiler);
+      const annLocExp = compiler.getLoc((bind.ann as any).l);
+      if (N.isAVal(head.e) && N.isAUndefined(head.e.v)) {
+        return cBlock(
+          jBlock(
+            clAppend(compiledAnn.otherStmts,
+              clCons(
+                jVar(jsIdOf(bind.id), jObj(clist<J.JFieldT>(
+                  jField('$var', compiledE.exp),
+                  jField('$ann', compiledAnn.exp),
+                  jField('$loc', annLocExp)))) as J.JStmt,
+                DAG.stmtsOf(rest.block)))),
+          rest.newCases);
+      }
+      const step = compiler.curStep;
+      const afterCheck = compiler.makeLabel();
+      const afterCheckCase = jCase(afterCheck, jBlock(DAG.stmtsOf(rest.block)));
       return cBlock(
         jBlock(
-          clCons(
-            jVar(jsIdOf(head.bind.id),
-              jObj(clist<J.JFieldT>(jField('$var', compiledE.exp)
-                // NOTE(joe): This can be useful to turn on for debugging
-                //                     , j-field("$name", j-str(b.id.toname()))
-              ))) as J.JStmt,
-            DAG.stmtsOf(rest.block))),
-        rest.newCases);
+          clAppend(compiledAnn.otherStmts, clist<J.JStmt>(
+            jVar(jsIdOf(bind.id), jObj(clist<J.JFieldT>(
+              jField('$var', UNDEFINED),
+              jField('$ann', compiledAnn.exp),
+              jField('$loc', annLocExp)))),
+            jExpr(jAssign(step, afterCheck)),
+            jExpr(jAssign(compiler.curApploc, annLocExp)),
+            jExpr(jAssign(compiler.curAns, rtMethod('checkVarAssign', clist(jId(jsIdOf(bind.id)), compiledE.exp)))),
+            jBreak))),
+        clCons(afterCheckCase as J.JCaseT, rest.newCases));
     }
     case 'a-type-let': {
       const bind = head.bind;
@@ -1203,6 +1239,11 @@ function compileLettable(
       return compileSplitCases(compiler, e.l, b, e.val, e.branches, e._else, optRest);
     case 'a-update':
       return compileSplitUpdate(compiler, e.l, b, e.supe, e.fields, optRest);
+    case 'a-assign':
+      if (varAssignIsChecked(compiler, e.id)) {
+        return compileSplitAssign(compiler, e.l, b, e.id, e.value, optRest);
+      }
+      return elseCase(e.visit(compiler));
     case 'a-lam':
       return elseCase(compileALam(compiler, e.l, e.name, e.args, e.ret, e.body, b));
     default:
@@ -1821,6 +1862,37 @@ function compileSplitUpdate(
           compiler.getLoc(loc),
           compiler.getLoc(obj.l))))),
       jBreak)),
+    newCases);
+}
+
+// An assignment is a plain store only when its target is a box this module
+// created without an annotation.
+function varAssignIsChecked(compiler: CompilerVisitor, id: A.Name): boolean {
+  const vb = compiler.bindings.get(id.key());
+  if (vb === undefined) { return false; }
+  return !vb.origin.newDefinition || !(A.isABlank(vb.ann) || A.isAAny(vb.ann));
+}
+
+function compileSplitAssign(
+  compiler: CompilerVisitor,
+  loc: Loc,
+  optDest: BindType | undefined,
+  id: A.Name,
+  value: N.AVal,
+  optRest: DAG.CBlock | undefined
+): DAG.CBlock {
+  const ans = compiler.curAns;
+  const step = compiler.curStep;
+  const compiledValue: DAG.CExp = value.visit(compiler);
+  const [newCases, afterAssignLabel] = getNewCases(compiler, optDest, optRest, ans);
+  return cBlock(
+    jBlock(clAppend(compiledValue.otherStmts, clist<J.JStmt>(
+      // Update step before the check, so that if it pauses, the resumer
+      // lands after the store (which checkVarAssign performs on success)
+      jExpr(jAssign(step, afterAssignLabel)),
+      jExpr(jAssign(compiler.curApploc, compiler.getLoc(loc))),
+      jExpr(jAssign(ans, rtMethod('checkVarAssign', clist(jId(jsIdOf(id)), compiledValue.exp)))),
+      jBreak))),
     newCases);
 }
 
