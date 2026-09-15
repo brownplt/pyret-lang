@@ -11,6 +11,10 @@ import * as P from 'path';
 import * as CS from '../compile-structs';
 import * as F from './file';
 
+export function npmPackageRoot(packageName: string, currentLoadPath: string): string {
+  return P.dirname(require.resolve(packageName + "/package.json", { paths: [currentLoadPath] }));
+}
+
 export function makeNpmLocator(packageName: string, path: string, currentLoadPath: string): F.FileLocator {
   let packagePath: string;
   try {
