@@ -65,9 +65,9 @@ run_one() {
   # compiler appends a "Pyret stack:" trailer pointing into its own
   # compiler sources; that is compiler-internal and stripped before diffing.
   if [ "$cstat_a" -ne 0 ]; then
-    sed -i '/^Pyret stack:/,$d' "$dir_a/compile.out"
-    sed -i '/^Pyret stack:/,$d' "$dir_t/compile.out"
-    if diff -u "$dir_a/compile.out" "$dir_t/compile.out" > "$WORK/$base.compile.diff"; then
+    sed '/^Pyret stack:/,$d' "$dir_a/compile.out" > "$dir_a/compile.stripped"
+    sed '/^Pyret stack:/,$d' "$dir_t/compile.out" > "$dir_t/compile.stripped"
+    if diff -u "$dir_a/compile.stripped" "$dir_t/compile.stripped" > "$WORK/$base.compile.diff"; then
       return 0
     else
       echo "FAIL $base: compile error output differs (see $WORK/$base.compile.diff)"
@@ -96,6 +96,15 @@ run_one() {
   return 0
 }
 
+# Child mode: run one program, leaving its output and exit status in $WORK
+# for the parent to report. See the loop below.
+if [ "${1:-}" = "--one" ]; then
+  base=$(basename "$2" .arr)
+  run_one "$2" > "$WORK/$base.log" 2>&1
+  echo $? > "$WORK/$base.status"
+  exit 0
+fi
+
 shopt -s nullglob
 programs=("$PROGRAMS_DIR"/*.arr)
 if [ "${#programs[@]}" -eq 0 ]; then
@@ -103,13 +112,22 @@ if [ "${#programs[@]}" -eq 0 ]; then
   exit 1
 fi
 
+# Every compile boots a fresh node with the whole compiler in it, so this
+# harness is bound by process startups, not by the programs. The programs
+# are independent (each has its own $WORK/<name>-{arr,ts} dirs), so run
+# them PARITY_JOBS at a time as --one children and report in corpus order
+# afterwards, so the output reads exactly as a sequential run would.
+printf '%s\n' "${programs[@]}" | xargs -P "${PARITY_JOBS:-4}" -n 1 bash "$0" --one
+
 for prog in "${programs[@]}"; do
-  if run_one "$prog"; then
-    echo "ok   $(basename "$prog")"
+  base=$(basename "$prog" .arr)
+  cat "$WORK/$base.log"
+  if [ "$(cat "$WORK/$base.status")" = "0" ]; then
+    echo "ok   $base.arr"
     pass=$((pass+1))
   else
     fail=$((fail+1))
-    failed_programs+=("$(basename "$prog")")
+    failed_programs+=("$base.arr")
   fi
 done
 

@@ -65,6 +65,11 @@ jobs:
     - name: module loader tests (TS backend)
       run: make ts-loader-test
 
+    # Same programs through both compilers: byte-identical standalones and
+    # identical run output.
+    - name: compiler parity test
+      run: make ts-parity-test
+
   bootstrap-converge:
     name: bootstrap convergence (.arr == TS, byte-identical)
 

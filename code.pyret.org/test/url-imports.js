@@ -6,7 +6,7 @@ var tester = require("../test-util/util.js");
  * was written in summer 2026 and refers to files from then.
  */
 
-var PINNED = "4aab0a88c78ddc12d279f53199c688c75fd40a5c";
+var PINNED = "30cf803e0f97f67d4b3b16132acb1f64a9e3dd1c";
 var RAW = "https://raw.githubusercontent.com/bootstrapworld/starter-files/" + PINNED;
 
 var tests = [

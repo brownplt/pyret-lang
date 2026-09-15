@@ -364,9 +364,13 @@ export function headFlatness(
       const annF = annFlatness(head.bind.ann, sd, ad, mb, env);
       return flatnessMax(annF, makeLettableFlatnessEnv(head.e, sd, ad, mb, env));
     }
-    case 'a-var':
-      // Do same thing with a-var as with a-let for now
-      return annFlatness(head.bind.ann, sd, ad, mb, env);
+    case 'a-var': {
+      const annF = annFlatness(head.bind.ann, sd, ad, mb, env);
+      ad.set(head.bind.id.key(), annF);
+      // a var's flatness is the flatness of its *annotation*, which is checked
+      // on assignment and may be nonflat
+      return annF;
+    }
     case 'a-seq':
       return makeLettableFlatnessEnv(head.e1, sd, ad, mb, env);
     default:
@@ -487,7 +491,6 @@ export function makeLettableFlatnessEnv(
       return result;
     }
 
-    // NOTE -- a-assign might not be flat b/c it checks annotations
     case 'a-assign': {
       if (AA.isAId(lettable.value) && sd.has(lettable.value.id.key())) {
         // get-now(...).or-else(some(0)): absent means some(0); a stored
@@ -496,7 +499,9 @@ export function makeLettableFlatnessEnv(
         sd.set(lettable.id.key(),
           flatnessMax(current, mapGetValue(sd, lettable.value.id.key())));
       }
-      return defaultRet;
+      // The flatness on a mutable var was calculated from the flatness of the
+      // *annotation* at definition; an assignment may be nonflat
+      return ad.get(lettable.id.key());
     }
 
     case 'a-app': {
