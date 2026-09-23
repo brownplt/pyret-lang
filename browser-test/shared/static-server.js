@@ -38,6 +38,9 @@ function contentType(p) {
 /*
  * opts:
  *   roots  - array of directories to serve, searched in order
+ *   fillOrigin - optional predicate on a served file's path; matching files
+ *                have each {{FIXTURE_ORIGIN}} replaced with this server's
+ *                origin, for fixtures that url-file import each other
  * returns { origin, close }
  */
 async function startStaticServer(opts) {
@@ -73,7 +76,12 @@ async function startStaticServer(opts) {
           "Content-Type": contentType(filePath),
           "Access-Control-Allow-Origin": "*",
         });
-        fs.createReadStream(filePath).pipe(res);
+        if (opts.fillOrigin && opts.fillOrigin(filePath)) {
+          const origin = "http://" + req.headers.host;
+          res.end(fs.readFileSync(filePath, "utf8").split("{{FIXTURE_ORIGIN}}").join(origin));
+        } else {
+          fs.createReadStream(filePath).pipe(res);
+        }
       };
       if (delayMs > 0) setTimeout(send, delayMs); else send();
       return;
