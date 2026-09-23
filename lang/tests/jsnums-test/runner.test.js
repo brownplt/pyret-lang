@@ -14,7 +14,8 @@ const { runConfig } = require('./watchdog');
 const libPath = process.env.JSNUMS_PATH || undefined;
 const filterText = process.env.JSNUMS_FILTER;
 const MAX_SHOWN = 25;
-const CONFIGS = [28, 30, 26];
+const NATIVE = loadLibrary(libPath).digitBits === undefined;
+const CONFIGS = NATIVE ? [undefined] : [28, 30, 26];
 const names = S.caseFiles();
 
 const results = {};
@@ -23,14 +24,14 @@ const ulpStats = {};
 test.describe('frozen oracle cases', () => {
   test.before(async () => {
     for (const bits of CONFIGS) {
-      assert.equal(loadLibrary(libPath, bits).digitBits, bits, 'digit configuration did not take effect');
+      if (!NATIVE) assert.equal(loadLibrary(libPath, bits).digitBits, bits, 'digit configuration did not take effect');
       results[bits] = await runConfig(libPath, bits, names, { filterText });
     }
   });
 
   for (const bits of CONFIGS) {
     for (const name of names) {
-      test(name.replace(/\.json$/, '') + ' [' + bits + '-bit digits]', () => {
+      test(name.replace(/\.json$/, '') + ' [' + (NATIVE ? 'native BigInt' : bits + '-bit digits') + ']', () => {
         const s = S.summarize(results[bits].get(name));
         const key = name.replace(/\.json$/, '');
         ulpStats[key] = ulpStats[key] === undefined || s.maxUlp > ulpStats[key] ? s.maxUlp : ulpStats[key];
