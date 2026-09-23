@@ -2596,12 +2596,13 @@ define("pyret-base/js/js-numbers", function() {
     function bnCompareTo(a) { return this.v < a.v ? -1 : (this.v > a.v ? 1 : 0); }
     function bnEquals(a) { return this.v === a.v; }
     function bnSigNum() { return this.v < BIG_ZERO ? -1 : (this.v > BIG_ZERO ? 1 : 0); }
-    function bnBitLength() {
-      var v = bigAbs(this.v);
+    var bigBitLength = function(v) {
+      v = bigAbs(v);
       if (v === BIG_ZERO) { return 0; }
       var hex = v.toString(16);
       return 4 * (hex.length - 1) + (32 - Math.clz32(parseInt(hex.charAt(0), 16)));
-    }
+    };
+    function bnBitLength() { return bigBitLength(this.v); }
     function bnAdd(a) { return nbv(this.v + a.v); }
     function bnSubtract(a) { return nbv(this.v - a.v); }
     function bnMultiply(a) {
@@ -2622,12 +2623,36 @@ define("pyret-base/js/js-numbers", function() {
     }
     function bnShiftRight(n) { return nbv(this.v >> BigInt(n)); }
     function bnTestBit(n) { return ((this.v >> BigInt(n)) & BIG_ONE) !== BIG_ZERO; }
+    var LEHMER_BITS = 48;
+
+    // Lehmer's gcd (Knuth 4.5.2, Algorithm L) on 48-bit leading parts.
     function bnGCD(a) {
       var x = bigAbs(this.v), y = bigAbs(a.v), t;
+      if (x < y) { t = x; x = y; y = t; }
       while (y !== BIG_ZERO) {
-        t = x % y;
-        x = y;
-        y = t;
+        var n = bigBitLength(x);
+        if (n <= LEHMER_BITS) {
+          var xs = Number(x), ys = Number(y), ts;
+          while (ys !== 0) { ts = xs % ys; xs = ys; ys = ts; }
+          return nbv(BigInt(xs));
+        }
+        var shift = BigInt(n - LEHMER_BITS);
+        var xh = Number(x >> shift), yh = Number(y >> shift);
+        var A = 1, B = 0, C = 0, D = 1, q, T;
+        while (yh + C !== 0 && yh + D !== 0) {
+          q = Math.floor((xh + A) / (yh + C));
+          if (q !== Math.floor((xh + B) / (yh + D))) { break; }
+          T = A - q * C; A = C; C = T;
+          T = B - q * D; B = D; D = T;
+          T = xh - q * yh; xh = yh; yh = T;
+        }
+        if (B === 0) {
+          t = x % y; x = y; y = t;
+        } else {
+          t = BigInt(A) * x + BigInt(B) * y;
+          y = BigInt(C) * x + BigInt(D) * y;
+          x = t;
+        }
       }
       return nbv(x);
     }
