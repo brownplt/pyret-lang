@@ -2676,7 +2676,10 @@ define("pyret-base/js/js-numbers", function() {
 
     // makeBignum: string -> BigInteger
     var makeBignum = function(s) {
-      if (typeof(s) === 'number') { s = s + ''; }
+      if (typeof(s) === 'number') {
+        if (Number.isInteger(s)) { return nbv(BigInt(s)); }
+        s = s + '';
+      }
       var sci = s.match(scientificPattern);
       if (sci) {
         var fraction = (sci[1].split('.')[1] || '').replace(/0+$/, '');
