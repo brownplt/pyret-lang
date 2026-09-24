@@ -1263,7 +1263,7 @@
         ],
         marks: []
       };
-      let tooltipValue = 'datum.Value';
+      let tooltipValue = 'datum.value';
       if (!isStacked) {
         marks.push(groupMark);
       } else {
