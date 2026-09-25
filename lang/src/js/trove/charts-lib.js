@@ -3071,6 +3071,12 @@
       ];
 
       prepareAxisForOffsets(globalOptions, axes[2], data, signals);
+      // In the combined charts, the axis with the tick-labels isn't the axis with the title-label
+      axes[1].encode = {
+        labels: {
+          update: axes[2].encode.labels.update,
+        }
+      }
       
       const marks = [
         {
