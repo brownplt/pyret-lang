@@ -13,17 +13,12 @@ if [ "${PYRET_NPM_TS:-}" = "1" ]; then
 fi
 
 rm -rf pyret-lang
-mkdir -p pyret-lang/build
+mkdir -p pyret-lang/build pyret-lang/src/arr pyret-lang/src/js pyret-lang/src/scripts pyret-lang/lib
 cp -r ../lang/build/phaseA pyret-lang/build/
+cp -r ../lang/src/arr/compiler ../lang/src/arr/trove pyret-lang/src/arr/
+cp -r ../lang/src/js/trove ../lang/src/js/base pyret-lang/src/js/
+cp ../lang/src/scripts/standalone-configA.json pyret-lang/src/scripts/
+cp -r ../lang/lib/jglr pyret-lang/lib/
 if [ "${PYRET_NPM_TS:-}" = "1" ]; then
   cp -r ../lang/build/ts-compiler pyret-lang/build/
-  mkdir -p pyret-lang/src/js/base pyret-lang/lib/jglr
-  cp ../lang/src/js/base/js-numbers.js \
-     ../lang/src/js/base/type-util.js \
-     ../lang/src/js/base/pyret-tokenizer.js \
-     pyret-lang/src/js/base/
-  cp ../lang/lib/jglr/jglr.js \
-     ../lang/lib/jglr/rnglr.js \
-     ../lang/lib/jglr/cyclicJSON.js \
-     pyret-lang/lib/jglr/
 fi
