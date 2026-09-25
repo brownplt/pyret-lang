@@ -918,21 +918,17 @@
       );
     }
 
-    function prepareAxisForOffsets(globalOptions, axis) {
-      const staggerXAxisLabels = isTrue(globalOptions['x-axis-stagger-labels']);
-      if (!staggerXAxisLabels) return;
-
-      // TODO: maybe change x-axis-stagger from Bool to Nat? this would
-      // allow for longer cycles/more rows of labels
-      const cycleSize = 2;
+    function prepareAxisForOffsets(globalOptions, axis, data, signals) {
+      signals.push({ name: 'xAxisLabelCycleSize', value: 0 });
       
       axis.encode = {
         ... axis.encode,
         labels: {
+          name: 'xAxisLabels',
           ... axis.encode?.labels,
           update: {
             ... axis.encode?.labels?.update,
-            dy: { signal: `(datum.tickIndex % ${cycleSize}) * 20 + 5` }
+            dy: { signal: `(datum.tickIndex % xAxisLabelCycleSize) * 20 + 5` }
           }
         }
       };
@@ -1031,7 +1027,7 @@
         };
       }
 
-      prepareAxisForOffsets(globalOptions, axes[horizontal ? 1 : 0]);
+      prepareAxisForOffsets(globalOptions, axes[horizontal ? 1 : 0], data, signals);
       
       const marks = [];
       const tooltips = [
@@ -1220,8 +1216,6 @@
       ];
       // set the axis with the ticks to have the title, so they don't overlap
       axes[isNotFullStacked ? 1 : 2].title = axisLabels[axesConfig.secondary.dir];
-
-      prepareAxisForOffsets(globalOptions, axes[horizontal ? 1 : 0]);
       
       if (axis) {
         axes[1].values = axis.domainRaw;
@@ -1232,6 +1226,8 @@
       if (stackType === 'percent') {
         axes[1].format = axes[2].format = '.2%';
       }
+
+      prepareAxisForOffsets(globalOptions, axes[horizontal ? 1 : 0], data, signals);
 
       const marks = [];
 
@@ -1619,7 +1615,7 @@
           true, ticks: false, labels: false }
       ];
 
-      prepareAxisForOffsets(globalOptions, axes[horizontal ? 1 : 0]);
+      prepareAxisForOffsets(globalOptions, axes[horizontal ? 1 : 0], data, signals);
       
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
@@ -1815,7 +1811,7 @@
         { orient: 'left', scale: 'countScale', grid: true, title: yAxisLabel }
       ];
       
-      prepareAxisForOffsets(globalOptions, axes[0]);
+      prepareAxisForOffsets(globalOptions, axes[0], data, signals);
       
       return {
         "$schema": "https://vega.github.io/schema/vega/v6.json",
@@ -1931,7 +1927,7 @@
         { orient: 'left', scale: 'dotScale', grid: false, ticks: false, labels: false, title: yAxisLabel, zindex: 1 }
       ];
 
-      prepareAxisForOffsets(globalOptions, axes[0]);
+      prepareAxisForOffsets(globalOptions, axes[0], data, signals);
 
       const marks = [
         // {
@@ -2120,7 +2116,7 @@
         { orient: 'left', scale: 'secondary', grid: true, ticks: true, labels: true, title: yAxisLabel, zindex: 1 }
       ];
 
-      prepareAxisForOffsets(globalOptions, axes[0]);
+      prepareAxisForOffsets(globalOptions, axes[0], data, signals);
       
       const markTooltip = [
         {
@@ -3067,7 +3063,7 @@
         },
       ];
 
-      prepareAxisForOffsets(globalOptions, axes[2]);
+      prepareAxisForOffsets(globalOptions, axes[2], data, signals);
       
       const marks = [
         {
@@ -3355,6 +3351,7 @@
       const externalContext = canvas.getContext('2d');
       view.width(width).height(height).signal('titleText', 'spacer').resize()
       return view.runAsync()
+        .then(() => rebuildAxisLabels(view))
         .then(() => view.signal('titleText', view.description()).toCanvas(1, { externalContext }))
         .then(() => externalContext.getImageData(0, 0, width, height));
     }
@@ -3395,6 +3392,27 @@
         }
       });
     }
+
+    function rebuildAxisLabels(view) {
+      try {
+        const xAxisLabels = view.data("xAxisLabels");
+        let overlapSize = 0;
+        // Compare every label mark to every other label mark, and find the
+        // largest offset-gap for which the two labels overlap.
+        // The cycle size must be 1 bigger than that offset-gap, so that
+        // the offending labels will wind up on different rows.
+        for (let i = 0; i < xAxisLabels.length; i++) {
+          for (let j = i + 1; j < xAxisLabels.length; j++) {
+            if (xAxisLabels[i].bounds.x2 > xAxisLabels[j].bounds.x1) {
+              overlapSize = Math.max(overlapSize, j - i);
+            }
+          }
+        }
+        return view.signal('xAxisLabelCycleSize', overlapSize + 1).resize().runAsync();
+      } catch(e) {
+        return view;
+      }
+    }
     
     function renderInteractiveChart(processed, globalOptions, rawData) {
       return RUNTIME.pauseStack(restarter => {
@@ -3420,6 +3438,7 @@
             } else {
               ans = vegaTooltip.formatValue(value, valueToHtml, maxDepth, baseURL);
             }
+            ans = ans.replaceAll("<table></table>", "");
             ans = ans.replaceAll("<table>", "<table class=\"pyret-row\">");
             ans = ans.replaceAll("<td class=\"value\">", "<td class=\"value replTextOutput\"> ");
             return ans;
@@ -3452,6 +3471,7 @@
         const result = tmp;
         try {
           view.runAsync()
+            .then(() => rebuildAxisLabels(view))
             .then(() => {
               if (processed.addControls) {
                 processed.addControls(view, overlay);
@@ -3476,7 +3496,9 @@
                   }
                   // This doubled-up approach of render/resize/re-render seems to produce
                   // better-sized results than a single render does
-                  view.runAsync().then(() => view.resize().runAsync())
+                  view.runAsync()
+                    .then(() => view.resize().runAsync())
+                    .then(() => rebuildAxisLabels(view))
                 },
                 windowOptions: {  },
                 isInteractive: true,

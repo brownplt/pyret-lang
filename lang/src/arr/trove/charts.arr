@@ -505,10 +505,6 @@ x-axis-method = method(self, x-axis :: String):
   self.constr()(self.obj.{x-axis: x-axis})
 end
 
-x-axis-stagger-labels-method = method(self, stagger :: Boolean):
-  self.constr()(self.obj.{x-axis-stagger-labels: stagger})
-end
-
 y-axis-method = method(self, y-axis :: String):
   self.constr()(self.obj.{y-axis: y-axis})
 end
@@ -1359,7 +1355,6 @@ type BoxChartWindowObject = {
   borderSize :: Number, 
   borderColor :: Option<IS.Color>, 
   x-axis :: String,
-  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1371,7 +1366,6 @@ type BoxChartWindowObject = {
 default-box-plot-chart-window-object :: BoxChartWindowObject = default-chart-window-object.{
   x-axis: '',
   y-axis: '',
-  x-axis-stagger-labels: false,
   x-axis-type: at-linear,
   y-axis-type: at-linear,
   min: none,
@@ -1399,7 +1393,6 @@ type DotChartWindowObject = {
   borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
-  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1409,7 +1402,6 @@ type DotChartWindowObject = {
 
 default-dot-chart-window-object :: DotChartWindowObject = default-chart-window-object.{
   x-axis: '',
-  x-axis-stagger-labels: false,
   y-axis: '',
   x-axis-type: at-linear,
   y-axis-type: at-linear,
@@ -1426,7 +1418,6 @@ type BarChartWindowObject = {
   borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
-  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1436,7 +1427,6 @@ type BarChartWindowObject = {
 
 default-bar-chart-window-object :: BarChartWindowObject = default-chart-window-object.{
   x-axis: '',
-  x-axis-stagger-labels: false,
   y-axis: '',
   x-axis-type: at-linear,
   y-axis-type: at-linear,
@@ -1453,7 +1443,6 @@ type IntervalChartWindowObject = {
   borderColor :: Option<IS.Color>,
   render :: ( -> IM.Image),
   x-axis :: String,
-  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1463,7 +1452,6 @@ type IntervalChartWindowObject = {
 
 default-interval-chart-window-object :: IntervalChartWindowObject = default-chart-window-object.{
   x-axis: '',
-  x-axis-stagger-labels: false,
   y-axis: '',
   x-axis-type: at-linear,
   y-axis-type: at-linear,
@@ -1480,7 +1468,6 @@ type HistogramChartWindowObject = {
   borderColor :: Option<IS.Color>, 
   render :: ( -> IM.Image),
   x-axis :: String,
-  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1492,7 +1479,6 @@ type HistogramChartWindowObject = {
 default-histogram-chart-window-object :: HistogramChartWindowObject =
   default-chart-window-object.{
     x-axis: '',
-    x-axis-stagger-labels: false,
     y-axis: '',
     x-axis-type: at-linear,
     y-axis-type: at-linear,
@@ -1516,7 +1502,6 @@ type PlotChartWindowObject = {
   minorGridlineColor :: Option<IS.Color>, 
   minorGridlineMinspacing :: Number, 
   x-axis :: String,
-  x-axis-stagger-labels :: Boolean,
   y-axis :: String,
   x-axis-type :: AxisType,
   y-axis-type :: AxisType,
@@ -1530,7 +1515,6 @@ type PlotChartWindowObject = {
 
 default-plot-chart-window-object :: PlotChartWindowObject = default-chart-window-object.{
   x-axis: '',
-  x-axis-stagger-labels: false,
   y-axis: '',
   x-axis-type: at-linear,
   y-axis-type: at-linear,
@@ -1773,7 +1757,6 @@ data ChartWindow:
   | dot-chart-window(obj :: DotChartWindowObject) with:
     constr: {(): dot-chart-window},
     x-axis: x-axis-method,
-    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-min: x-min-method,
     x-max: x-max-method,
@@ -1782,7 +1765,6 @@ data ChartWindow:
   | box-plot-chart-window(obj :: BoxChartWindowObject) with:
     constr: {(): box-plot-chart-window},
     x-axis: x-axis-method,
-    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-axis-type: x-axis-type-method,
     y-axis-type: y-axis-type-method,
@@ -1791,7 +1773,6 @@ data ChartWindow:
   | bar-chart-window(obj :: BarChartWindowObject) with:
     constr: {(): bar-chart-window},
     x-axis: x-axis-method,
-    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-axis-type: x-axis-type-method,
     y-axis-type: y-axis-type-method,
@@ -1800,7 +1781,6 @@ data ChartWindow:
   | interval-chart-window(obj :: IntervalChartWindowObject) with:
     constr: {(): interval-chart-window},
     x-axis: x-axis-method,
-    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-axis-type: x-axis-type-method,
     y-axis-type: y-axis-type-method,
@@ -1809,7 +1789,6 @@ data ChartWindow:
   | histogram-chart-window(obj :: HistogramChartWindowObject) with:
     constr: {(): histogram-chart-window},
     x-axis: x-axis-method,
-    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-axis-type: x-axis-type-method,
     y-axis-type: y-axis-type-method,
@@ -1825,7 +1804,6 @@ data ChartWindow:
     # minor-gridlines-color: minor-gridlines-color-method, 
     # minor-gridlines-minspacing: minor-gridlines-min-spacing-method, 
     x-axis: x-axis-method,
-    x-axis-stagger: x-axis-stagger-labels-method,
     y-axis: y-axis-method,
     x-axis-type: x-axis-type-method,
     y-axis-type: y-axis-type-method,
