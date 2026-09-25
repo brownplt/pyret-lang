@@ -923,6 +923,13 @@
       
       axis.encode = {
         ... axis.encode,
+        title: {
+          ... axis.encode?.title,
+          update: {
+            ... axis.encode?.title?.update,
+            titleY: { signal: `xAxisLabelCycleSize * 20 + 5` }
+          }
+        },
         labels: {
           name: 'xAxisLabels',
           ... axis.encode?.labels,
