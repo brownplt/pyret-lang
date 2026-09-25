@@ -273,17 +273,10 @@ function anfLinear(eInit: A.Expr, k: ANFCont): N.AExpr {
         const l2 = f.l;
         const b = asVariant(f.b, A.SBind);
         const val = f.value;
-        if (A.isABlank(b.ann) || A.isAAny(b.ann)) {
-          emit(anfName(val, 'var', (newVal) =>
-            new N.AExpr([new N.AVar(l2, new N.ABind(l2, b.id, b.ann), new N.AVal(newVal.l, newVal))], HOLE)));
-        } else {
-          const varName = mkId(l2, 'var');
-          emit(anf(val, (lettable) =>
-            new N.AExpr([
-              new N.ALet(l2, varName.idB, lettable),
-              new N.AVar(l2, new N.ABind(l2, b.id, b.ann), new N.AVal(l2, varName.idE)),
-            ], HOLE)));
-        }
+        // The a-var carries b.ann: anf-loop-compiler attaches it to the box
+        // and checks the initial value through it.
+        emit(anfName(val, 'var', (newVal) =>
+          new N.AExpr([new N.AVar(l2, new N.ABind(l2, b.id, b.ann), new N.AVal(newVal.l, newVal))], HOLE)));
         break;
       }
       case 's-let-bind': {

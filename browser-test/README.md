@@ -76,8 +76,13 @@ the environment boots — the stock Pyret-hosted compiler or the TypeScript port
 (code.pyret.org's `?compiler=ts` opt-in). Each env adapter maps it to its own
 flavor knob: cpo appends `?compiler=ts` to `/editor`, embed forwards it through
 the host page to the iframe URL (as the embed library's `compiler` config
-option does), and vscode opens the fixture workspace whose settings set
-`pyret-parley.compiler: "ts"`. The suites and assertions are identical in both
+option does), vscode opens the fixture workspace whose settings set
+`pyret-parley.compiler: "ts"`, and embed-static hands it to the **library** —
+the host page passes `compiler` to `makeEmbedConfig`, which appends
+`?compiler=ts` to the artifact URL, so it is the one env where the library
+rather than the harness selects the flavor. (The ts flavor reads
+`cpo-main-ts.jarr.gz.js` + `ts-compiler.gz.js` from the served root, next to
+the stock bundle: `make web-ts`.) The suites and assertions are identical in both
 configurations; `run-all.sh` runs the full env × compiler matrix.
 
 It is **strictly additive**: nothing under `code.pyret.org/` or `vscode/` is

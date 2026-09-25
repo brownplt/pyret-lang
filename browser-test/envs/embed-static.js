@@ -21,6 +21,14 @@
  * Env vars:
  *   EMBED_STATIC_ROOT  override the served build dir
  *                      (default code.pyret.org/build/web)
+ *   PYRET_COMPILER     pyret (default) | ts. Forwarded to the host page as a
+ *                      query parameter, which hands it to makeEmbedConfig's
+ *                      `compiler` option -- the library then appends
+ *                      ?compiler=ts to the artifact URL and editor.html swaps
+ *                      in the ts jarr. This is the only env where the LIBRARY
+ *                      selects the flavor (the others set the editor URL
+ *                      themselves), and it needs the ts artifacts next to the
+ *                      bundle in the served root (`make web-ts`).
  */
 const path = require("path");
 const fs = require("fs");
@@ -33,6 +41,7 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const BUILD_ROOT = process.env.EMBED_STATIC_ROOT || path.join(REPO_ROOT, "code.pyret.org", "build", "web");
 const EMBED_DIST = path.join(REPO_ROOT, "embed", "dist");
 const PAGES_ROOT = path.resolve(__dirname, "..", "pages");
+const COMPILER = process.env.PYRET_COMPILER || "pyret";
 
 async function setup() {
   const artifact = path.join(BUILD_ROOT, "editor.embed.html");
@@ -49,6 +58,17 @@ async function setup() {
         "(`npm ci --ignore-scripts && npx webpack` in embed/ produce it)"
     );
   }
+  if (COMPILER === "ts") {
+    const tsCompiler = path.join(BUILD_ROOT, "js", "ts-compiler.gz.js");
+    if (!fs.existsSync(tsCompiler)) {
+      throw new Error(
+        "embed-static: " + tsCompiler + " not found -- is the ts flavor built? " +
+          "(`make web-ts` in code.pyret.org puts cpo-main-ts.jarr.gz.js and " +
+          "ts-compiler.gz.js next to cpo-main.jarr.gz.js, where editor.html " +
+          "derives their URLs)"
+      );
+    }
+  }
 
   const scope = resourceScope();
   try {
@@ -63,7 +83,8 @@ async function setup() {
     wireBrowserLogs(page);
     page.setDefaultTimeout(60000);
 
-    await page.goto(server.origin + "/embed-static-host.html", {
+    const query = COMPILER === "pyret" ? "" : "?compiler=" + COMPILER;
+    await page.goto(server.origin + "/embed-static-host.html" + query, {
       waitUntil: "domcontentloaded",
       timeout: 120000,
     });
@@ -85,5 +106,5 @@ async function setup() {
 
 module.exports = {
   setup,
-  label: "pyret-embed library against the static editor.embed.html artifact (no CPO server)",
+  label: `pyret-embed library against the static editor.embed.html artifact (${COMPILER} compiler, no CPO server)`,
 };

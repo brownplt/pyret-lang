@@ -8,6 +8,11 @@
 
   Served by envs/embed-static.js alongside code.pyret.org/build/web (the
   artifact) and embed/dist (the library), all same-origin.
+
+  ?compiler=ts on THIS page selects the compiler flavor: it goes into
+  makeEmbedConfig's `compiler` option, and the library appends it to the
+  artifact URL. That is the flow an embedding host uses, so it is the flow
+  worth testing -- the editor page is never given the flag directly here.
 -->
 <html>
 <head>
@@ -23,6 +28,8 @@
   makeEmbedConfig({
     container: document.getElementById("container"),
     src: "/editor.embed.html",
+    // 'pyret' is the library's default and adds no query parameter.
+    compiler: new URLSearchParams(location.search).get("compiler") || "pyret",
     // Same initial state the embed env resets to (envs/embed.js).
     state: {
       definitionsAtLastRun: false,

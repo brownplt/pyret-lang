@@ -2958,6 +2958,16 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
       }
       return checkI(0);
     }
+    // Note that the store happens after the check, so a failed assignment
+    // leaves the var unchanged deliberately
+    function checkVarAssign(box, val) {
+      if(box.$ann === undefined) { box.$var = val; return nothing; }
+      return safeCheckAnnArg(box.$loc, box.$ann, val, function(ignoredVal) {
+        box.$var = val;
+        return nothing;
+      });
+    }
+
     function checkRefAnns(obj, fields, vals, locs, exprloc, objloc) {
       if (!isObject(obj)) { thisRuntime.ffi.throwUpdateNonObj(makeSrcloc(exprloc), obj, makeSrcloc(objloc));}
       var anns = new Array(fields.length);
@@ -6294,6 +6304,7 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
       'derefField': derefField,
 
       'checkRefAnns' : checkRefAnns,
+      'checkVarAssign' : checkVarAssign,
 
       'isGraphableRef' : isGraphableRef,
       'isRefGraphable' : isRefGraphable,
@@ -6535,6 +6546,7 @@ function (Namespace, jsnumslib, codePoint, util, exnStackParser, loader, seedran
         'addModuleToNamespace': 'aMTN',
         'checkArityC': 'cAC',
         'checkRefAnns': 'cRA',
+        'checkVarAssign': 'cVA',
         'derefField': 'dF',
         'getColonFieldLoc': 'gCFL',
         'getDotAnn': 'gDA',

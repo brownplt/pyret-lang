@@ -15,13 +15,6 @@ name: browser-test (embed + vscode webviews)
 # Shape: build code.pyret.org + the extension ONCE, then fan out the five
 # environments as a parallel matrix (each on its own runner, so chart rendering
 # doesn't contend for CPU).
-#
-# cpo/embed/vscode/vscode-ovsx each run twice: once per compiler flavor (the
-# stock Pyret-hosted compiler and the TypeScript port, run.js's --compiler
-# knob); vscode-ovsx x ts covers the pyret-parley.compiler=ts setting under
-# hostile (nosniff) serving, where the compiler bundle must load via
-# beforePyret's fetch path. embed-static drives the built editor.embed.html
-# artifact whose flavor is baked at build time, so it stays pyret-only.
 
 on:
   push:
@@ -35,7 +28,23 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
+      - name: Compute test matrix
+        id: matrix
+        env:
+          REF: ${{ github.ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          case "${BASE_REF:-$REF}" in
+            mainmast|refs/heads/mainmast)
+              envs='["cpo","embed","embed-static","vscode","vscode-ovsx"]' ;;
+            *)
+              envs='["cpo","vscode"]' ;;
+          esac
+          echo "matrix={\"env\":$envs,\"compiler\":[\"pyret\",\"ts\"]}" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
@@ -80,13 +89,7 @@ jobs:
     timeout-minutes: 25
     strategy:
       fail-fast: false
-      matrix:
-        env: [cpo, embed, embed-static, vscode, vscode-ovsx]
-        compiler: [pyret, ts]
-        exclude:
-          # editor.embed.html's flavor is baked at build time (pyret)
-          - env: embed-static
-            compiler: ts
+      matrix: ${{ fromJSON(needs.build.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
