@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 (eval-when-compile (require 'cl))
 (defvar pyret-mode-hook nil)
 (defun pyret-smart-tab ()

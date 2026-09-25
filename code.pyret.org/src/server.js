@@ -214,6 +214,19 @@ function start(config, onServerReady) {
   });
 
   if(config.development) {
+    // url-imports fixtures that url-file import each other name their own
+    // origin as {{FIXTURE_ORIGIN}} (see test/url-imports.js).
+    app.use("/pyret-programs/url-imports", function(req, res, next) {
+      if(!req.path.endsWith(".arr")) { return next(); }
+      var root = path.resolve(__dirname, "../test-util/pyret-programs/url-imports");
+      var file = path.resolve(root, "." + decodeURIComponent(req.path));
+      if(!file.startsWith(root + path.sep)) { return next(); }
+      fs.readFile(file, "utf8", function(err, text) {
+        if(err) { return next(); }
+        var origin = req.protocol + "://" + req.get("host");
+        res.type("text/plain").send(text.split("{{FIXTURE_ORIGIN}}").join(origin));
+      });
+    });
     app.use(express.static(__dirname + "/../test-util/"));
     app.get("/keys", function(req, res) {
       var keys = db.getKeys(req.query.q);

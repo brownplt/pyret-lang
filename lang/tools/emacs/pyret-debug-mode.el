@@ -1,4 +1,4 @@
-;;; pyret-debug-mode.el --- Minor mode for debugging Pyret
+;;; pyret-debug-mode.el --- Minor mode for debugging Pyret  -*- lexical-binding: t; -*-
 
 ;; Author: Philip Blair <philip@pblair.org>
 ;; Created 17 December 2017

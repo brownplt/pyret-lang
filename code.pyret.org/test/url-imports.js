@@ -1,71 +1,20 @@
 var tester = require("../test-util/util.js");
 
-/*
- * Tests for live curricular files from Bootstrap. It's probably worth
- * revisiting this occasionally to update to newer files. The original version
- * was written in summer 2026 and refers to files from then.
- */
+// The vscode test below names a remote base that must never be fetched: its
+// imports resolve from the fixture workspace on disk. If local resolution
+// breaks, the network fallback fails against this address instead of quietly
+// loading real files. Bootstrap's own files are tested in its curriculum repo
+// (bootstrapworld/curriculum, starter-file-tests/).
+var UNREACHABLE = "https://example.invalid/starter-files";
 
-var PINNED = "30cf803e0f97f67d4b3b16132acb1f64a9e3dd1c";
-var RAW = "https://raw.githubusercontent.com/bootstrapworld/starter-files/" + PINNED;
-
-var tests = [
-  { name: "url import of a pinned raw file",
-    program:
-      'import url("' + RAW + '/libraries/core.arr") as CORE\n' +
-      'check:\n' +
-      '  CORE.string-trim("  hi  ") is "hi"\n' +
-      'end',
-    specs: [[["Passed"]]],
-    options: { timeout: 90000 } },
-
-  { name: "import url-file relative to the base URL",
-    program:
-      'import url-file("' + RAW + '/libraries", "core.arr") as CORE\n' +
-      'check:\n' +
-      '  CORE.string-trim("  hi  ") is "hi"\n' +
-      'end',
-    specs: [[["Passed"]]],
-    options: { timeout: 90000 } },
-
-  { name: "import url-file with ../ traversal above the base URL",
-    program:
-      'import url-file("' + RAW + '/algebra-2", "../libraries/core.arr") as CORE\n' +
-      'check:\n' +
-      '  CORE.string-trim("  hi  ") is "hi"\n' +
-      'end',
-    specs: [[["Passed"]]],
-    options: { timeout: 90000 } },
-
-  { name: "use context url-file",
-    program:
-      'use context url-file("' + RAW + '/libraries", "core.arr")\n' +
-      'check:\n' +
-      '  string-trim("  hi  ") is "hi"\n' +
-      '  round-digits(3.14159, 2) is 3.14\n' +
-      'end',
-    specs: [[["Passed"], ["Passed"]]],
-    options: { timeout: 90000 } },
-
-  // The shape of the fall2026 Unit Clock starter file: a url-file context
-  // and a url-file include, both reaching a sibling directory via "../",
-  // where the included library has a url-file context of its own.
-  { name: "starter-file shape: use context and include, both via ../",
-    program:
-      'use context url-file("' + RAW + '/algebra-2", "../libraries/core.arr")\n' +
-      'include url-file("' + RAW + '/algebra-2", "../libraries/unit-clock-library.arr")\n' +
-      'check:\n' +
-      '  deg-to-rad(0) is 0\n' +
-      '  rad-to-deg(0) is 0\n' +
-      'end',
-    specs: [[["Passed"], ["Passed"]]],
-    options: { timeout: 180000 } },
-];
+var tests = [];
 
 // Hermetic cases served by the dev server itself (server.js serves test-util/
 // statically in development), so they need no outside network. The "/app"
 // path segment need not exist; it is there for "../" to consume, the same
-// way the starter files' base URLs work.
+// way the starter files' base URLs work. A fixture that url-file imports
+// another fixture writes {{FIXTURE_ORIGIN}} for its own origin; both servers
+// fill it in when serving .arr files under pyret-programs/url-imports/.
 // browser-test serves these fixtures itself (PYRET_FIXTURE_BASE, see its
 // run.js) so that the envs which run no CPO server can reach them too; the
 // mocha suite has no such server and falls back to BASE_URL, where the dev
@@ -74,6 +23,14 @@ var base = process.env.PYRET_FIXTURE_BASE || process.env.BASE_URL;
 if (base) {
   var localBase = base.replace(/\/+$/, "") + "/pyret-programs/url-imports";
   tests.push(
+    { name: "local url import (no external network)",
+      program:
+        'import url("' + localBase + '/lib/provided.arr") as P\n' +
+        'check:\n' +
+        '  P.shared-value is "from-url-imports-lib"\n' +
+        'end',
+      specs: [[["Passed"]]],
+      options: { timeout: 60000 } },
     { name: "local url-file with ../ traversal (no external network)",
       program:
         'include url-file("' + localBase + '/app", "../lib/provided.arr")\n' +
@@ -89,6 +46,18 @@ if (base) {
         '  context-marker is 42\n' +
         'end',
       specs: [[["Passed"]]],
+      options: { timeout: 60000 } },
+    // A url-file context and a url-file include, both via "../", where the
+    // included module has a url-file context of its own.
+    { name: "local included module with its own use context url-file (no external network)",
+      program:
+        'use context url-file("' + localBase + '/app", "../lib/mini-context.arr")\n' +
+        'include url-file("' + localBase + '/app", "../lib/nested-context.arr")\n' +
+        'check:\n' +
+        '  context-marker is 42\n' +
+        '  nested-context-marker is 43\n' +
+        'end',
+      specs: [[["Passed"], ["Passed"]]],
       options: { timeout: 60000 } }
   );
 }
@@ -100,15 +69,11 @@ if (base) {
 // starter-file layout on disk:
 //
 //   algebra-2/test.arr             <- the open editor tab
-//   libraries/core.arr             <- copy of the pinned core.arr, + one marker
+//   libraries/core.arr             <- copy of a starter-files core.arr, + one marker
 //   libraries/unit-clock-library.arr  <- copy, + one marker, and it carries its
 //                                        OWN `use context url-file(..., "core.arr")`
 //
-// So the "../ traversal" and "starter-file shape" tests above resolve off disk
-// there instead of over the network -- same programs, same assertions,
-// different resolution path.
-//
-// This test adds the two markers, which is what makes the local branch
+// This test checks the two markers, which is what makes the local branch
 // observable, and specifically what distinguishes correct load-path tracking
 // from the bug it replaced:
 //
@@ -126,8 +91,8 @@ if (process.env.PYRET_ENV === "vscode") {
   tests.push(
     { name: "starter-file shape resolves from the workspace, per-module load paths",
       program:
-        'use context url-file("' + RAW + '/algebra-2", "../libraries/core.arr")\n' +
-        'include url-file("' + RAW + '/algebra-2", "../libraries/unit-clock-library.arr")\n' +
+        'use context url-file("' + UNREACHABLE + '/algebra-2", "../libraries/core.arr")\n' +
+        'include url-file("' + UNREACHABLE + '/algebra-2", "../libraries/unit-clock-library.arr")\n' +
         'check:\n' +
         '  came-from-local-filesystem is "vscode-fixture-workspace"\n' +
         '  core-marker-seen is "vscode-fixture-workspace"\n' +
