@@ -2287,7 +2287,7 @@ fun labeled-box-plot-from-list(
     num-max(lst.rest.foldl(num-max, lst.first), cur)
   end
   min-height = for fold(cur from values.first.first, lst from values):
-    num-max(lst.rest.foldl(num-min, lst.first), cur)
+    num-min(lst.rest.foldl(num-min, lst.first), cur)
   end
 
   default-box-plot-series.{
