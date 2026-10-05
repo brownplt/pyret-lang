@@ -278,7 +278,7 @@ export function makePyretPane(
             change: {
               from: { line: change.range.start.line, ch: change.range.start.character },
               to: { line: change.range.end.line, ch: change.range.end.character },
-              text: change.text.split('\n'),
+              text: change.text.split(/\r\n?|\n/),
               origin: null
             }
           }
