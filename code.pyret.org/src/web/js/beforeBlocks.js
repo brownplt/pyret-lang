@@ -401,6 +401,10 @@ $(function() {
         });
       });
     }
+    else if(params["get"] && params["get"]["shareurl"]) {
+      logger.log('shared-program-load', { url: params["get"]["shareurl"] });
+      programLoad = null;
+    }
     else {
       programLoad = null;
     }

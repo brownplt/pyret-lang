@@ -551,6 +551,7 @@ $(function() {
   */
   let initialProgram;
   if(params["get"] && params["get"]["shareurl"]) {
+    logger.log('shared-program-load', { url: params["get"]["shareurl"] });
     initialProgram = makeUrlFile(params["get"]["shareurl"]);
   }
   else {
