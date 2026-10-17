@@ -348,16 +348,29 @@ export function makePyretPane(
          * { type: 'rpc', module: 'fs', method: 'readFile', args: ['path/to/file'], callbackId: 'some-id' }
          */
         console.log("RPC:", e.data);
-        const module = (knownModules as any)[e.data.module];
-        if (!(module as any)[e.data.method]) {
-          sendRpcResponse(e.data, { resultType: 'exception', exception: `Unknown method ${e.data.method}` });
+        // Every request must get a response: the webview's caller is a paused
+        // Pyret stack that only resumes when this callbackId comes back.
+        const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k);
+        const module = has(knownModules, e.data.module) ? (knownModules as any)[e.data.module] : undefined;
+        if (!module) {
+          sendRpcResponse(e.data, { resultType: 'exception', exception: `Unknown module ${e.data.module}` });
+        }
+        else if (!has(module, e.data.method)) {
+          sendRpcResponse(e.data, { resultType: 'exception', exception: `Unknown method ${e.data.module}.${e.data.method}` });
         }
         else {
           try {
             const result = await (module as any)[e.data.method](...e.data.args);
             sendRpcResponse(e.data, { resultType: 'value', result });
           } catch (exn) {
-            sendRpcResponse(e.data, { resultType: 'exception', exception: String(exn) });
+            let exception = String(exn);
+            // On macOS, files under ~/Desktop, ~/Documents, and ~/Downloads
+            // fail this way until VS Code is granted access to that folder,
+            // even when the same file opens fine in an editor tab.
+            if (exn instanceof vscode.FileSystemError && exn.code === 'NoPermissions') {
+              exception += "\n\nVS Code does not have permission to access this file. On macOS, check System Settings > Privacy & Security > Files and Folders (and Full Disk Access) for Visual Studio Code, or move the project out of Desktop/Documents/Downloads.";
+            }
+            sendRpcResponse(e.data, { resultType: 'exception', exception });
           }
         }
         return;
