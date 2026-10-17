@@ -67,6 +67,14 @@ define("cpo/file-locator", [], function() {
     var gmf = function(m, f) { return gf(gf(m, "values"), f); };
 
 
+    // Every RPC here runs under a paused stack, so a rejected RPC has to
+    // become restarter.error -- otherwise the run waits forever, silently.
+    function rpcFailed(restarter, what) {
+      return function(err) {
+        restarter.error(runtime.ffi.makeMessageException(what + ": " + String(err)));
+      };
+    }
+
     function makeFileLocator(path) {
       return runtime.pauseStack((restarter) => {
         const realpath = sendRpc('path', 'resolve', [path]);
@@ -89,10 +97,14 @@ define("cpo/file-locator", [], function() {
                     return ast; 
                   }, "file-locator:parse-contents");
                 }, function(result) {
-                  console.log("Result from getModule runThunk: ", result);
-                  restarter.resume(result.result);
+                  if(runtime.isSuccessResult(result)) {
+                    restarter.resume(result.result);
+                  }
+                  else {
+                    restarter.error(result.exn);
+                  }
                 });
-              });
+              }, rpcFailed(restarter, "Could not read file " + JSON.stringify(path)));
             });
           }
 
@@ -166,7 +178,7 @@ define("cpo/file-locator", [], function() {
             "set-compiled": m2(setCompiled),
             "get-compiled": m1(function() { return runtime.ffi.makeNone(); })
           }));
-        });
+        }, rpcFailed(restarter, "Could not resolve file path " + JSON.stringify(path)));
       });
     }
 

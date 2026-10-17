@@ -35,6 +35,7 @@ const SUITES = {
   "stop-during-load": require("./stop-during-load"),
   "rapid-rerun": require("./rapid-rerun"),
   "effective-ids": require("./effective-ids"),
+  "fs-rpc-failures": require("./fs-rpc-failures"),
 };
 
 if (!ENV || !["cpo", "embed", "embed-static", "vscode", "vscode-ovsx"].includes(ENV)) {
