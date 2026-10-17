@@ -230,6 +230,8 @@
                 const realpath = window.MESSAGES.sendRpc('path', 'resolve', [info.path]);
                 realpath.then((realpath) => {
                   restarter.resume(`js-file://${realpath}`);
+                }, (err) => {
+                  restarter.error(runtime.ffi.makeMessageException("Error resolving import path: " + String(err)));
                 });
               });
             }
@@ -242,6 +244,8 @@
                 const realpath = window.MESSAGES.sendRpc('path', 'resolve', [info.path]);
                 realpath.then((realpath) => {
                   restarter.resume(`file://${realpath}`);
+                }, (err) => {
+                  restarter.error(runtime.ffi.makeMessageException("Error resolving import path: " + String(err)));
                 });
               });
             }
@@ -341,30 +345,45 @@
                         return fileLocatorConstructor.makeFileLocator(info.path);
                       case "local-if-present":
                         return runtime.pauseStack(async (restarter) => {
-                          const exists = await fsInternal.exists(info.path);
+                          // This callback is async, so anything it throws is a
+                          // rejected promise nobody looks at; catch it here or
+                          // the run never resumes.
+                          let exists;
+                          try {
+                            exists = await fsInternal.exists(info.path);
+                          }
+                          catch(err) {
+                            restarter.error(runtime.isObject(err) ? err
+                              : runtime.ffi.makeMessageException("Error checking for local file " + JSON.stringify(info.path) + ": " + String(err)));
+                            return;
+                          }
                           if(exists) {
                             fsInternal.readFile(info.path).then((contents) => {
                               const strContents = Buffer.from(contents).toString('utf8');
                               CPO.documents.set(fullUrl, new CodeMirror.Doc(strContents, "pyret"));
-                            });
-                            return runtime.runThunk(() => {
-                              var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
-                              return fileLocatorConstructor.makeFileLocator(info.path);
-                            }, (result) => {
-                              if(runtime.isSuccessResult(result)) {
-                                restarter.resume(result.result);
-                              }
-                              else {
-                                restarter.error(result.error);
-                              }
                             });
                           }
                           else {
                             fetch(fullUrl).then(async (response) => {
                               CPO.documents.set(fullUrl, new CodeMirror.Doc(await response.text(), "pyret"));
                             });
-                            return restarter.resume(runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(fullUrl, replGlobals));
                           }
+                          return runtime.runThunk(() => {
+                            if(exists) {
+                              var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
+                              return fileLocatorConstructor.makeFileLocator(info.path);
+                            }
+                            else {
+                              return runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(fullUrl, replGlobals);
+                            }
+                          }, (result) => {
+                            if(runtime.isSuccessResult(result)) {
+                              restarter.resume(result.result);
+                            }
+                            else {
+                              restarter.error(result.exn);
+                            }
+                          });
                         });
                     }
 
