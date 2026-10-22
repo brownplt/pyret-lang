@@ -1353,7 +1353,7 @@ end
 fun var-assign-is-checked(compiler, id :: A.Name) -> Boolean:
   cases(Option) compiler.bindings.get-now(id.key()):
     | none => false
-    | some(vb) => not(vb.origin.new-definition) or not(A.is-a-blank(vb.ann) or A.is-a-any(vb.ann))
+    | some(vb) => not(vb.origin.new-definition) or not(vb.ann.is-ignorable())
   end
 end
 
@@ -1654,7 +1654,7 @@ compiler-visitor = {
   method a-var(self, l :: Loc, b :: N.ABind, e :: N.ALettable, body :: N.AExpr):
     compiled-body = body.visit(self)
     compiled-e = e.visit(self)
-    if A.is-a-blank(b.ann) or A.is-a-any(b.ann):
+    if b.ann.is-ignorable():
       c-block(
         j-block(
           j-var(js-id-of(b.id),
