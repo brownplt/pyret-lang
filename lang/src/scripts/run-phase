@@ -22,7 +22,7 @@ if [ "$#" -gt 0 ] && [ "$1" = "-v" ]; then
 fi
 if [ "$#" -lt 1 ]; then
   echo "Expecting 1 argument; received $#"
-  echo "Usage: $PHASE [-v] file.arr [args]"
+  echo "Usage: $SYMLINK_NAME [-v] file.arr [args]"
   exit 1
 fi
 PHASE="$SYMLINK_NAME"
