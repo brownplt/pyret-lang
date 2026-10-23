@@ -1811,7 +1811,7 @@
       const yAxisLabel = globalOptions['y-axis'];
       const axes = [
         { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel,
-          format: '5~r',
+          format: '.12~r',
           values: (binWidth
                    ? { signal: `sequence(floor(domain('binScale')[0] / binWidth) * binWidth, domain('binScale')[1] + binWidth, binWidth)` }
                    : undefined) },
@@ -1929,7 +1929,7 @@
         }
       ];
       const axes = [
-        { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel, format: '5~r' },
+        { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel, format: '.12~r' },
         { orient: 'bottom', scale: 'binScale', zindex: 0, grid: true, ticks: false, labels: false },
         { orient: 'left', scale: 'dotScale', grid: false, ticks: false, labels: false, title: yAxisLabel, zindex: 1 }
       ];
