@@ -1680,7 +1680,7 @@
               type: 'bin',
               field: 'value',
               extent: { signal: 'dataRange' },
-              maxbinx: maxNumBins,
+              maxbins: maxNumBins,
               step: binWidth ? { signal: 'binWidth' } : undefined,
               nice: true
             },
