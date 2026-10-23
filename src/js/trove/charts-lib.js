@@ -1679,7 +1679,17 @@
             {
               type: 'bin',
               field: 'value',
-              extent: { signal: 'dataRange' },
+              // Vega rounds the upper limit up to a multiple of the step and
+              // counts a value equal to that limit in the *last* bin, so a
+              // maximum that sits exactly on a bin edge gets merged into the
+              // bin below it instead of getting its own. Nudge the upper end
+              // up so it starts a new bin; anything not on an edge is
+              // unaffected. Only done with an explicit step: otherwise the
+              // extent also sets the step size, and nudging it would
+              // distort that (e.g. when every value is the same).
+              extent: { signal: binWidth
+                                ? '[dataRange[0], dataRange[1] + binWidth * 1e-9]'
+                                : 'dataRange' },
               maxbins: maxNumBins,
               step: binWidth ? { signal: 'binWidth' } : undefined,
               nice: true
