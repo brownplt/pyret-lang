@@ -1117,9 +1117,9 @@ type HistogramValue = {
   
 type HistogramSeries = {
   vals :: List<HistogramValue>,
-  bin-width :: Option<Number>,
-  max-num-bins :: Option<Number>,
-  min-num-bins :: Option<Number>,
+  bin-width :: Option<NumPositive>,
+  max-num-bins :: Option<CL.NumPositiveNatural>,
+  min-num-bins :: Option<CL.NumPositiveNatural>,
   color :: Option<IS.Color>,
 }
 
@@ -1718,16 +1718,16 @@ data DataSeries:
     color: color-method, 
     is-single: true,
     constr: {(): histogram-series},
-    method bin-width(self, bin-width :: Number):
+    method bin-width(self, bin-width :: NumPositive):
       histogram-series(self.obj.{bin-width: some(bin-width)})
     end,
-    method max-num-bins(self, max-num-bins :: Number):
+    method max-num-bins(self, max-num-bins :: CL.NumPositiveNatural):
       histogram-series(self.obj.{max-num-bins: some(max-num-bins)})
     end,
-    method min-num-bins(self, min-num-bins :: Number):
+    method min-num-bins(self, min-num-bins :: CL.NumPositiveNatural):
       histogram-series(self.obj.{min-num-bins: some(min-num-bins)})
     end,
-    method num-bins(self, num-bins :: Number):
+    method num-bins(self, num-bins :: CL.NumPositiveNatural):
       histogram-series(self.obj.{
         min-num-bins: some(num-bins),
         max-num-bins: some(num-bins)

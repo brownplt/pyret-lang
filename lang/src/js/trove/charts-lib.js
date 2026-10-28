@@ -1679,17 +1679,9 @@
             {
               type: 'bin',
               field: 'value',
-              // Vega rounds the upper limit up to a multiple of the step and
-              // counts a value equal to that limit in the *last* bin, so a
-              // maximum that sits exactly on a bin edge gets merged into the
-              // bin below it instead of getting its own. Nudge the upper end
-              // up so it starts a new bin; anything not on an edge is
-              // unaffected. Only done with an explicit step: otherwise the
-              // extent also sets the step size, and nudging it would
-              // distort that (e.g. when every value is the same).
-              extent: { signal: binWidth
-                                ? '[dataRange[0], dataRange[1] + binWidth * 1e-9]'
-                                : 'dataRange' },
+              extent: { signal: (binWidth
+                                 ? '[dataRange[0], (dataRange[1] + binWidth) * (1 + 1e-15)]'
+                                 : 'dataRange') },
               maxbins: maxNumBins,
               step: binWidth ? { signal: 'binWidth' } : undefined,
               nice: true
@@ -1821,7 +1813,7 @@
       const yAxisLabel = globalOptions['y-axis'];
       const axes = [
         { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel,
-          format: '.12~r',
+          format: '.16~r',
           values: (binWidth
                    ? { signal: `sequence(floor(domain('binScale')[0] / binWidth) * binWidth, domain('binScale')[1] + binWidth, binWidth)` }
                    : undefined) },
@@ -1939,7 +1931,7 @@
         }
       ];
       const axes = [
-        { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel, format: '.12~r' },
+        { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel, format: '.16~r' },
         { orient: 'bottom', scale: 'binScale', zindex: 0, grid: true, ticks: false, labels: false },
         { orient: 'left', scale: 'dotScale', grid: false, ticks: false, labels: false, title: yAxisLabel, zindex: 1 }
       ];
@@ -3600,6 +3592,7 @@
         "LoOoS": ann("List<Option<String>>", checkListWith(checkOptionWith(RUNTIME.isString))),
         "LoLoOoS": ann("List<List<Option<String>>>", checkListWith(checkListWith(checkOptionWith(RUNTIME.isString)))),
         "LoNi": ann("List<NumInteger>", checkListWith(v => RUNTIME.isNumber(v) && RUNTIME.num_is_integer(v))),
+        "NumPositiveNatural": ann("NumPositiveNatural", (v => RUNTIME.isNumber(v) && RUNTIME.num_is_integer(v) && jsnums.isPositive(v)))
       }
     )
   }
