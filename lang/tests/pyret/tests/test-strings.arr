@@ -93,6 +93,13 @@ check:
   "3+5i" violates string-is-number
   "1a2" violates string-is-number
 
+  # fraction literals with a zero denominator are rejected by Pyret itself
+  string-to-number("1/0") is none
+  string-to-number("-3/0") is none
+  string-to-number("0/0") is none
+  string-to-number("~1/0") is none
+  "1/0" violates string-is-number
+
   string-repeat("a", 4) is "aaaa"
   string-repeat("a", 0) is ""
   string-repeat("abc", 3) is "abcabcabc"
