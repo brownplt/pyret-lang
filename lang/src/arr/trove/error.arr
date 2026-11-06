@@ -2302,8 +2302,12 @@ data RuntimeError:
               else if src-available(loc):
                 cases(O.Option) maybe-ast(loc):
                   | some(ast) =>
-                    left-loc =  ast.left.l
-                    right-loc = ast.right.l
+                    {left-loc; right-loc} = cases(Any) ast:
+                      | s-op(_, _, _, left-expr, right-expr) =>
+                        {left-expr.l; right-expr.l}
+                      | s-app(_, _, args) =>
+                        {args.get(0).l; args.get(1).l}
+                    end
                     [ED.sequence:
                       ed-intro("equality comparison", loc, -1, true),
                       ED.cmcode(loc),
