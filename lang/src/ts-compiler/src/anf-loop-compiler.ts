@@ -978,9 +978,9 @@ export function compileAnns(
   let curTarget = entryLabel;
   let newCases: CList<J.JCaseT> = clEmpty;
   for (const b of binds) {
-    if (A.isABlank(b.ann) || A.isAAny(b.ann)) {
+    if (b.ann.isIgnorable()) {
       // acc unchanged
-    } else if (A.isATuple(b.ann) && b.ann.fields.every((a) => A.isABlank(a) || A.isAAny(a))) {
+    } else if (A.isATuple(b.ann) && b.ann.fields.every((a) => a.isIgnorable())) {
       const newLabel = visitor.makeLabel();
       const newCase =
         jCase(curTarget,
@@ -1044,7 +1044,7 @@ export function compileAnnotatedLet(
     return raise('Unknown ' + (b as any).value.label() + ' in compile-annotated-let');
   }
   const bind = b.value;
-  if (A.isABlank(bind.ann) || A.isAAny(bind.ann)) {
+  if (bind.ann.isIgnorable()) {
     return cBlock(
       jBlock(
         clAppend(
@@ -1055,7 +1055,7 @@ export function compileAnnotatedLet(
       ),
       compiledBody.newCases
     );
-  } else if (A.isATuple(bind.ann) && bind.ann.fields.every((a) => A.isABlank(a) || A.isAAny(a))) {
+  } else if (A.isATuple(bind.ann) && bind.ann.fields.every((a) => a.isIgnorable())) {
     const step = visitor.curStep;
     const afterAnn = visitor.makeLabel();
     const afterAnnCase = jCase(afterAnn, jBlock(DAG.stmtsOf(compiledBody.block)));
@@ -1140,7 +1140,7 @@ function compileHead(compiler: CompilerVisitor, head: N.AExprHead, rest: DAG.CBl
     case 'a-var': {
       const compiledE: DAG.CExp = head.e.visit(compiler);
       const bind = head.bind;
-      if (A.isABlank(bind.ann) || A.isAAny(bind.ann)) {
+      if (bind.ann.isIgnorable()) {
         return cBlock(
           jBlock(
             clCons(
@@ -1870,7 +1870,7 @@ function compileSplitUpdate(
 function varAssignIsChecked(compiler: CompilerVisitor, id: A.Name): boolean {
   const vb = compiler.bindings.get(id.key());
   if (vb === undefined) { return false; }
-  return !vb.origin.newDefinition || !(A.isABlank(vb.ann) || A.isAAny(vb.ann));
+  return !vb.origin.newDefinition || !vb.ann.isIgnorable();
 }
 
 function compileSplitAssign(
@@ -2310,7 +2310,7 @@ export class CompilerVisitor {
       reflFields: J.JExprT,
       constructorId: J.JExprT
     ): DAG.CExp {
-      const nonblankAnns = members.filter((m) => !A.isABlank(m.bind.ann) && !A.isAAny(m.bind.ann));
+      const nonblankAnns = members.filter((m) => !m.bind.ann.isIgnorable());
       let anns: CList<J.JExprT> = clEmpty;
       let others: CList<J.JStmt> = clEmpty;
       for (const m of nonblankAnns) {
