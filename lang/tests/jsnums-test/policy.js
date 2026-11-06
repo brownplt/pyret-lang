@@ -85,10 +85,11 @@ function identityValue(op, A) {
     case 'atan2': return isExactZero(A[0]) && isPositive(A[1]) ? '0' : null;
     case 'expt':
       if (isExactZero(A[1]) || isExactOne(A[0])) return '1';
-      if (isExactZero(A[0])) {
-        if (isRoughZero(A[1])) return '1';
-        if (isPositive(A[1])) return '0';
-      }
+      // expt(0, y) for y > 0 is exact 0 whether y is exact or rough (the
+      // x===0 special case hardcodes it); a rough zero exponent is NOT
+      // forced to exact 1 -- js-numbers' own contagion rule makes
+      // expt(0, ~0) rough (decided 2026-11-06, Joe Politz; supersedes C01).
+      if (isExactZero(A[0]) && isPositive(A[1])) return '0';
       return null;
     default: return null;
   }

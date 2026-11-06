@@ -761,3 +761,33 @@ own CI covers that.
 - The oracle harnesses require `racket` (with `math` lib), `julia` (found
   on PATH, `$JULIA`, or `~/.juliaup/bin/julia`) and `python3` with
   `mpmath`; `freeze.js` refuses to run with fewer than two.
+
+## 13. Addendum: human decisions, 2026-11-06
+
+The eleven items in section 9 were put to Joe Politz on 2026-11-06. All
+but one confirmed the choice already shipped; prose below is agent-written
+(Claude), the decisions themselves are Joe's.
+
+| # | item | decision |
+|---|---|---|
+| 1 | `expt(0, ~0)` | **Changed.** Rough `~1`, not exact `1`. C01 is superseded by a new commit on `jsnums-hardening-rebased` that restores the branch's original `(y instanceof Roughnum) ? Roughnum.makeInstance(1) : 1`; `policy.js`'s `identityValue` no longer forces this case to exact. `expt-boundary-0014` and `expt-boundary-0015` in `cases/expt.json` were refrozen accordingly (now `rough: 3ff0000000000000`, no `exact-at-identity` stamp); every other frozen case is unchanged (`--refreeze` is still byte-identical). |
+| 2 | mixed exact/rough comparisons | Kept: round-to-double, as shipped. |
+| 3 | rounding a roughnum beyond 2^53 | Kept: decimal-print convention, as shipped. |
+| 4 | ulp thresholds | Kept: 1 ulp general, 2 ulp for `atan2`/`log`/`expt`, as shipped. |
+| 5 | fixnum negative zero | Kept: accepted as harmless, as shipped. |
+| 6 | `fromString("~-0")` | Kept: preserves the sign (`~-0.0`), as shipped. |
+| 7 | `atan2(0, ~x)` with x positive | Kept: exact `0`, as shipped. |
+| 8 | `expt` exponent limit on bases other than 0/1 | Kept: no special case for ±1, as shipped. |
+| 9 | `log` accuracy fix (C05) | Kept, as shipped. |
+| 10 | `makeRational` validation (C06) | Kept, as shipped. |
+| 11 | `fromSchemeString` | Kept: unverified fixes left in, as shipped. |
+
+Only item 1 changed a shipped artifact. The tables in sections 3, 5, 6 and
+7 were produced before this decision and are not regenerated here: the
+`exact-at-identity` count in section 4 is now 35 rather than 37 (the two
+`expt(0, ~0)` cases lost the stamp), and the "F07" row of section 3 and
+the "C01" row of section 6 describe the state before this addendum rather
+than the final one. `make jsnums-test` against the corrected library
+(`jsnums-hardening-rebased`, tip after this addendum's commit) passes all
+185 groups in 18 s; a full `--refreeze` of all 21,915 cases is
+byte-identical except for the two cases named above.
