@@ -2081,6 +2081,7 @@ define("pyret-base/js/js-numbers", function() {
 
       var aMatch = x.match(rationalRegexp);
       if (aMatch) {
+        if (/^0+$/.test(aMatch[2])) { return false; } // zero denominator
         return Rational.makeInstance(fromString(aMatch[1]),
                                      fromString(aMatch[2]));
       }
@@ -2138,6 +2139,7 @@ define("pyret-base/js/js-numbers", function() {
 
       aMatch = x.match(roughnumRatRegexp);
       if (aMatch) {
+        if (/^0+$/.test(aMatch[2])) { return false; } // zero denominator
         return toRoughnum(Rational.makeInstance(fromString(aMatch[1]), fromString(aMatch[2])));
       }
 
