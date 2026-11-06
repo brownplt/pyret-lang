@@ -707,7 +707,7 @@ define("pyret-base/js/js-numbers", function() {
         onXSpecialCase: function(x, y) {
           if (eqv(x, 0)) {
             if (equalsAnyZero(y)) {
-              return 1;
+              return (y instanceof Roughnum) ? Roughnum.makeInstance(1) : 1;
             } else if (lessThan(y, 0)) {
               errbacks.throwDivByZero("expt: division by zero");
             } else {
