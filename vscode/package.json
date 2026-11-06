@@ -18,6 +18,8 @@
 	"files": [
 		"dist/web/**/*",
 		"media/pyret-logo-128.png",
+		"media/icons/pyret.svg",
+		"media/icons/jarr.svg",
 		"language-configuration.json",
 		"syntaxes/pyret.tmLanguage.json"
 	],
@@ -33,7 +35,24 @@
 				"extensions": [
 					".arr"
 				],
+				"icon": {
+					"light": "./media/icons/pyret.svg",
+					"dark": "./media/icons/pyret.svg"
+				},
 				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "jarr",
+				"aliases": [
+					"jarr"
+				],
+				"extensions": [
+					".jarr"
+				],
+				"icon": {
+					"light": "./media/icons/jarr.svg",
+					"dark": "./media/icons/jarr.svg"
+				}
 			}
 		],
 		"grammars": [
