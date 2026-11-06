@@ -1531,19 +1531,24 @@ export function resolveNames(p: A.Program, thismoduleUri: string, initialEnv: C.
           if (maybeUri === undefined) {
             // path must be a single element if there's no URI of a remote module
             // e.g. provide: D end   NOT    provide: M.D end
-            const dataExpr = asVariant(mapGetValue(datatypes, path[0].toname()), A.SDataExpr);
-            maybeAdd2(providedDatatypes, dataExpr.name, [l, undefined, dataExpr.namet]);
-            const dataCheckerName = A.makeCheckerName(dataExpr.name);
-            const dataCheckerVb = mapGetValue(valEnv, dataCheckerName);
-            maybeAdd2(providedValues, dataCheckerName, [l, undefined, dataCheckerVb.atom]);
-            const dataAliasTb = mapGetValue(typeEnv, dataExpr.name);
-            maybeAdd2(providedTypes, dataExpr.name, [l, undefined, dataAliasTb.atom]);
-            for (const v of dataExpr.variants) {
-              const variantVb = mapGetValue(valEnv, v.name);
-              const checkerName = A.makeCheckerName(v.name);
-              const variantCheckerVb = mapGetValue(valEnv, checkerName);
-              maybeAdd2(providedValues, v.name, [l, undefined, variantVb.atom]);
-              maybeAdd2(providedValues, checkerName, [l, undefined, variantCheckerVb.atom]);
+            const maybeDataExpr = datatypes.get(path[0].toname());
+            if (maybeDataExpr !== undefined) {
+              const dataExpr = asVariant(maybeDataExpr, A.SDataExpr);
+              maybeAdd2(providedDatatypes, dataExpr.name, [l, undefined, dataExpr.namet]);
+              const dataCheckerName = A.makeCheckerName(dataExpr.name);
+              const dataCheckerVb = mapGetValue(valEnv, dataCheckerName);
+              maybeAdd2(providedValues, dataCheckerName, [l, undefined, dataCheckerVb.atom]);
+              const dataAliasTb = mapGetValue(typeEnv, dataExpr.name);
+              maybeAdd2(providedTypes, dataExpr.name, [l, undefined, dataAliasTb.atom]);
+              for (const v of dataExpr.variants) {
+                const variantVb = mapGetValue(valEnv, v.name);
+                const checkerName = A.makeCheckerName(v.name);
+                const variantCheckerVb = mapGetValue(valEnv, checkerName);
+                maybeAdd2(providedValues, v.name, [l, undefined, variantVb.atom]);
+                maybeAdd2(providedValues, checkerName, [l, undefined, variantCheckerVb.atom]);
+              }
+            } else {
+              nameErrors = [new CE.UnboundId(new A.SId(l, new A.SName(l, path[path.length - 1].toname()))), ...nameErrors];
             }
           } else {
             const uri = maybeUri;
