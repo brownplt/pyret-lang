@@ -35,3 +35,4 @@ import file("./regression/render-reason-wrong-op.arr") as _
 import file("./regression/table-reduce.arr") as _
 import file("./regression/table-row-row-length-mismatch.arr") as _
 import file("./regression/unguarded-checker-app-continuation.arr") as _
+import file("./regression/identical-fn-error.arr") as _
