@@ -578,7 +578,8 @@
             editor.cm.removeLineClass(lh, "background");});
           for(var i = 0; i < marks.length; i++) {
             const attribs = marks[i].attributes;
-            if(!(attribs && attribs.useline)) {
+            // CodeMirror's fold addon tags the marker that keeps a range folded with __isFold.
+            if(!marks[i].__isFold && !(attribs && attribs.useline)) {
               marks[i].clear();
             }
           }
