@@ -111,6 +111,9 @@ var logger = (function(backend) {
     // and rates (loads, runs, errors, load failures) can be compared
     // directly. Pages with no flavor branch (blocks) report the stock name.
     obj.compiler = window.CPO_COMPILER || "pyret";
+    // ...and why: "query" | "cookie" (opt-in/opt-out) | "ramp" (percentage
+    // rollout) | "default", so volunteers and ramped users can be told apart.
+    obj.compilerSource = window.CPO_COMPILER_SOURCE || "default";
     obj.meta = [  Date.now()
                 , name
                 , identifiers.windowID
