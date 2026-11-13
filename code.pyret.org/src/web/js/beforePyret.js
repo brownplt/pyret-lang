@@ -393,7 +393,6 @@ $(function() {
     cmOptions = merge(cmOptions, options.cmOptions || {});
 
     var CM = CodeMirror.fromTextArea(textarea[0], cmOptions);
-    CPO.editorMarkers.preserveFolds(CM);
     CM.on("focus", () => {
       activeEditor = CM;
     });
@@ -456,9 +455,9 @@ $(function() {
         var hasNamespace = firstLineIsNamespace();
         if(hasNamespace) {
           if(namespacemark) { namespacemark.clear(); }
-          namespacemark = CPO.editorMarkers.preserveOnRun(CM.markText(
+          namespacemark = CM.markText(
             {line: 0, ch: 0}, {line: 1, ch: 0},
-            { attributes: { useline: true }, className: "useline", atomic: true, inclusiveLeft: true, inclusiveRight: false }));
+            { attributes: { useline: true }, className: "useline", atomic: true, inclusiveLeft: true, inclusiveRight: false, pyretPreserveOnRun: true });
         }
       });
     }

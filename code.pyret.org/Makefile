@@ -182,10 +182,10 @@ build/web/js/snap: $(call NODE_MODULE,snap)
 build/web/js/transpile.xml: src/web/js/transpile.xml
 	cp -r $< $@
 
-build/web/js/beforePyret.js: src/web/js/beforePyret.js src/web/js/editor-markers.js
+build/web/js/beforePyret.js: src/web/js/beforePyret.js
 	npx webpack
 
-build/web/js/beforeBlocks.js: src/web/js/beforeBlocks.js src/web/js/editor-markers.js
+build/web/js/beforeBlocks.js: src/web/js/beforeBlocks.js
 	npx webpack
 
 
