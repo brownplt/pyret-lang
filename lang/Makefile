@@ -294,8 +294,21 @@ ts-loader-test: ts-compiler $(CONFIGA_RUNTIME_FILES)
 	LOADER_BACKEND=ts $(NPM_EXEC) jest --detectOpenHandles --forceExit --verbose "tests/loader-tests/loader.test.js"
 
 .PHONY : jsnums-test
-jsnums-test: phaseA
-	$(NODE) tests/jsnums-test/jsnums-test.js
+jsnums-test:
+	node --test tests/jsnums-test/runner.test.js tests/jsnums-test/policy.test.js
+
+JSNUMS_ORACLE_INPUTS := $(wildcard tests/jsnums-test/cases/*.json) tests/jsnums-test/oracle/racket.rkt tests/jsnums-test/oracle/julia.jl tests/jsnums-test/oracle/python.py tests/jsnums-test/oracle/freeze.js tests/jsnums-test/policy.js tests/jsnums-test/numfmt.js tests/jsnums-test/jsops.js
+
+.PHONY : jsnums-oracle
+jsnums-oracle: tests/jsnums-test/oracle/.freeze-stamp
+
+tests/jsnums-test/oracle/.freeze-stamp: $(JSNUMS_ORACLE_INPUTS)
+	node tests/jsnums-test/oracle/freeze.js
+	touch $@
+
+.PHONY : jsnums-sensitivity
+jsnums-sensitivity:
+	node tests/jsnums-test/sensitivity.js --base $(JSNUMS_BASE) --fixed $(JSNUMS_FIXED) $(if $(JSNUMS_GROUPS),--groups $(JSNUMS_GROUPS),)
 
 .PHONY : regression-test
 regression-test: tests/pyret/regression.jarr
