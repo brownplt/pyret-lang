@@ -121,6 +121,7 @@ window.setInterval(checkVersion, VERSION_CHECK_INTERVAL);
 window.CPO = {
   save: function() {},
   autoSave: function() {},
+  editorMarkers: require('./editor-markers.js'),
   documents : new Documents()
 };
 $(function() {
@@ -219,6 +220,7 @@ $(function() {
     cmOptions = merge(cmOptions, options.cmOptions || {});
 
     var CM = CodeMirror.fromTextArea(textarea[0], cmOptions);
+    CPO.editorMarkers.preserveFolds(CM);
 
     function firstLineIsNamespace() {
       const firstline = CM.getLine(0);
@@ -278,7 +280,9 @@ $(function() {
         var hasNamespace = firstLineIsNamespace();
         if(hasNamespace) {
           if(namespacemark) { namespacemark.clear(); }
-          namespacemark = CM.markText({line: 0, ch: 0}, {line: 1, ch: 0}, { attributes: { useline: true }, className: "useline", atomic: true, inclusiveLeft: true, inclusiveRight: false });
+          namespacemark = CPO.editorMarkers.preserveOnRun(CM.markText(
+            {line: 0, ch: 0}, {line: 1, ch: 0},
+            { attributes: { useline: true }, className: "useline", atomic: true, inclusiveLeft: true, inclusiveRight: false }));
         }
       });
     }
