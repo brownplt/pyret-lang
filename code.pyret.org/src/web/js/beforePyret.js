@@ -1521,6 +1521,7 @@ $(function() {
   // than failing over from scratch again. A successful load from the
   // primary clears the record.
   var PYRET_LOAD_TIMEOUT_MS = 20000;
+  var pyretLoadStart = Date.now();
   var PYRET_FAILED_KEY = "pyret-primary-failed-at";
   var PYRET_FAILED_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -1644,6 +1645,11 @@ $(function() {
     if (primaryPyret === window.PYRET && localSettings.getItem(PYRET_FAILED_KEY)) {
       localSettings.setItem(PYRET_FAILED_KEY, "");
     }
+    logger.log('pyret-loaded', {
+      url : primaryPyret,
+      backup : false,
+      ms : Date.now() - pyretLoadStart
+    });
   });
 
   // The page's terminal state: neither the runtime bundle nor its backup is
@@ -1691,7 +1697,13 @@ $(function() {
           url : backupPyret
         });
         terminalPyretLoadFailure("the backup bundle " + backupPyret + " loaded without defining Pyret's globals");
+        return;
       }
+      logger.log('pyret-loaded', {
+        url : backupPyret,
+        backup : true,
+        ms : Date.now() - pyretLoadStart
+      });
     });
     pyretLoad2.src = backupPyret;
     pyretLoad2.type = "text/javascript";
