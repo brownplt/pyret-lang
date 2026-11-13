@@ -2,19 +2,77 @@
 
 ## Maintainers say
 
-*(nothing yet)*
+This directory has an oracle-based suite for the js-numbers library. The oracles
+are Racket, Julia, and CPython, each with their own number library. The goal is
+to, for every test, one of:
+
+- Make sure js-numbers agrees with the majority vote of the oracles
+- If there is disagreement between all 3, we picked the answer we want on purpose
+- If we want to disagree with the oracles, we picked the answer we want on purpose
+
+All the infrastructure exists to support that.
+
+Tests are written in JSON format in `cases/*.json`. A test looks like this:
+
+```
+    {"id":"asin-boundary-0003","family":"boundary","args":["-1"],"expect":{"rough":"bff921fb54442d18"},"mode":"ulp","agreed":["julia","python","racket"]},
+```
+
+This describes a test for `asin(-1)`, and gives the expected answer as the
+64-bit value of the double that should be produced (in Pyret we call these
+Roughnums, hence `"rough"`). All three oracles agree on the result, which is
+exactly those bits. This particular operation allows agreement within an ulp
+tolerance specified in `policy.js`. More on that in the agent-generated details
+below.
+
+Here's an example where there is *dis*agreement:
+
+```
+    {"id":"divide-boundary-0190","family":"boundary","args":["0","~-0.0"],"expect":{"error":"div-by-zero"},"mode":"exact","agreed":["julia","python","racket"],"policy":["zero-divisor"],"raw":{"racket":"exact:0","julia":"rough:fff8000000000000","python":"div-by-zero"}},
+```
+
+Note that here there are `"raw"` results for the three other systems. Here we
+had to make a *policy decision* for our library. We decided that dividing by 0
+should always be an error, and this division by approximate zero “counts” as a
+zero. We happen to agree with Python in this case, but also it's useful to have
+a mechanism to say “we don't care what all the other tools do, here's our
+result”.
+
+There are some other formats worth mentioning, because many of the interesting
+parts are around exact rational results. For example:
+
+```
+    {"id":"divide-boundary-0319","family":"boundary","args":["67108865","1267650600228229401496703205375"],"expect":{"exact":"13421773/253530120045645880299340641075"},"mode":"exact","agreed":["julia","python","racket"]},
+```
+
+In this case, there's no 64-bit values and no error. This just says that all of
+these systems produce the same rational number, written as `n/d` in reduced
+form.
+
+Overall, most cases should (and do) not need any mention of a "policy"
+– js-numbers just agrees on exactly the same output as the other libraries. The
+detailed notes below show how a few different decisions propagate through the
+library.
+
+Contributing new tests means adding new cases, which requires installing and
+running on all the oracles to get their values. New tests should mostly get
+added to `cases.json` with no policy, just an indication of agreement.
+
+If you want to write new tests just of Pyret numbers, adding them in
+lang/tests/pyret/tests/test-numbers.arr is a great thing to do. This directory
+is mainly for detailed numeric testing of the js-numbers library that needs
+assurances of numerical precision.
 
 ---
 
-## Notes (Claude, agent-written)
+## Details (Claude, agent-written)
 
 Everything below this line was written by the agent that built this
-suite. Trim or replace as you see fit; if the section above ends up
-covering everything, delete the rest of this file.
+suite.
 
 ### What this is
 
-`cases/*.json` holds 21,915 frozen test cases for `js-numbers.js`, one
+`cases/*.json` holds test cases for `js-numbers.js`, one
 file per exported operation. Every frozen case's expected value was
 independently computed by Racket, Julia, and Python/mpmath and all three
 agreed (after the policy adjustments in `policy.js` — see below). The
@@ -127,9 +185,26 @@ files.
 ### Why js-numbers departs from the oracles (`policy.js`)
 
 Every departure from raw oracle consensus is a named rule, stamped onto
-the frozen cases it applies to (`"policy": [...]`) alongside the oracles'
-raw, unmodified outputs, so a reviewer can always see what the oracles
+the frozen cases it applies to, alongside the oracles' raw, unmodified
+outputs (`"raw": {...}`), so a reviewer can always see what the oracles
 actually said before a rule touched it.
+
+Most of these rules only reclassify or reshape a result that the oracles
+(or that specific oracle) already agreed was unusual in some way, so the
+case still carries a real `"agreed": [...]` list alongside `"policy":
+[...]`. A few rules — `zero-divisor`, `rough-zero-exponent-ambiguous`,
+`trig-overflow-is-error`, `expt-exponent-limit`, `min-value-tolerance-error`
+(listed in `OVERRIDE_RULES` in `policy.js`) — trigger on the arguments
+alone and overwrite every oracle's result without ever looking at it, so
+"all three oracles agreed" would be true by construction and isn't real
+evidence. Those cases carry `"policy-override": [...]` instead of
+`"policy"`/`"agreed"`, to make clear there's no agreement being reported,
+only an override and the (still-attached) raw outputs it discarded. See
+`divide-boundary-0190` in `cases/divide.json` for a case where this
+matters: Racket, Julia, and Python computed three different things for
+`divide(0, ~-0.0)` (an exact-zero short-circuit, `NaN`, and a native
+`ZeroDivisionError`, respectively) and all three get overwritten to the
+same `div-by-zero` error regardless.
 
 | rule | what it does |
 |---|---|

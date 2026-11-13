@@ -114,7 +114,7 @@ function orderedCase(c, keys) {
   for (const k of keys) if (c[k] !== undefined) out[k] = c[k];
   return out;
 }
-const FROZEN_KEYS = ['id', 'family', 'args', 'oracle_args', 'expect', 'mode', 'agreed', 'policy', 'raw', 'note'];
+const FROZEN_KEYS = ['id', 'family', 'args', 'oracle_args', 'expect', 'mode', 'agreed', 'policy', 'policy-override', 'raw', 'note'];
 const DISPUTED_KEYS = ['id', 'family', 'args', 'oracle_args', 'raw', 'normalized', 'policy', 'note'];
 const PENDING_KEYS = ['id', 'family', 'args', 'note'];
 
@@ -180,8 +180,18 @@ function main(argv) {
       if (k.agree) {
         const e = policy.expectation(op, c.args, k.normalized[k.ran[0]]);
         pushRules(rules, e.rules);
-        const fc = Object.assign(base, { expect: e.expect, mode: e.mode, agreed: k.ran.slice().sort() });
-        if (rules.size) { fc.policy = [...rules].sort(); fc.raw = {}; for (const n of k.ran) fc.raw[n] = raws[n]; }
+        const fc = Object.assign(base, { expect: e.expect, mode: e.mode });
+        const pureOverride = rules.size > 0 && [...rules].every(r => policy.OVERRIDE_RULES.has(r));
+        if (pureOverride) {
+          // every oracle's raw result was discarded and replaced by the
+          // same override regardless of what it said -- there is no
+          // agreement to report, only the override and what it threw away.
+          fc['policy-override'] = [...rules].sort();
+          fc.raw = {}; for (const n of k.ran) fc.raw[n] = raws[n];
+        } else {
+          fc.agreed = k.ran.slice().sort();
+          if (rules.size) { fc.policy = [...rules].sort(); fc.raw = {}; for (const n of k.ran) fc.raw[n] = raws[n]; }
+        }
         newFrozen.push(orderedCase(fc, FROZEN_KEYS));
       } else {
         const dc = Object.assign(base, { raw: {}, normalized: {} });

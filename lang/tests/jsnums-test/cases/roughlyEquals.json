@@ -18,7 +18,7 @@
     {"id":"roughlyEquals-boundary-0012","family":"boundary","args":["5","3","4"],"expect":{"bool":true},"mode":"exact","agreed":["julia","python","racket"]},
     {"id":"roughlyEquals-boundary-0013","family":"boundary","args":["1","1","-1/10"],"expect":{"error":"error"},"mode":"exact","agreed":["julia","python","racket"]},
     {"id":"roughlyEquals-boundary-0014","family":"boundary","args":["1","1","~-0.1"],"expect":{"error":"error"},"mode":"exact","agreed":["julia","python","racket"]},
-    {"id":"roughlyEquals-boundary-0015","family":"boundary","args":["0","~5e-324","~5e-324"],"expect":{"error":"error"},"mode":"exact","agreed":["julia","python","racket"],"policy":["min-value-tolerance-error"],"raw":{"racket":"bool:true","julia":"bool:true","python":"bool:true"}},
+    {"id":"roughlyEquals-boundary-0015","family":"boundary","args":["0","~5e-324","~5e-324"],"expect":{"error":"error"},"mode":"exact","policy-override":["min-value-tolerance-error"],"raw":{"racket":"bool:true","julia":"bool:true","python":"bool:true"}},
     {"id":"roughlyEquals-boundary-0016","family":"boundary","args":["~1e300","~1e300","0"],"expect":{"bool":true},"mode":"exact","agreed":["julia","python","racket"]},
     {"id":"roughlyEquals-boundary-0017","family":"boundary","args":["100000000000000000000","~1e20","0"],"expect":{"bool":true},"mode":"exact","agreed":["julia","python","racket"]},
     {"id":"roughlyEquals-boundary-0018","family":"boundary","args":["100000000000000000001","~1e20","1"],"expect":{"bool":true},"mode":"exact","agreed":["julia","python","racket"]},

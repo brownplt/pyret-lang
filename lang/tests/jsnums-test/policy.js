@@ -8,7 +8,7 @@ const F = require('./numfmt');
 const { OPS } = require('./jsops');
 
 // Rough results of these ops are compared with an ulp tolerance (libm is
-// not correctly rounded). The limit is a human decision; see the report.
+// not correctly rounded). The limit is a human decision; see the README.
 const ULP_LIMIT = {
   sin: 1, cos: 1, tan: 1, asin: 1, acos: 1, atan: 1, atan2: 2,
   exp: 1, log: 2, expt: 2, sqrt: 0,
@@ -26,6 +26,17 @@ const ZERO_DIVISOR_OPS = new Set(['divide', 'remainder', 'makeRational']);
 // Integer exponents beyond the fixnum range go to jsbn's bnpExp, which
 // refuses exponents above 2^32-1 rather than computing e.g. (-1)^n.
 const EXPT_EXPONENT_LIMIT = 9000000000000000n;
+
+// Rules that trigger on (op, args) alone and overwrite an oracle's raw
+// result without ever looking at it. For these, every oracle's own
+// output gets replaced by the same value regardless of what it actually
+// computed, so "all three oracles agreed" would be true by construction,
+// not evidence. freeze.js stamps cases these rules touch with
+// policy-override instead of policy+agreed (see README.md).
+const OVERRIDE_RULES = new Set([
+  'zero-divisor', 'rough-zero-exponent-ambiguous', 'trig-overflow-is-error',
+  'expt-exponent-limit', 'min-value-tolerance-error',
+]);
 
 function numArg(kind, s) {
   if (kind === 'num' || kind === 'double') {
@@ -177,5 +188,5 @@ function sameResult(a, b) {
 }
 
 module.exports = {
-  ULP_LIMIT, oracleArgs, parseRaw, normalize, expectation, sameResult, argsOf,
+  ULP_LIMIT, OVERRIDE_RULES, oracleArgs, parseRaw, normalize, expectation, sameResult, argsOf,
 };
