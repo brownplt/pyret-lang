@@ -83,6 +83,11 @@ TS-compiler glue from `src/web/js/cpo-main-ts.js` and
 Select the compiler at page startup:
 
 - per page load: open `/editor?compiler=ts` (or `?compiler=pyret`);
+- per browser: `/settings/try-ts` pins ts in a cookie, `/settings/clear-ts`
+  pins the stock compiler;
+- gradual rollout: set `CPO_TS_PERCENT=N` (0-100, default 0) to give ts to
+  N% of the browsers that made neither choice above (sticky per browser
+  via a `pyret-bucket` cookie; setting it back to 0 reverts them all);
 - server-wide default: set `CPO_COMPILER=ts` in the environment (see
   `PYRET_TS` / `PYRET_TS_COMPILER` in `src/server.js` for overriding the
   artifact URLs).

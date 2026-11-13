@@ -17,12 +17,15 @@
   // at rest everywhere. No PYRET means no ts flavor: ?compiler=ts silently
   // serves the stock compiler.
   window.CPO_COMPILER = "{{&CPO_COMPILER}}" || "pyret";
+  // Why this page has the flavor it has -- query | cookie | ramp | default
+  // (the server's /editor decision; log.js reports it with every record).
+  window.CPO_COMPILER_SOURCE = "{{&CPO_COMPILER_SOURCE}}" || "default";
   (function() {
     var dir = window.PYRET ? window.PYRET.slice(0, window.PYRET.lastIndexOf("/") + 1) : "";
     window.PYRET_TS = window.PYRET ? dir + "cpo-main-ts.jarr.gz.js" : "";
     window.PYRET_TS_COMPILER = window.PYRET ? dir + "ts-compiler.gz.js" : "";
     var m = /[?&]compiler=([^&]*)/.exec(window.location.search);
-    if(m) { window.CPO_COMPILER = decodeURIComponent(m[1]); }
+    if(m) { window.CPO_COMPILER = decodeURIComponent(m[1]); window.CPO_COMPILER_SOURCE = "query"; }
     if(window.CPO_COMPILER === "ts" && window.PYRET_TS) {
       window.PYRET = window.PYRET_TS;
       // Lets pure CSS show ts-only chrome (the "(ts mode)" badge in the
