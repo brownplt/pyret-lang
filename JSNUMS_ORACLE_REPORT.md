@@ -770,7 +770,7 @@ but one confirmed the choice already shipped; prose below is agent-written
 
 | # | item | decision |
 |---|---|---|
-| 1 | `expt(0, ~0)` | **Changed.** Rough `~1`, not exact `1`. C01 is superseded by a new commit on `jsnums-hardening-rebased` that restores the branch's original `(y instanceof Roughnum) ? Roughnum.makeInstance(1) : 1`; `policy.js`'s `identityValue` no longer forces this case to exact. `expt-boundary-0014` and `expt-boundary-0015` in `cases/expt.json` were refrozen accordingly (now `rough: 3ff0000000000000`, no `exact-at-identity` stamp); every other frozen case is unchanged (`--refreeze` is still byte-identical). |
+| 1 | `expt(0, ~0)` | **Changed twice.** First pass (2026-11-06): rough `~1`, superseding C01's exact `1`. On 2026-11-13, revisited with Ben: 0 to a rough zero power is a removable discontinuity (the roughnum could stand for 0, a positive, or a negative value, giving 1, 0, or a division-by-zero respectively), unlike every other base, where a rough exponent near 0 is a rounding error away from the exact answer. Final: **raises a domain error.** `js-numbers.js`'s `onXSpecialCase` for `expt` now checks `y instanceof Roughnum && equalsAnyZero(y)` before the exact-zero-exponent branch. `policy.js` forces this input pattern to `error` in `normalize()` (new rule `rough-zero-exponent-ambiguous`) since all three oracles compute IEEE `pow(0,0)=1` and don't see the ambiguity. `expt-boundary-0014` and `expt-boundary-0015` in `cases/expt.json` now expect `error`, with the oracles' raw `1.0` kept alongside for review; every other frozen case is unchanged (`--refreeze` is still byte-identical). |
 | 2 | mixed exact/rough comparisons | Kept: round-to-double, as shipped. |
 | 3 | rounding a roughnum beyond 2^53 | Kept: decimal-print convention, as shipped. |
 | 4 | ulp thresholds | Kept: 1 ulp general, 2 ulp for `atan2`/`log`/`expt`, as shipped. |
@@ -782,12 +782,27 @@ but one confirmed the choice already shipped; prose below is agent-written
 | 10 | `makeRational` validation (C06) | Kept, as shipped. |
 | 11 | `fromSchemeString` | Kept: unverified fixes left in, as shipped. |
 
-Only item 1 changed a shipped artifact. The tables in sections 3, 5, 6 and
-7 were produced before this decision and are not regenerated here: the
-`exact-at-identity` count in section 4 is now 35 rather than 37 (the two
-`expt(0, ~0)` cases lost the stamp), and the "F07" row of section 3 and
-the "C01" row of section 6 describe the state before this addendum rather
-than the final one. `make jsnums-test` against the corrected library
-(`jsnums-hardening-rebased`, tip after this addendum's commit) passes all
-185 groups in 18 s; a full `--refreeze` of all 21,915 cases is
-byte-identical except for the two cases named above.
+Only item 1 changed a shipped artifact, and it changed twice (see above).
+The tables in sections 3, 5, 6 and 7 were produced before either pass and
+are not regenerated here: the `exact-at-identity` count in section 4 was
+37 as shipped, now carries 0 cases for this input pattern (replaced by
+the new `rough-zero-exponent-ambiguous` rule, 2 cases), and the "F07" row
+of section 3 and the "C01" row of section 6 describe the state before
+this addendum rather than the final one. `make jsnums-test` against the
+corrected library (`jsnums-hardening-rebased`, tip after the 2026-11-13
+commit) passes all 185 groups in 18 s; `make pyret-test` passes all
+12,236 tests; a full `--refreeze` of all 21,915 cases is byte-identical
+except for the two cases named above.
+
+### 2026-11-13 follow-up
+
+Decided with Ben: `expt(0, ~0)` is not well-defined as either `0` or `1`,
+so it should not pick one. For a base other than 0, a rough exponent near
+0 is a rounding error away from the exact answer (continuity: `x^(0+eps)`
+is close to `x^0` for any fixed `x != 0`). For base exactly 0, the three
+neighborhoods of a rough zero exponent give three unrelated answers (`0`
+for positive `eps`, `1` at exactly `0`, division by zero for negative
+`eps`), so there is no single value to round to. `js-numbers.js` now
+raises a domain error for this one input shape; `policy.js` forces all
+three oracles' raw `1.0` (IEEE's `pow(0,0)` convention, which doesn't
+model this ambiguity) to the same `error` expectation.

@@ -86,9 +86,8 @@ function identityValue(op, A) {
     case 'expt':
       if (isExactZero(A[1]) || isExactOne(A[0])) return '1';
       // expt(0, y) for y > 0 is exact 0 whether y is exact or rough (the
-      // x===0 special case hardcodes it); a rough zero exponent is NOT
-      // forced to exact 1 -- js-numbers' own contagion rule makes
-      // expt(0, ~0) rough (decided 2026-11-06, Joe Politz; supersedes C01).
+      // x===0 special case hardcodes it). A rough zero exponent is its
+      // own case, forced to an error in normalize() above, not here.
       if (isExactZero(A[0]) && isPositive(A[1])) return '0';
       return null;
     default: return null;
@@ -102,6 +101,13 @@ function normalize(op, args, r) {
   const rules = [];
   if (r === null || r.harnessError) return { result: r, rules };
   const A = argsOf(op, args);
+  if (op === 'expt' && isExactZero(A[0]) && isRoughZero(A[1])) {
+    // 0^0 is a removable discontinuity: as a rough exponent it could be
+    // 0 (giving 1), positive (giving 0), or negative (division by zero).
+    // The oracles just apply IEEE pow(0,0)=1; js-numbers raises instead
+    // (decided 2026-11-13, Joe Politz with Ben).
+    r = { error: 'error' }; rules.push('rough-zero-exponent-ambiguous');
+  }
   if (ZERO_DIVISOR_OPS.has(op) && isZero(A[1])) {
     r = { error: 'div-by-zero' }; rules.push('zero-divisor');
   }
