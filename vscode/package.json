@@ -24,6 +24,13 @@
 		"syntaxes/pyret.tmLanguage.json"
 	],
 	"browser": "./dist/web/extension.js",
+	"capabilities": {
+		"virtualWorkspaces": true,
+		"untrustedWorkspaces": {
+			"supported": "limited",
+			"description": "In Restricted Mode, Pyret programs can't access files: local imports and file reads/writes need a trusted workspace."
+		}
+	},
 	"contributes": {
 		"languages": [
 			{
