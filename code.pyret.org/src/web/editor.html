@@ -62,7 +62,7 @@
 
   <script src="{{ &BASE_URL }}/js/vega-tooltip.min.js"></script>
   <script>var APP_LOG_URL = "{{{ LOG_URL }}}";</script>
-  <script src="{{ &BASE_URL }}/js/localSettings.js"></script>
+  <script src="{{ &BASE_URL }}/js/localSettings.js?v={{ &GIT_REV }}"></script>
 </head>
 <body class="default">
   <script>
@@ -476,7 +476,7 @@ if (typeof Promise.withResolvers === 'undefined') {
 <script src="{{ &BASE_URL }}/js/es6-shim.js"></script>
 <script src="{{ &BASE_URL }}/js/jquery.min.js"></script>
 <script src="{{ &BASE_URL }}/js/jquery-ui.min.js"></script>
-<script src="{{ &BASE_URL }}/js/editor-misc.min.js"></script>
+<script src="{{ &BASE_URL }}/js/editor-misc.min.js?v={{ &GIT_REV }}"></script>
 
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script>
@@ -502,7 +502,7 @@ function handleGoogLoad() {
 var POSTMESSAGE_ORIGIN = "{{{ POSTMESSAGE_ORIGIN }}}";
 console.log(window.performance.now());
 </script>
-<script src="{{ &BASE_URL }}/js/beforePyret.js"></script>
+<script src="{{ &BASE_URL }}/js/beforePyret.js?v={{ &GIT_REV }}"></script>
 <script>
 var IMAGE_PROXY_BYPASS = "{{ &IMAGE_PROXY_BYPASS }}" === "true";
 var APP_BASE_URL = "{{ &BASE_URL }}";
@@ -515,7 +515,7 @@ $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
   }
 });
 </script>
-<script src="{{ &BASE_URL }}/js/events.js"></script>
+<script src="{{ &BASE_URL }}/js/events.js?v={{ &GIT_REV }}"></script>
 <script>
 var URL_FILE_MODE = window.URL_FILE_MODE = "{{ URL_FILE_MODE }}";
 </script>
