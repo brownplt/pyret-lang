@@ -1781,9 +1781,11 @@ data Ann:
   | a-blank with:
     method label(self): "a-blank" end,
     method tosource(self): str-any end,
+    method is-ignorable(self): true end,
   | a-any(l :: Loc) with:
     method label(self): "a-any" end,
     method tosource(self): str-any end,
+    method is-ignorable(self): true end,
   | a-name(l :: Loc, id :: Name) with:
     method label(self): "a-name" end,
     method tosource(self): self.id.tosource() end,
@@ -1848,10 +1850,13 @@ data Ann:
     method tosource(self): self.obj.tosource() + PP.str("." + self.field) end,
   | a-checked(checked :: Ann, residual :: Ann) with:
     method label(self): "a-checked" end,
-    method tosource(self): self.residual.tosource() end
+    method tosource(self): self.residual.tosource() end,
 sharing:
   method visit(self, visitor):
     self._match(visitor, lam(val): raise("No visitor field for " + self.label()) end)
+  end,
+  method is-ignorable(self):
+    false
   end
 end
 
