@@ -276,6 +276,7 @@ if(!isEmbedded) {
 window.CPO = {
   save: function() {},
   autoSave: function() {},
+  editorMarkers: require('./editor-markers.js'),
   documents : new Documents()
 };
 $(function() {
@@ -454,7 +455,9 @@ $(function() {
         var hasNamespace = firstLineIsNamespace();
         if(hasNamespace) {
           if(namespacemark) { namespacemark.clear(); }
-          namespacemark = CM.markText({line: 0, ch: 0}, {line: 1, ch: 0}, { attributes: { useline: true }, className: "useline", atomic: true, inclusiveLeft: true, inclusiveRight: false });
+          namespacemark = CM.markText(
+            {line: 0, ch: 0}, {line: 1, ch: 0},
+            { attributes: { useline: true }, className: "useline", atomic: true, inclusiveLeft: true, inclusiveRight: false, pyretPreserveOnRun: true });
         }
       });
     }

@@ -350,17 +350,10 @@
         }
         editor.cm.operation(function() {
           editor.cm.clearGutter("test-marker-gutter");
-          var marks = editor.cm.getAllMarks();
           document.getElementById("main").dataset.highlights = "";
           editor.cm.eachLine(function(lh){
             editor.cm.removeLineClass(lh, "background");});
-          for(var i = 0; i < marks.length; i++) {
-            const attribs = marks[i].attributes;
-            // CodeMirror's fold addon tags the marker that keeps a range folded with __isFold.
-            if(!marks[i].__isFold && !(attribs && attribs.useline)) {
-              marks[i].clear();
-            }
-          }
+          CPO.editorMarkers.clearOnRun(editor.cm);
         });
         var sheet = document.getElementById("highlight-styles").sheet;
         for(var i=0; i< sheet.cssRules.length; i++) {
