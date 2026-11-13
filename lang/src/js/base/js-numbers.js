@@ -706,8 +706,16 @@ define("pyret-base/js/js-numbers", function() {
         },
         onXSpecialCase: function(x, y) {
           if (eqv(x, 0)) {
-            if (equalsAnyZero(y)) {
-              return (y instanceof Roughnum) ? Roughnum.makeInstance(1) : 1;
+            if (y instanceof Roughnum && equalsAnyZero(y)) {
+              // 0 to a rough zero power is discontinuous: the roughnum
+              // could represent 0 (giving 1), a positive value (giving
+              // 0), or a negative value (division by zero). Unlike other
+              // bases, where a rough exponent near 0 is a rounding error
+              // away from the exact-0 answer, here the three cases
+              // disagree completely, so there is no answer to round to.
+              errbacks.throwDomainError("expt: 0 raised to a rough zero power is ambiguous (could be 0, 1, or a division by zero)");
+            } else if (equalsAnyZero(y)) {
+              return 1;
             } else if (lessThan(y, 0)) {
               errbacks.throwDivByZero("expt: division by zero");
             } else {
