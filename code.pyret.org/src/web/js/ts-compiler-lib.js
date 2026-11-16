@@ -9,7 +9,8 @@
     - builtin Loadables/locators for the TS compiler, built from the
       same staticModules record the page already carries;
     - an async, context-aware module finder for the dependency
-      protocols CPO supports ((url-)file imports resolve relative to the
+      protocols CPO supports (my-gdrive and shared-gdrive imports go
+      through the page's storage API; (url-)file imports resolve relative to the
       importing module via the embedding host's fs/path RPCs, exactly
       like the stock finder);
     - a ReplExecutor that runs compiled programs through the builtin
@@ -28,11 +29,12 @@
     { "import-type": "builtin", name: "load-lib" },
     { "import-type": "builtin", name: "either" },
     { "import-type": "builtin", name: "error-display" },
-    { "import-type": "builtin", name: "ast" }
+    { "import-type": "builtin", name: "ast" },
+    { "import-type": "builtin", name: "valueskeleton" }
   ],
   nativeRequires: [],
   provides: {},
-  theModule: function(runtime, namespace, uri, loadLib, eitherLib, errorDisplayLib, astLib) {
+  theModule: function(runtime, namespace, uri, loadLib, eitherLib, errorDisplayLib, astLib, valueskeletonLib) {
     var gf = runtime.getField;
     var gmf = function(m, f) { return gf(gf(m, "values"), f); };
     // NOTE: runtime.ffi is not fully populated until the ffi builtin
@@ -146,8 +148,14 @@
     // A TS CompileError -> a Pyret object renderable by error-ui. The
     // render methods are called off the data the TS error carries, and
     // produce genuine error-display values.
+    var VS = gf(valueskeletonLib, "values");
     function bridgeCompileError(tsError) {
+      var kind = (tsError && typeof tsError.$name === "string") ? tsError.$name : "unknown-ts-compile-error";
       return runtime.makeObject({
+        "_output": runtime.makeMethod0(function(_self) {
+          return gf(VS, "vs-constr").app(kind,
+            runtime.ffi.makeList([ gf(VS, "vs-str").app("...") ]));
+        }),
         "render-fancy-reason": runtime.makeMethod0(function(_self) {
           return convertED(tsError.renderFancyReason());
         }),
@@ -415,6 +423,86 @@
       return self;
     }
 
+    // ---------------------------------------------------------------
+    // Google Drive imports (my-gdrive, shared-gdrive)
+    // ---------------------------------------------------------------
+    // These mirror cpo/gdrive-locators.js: the same storage API calls,
+    // the same locator URIs (so srclocs, the document map and error
+    // links agree across flavors) and the same failure messages.
+
+    function gdriveStorage() {
+      var api = window.storageAPI;
+      if(!api) { return Promise.reject({ message: "Authentication failure" }); }
+      return Promise.resolve(api);
+    }
+    function gdriveRequestFailure(failure, filename) {
+      var defaultMessage = "There was an error fetching file with name " + filename +
+            " (labelled " + filename + ") from Google Drive.";
+      if(failure && failure.message === "Authentication failure") {
+        return "Couldn't access the file named " + filename +
+          " on Google Drive due to an " +
+          "authentication failure.  my-gdrive imports require that you are " +
+          "connected to Google Drive.";
+      }
+      if(failure && failure.err) {
+        if(failure.err.code === 404) {
+          return "Couldn't find the file named " + filename + " on Google Drive.";
+        }
+        if(failure.err.message) {
+          return "There was an error fetching file named " + filename +
+            " from Google Drive: " + failure.err.message;
+        }
+      }
+      return defaultMessage;
+    }
+    // Promise of { uri, text } for import my-gdrive("filename"). Fetched
+    // afresh on every run, like the stock locator.
+    function fetchMyGDrive(filename) {
+      return gdriveStorage().then(function(storage) {
+        return storage.getFileByName(filename);
+      }).then(function(files) {
+        if(files.length === 0) {
+          throw new Error("Could not find module with name " + filename + " in your drive.");
+        }
+        if(files.length > 1) {
+          throw new Error("There were multiple files with name " + filename + " in your drive.");
+        }
+        return files[0];
+      }, function(failure) {
+        throw new Error(gdriveRequestFailure(failure, filename));
+      }).then(function(file) {
+        return Promise.resolve(file.getContents()).then(function(text) {
+          return { uri: "my-gdrive://" + filename, text: text };
+        }, function(_failure) {
+          throw new Error("Could not load file with name " + filename);
+        });
+      });
+    }
+    // Promise of { uri, text } for import shared-gdrive("filename", "id").
+    // As in the stock editor, a successfully fetched shared file is kept
+    // for the life of the page: shared imports need a refresh to re-fetch.
+    var sharedGDriveCache = {};
+    function fetchSharedGDrive(filename, id) {
+      var cacheKey = filename + ":" + id;
+      if(sharedGDriveCache[cacheKey]) { return sharedGDriveCache[cacheKey]; }
+      var result = gdriveStorage().then(function(storage) {
+        return storage.getSharedFileById(id);
+      }).then(null, function(failure) {
+        throw new Error(gdriveRequestFailure(failure, filename));
+      }).then(function(file) {
+        return Promise.resolve(file.getContents()).then(function(text) {
+          return { uri: "shared-gdrive://" + file.getName() + ":" + file.getUniqueId(), text: text };
+        }, function(_failure) {
+          throw new Error("Could not load file with name " + filename);
+        });
+      });
+      sharedGDriveCache[cacheKey] = result;
+      result.then(null, function() {
+        if(sharedGDriveCache[cacheKey] === result) { delete sharedGDriveCache[cacheKey]; }
+      });
+      return result;
+    }
+
     function makeFinderFactory(builtinSupport, urlFileMode) {
       return function makeFinder() {
         var locatorCache = {};
@@ -472,6 +560,14 @@
               return hostExists(info.path).then(function(exists) {
                 if(exists) { return localFileLocated(fullUrl, info.context); }
                 return textLocated(fullUrl, fetchText(fullUrl), context);
+              });
+            }
+            if(dep.protocol === "my-gdrive" || dep.protocol === "shared-gdrive") {
+              var fetched = dep.protocol === "my-gdrive"
+                ? fetchMyGDrive(dep.arguments[0])
+                : fetchSharedGDrive(dep.arguments[0], dep.arguments[1]);
+              return fetched.then(function(file) {
+                return textLocated(file.uri, Promise.resolve(file.text), context);
               });
             }
             throw new Error("The import protocol '" + dep.protocol +
