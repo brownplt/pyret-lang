@@ -29,11 +29,12 @@
     { "import-type": "builtin", name: "load-lib" },
     { "import-type": "builtin", name: "either" },
     { "import-type": "builtin", name: "error-display" },
-    { "import-type": "builtin", name: "ast" }
+    { "import-type": "builtin", name: "ast" },
+    { "import-type": "builtin", name: "valueskeleton" }
   ],
   nativeRequires: [],
   provides: {},
-  theModule: function(runtime, namespace, uri, loadLib, eitherLib, errorDisplayLib, astLib) {
+  theModule: function(runtime, namespace, uri, loadLib, eitherLib, errorDisplayLib, astLib, valueskeletonLib) {
     var gf = runtime.getField;
     var gmf = function(m, f) { return gf(gf(m, "values"), f); };
     // NOTE: runtime.ffi is not fully populated until the ffi builtin
@@ -147,8 +148,14 @@
     // A TS CompileError -> a Pyret object renderable by error-ui. The
     // render methods are called off the data the TS error carries, and
     // produce genuine error-display values.
+    var VS = gf(valueskeletonLib, "values");
     function bridgeCompileError(tsError) {
+      var kind = (tsError && typeof tsError.$name === "string") ? tsError.$name : "unknown-ts-compile-error";
       return runtime.makeObject({
+        "_output": runtime.makeMethod0(function(_self) {
+          return gf(VS, "vs-constr").app(kind,
+            runtime.ffi.makeList([ gf(VS, "vs-str").app("...") ]));
+        }),
         "render-fancy-reason": runtime.makeMethod0(function(_self) {
           return convertED(tsError.renderFancyReason());
         }),
