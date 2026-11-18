@@ -159,6 +159,35 @@ input.form {
     line-height: 48pt;
 }
 
+#file-search {
+    background: #fff;
+    border: 2px solid #ddd;
+    border-bottom: none;
+    padding: 8pt 16pt;
+    text-align: left;
+}
+
+#file-search-input {
+    width: 60%;
+    max-width: 30rem;
+    padding: 5px 8px;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: 2px solid #ddd;
+    box-sizing: border-box;
+}
+
+#file-search-status {
+    padding-left: 1em;
+    font-size: 0.8rem;
+    font-style: italic;
+    color: #333;
+}
+
+#file-search-status .fast-spin {
+    margin-top: 0;
+}
+
 #file-picker-modal-body {
     background: #eee;
     max-height: 400px;
