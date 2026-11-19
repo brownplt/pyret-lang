@@ -361,37 +361,43 @@ function start(config, onServerReady) {
     });
   });
 
+  // NOTE(joe): "you aren't logged in" is a successful answer to "am I logged
+  // in?", not an error, so every outcome here is a 200 and callers branch on
+  // `logged_in`. This used to answer 404 (no session) and 403 (refresh
+  // failure), which put failed requests in the console of every logged-out
+  // editor page. Browsers emit those console lines from the network stack, so
+  // no amount of client-side handling could quiet them -- the only fix is to
+  // stop returning error statuses for an expected answer. `reason` is
+  // diagnostic only; clients should not switch on it.
   app.get("/getAccessToken", function(req, res) {
-    function noAuth() {
-      res.status(404).send("No account information found.");
+    function noAuth(reason) {
+      res.send({ logged_in: false, reason: reason });
     }
     if(req.session && req.session["user_id"]) {
       var maybeUser = db.getUserByGoogleId(req.session["user_id"]);
       maybeUser.then(function(u) {
         if(u === null) {
-          noAuth();
+          noAuth("no-user-record");
           return null;
         }
         return auth.refreshAccess(u.refresh_token, function(err, newToken) {
           if(err) {
             console.error(err);
-            res.status(403);
-            res.send("Access token fetch failure");
-            res.end();
+            noAuth("refresh-failed");
             return;
           }
           else {
-            res.send({ access_token: newToken, user_id: req.session["user_id"] });
+            res.send({ logged_in: true, access_token: newToken, user_id: req.session["user_id"] });
             res.end();
           }
         });
       });
       maybeUser.fail(function(err) {
         console.error("Failed to get an access token: ", err);
-        noAuth();
+        noAuth("lookup-failed");
       });
     } else {
-      noAuth();
+      noAuth("no-session");
     }
   });
 
