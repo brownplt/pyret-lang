@@ -27,7 +27,7 @@
   <script src="{{ &BASE_URL }}/js/vega.min.js"></script>
   <script src="{{ &BASE_URL }}/js/vega-tooltip.min.js"></script>
   <script>var APP_LOG_URL = "{{{ LOG_URL }}}";</script>
-  <script src="/js/localSettings.js"></script>
+  <script src="/js/localSettings.js?v={{ &GIT_REV }}"></script>
 </head>
 <body class="default">
   <script>
@@ -416,7 +416,7 @@ var GIT_BRANCH = "{{ &GIT_BRANCH }}";
 <script src="/js/es6-shim.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/jquery-ui.min.js"></script>
-<script src="/js/editor-misc.min.js"></script>
+<script src="/js/editor-misc.min.js?v={{ &GIT_REV }}"></script>
 
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script>
@@ -433,8 +433,8 @@ function handleGoogLoad() {
 var POSTMESSAGE_ORIGIN = "{{{ POSTMESSAGE_ORIGIN }}}";
 console.log(window.performance.now());
 </script>
-<script src="js/events.js"></script>
-<script src="js/beforeBlocks.js"></script>
+<script src="js/events.js?v={{ &GIT_REV }}"></script>
+<script src="js/beforeBlocks.js?v={{ &GIT_REV }}"></script>
 <script src="js/snap/src/morphic.js"></script>
 <script src="js/snap/src/symbols.js"></script>
 <script src="js/snap/src/widgets.js"></script>
