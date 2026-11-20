@@ -14,6 +14,12 @@ const WAITING_FOR_FILES = [];
 // How long to wait after the last keystroke before asking Drive
 const SEARCH_DEBOUNCE_MS = 300;
 
+const PICKER_BATCH_SIZE = 50;
+
+function parseFileIds(text) {
+  return text.split(/[^A-Za-z0-9_-]+/).filter((id) => id.length > 0);
+}
+
 
 class StudentDashboard extends Component {
   constructor() {
@@ -29,7 +35,13 @@ class StudentDashboard extends Component {
       // whether we're still waiting on Drive for them
       searchResults: [],
       searching: false,
-      userName: false
+      userName: false,
+      addedCount: false,
+      manageOpen: false,
+      idsPanel: false,
+      copiedIds: '',
+      copied: false,
+      pastedIds: ''
     };
 
     this.api = new GoogleAPI();
@@ -81,10 +93,17 @@ class StudentDashboard extends Component {
     }
   }
 
-  updateRecentFiles = () => {
+  updateRecentFiles = (addedIds) => {
     this.setState({files: WAITING_FOR_FILES});
     this.api.getRecentFilesByExtAndAppName(APP_NAME, FILE_EXT).then((resp) => {
-      this.setState({files: resp.result.files});
+      var files = resp.result.files;
+      var missing = (addedIds || []).filter((id) => !files.some((f) => f.id === id));
+      if (missing.length === 0) { return files; }
+      return this.api.getProgramFilesByIds(missing, FILE_EXT).then((added) => {
+        return files.concat(added).sort((a, b) => a.modifiedTime < b.modifiedTime ? 1 : (a.modifiedTime > b.modifiedTime ? -1 : 0));
+      });
+    }).then((files) => {
+      this.setState({files: files});
     })
   }
 
@@ -178,6 +197,89 @@ class StudentDashboard extends Component {
     */
   }
 
+  addFiles = (ids) => {
+    if (ids.length === 0) { return this.pickBatches([null]); }
+    return this.api.getVisibleFileIds().then((visible) => {
+      var needed = ids.filter((id) => visible.indexOf(id) === -1);
+      var batches = [];
+      for (var i = 0; i < needed.length; i += PICKER_BATCH_SIZE) {
+        batches.push(needed.slice(i, i + PICKER_BATCH_SIZE));
+      }
+      return this.pickBatches(batches);
+    });
+  }
+
+  pickBatches = (batches) => {
+    var added = [];
+    var pickBatch = (n) => {
+      if (n >= batches.length) { return added; }
+      var batchLabel = batches.length > 1 ? ' (' + (n + 1) + ' of ' + batches.length + ')' : '';
+      return this.api.openAddFilesPicker(batches[n], FILE_EXT, 'Add files to ' + APP_NAME + batchLabel, batchLabel).then((picked) => {
+        if (picked === null) { return added; }
+        added = added.concat(picked);
+        return pickBatch(n + 1);
+      });
+    };
+    return Q(pickBatch(0)).then((ids) => {
+      if (ids.length > 0 || batches.length === 0) {
+        this.setState({addedCount: ids.length, manageOpen: false, idsPanel: false});
+        this.updateRecentFiles(ids);
+      }
+      return ids.length;
+    });
+  }
+
+  handleManageClick = (event) => {
+    this.setState({manageOpen: true});
+  }
+
+  handleManageCloseClick = (event) => {
+    this.setState({manageOpen: false, idsPanel: false});
+  }
+
+  handleManageOverlayClick = (event) => {
+    if (event.target === event.currentTarget) { this.handleManageCloseClick(event); }
+  }
+
+  handleAddFilesClick = (event) => {
+    this.addFiles([]);
+  }
+
+  handleCopyIdsClick = (event) => {
+    event.preventDefault();
+    this.api.getProgramFileIds(APP_NAME, FILE_EXT).then((ids) => {
+      var text = ids.join(',');
+      this.setState({idsPanel: 'copy', copiedIds: text, copied: false});
+      if (window.navigator.clipboard) {
+        window.navigator.clipboard.writeText(text).then(() => {
+          this.setState({copied: true});
+        }, () => {});
+      }
+    });
+  }
+
+  handlePasteIdsClick = (event) => {
+    event.preventDefault();
+    this.setState({idsPanel: 'paste'});
+  }
+
+  handlePastedIdsChange = (event) => {
+    this.setState({pastedIds: event.target.value});
+  }
+
+  handleAddPastedIds = (event) => {
+    event.preventDefault();
+    var ids = parseFileIds(this.state.pastedIds);
+    if (ids.length === 0) { return; }
+    this.addFiles(ids).then((count) => {
+      if (!this.state.manageOpen) { this.setState({pastedIds: ''}); }
+    });
+  }
+
+  selectAll = (event) => {
+    event.target.select();
+  }
+
   // A simple callback implementation.
   pickerCallback = (data) => {
     if (data.action === window.google.picker.Action.PICKED) {
@@ -241,6 +343,7 @@ class StudentDashboard extends Component {
             <h2 id='recent-files' className={'tab floatable left ' + ((this.state.activeTab === 'recent-files') ? 'active' : '')} onClick={this.handleTabClick}>Recent Files</h2>
             <h2 id='new-file' className={'tab floatable left ' + ((this.state.activeTab === 'new-file') ? 'active' : '')} onClick={this.handleTabClick}>New File</h2>
             <div className='button-wrapper right'>
+              <button id='manage' onClick={this.handleManageClick} >Manage</button>
               <button id='select-file' onClick={this.handleSelectFileClick} >View in Google Drive</button>
             </div>
           </div>
@@ -252,6 +355,7 @@ class StudentDashboard extends Component {
             </span>
           </div>
           <div id='file-picker-modal-body' className={'modal-body ' + ((this.state.activeTab === 'new-file') ? 'hidden' : '')}>
+            {this.state.addedCount === false ? null : <p id='added-files'>Added {this.state.addedCount} files.</p>}
             {
               this.state.files === WAITING_FOR_FILES ?
               (<div id='loading-spinner'>
@@ -278,6 +382,30 @@ class StudentDashboard extends Component {
             </form>
           </div>
         </div>
+        {!this.state.manageOpen ? null :
+          <div id='manage-overlay' onClick={this.handleManageOverlayClick}>
+            <div id='manage-modal'>
+              <p>Missing some files?  Working in a different Pyret server?  Try one of these steps:</p>
+              <ol id='manage-steps'>
+                <li><button id='add-files' onClick={this.handleAddFilesClick} >Browse</button> your entire Drive to search for the missing files and give this server access to the files you choose</li>
+                <li><button id='copy-ids' onClick={this.handleCopyIdsClick} >Copy</button> to your clipboard all the file IDs that <em>this</em> server can access, or</li>
+                <li><button id='paste-ids' onClick={this.handlePasteIdsClick} >Paste</button> the file IDs from <em>another</em> server and give <em>this</em> server access to them</li>
+              </ol>
+              <div id='file-ids'>
+                {this.state.idsPanel !== 'copy' ? null :
+                  <div>
+                    <p id='copied-ids-status'>{this.state.copied ? 'Copied.' : 'Copy these:'}</p>
+                    <textarea id='copied-ids' readOnly value={this.state.copiedIds} onFocus={this.selectAll} />
+                  </div>}
+                {this.state.idsPanel !== 'paste' ? null :
+                  <form onSubmit={this.handleAddPastedIds}>
+                    <textarea id='pasted-ids' value={this.state.pastedIds} onChange={this.handlePastedIdsChange} />
+                    <input id='add-pasted-ids' className='button' type='submit' value='Add files' />
+                  </form>}
+              </div>
+              <p><button id='manage-close' onClick={this.handleManageCloseClick} >Close</button></p>
+            </div>
+          </div>}
         <div className='footer middle'>
           <p className='right'>
             <a target="_blank" href="https://www.pyret.org">pyret.org</a> | <a target="_blank" href={"https://" + process.env.APP_DOMAIN + "/faq/"}>Policies</a> | <a target="_blank" href="https://www.github.com/brownplt/code.pyret.org">Software</a></p>
