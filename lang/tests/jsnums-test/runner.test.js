@@ -1,7 +1,8 @@
 'use strict';
 
-// node --test runner over the frozen oracle cases, under each jsbn digit
-// configuration. JSNUMS_PATH points at an alternative js-numbers.js;
+// node --test runner over the frozen oracle cases: once against a native
+// BigInt library, or under each digit configuration of a jsbn-backed one.
+// JSNUMS_PATH points at an alternative js-numbers.js;
 // JSNUMS_FILTER restricts to case ids containing the given text;
 // JSNUMS_TIMEOUT is the per-case watchdog in milliseconds.
 

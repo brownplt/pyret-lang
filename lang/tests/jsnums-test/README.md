@@ -108,12 +108,17 @@ forever on some input (e.g. `remainder` by zero on an unguarded
 implementation); each case runs in a worker thread and a hang becomes a
 timed-out failure instead of blocking the whole run.
 
-The runner evaluates every case under three jsbn digit configurations
-(26-, 28-, 30-bit, by injecting a fake `navigator.appName`), because jsbn
-picks its digit width from `navigator.appName` and that's a real
-reachability axis (Node ≥ 21 defines a `navigator` global with no string
-`appName`, which is how a division bug in the 26-bit configuration became
-reachable in the first place).
+`js-numbers.js` now backs `BigInteger` with native `BigInt`, and against
+it the runner evaluates every case once. The harness still supports the
+older jsbn-backed library (pass one via `JSNUMS_PATH`, or compare across
+history with `compare.js`/`sensitivity.js`). For jsbn, the runner evaluates
+every case under three digit configurations (26-, 28-, 30-bit, by injecting
+a fake `navigator.appName`), because jsbn picks its digit width from
+`navigator.appName` and that's a real reachability axis (Node ≥ 21 defines
+a `navigator` global with no string `appName`, which is how a division bug
+in the 26-bit configuration became reachable in the first place). The two
+digit-configuration tests in `policy.test.js` apply only to jsbn and are
+skipped against the native library.
 
 ### Case file shape
 
