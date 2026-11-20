@@ -112,7 +112,20 @@ button:hover, .button:hover {
     padding: 8pt 0;
 }
 
-#file-ids, #file-ids p, #file-ids a {
+#manage-steps {
+    text-align: left;
+    margin: 0 8pt;
+}
+
+#manage-steps li {
+    padding: 4pt 0;
+}
+
+#manage-steps button {
+    padding: 4pt 8pt;
+}
+
+#file-ids, #file-ids p {
     font-size: 0.8rem;
     color: #666666;
 }

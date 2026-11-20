@@ -385,12 +385,13 @@ class StudentDashboard extends Component {
         {!this.state.manageOpen ? null :
           <div id='manage-overlay' onClick={this.handleManageOverlayClick}>
             <div id='manage-modal'>
-              <p>If you aren't seeing files you expect in the list, you can browse your Drive to add them. If you use another Pyret site, you can also copy file IDs from one site to another.</p>
-              <p><button id='add-files' onClick={this.handleAddFilesClick} >Choose files to add</button></p>
+              <p>Missing some files?  Working in a different Pyret server?  Try one of these steps:</p>
+              <ol id='manage-steps'>
+                <li><button id='add-files' onClick={this.handleAddFilesClick} >Browse</button> your entire Drive to search for the missing files and give this server access to the files you choose</li>
+                <li><button id='copy-ids' onClick={this.handleCopyIdsClick} >Copy</button> to your clipboard all the file IDs that <em>this</em> server can access, or</li>
+                <li><button id='paste-ids' onClick={this.handlePasteIdsClick} >Paste</button> the file IDs from <em>another</em> server and give <em>this</em> server access to them</li>
+              </ol>
               <div id='file-ids'>
-                <p>
-                  <a href='#' id='copy-ids' onClick={this.handleCopyIdsClick}>Copy file IDs</a> | <a href='#' id='paste-ids' onClick={this.handlePasteIdsClick}>Paste file IDs</a>
-                </p>
                 {this.state.idsPanel !== 'copy' ? null :
                   <div>
                     <p id='copied-ids-status'>{this.state.copied ? 'Copied.' : 'Copy these:'}</p>
