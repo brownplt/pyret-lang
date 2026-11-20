@@ -546,7 +546,7 @@
         (removed || !exists) && SetRef(didChangeSize);
 
         if (removed && len === 2) {
-          return new ValueNode(ownerID, this.keyHAsh, entries[idx ^ 1]);
+          return new ValueNode(ownerID, this.keyHash, entries[idx ^ 1]);
         }
 
         var isEditable = ownerID && ownerID === this.ownerID;
