@@ -361,14 +361,6 @@ function start(config, onServerReady) {
     });
   });
 
-  // NOTE(joe): "you aren't logged in" is a successful answer to "am I logged
-  // in?", not an error, so every outcome here is a 200 and callers branch on
-  // `logged_in`. This used to answer 404 (no session) and 403 (refresh
-  // failure), which put failed requests in the console of every logged-out
-  // editor page. Browsers emit those console lines from the network stack, so
-  // no amount of client-side handling could quiet them -- the only fix is to
-  // stop returning error statuses for an expected answer. `reason` is
-  // diagnostic only; clients should not switch on it.
   app.get("/getAccessToken", function(req, res) {
     function noAuth(reason) {
       res.send({ logged_in: false, reason: reason });

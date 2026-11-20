@@ -19,13 +19,6 @@ var gwrap = window.gwrap = {
         // Shallow copy
         var copy = $.extend({}, params);
         delete copy.reauth;
-        // NOTE: loadAPI returns null (not a promise) when params.callback is
-        // given -- that form delivers the API through the callback instead, and
-        // its callers (drive.js, sheets.js) ignore this return value. Without
-        // this guard the `.then` below threw a TypeError on every such load,
-        // which Q swallowed into a rejection nobody observes. It also means
-        // `hasAuth` is only ever attached in the promise form; callback-form
-        // callers should ask hasGoogleAuth() instead.
         var loadedP = gw.load(copy);
         if (!loadedP) { return; }
         loadedP
@@ -53,10 +46,6 @@ var gwrap = window.gwrap = {
  *        spreadsheets and photos.
  * @returns A promise which will resolve following the re-authentication.
  */
-// The outcome of the most recent immediate reauth: an auth object, or null
-// when we hold no token. gwrap's own hasAuth() is attached only to the
-// fully-built wrapper, which the callback form of load() never hands back, so
-// this is the one signal available to every caller.
 var _lastReauth = null;
 window.hasGoogleAuth = function hasGoogleAuth() { return _lastReauth !== null; };
 
@@ -136,12 +125,7 @@ function reauth(immediate, useFullScopes) {
     // Need to do a login to get a cookie for this user; do it in a popup
     window.open(path);
   } else {
-    // The user may be logged in, but needs an access token from our server.
-    // /getAccessToken answers 200 either way and reports the outcome in
-    // `logged_in` -- it deliberately does not use an error status for "not
-    // logged in", so that the common logged-out case doesn't put a failed
-    // request in the console. Resolving null (rather than rejecting) is the
-    // established "no auth" signal to callers.
+    // The user is logged in, but needs an access token from our server
     var newToken = $.ajax("/getAccessToken", { method: "get", dataType: "json" });
     newToken.then(function(t) {
       if(!t || !t.logged_in) { _lastReauth = null; d.resolve(null); return; }
@@ -150,8 +134,6 @@ function reauth(immediate, useFullScopes) {
       _lastReauth = { user_id: t.user_id, access_token: t.access_token };
       d.resolve(_lastReauth);
     });
-    // Reaching here now means a genuine transport/server failure, since the
-    // not-logged-in answer arrives as a 200.
     newToken.fail(function(t) {
       _lastReauth = null;
       d.resolve(null);

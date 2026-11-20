@@ -7,27 +7,12 @@ window.createProgramCollectionAPI = function createProgramCollectionAPI(collecti
   var FOLDER_MIME = "application/vnd.google-apps.folder";
   var BACKREF_KEY = "originalProgram";
 
-  // True when a Drive request has some chance of succeeding. Without an access
-  // token every call is a guaranteed 401/403, and the browser logs those from
-  // its network stack, where no page handler can reach them -- so the only way
-  // to keep a logged-out console clean is to not make the request.
-  //
-  // hasGoogleAuth() (api-wrapper) is false in exactly that case: reauth
-  // resolves null when /getAccessToken reports logged_in: false. We can't use
-  // the `drive` object's own hasAuth() -- that is only attached in load()'s
-  // promise form, and this module uses the callback form.
-  //
-  // NOTE: this deliberately does NOT gate getSharedFileById's drive.files.get,
-  // which passes skipAuth=true to read public files without a token on purpose.
   function canReachDrive() {
     if(publicOnly) { return false; }
     if(typeof window.hasGoogleAuth === "function") { return window.hasGoogleAuth(); }
     return true;
   }
 
-  // A promise rejected the way the publicOnly/logged-out paths expect. The
-  // logged-out UI is driven by these rejections (beforePyret's
-  // api.collection.fail), so skipping the request reaches the same state.
   function noCollection(why) {
     var q = Q.defer();
     q.reject(why);
