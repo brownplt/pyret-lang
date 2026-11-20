@@ -362,36 +362,34 @@ function start(config, onServerReady) {
   });
 
   app.get("/getAccessToken", function(req, res) {
-    function noAuth() {
-      res.status(404).send("No account information found.");
+    function noAuth(reason) {
+      res.send({ logged_in: false, reason: reason });
     }
     if(req.session && req.session["user_id"]) {
       var maybeUser = db.getUserByGoogleId(req.session["user_id"]);
       maybeUser.then(function(u) {
         if(u === null) {
-          noAuth();
+          noAuth("no-user-record");
           return null;
         }
         return auth.refreshAccess(u.refresh_token, function(err, newToken) {
           if(err) {
             console.error(err);
-            res.status(403);
-            res.send("Access token fetch failure");
-            res.end();
+            noAuth("refresh-failed");
             return;
           }
           else {
-            res.send({ access_token: newToken, user_id: req.session["user_id"] });
+            res.send({ logged_in: true, access_token: newToken, user_id: req.session["user_id"] });
             res.end();
           }
         });
       });
       maybeUser.fail(function(err) {
         console.error("Failed to get an access token: ", err);
-        noAuth();
+        noAuth("lookup-failed");
       });
     } else {
-      noAuth();
+      noAuth("no-session");
     }
   });
 
