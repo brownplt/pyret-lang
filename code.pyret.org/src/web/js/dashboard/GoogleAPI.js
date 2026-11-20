@@ -1,4 +1,5 @@
 var FOLDER_MIME = "application/vnd.google-apps.folder";
+var CACHE_FILE_NAME = /^[a-z-]+:\/\//;
 class GoogleAPI {
   /**
    *  Load the client library. Return a promise to allow .then() in caller
@@ -65,39 +66,57 @@ class GoogleAPI {
     return window.gapi.client.request(reqOpts);
   }
 
-  // If nameQuery is given, only files whose names match it are returned.
-  // Drive's `name contains` matches prefixes of words in the name, across
-  // *all* of the user's Pyret files (not just the first page of results).
+  listAllFiles = (params) => {
+    var files = [];
+    var getPage = (pageToken) => {
+      return Q(window.gapi.client.drive.files.list(Object.assign({}, params, {
+        fields: "nextPageToken, " + params.fields,
+        pageSize: 1000,
+        orderBy: "modifiedTime desc",
+        pageToken: pageToken,
+      }))).then((resp) => {
+        files = files.concat(resp.result.files);
+        return resp.result.nextPageToken ? getPage(resp.result.nextPageToken) : { result: { files: files } };
+      });
+    };
+    return getPage(undefined);
+  }
+
+  listProgramFiles = (appName, nameFilter) => {
+    return Q(this.getAppSharedFolderID(appName)).then((resp) => {
+      var sharedFiles = resp.result.files;
+      var isSharedFile = "(appProperties has {key=\'originalProgramFlag\' and value=\'true\'})";
+      if(sharedFiles.length > 0) {
+        isSharedFile += "or '" + sharedFiles[0].id + "' in parents";
+      }
+      return this.listAllFiles({
+        fields: "files(id, name, modifiedTime)",
+        q: 'not trashed and not (' + isSharedFile + ') and mimeType != "' + FOLDER_MIME + '"' + nameFilter,
+      });
+    }).then((resp) => {
+      return { result: { files: resp.result.files.filter((f) => !CACHE_FILE_NAME.test(f.name)) } };
+    });
+  }
+
   getRecentFilesByExtAndAppName = (appName, ext, nameQuery) => {
     var nameFilter = "";
     if(nameQuery) {
       var escaped = nameQuery.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
       nameFilter = " and name contains '" + escaped + "'";
     }
-    return Q.all([this.getAppFolderID(appName), this.getAppSharedFolderID(appName)])
-      .then((resp) => {
-        var savedFiles = resp[0].result.files;
-        var sharedFiles = resp[1].result.files;
-        var isSharedFile = "(appProperties has {key=\'originalProgramFlag\' and value=\'true\'})";
-        if(sharedFiles.length > 0) {
-          isSharedFile += "or '" + sharedFiles[0].id + "' in parents";
-        }
-        if(savedFiles.length === 0) { return this.getRecentFilesByExt(ext, nameFilter); }
-        else {
-          return window.gapi.client.drive.files.list({
-            fields: "files(id, name, modifiedTime)",
-            q: 'not trashed and not (' + isSharedFile + ') and (fileExtension="' + ext + '" or "' + savedFiles[0].id + '" in parents)' + nameFilter,
-          });
-        }
-      })
+    return this.listProgramFiles(appName, nameFilter);
+  }
+
+  getProgramFileIds = (appName, ext) => {
+    return this.listProgramFiles(appName, "").then((resp) => resp.result.files.map((f) => f.id));
   }
 
   /**
    * list files w/ extension [ext].
    */
   getRecentFilesByExt = (ext, nameFilter) => {
-    return window.gapi.client.drive.files.list({
-      fields: "files(id, name)",
+    return this.listAllFiles({
+      fields: "files(id, name, modifiedTime)",
       q: 'not trashed and fileExtension="' + ext + '"' + (nameFilter || ""),
     });
   }
@@ -156,6 +175,42 @@ class GoogleAPI {
         window.picker.setVisible(true);
       })
     });
+  }
+
+  openAddFilesPicker = (fileIds, ext, title, batchLabel) => {
+    var done = Q.defer();
+    window.reauth(true).then((auth) => {
+      if(!auth) { done.reject(new Error("Not signed in")); return; }
+      window.gapi.load('picker', () => {
+        var picker = window.google.picker;
+        var listView = (label) => {
+          var view = new picker.DocsView(picker.ViewId.DOCS).setMode(picker.DocsViewMode.LIST);
+          if(view.setLabel) { view.setLabel(label); }
+          return view;
+        };
+        var views = fileIds
+          ? [listView('Files' + batchLabel).setFileIds(fileIds.join(','))]
+          : [listView('Pyret files').setQuery('.' + ext), listView('My Drive').setIncludeFolders(true).setParent('root')];
+        var builder = new picker.PickerBuilder()
+          .enableFeature(picker.Feature.MULTISELECT_ENABLED)
+          .setTitle(title)
+          .setOAuthToken(auth.access_token)
+          .setAppId(window.appId)
+          .setCallback((data) => {
+            var action = data[picker.Response.ACTION];
+            if(action === picker.Action.PICKED) {
+              done.resolve(data[picker.Response.DOCUMENTS].map((d) => d[picker.Document.ID]));
+            }
+            else if(action === picker.Action.CANCEL) {
+              done.resolve([]);
+            }
+          });
+        if(window.apiKey) { builder.setDeveloperKey(window.apiKey); }
+        views.forEach((v) => { builder.addView(v); });
+        builder.build().setVisible(true);
+      });
+    });
+    return done.promise;
   }
 
   getUsername = () => {

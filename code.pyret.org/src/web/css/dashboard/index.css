@@ -85,6 +85,30 @@ button:hover, .button:hover {
     margin: 0px 16pt;
 }
 
+#add-files {
+    margin-left: 16pt;
+}
+
+#file-ids {
+    padding-bottom: 3rem;
+}
+
+#file-ids, #file-ids p, #file-ids a {
+    font-size: 0.8rem;
+    color: #666666;
+}
+
+#file-ids textarea {
+    display: block;
+    width: 80%;
+    height: 4rem;
+    margin: 4pt auto;
+}
+
+#added-files {
+    padding: 4pt;
+}
+
 .start-button {
     margin-right: 1rem;
 }

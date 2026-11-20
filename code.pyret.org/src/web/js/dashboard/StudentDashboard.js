@@ -14,6 +14,12 @@ const WAITING_FOR_FILES = [];
 // How long to wait after the last keystroke before asking Drive
 const SEARCH_DEBOUNCE_MS = 300;
 
+const PICKER_BATCH_SIZE = 50;
+
+function parseFileIds(text) {
+  return text.split(/[^A-Za-z0-9_-]+/).filter((id) => id.length > 0);
+}
+
 
 class StudentDashboard extends Component {
   constructor() {
@@ -29,7 +35,12 @@ class StudentDashboard extends Component {
       // whether we're still waiting on Drive for them
       searchResults: [],
       searching: false,
-      userName: false
+      userName: false,
+      addedCount: false,
+      idsPanel: false,
+      copiedIds: '',
+      copied: false,
+      pastedIds: ''
     };
 
     this.api = new GoogleAPI();
@@ -178,6 +189,69 @@ class StudentDashboard extends Component {
     */
   }
 
+  addFiles = (ids) => {
+    var batches = [];
+    for (var i = 0; i < ids.length; i += PICKER_BATCH_SIZE) {
+      batches.push(ids.slice(i, i + PICKER_BATCH_SIZE));
+    }
+    if (batches.length === 0) { batches.push(null); }
+    var added = 0;
+    var pickBatch = (n) => {
+      if (n >= batches.length) { return added; }
+      var batchLabel = batches.length > 1 ? ' (' + (n + 1) + ' of ' + batches.length + ')' : '';
+      return this.api.openAddFilesPicker(batches[n], FILE_EXT, 'Add files to ' + APP_NAME + batchLabel, batchLabel).then((picked) => {
+        added += picked.length;
+        return pickBatch(n + 1);
+      });
+    };
+    return Q(pickBatch(0)).then((count) => {
+      if (count > 0) {
+        this.setState({addedCount: count});
+        this.updateRecentFiles();
+      }
+      return count;
+    });
+  }
+
+  handleAddFilesClick = (event) => {
+    this.addFiles([]);
+  }
+
+  handleCopyIdsClick = (event) => {
+    event.preventDefault();
+    this.api.getProgramFileIds(APP_NAME, FILE_EXT).then((ids) => {
+      var text = ids.join(',');
+      this.setState({idsPanel: 'copy', copiedIds: text, copied: false});
+      if (window.navigator.clipboard) {
+        window.navigator.clipboard.writeText(text).then(() => {
+          this.setState({copied: true});
+        }, () => {});
+      }
+    });
+  }
+
+  handlePasteIdsClick = (event) => {
+    event.preventDefault();
+    this.setState({idsPanel: 'paste'});
+  }
+
+  handlePastedIdsChange = (event) => {
+    this.setState({pastedIds: event.target.value});
+  }
+
+  handleAddPastedIds = (event) => {
+    event.preventDefault();
+    var ids = parseFileIds(this.state.pastedIds);
+    if (ids.length === 0) { return; }
+    this.addFiles(ids).then((count) => {
+      if (count > 0) { this.setState({idsPanel: false, pastedIds: ''}); }
+    });
+  }
+
+  selectAll = (event) => {
+    event.target.select();
+  }
+
   // A simple callback implementation.
   pickerCallback = (data) => {
     if (data.action === window.google.picker.Action.PICKED) {
@@ -241,6 +315,7 @@ class StudentDashboard extends Component {
             <h2 id='recent-files' className={'tab floatable left ' + ((this.state.activeTab === 'recent-files') ? 'active' : '')} onClick={this.handleTabClick}>Recent Files</h2>
             <h2 id='new-file' className={'tab floatable left ' + ((this.state.activeTab === 'new-file') ? 'active' : '')} onClick={this.handleTabClick}>New File</h2>
             <div className='button-wrapper right'>
+              <button id='add-files' onClick={this.handleAddFilesClick} >Add files to this view</button>
               <button id='select-file' onClick={this.handleSelectFileClick} >View in Google Drive</button>
             </div>
           </div>
@@ -252,6 +327,7 @@ class StudentDashboard extends Component {
             </span>
           </div>
           <div id='file-picker-modal-body' className={'modal-body ' + ((this.state.activeTab === 'new-file') ? 'hidden' : '')}>
+            {this.state.addedCount === false ? null : <p id='added-files'>Added {this.state.addedCount} files.</p>}
             {
               this.state.files === WAITING_FOR_FILES ?
               (<div id='loading-spinner'>
@@ -277,6 +353,21 @@ class StudentDashboard extends Component {
               <input id='new-file' className='button ' type='submit' value='Create' />
             </form>
           </div>
+        </div>
+        <div id='file-ids' className={'container ' + (this.state.signedIn === SIGNED_IN ? '' : 'hidden')}>
+          <p>
+            <a href='#' id='copy-ids' onClick={this.handleCopyIdsClick}>Copy file IDs</a> | <a href='#' id='paste-ids' onClick={this.handlePasteIdsClick}>Paste file IDs</a>
+          </p>
+          {this.state.idsPanel !== 'copy' ? null :
+            <div>
+              <p id='copied-ids-status'>{this.state.copied ? 'Copied.' : 'Copy these:'}</p>
+              <textarea id='copied-ids' readOnly value={this.state.copiedIds} onFocus={this.selectAll} />
+            </div>}
+          {this.state.idsPanel !== 'paste' ? null :
+            <form onSubmit={this.handleAddPastedIds}>
+              <textarea id='pasted-ids' value={this.state.pastedIds} onChange={this.handlePastedIdsChange} />
+              <input id='add-pasted-ids' className='button' type='submit' value='Add files' />
+            </form>}
         </div>
         <div className='footer middle'>
           <p className='right'>
