@@ -37,6 +37,7 @@ class StudentDashboard extends Component {
       searching: false,
       userName: false,
       addedCount: false,
+      manageOpen: false,
       idsPanel: false,
       copiedIds: '',
       copied: false,
@@ -190,27 +191,47 @@ class StudentDashboard extends Component {
   }
 
   addFiles = (ids) => {
-    var batches = [];
-    for (var i = 0; i < ids.length; i += PICKER_BATCH_SIZE) {
-      batches.push(ids.slice(i, i + PICKER_BATCH_SIZE));
-    }
-    if (batches.length === 0) { batches.push(null); }
+    if (ids.length === 0) { return this.pickBatches([null]); }
+    return this.api.getVisibleFileIds().then((visible) => {
+      var needed = ids.filter((id) => visible.indexOf(id) === -1);
+      var batches = [];
+      for (var i = 0; i < needed.length; i += PICKER_BATCH_SIZE) {
+        batches.push(needed.slice(i, i + PICKER_BATCH_SIZE));
+      }
+      return this.pickBatches(batches);
+    });
+  }
+
+  pickBatches = (batches) => {
     var added = 0;
     var pickBatch = (n) => {
       if (n >= batches.length) { return added; }
       var batchLabel = batches.length > 1 ? ' (' + (n + 1) + ' of ' + batches.length + ')' : '';
       return this.api.openAddFilesPicker(batches[n], FILE_EXT, 'Add files to ' + APP_NAME + batchLabel, batchLabel).then((picked) => {
+        if (picked === null) { return added; }
         added += picked.length;
         return pickBatch(n + 1);
       });
     };
     return Q(pickBatch(0)).then((count) => {
-      if (count > 0) {
-        this.setState({addedCount: count});
+      if (count > 0 || batches.length === 0) {
+        this.setState({addedCount: count, manageOpen: false, idsPanel: false});
         this.updateRecentFiles();
       }
       return count;
     });
+  }
+
+  handleManageClick = (event) => {
+    this.setState({manageOpen: true});
+  }
+
+  handleManageCloseClick = (event) => {
+    this.setState({manageOpen: false, idsPanel: false});
+  }
+
+  handleManageOverlayClick = (event) => {
+    if (event.target === event.currentTarget) { this.handleManageCloseClick(event); }
   }
 
   handleAddFilesClick = (event) => {
@@ -244,7 +265,7 @@ class StudentDashboard extends Component {
     var ids = parseFileIds(this.state.pastedIds);
     if (ids.length === 0) { return; }
     this.addFiles(ids).then((count) => {
-      if (count > 0) { this.setState({idsPanel: false, pastedIds: ''}); }
+      if (!this.state.manageOpen) { this.setState({pastedIds: ''}); }
     });
   }
 
@@ -315,7 +336,7 @@ class StudentDashboard extends Component {
             <h2 id='recent-files' className={'tab floatable left ' + ((this.state.activeTab === 'recent-files') ? 'active' : '')} onClick={this.handleTabClick}>Recent Files</h2>
             <h2 id='new-file' className={'tab floatable left ' + ((this.state.activeTab === 'new-file') ? 'active' : '')} onClick={this.handleTabClick}>New File</h2>
             <div className='button-wrapper right'>
-              <button id='add-files' onClick={this.handleAddFilesClick} >Add files to this view</button>
+              <button id='manage' onClick={this.handleManageClick} >Manage</button>
               <button id='select-file' onClick={this.handleSelectFileClick} >View in Google Drive</button>
             </div>
           </div>
@@ -354,21 +375,29 @@ class StudentDashboard extends Component {
             </form>
           </div>
         </div>
-        <div id='file-ids' className={'container ' + (this.state.signedIn === SIGNED_IN ? '' : 'hidden')}>
-          <p>
-            <a href='#' id='copy-ids' onClick={this.handleCopyIdsClick}>Copy file IDs</a> | <a href='#' id='paste-ids' onClick={this.handlePasteIdsClick}>Paste file IDs</a>
-          </p>
-          {this.state.idsPanel !== 'copy' ? null :
-            <div>
-              <p id='copied-ids-status'>{this.state.copied ? 'Copied.' : 'Copy these:'}</p>
-              <textarea id='copied-ids' readOnly value={this.state.copiedIds} onFocus={this.selectAll} />
-            </div>}
-          {this.state.idsPanel !== 'paste' ? null :
-            <form onSubmit={this.handleAddPastedIds}>
-              <textarea id='pasted-ids' value={this.state.pastedIds} onChange={this.handlePastedIdsChange} />
-              <input id='add-pasted-ids' className='button' type='submit' value='Add files' />
-            </form>}
-        </div>
+        {!this.state.manageOpen ? null :
+          <div id='manage-overlay' onClick={this.handleManageOverlayClick}>
+            <div id='manage-modal'>
+              <p>If you aren't seeing files you expect in the list, you can browse your Drive to add them. If you use another Pyret site, you can also copy file IDs from one site to another.</p>
+              <p><button id='add-files' onClick={this.handleAddFilesClick} >Choose files to add</button></p>
+              <div id='file-ids'>
+                <p>
+                  <a href='#' id='copy-ids' onClick={this.handleCopyIdsClick}>Copy file IDs</a> | <a href='#' id='paste-ids' onClick={this.handlePasteIdsClick}>Paste file IDs</a>
+                </p>
+                {this.state.idsPanel !== 'copy' ? null :
+                  <div>
+                    <p id='copied-ids-status'>{this.state.copied ? 'Copied.' : 'Copy these:'}</p>
+                    <textarea id='copied-ids' readOnly value={this.state.copiedIds} onFocus={this.selectAll} />
+                  </div>}
+                {this.state.idsPanel !== 'paste' ? null :
+                  <form onSubmit={this.handleAddPastedIds}>
+                    <textarea id='pasted-ids' value={this.state.pastedIds} onChange={this.handlePastedIdsChange} />
+                    <input id='add-pasted-ids' className='button' type='submit' value='Add files' />
+                  </form>}
+              </div>
+              <p><button id='manage-close' onClick={this.handleManageCloseClick} >Close</button></p>
+            </div>
+          </div>}
         <div className='footer middle'>
           <p className='right'>
             <a target="_blank" href="https://www.pyret.org">pyret.org</a> | <a target="_blank" href={"https://" + process.env.APP_DOMAIN + "/faq/"}>Policies</a> | <a target="_blank" href="https://www.github.com/brownplt/code.pyret.org">Software</a></p>

@@ -85,12 +85,31 @@ button:hover, .button:hover {
     margin: 0px 16pt;
 }
 
-#add-files {
+#manage {
     margin-left: 16pt;
 }
 
-#file-ids {
-    padding-bottom: 3rem;
+#manage-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,.4);
+    z-index: 100;
+}
+
+#manage-modal {
+    max-width: 32rem;
+    margin: 6rem auto 0 auto;
+    padding: 16pt;
+    background: #fff;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+}
+
+#manage-modal > p {
+    padding: 8pt 0;
 }
 
 #file-ids, #file-ids p, #file-ids a {

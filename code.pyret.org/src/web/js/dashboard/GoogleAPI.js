@@ -82,7 +82,7 @@ class GoogleAPI {
     return getPage(undefined);
   }
 
-  listProgramFiles = (appName, nameFilter) => {
+  listProgramFiles = (appName, ext, nameFilter) => {
     return Q(this.getAppSharedFolderID(appName)).then((resp) => {
       var sharedFiles = resp.result.files;
       var isSharedFile = "(appProperties has {key=\'originalProgramFlag\' and value=\'true\'})";
@@ -91,7 +91,7 @@ class GoogleAPI {
       }
       return this.listAllFiles({
         fields: "files(id, name, modifiedTime)",
-        q: 'not trashed and not (' + isSharedFile + ') and mimeType != "' + FOLDER_MIME + '"' + nameFilter,
+        q: 'not trashed and not (' + isSharedFile + ') and (mimeType = "text/plain" or fileExtension = "' + ext + '")' + nameFilter,
       });
     }).then((resp) => {
       return { result: { files: resp.result.files.filter((f) => !CACHE_FILE_NAME.test(f.name)) } };
@@ -104,11 +104,16 @@ class GoogleAPI {
       var escaped = nameQuery.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
       nameFilter = " and name contains '" + escaped + "'";
     }
-    return this.listProgramFiles(appName, nameFilter);
+    return this.listProgramFiles(appName, ext, nameFilter);
+  }
+
+  getVisibleFileIds = () => {
+    return this.listAllFiles({ fields: "files(id)", q: 'not trashed' })
+      .then((resp) => resp.result.files.map((f) => f.id));
   }
 
   getProgramFileIds = (appName, ext) => {
-    return this.listProgramFiles(appName, "").then((resp) => resp.result.files.map((f) => f.id));
+    return this.listProgramFiles(appName, ext, "").then((resp) => resp.result.files.map((f) => f.id));
   }
 
   /**
@@ -190,7 +195,7 @@ class GoogleAPI {
         };
         var views = fileIds
           ? [listView('Files' + batchLabel).setFileIds(fileIds.join(','))]
-          : [listView('Pyret files').setQuery('.' + ext), listView('My Drive').setIncludeFolders(true).setParent('root')];
+          : [listView('Pyret files').setMimeTypes('text/plain').setQuery('.' + ext + ' -title:"shared-gdrive"'), listView('My Drive').setMimeTypes('text/plain').setIncludeFolders(true).setParent('root')];
         var builder = new picker.PickerBuilder()
           .enableFeature(picker.Feature.MULTISELECT_ENABLED)
           .setTitle(title)
@@ -202,7 +207,7 @@ class GoogleAPI {
               done.resolve(data[picker.Response.DOCUMENTS].map((d) => d[picker.Document.ID]));
             }
             else if(action === picker.Action.CANCEL) {
-              done.resolve([]);
+              done.resolve(null);
             }
           });
         if(window.apiKey) { builder.setDeveloperKey(window.apiKey); }
