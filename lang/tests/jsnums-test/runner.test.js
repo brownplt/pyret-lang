@@ -1,7 +1,6 @@
 'use strict';
 
-// node --test runner over the frozen oracle cases: once against a native
-// BigInt library, or under each digit configuration of a jsbn-backed one.
+// node --test runner over the frozen oracle cases.
 // JSNUMS_PATH points at an alternative js-numbers.js;
 // JSNUMS_FILTER restricts to case ids containing the given text;
 // JSNUMS_TIMEOUT is the per-case watchdog in milliseconds.
@@ -9,40 +8,32 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const S = require('./suite');
-const { loadLibrary } = require('./load');
-const { runConfig } = require('./watchdog');
+const { runFiles } = require('./watchdog');
 
 const libPath = process.env.JSNUMS_PATH || undefined;
 const filterText = process.env.JSNUMS_FILTER;
 const MAX_SHOWN = 25;
-const NATIVE = loadLibrary(libPath).digitBits === undefined;
-const CONFIGS = NATIVE ? [undefined] : [28, 30, 26];
 const names = S.caseFiles();
 
-const results = {};
+let results;
 const ulpStats = {};
 
 test.describe('frozen oracle cases', () => {
   test.before(async () => {
-    for (const bits of CONFIGS) {
-      if (!NATIVE) assert.equal(loadLibrary(libPath, bits).digitBits, bits, 'digit configuration did not take effect');
-      results[bits] = await runConfig(libPath, bits, names, { filterText });
-    }
+    results = await runFiles(libPath, names, { filterText });
   });
 
-  for (const bits of CONFIGS) {
-    for (const name of names) {
-      test(name.replace(/\.json$/, '') + ' [' + (NATIVE ? 'native BigInt' : bits + '-bit digits') + ']', () => {
-        const s = S.summarize(results[bits].get(name));
-        const key = name.replace(/\.json$/, '');
-        ulpStats[key] = ulpStats[key] === undefined || s.maxUlp > ulpStats[key] ? s.maxUlp : ulpStats[key];
-        if (s.fail) {
-          const shown = s.failures.slice(0, MAX_SHOWN).map(S.formatFailure);
-          assert.fail(s.fail + ' of ' + s.total + ' cases failed:\n  ' + shown.join('\n  ') +
-            (s.fail > MAX_SHOWN ? '\n  ... ' + (s.fail - MAX_SHOWN) + ' more' : ''));
-        }
-      });
-    }
+  for (const name of names) {
+    const key = name.replace(/\.json$/, '');
+    test(key, () => {
+      const s = S.summarize(results.get(name));
+      ulpStats[key] = s.maxUlp;
+      if (s.fail) {
+        const shown = s.failures.slice(0, MAX_SHOWN).map(S.formatFailure);
+        assert.fail(s.fail + ' of ' + s.total + ' cases failed:\n  ' + shown.join('\n  ') +
+          (s.fail > MAX_SHOWN ? '\n  ... ' + (s.fail - MAX_SHOWN) + ' more' : ''));
+      }
+    });
   }
 
   test.after(() => {

@@ -23,8 +23,8 @@ const MIXED_COMPARE_OPS = new Set(['lessThan', 'lessThanOrEqual', 'greaterThan',
 // infinity, NaN, Python ZeroDivisionError, Racket's exact 0 for (/ 0 -0.0),
 // a domain error for a non-integer first argument, ...).
 const ZERO_DIVISOR_OPS = new Set(['divide', 'remainder', 'makeRational']);
-// Integer exponents beyond the fixnum range go to jsbn's bnpExp, which
-// refuses exponents above 2^32-1 rather than computing e.g. (-1)^n.
+// Integer exponents beyond the fixnum range are refused by js-numbers'
+// expt (limit 2^32-1) rather than computing e.g. (-1)^n.
 const EXPT_EXPONENT_LIMIT = 9000000000000000n;
 
 // Rules that trigger on (op, args) alone and overwrite an oracle's raw

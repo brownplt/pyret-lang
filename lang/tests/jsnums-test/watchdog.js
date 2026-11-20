@@ -11,13 +11,13 @@ const { loadLibrary } = require('./load');
 const DEFAULT_TIMEOUT_MS = Number(process.env.JSNUMS_TIMEOUT || 10000);
 
 if (!isMainThread && workerData.single) {
-  const { libPath, bits, op, args } = workerData;
-  const { lib } = loadLibrary(libPath, bits);
+  const { libPath, op, args } = workerData;
+  const { lib } = loadLibrary(libPath);
   const a = S.evaluate(lib, op, args);
   parentPort.postMessage({ kind: a.kind, cls: a.cls, message: a.message, text: S.describe(a) });
 } else if (!isMainThread) {
-  const { libPath, bits, files, filterText } = workerData;
-  const { lib } = loadLibrary(libPath, bits);
+  const { libPath, files, filterText } = workerData;
+  const { lib } = loadLibrary(libPath);
   for (const { name, start } of files) {
     const data = S.readCaseFile(name);
     for (let i = start; i < data.cases.length; i++) {
@@ -33,8 +33,8 @@ if (!isMainThread && workerData.single) {
   parentPort.postMessage({ type: 'done' });
 }
 
-// Resolves to Map(fileName -> results[]) for one library and digit config.
-function runConfig(libPath, bits, fileNames, opts) {
+// Resolves to Map(fileName -> results[]) for one library.
+function runFiles(libPath, fileNames, opts) {
   const timeout = (opts && opts.timeout) || DEFAULT_TIMEOUT_MS;
   const filterText = opts && opts.filterText;
   const out = new Map();
@@ -43,7 +43,7 @@ function runConfig(libPath, bits, fileNames, opts) {
     let files = fileNames.map(name => ({ name, start: 0 }));
     let current = null, timer = null, worker = null;
     const spawn = () => {
-      worker = new Worker(__filename, { workerData: { libPath, bits, files, filterText } });
+      worker = new Worker(__filename, { workerData: { libPath, files, filterText } });
       worker.on('message', m => {
         if (m.type === 'start') {
           current = m;
@@ -71,28 +71,24 @@ function runConfig(libPath, bits, fileNames, opts) {
   });
 }
 
-// Map(id@bits -> result) over every case file and the given configs.
-async function runAll(libPath, configs, opts) {
-  const names = S.caseFiles();
+// Map(id -> result) over every case file.
+async function runAll(libPath, opts) {
   const all = new Map();
-  for (const bits of configs) {
-    const per = await runConfig(libPath, bits, names, opts);
-    for (const [name, results] of per) {
-      const op = name.replace(/\.json$/, '');
-      for (const r of results) all.set(r.id + '@' + bits, Object.assign({ op, bits, file: name }, r));
-    }
+  for (const [name, results] of await runFiles(libPath, S.caseFiles(), opts)) {
+    const op = name.replace(/\.json$/, '');
+    for (const r of results) all.set(r.id, Object.assign({ op, file: name }, r));
   }
   return all;
 }
 
 // Evaluate one op in a worker; resolves to the classification or {kind: 'timeout'}.
-function evaluateInWorker(libPath, bits, op, args, timeout) {
+function evaluateInWorker(libPath, op, args, timeout) {
   return new Promise((resolve, reject) => {
-    const worker = new Worker(__filename, { workerData: { single: true, libPath, bits, op, args } });
+    const worker = new Worker(__filename, { workerData: { single: true, libPath, op, args } });
     const timer = setTimeout(() => { worker.terminate(); resolve({ kind: 'timeout', text: 'timed out after ' + (timeout || DEFAULT_TIMEOUT_MS) + ' ms' }); }, timeout || DEFAULT_TIMEOUT_MS);
     worker.on('message', m => { clearTimeout(timer); resolve(m); });
     worker.on('error', e => { clearTimeout(timer); reject(e); });
   });
 }
 
-module.exports = { runConfig, runAll, evaluateInWorker, DEFAULT_TIMEOUT_MS };
+module.exports = { runFiles, runAll, evaluateInWorker, DEFAULT_TIMEOUT_MS };
