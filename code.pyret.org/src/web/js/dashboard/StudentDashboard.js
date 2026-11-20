@@ -93,10 +93,17 @@ class StudentDashboard extends Component {
     }
   }
 
-  updateRecentFiles = () => {
+  updateRecentFiles = (addedIds) => {
     this.setState({files: WAITING_FOR_FILES});
     this.api.getRecentFilesByExtAndAppName(APP_NAME, FILE_EXT).then((resp) => {
-      this.setState({files: resp.result.files});
+      var files = resp.result.files;
+      var missing = (addedIds || []).filter((id) => !files.some((f) => f.id === id));
+      if (missing.length === 0) { return files; }
+      return this.api.getProgramFilesByIds(missing, FILE_EXT).then((added) => {
+        return files.concat(added).sort((a, b) => a.modifiedTime < b.modifiedTime ? 1 : (a.modifiedTime > b.modifiedTime ? -1 : 0));
+      });
+    }).then((files) => {
+      this.setState({files: files});
     })
   }
 
@@ -203,22 +210,22 @@ class StudentDashboard extends Component {
   }
 
   pickBatches = (batches) => {
-    var added = 0;
+    var added = [];
     var pickBatch = (n) => {
       if (n >= batches.length) { return added; }
       var batchLabel = batches.length > 1 ? ' (' + (n + 1) + ' of ' + batches.length + ')' : '';
       return this.api.openAddFilesPicker(batches[n], FILE_EXT, 'Add files to ' + APP_NAME + batchLabel, batchLabel).then((picked) => {
         if (picked === null) { return added; }
-        added += picked.length;
+        added = added.concat(picked);
         return pickBatch(n + 1);
       });
     };
-    return Q(pickBatch(0)).then((count) => {
-      if (count > 0 || batches.length === 0) {
-        this.setState({addedCount: count, manageOpen: false, idsPanel: false});
-        this.updateRecentFiles();
+    return Q(pickBatch(0)).then((ids) => {
+      if (ids.length > 0 || batches.length === 0) {
+        this.setState({addedCount: ids.length, manageOpen: false, idsPanel: false});
+        this.updateRecentFiles(ids);
       }
-      return count;
+      return ids.length;
     });
   }
 

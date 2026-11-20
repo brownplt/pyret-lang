@@ -107,6 +107,26 @@ class GoogleAPI {
     return this.listProgramFiles(appName, ext, nameFilter);
   }
 
+  getProgramFilesByIds = (ids, ext) => {
+    var files = [];
+    var getChunk = (start) => {
+      if(start >= ids.length) { return files; }
+      return Q.all(ids.slice(start, start + 20).map((id) => {
+        return Q(window.gapi.client.drive.files.get({
+          fileId: id,
+          fields: "id, name, modifiedTime, mimeType, fileExtension, trashed",
+        })).then((resp) => resp.result, () => null);
+      })).then((chunk) => {
+        files = files.concat(chunk.filter((f) => {
+          return f !== null && !f.trashed && !CACHE_FILE_NAME.test(f.name)
+            && (f.mimeType === "text/plain" || f.fileExtension === ext);
+        }));
+        return getChunk(start + 20);
+      });
+    };
+    return Q(getChunk(0));
+  }
+
   getVisibleFileIds = () => {
     return this.listAllFiles({ fields: "files(id)", q: 'not trashed' })
       .then((resp) => resp.result.files.map((f) => f.id));
