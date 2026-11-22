@@ -47,6 +47,10 @@ async function launchChromium() {
   };
   if (process.env.GOOGLE_CHROME_BINARY) {
     opts.executablePath = process.env.GOOGLE_CHROME_BINARY;
+  } else {
+    // Use full Chromium (--headless=new) rather than chromium_headless_shell,
+    // whose text layout metrics diverge on image-equality's howdy-yall test.
+    opts.channel = "chromium";
   }
   return chromium.launch(opts);
 }

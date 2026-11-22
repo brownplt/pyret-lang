@@ -41,15 +41,17 @@ endif
 
 # Mirrors the "Start CPO server" step in .github/workflows/browser-test.yml.
 # NODE_ENV=development is load-bearing, not a nicety: it is what mounts
-# code.pyret.org/test-util/ (server.js:192), which serves both the embed host
-# page (/embed/embed1.html) and the url-imports fixtures (/pyret-programs/...).
+# browser-test/cpo/test-util/ (server.js), which serves the embed host pages
+# (/embed/embed1.html, /embed/embed2.html) and test fixtures.
 SERVER_ENV := BASE_URL=$(BASE_URL) PORT=$(PORT) \
   PYRET=$(BASE_URL)/js/cpo-main.jarr POSTMESSAGE_ORIGIN='*' \
   NODE_ENV=development SESSION_SECRET=not-so-secret REDISCLOUD_URL= \
   URL_FILE_MODE=all-remote IMAGE_PROXY_BYPASS=true \
   SHARED_FETCH_SERVER=https://code.pyret.org CURRENT_PYRET_RELEASE=
 
-.PHONY: help cpo embed embed-static vscode vscode-ovsx all-envs \
+PYRET_COMPILERS ?= pyret ts
+
+.PHONY: help cpo embed embed-static vscode vscode-ovsx all-envs matrix \
         cpo-build embed-build vscode-build deps server stop-server clean-stamps
 
 help:
@@ -149,6 +151,15 @@ vscode-ovsx: vscode-build deps
 all-envs:
 	@rc=0; for e in cpo embed embed-static vscode vscode-ovsx; do \
 	  echo "=== $$e ==="; $(MAKE) --no-print-directory $$e || rc=1; done; \
+	echo "done (rc=$$rc)"; exit $$rc
+
+matrix: | results
+	@rc=0; for c in $(PYRET_COMPILERS); do \
+	  for e in cpo embed embed-static vscode vscode-ovsx; do \
+	    echo "=== $$e ($$c compiler) ==="; \
+	    bash -o pipefail -c 'PYRET_COMPILER="$$1" $(MAKE) --no-print-directory "$$2" 2>&1 | tee "$(HERE)/results/$$2-$$1-full.txt"' _ "$$c" "$$e" || rc=1; \
+	  done; \
+	done; \
 	echo "done (rc=$$rc)"; exit $$rc
 
 clean-stamps:

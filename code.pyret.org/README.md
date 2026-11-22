@@ -135,74 +135,9 @@ At https://console.developers.google.com/project, make a project, then:
 - For Google accounts to work locally, you'll also need to run a local Redis instance
   and put its connection url into the `REDISCLOUD_URL` variable in `.env `
 
-## Testing with Selenium
+## Testing
 
-There are tests in `test-util/` and `test/` that use Selenium to script a
-browser.
-
-The instructions for setting up Selenium to open Chrome locally are somewhat
-platform-specific.  You will need
-[chromedriver](https://sites.google.com/a/chromium.org/chromedriver/) to be on
-your path.  Then run running:
-
-```
-npm install selenium-webdriver mocha
-npm run mocha
-```
-
-with Selenium and mocha installed and a development server running.  You can
-refine this with, e.g.
-
-```
-npm run mocha -- -g "errors"
-```
-
-to only run the tests in `test/errors.js`.  (The extra `--` are to escape the
-portion of the options to pass to the underlying `mocha` command).
-
-Another options to run all the tests on Sauce Labs (https://saucelabs.com).
-You can also get a personal free account with unlimited testing if you only
-test open-source stuff (which Pyret/CPO are).  Sauce also stores screencasts
-and logs of your tests, which can be helpful with debugging.
-
-First, add your sauce username and access key (from your account page at
-Sauce) to `.env`:
-
-```
-SAUCE_USERNAME="gibbs"
-SAUCE_ACCESS_KEY="deadbeef-2671-11e5-a6a1-206a8a0824be"
-```
-
-(Not my real access key)
-
-Second, install the Sauce Connect client for your system from
-https://docs.saucelabs.com/reference/sauce-connect/.  Follow the instructions
-for starting the server (the default configuration should work fine), using
-the same username and access key, for example, on Ubuntu I run:
-
-```
-~/sc-4.3.9-linux32$ ./bin/sc -u gibbs -k deadbeef-2671-11e5-a6a1-206a8a0824be
-```
-
-That sets up a tunnel to Sauce Labs, and on the same machine you should now be
-able to run:
-
-```
-$ heroku local:run ./node_modules/mocha/bin/mocha
-```
-
-To run only a particular file, pass in one of the filenames in `test/`, e.g.
-
-```
-$ heroku local:run ./node_modules/mocha/bin/mocha test/world.js
-```
-
-Check out how `world.js` and `image.js` are written: they look up files from
-`test-util/pyret-programs` and run them according to Selenium testers in
-`test-util/util.js`.  The best way to test a whole new library is probably to
-add a directory here and figure out a good predicate that can be applied
-across the files (`runAndCheckAllTestsPassed` is probably a good candidate for
-many use cases).
+Editor and server browser tests live in [`../browser-test/`](../browser-test/) and run via Playwright (`make cpo` / `node run.js --env=cpo`).
 
 ## Setting up your own remote version of code.pyret.org with Heroku:
 

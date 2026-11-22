@@ -86,7 +86,7 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.build.outputs.matrix) }}
@@ -115,11 +115,12 @@ jobs:
         working-directory: ./browser-test
         # --ignore-scripts skips the implicit @playwright/browser-chromium and
         # playwright browser downloads from npm ci; we then install exactly one
-        # Chromium (with OS deps) explicitly. The vscode env runs @vscode/test-web
-        # in browserType:'none' and launches that Chromium itself.
+        # Chromium explicitly (ubuntu-latest already has its shared libs, and
+        # skipping --with-deps avoids extra font packages). The vscode env runs
+        # @vscode/test-web in browserType:'none' and launches that Chromium itself.
         run: |
           npm ci --ignore-scripts
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
 
       - name: Build pyret-embed library
         if: ${{ matrix.env == 'embed-static' }}

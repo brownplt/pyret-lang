@@ -19,9 +19,11 @@ async function runSpec(page, s) {
       // an explicit spec timeout (e.g. big-programs' large compiles) wins.
       return A.runAndCheckAllTestsPassed(page, s.code, s.name, (s.options && s.options.timeout) || 20000);
     case "pyretFile":
-      // tables.js uses doForEachPyretFile with a table-specific assertion.
       if (s.suite === "tables") {
         return A.checkTableRendersCorrectly(page, s.code, s.program, s.baseTimeout || 900000);
+      }
+      if (s.suite === "world") {
+        return A.checkWorldProgramRunsCleanly(page, s.code, s.program, s.baseTimeout || 900000);
       }
       return A.runAndCheckAllTestsPassed(page, s.code, s.program, s.baseTimeout || 900000);
     default:

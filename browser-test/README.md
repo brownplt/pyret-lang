@@ -49,8 +49,7 @@ OVSX_FAITHFUL=1 node run.js --env=vscode-ovsx  # correct MIME/no cap: plumbing c
 
 Env vars: `OVSX_FAITHFUL=1` (correct serving), `OVSX_ASSET_ROOT=<dir>` (override
 the served build; defaults to `vscode/dist/web/build/web`), `OVSX_CAP_MB=<n>`
-(hostile size cap, default 15). A standalone one-shot check that skips the full
-spec suite lives in `smoke-ovsx.js`.
+(hostile size cap, default 15).
 
 ### `embed-static` — pyret-embed driving the built `editor.embed.html` artifact
 
@@ -83,10 +82,7 @@ the host page passes `compiler` to `makeEmbedConfig`, which appends
 rather than the harness selects the flavor. (The ts flavor reads
 `cpo-main-ts.jarr.gz.js` + `ts-compiler.gz.js` from the served root, next to
 the stock bundle: `make web-ts`.) The suites and assertions are identical in both
-configurations; `run-all.sh` runs the full env × compiler matrix.
-
-It is **strictly additive**: nothing under `code.pyret.org/` or `vscode/` is
-modified; the upstream test files are read as-is.
+configurations; `make matrix` runs the full env × compiler matrix.
 
 ## Why this is "the same tests"
 
@@ -99,10 +95,10 @@ helper (the frame with a `#runButton`) locates it in every case.
 Two mechanisms keep the inputs and assertions identical to upstream:
 
 - **Same inputs, zero copying.** `shared/load-cpo-specs.js` `require`s the
-  unmodified `code.pyret.org/test/*.js` with the mocha globals and `util.js`
+  spec files in `cpo/test/*.js` with the mocha globals and `util.js`
   replaced by *recording shims*, capturing the exact `(program, expected)` tuples
-  upstream feeds its assertions — the same check-block table, the same
-  error→substring table, the same `.arr` chart/table programs. No spec is copied.
+  — check-block tables, error→substring tables, image-equality tables, and
+  `.arr` chart/image/table/world programs.
 
 - **Same assertions.** `shared/page-assertions.js` is a line-for-line, in-page
   port of the `util.js` predicates (`checkAllTestsPassed` / `testErrorRendersString`
@@ -162,7 +158,7 @@ pages/
 shared/
   static-server.js      plain correct-MIME static server (multi-root)
   ovsx-server.js        static server that mimics Open VSX serving (text/plain+nosniff, size cap)
-  load-cpo-specs.js     extract exact specs from code.pyret.org/test/*.js (no copying)
+  load-cpo-specs.js     extract exact specs from cpo/test/*.js
   page-assertions.js    in-page DOM port of util.js predicates (window.PA)
   cpo-assertions.js     node:assert assertions mirroring util.js, per content check
   dispatch.js           map a loaded spec to its assertion
@@ -207,7 +203,7 @@ node run.js --env=vscode
 node run.js --env=embed-static
 
 # everything (starts the CPO server if needed):
-./run-all.sh
+make matrix
 ```
 
 ### Filtering (local dev)

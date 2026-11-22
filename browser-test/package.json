@@ -6,8 +6,10 @@
   "scripts": {
     "cpo": "node run.js --env=cpo",
     "embed": "node run.js --env=embed",
+    "embed-static": "node run.js --env=embed-static",
     "vscode": "node run.js --env=vscode",
-    "all": "./run-all.sh"
+    "vscode-ovsx": "node run.js --env=vscode-ovsx",
+    "all": "make matrix"
   },
   "//": "Filter with --grep (regex over suite + test names), e.g. `npm run embed -- --grep tables`.",
   "devDependencies": {

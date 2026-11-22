@@ -383,6 +383,7 @@ end`],
 }
 
 const DEFAULT_BADNESS = 26;
+const IMAGE_BASE_URL = process.env.BASE_URL || process.env.PYRET_FIXTURE_BASE;
 
 describe("Image equality - typed", function() {
   before(tester.setupMulti("Rendering errors"));
@@ -390,8 +391,8 @@ describe("Image equality - typed", function() {
 
   makeTests(TYPED).forEach(function(t) {
     var badness = t.length >= 3 ? t[2]: DEFAULT_BADNESS;
-    tester.testRunAndAllTestsPass(it, "image-equality-" + t[0],
-                                  makeTest(t[0], "image-typed", t[1], process.env["BASE_URL"], badness) );
+    tester.testRunAndAllTestsPass(it, "image-equality-typed-" + t[0],
+                                  makeTest(t[0], "image-typed", t[1], IMAGE_BASE_URL, badness) );
   });
 });
 
@@ -401,8 +402,8 @@ describe("Image equality - untyped", function() {
 
   makeTests(UNTYPED).forEach(function(t) {
     var badness = t.length >= 3 ? t[2]: DEFAULT_BADNESS;
-    tester.testRunAndAllTestsPass(it, "image-equality-" + t[0],
-                                  makeTest(t[0], "image", t[1], process.env["BASE_URL"], badness) );
+    tester.testRunAndAllTestsPass(it, "image-equality-untyped-" + t[0],
+                                  makeTest(t[0], "image", t[1], IMAGE_BASE_URL, badness) );
   });
 });
 /*

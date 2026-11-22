@@ -90,7 +90,7 @@ nodeArgs.push(path.join(__dirname, "tests", "suite.test.js"));
 // spec list at module load, before before() ever runs, so the origin must be
 // known before the child is spawned. Hence a parent-side server and an env var.
 const { startStaticServer } = require("./shared/static-server");
-const FIXTURE_ROOT = path.resolve(__dirname, "..", "code.pyret.org", "test-util");
+const FIXTURE_ROOT = path.resolve(__dirname, "cpo", "test-util");
 const URL_IMPORTS_ROOT = path.join(FIXTURE_ROOT, "pyret-programs", "url-imports") + path.sep;
 
 (async () => {

@@ -5,8 +5,8 @@
  * feeds to its assertions, WITHOUT copying or editing any file under
  * code.pyret.org/.
  *
- * It does this by `require`-ing the original, unmodified test files
- * (code.pyret.org/test/errors.js, check-blocks.js, type-check.js, ...) with the
+ * It does this by `require`-ing the spec files under browser-test/cpo/test/
+ * (errors.js, check-blocks.js, type-check.js, ...) with the
  * mocha globals (describe/it/before/...) and the `../test-util/util.js` module
  * stubbed out by *recording shims*. When the original file runs its
  * registration code -- e.g.
@@ -28,14 +28,12 @@ const path = require("path");
 const fs = require("fs");
 const Module = require("module");
 
-const CPO_DIR = path.resolve(__dirname, "../../code.pyret.org");
+const SUITE_DIR = path.resolve(__dirname, "../cpo");
 const TESTS_DIR = path.resolve(__dirname, "../tests");
-const UTIL_PATH = require.resolve(path.join(CPO_DIR, "test-util/util.js"));
 
-// The upstream test files use require("../test-util/util.js"). We intercept that
-// require so it returns a recording stub instead of the real selenium harness.
+// The moved CPO test files use require("../test-util/util.js"). We intercept
+// that require so it returns a recording stub instead of a selenium harness.
 function withStubbedUtil(recorder, body) {
-  const realResolveFilename = Module._resolveFilename;
   const realLoad = Module._load;
 
   // Recording shim that mimics util.js's exported registration helpers. Each one
@@ -58,7 +56,7 @@ function withStubbedUtil(recorder, body) {
     // recorded from `name` (chart/image/tables/world) so the runner can dispatch
     // to the matching assertion.
     doForEachPyretFile: (it, name, base, testFun, baseTimeout) => {
-      const dir = path.resolve(CPO_DIR, base);
+      const dir = path.resolve(SUITE_DIR, base);
       const programs = fs.readdirSync(dir).filter((p) => p.endsWith(".arr"));
       programs.forEach((program) => {
         recorder.push({
@@ -84,16 +82,7 @@ function withStubbedUtil(recorder, body) {
   };
 
   Module._load = function (request, parent, isMain) {
-    if (parent && /test-util[\\/]util\.js$/.test(request) === false) {
-      // resolve other requests normally; only special-case util.js below
-    }
-    let resolved;
-    try {
-      resolved = realResolveFilename.call(Module, request, parent, isMain);
-    } catch (e) {
-      resolved = null;
-    }
-    if (resolved === UTIL_PATH) {
+    if (/(?:^|[\\/])test-util[\\/]util(?:\.js)?$/.test(request)) {
       return stub;
     }
     return realLoad.call(Module, request, parent, isMain);
@@ -103,7 +92,6 @@ function withStubbedUtil(recorder, body) {
     return body();
   } finally {
     Module._load = realLoad;
-    Module._resolveFilename = realResolveFilename;
   }
 }
 
@@ -139,10 +127,10 @@ function withStubbedMocha(body) {
  * because the upstream files use cwd-relative fs.readFileSync paths.
  */
 function loadSpecsFromFile(testFileName) {
-  const testFilePath = path.join(CPO_DIR, "test", testFileName);
+  const testFilePath = path.join(SUITE_DIR, "test", testFileName);
   const recorder = [];
   const prevCwd = process.cwd();
-  process.chdir(CPO_DIR);
+  process.chdir(SUITE_DIR);
   try {
     delete require.cache[require.resolve(testFilePath)];
     withStubbedMocha(() => withStubbedUtil(recorder, () => {
@@ -158,11 +146,9 @@ function loadSpecsFromFile(testFileName) {
 /**
  * Load one suite's specs, whichever kind of source names them.
  *
- * A bare filename ("errors.js") is an upstream code.pyret.org/test file, read
+ * A bare filename ("errors.js") is a spec file in browser-test/cpo/test/, read
  * through the recording shims above. A relative specifier ("./big-programs.js")
- * is a harness-local module that exports specs() -- generated or hand-written
- * stress shapes that have no upstream counterpart, kept here so the "nothing
- * under code.pyret.org/ is modified" property holds. Node's own rule for
+ * is a harness-local module that exports specs(). Node's own rule for
  * telling those apart (bare vs relative) is the rule used here, so a suite
  * entry reads like the require() it stands in for; local paths resolve against
  * tests/, where the suite table lives.
@@ -177,7 +163,7 @@ function loadSpecs(source) {
   return loadSpecsFromFile(source);
 }
 
-module.exports = { loadSpecs, loadSpecsFromFile, CPO_DIR };
+module.exports = { loadSpecs, loadSpecsFromFile, SUITE_DIR, CPO_DIR: SUITE_DIR };
 
 // CLI: `node load-cpo-specs.js errors.js` prints a summary.
 if (require.main === module) {

@@ -1,12 +1,12 @@
 /*
  * Environment adapter: the embed API's embedded instance.
  *
- * Loads the embed host page (code.pyret.org/test-util/embed/embed1.html, served
+ * Loads the embed host page (browser-test/cpo/test-util/embed/embed1.html, served
  * at /embed/embed1.html), which creates an <iframe id="embed1"> pointing at
  * /editor#controlled=true and exposes window.embedAPI. In controlled mode the
  * editor waits for a `reset` before populating its contents
- * (beforePyret.js:1453), so we send one -- exactly like the upstream embed test
- * (code.pyret.org/test/embed.js) -- then hand back the iframe's editor frame.
+ * (beforePyret.js:1453), so we send one -- like tests/embed-protocol.js --
+ * then hand back the iframe's editor frame.
  *
  * Needs the CPO server running at BASE_URL.
  */
