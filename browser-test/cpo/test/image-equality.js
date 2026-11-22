@@ -34,6 +34,45 @@ check:
 end`
 }
 
+// Like makeTest, for images containing system-font text whose rendered
+// dimensions vary by a few pixels across browsers/OSes. Checks that width and
+// height are within sizeTol px, then pads both onto a shared transparent box
+// before comparing pixels with images-difference.
+function makeTextTest(name, imageLib, expr, baseurl, badness, sizeTol) {
+  var isTyped = imageLib === "image-typed";
+  var solid = isTyped ? "mode-solid" : '"solid"';
+  var xLeft = isTyped ? "x-left" : '"left"';
+  var yTop  = isTyped ? "y-top"  : '"top"';
+  return `
+include ${imageLib}
+include image-structs
+include either
+
+i2 = image-url("${baseurl}" + "/test-images/" + "${name}" + ".png")
+i1 = ${expr}
+
+i1
+i2
+
+check:
+  w1 = image-width(i1)
+  h1 = image-height(i1)
+  w2 = image-width(i2)
+  h2 = image-height(i2)
+  num-abs(w1 - w2) satisfies (_ <= ${sizeTol})
+  num-abs(h1 - h2) satisfies (_ <= ${sizeTol})
+  bg = rectangle(num-max(w1, w2), num-max(h1, h2), ${solid}, color(0, 0, 0, 0))
+  norm1 = overlay-align(${xLeft}, ${yTop}, i1, bg)
+  norm2 = overlay-align(${xLeft}, ${yTop}, i2, bg)
+  cases(Either) images-difference(norm1, norm2) block:
+    | left(diff-error) =>
+      "no error" is diff-error
+    | right(badness) =>
+      badness satisfies (_ <= ${badness})
+  end
+end`
+}
+
 var UNTYPED = {
   'xLeft': '"left"',
   'xMiddle': '"middle"',
@@ -184,18 +223,6 @@ replaceArgs`
 ["blue-circle-ur-corner-scene",
 replaceArgs`
   put-image(circle(50, ${"solid"}, ${"blue"}), 100, 100, empty-scene(100, 100))`],
-
-["howdy-yall",
-replaceArgs`
-  let aligned-text =
-    overlay-align(${"xMiddle"}, ${"yBaseline"},
-      line(100, 0, ${"red"}),
-      beside-align(${"yBaseline"}, 
-        overlay-align(${"xMiddle"}, ${"yBaseline"}, line(100, 0, ${"red"}), text("Ĥowdy", 50, ${"black"})),
-        overlay-align(${"xMiddle"}, ${"yBaseline"}, line(100, 0, ${"green"}), text(" y'all", 10, ${"blue"})))):
-    place-image(line(200, 0, ${"purple"}), 0, image-baseline(aligned-text), frame(aligned-text))
-  end`,
-  31],
 
 ["framed-overlay-triangle",
 replaceArgs`
@@ -382,7 +409,32 @@ end`],
 ];
 }
 
+function makeTextTests(ARGS) {
+  function replaceArgs(strings, ...keys) {
+    var result = [strings[0]];
+    keys.forEach(function(key, i) {
+      var value = ARGS[key];
+      result.push(value, strings[i + 1]);
+    });
+    return result.join('');
+  }
+  return [
+    ["howdy-yall",
+    replaceArgs`
+      let aligned-text =
+        overlay-align(${"xMiddle"}, ${"yBaseline"},
+          line(100, 0, ${"red"}),
+          beside-align(${"yBaseline"},
+            overlay-align(${"xMiddle"}, ${"yBaseline"}, line(100, 0, ${"red"}), text("Ĥowdy", 50, ${"black"})),
+            overlay-align(${"xMiddle"}, ${"yBaseline"}, line(100, 0, ${"green"}), text(" y'all", 10, ${"blue"})))):
+        place-image(line(200, 0, ${"purple"}), 0, image-baseline(aligned-text), frame(aligned-text))
+      end`,
+      40, 3],
+  ];
+}
+
 const DEFAULT_BADNESS = 26;
+const DEFAULT_TEXT_SIZE_TOL = 3;
 const IMAGE_BASE_URL = process.env.BASE_URL || process.env.PYRET_FIXTURE_BASE;
 
 describe("Image equality - typed", function() {
@@ -394,6 +446,12 @@ describe("Image equality - typed", function() {
     tester.testRunAndAllTestsPass(it, "image-equality-typed-" + t[0],
                                   makeTest(t[0], "image-typed", t[1], IMAGE_BASE_URL, badness) );
   });
+  makeTextTests(TYPED).forEach(function(t) {
+    var badness = t.length >= 3 ? t[2]: DEFAULT_BADNESS;
+    var sizeTol = t.length >= 4 ? t[3]: DEFAULT_TEXT_SIZE_TOL;
+    tester.testRunAndAllTestsPass(it, "image-equality-typed-" + t[0],
+                                  makeTextTest(t[0], "image-typed", t[1], IMAGE_BASE_URL, badness, sizeTol) );
+  });
 });
 
 describe("Image equality - untyped", function() {
@@ -404,6 +462,12 @@ describe("Image equality - untyped", function() {
     var badness = t.length >= 3 ? t[2]: DEFAULT_BADNESS;
     tester.testRunAndAllTestsPass(it, "image-equality-untyped-" + t[0],
                                   makeTest(t[0], "image", t[1], IMAGE_BASE_URL, badness) );
+  });
+  makeTextTests(UNTYPED).forEach(function(t) {
+    var badness = t.length >= 3 ? t[2]: DEFAULT_BADNESS;
+    var sizeTol = t.length >= 4 ? t[3]: DEFAULT_TEXT_SIZE_TOL;
+    tester.testRunAndAllTestsPass(it, "image-equality-untyped-" + t[0],
+                                  makeTextTest(t[0], "image", t[1], IMAGE_BASE_URL, badness, sizeTol) );
   });
 });
 /*
