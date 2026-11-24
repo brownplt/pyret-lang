@@ -48,6 +48,7 @@ function start(config, onServerReady) {
       APP_NAME:   APP_NAME,
       APP_DOMAIN: APP_DOMAIN,
     };
+  var crypto = require('crypto');
   var express = require('express');
   var cookieSession = require('cookie-session');
   var cookieParser = require('cookie-parser');
@@ -670,7 +671,14 @@ function start(config, onServerReady) {
     );
   });
   app.get("/settings/clear-ts", function(req, res) {
-    res.clearCookie(COMPILER_COOKIE);
+    // Pins the STOCK flavor rather than merely forgetting the opt-in: with
+    // the percentage ramp below, a cleared cookie would leave this browser
+    // eligible to be bucketed right back into ts. "You'll use the regular
+    // Pyret version" has to keep meaning that.
+    res.cookie(COMPILER_COOKIE, "pyret", {
+      maxAge: COMPILER_COOKIE_MAX_AGE_MS,
+      sameSite: "lax"
+    });
     res.type("text/plain").send(
       "You visited /settings/clear-ts, so in this browser you'll use the regular\n" +
       "Pyret version.\n" +
@@ -684,24 +692,59 @@ function start(config, onServerReady) {
     );
   });
 
+  // Read per request so a config change needs nothing but the dyno
+  // restart Heroku already does. At 0 no bucket cookie is ever set, so
+  // the un-ramped site is byte-for-byte what it was.
+  var BUCKET_COOKIE = "pyret-bucket";
+  var BUCKET_COOKIE_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
+  function tsPercent() {
+    var n = Number(process.env.CPO_TS_PERCENT);
+    return (n >= 0 && n <= 100) ? n : 0;
+  }
+  function rampBucket(req, res) {
+    var b = parseInt(req.cookies && req.cookies[BUCKET_COOKIE], 10);
+    if (!(b >= 0 && b < 100)) {
+      b = crypto.randomInt(100);
+      res.cookie(BUCKET_COOKIE, String(b), {
+        maxAge: BUCKET_COOKIE_MAX_AGE_MS,
+        sameSite: "lax"
+      });
+    }
+    return b;
+  }
+
   app.get("/editor", function(req, res) {
     // The compiler flavor can be chosen per request (?compiler=ts|pyret),
-    // then by the sticky opt-in cookie (see /settings/try-ts above), then
-    // the CPO_COMPILER env default. Resolving it here (in addition to the
+    // then by the sticky opt-in/opt-out cookie (see /settings/try-ts and
+    // /settings/clear-ts above), then by the percentage ramp, then the
+    // CPO_COMPILER env default. Resolving it here (in addition to the
     // client-side check in editor.html) keeps the preload link and
     // window.PYRET pointing at the jarr that will actually load, so the
     // stock jarr isn't downloaded pointlessly in ts mode. Only known
     // flavor names are honored from the cookie; anything else falls
-    // through to the default. (No route sets "pyret" today, but honoring
-    // it gives a future ramp a per-user pin-to-stock for free.)
+    // through. The source of the decision is handed to the page so log
+    // records can separate volunteers (query, cookie) from the ramp.
     var cookieFlavor = req.cookies && req.cookies[COMPILER_COOKIE];
     if (cookieFlavor !== "ts" && cookieFlavor !== "pyret") { cookieFlavor = ""; }
-    var compiler = req.query.compiler || cookieFlavor || defaultOpts.CPO_COMPILER;
+    var compiler, source;
+    if (req.query.compiler) {
+      compiler = req.query.compiler; source = "query";
+    } else if (cookieFlavor) {
+      compiler = cookieFlavor; source = "cookie";
+    } else {
+      var pct = tsPercent();
+      if (pct > 0 && defaultOpts.PYRET_TS && rampBucket(req, res) < pct) {
+        compiler = "ts"; source = "ramp";
+      } else {
+        compiler = defaultOpts.CPO_COMPILER; source = "default";
+      }
+    }
     var compilerOpts = (compiler === "ts" && defaultOpts.PYRET_TS)
       ? { PYRET: defaultOpts.PYRET_TS, CPO_COMPILER: "ts" }
       : {};
     res.render("editor.html", { ...defaultOpts,
       ...compilerOpts,
+      CPO_COMPILER_SOURCE: source,
       CSRF_TOKEN: req.csrfToken(),
     });
   });

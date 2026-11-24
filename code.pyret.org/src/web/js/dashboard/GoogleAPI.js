@@ -65,7 +65,15 @@ class GoogleAPI {
     return window.gapi.client.request(reqOpts);
   }
 
-  getRecentFilesByExtAndAppName = (appName, ext) => {
+  // If nameQuery is given, only files whose names match it are returned.
+  // Drive's `name contains` matches prefixes of words in the name, across
+  // *all* of the user's Pyret files (not just the first page of results).
+  getRecentFilesByExtAndAppName = (appName, ext, nameQuery) => {
+    var nameFilter = "";
+    if(nameQuery) {
+      var escaped = nameQuery.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+      nameFilter = " and name contains '" + escaped + "'";
+    }
     return Q.all([this.getAppFolderID(appName), this.getAppSharedFolderID(appName)])
       .then((resp) => {
         var savedFiles = resp[0].result.files;
@@ -74,11 +82,11 @@ class GoogleAPI {
         if(sharedFiles.length > 0) {
           isSharedFile += "or '" + sharedFiles[0].id + "' in parents";
         }
-        if(savedFiles.length === 0) { return this.getRecentFilesByExt(ext); }
+        if(savedFiles.length === 0) { return this.getRecentFilesByExt(ext, nameFilter); }
         else {
           return window.gapi.client.drive.files.list({
             fields: "files(id, name, modifiedTime)",
-            q: 'not trashed and not (' + isSharedFile + ') and (fileExtension="' + ext + '" or "' + savedFiles[0].id + '" in parents)',
+            q: 'not trashed and not (' + isSharedFile + ') and (fileExtension="' + ext + '" or "' + savedFiles[0].id + '" in parents)' + nameFilter,
           });
         }
       })
@@ -87,10 +95,10 @@ class GoogleAPI {
   /**
    * list files w/ extension [ext].
    */
-  getRecentFilesByExt = (ext) => {
+  getRecentFilesByExt = (ext, nameFilter) => {
     return window.gapi.client.drive.files.list({
       fields: "files(id, name)",
-      q: 'not trashed and fileExtension="' + ext + '"',
+      q: 'not trashed and fileExtension="' + ext + '"' + (nameFilter || ""),
     });
   }
 

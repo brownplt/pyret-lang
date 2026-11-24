@@ -29,6 +29,9 @@ jobs:
     - name: run tests
       run: make all-pyret-test
 
+    - name: run jsnums tests
+      run: make jsnums-test
+
   ts-suite:
     name: Pyret test suite, compiled by the TS compiler
 

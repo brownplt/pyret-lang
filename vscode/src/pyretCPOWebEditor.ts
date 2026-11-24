@@ -352,7 +352,13 @@ export function makePyretPane(
         // Pyret stack that only resumes when this callbackId comes back.
         const has = (o: object, k: string) => Object.prototype.hasOwnProperty.call(o, k);
         const module = has(knownModules, e.data.module) ? (knownModules as any)[e.data.module] : undefined;
-        if (!module) {
+        // Restricted Mode: the RPC bridge is how a program reaches the real
+        // filesystem, so it's all off until the workspace is trusted. Checked
+        // per call, so granting trust takes effect on the next run.
+        if (!vscode.workspace.isTrusted) {
+          sendRpcResponse(e.data, { resultType: 'exception', exception: "This workspace is in Restricted Mode, so Pyret programs can't import local files or read and write files. To allow it, trust the workspace (Manage Workspace Trust in the Command Palette)." });
+        }
+        else if (!module) {
           sendRpcResponse(e.data, { resultType: 'exception', exception: `Unknown module ${e.data.module}` });
         }
         else if (!has(module, e.data.method)) {

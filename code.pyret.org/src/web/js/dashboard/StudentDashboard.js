@@ -11,6 +11,9 @@ const INITIAL_LOAD = 4;
 
 const WAITING_FOR_FILES = [];
 
+// How long to wait after the last keystroke before asking Drive
+const SEARCH_DEBOUNCE_MS = 300;
+
 
 class StudentDashboard extends Component {
   constructor() {
@@ -21,6 +24,11 @@ class StudentDashboard extends Component {
       files: [],
       activeTab: 'recent-files',
       newFileName: '',
+      searchQuery: '',
+      // Matches from Drive for searchQuery (beyond what's in files), and
+      // whether we're still waiting on Drive for them
+      searchResults: [],
+      searching: false,
       userName: false
     };
 
@@ -78,6 +86,39 @@ class StudentDashboard extends Component {
     this.api.getRecentFilesByExtAndAppName(APP_NAME, FILE_EXT).then((resp) => {
       this.setState({files: resp.result.files});
     })
+  }
+
+  handleSearchChange = (event) => {
+    const query = event.target.value;
+    const trimmed = query.trim();
+    clearTimeout(this.searchTimer);
+    // Bumping this makes any in-flight response for an older query get dropped
+    const searchId = this.searchId = (this.searchId || 0) + 1;
+    this.setState({searchQuery: query, searchResults: [], searching: trimmed !== ''});
+    if (trimmed === '') { return; }
+    this.searchTimer = setTimeout(() => {
+      const done = (results) => {
+        if (this.searchId !== searchId) { return; }
+        this.setState({searchResults: results, searching: false});
+      };
+      this.api.getRecentFilesByExtAndAppName(APP_NAME, FILE_EXT, trimmed).then(
+        (resp) => done(resp.result.files || []),
+        (err) => {
+          console.error("File search failed: ", err);
+          done([]);
+        });
+    }, SEARCH_DEBOUNCE_MS);
+  }
+
+  // The loaded files filter instantly as the user types (any substring of
+  // the name); matches Drive finds beyond the loaded page get added after.
+  getVisibleFiles = () => {
+    const query = this.state.searchQuery.trim().toLowerCase();
+    if (query === '') { return this.state.files; }
+    const local = this.state.files.filter((f) => f.name.toLowerCase().includes(query));
+    const seen = {};
+    local.forEach((f) => { seen[f.id] = true; });
+    return local.concat(this.state.searchResults.filter((f) => !seen[f.id]));
   }
 
   handleNewFilenameChange = (event) => {
@@ -146,6 +187,8 @@ class StudentDashboard extends Component {
   }
 
   render = () => {
+    const visibleFiles = this.getVisibleFiles();
+    const isSearch = this.state.searchQuery.trim() !== '';
     return (
       <div className='wrap'>
         <div id='header' className=''>
@@ -201,6 +244,13 @@ class StudentDashboard extends Component {
               <button id='select-file' onClick={this.handleSelectFileClick} >View in Google Drive</button>
             </div>
           </div>
+          <div id='file-search' className={(this.state.activeTab === 'new-file') ? 'hidden' : ''}>
+            <input id='file-search-input' type='search' placeholder='Search your files by name' aria-label='Search your files by name'
+              autoComplete='off' value={this.state.searchQuery} onChange={this.handleSearchChange} />
+            <span id='file-search-status' role='status' className={this.state.searching ? '' : 'hidden'}>
+              <i className='fa fa-circle-o-notch fast-spin fa-fw'></i> Searching all files...
+            </span>
+          </div>
           <div id='file-picker-modal-body' className={'modal-body ' + ((this.state.activeTab === 'new-file') ? 'hidden' : '')}>
             {
               this.state.files === WAITING_FOR_FILES ?
@@ -209,10 +259,12 @@ class StudentDashboard extends Component {
                 <i className='fa fa-circle-o-notch fast-spin fa-3x fa-fw'></i>
               </div>)
               :
-                this.state.files.length > 0 ?
+                visibleFiles.length > 0 ?
                     (<div className='file-list cf'>
-                      {this.state.files.map((f) => {return <File key={f.id} id={f.id} name={f.name} modifiedTime={f.modifiedTime} />;})}
+                      {visibleFiles.map((f) => {return <File key={f.id} id={f.id} name={f.name} modifiedTime={f.modifiedTime} />;})}
                     </div>)
+                  : isSearch ?
+                    (this.state.searching ? <p><em>Searching...</em></p> : <p><em>No files with names matching "{this.state.searchQuery.trim()}".</em></p>)
                   :
                     <p><em>No Pyret files yet, use New File above to create one.</em></p>
             }

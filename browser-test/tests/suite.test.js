@@ -34,6 +34,7 @@ const SUITES = {
   "big-programs": "./big-programs.js",
   "stop-during-load": require("./stop-during-load"),
   "rapid-rerun": require("./rapid-rerun"),
+  "folding": require("./folding"),
   "effective-ids": require("./effective-ids"),
   "fs-rpc-failures": require("./fs-rpc-failures"),
 };

@@ -1679,8 +1679,10 @@
             {
               type: 'bin',
               field: 'value',
-              extent: { signal: 'dataRange' },
-              maxbinx: maxNumBins,
+              extent: { signal: (binWidth
+                                 ? '[dataRange[0], (dataRange[1] + binWidth) * (1 + 1e-15)]'
+                                 : 'dataRange') },
+              maxbins: maxNumBins,
               step: binWidth ? { signal: 'binWidth' } : undefined,
               nice: true
             },
@@ -1811,7 +1813,7 @@
       const yAxisLabel = globalOptions['y-axis'];
       const axes = [
         { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel,
-          format: '5~r',
+          format: '.16~r',
           values: (binWidth
                    ? { signal: `sequence(floor(domain('binScale')[0] / binWidth) * binWidth, domain('binScale')[1] + binWidth, binWidth)` }
                    : undefined) },
@@ -1929,7 +1931,7 @@
         }
       ];
       const axes = [
-        { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel, format: '5~r' },
+        { orient: 'bottom', scale: 'binScale', zindex: 1, title: xAxisLabel, format: '.16~r' },
         { orient: 'bottom', scale: 'binScale', zindex: 0, grid: true, ticks: false, labels: false },
         { orient: 'left', scale: 'dotScale', grid: false, ticks: false, labels: false, title: yAxisLabel, zindex: 1 }
       ];
@@ -3590,6 +3592,7 @@
         "LoOoS": ann("List<Option<String>>", checkListWith(checkOptionWith(RUNTIME.isString))),
         "LoLoOoS": ann("List<List<Option<String>>>", checkListWith(checkListWith(checkOptionWith(RUNTIME.isString)))),
         "LoNi": ann("List<NumInteger>", checkListWith(v => RUNTIME.isNumber(v) && RUNTIME.num_is_integer(v))),
+        "NumPositiveNatural": ann("NumPositiveNatural", (v => RUNTIME.isNumber(v) && RUNTIME.num_is_integer(v) && jsnums.isPositive(v)))
       }
     )
   }

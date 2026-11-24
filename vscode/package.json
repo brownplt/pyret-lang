@@ -18,10 +18,19 @@
 	"files": [
 		"dist/web/**/*",
 		"media/pyret-logo-128.png",
+		"media/icons/pyret.svg",
+		"media/icons/jarr.svg",
 		"language-configuration.json",
 		"syntaxes/pyret.tmLanguage.json"
 	],
 	"browser": "./dist/web/extension.js",
+	"capabilities": {
+		"virtualWorkspaces": true,
+		"untrustedWorkspaces": {
+			"supported": "limited",
+			"description": "In Restricted Mode, Pyret programs can't access files: local imports and file reads/writes need a trusted workspace."
+		}
+	},
 	"contributes": {
 		"languages": [
 			{
@@ -33,7 +42,24 @@
 				"extensions": [
 					".arr"
 				],
+				"icon": {
+					"light": "./media/icons/pyret.svg",
+					"dark": "./media/icons/pyret.svg"
+				},
 				"configuration": "./language-configuration.json"
+			},
+			{
+				"id": "jarr",
+				"aliases": [
+					"jarr"
+				],
+				"extensions": [
+					".jarr"
+				],
+				"icon": {
+					"light": "./media/icons/jarr.svg",
+					"dark": "./media/icons/jarr.svg"
+				}
 			}
 		],
 		"grammars": [

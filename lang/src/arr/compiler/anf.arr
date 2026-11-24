@@ -292,7 +292,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
       anf(A.s-let-expr(l, bindings, A.s-id(l, name.id), false), k)
 
     | s-lam(l, name, params, args, ret, doc, body, _, _, _) =>
-      if A.is-a-blank(ret) or A.is-a-any(ret):
+      if ret.is-ignorable():
         k(N.a-lam(l, name, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
       else:
         temp = mk-id(l, "ann_check_temp")
@@ -302,7 +302,7 @@ fun anf(e :: A.Expr, k :: ANFCont) -> N.AExpr:
                 A.s-id(l, temp.id), false))))
       end
     | s-method(l, name, params, args, ret, doc, body, _, _, _) =>
-      if A.is-a-blank(ret) or A.is-a-any(ret):
+      if ret.is-ignorable():
         k(N.a-method(l, name, args.map(lam(a): N.a-bind(a.l, a.id, a.ann) end), ret, anf-term(body)))
       else:
         temp = mk-id(l, "ann_check_temp")

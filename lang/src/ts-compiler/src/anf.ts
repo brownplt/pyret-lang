@@ -502,7 +502,7 @@ export function anf(e: A.Expr, k: ANFCont): N.AExpr {
 
     case 's-lam': {
       const { l, name, args, ann: ret, body } = e;
-      if (A.isABlank(ret) || A.isAAny(ret)) {
+      if (ret.isIgnorable()) {
         return k(new N.ALam(l, name, args.map((a) => new N.ABind(a.l, field(a, 'id'), field(a, 'ann'))), ret, anfTerm(body)));
       } else {
         const temp = mkId(l, 'ann_check_temp');
@@ -514,7 +514,7 @@ export function anf(e: A.Expr, k: ANFCont): N.AExpr {
     }
     case 's-method': {
       const { l, name, args, ann: ret, body } = e;
-      if (A.isABlank(ret) || A.isAAny(ret)) {
+      if (ret.isIgnorable()) {
         return k(new N.AMethod(l, name, args.map((a) => new N.ABind(a.l, field(a, 'id'), field(a, 'ann'))), ret, anfTerm(body)));
       } else {
         const temp = mkId(l, 'ann_check_temp');

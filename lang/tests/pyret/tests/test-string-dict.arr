@@ -264,3 +264,25 @@ check "MSD Annotation Errors":
   msd.map-keys-now(true) raises "Function"
   msd.fold-keys-now(1,1) raises "Function"
 end
+
+check "ISD hash collision node removal (regression for keyHAsh typo)":
+  # "Aa" and "BB" have the same string hash, so they share a HashCollisionNode.
+  # With more than 8 keys the dict is a trie rather than an array map.
+  # Removing "Aa" collapses the collision node back to a ValueNode for "BB";
+  # that node must keep the real hash, or the following set puts "BB" in the
+  # wrong slot of the trie.
+  d = [SD.string-dict: "a", 1, "b", 2, "c", 3, "d", 4, "e", 5, "f", 6, "g", 7, "Aa", 8, "BB", 9]
+  d-removed = d.remove("Aa")
+  d-removed.has-key("Aa") is false
+  d-removed.get-value("BB") is 9
+  d2 = d-removed.set("aa", 10)
+  d2.count() is 9
+  d2.has-key("Aa") is false
+  d2.has-key("BB") is true
+  d2.get-value("BB") is 9
+  d2.get-value("aa") is 10
+  d2.get-value("a") is 1
+  d2.keys() is [tree-set: "a", "b", "c", "d", "e", "f", "g", "BB", "aa"]
+  d2 is [SD.string-dict: "a", 1, "b", 2, "c", 3, "d", 4, "e", 5, "f", 6, "g", 7, "BB", 9, "aa", 10]
+  torepr(d2) does-not-raise
+end

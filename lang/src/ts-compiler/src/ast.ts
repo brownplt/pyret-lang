@@ -3076,6 +3076,7 @@ export abstract class AnnBase {
   abstract visit(visitor: any): any;
   label(): string { return raise('No label on ' + this.$name); }
   tosource(): any { return raise('No tosource on ' + this.$name); }
+  isIgnorable(): boolean { return false; }
 }
 
 export class ABlank extends AnnBase {
@@ -3083,6 +3084,7 @@ export class ABlank extends AnnBase {
   visit(visitor: any): any { return visitor.aBlank(this); }
   label(): string { return 'a-blank'; }
   tosource(): any { return strAny; }
+  isIgnorable(): boolean { return true; }
 }
 
 export class AAny extends AnnBase {
@@ -3091,6 +3093,7 @@ export class AAny extends AnnBase {
   visit(visitor: any): any { return visitor.aAny(this); }
   label(): string { return 'a-any'; }
   tosource(): any { return strAny; }
+  isIgnorable(): boolean { return true; }
 }
 
 export class AName extends AnnBase {
