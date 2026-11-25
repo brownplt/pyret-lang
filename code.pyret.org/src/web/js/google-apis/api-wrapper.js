@@ -19,6 +19,10 @@ var gwrap = window.gwrap = {
         // Shallow copy
         var copy = $.extend({}, params);
         delete copy.reauth;
+        if (copy.callback) {
+          gw.load(copy);
+          return;
+        }
         gw.load(copy)
           .then(function(loaded) {
             loaded.auth = gw.auth; // NOTE(joe): hmmm
@@ -44,6 +48,9 @@ var gwrap = window.gwrap = {
  *        spreadsheets and photos.
  * @returns A promise which will resolve following the re-authentication.
  */
+var _lastReauth = null;
+window.hasGoogleAuth = function hasGoogleAuth() { return _lastReauth !== null; };
+
 function reauth(immediate, useFullScopes) {
   var d = Q.defer();
   if (!immediate) {
@@ -121,13 +128,16 @@ function reauth(immediate, useFullScopes) {
     window.open(path);
   } else {
     // The user is logged in, but needs an access token from our server
-    var newToken = $.ajax("/getAccessToken", { method: "get", datatype: "json" });
+    var newToken = $.ajax("/getAccessToken", { method: "get", dataType: "json" });
     newToken.then(function(t) {
+      if(!t || !t.logged_in) { _lastReauth = null; d.resolve(null); return; }
       gapi.auth.setToken({ access_token: t.access_token });
       logger.log('login', {user_id: t.user_id});
-      d.resolve({ user_id: t.user_id, access_token: t.access_token });
+      _lastReauth = { user_id: t.user_id, access_token: t.access_token };
+      d.resolve(_lastReauth);
     });
     newToken.fail(function(t) {
+      _lastReauth = null;
       d.resolve(null);
     });
   }
@@ -343,6 +353,10 @@ function loadAPIWrapper(immediate) {
           // Shallow copy
           var copy = $.extend({}, params);
           delete copy.reauth;
+          if (copy.callback) {
+            gw.load(copy);
+            return;
+          }
           gw.load(copy)
             .then(function(loaded) {
               reloaded.resolve(loaded);

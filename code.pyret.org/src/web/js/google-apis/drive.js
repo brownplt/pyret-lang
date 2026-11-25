@@ -7,6 +7,18 @@ window.createProgramCollectionAPI = function createProgramCollectionAPI(collecti
   var FOLDER_MIME = "application/vnd.google-apps.folder";
   var BACKREF_KEY = "originalProgram";
 
+  function canReachDrive() {
+    if(publicOnly) { return false; }
+    if(typeof window.hasGoogleAuth === "function") { return window.hasGoogleAuth(); }
+    return true;
+  }
+
+  function noCollection(why) {
+    var q = Q.defer();
+    q.reject(why);
+    return q.promise;
+  }
+
   function createAPI(baseCollection) {
     function makeSharedFile(googFileObject, fetchFromGoogle) {
       return {
@@ -244,17 +256,14 @@ window.createProgramCollectionAPI = function createProgramCollectionAPI(collecti
       }
     };
 
-    if(!publicOnly) {
+    if(canReachDrive()) {
       var shareCollection = findOrCreateDirectory(collectionName + ".shared");
       var cacheCollection = findOrCreateCacheDirectory(collectionName + ".compiled");
     }
     else {
-      var shareCollectionQ = Q.defer();
-      var cacheCollectionQ = Q.defer();
-      shareCollectionQ.reject("No share collection with publicOnly=true");
-      cacheCollectionQ.reject("No cache collection with publicOnly=true");
-      shareCollection = shareCollectionQ.promise;
-      cacheCollection = cacheCollectionQ.promise;
+      var why = publicOnly ? "publicOnly=true" : "not logged in";
+      shareCollection = noCollection("No share collection with " + why);
+      cacheCollection = noCollection("No cache collection with " + why);
     }
 
     return {
@@ -297,13 +306,12 @@ window.createProgramCollectionAPI = function createProgramCollectionAPI(collecti
 
   function initialize(wrappedDrive) {
     drive = wrappedDrive;
-    if(!publicOnly) {
+    if(canReachDrive()) {
       var baseCollection = findOrCreateDirectory(collectionName);
     }
     else {
-      var baseCollectionQ = Q.defer();
-      baseCollectionQ.reject("No base collection with publicOnly=true");
-      var baseCollection = baseCollectionQ.promise;
+      var baseCollection = noCollection(
+        "No base collection with " + (publicOnly ? "publicOnly=true" : "not logged in"));
     }
     return createAPI(baseCollection);
   }
