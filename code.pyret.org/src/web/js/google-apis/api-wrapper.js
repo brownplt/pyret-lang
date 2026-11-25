@@ -19,9 +19,11 @@ var gwrap = window.gwrap = {
         // Shallow copy
         var copy = $.extend({}, params);
         delete copy.reauth;
-        var loadedP = gw.load(copy);
-        if (!loadedP) { return; }
-        loadedP
+        if (copy.callback) {
+          gw.load(copy);
+          return;
+        }
+        gw.load(copy)
           .then(function(loaded) {
             loaded.auth = gw.auth; // NOTE(joe): hmmm
             loaded.hasAuth = function() { return gw.auth !== null; }
@@ -351,6 +353,10 @@ function loadAPIWrapper(immediate) {
           // Shallow copy
           var copy = $.extend({}, params);
           delete copy.reauth;
+          if (copy.callback) {
+            gw.load(copy);
+            return;
+          }
           gw.load(copy)
             .then(function(loaded) {
               reloaded.resolve(loaded);
