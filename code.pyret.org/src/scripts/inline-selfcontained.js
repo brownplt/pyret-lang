@@ -137,10 +137,6 @@ function absolutizeCssUrls(css, cssDirUrl) {
   });
 }
 
-// Templates may append a cache-busting query (`...js?v={{GIT_REV}}`); the file
-// on disk has no query string, and inlining drops the URL anyway.
-function stripQuery(rel) { return rel.replace(/\?.*$/, ""); }
-
 function countOccurrences(haystack, needle) {
   return haystack.split(needle).length - 1;
 }
@@ -162,7 +158,6 @@ function buildSelfContained(template, readAsset, Mustache) {
   html = html.replace(
     new RegExp('<script\\b[^>]*\\bsrc="' + BASE + '/js/([^"]+)"[^>]*>\\s*</script>', "gi"),
     (tag, rel) => {
-      rel = stripQuery(rel);
       const code = readAsset("js/" + rel);
       checkInlinable("js/" + rel, code);
       return "<script>\n" + escapeForScript("js/" + rel, code) + "\n</script>";
@@ -173,7 +168,6 @@ function buildSelfContained(template, readAsset, Mustache) {
   html = html.replace(
     new RegExp('<link\\b[^>]*\\bhref="' + BASE + '/css/([^"]+)"[^>]*>', "gi"),
     (tag, rel) => {
-      rel = stripQuery(rel);
       const css = readAsset("css/" + rel);
       checkInlinable("css/" + rel, css);
       const dirUrl = path.posix.dirname(BASE + "/css/" + rel);
