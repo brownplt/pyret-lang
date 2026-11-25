@@ -95,6 +95,19 @@ test("buildSelfContained: missing asset is a build error, not a fallback", () =>
   assert.throws(() => buildSelfContained(t, readAsset, Mustache), /missing asset: js\/nope\.js/);
 });
 
+test("buildSelfContained: a cache-busting ?v= query is not part of the asset's file name", () => {
+  // editor.html appends ?v={{ &GIT_REV }} to the app's own scripts (and the
+  // template vars here have no GIT_REV, so it renders as a bare `?v=`)
+  const t = TEMPLATE
+    .replace("/js/shell.js\"", "/js/shell.js?v={{ &GIT_REV }}\"")
+    .replace("/css/editor.css\"", "/css/editor.css?v={{ &GIT_REV }}\"");
+  assert.ok(t.includes("shell.js?v=") && t.includes("editor.css?v="));
+  const html = buildSelfContained(t, readAsset, Mustache);
+  assert.ok(html.includes('var brace = {{}};'));
+  assert.ok(html.includes("url(" + BASE + "/css/../img/p.gif)"));
+  assert.ok(!html.includes("?v="));
+});
+
 test("buildSelfContained: a BASE script the pattern can't inline is a build error", () => {
   // single-quoted src doesn't match the inline pattern; the leftover check
   // must catch it rather than shipping a MIME-doomed reference
