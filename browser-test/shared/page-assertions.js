@@ -113,6 +113,14 @@ function PYRET_PAGE_ASSERTIONS() {
     compileErrorPresent() {
       return !!document.querySelector("#output .compile-error");
     },
+    worldDialogPresent() {
+      return !!document.querySelector(".ui-dialog-title");
+    },
+    closeWorldDialog() {
+      const btn = document.querySelector(".ui-icon-closethick");
+      if (btn) btn.click();
+      return !!btn;
+    },
 
     // ---- interactions REPL (mirrors util.evalPyret / evalPyretNoError). The
     // CPO editor hides interactions until the first run (beforePyret.js:1594

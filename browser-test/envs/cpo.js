@@ -25,7 +25,7 @@ async function setup() {
     const query = COMPILER === "pyret" ? "" : "?compiler=" + COMPILER;
     await page.goto(BASE_URL + "/editor" + query, { waitUntil: "domcontentloaded", timeout: 120000 });
     const frame = await findEditorFrame(page);
-    return { page, frame, cleanup: scope.closeAll };
+    return { browser, page, frame, cleanup: scope.closeAll };
   } catch (e) {
     await scope.closeAll();
     throw e;

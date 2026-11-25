@@ -92,6 +92,21 @@ async function runAndCheckAllTestsPassed(page, code, name, timeout) {
   return checkAllTestsPassed(page, name, timeout);
 }
 
+// mirrors util.checkWorldProgramRunsCleanly
+async function checkWorldProgramRunsCleanly(page, code, name, timeout) {
+  await setDefinitionsConfirmed(page, code);
+  await page.eval("window.PA.clearOutput()");
+  await page.eval("window.PA.run()");
+  await page.waitFor("window.PA.worldDialogPresent()", timeout || 900000);
+  await new Promise((r) => setTimeout(r, 5000));
+  const closed = await page.eval("window.PA.closeWorldDialog()");
+  if (!closed) {
+    throw new ProceduralError("world dialog close button (.ui-icon-closethick) not found");
+  }
+  await page.waitFor("window.PA.breakDone()", timeout || 900000);
+  return checkAllTestsPassed(page, name, timeout);
+}
+
 // mirrors util.testErrorRendersString -- CONTENT: error output contains `expected`.
 async function testErrorRendersString(page, code, expected, options) {
   await setDefinitionsRunAndWait(page, code, options);
@@ -223,6 +238,7 @@ module.exports = {
   setDefinitionsRunAndWait,
   checkAllTestsPassed,
   runAndCheckAllTestsPassed,
+  checkWorldProgramRunsCleanly,
   testErrorRendersString,
   testRunsAndHasCheckBlocks,
   evalAtReplNoError,

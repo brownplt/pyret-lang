@@ -1,9 +1,9 @@
 /*
  * suite.test.js -- the node:test entry point.
  *
- * Boots one environment (PYRET_ENV = cpo | embed | vscode), focuses the editor
- * frame ONCE, then registers one test() per spec loaded from the unmodified
- * code.pyret.org/test/*.js. Each test runs the matching assertion
+ * Boots one environment (PYRET_ENV = cpo | embed | embed-static | vscode | vscode-ovsx),
+ * focuses the editor frame ONCE, then registers one test() per spec loaded from
+ * browser-test/cpo/test/*.js or browser-test/tests/*.js. Each test runs the matching assertion
  * (shared/dispatch.js -> shared/cpo-assertions.js), which uses node:assert for
  * content and ProceduralError for setup problems.
  *
@@ -17,11 +17,10 @@ const { runSpec, specTimeout } = require("../shared/dispatch");
 const { warmUp } = require("../shared/cpo-assertions");
 
 const ENV = process.env.PYRET_ENV;
-// A suite is either a string naming where its specs come from -- a
-// code.pyret.org/test/*.js file, or a relative path to a harness-local module
-// exporting specs() -- or a function that registers its own test()s, for the
-// cases where what is under test is the editor's behaviour rather than a
-// program's value.
+// A suite is a string naming a browser-test/cpo/test/*.js file (or a relative
+// path to a harness-local module exporting specs()), an { source, env } object
+// scoping that spec source to one env, or a function that registers its own
+// test()s.
 const SUITES = {
   "check-blocks": "check-blocks.js",
   "errors": "errors.js",
@@ -29,8 +28,13 @@ const SUITES = {
   "type-check": "type-check.js",
   "tables": "tables.js",
   "url-imports": "url-imports.js",
-  // Harness-local specs (generated large-program stress shapes; not an
-  // upstream code.pyret.org/test file -- see tests/big-programs.js).
+  "images": "pyret.js",
+  "image-equality": { source: "image-equality.js", env: "cpo" },
+  "world": { source: "world.js", env: "cpo" },
+  "number": require("./number"),
+  "embed-protocol": require("./embed-protocol"),
+  "static-pages": require("./static-pages"),
+  // Harness-local specs (generated large-program stress shapes -- see tests/big-programs.js).
   "big-programs": "./big-programs.js",
   "stop-during-load": require("./stop-during-load"),
   "rapid-rerun": require("./rapid-rerun"),
@@ -127,7 +131,7 @@ before(async () => {
   }
   // Absorb the one-time runtime/render warmup so no actual test pays it.
   await warmUp(page);
-  session = { page };
+  session = { page, browser: s.browser };
 }, { timeout: 240000 });
 
 after(async () => {
@@ -141,8 +145,12 @@ for (const suite of chosen) {
       entry(() => session);
       return;
     }
-    for (const s of loadSpecs(entry)) {
-      test(s.name || s.program, { timeout: specTimeout(s) }, async () => {
+    const source = typeof entry === "string" ? entry : entry.source;
+    const skip = typeof entry === "object" && entry.env && entry.env !== ENV
+      ? "runs only in the " + entry.env + " env"
+      : false;
+    for (const s of loadSpecs(source)) {
+      test(s.name || s.program, { timeout: specTimeout(s), skip }, async () => {
         await runSpec(session.page, s);
       });
     }
