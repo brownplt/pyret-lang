@@ -20,7 +20,6 @@ const { runAll } = require('./watchdog');
 
 const REPO = path.join(__dirname, '..', '..', '..');
 const FILE = 'lang/src/js/base/js-numbers.js';
-const CONFIGS = [28, 30, 26];
 
 function git(...args) { return execFileSync('git', args, { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 28 }); }
 
@@ -59,10 +58,8 @@ function revert(fixedLines, hunks) {
 }
 
 async function runSuite(libPath) {
-  for (const bits of CONFIGS) {
-    try { loadLibrary(libPath, bits); } catch (e) { return { total: 0, fails: [{ id: 'load', why: 'library failed to load: ' + e.message }], loadError: true }; }
-  }
-  const all = await runAll(libPath, CONFIGS);
+  try { loadLibrary(libPath); } catch (e) { return { total: 0, fails: [{ id: 'load', why: 'library failed to load: ' + e.message }], loadError: true }; }
+  const all = await runAll(libPath);
   const fails = [];
   for (const [key, r] of all) if (!r.ok) fails.push({ id: key, why: r.why });
   return { total: all.size, fails };

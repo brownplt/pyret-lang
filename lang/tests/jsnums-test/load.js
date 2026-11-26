@@ -34,33 +34,19 @@ function makeErrbacks() {
   return eb;
 }
 
-// Digit configurations jsbn picks from navigator.appName.
-const CONFIGS = {
-  28: { appName: 'Netscape' },
-  30: { appName: 'Microsoft Internet Explorer' },
-  26: { appName: 'Opera' },
-};
-
-// navigator === undefined means "whatever this Node process has".
-function loadModule(srcPath, navigator) {
+function loadModule(srcPath) {
   const src = fs.readFileSync(srcPath || DEFAULT_SRC, 'utf8');
   let mod;
   const define = (name, factory) => { mod = factory(); };
-  if (navigator === undefined) {
-    new Function('define', src)(define);
-  } else {
-    new Function('define', 'navigator', src)(define, navigator);
-  }
+  new Function('define', src)(define);
   if (!mod) throw new Error('js-numbers did not call define()');
   return mod;
 }
 
-function loadLibrary(srcPath, digitBits) {
-  const nav = digitBits === undefined ? undefined : CONFIGS[digitBits];
-  if (digitBits !== undefined && !nav) throw new Error('unknown digit config ' + digitBits);
-  const mod = loadModule(srcPath, nav);
+function loadLibrary(srcPath) {
+  const mod = loadModule(srcPath);
   const lib = mod.MakeNumberLibrary(makeErrbacks());
-  return { mod, lib, digitBits: lib.BigInteger.prototype.DB };
+  return { mod, lib };
 }
 
-module.exports = { DEFAULT_SRC, JsNumsError, ERRBACK_TAGS, makeErrbacks, CONFIGS, loadModule, loadLibrary };
+module.exports = { DEFAULT_SRC, JsNumsError, ERRBACK_TAGS, makeErrbacks, loadModule, loadLibrary };

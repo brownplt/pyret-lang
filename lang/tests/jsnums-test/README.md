@@ -89,7 +89,7 @@ change, and only touches cases that aren't frozen yet.
 ### Running it
 
 ```
-make jsnums-test                      # node --test, ~15s, no external tools
+make jsnums-test                      # node --test, ~5s, no external tools
 JSNUMS_PATH=/path/to/js-numbers.js make jsnums-test   # test a different copy
 JSNUMS_FILTER=divide-F26 make jsnums-test             # subset by case id substring
 JSNUMS_TIMEOUT=30000 make jsnums-test                 # per-case watchdog, ms (default 10000)
@@ -107,18 +107,6 @@ and `watchdog.js`. The watchdog exists because a buggy library can hang
 forever on some input (e.g. `remainder` by zero on an unguarded
 implementation); each case runs in a worker thread and a hang becomes a
 timed-out failure instead of blocking the whole run.
-
-`js-numbers.js` now backs `BigInteger` with native `BigInt`, and against
-it the runner evaluates every case once. The harness still supports the
-older jsbn-backed library (pass one via `JSNUMS_PATH`, or compare across
-history with `compare.js`/`sensitivity.js`). For jsbn, the runner evaluates
-every case under three digit configurations (26-, 28-, 30-bit, by injecting
-a fake `navigator.appName`), because jsbn picks its digit width from
-`navigator.appName` and that's a real reachability axis (Node ≥ 21 defines
-a `navigator` global with no string `appName`, which is how a division bug
-in the 26-bit configuration became reachable in the first place). The two
-digit-configuration tests in `policy.test.js` apply only to jsbn and are
-skipped against the native library.
 
 ### Case file shape
 
@@ -223,7 +211,7 @@ same `div-by-zero` error regardless.
 | `exact-zero-annihilates` | exact 0 times, or divided by, a roughnum is exact 0 |
 | `exact-zero-add-identity` | adding exact 0 returns the other operand completely unchanged (so `0 + ~-0.0` stays `~-0.0`) |
 | `trig-overflow-is-error` | `sin/cos/tan` of an exact value beyond the double range raise, rather than the silent overflow some oracles produce |
-| `expt-exponent-limit` | an integer exponent beyond the fixnum range (for a base other than 0 or 1) is an error, mirroring jsbn's own `2^32-1` limit on bignum exponentiation |
+| `expt-exponent-limit` | an integer exponent beyond the fixnum range (for a base other than 0 or 1) is an error, mirroring js-numbers' `2^32-1` limit on bignum exponentiation |
 | `min-value-tolerance-error` | `roughlyEquals` with a tolerance of exactly `Number.MIN_VALUE` raises when the difference is also exactly `Number.MIN_VALUE` (no meaningful comparison is possible at that resolution) |
 | `rough-zero-exponent-ambiguous` | `expt(0, y)` with `y` a rough zero raises, rather than taking the oracles' `pow(0,0)=1` IEEE convention. This one is worth spelling out: for a nonzero base, a rough exponent near 0 is a rounding error away from the exact-0 answer (continuity). For a base of exactly 0, the three neighborhoods of a rough zero exponent give three *unrelated* answers — `0` for a positive epsilon, `1` at exactly zero, division-by-zero for a negative epsilon — so there's no single value to round to, and the oracles' raw `1.0` doesn't see that because plain IEEE float `pow` doesn't model the ambiguity at all. |
 
@@ -246,7 +234,6 @@ start flagging real libm rounding as a regression.
   classes — checked directly by `policy.test.js`, not via the case files.
 
 `policy.test.js` is also where to look for anything that genuinely can't
-be expressed as an oracle case: the digit-configuration default, the
-module's export surface, and resource guards (e.g. that `expt` refuses an
+be expressed as an oracle case: the module's export surface, and resource guards (e.g. that `expt` refuses an
 exponent search that would otherwise run forever) that need a worker
 thread to test safely rather than an oracle answer.

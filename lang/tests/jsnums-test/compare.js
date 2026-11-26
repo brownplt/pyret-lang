@@ -9,13 +9,11 @@
 const fs = require('fs');
 const { runAll } = require('./watchdog');
 
-const CONFIGS = [28, 30, 26];
-
 async function main(argv) {
   const [a, b] = argv.filter(x => !x.startsWith('--') && !argv[argv.indexOf(x) - 1]?.startsWith('--json'));
   const details = argv.includes('--details');
   const jsonOut = argv.includes('--json') ? argv[argv.indexOf('--json') + 1] : null;
-  const ra = await runAll(a, CONFIGS), rb = await runAll(b, CONFIGS);
+  const ra = await runAll(a), rb = await runAll(b);
   const fam = new Map();
   for (const [key, x] of ra) {
     const y = rb.get(key);
@@ -29,7 +27,7 @@ async function main(argv) {
     else f.pass++;
   }
   const rows = [...fam.values()].sort((p, q) => p.op.localeCompare(q.op) || p.family.localeCompare(q.family));
-  console.log('| op | family | cases x configs | fail A, pass B | fail both | pass A, fail B |');
+  console.log('| op | family | cases | fail A, pass B | fail both | pass A, fail B |');
   console.log('|---|---|---:|---:|---:|---:|');
   let tf = 0, tb = 0, tr = 0, tt = 0;
   for (const f of rows) {
